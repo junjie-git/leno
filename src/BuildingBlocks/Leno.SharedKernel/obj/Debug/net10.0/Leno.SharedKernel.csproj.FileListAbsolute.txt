@@ -1,0 +1,12 @@
+/workspace/src/BuildingBlocks/Leno.SharedKernel/obj/Debug/net10.0/Leno.SharedKernel.GeneratedMSBuildEditorConfig.editorconfig
+/workspace/src/BuildingBlocks/Leno.SharedKernel/obj/Debug/net10.0/Leno.SharedKernel.AssemblyInfoInputs.cache
+/workspace/src/BuildingBlocks/Leno.SharedKernel/obj/Debug/net10.0/Leno.SharedKernel.AssemblyInfo.cs
+/workspace/src/BuildingBlocks/Leno.SharedKernel/obj/Debug/net10.0/Leno.SharedKernel.csproj.CoreCompileInputs.cache
+/workspace/src/BuildingBlocks/Leno.SharedKernel/obj/Debug/net10.0/Leno.SharedKernel.sourcelink.json
+/workspace/src/BuildingBlocks/Leno.SharedKernel/bin/Debug/net10.0/Leno.SharedKernel.deps.json
+/workspace/src/BuildingBlocks/Leno.SharedKernel/bin/Debug/net10.0/Leno.SharedKernel.dll
+/workspace/src/BuildingBlocks/Leno.SharedKernel/bin/Debug/net10.0/Leno.SharedKernel.pdb
+/workspace/src/BuildingBlocks/Leno.SharedKernel/obj/Debug/net10.0/Leno.SharedKernel.dll
+/workspace/src/BuildingBlocks/Leno.SharedKernel/obj/Debug/net10.0/refint/Leno.SharedKernel.dll
+/workspace/src/BuildingBlocks/Leno.SharedKernel/obj/Debug/net10.0/Leno.SharedKernel.pdb
+/workspace/src/BuildingBlocks/Leno.SharedKernel/obj/Debug/net10.0/ref/Leno.SharedKernel.dll

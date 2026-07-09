@@ -1,0 +1,23 @@
+name: Leno Platform CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore
+        run: dotnet restore Leno.sln
+      - name: Build
+        run: dotnet build Leno.sln --configuration Release --no-restore
+      - name: Unit tests
+        run: dotnet test Leno.sln --configuration Release --no-build --filter "Category=Unit"

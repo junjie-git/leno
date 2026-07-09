@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Leno.Infrastructure/Leno.Infrastructure.csproj" />
+    <Project Path="src/BuildingBlocks/Leno.SharedContracts/Leno.SharedContracts.csproj" />
+    <Project Path="src/BuildingBlocks/Leno.SharedKernel/Leno.SharedKernel.csproj" />
+  </Folder>
+</Solution>

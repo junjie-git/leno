@@ -1,0 +1,100 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.{cs,csx}]
+indent_size = 4
+
+# .NET 命名规范
+[*.cs]
+# PascalCase: 类、记录、接口、方法、公共属性、命名空间、枚举、事件
+dotnet_naming_rule.types_and_members_should_be_pascalcase.severity = warning
+dotnet_naming_rule.types_and_members_should_be_pascalcase.symbols = types_and_members
+dotnet_naming_rule.types_and_members_should_be_pascalcase.style = pascal_case_style
+
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+dotnet_naming_symbols.types_and_members.applicable_kinds = class, struct, interface, enum, property, method, event, delegate, namespace, record
+dotnet_naming_symbols.types_and_members.applicable_accessibilities = public, internal, protected_internal, protected, private_protected, private
+
+# 接口以 I 前缀
+dotnet_naming_rule.interfaces_should_be_iprefixed.severity = warning
+dotnet_naming_rule.interfaces_should_be_iprefixed.symbols = interface_symbols
+dotnet_naming_rule.interfaces_should_be_iprefixed.style = interface_style
+
+dotnet_naming_symbols.interface_symbols.applicable_kinds = interface
+dotnet_naming_symbols.interface_symbols.applicable_accessibilities = public, internal, private
+
+dotnet_naming_style.interface_style.capitalization = pascal_case
+dotnet_naming_style.interface_style.required_prefix = I
+
+# 私有字段 _camelCase
+dotnet_naming_rule.private_fields_should_be_camelcase_with_underscore.severity = warning
+dotnet_naming_rule.private_fields_should_be_camelcase_with_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_should_be_camelcase_with_underscore.style = underscore_camel_case_style
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+
+dotnet_naming_style.underscore_camel_case_style.capitalization = camel_case
+dotnet_naming_style.underscore_camel_case_style.required_prefix = _
+
+# 异步方法以 Async 结尾
+dotnet_naming_rule.async_methods_should_end_with_async.severity = suggestion
+dotnet_naming_rule.async_methods_should_end_with_async.symbols = async_methods
+dotnet_naming_rule.async_methods_should_end_with_async.style = async_method_style
+
+dotnet_naming_symbols.async_methods.applicable_kinds = method
+dotnet_naming_symbols.async_methods.required_modifiers = async
+
+dotnet_naming_style.async_method_style.capitalization = pascal_case
+dotnet_naming_style.async_method_style.required_suffix = Async
+
+# this. 限定
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+
+# var 使用
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+
+# 表达式成员
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+
+# 模式匹配
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+
+# 命名空间
+csharp_style_namespace_declarations = file_scoped:warning
+
+# using
+csharp_using_directive_placement = outside_namespace:warning
+
+# 新行
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+
+# 分析器
+dotnet_diagnostic.CA1707.severity = warning
+dotnet_diagnostic.CA1062.severity = none
+dotnet_diagnostic.CA2007.severity = none
+# 编码规范统一使用 _logger.LogXxx 直接调用（见编码规范.md Serilog/日志章节示例），
+# 故关闭要求 LoggerMessage 源生成器的 CA1848 及其伴随的 CA1873，以与规范保持一致。
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA1873.severity = none
