@@ -24,6 +24,9 @@
     <Project Path="src/Services/Promotion/Leno.Promotion.Domain/Leno.Promotion.Domain.csproj" />
     <Project Path="src/Services/Promotion/Leno.Promotion.Infrastructure/Leno.Promotion.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Services/PointsMembership/">
+    <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Domain/Leno.PointsMembership.Domain.csproj" />
+  </Folder>
   <Folder Name="/src/Services/SellerShop/">
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Api/Leno.SellerShop.Api.csproj" />
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Application/Leno.SellerShop.Application.csproj" />
