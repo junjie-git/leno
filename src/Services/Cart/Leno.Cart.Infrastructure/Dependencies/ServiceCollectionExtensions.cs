@@ -41,7 +41,12 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ICartRepository, EfCoreCartRepository>();
 
-        services.AddScoped<ICartPriceService, CartPriceService>();
+        // 价格防腐层：通过 typed HttpClient 调用商品域内部 API，BaseAddress 来自 ServiceUrls:ProductApi
+        services.AddHttpClient<ICartPriceService, CartPriceService>(client =>
+        {
+            var baseAddress = configuration["ServiceUrls:ProductApi"] ?? "http://localhost:5150";
+            client.BaseAddress = new Uri(baseAddress);
+        });
         services.AddSingleton<RedisCartCache>();
 
         services.AddScoped<ICartAppService, CartAppService>();

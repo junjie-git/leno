@@ -2,6 +2,7 @@ using Leno.SystemAdmin.Application.Abstractions;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Infrastructure.Jobs;
 using Microsoft.Extensions.Logging;
+using Quartz;
 
 namespace Leno.SystemAdmin.Infrastructure.Services;
 
@@ -12,25 +13,30 @@ namespace Leno.SystemAdmin.Infrastructure.Services;
 public sealed class ScheduledTaskExecutor : IScheduledTaskExecutor
 {
     private readonly QuartzJobScheduler _scheduler;
+    private readonly ISchedulerFactory _schedulerFactory;
     private readonly IScheduledTaskRepository _taskRepository;
     private readonly ILogger<ScheduledTaskExecutor> _logger;
 
     public ScheduledTaskExecutor(
         QuartzJobScheduler scheduler,
+        ISchedulerFactory schedulerFactory,
         IScheduledTaskRepository taskRepository,
         ILogger<ScheduledTaskExecutor> logger)
     {
         ArgumentNullException.ThrowIfNull(scheduler);
+        ArgumentNullException.ThrowIfNull(schedulerFactory);
         ArgumentNullException.ThrowIfNull(taskRepository);
         ArgumentNullException.ThrowIfNull(logger);
         _scheduler = scheduler;
+        _schedulerFactory = schedulerFactory;
         _taskRepository = taskRepository;
         _logger = logger;
     }
 
     /// <summary>
     /// 立即触发指定任务执行。
-    /// 当前为占位实现：仅校验任务存在并记录日志，Quartz 立即触发能力待后续接入。
+    /// 通过 Quartz 调度器的 <see cref="IScheduler.TriggerJob"/> 触发已注册的作业，
+    /// JobKey 与 <see cref="QuartzJobScheduler.ScheduleTaskAsync"/> 保持一致。
     /// 聚合状态变更已由应用服务持久化，本方法不再重复变更。
     /// </summary>
     /// <param name="taskId">任务标识。</param>
@@ -44,7 +50,18 @@ public sealed class ScheduledTaskExecutor : IScheduledTaskExecutor
             return;
         }
 
-        _logger.LogInformation("手动触发定时任务执行 TaskId={TaskId}", taskId);
+        try
+        {
+            var scheduler = await _schedulerFactory.GetScheduler(ct);
+            var jobKey = JobKey.Create(taskId.ToString());
+            await scheduler.TriggerJob(jobKey, ct);
+            _logger.LogInformation("手动触发定时任务成功 TaskId={TaskId}", taskId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "手动触发定时任务异常 TaskId={TaskId}", taskId);
+            throw;
+        }
     }
 
     /// <summary>

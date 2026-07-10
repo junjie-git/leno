@@ -34,21 +34,21 @@
 
 ## 阶段三：跨域防腐层 HTTP 客户端实现
 
-- [ ] Cart 域 `CartPriceService` 已注入 HttpClient 与内部密钥配置
-- [ ] Cart 域 `GetSkuPricesAsync` 调用 Product 域批量 SKU 查询端点，解析响应为 `SkuPriceSnapshot`
-- [ ] Cart 域 `ServiceCollectionExtensions` 已注册 `AddHttpClient<CartPriceService>`
-- [ ] Order 域 `ProductAntiCorruptionService` 已注入 HttpClient，调用 Product 域 SKU 查询端点
-- [ ] Order 域 `PromotionAntiCorruptionService` 已注入 HttpClient，调用 Promotion 域折扣试算端点
-- [ ] Order 域 `PointsAntiCorruptionService` 三个方法已分别调用 PointsMembership 域三个端点
-- [ ] Order 域 `ServiceCollectionExtensions` 已为三个防腐层注册 `AddHttpClient<TypedClient>`
-- [ ] ReviewAfterSales 域 `PaymentInfoQueryService` 已注入 HttpClient，调用 Payment 域端点
-- [ ] ReviewAfterSales 域 `AfterSalesEligibilityChecker` 调用 Order 域端点校验售后期、申请人、重复售后
-- [ ] ReviewAfterSales 域 `ReviewEligibilityChecker` 调用 Order 域端点校验订单完成、评价期、申请人、重复评价
-- [ ] ReviewAfterSales 域 `ServiceCollectionExtensions` 已为三个服务注册 `AddHttpClient`
-- [ ] Notification 域 `UserContactAntiCorruptionService` 已创建，调用 UserAuth 域联系方式查询端点
-- [ ] Notification 域 `SmsChannel.SendAsync` 通过防腐层查询手机号，不再使用空字符串
-- [ ] Notification 域 `EmailChannel.SendAsync` 通过防腐层查询邮箱，不再使用空字符串
-- [ ] Notification 域 `ServiceCollectionExtensions` 已注册 `AddHttpClient<UserContactAntiCorruptionService>`
+- [x] Cart 域 `CartPriceService` 已注入 HttpClient 与内部密钥配置
+- [x] Cart 域 `GetSkuPricesAsync` 调用 Product 域批量 SKU 查询端点，解析响应为 `SkuPriceSnapshot`
+- [x] Cart 域 `ServiceCollectionExtensions` 已注册 `AddHttpClient<CartPriceService>`
+- [x] Order 域 `ProductAntiCorruptionService` 已注入 HttpClient，调用 Product 域 SKU 查询端点
+- [x] Order 域 `PromotionAntiCorruptionService` 已注入 HttpClient，调用 Promotion 域折扣试算端点
+- [x] Order 域 `PointsAntiCorruptionService` 三个方法已分别调用 PointsMembership 域三个端点
+- [x] Order 域 `ServiceCollectionExtensions` 已为三个防腐层注册 `AddHttpClient<TypedClient>`
+- [x] ReviewAfterSales 域 `PaymentInfoQueryService` 已注入 HttpClient，调用 Payment 域端点
+- [x] ReviewAfterSales 域 `AfterSalesEligibilityChecker` 调用 Order 域端点校验售后期、申请人、重复售后
+- [x] ReviewAfterSales 域 `ReviewEligibilityChecker` 调用 Order 域端点校验订单完成、评价期、申请人、重复评价
+- [x] ReviewAfterSales 域 `ServiceCollectionExtensions` 已为三个服务注册 `AddHttpClient`
+- [x] Notification 域 `UserContactAntiCorruptionService` 已创建，调用 UserAuth 域联系方式查询端点
+- [x] Notification 域 `SmsChannel.SendAsync` 通过防腐层查询手机号，不再使用空字符串
+- [x] Notification 域 `EmailChannel.SendAsync` 通过防腐层查询邮箱，不再使用空字符串
+- [x] Notification 域 `ServiceCollectionExtensions` 已注册 `AddHttpClient<UserContactAntiCorruptionService>`
 
 ## 阶段四：第三方渠道真实实现
 
@@ -83,8 +83,8 @@
 - [ ] Order 域 `OrderAppService` 构造函数已注入 `ICurrentUserContext`
 - [ ] Order 域 `ShipAsync` 从 `ICurrentUserContext` 获取操作人标识，不再传 `Guid.Empty`
 - [ ] Order 域 `OrderPricingDomainService.ValidatePricesAsync` 通过商品防腐层校验价格一致性
-- [ ] SystemAdmin 域 `ScheduledTaskExecutor` 已注入 `ISchedulerFactory`
-- [ ] SystemAdmin 域 `RunNowAsync` 通过 `IScheduler.TriggerJob` 立即触发作业
+- [x] SystemAdmin 域 `ScheduledTaskExecutor` 已注入 `ISchedulerFactory`
+- [x] SystemAdmin 域 `RunNowAsync` 通过 `IScheduler.TriggerJob` 立即触发作业
 
 ## 阶段六：构建验证
 

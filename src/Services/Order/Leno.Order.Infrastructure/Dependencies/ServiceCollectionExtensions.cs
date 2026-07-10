@@ -50,10 +50,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOrderNumberGenerator, OrderNumberGenerator>();
         services.AddScoped<IFreightCalculator, FreightCalculator>();
 
-        // 防腐层实现（占位，实际部署替换为 HTTP 调用其他域 API）
-        services.AddScoped<IProductAntiCorruptionService, ProductAntiCorruptionService>();
-        services.AddScoped<IPromotionAntiCorruptionService, PromotionAntiCorruptionService>();
-        services.AddScoped<IPointsAntiCorruptionService, PointsAntiCorruptionService>();
+        // 防腐层实现：通过 HttpClient 调用商品/促销/积分域内部 API
+        var productApiUrl = configuration["ServiceUrls:ProductApi"] ?? "http://localhost:5150";
+        var promotionApiUrl = configuration["ServiceUrls:PromotionApi"] ?? "http://localhost:5152";
+        var pointsApiUrl = configuration["ServiceUrls:PointsMembershipApi"] ?? "http://localhost:5153";
+
+        services.AddHttpClient<IProductAntiCorruptionService, ProductAntiCorruptionService>(c => c.BaseAddress = new Uri(productApiUrl));
+        services.AddHttpClient<IPromotionAntiCorruptionService, PromotionAntiCorruptionService>(c => c.BaseAddress = new Uri(promotionApiUrl));
+        services.AddHttpClient<IPointsAntiCorruptionService, PointsAntiCorruptionService>(c => c.BaseAddress = new Uri(pointsApiUrl));
 
         // 应用服务
         services.AddScoped<IOrderAppService, OrderAppService>();

@@ -45,6 +45,10 @@ public static class ServiceCollectionExtensions
         // 模板渲染器
         services.AddScoped<ITemplateRenderer, TemplateRenderer>();
 
+        // 用户联系方式防腐层（通过 HTTP 调用用户域内部端点获取手机号/邮箱）
+        var userAuthApiUrl = configuration["ServiceUrls:UserAuthApi"] ?? "http://localhost:5173";
+        services.AddHttpClient<UserContactAntiCorruptionService>(c => c.BaseAddress = new Uri(userAuthApiUrl));
+
         // 通知渠道
         services.Configure<SmsOptions>(configuration.GetSection("Notification:Sms"));
         services.Configure<EmailOptions>(configuration.GetSection("Notification:Email"));

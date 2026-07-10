@@ -39,10 +39,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReviewRepository, EfCoreReviewRepository>();
         services.AddScoped<IAfterSalesRepository, EfCoreAfterSalesRepository>();
 
-        // 防腐层实现（占位）
-        services.AddScoped<IReviewEligibilityChecker, InfraServices.ReviewEligibilityChecker>();
-        services.AddScoped<IAfterSalesEligibilityChecker, InfraServices.AfterSalesEligibilityChecker>();
-        services.AddScoped<IPaymentInfoQueryService, InfraServices.PaymentInfoQueryService>();
+        // 防腐层实现（通过 HttpClient 调用跨域内部接口）
+        var paymentApiUrl = configuration["ServiceUrls:PaymentApi"] ?? "http://localhost:5155";
+        var orderApiUrl = configuration["ServiceUrls:OrderApi"] ?? "http://localhost:5154";
+
+        services.AddHttpClient<IPaymentInfoQueryService, InfraServices.PaymentInfoQueryService>(c => c.BaseAddress = new Uri(paymentApiUrl));
+        services.AddHttpClient<IAfterSalesEligibilityChecker, InfraServices.AfterSalesEligibilityChecker>(c => c.BaseAddress = new Uri(orderApiUrl));
+        services.AddHttpClient<IReviewEligibilityChecker, InfraServices.ReviewEligibilityChecker>(c => c.BaseAddress = new Uri(orderApiUrl));
 
         // 应用服务
         services.AddScoped<IReviewAppService, AppServices.ReviewAppService>();

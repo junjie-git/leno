@@ -1,87 +1,313 @@
+using Leno.Infrastructure.Auth;
 using Leno.Order.Application.Services;
+using Leno.SharedContracts.Responses;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System.Text;
+using System.Text.Json;
 
 namespace Leno.Order.Infrastructure.Services;
 
 /// <summary>
-/// 商品域防腐层占位实现。
-/// 实际部署中应通过 HTTP 调用商品域 API 或共享数据库查询 SKU 现价与可售状态，
-/// 当前返回 null，下单时由应用层校验抛出异常。
+/// 商品域防腐层实现，通过 HTTP 调用商品域内部 API 查询 SKU 当前信息用于构建商品快照与库存校验。
+/// 失败时返回 null，由应用层校验抛出异常。
 /// </summary>
 public sealed class ProductAntiCorruptionService : IProductAntiCorruptionService
 {
+    private const string InternalKeyName = "X-Internal-Key";
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    private readonly HttpClient _httpClient;
     private readonly ILogger<ProductAntiCorruptionService> _logger;
 
-    public ProductAntiCorruptionService(ILogger<ProductAntiCorruptionService> logger)
+    public ProductAntiCorruptionService(
+        HttpClient httpClient,
+        IOptions<InternalApiKeyOptions> options,
+        ILogger<ProductAntiCorruptionService> logger)
     {
+        _httpClient = httpClient;
         _logger = logger;
+        ApplyInternalKey(httpClient, options);
     }
 
     /// <inheritdoc />
-    public Task<SkuInfo?> GetSkuInfoAsync(Guid skuId, CancellationToken ct = default)
+    public async Task<SkuInfo?> GetSkuInfoAsync(Guid skuId, CancellationToken ct = default)
     {
-        _logger.LogDebug("商品域防腐层占位查询 SkuId={SkuId}，返回 null", skuId);
-        return Task.FromResult<SkuInfo?>(null);
+        try
+        {
+            using var response = await _httpClient.GetAsync($"internal/products/skus/{skuId}", ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("商品域查询 SKU 失败 SkuId={SkuId} Status={Status}", skuId, (int)response.StatusCode);
+                return null;
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            var payload = await JsonSerializer.DeserializeAsync<ApiResponse<SkuInfoResponse>>(stream, JsonOptions, ct);
+            if (payload is null || payload.Data is null)
+            {
+                _logger.LogWarning("商品域查询 SKU 返回空数据 SkuId={SkuId}", skuId);
+                return null;
+            }
+
+            var d = payload.Data;
+            return new SkuInfo
+            {
+                SkuId = d.SkuId,
+                SellerId = d.SellerId,
+                ProductName = d.Title,
+                SkuName = d.Title,
+                MainImage = d.MainImageUrl,
+                UnitPrice = d.Price,
+                IsOnSale = d.Available
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "商品域查询 SKU 异常 SkuId={SkuId}", skuId);
+            return null;
+        }
+    }
+
+    private static void ApplyInternalKey(HttpClient httpClient, IOptions<InternalApiKeyOptions> options)
+    {
+        var apiKey = options.Value.ApiKey;
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            httpClient.DefaultRequestHeaders.Add(InternalKeyName, apiKey);
+        }
+    }
+
+    private sealed class SkuInfoResponse
+    {
+        public Guid SkuId { get; set; }
+
+        public decimal Price { get; set; }
+
+        public string Currency { get; set; } = string.Empty;
+
+        public bool Available { get; set; }
+
+        public string Title { get; set; } = string.Empty;
+
+        public string MainImageUrl { get; set; } = string.Empty;
+
+        public Guid SellerId { get; set; }
     }
 }
 
 /// <summary>
-/// 促销域防腐层占位实现。
-/// 实际部署中应通过 HTTP 调用促销域 API 查询适用优惠并返回分摊结果，
-/// 当前返回 0 优惠。
+/// 促销域防腐层实现，通过 HTTP 调用促销域内部 API 计算订单可享优惠总金额。
+/// 失败时返回 0 优惠。
 /// </summary>
 public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionService
 {
+    private const string InternalKeyName = "X-Internal-Key";
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    private readonly HttpClient _httpClient;
     private readonly ILogger<PromotionAntiCorruptionService> _logger;
 
-    public PromotionAntiCorruptionService(ILogger<PromotionAntiCorruptionService> logger)
+    public PromotionAntiCorruptionService(
+        HttpClient httpClient,
+        IOptions<InternalApiKeyOptions> options,
+        ILogger<PromotionAntiCorruptionService> logger)
     {
+        _httpClient = httpClient;
         _logger = logger;
+        ApplyInternalKey(httpClient, options);
     }
 
     /// <inheritdoc />
-    public Task<decimal> CalculateDiscountAsync(
+    public async Task<decimal> CalculateDiscountAsync(
         Guid userId,
         List<(Guid SkuId, decimal Subtotal)> items,
         CancellationToken ct = default)
     {
-        _logger.LogDebug("促销域防腐层占位查询 UserId={UserId}，返回 0 优惠", userId);
-        return Task.FromResult(0m);
+        try
+        {
+            var request = new
+            {
+                userId = userId,
+                items = items.Select(i => new { skuId = i.SkuId, subtotal = i.Subtotal }).ToArray()
+            };
+            var json = JsonSerializer.Serialize(request, JsonOptions);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var response = await _httpClient.PostAsync("internal/promotions/calculate", content, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("促销域计算优惠失败 UserId={UserId} Status={Status}", userId, (int)response.StatusCode);
+                return 0m;
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            var payload = await JsonSerializer.DeserializeAsync<ApiResponse<DiscountResultResponse>>(stream, JsonOptions, ct);
+            if (payload is null || payload.Data is null)
+            {
+                _logger.LogWarning("促销域计算优惠返回空数据 UserId={UserId}", userId);
+                return 0m;
+            }
+
+            return payload.Data.TotalDiscountAmount;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "促销域计算优惠异常 UserId={UserId}", userId);
+            return 0m;
+        }
+    }
+
+    private static void ApplyInternalKey(HttpClient httpClient, IOptions<InternalApiKeyOptions> options)
+    {
+        var apiKey = options.Value.ApiKey;
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            httpClient.DefaultRequestHeaders.Add(InternalKeyName, apiKey);
+        }
+    }
+
+    private sealed class DiscountResultResponse
+    {
+        public decimal TotalDiscountAmount { get; set; }
+
+        public string Currency { get; set; } = string.Empty;
     }
 }
 
 /// <summary>
-/// 积分域防腐层占位实现。
-/// 实际部署中应通过 HTTP 调用积分域 API 试算/冻结/释放积分，
-/// 当前 TryOffsetAsync 返回 0，Freeze/Release 不执行任何操作。
+/// 积分域防腐层实现，通过 HTTP 调用积分域内部 API 试算/冻结/释放积分。
+/// TryOffsetAsync 返回实际可抵金额（失败返回 0），Freeze/Release 失败仅记录日志不抛异常。
 /// </summary>
 public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
 {
+    private const string InternalKeyName = "X-Internal-Key";
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    private readonly HttpClient _httpClient;
     private readonly ILogger<PointsAntiCorruptionService> _logger;
 
-    public PointsAntiCorruptionService(ILogger<PointsAntiCorruptionService> logger)
+    public PointsAntiCorruptionService(
+        HttpClient httpClient,
+        IOptions<InternalApiKeyOptions> options,
+        ILogger<PointsAntiCorruptionService> logger)
     {
+        _httpClient = httpClient;
         _logger = logger;
+        ApplyInternalKey(httpClient, options);
     }
 
     /// <inheritdoc />
-    public Task<decimal> TryOffsetAsync(Guid userId, int pointsToUse, CancellationToken ct = default)
+    public async Task<decimal> TryOffsetAsync(Guid userId, int pointsToUse, CancellationToken ct = default)
     {
-        _logger.LogDebug("积分域防腐层占位试算 UserId={UserId} Points={Points}，返回 0", userId, pointsToUse);
-        return Task.FromResult(0m);
+        try
+        {
+            var request = new { userId = userId, pointsToUse = pointsToUse };
+            var json = JsonSerializer.Serialize(request, JsonOptions);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var response = await _httpClient.PostAsync("internal/points/trial-offset", content, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("积分域试算抵现失败 UserId={UserId} Status={Status}", userId, (int)response.StatusCode);
+                return 0m;
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            var payload = await JsonSerializer.DeserializeAsync<ApiResponse<TrialOffsetResponse>>(stream, JsonOptions, ct);
+            if (payload is null || payload.Data is null)
+            {
+                _logger.LogWarning("积分域试算抵现返回空数据 UserId={UserId}", userId);
+                return 0m;
+            }
+
+            return payload.Data.OffsetAmount;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "积分域试算抵现异常 UserId={UserId}", userId);
+            return 0m;
+        }
     }
 
     /// <inheritdoc />
-    public Task FreezeAsync(Guid userId, Guid orderId, int pointsToUse, CancellationToken ct = default)
+    public async Task FreezeAsync(Guid userId, Guid orderId, int pointsToUse, CancellationToken ct = default)
     {
-        _logger.LogDebug("积分域防腐层占位冻结 UserId={UserId} OrderId={OrderId} Points={Points}", userId, orderId, pointsToUse);
-        return Task.CompletedTask;
+        try
+        {
+            var request = new { userId = userId, orderId = orderId, pointsToUse = pointsToUse };
+            var json = JsonSerializer.Serialize(request, JsonOptions);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var response = await _httpClient.PostAsync("internal/points/freeze", content, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("积分域冻结失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "积分域冻结异常 OrderId={OrderId}", orderId);
+        }
     }
 
     /// <inheritdoc />
-    public Task ReleaseAsync(Guid orderId, CancellationToken ct = default)
+    public async Task ReleaseAsync(Guid orderId, CancellationToken ct = default)
     {
-        _logger.LogDebug("积分域防腐层占位释放 OrderId={OrderId}", orderId);
-        return Task.CompletedTask;
+        try
+        {
+            var request = new { orderId = orderId };
+            var json = JsonSerializer.Serialize(request, JsonOptions);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var response = await _httpClient.PostAsync("internal/points/release", content, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("积分域释放失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "积分域释放异常 OrderId={OrderId}", orderId);
+        }
+    }
+
+    private static void ApplyInternalKey(HttpClient httpClient, IOptions<InternalApiKeyOptions> options)
+    {
+        var apiKey = options.Value.ApiKey;
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            httpClient.DefaultRequestHeaders.Add(InternalKeyName, apiKey);
+        }
+    }
+
+    private sealed class TrialOffsetResponse
+    {
+        public decimal OffsetAmount { get; set; }
+
+        public string Currency { get; set; } = string.Empty;
     }
 }

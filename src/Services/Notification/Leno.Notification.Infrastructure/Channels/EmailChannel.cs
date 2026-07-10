@@ -1,6 +1,7 @@
 using Leno.Notification.Domain.Aggregates;
 using Leno.Notification.Domain.ValueObjects;
 using Leno.Notification.Infrastructure.Channels.Email;
+using Leno.Notification.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.Notification.Infrastructure.Channels;
@@ -12,13 +13,16 @@ namespace Leno.Notification.Infrastructure.Channels;
 public sealed class EmailChannel : IChannel
 {
     private readonly SmtpClientWrapper _smtpClient;
+    private readonly UserContactAntiCorruptionService _userContactService;
     private readonly ILogger<EmailChannel> _logger;
 
-    public EmailChannel(SmtpClientWrapper smtpClient, ILogger<EmailChannel> logger)
+    public EmailChannel(SmtpClientWrapper smtpClient, UserContactAntiCorruptionService userContactService, ILogger<EmailChannel> logger)
     {
         ArgumentNullException.ThrowIfNull(smtpClient);
+        ArgumentNullException.ThrowIfNull(userContactService);
         ArgumentNullException.ThrowIfNull(logger);
         _smtpClient = smtpClient;
+        _userContactService = userContactService;
         _logger = logger;
     }
 
@@ -30,8 +34,13 @@ public sealed class EmailChannel : IChannel
     {
         ArgumentNullException.ThrowIfNull(record);
 
-        // 收件地址由用户域提供，当前以占位空地址模拟（实际应通过防腐层查询用户邮箱）
-        var toAddress = string.Empty;
+        var contacts = await _userContactService.GetContactsAsync(record.UserId, ct);
+        var toAddress = contacts?.Email ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(toAddress))
+        {
+            _logger.LogWarning("用户邮箱为空，跳过邮件发送 UserId={UserId}", record.UserId);
+            return (false, "用户邮箱为空");
+        }
         var result = await _smtpClient.SendAsync(toAddress, record.Title, record.Content, ct);
 
         if (!result.Succeeded)

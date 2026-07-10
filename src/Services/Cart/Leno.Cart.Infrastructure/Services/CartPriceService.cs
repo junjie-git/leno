@@ -1,43 +1,115 @@
+using System.Net.Http.Json;
+using System.Text.Json;
 using Leno.Cart.Domain.Services;
+using Leno.Infrastructure.Auth;
+using Leno.SharedContracts.Responses;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Leno.Cart.Infrastructure.Services;
 
 /// <summary>
 /// 购物车价格防腐层实现。
-/// 当前为占位实现：商品域 API 未就绪时返回默认快照（Available=true、Price=0）。
-/// 后续接入商品域 API/防腐层后替换为真实查询。
+/// 通过商品域内部 API（POST internal/products/skus/batch）批量查询 SKU 价格与可售状态，
+/// 使用 X-Internal-Key 头部鉴权。调用失败时记录告警并返回空列表（fail-safe），保证购物车预览可用。
 /// </summary>
 public sealed class CartPriceService : ICartPriceService
 {
+    private const string BatchEndpoint = "internal/products/skus/batch";
+    private const string InternalKeyHeader = "X-Internal-Key";
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    private readonly HttpClient _httpClient;
+    private readonly InternalApiKeyOptions _internalKeyOptions;
     private readonly ILogger<CartPriceService> _logger;
 
-    public CartPriceService(ILogger<CartPriceService> logger)
+    public CartPriceService(
+        HttpClient httpClient,
+        IOptions<InternalApiKeyOptions> internalKeyOptions,
+        ILogger<CartPriceService> logger)
     {
+        ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(internalKeyOptions);
         ArgumentNullException.ThrowIfNull(logger);
+        _httpClient = httpClient;
+        _internalKeyOptions = internalKeyOptions.Value;
         _logger = logger;
     }
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<SkuPriceSnapshot>> GetSkuPricesAsync(IEnumerable<Guid> skuIds, CancellationToken ct = default)
+    public async Task<IReadOnlyList<SkuPriceSnapshot>> GetSkuPricesAsync(IEnumerable<Guid> skuIds, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(skuIds);
         var ids = skuIds.ToList();
 
-        // 占位实现：商品域 API 就绪后替换为真实查询（HttpClient 调用商品域 IProductQueryService）
-        _logger.LogDebug("购物车价格防腐层占位查询，SKU 数量={Count}", ids.Count);
-
-        var snapshots = ids.Select(id => new SkuPriceSnapshot
+        if (ids.Count == 0)
         {
-            SkuId = id,
-            Price = 0,
-            Currency = "CNY",
-            Available = true,
-            Title = string.Empty,
-            MainImageUrl = string.Empty,
-            SellerId = Guid.Empty
-        }).ToList();
+            return Array.Empty<SkuPriceSnapshot>();
+        }
 
-        return Task.FromResult<IReadOnlyList<SkuPriceSnapshot>>(snapshots);
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, BatchEndpoint)
+            {
+                Content = JsonContent.Create(ids, options: JsonOptions)
+            };
+            request.Headers.TryAddWithoutValidation(InternalKeyHeader, _internalKeyOptions.ApiKey);
+
+            using var response = await _httpClient.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("商品域 SKU 批量查询失败 StatusCode={StatusCode} Count={Count}",
+                    (int)response.StatusCode, ids.Count);
+                return Array.Empty<SkuPriceSnapshot>();
+            }
+
+            var apiResponse = await response.Content
+                .ReadFromJsonAsync<ApiResponse<List<SkuInfoResponse>>>(JsonOptions, ct);
+            if (apiResponse?.Data is null || apiResponse.Data.Count == 0)
+            {
+                return Array.Empty<SkuPriceSnapshot>();
+            }
+
+            return apiResponse.Data.Select(MapToSnapshot).ToList();
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "商品域 SKU 批量查询异常 Count={Count}", ids.Count);
+            return Array.Empty<SkuPriceSnapshot>();
+        }
+    }
+
+    private static SkuPriceSnapshot MapToSnapshot(SkuInfoResponse dto) => new()
+    {
+        SkuId = dto.SkuId,
+        Price = dto.Price,
+        Currency = string.IsNullOrEmpty(dto.Currency) ? "CNY" : dto.Currency,
+        Available = dto.Available,
+        Title = dto.Title,
+        MainImageUrl = dto.MainImageUrl,
+        SellerId = dto.SellerId
+    };
+
+    /// <summary>商品域 SKU 概要信息反序列化 DTO（避免直接依赖商品域 Application 层）。</summary>
+    private sealed class SkuInfoResponse
+    {
+        public Guid SkuId { get; set; }
+
+        public decimal Price { get; set; }
+
+        public string Currency { get; set; } = "CNY";
+
+        public bool Available { get; set; }
+
+        public string Title { get; set; } = string.Empty;
+
+        public string MainImageUrl { get; set; } = string.Empty;
+
+        public Guid SellerId { get; set; }
     }
 }

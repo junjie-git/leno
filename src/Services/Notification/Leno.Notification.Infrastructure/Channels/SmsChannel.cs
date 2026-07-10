@@ -1,6 +1,7 @@
 using Leno.Notification.Domain.Aggregates;
 using Leno.Notification.Domain.ValueObjects;
 using Leno.Notification.Infrastructure.Channels.Sms;
+using Leno.Notification.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.Notification.Infrastructure.Channels;
@@ -12,13 +13,16 @@ namespace Leno.Notification.Infrastructure.Channels;
 public sealed class SmsChannel : IChannel
 {
     private readonly SmsClient _smsClient;
+    private readonly UserContactAntiCorruptionService _userContactService;
     private readonly ILogger<SmsChannel> _logger;
 
-    public SmsChannel(SmsClient smsClient, ILogger<SmsChannel> logger)
+    public SmsChannel(SmsClient smsClient, UserContactAntiCorruptionService userContactService, ILogger<SmsChannel> logger)
     {
         ArgumentNullException.ThrowIfNull(smsClient);
+        ArgumentNullException.ThrowIfNull(userContactService);
         ArgumentNullException.ThrowIfNull(logger);
         _smsClient = smsClient;
+        _userContactService = userContactService;
         _logger = logger;
     }
 
@@ -30,8 +34,13 @@ public sealed class SmsChannel : IChannel
     {
         ArgumentNullException.ThrowIfNull(record);
 
-        // 手机号由用户域提供，当前以占位空号模拟（实际应通过防腐层查询用户手机号）
-        var phoneNumber = string.Empty;
+        var contacts = await _userContactService.GetContactsAsync(record.UserId, ct);
+        var phoneNumber = contacts?.PhoneNumber ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(phoneNumber))
+        {
+            _logger.LogWarning("用户手机号为空，跳过短信发送 UserId={UserId}", record.UserId);
+            return (false, "用户手机号为空");
+        }
         var result = await _smsClient.SendAsync(phoneNumber, record.Content, ct);
 
         if (!result.Succeeded)

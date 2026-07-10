@@ -48,28 +48,28 @@
 
 ## 阶段三：跨域防腐层 HTTP 客户端实现（依赖阶段二）
 
-- [ ] Task 9: Cart 域 CartPriceService 替换为真实 HTTP 查询
-  - [ ] SubTask 9.1: 在 `Leno.Cart.Infrastructure` 修改 `CartPriceService`，注入 `HttpClient`、`IOptions<InternalApiKeyOptions>`
-  - [ ] SubTask 9.2: `GetSkuPricesAsync` 调用 Product 域 `POST internal/products/skus/batch`，携带 `X-Internal-Key` 头，解析响应映射为 `SkuPriceSnapshot` 列表
-  - [ ] SubTask 9.3: 在 Cart 域 `ServiceCollectionExtensions` 注册 `AddHttpClient<CartPriceService>` 并配置内部密钥
+- [x] Task 9: Cart 域 CartPriceService 替换为真实 HTTP 查询
+  - [x] SubTask 9.1: 在 `Leno.Cart.Infrastructure` 修改 `CartPriceService`，注入 `HttpClient`、`IOptions<InternalApiKeyOptions>`
+  - [x] SubTask 9.2: `GetSkuPricesAsync` 调用 Product 域 `POST internal/products/skus/batch`，携带 `X-Internal-Key` 头，解析响应映射为 `SkuPriceSnapshot` 列表
+  - [x] SubTask 9.3: 在 Cart 域 `ServiceCollectionExtensions` 注册 `AddHttpClient<CartPriceService>` 并配置内部密钥
 
-- [ ] Task 10: Order 域三个防腐层替换为真实 HTTP 查询
-  - [ ] SubTask 10.1: 修改 `ProductAntiCorruptionService`，注入 HttpClient，调用 Product 域 `GET internal/products/skus/{skuId}`，解析返回 `SkuInfo`
-  - [ ] SubTask 10.2: 修改 `PromotionAntiCorruptionService`，注入 HttpClient，调用 Promotion 域 `POST internal/promotions/calculate`，解析返回优惠金额
-  - [ ] SubTask 10.3: 修改 `PointsAntiCorruptionService` 的 `TryOffsetAsync`/`FreezeAsync`/`ReleaseAsync`，分别调用 PointsMembership 域三个内部端点
-  - [ ] SubTask 10.4: 在 Order 域 `ServiceCollectionExtensions` 为三个防腐层服务注册 `AddHttpClient<TypedClient>` 并配置内部密钥
+- [x] Task 10: Order 域三个防腐层替换为真实 HTTP 查询
+  - [x] SubTask 10.1: 修改 `ProductAntiCorruptionService`，注入 HttpClient，调用 Product 域 `GET internal/products/skus/{skuId}`，解析返回 `SkuInfo`
+  - [x] SubTask 10.2: 修改 `PromotionAntiCorruptionService`，注入 HttpClient，调用 Promotion 域 `POST internal/promotions/calculate`，解析返回优惠金额
+  - [x] SubTask 10.3: 修改 `PointsAntiCorruptionService` 的 `TryOffsetAsync`/`FreezeAsync`/`ReleaseAsync`，分别调用 PointsMembership 域三个内部端点
+  - [x] SubTask 10.4: 在 Order 域 `ServiceCollectionExtensions` 为三个防腐层服务注册 `AddHttpClient<TypedClient>` 并配置内部密钥
 
-- [ ] Task 11: ReviewAfterSales 域三个防腐层替换为真实实现
-  - [ ] SubTask 11.1: 修改 `PaymentInfoQueryService`，注入 HttpClient，调用 Payment 域 `GET internal/payments/{orderId}/info`
-  - [ ] SubTask 11.2: 修改 `AfterSalesEligibilityChecker.EnsureEligibleAsync`，调用 Order 域 `GET internal/orders/{orderId}/status`，校验：订单在售后期内、申请人为订单买家、同订单行无进行中同类型售后（通过本地仓储查重）
-  - [ ] SubTask 11.3: 修改 `ReviewEligibilityChecker.EnsureEligibleAsync`，调用 Order 域端点，校验：订单已完成、在评价期内、申请人为订单买家、订单行未重复评价（通过本地仓储查重）
-  - [ ] SubTask 11.4: 在 ReviewAfterSales 域 `ServiceCollectionExtensions` 为三个服务注册 `AddHttpClient` 并配置内部密钥
+- [x] Task 11: ReviewAfterSales 域三个防腐层替换为真实实现
+  - [x] SubTask 11.1: 修改 `PaymentInfoQueryService`，注入 HttpClient，调用 Payment 域 `GET internal/payments/{orderId}/info`
+  - [x] SubTask 11.2: 修改 `AfterSalesEligibilityChecker.EnsureEligibleAsync`，调用 Order 域 `GET internal/orders/{orderId}/status`，校验：订单在售后期内、申请人为订单买家、同订单行无进行中同类型售后（通过本地仓储查重）
+  - [x] SubTask 11.3: 修改 `ReviewEligibilityChecker.EnsureEligibleAsync`，调用 Order 域端点，校验：订单已完成、在评价期内、申请人为订单买家、订单行未重复评价（通过本地仓储查重）
+  - [x] SubTask 11.4: 在 ReviewAfterSales 域 `ServiceCollectionExtensions` 为三个服务注册 `AddHttpClient` 并配置内部密钥
 
-- [ ] Task 12: Notification 域新增用户联系方式防腐层并修复渠道
-  - [ ] SubTask 12.1: 在 `Leno.Notification.Infrastructure` 新增 `UserContactAntiCorruptionService`，注入 HttpClient，调用 UserAuth 域 `GET internal/users/{userId}/contacts`，返回手机号与邮箱
-  - [ ] SubTask 12.2: 修改 `SmsChannel.SendAsync`，通过防腐层查询 `record.UserId` 对应手机号，替换空字符串占位
-  - [ ] SubTask 12.3: 修改 `EmailChannel.SendAsync`，通过防腐层查询 `record.UserId` 对应邮箱，替换空字符串占位
-  - [ ] SubTask 12.4: 在 Notification 域 `ServiceCollectionExtensions` 注册 `AddHttpClient<UserContactAntiCorruptionService>` 并配置内部密钥
+- [x] Task 12: Notification 域新增用户联系方式防腐层并修复渠道
+  - [x] SubTask 12.1: 在 `Leno.Notification.Infrastructure` 新增 `UserContactAntiCorruptionService`，注入 HttpClient，调用 UserAuth 域 `GET internal/users/{userId}/contacts`，返回手机号与邮箱
+  - [x] SubTask 12.2: 修改 `SmsChannel.SendAsync`，通过防腐层查询 `record.UserId` 对应手机号，替换空字符串占位
+  - [x] SubTask 12.3: 修改 `EmailChannel.SendAsync`，通过防腐层查询 `record.UserId` 对应邮箱，替换空字符串占位
+  - [x] SubTask 12.4: 在 Notification 域 `ServiceCollectionExtensions` 注册 `AddHttpClient<UserContactAntiCorruptionService>` 并配置内部密钥
 
 ## 阶段四：第三方渠道真实实现（可并行）
 
@@ -122,10 +122,10 @@
   - [ ] SubTask 20.2: 修改 `ShipAsync`，从 `ICurrentUserContext.UserId` 获取操作人标识传入 `order.Ship()`（替换 `Guid.Empty`）；若为卖家角色则使用卖家标识
   - [ ] SubTask 20.3: 修改 `OrderPricingDomainService.ValidatePricesAsync`，通过注入的 `IProductAntiCorruptionService` 查询每个 SKU 实际售价，校验与 `ExpectedPrice` 一致，不一致抛出领域异常
 
-- [ ] Task 21: 修复 SystemAdmin 域定时任务手动触发
-  - [ ] SubTask 21.1: 修改 `ScheduledTaskExecutor`，注入 `ISchedulerFactory`（替换或补充现有依赖）
-  - [ ] SubTask 21.2: 修改 `RunNowAsync`，通过 `ISchedulerFactory.GetScheduler` 获取调度器，构造 `JobKey` 并调用 `scheduler.TriggerJob(jobKey, ct)` 立即触发作业
-  - [ ] SubTask 21.3: 移除占位日志，添加触发失败异常处理
+- [x] Task 21: 修复 SystemAdmin 域定时任务手动触发
+  - [x] SubTask 21.1: 修改 `ScheduledTaskExecutor`，注入 `ISchedulerFactory`（替换或补充现有依赖）
+  - [x] SubTask 21.2: 修改 `RunNowAsync`，通过 `ISchedulerFactory.GetScheduler` 获取调度器，构造 `JobKey` 并调用 `scheduler.TriggerJob(jobKey, ct)` 立即触发作业
+  - [x] SubTask 21.3: 移除占位日志，添加触发失败异常处理
 
 ## 阶段六：构建验证与提交
 
