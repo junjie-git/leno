@@ -1,0 +1,107 @@
+using Leno.SellerShop.Application.DTOs;
+using Leno.SellerShop.Domain.Exceptions;
+using Leno.SellerShop.Domain.Repositories;
+using Leno.SharedKernel.Abstractions;
+
+namespace Leno.SellerShop.Application.Services;
+
+/// <summary>
+/// 卖家工作台应用服务实现，聚合店铺信息与 ShopMetrics 指标数据。
+/// </summary>
+public sealed class SellerDashboardAppService : ISellerDashboardAppService
+{
+    private readonly IShopRepository _shopRepository;
+    private readonly IShopMetricsRepository _metricsRepository;
+
+    public SellerDashboardAppService(
+        IShopRepository shopRepository,
+        IShopMetricsRepository metricsRepository)
+    {
+        _shopRepository = shopRepository;
+        _metricsRepository = metricsRepository;
+    }
+
+    /// <inheritdoc />
+    public async Task<SellerDashboardDto> GetDashboardAsync(Guid sellerId, CancellationToken ct = default)
+    {
+        if (sellerId == Guid.Empty)
+        {
+            throw new SellerShopDomainException("卖家账号标识不可为空", "SELLER_USER_EMPTY");
+        }
+
+        var shop = await _shopRepository.GetBySellerIdAsync(sellerId, ct);
+        if (shop is null)
+        {
+            throw new SellerShopDomainException("店铺不存在", "SHOP_NOT_FOUND", 404);
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var metrics = await _metricsRepository.GetByShopIdAsync(shop.Id, today, ct);
+
+        return new SellerDashboardDto
+        {
+            ShopId = shop.Id,
+            ShopName = shop.ShopName,
+            Status = shop.Status,
+            ProductCount = shop.ProductCount,
+            TodayOrderCount = metrics?.OrderCount ?? 0,
+            TodaySalesAmount = metrics?.SalesAmount.Amount ?? 0m,
+            TodaySalesCurrency = metrics?.SalesAmount.Currency ?? "CNY",
+            TodayAvgRating = metrics?.AvgRating ?? 0m,
+            TodayRatingCount = metrics?.RatingCount ?? 0,
+            TodayRefundCount = metrics?.RefundCount ?? 0
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<SalesTrendDto>> GetSalesTrendAsync(
+        Guid shopId, DateOnly fromDate, DateOnly toDate, CancellationToken ct = default)
+    {
+        EnsureValidRange(fromDate, toDate);
+
+        var metrics = await _metricsRepository.GetByDateRangeAsync(shopId, fromDate, toDate, ct);
+
+        return metrics
+            .Select(m => new SalesTrendDto
+            {
+                Date = m.Date,
+                OrderCount = m.OrderCount,
+                SalesAmount = m.SalesAmount.Amount,
+                SalesCurrency = m.SalesAmount.Currency,
+                AvgRating = m.AvgRating
+            })
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ShopMetricsDto>> GetShopMetricsAsync(
+        Guid shopId, DateOnly fromDate, DateOnly toDate, CancellationToken ct = default)
+    {
+        EnsureValidRange(fromDate, toDate);
+
+        var metrics = await _metricsRepository.GetByDateRangeAsync(shopId, fromDate, toDate, ct);
+
+        return metrics
+            .Select(m => new ShopMetricsDto
+            {
+                ShopId = m.ShopId,
+                Date = m.Date,
+                OrderCount = m.OrderCount,
+                SalesAmount = m.SalesAmount.Amount,
+                SalesCurrency = m.SalesAmount.Currency,
+                ProductCount = m.ProductCount,
+                AvgRating = m.AvgRating,
+                RatingCount = m.RatingCount,
+                RefundCount = m.RefundCount
+            })
+            .ToList();
+    }
+
+    private static void EnsureValidRange(DateOnly fromDate, DateOnly toDate)
+    {
+        if (fromDate > toDate)
+        {
+            throw new SellerShopDomainException("起始日期不可晚于结束日期", "METRICS_INVALID_RANGE", 400);
+        }
+    }
+}
