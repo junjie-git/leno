@@ -20,6 +20,7 @@
   </Folder>
   <Folder Name="/src/Services/Promotion/">
     <Project Path="src/Services/Promotion/Leno.Promotion.Domain/Leno.Promotion.Domain.csproj" />
+    <Project Path="src/Services/Promotion/Leno.Promotion.Infrastructure/Leno.Promotion.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/SellerShop/">
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Api/Leno.SellerShop.Api.csproj" />

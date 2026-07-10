@@ -1,0 +1,32 @@
+using Leno.Infrastructure.Outbox;
+using Leno.Infrastructure.Persistence;
+using Leno.Promotion.Domain.Aggregates;
+using Microsoft.EntityFrameworkCore;
+
+namespace Leno.Promotion.Infrastructure;
+
+/// <summary>
+/// 促销域 DbContext，继承 <see cref="BaseDbContext"/> 复用审计字段填充与软删除查询过滤器。
+/// 暴露 PromotionActivity、Coupon、UserCoupon、SeckillActivity 聚合与 OutboxMessage 发件箱表的 DbSet。
+/// </summary>
+public sealed class PromotionDbContext : BaseDbContext
+{
+    public PromotionDbContext(DbContextOptions<PromotionDbContext> options) : base(options)
+    {
+    }
+
+    /// <summary>满减/促销活动聚合根。</summary>
+    public DbSet<PromotionActivity> PromotionActivities => Set<PromotionActivity>();
+
+    /// <summary>优惠券模板聚合根。</summary>
+    public DbSet<Coupon> Coupons => Set<Coupon>();
+
+    /// <summary>用户优惠券聚合根。</summary>
+    public DbSet<UserCoupon> UserCoupons => Set<UserCoupon>();
+
+    /// <summary>秒杀活动聚合根。</summary>
+    public DbSet<SeckillActivity> SeckillActivities => Set<SeckillActivity>();
+
+    /// <summary>发件箱消息表，与聚合变更同事务写入。</summary>
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+}

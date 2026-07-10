@@ -1,0 +1,43 @@
+using System.Text.Json;
+using Leno.Promotion.Domain.Aggregates;
+using Leno.Promotion.Domain.ValueObjects;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace Leno.Promotion.Infrastructure.Configurations;
+
+/// <summary>
+/// PromotionActivity 聚合根的 EF Core 映射配置（snake_case）。
+/// Rules（满减规则集合）序列化为 JSON 列，按值对象存储。
+/// </summary>
+public sealed class PromotionActivityConfiguration : IEntityTypeConfiguration<PromotionActivity>
+{
+    public void Configure(EntityTypeBuilder<PromotionActivity> builder)
+    {
+        builder.ToTable("promotion_activities");
+        builder.HasKey(a => a.Id);
+
+        builder.Property(a => a.Id).HasColumnName("id");
+        builder.Property(a => a.Name).HasColumnName("name").HasMaxLength(128).IsRequired();
+        builder.Property(a => a.Type).HasColumnName("type").HasConversion<int>();
+        builder.Property(a => a.Status).HasColumnName("status").HasConversion<int>();
+        builder.Property(a => a.StartTime).HasColumnName("start_time");
+        builder.Property(a => a.EndTime).HasColumnName("end_time");
+
+        builder.Property(a => a.CreatedAt).HasColumnName("created_at");
+        builder.Property(a => a.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(a => a.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
+        builder.Property(a => a.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
+        builder.Property(a => a.Version).HasColumnName("version").IsRowVersion();
+
+        // Rules 满减规则集合序列化为 JSON 列
+        builder.Property(a => a.Rules)
+            .HasColumnName("rules")
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                v => JsonSerializer.Deserialize<List<PromotionRule>>(v, (JsonSerializerOptions?)null)
+                     ?? new List<PromotionRule>());
+
+        builder.HasIndex(a => a.Status).HasDatabaseName("ix_promotion_activities_status");
+    }
+}

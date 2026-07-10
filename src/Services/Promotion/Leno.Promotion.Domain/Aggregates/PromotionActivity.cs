@@ -10,8 +10,6 @@ namespace Leno.Promotion.Domain.Aggregates;
 /// </summary>
 public sealed class PromotionActivity : AggregateRoot
 {
-    private readonly List<PromotionRule> _rules = new();
-
     /// <summary>活动名称。</summary>
     public string Name { get; private set; } = string.Empty;
 
@@ -27,8 +25,11 @@ public sealed class PromotionActivity : AggregateRoot
     /// <summary>活动结束时间（UTC），须晚于开始时间。</summary>
     public DateTime EndTime { get; private set; }
 
-    /// <summary>满减规则集合（按门槛升序），仅经聚合根访问。</summary>
-    public IReadOnlyCollection<PromotionRule> Rules => _rules.AsReadOnly();
+    /// <summary>
+    /// 满减规则集合（按门槛升序），仅经聚合根 AddRule/RemoveRule 维护。
+    /// 持久化为 JSON 列，故以可赋值 List 暴露给 EF Core，私有 setter 阻止外部整体替换。
+    /// </summary>
+    public List<PromotionRule> Rules { get; private set; } = new();
 
     /// <summary>EF Core 无参构造。</summary>
     private PromotionActivity() { }
@@ -122,16 +123,16 @@ public sealed class PromotionActivity : AggregateRoot
     {
         var rule = new PromotionRule(thresholdAmount, discountAmount);
 
-        if (_rules.Any(r => r.ThresholdAmount == thresholdAmount))
+        if (Rules.Any(r => r.ThresholdAmount == thresholdAmount))
         {
             throw new PromotionDomainException(
                 $"门槛金额 {thresholdAmount} 的规则已存在",
                 "PROMOTION_RULE_DUPLICATE");
         }
 
-        _rules.Add(rule);
+        Rules.Add(rule);
         // 维护按门槛升序，便于命中最高档
-        _rules.Sort((a, b) => a.ThresholdAmount.CompareTo(b.ThresholdAmount));
+        Rules.Sort((a, b) => a.ThresholdAmount.CompareTo(b.ThresholdAmount));
     }
 
     /// <summary>
@@ -139,7 +140,7 @@ public sealed class PromotionActivity : AggregateRoot
     /// </summary>
     public void RemoveRule(decimal thresholdAmount)
     {
-        var rule = _rules.FirstOrDefault(r => r.ThresholdAmount == thresholdAmount);
+        var rule = Rules.FirstOrDefault(r => r.ThresholdAmount == thresholdAmount);
         if (rule is null)
         {
             throw new PromotionDomainException(
@@ -147,7 +148,7 @@ public sealed class PromotionActivity : AggregateRoot
                 "PROMOTION_RULE_NOT_FOUND", 404);
         }
 
-        _rules.Remove(rule);
+        Rules.Remove(rule);
     }
 
     /// <summary>
@@ -167,7 +168,7 @@ public sealed class PromotionActivity : AggregateRoot
         }
 
         // 规则已按门槛升序，取满足条件的最高档
-        var matched = _rules.LastOrDefault(r => orderAmount >= r.ThresholdAmount);
+        var matched = Rules.LastOrDefault(r => orderAmount >= r.ThresholdAmount);
         return matched?.DiscountAmount ?? 0;
     }
 }
