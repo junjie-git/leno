@@ -74,6 +74,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPaymentAppService, PaymentAppService>();
         services.AddScoped<IRefundAppService, RefundAppService>();
 
+        // 内部查询服务（供跨域调用）
+        services.AddScoped<IPaymentInternalQueryService, PaymentInternalQueryService>();
+
         return services;
     }
 

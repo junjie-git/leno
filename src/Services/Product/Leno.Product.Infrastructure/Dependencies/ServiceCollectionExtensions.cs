@@ -51,6 +51,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICategoryAppService, CategoryAppService>();
         services.AddScoped<IBrandAppService, BrandAppService>();
         services.AddScoped<IInventoryAppService, InventoryAppService>();
+        services.AddScoped<IProductInternalQueryService, ProductInternalQueryService>();
 
         services.AddValidatorsFromAssembly(typeof(ISPUAppService).Assembly);
 

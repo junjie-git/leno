@@ -49,6 +49,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPromotionAppService, PromotionAppService>();
         services.AddScoped<ICouponAppService, CouponAppService>();
         services.AddScoped<ISeckillAppService, SeckillAppService>();
+        services.AddScoped<IPromotionCalculateAppService, PromotionCalculateAppService>();
 
         // FluentValidation 校验器
         services.AddValidatorsFromAssembly(typeof(IPromotionAppService).Assembly);

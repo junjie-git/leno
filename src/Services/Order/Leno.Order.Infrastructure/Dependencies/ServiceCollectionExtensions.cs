@@ -60,6 +60,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILogisticsCompanyAppService, LogisticsCompanyAppService>();
         services.AddScoped<IFreightTemplateAppService, FreightTemplateAppService>();
         services.AddScoped<ILogisticsTrackingService, LogisticsTrackingService>();
+        services.AddScoped<IOrderInternalQueryService, OrderInternalQueryService>();
 
         // FluentValidation 校验器
         services.AddValidatorsFromAssembly(typeof(IOrderAppService).Assembly);

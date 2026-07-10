@@ -2,6 +2,7 @@ using FluentValidation;
 using Leno.SharedKernel.Abstractions;
 using Leno.UserAuth.Application;
 using Leno.UserAuth.Application.Abstractions;
+using Leno.UserAuth.Application.Services;
 using Leno.UserAuth.Domain.Repositories;
 using Leno.UserAuth.Domain.Services;
 using Leno.UserAuth.Infrastructure.Audit;
@@ -52,6 +53,8 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ITokenService, TokenService>();
         services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
+
+        services.AddScoped<IUserInternalQueryService, UserInternalQueryService>();
 
         services.AddScoped<AuditLogInterceptor>();
 

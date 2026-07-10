@@ -15,36 +15,36 @@
 
 ## 阶段二：目标域内部查询 API（可并行）
 
-- [ ] Task 3: Product 域新增 SKU 查询内部端点
-  - [ ] SubTask 3.1: 在 `Leno.Product.Application` 新增 `IProductInternalQueryService` 接口与 `SkuInfoResultDto`（SkuId、Price、Currency、Available、Title、MainImageUrl、SellerId）
-  - [ ] SubTask 3.2: 在 `Leno.Product.Application` 实现 `ProductInternalQueryService`，通过 SKU 仓储查询并组装 DTO
-  - [ ] SubTask 3.3: 在 `Leno.Product.Api` 新增 `InternalProductsController`，路由 `internal/products/skus/{skuId}`（GET）和 `internal/products/skus/batch`（POST），应用内部鉴权
+- [x] Task 3: Product 域新增 SKU 查询内部端点
+  - [x] SubTask 3.1: 在 `Leno.Product.Application` 新增 `IProductInternalQueryService` 接口与 `SkuInfoResultDto`（SkuId、Price、Currency、Available、Title、MainImageUrl、SellerId）
+  - [x] SubTask 3.2: 在 `Leno.Product.Application` 实现 `ProductInternalQueryService`，通过 SKU 仓储查询并组装 DTO
+  - [x] SubTask 3.3: 在 `Leno.Product.Api` 新增 `InternalProductsController`，路由 `internal/products/skus/{skuId}`（GET）和 `internal/products/skus/batch`（POST），应用内部鉴权
 
-- [ ] Task 4: Promotion 域新增折扣试算内部端点
-  - [ ] SubTask 4.1: 在 `Leno.Promotion.Application` 新增 `IPromotionCalculateAppService` 接口与 `CalculateDiscountDto`（UserId、Items 列表含 SkuId/Subtotal）、`DiscountResultDto`（TotalDiscountAmount）
-  - [ ] SubTask 4.2: 实现 `PromotionCalculateAppService`，查询用户可用优惠券与生效满减活动，计算适用优惠总金额
-  - [ ] SubTask 4.3: 在 `Leno.Promotion.Api` 新增 `InternalPromotionsController`，路由 `internal/promotions/calculate`（POST），应用内部鉴权
+- [x] Task 4: Promotion 域新增折扣试算内部端点
+  - [x] SubTask 4.1: 在 `Leno.Promotion.Application` 新增 `IPromotionCalculateAppService` 接口与 `CalculateDiscountDto`（UserId、Items 列表含 SkuId/Subtotal）、`DiscountResultDto`（TotalDiscountAmount）
+  - [x] SubTask 4.2: 实现 `PromotionCalculateAppService`，查询用户可用优惠券与生效满减活动，计算适用优惠总金额
+  - [x] SubTask 4.3: 在 `Leno.Promotion.Api` 新增 `InternalPromotionsController`，路由 `internal/promotions/calculate`（POST），应用内部鉴权
 
-- [ ] Task 5: PointsMembership 域新增积分操作内部端点
-  - [ ] SubTask 5.1: 在 `Leno.PointsMembership.Domain` 的 `PointsAccount` 聚合新增 `TryOffset`（试扣返回可抵现金额）、`Freeze`（冻结积分）、`Release`（释放冻结积分）领域方法（如尚不存在）
-  - [ ] SubTask 5.2: 在 `Leno.PointsMembership.Application` 新增 `IPointsInternalAppService` 接口与对应 DTO（TrialOffsetDto/FreezeDto/ReleaseDto 及结果 DTO）
-  - [ ] SubTask 5.3: 实现 `PointsInternalAppService`，调用聚合方法并持久化
-  - [ ] SubTask 5.4: 在 `Leno.PointsMembership.Api` 新增 `InternalPointsController`，路由 `internal/points/trial-offset`、`internal/points/freeze`、`internal/points/release`（均 POST），应用内部鉴权
+- [x] Task 5: PointsMembership 域新增积分操作内部端点
+  - [x] SubTask 5.1: 在 `Leno.PointsMembership.Domain` 的 `PointsAccount` 聚合新增 `TryOffset`（试扣返回可抵现金额）、`Freeze`（冻结积分）、`Release`（释放冻结积分）领域方法（如尚不存在）
+  - [x] SubTask 5.2: 在 `Leno.PointsMembership.Application` 新增 `IPointsInternalAppService` 接口与对应 DTO（TrialOffsetDto/FreezeDto/ReleaseDto 及结果 DTO）
+  - [x] SubTask 5.3: 实现 `PointsInternalAppService`，调用聚合方法并持久化
+  - [x] SubTask 5.4: 在 `Leno.PointsMembership.Api` 新增 `InternalPointsController`，路由 `internal/points/trial-offset`、`internal/points/freeze`、`internal/points/release`（均 POST），应用内部鉴权
 
-- [ ] Task 6: UserAuth 域新增联系方式查询内部端点
-  - [ ] SubTask 6.1: 在 `Leno.UserAuth.Application` 新增 `IUserInternalQueryService` 接口与 `UserContactsDto`（UserId、PhoneNumber、Email，未脱敏）
-  - [ ] SubTask 6.2: 实现 `UserInternalQueryService`，通过用户仓储查询返回真实联系方式
-  - [ ] SubTask 6.3: 在 `Leno.UserAuth.Api` 新增 `InternalUsersController`，路由 `internal/users/{userId}/contacts`（GET），应用内部鉴权
+- [x] Task 6: UserAuth 域新增联系方式查询内部端点
+  - [x] SubTask 6.1: 在 `Leno.UserAuth.Application` 新增 `IUserInternalQueryService` 接口与 `UserContactsDto`（UserId、PhoneNumber、Email，未脱敏）
+  - [x] SubTask 6.2: 实现 `UserInternalQueryService`，通过用户仓储查询返回真实联系方式
+  - [x] SubTask 6.3: 在 `Leno.UserAuth.Api` 新增 `InternalUsersController`，路由 `internal/users/{userId}/contacts`（GET），应用内部鉴权
 
-- [ ] Task 7: Order 域新增订单状态查询内部端点
-  - [ ] SubTask 7.1: 在 `Leno.Order.Application` 新增 `IOrderInternalQueryService` 接口与 `OrderStatusResultDto`（OrderId、Status、UserId、Items 列表含 SkuId/Quantity/AfterSalesStatus、CompletedAt、CreatedAt）
-  - [ ] SubTask 7.2: 实现 `OrderInternalQueryService`，通过订单仓储查询并组装 DTO
-  - [ ] SubTask 7.3: 在 `Leno.Order.Api` 新增 `InternalOrdersController`，路由 `internal/orders/{orderId}/status`（GET），应用内部鉴权
+- [x] Task 7: Order 域新增订单状态查询内部端点
+  - [x] SubTask 7.1: 在 `Leno.Order.Application` 新增 `IOrderInternalQueryService` 接口与 `OrderStatusResultDto`（OrderId、Status、UserId、Items 列表含 SkuId/Quantity/AfterSalesStatus、CompletedAt、CreatedAt）
+  - [x] SubTask 7.2: 实现 `OrderInternalQueryService`，通过订单仓储查询并组装 DTO
+  - [x] SubTask 7.3: 在 `Leno.Order.Api` 新增 `InternalOrdersController`，路由 `internal/orders/{orderId}/status`（GET），应用内部鉴权
 
-- [ ] Task 8: Payment 域新增支付信息查询内部端点
-  - [ ] SubTask 8.1: 在 `Leno.Payment.Application` 新增 `IPaymentInternalQueryService` 接口与 `PaymentInfoResultDto`（PaymentId、Channel、OrderId、Status）
-  - [ ] SubTask 8.2: 实现 `PaymentInternalQueryService`，通过支付仓储按 orderId 查询
-  - [ ] SubTask 8.3: 在 `Leno.Payment.Api` 新增 `InternalPaymentsController`，路由 `internal/payments/{orderId}/info`（GET），应用内部鉴权
+- [x] Task 8: Payment 域新增支付信息查询内部端点
+  - [x] SubTask 8.1: 在 `Leno.Payment.Application` 新增 `IPaymentInternalQueryService` 接口与 `PaymentInfoResultDto`（PaymentId、Channel、OrderId、Status）
+  - [x] SubTask 8.2: 实现 `PaymentInternalQueryService`，通过支付仓储按 orderId 查询
+  - [x] SubTask 8.3: 在 `Leno.Payment.Api` 新增 `InternalPaymentsController`，路由 `internal/payments/{orderId}/info`（GET），应用内部鉴权
 
 ## 阶段三：跨域防腐层 HTTP 客户端实现（依赖阶段二）
 

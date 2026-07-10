@@ -12,6 +12,9 @@ namespace Leno.PointsMembership.Domain.Aggregates;
 /// </summary>
 public sealed class PointsAccount : AggregateRoot
 {
+    /// <summary>积分抵扣换算率：100 积分 = 1 元。</summary>
+    private const int PointsPerYuan = 100;
+
     /// <summary>账户所属用户标识。</summary>
     public Guid UserId { get; private set; }
 
@@ -76,6 +79,22 @@ public sealed class PointsAccount : AggregateRoot
         Balance += amount;
         TotalEarned += amount;
         AddDomainEvent(new PointsEarnedEvent(Id, UserId, amount, source.ToString()));
+    }
+
+    /// <summary>
+    /// 试算积分可抵扣金额（100 积分 = 1 元），不修改账户状态。
+    /// 参数非法或余额不足时返回 0。
+    /// </summary>
+    /// <param name="pointsToUse">拟使用积分数量。</param>
+    /// <returns>可抵扣金额（元）。</returns>
+    public decimal TryOffset(int pointsToUse)
+    {
+        if (pointsToUse <= 0 || Balance < pointsToUse)
+        {
+            return 0;
+        }
+
+        return pointsToUse / (decimal)PointsPerYuan;
     }
 
     /// <summary>

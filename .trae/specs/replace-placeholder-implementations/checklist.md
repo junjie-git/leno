@@ -12,25 +12,25 @@
 
 ## 阶段二：目标域内部查询 API
 
-- [ ] Product 域 `IProductInternalQueryService` 接口与 `SkuInfoResultDto` 已创建
-- [ ] Product 域 `ProductInternalQueryService` 实现通过 SKU 仓储查询并组装 DTO
-- [ ] Product 域 `InternalProductsController` 提供 `GET internal/products/skus/{skuId}` 和 `POST internal/products/skus/batch`
-- [ ] Promotion 域 `IPromotionCalculateAppService` 接口与 DTO 已创建
-- [ ] Promotion 域 `PromotionCalculateAppService` 实现查询用户优惠券与满减活动，计算优惠总金额
-- [ ] Promotion 域 `InternalPromotionsController` 提供 `POST internal/promotions/calculate`
-- [ ] PointsMembership 域 `PointsAccount` 聚合已新增 `TryOffset`/`Freeze`/`Release` 领域方法（如尚不存在）
-- [ ] PointsMembership 域 `IPointsInternalAppService` 接口与 DTO 已创建
-- [ ] PointsMembership 域 `PointsInternalAppService` 实现调用聚合方法并持久化
-- [ ] PointsMembership 域 `InternalPointsController` 提供 trial-offset、freeze、release 三个端点
-- [ ] UserAuth 域 `IUserInternalQueryService` 接口与 `UserContactsDto` 已创建（未脱敏）
-- [ ] UserAuth 域 `UserInternalQueryService` 实现通过用户仓储查询真实联系方式
-- [ ] UserAuth 域 `InternalUsersController` 提供 `GET internal/users/{userId}/contacts`
-- [ ] Order 域 `IOrderInternalQueryService` 接口与 `OrderStatusResultDto` 已创建
-- [ ] Order 域 `OrderInternalQueryService` 实现通过订单仓储查询并组装 DTO
-- [ ] Order 域 `InternalOrdersController` 提供 `GET internal/orders/{orderId}/status`
-- [ ] Payment 域 `IPaymentInternalQueryService` 接口与 `PaymentInfoResultDto` 已创建
-- [ ] Payment 域 `PaymentInternalQueryService` 实现通过支付仓储按 orderId 查询
-- [ ] Payment 域 `InternalPaymentsController` 提供 `GET internal/payments/{orderId}/info`
+- [x] Product 域 `IProductInternalQueryService` 接口与 `SkuInfoResultDto` 已创建
+- [x] Product 域 `ProductInternalQueryService` 实现通过 SKU 仓储查询并组装 DTO
+- [x] Product 域 `InternalProductsController` 提供 `GET internal/products/skus/{skuId}` 和 `POST internal/products/skus/batch`
+- [x] Promotion 域 `IPromotionCalculateAppService` 接口与 DTO 已创建
+- [x] Promotion 域 `PromotionCalculateAppService` 实现查询用户优惠券与满减活动，计算优惠总金额
+- [x] Promotion 域 `InternalPromotionsController` 提供 `POST internal/promotions/calculate`
+- [x] PointsMembership 域 `PointsAccount` 聚合已新增 `TryOffset`/`Freeze`/`Release` 领域方法（如尚不存在）
+- [x] PointsMembership 域 `IPointsInternalAppService` 接口与 DTO 已创建
+- [x] PointsMembership 域 `PointsInternalAppService` 实现调用聚合方法并持久化
+- [x] PointsMembership 域 `InternalPointsController` 提供 trial-offset、freeze、release 三个端点
+- [x] UserAuth 域 `IUserInternalQueryService` 接口与 `UserContactsDto` 已创建（未脱敏）
+- [x] UserAuth 域 `UserInternalQueryService` 实现通过用户仓储查询真实联系方式
+- [x] UserAuth 域 `InternalUsersController` 提供 `GET internal/users/{userId}/contacts`
+- [x] Order 域 `IOrderInternalQueryService` 接口与 `OrderStatusResultDto` 已创建
+- [x] Order 域 `OrderInternalQueryService` 实现通过订单仓储查询并组装 DTO
+- [x] Order 域 `InternalOrdersController` 提供 `GET internal/orders/{orderId}/status`
+- [x] Payment 域 `IPaymentInternalQueryService` 接口与 `PaymentInfoResultDto` 已创建
+- [x] Payment 域 `PaymentInternalQueryService` 实现通过支付仓储按 orderId 查询
+- [x] Payment 域 `InternalPaymentsController` 提供 `GET internal/payments/{orderId}/info`
 
 ## 阶段三：跨域防腐层 HTTP 客户端实现
 

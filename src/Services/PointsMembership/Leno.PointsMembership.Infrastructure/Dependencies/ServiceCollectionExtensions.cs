@@ -48,6 +48,7 @@ public static class ServiceCollectionExtensions
 
         // 应用服务
         services.AddScoped<IPointsAppService, PointsAppService>();
+        services.AddScoped<IPointsInternalAppService, PointsInternalAppService>();
         services.AddScoped<IMemberAppService, MemberAppService>();
         services.AddScoped<IMembershipPackageAppService, MembershipPackageAppService>();
 
