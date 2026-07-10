@@ -1,3 +1,4 @@
+using Leno.Promotion.Domain.Events;
 using Leno.Promotion.Domain.Exceptions;
 using Leno.Promotion.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
@@ -186,7 +187,30 @@ public sealed class SeckillActivity : AggregateRoot
         if (AvailableStock == 0)
         {
             Status = SeckillStatus.Ended;
+            AddDomainEvent(new SeckillStockSoldOutEvent(Id, SkuId, DateTime.UtcNow));
         }
+    }
+
+    /// <summary>
+    /// 记录秒杀订单创建事件（Redis 预扣成功后由应用层调用，发布 <see cref="SeckillOrderCreatedEvent"/>）。
+    /// 事件经发件箱异步派发，订单域消费后创建秒杀订单。
+    /// </summary>
+    /// <param name="userId">下单用户标识。</param>
+    /// <param name="orderId">应用层生成的订单标识。</param>
+    /// <param name="quantity">下单数量。</param>
+    public void RecordOrderCreated(Guid userId, Guid orderId, int quantity)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new PromotionDomainException("UserId 不可为空", "SECKILL_USER_EMPTY");
+        }
+
+        if (orderId == Guid.Empty)
+        {
+            throw new PromotionDomainException("OrderId 不可为空", "SECKILL_ORDER_EMPTY");
+        }
+
+        AddDomainEvent(new SeckillOrderCreatedEvent(Id, SpuId, SkuId, userId, orderId, SeckillPrice, quantity));
     }
 
     /// <summary>

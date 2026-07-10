@@ -1,3 +1,4 @@
+using Leno.Promotion.Domain.Events;
 using Leno.Promotion.Domain.Exceptions;
 using Leno.Promotion.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
@@ -75,7 +76,8 @@ public sealed class UserCoupon : AggregateRoot
             throw new PromotionDomainException("券已过期，不可领取", "USER_COUPON_EXPIRED");
         }
 
-        return new UserCoupon(userCouponId == Guid.Empty ? Guid.NewGuid() : userCouponId)
+        var userCouponId2 = userCouponId == Guid.Empty ? Guid.NewGuid() : userCouponId;
+        var userCoupon = new UserCoupon(userCouponId2)
         {
             UserId = userId,
             CouponId = couponId,
@@ -84,6 +86,9 @@ public sealed class UserCoupon : AggregateRoot
             ReceivedAt = now,
             ExpiredAt = expiredAt
         };
+
+        userCoupon.AddDomainEvent(new CouponIssuedEvent(userCouponId2, couponId, userId, now));
+        return userCoupon;
     }
 
     /// <summary>
