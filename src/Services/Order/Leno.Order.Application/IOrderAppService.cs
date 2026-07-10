@@ -41,8 +41,9 @@ public interface IOrderAppService
     /// 发货。
     /// </summary>
     /// <param name="orderId">订单标识。</param>
+    /// <param name="operatorId">操作人标识（卖家，审计用）。</param>
     /// <param name="dto">发货入参。</param>
-    Task ShipAsync(Guid orderId, ShipOrderDto dto, CancellationToken ct = default);
+    Task ShipAsync(Guid orderId, Guid operatorId, ShipOrderDto dto, CancellationToken ct = default);
 
     /// <summary>
     /// 确认收货。

@@ -76,6 +76,9 @@ public sealed class PaymentFailedEvent : IntegrationEventBase, IDomainEvent
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
 
+    /// <summary>买家账号标识。</summary>
+    public Guid UserId { get; init; }
+
     /// <summary>失败原因。</summary>
     public string Reason { get; init; } = string.Empty;
 
@@ -90,9 +93,10 @@ public sealed class PaymentFailedEvent : IntegrationEventBase, IDomainEvent
     {
     }
 
-    public PaymentFailedEvent(Guid orderId, string reason, DateTime failedAt) : base()
+    public PaymentFailedEvent(Guid orderId, Guid userId, string reason, DateTime failedAt) : base()
     {
         OrderId = orderId;
+        UserId = userId;
         Reason = reason ?? string.Empty;
         FailedAt = failedAt;
     }
@@ -108,6 +112,9 @@ public sealed class RefundCompletedEvent : IntegrationEventBase, IDomainEvent
 {
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
+
+    /// <summary>买家账号标识。</summary>
+    public Guid UserId { get; init; }
 
     /// <summary>退款单标识。</summary>
     public Guid RefundId { get; init; }
@@ -132,10 +139,11 @@ public sealed class RefundCompletedEvent : IntegrationEventBase, IDomainEvent
     {
     }
 
-    public RefundCompletedEvent(Guid orderId, Guid refundId, decimal refundAmount, string currency, DateTime completedAt)
+    public RefundCompletedEvent(Guid orderId, Guid userId, Guid refundId, decimal refundAmount, string currency, DateTime completedAt)
         : base()
     {
         OrderId = orderId;
+        UserId = userId;
         RefundId = refundId;
         RefundAmount = refundAmount;
         Currency = string.IsNullOrWhiteSpace(currency) ? "CNY" : currency;
@@ -145,10 +153,11 @@ public sealed class RefundCompletedEvent : IntegrationEventBase, IDomainEvent
     /// <summary>
     /// 带售后单标识的构造重载，由支付域退款成功时发布，便于售后域关联退款单。
     /// </summary>
-    public RefundCompletedEvent(Guid orderId, Guid refundId, Guid afterSalesId, decimal refundAmount, string currency, DateTime completedAt)
+    public RefundCompletedEvent(Guid orderId, Guid userId, Guid refundId, Guid afterSalesId, decimal refundAmount, string currency, DateTime completedAt)
         : base()
     {
         OrderId = orderId;
+        UserId = userId;
         RefundId = refundId;
         AfterSalesId = afterSalesId;
         RefundAmount = refundAmount;

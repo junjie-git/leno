@@ -1,18 +1,35 @@
+using Leno.Order.Application.Services;
+using Leno.Order.Domain.Exceptions;
 using Leno.Order.Domain.Services;
 
 namespace Leno.Order.Infrastructure.Services;
 
 /// <summary>
 /// 订单定价领域服务实现。
-/// 价格校验为占位实现（后续接入商品域售价查询）；优惠分摊按小计比例分配，尾差调整至最后一项。
+/// 价格校验防篡改：下单单价须与商品域当前售价一致；优惠分摊按小计比例分配，尾差调整至最后一项。
 /// </summary>
 public sealed class OrderPricingDomainService : IOrderPricingDomainService
 {
-    /// <inheritdoc />
-    public Task ValidatePricesAsync(List<(Guid SkuId, decimal ExpectedPrice)> skuPrices, CancellationToken ct = default)
+    private readonly IProductAntiCorruptionService _productAntiCorruption;
+
+    public OrderPricingDomainService(IProductAntiCorruptionService productAntiCorruption)
     {
-        // 占位实现：实际校验需接入商品域当前售价查询，此处直接通过
-        return Task.CompletedTask;
+        _productAntiCorruption = productAntiCorruption;
+    }
+
+    /// <inheritdoc />
+    public async Task ValidatePricesAsync(List<(Guid SkuId, decimal ExpectedPrice)> skuPrices, CancellationToken ct = default)
+    {
+        foreach (var (skuId, expectedPrice) in skuPrices)
+        {
+            var skuInfo = await _productAntiCorruption.GetSkuInfoAsync(skuId, ct)
+                ?? throw new OrderDomainException($"SKU {skuId} 不存在或已下架", "ORDER_SKU_NOT_FOUND", 404);
+
+            if (skuInfo.UnitPrice != expectedPrice)
+            {
+                throw new OrderDomainException("商品价格已变更，请重新下单", "ORDER_PRICE_CHANGED");
+            }
+        }
     }
 
     /// <inheritdoc />

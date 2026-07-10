@@ -9,7 +9,7 @@ namespace Leno.Payment.Infrastructure.Channels.Alipay;
 /// <summary>
 /// 支付宝渠道 HTTP 客户端，封装当面付预下单/交易查询/退款/退款查询。
 /// 请求为 form-encoded（公共参数 + biz_content），响应为 JSON。
-/// 当前为模拟实现：构造请求并签名，解析模拟的 JSON 响应；生产环境需配置真实 RSA 密钥后通过 <see cref="HttpClient"/> 发起调用。
+/// 通过 <see cref="HttpClient"/> 向支付宝网关发起真实 HTTP 调用并解析响应。
 /// </summary>
 public sealed class AlipayClient
 {
@@ -44,11 +44,11 @@ public sealed class AlipayClient
         parameters["notify_url"] = config.NotifyUrl;
         parameters["sign"] = AlipaySignatureHelper.GenerateSign(parameters, config.ApiKey);
 
-        _logger.LogInformation("支付宝当面付预下单（模拟）Url={Url} OutTradeNo={OutTradeNo} Subject={Subject}",
+        _logger.LogInformation("支付宝当面付预下单 Url={Url} OutTradeNo={OutTradeNo} Subject={Subject}",
             BuildUrl(), outTradeNo, subject);
 
-        var dict = ParseResponse(SimulatePreCreateResponse(outTradeNo), PreCreateMethod);
-        await Task.CompletedTask;
+        var responseContent = await PostFormAsync(BuildUrl(), parameters, ct);
+        var dict = ParseResponse(responseContent, PreCreateMethod);
         return AlipayPreCreateResult.From(dict);
     }
 
@@ -62,10 +62,10 @@ public sealed class AlipayClient
         var parameters = BuildBaseParameters(config, QueryMethod, bizContent);
         parameters["sign"] = AlipaySignatureHelper.GenerateSign(parameters, config.ApiKey);
 
-        _logger.LogInformation("支付宝交易查询（模拟）Url={Url} OutTradeNo={OutTradeNo}", BuildUrl(), outTradeNo);
+        _logger.LogInformation("支付宝交易查询 Url={Url} OutTradeNo={OutTradeNo}", BuildUrl(), outTradeNo);
 
-        var dict = ParseResponse(SimulateQueryResponse(outTradeNo, paid: true), QueryMethod);
-        await Task.CompletedTask;
+        var responseContent = await PostFormAsync(BuildUrl(), parameters, ct);
+        var dict = ParseResponse(responseContent, QueryMethod);
         return AlipayQueryResult.From(dict);
     }
 
@@ -85,11 +85,11 @@ public sealed class AlipayClient
         var parameters = BuildBaseParameters(config, RefundMethod, bizContent);
         parameters["sign"] = AlipaySignatureHelper.GenerateSign(parameters, config.ApiKey);
 
-        _logger.LogInformation("支付宝交易退款（模拟）Url={Url} OutRequestNo={OutRequestNo} RefundAmount={RefundAmount}",
+        _logger.LogInformation("支付宝交易退款 Url={Url} OutRequestNo={OutRequestNo} RefundAmount={RefundAmount}",
             BuildUrl(), outRequestNo, refundAmount);
 
-        var dict = ParseResponse(SimulateRefundResponse(outTradeNo), RefundMethod);
-        await Task.CompletedTask;
+        var responseContent = await PostFormAsync(BuildUrl(), parameters, ct);
+        var dict = ParseResponse(responseContent, RefundMethod);
         return AlipayRefundResult.From(dict);
     }
 
@@ -107,10 +107,10 @@ public sealed class AlipayClient
         var parameters = BuildBaseParameters(config, RefundQueryMethod, bizContent);
         parameters["sign"] = AlipaySignatureHelper.GenerateSign(parameters, config.ApiKey);
 
-        _logger.LogInformation("支付宝退款查询（模拟）Url={Url} OutRequestNo={OutRequestNo}", BuildUrl(), outRequestNo);
+        _logger.LogInformation("支付宝退款查询 Url={Url} OutRequestNo={OutRequestNo}", BuildUrl(), outRequestNo);
 
-        var dict = ParseResponse(SimulateQueryRefundResponse(outRequestNo, succeeded: true), RefundQueryMethod);
-        await Task.CompletedTask;
+        var responseContent = await PostFormAsync(BuildUrl(), parameters, ct);
+        var dict = ParseResponse(responseContent, RefundQueryMethod);
         return AlipayQueryRefundResult.From(dict);
     }
 
@@ -169,38 +169,19 @@ public sealed class AlipayClient
         return dict;
     }
 
-    private static string SimulatePreCreateResponse(string outTradeNo)
+    private async Task<string> PostFormAsync(string url, Dictionary<string, string> formData, CancellationToken ct)
     {
-        var qrCode = "https://qr.alipay.com/" + Random.Shared.Next(100000000, 999999999);
-        var tradeNo = DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + Random.Shared.Next(1000, 9999);
-        return "{\"alipay_trade_precreate_response\":{\"code\":\"10000\",\"msg\":\"Success\","
-            + "\"out_trade_no\":\"" + outTradeNo + "\",\"qr_code\":\"" + qrCode + "\",\"trade_no\":\"" + tradeNo + "\"},\"sign\":\"simulated\"}";
-    }
+        using var content = new FormUrlEncodedContent(formData);
+        using var response = await _httpClient.PostAsync(url, content, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("支付宝网关 HTTP 调用失败 Url={Url} Status={Status} Body={Body}",
+                url, response.StatusCode, body);
+            throw new HttpRequestException($"支付宝网关返回非成功状态码 {response.StatusCode}");
+        }
 
-    private static string SimulateQueryResponse(string outTradeNo, bool paid)
-    {
-        var tradeNo = DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + Random.Shared.Next(1000, 9999);
-        var sendPayDate = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
-        return "{\"alipay_trade_query_response\":{\"code\":\"10000\",\"msg\":\"Success\","
-            + "\"out_trade_no\":\"" + outTradeNo + "\",\"trade_no\":\"" + tradeNo + "\","
-            + "\"trade_status\":\"" + (paid ? "TRADE_SUCCESS" : "WAIT_BUYER_PAY") + "\","
-            + "\"send_pay_date\":\"" + (paid ? sendPayDate : string.Empty) + "\"},\"sign\":\"simulated\"}";
-    }
-
-    private static string SimulateRefundResponse(string outTradeNo)
-    {
-        var tradeNo = DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + Random.Shared.Next(1000, 9999);
-        return "{\"alipay_trade_refund_response\":{\"code\":\"10000\",\"msg\":\"Success\","
-            + "\"out_trade_no\":\"" + outTradeNo + "\",\"trade_no\":\"" + tradeNo + "\",\"fund_change\":\"Y\"},\"sign\":\"simulated\"}";
-    }
-
-    private static string SimulateQueryRefundResponse(string outRequestNo, bool succeeded)
-    {
-        var gmtRefundPay = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
-        return "{\"alipay_trade_fastpay_refund_query_response\":{\"code\":\"10000\",\"msg\":\"Success\","
-            + "\"out_request_no\":\"" + outRequestNo + "\","
-            + "\"refund_status\":\"" + (succeeded ? "REFUND_SUCCESS" : "REFUND_PROCESSING") + "\","
-            + "\"gmt_refund_pay\":\"" + (succeeded ? gmtRefundPay : string.Empty) + "\"},\"sign\":\"simulated\"}";
+        return body;
     }
 }
 

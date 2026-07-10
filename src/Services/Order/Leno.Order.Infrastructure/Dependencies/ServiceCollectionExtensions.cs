@@ -59,11 +59,14 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient<IPromotionAntiCorruptionService, PromotionAntiCorruptionService>(c => c.BaseAddress = new Uri(promotionApiUrl));
         services.AddHttpClient<IPointsAntiCorruptionService, PointsAntiCorruptionService>(c => c.BaseAddress = new Uri(pointsApiUrl));
 
+        // 物流轨迹查询：通过 HttpClient 调用第三方物流 API
+        services.Configure<LogisticsApiOptions>(configuration.GetSection(LogisticsApiOptions.SectionName));
+        services.AddHttpClient<ILogisticsTrackingService, LogisticsTrackingService>();
+
         // 应用服务
         services.AddScoped<IOrderAppService, OrderAppService>();
         services.AddScoped<ILogisticsCompanyAppService, LogisticsCompanyAppService>();
         services.AddScoped<IFreightTemplateAppService, FreightTemplateAppService>();
-        services.AddScoped<ILogisticsTrackingService, LogisticsTrackingService>();
         services.AddScoped<IOrderInternalQueryService, OrderInternalQueryService>();
 
         // FluentValidation 校验器

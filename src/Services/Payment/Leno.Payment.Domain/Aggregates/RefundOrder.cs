@@ -140,7 +140,7 @@ public sealed class RefundOrder : AggregateRoot
         Status = RefundStatus.Succeeded;
         ChannelRefundNo = channelRefundNo;
         RefundedAt = refundedAt;
-        AddDomainEvent(new RefundCompletedEvent(OrderId, Id, RefundAmount, Currency, refundedAt));
+        AddDomainEvent(new RefundCompletedEvent(OrderId, UserId, Id, RefundAmount, Currency, refundedAt));
     }
 
     /// <summary>

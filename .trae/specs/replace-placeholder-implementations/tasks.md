@@ -73,54 +73,54 @@
 
 ## 阶段四：第三方渠道真实实现（可并行）
 
-- [ ] Task 13: Payment 域 AlipayClient 替换为真实 HTTP 调用
-  - [ ] SubTask 13.1: 修改 `PreCreateAsync`，将 `SimulatePreCreateResponse()` 替换为 `await PostFormAsync(BuildUrl(), formData, ct)`，解析真实响应
-  - [ ] SubTask 13.2: 修改 `QueryAsync`，替换为真实 `alipay.trade.query` HTTP 调用
-  - [ ] SubTask 13.3: 修改 `RefundAsync`，替换为真实 `alipay.trade.refund` HTTP 调用
-  - [ ] SubTask 13.4: 修改 `QueryRefundAsync`，替换为真实 `alipay.trade.fastpay.refund.query` HTTP 调用
-  - [ ] SubTask 13.5: 移除 `SimulatePreCreateResponse`/`SimulateQueryResponse`/`SimulateRefundResponse`/`SimulateQueryRefundResponse` 等模拟方法
-  - [ ] SubTask 13.6: 添加 HTTP 失败响应的异常处理与日志
+- [x] Task 13: Payment 域 AlipayClient 替换为真实 HTTP 调用
+  - [x] SubTask 13.1: 修改 `PreCreateAsync`，将 `SimulatePreCreateResponse()` 替换为 `await PostFormAsync(BuildUrl(), formData, ct)`，解析真实响应
+  - [x] SubTask 13.2: 修改 `QueryAsync`，替换为真实 `alipay.trade.query` HTTP 调用
+  - [x] SubTask 13.3: 修改 `RefundAsync`，替换为真实 `alipay.trade.refund` HTTP 调用
+  - [x] SubTask 13.4: 修改 `QueryRefundAsync`，替换为真实 `alipay.trade.fastpay.refund.query` HTTP 调用
+  - [x] SubTask 13.5: 移除 `SimulatePreCreateResponse`/`SimulateQueryResponse`/`SimulateRefundResponse`/`SimulateQueryRefundResponse` 等模拟方法
+  - [x] SubTask 13.6: 添加 HTTP 失败响应的异常处理与日志
 
-- [ ] Task 14: Payment 域 WeChatPayClient 替换为真实 HTTP 调用
-  - [ ] SubTask 14.1: 修改 `UnifiedOrderAsync`，将 `SimulateUnifiedOrderResponse()` 替换为 `await PostXmlAsync(BuildUrl(UnifiedOrderPath), requestXml, ct)`
-  - [ ] SubTask 14.2: 修改 `QueryOrderAsync`，替换为真实 `/pay/orderquery` HTTP 调用
-  - [ ] SubTask 14.3: 修改 `RefundAsync`，替换为真实 `/secapi/pay/refund` HTTP 调用（含商户证书）
-  - [ ] SubTask 14.4: 修改 `QueryRefundAsync`，替换为真实 `/pay/refundquery` HTTP 调用
-  - [ ] SubTask 14.5: 移除 `SimulateUnifiedOrderResponse`/`SimulateQueryOrderResponse`/`SimulateRefundResponse`/`SimulateQueryRefundResponse` 等模拟方法
-  - [ ] SubTask 14.6: 添加 HTTP 失败响应的异常处理与日志
+- [x] Task 14: Payment 域 WeChatPayClient 替换为真实 HTTP 调用
+  - [x] SubTask 14.1: 修改 `UnifiedOrderAsync`，将 `SimulateUnifiedOrderResponse()` 替换为 `await PostXmlAsync(BuildUrl(UnifiedOrderPath), requestXml, ct)`
+  - [x] SubTask 14.2: 修改 `QueryOrderAsync`，替换为真实 `/pay/orderquery` HTTP 调用
+  - [x] SubTask 14.3: 修改 `RefundAsync`，替换为真实 `/secapi/pay/refund` HTTP 调用（含商户证书）
+  - [x] SubTask 14.4: 修改 `QueryRefundAsync`，替换为真实 `/pay/refundquery` HTTP 调用
+  - [x] SubTask 14.5: 移除 `SimulateUnifiedOrderResponse`/`SimulateQueryOrderResponse`/`SimulateRefundResponse`/`SimulateQueryRefundResponse` 等模拟方法
+  - [x] SubTask 14.6: 添加 HTTP 失败响应的异常处理与日志
 
-- [ ] Task 15: Notification 域 SmtpClientWrapper 替换为真实 SMTP 发送
-  - [ ] SubTask 15.1: 在 Notification.Infrastructure.csproj 添加 `MailKit` NuGet 包引用
-  - [ ] SubTask 15.2: 修改 `SmtpClientWrapper.SendAsync`，使用 `MailKit.Net.Smtp.SmtpClient` 连接 SMTP 服务器、认证、发送 `MimeMessage`，返回真实结果
-  - [ ] SubTask 15.3: 添加连接失败、认证失败、发送失败的异常处理，返回 `(false, reason)` 元组
+- [x] Task 15: Notification 域 SmtpClientWrapper 替换为真实 SMTP 发送
+  - [x] SubTask 15.1: 在 Notification.Infrastructure.csproj 添加 `MailKit` NuGet 包引用
+  - [x] SubTask 15.2: 修改 `SmtpClientWrapper.SendAsync`，使用 `MailKit.Net.Smtp.SmtpClient` 连接 SMTP 服务器、认证、发送 `MimeMessage`，返回真实结果
+  - [x] SubTask 15.3: 添加连接失败、认证失败、发送失败的异常处理，返回 `(false, reason)` 元组
 
-- [ ] Task 16: Notification 域 SmsClient 替换为真实短信 API 调用
-  - [ ] SubTask 16.1: 修改 `SmsClient.SendAsync`，使用 HttpClient 调用配置的短信服务商 API（阿里云/腾讯云），构造签名请求
-  - [ ] SubTask 16.2: 解析服务商响应，映射为 `(bool Succeeded, string? FailReason)` 返回
-  - [ ] SubTask 16.3: 在 `SmsOptions` 中补充服务商类型、API 地址、签名等配置项
+- [x] Task 16: Notification 域 SmsClient 替换为真实短信 API 调用
+  - [x] SubTask 16.1: 修改 `SmsClient.SendAsync`，使用 HttpClient 调用配置的短信服务商 API（阿里云/腾讯云），构造签名请求
+  - [x] SubTask 16.2: 解析服务商响应，映射为 `(bool Succeeded, string? FailReason)` 返回
+  - [x] SubTask 16.3: 在 `SmsOptions` 中补充服务商类型、API 地址、签名等配置项
 
-- [ ] Task 17: Order 域 LogisticsTrackingService 替换为真实物流查询
-  - [ ] SubTask 17.1: 修改 `LogisticsTrackingService`，注入 HttpClient，调用配置的物流轨迹查询 API
-  - [ ] SubTask 17.2: 解析响应映射为 `LogisticsTrackingNode` 列表
-  - [ ] SubTask 17.3: 在 `appsettings.json` 中补充物流 API 配置（ApiUrl、AppKey、需要时按物流公司编码查询）
-  - [ ] SubTask 17.4: API 不可用或查询失败时返回空节点列表（而非占位"物流信息暂未更新"）
+- [x] Task 17: Order 域 LogisticsTrackingService 替换为真实物流查询
+  - [x] SubTask 17.1: 修改 `LogisticsTrackingService`，注入 HttpClient，调用配置的物流轨迹查询 API
+  - [x] SubTask 17.2: 解析响应映射为 `LogisticsTrackingNode` 列表
+  - [x] SubTask 17.3: 在 `appsettings.json` 中补充物流 API 配置（ApiUrl、AppKey、需要时按物流公司编码查询）
+  - [x] SubTask 17.4: API 不可用或查询失败时返回空节点列表（而非占位"物流信息暂未更新"）
 
 ## 阶段五：上下文与事件契约修复
 
-- [ ] Task 18: 修复 PaymentFailedEvent 和 RefundCompletedEvent 事件契约
-  - [ ] SubTask 18.1: 在 `Leno.SharedContracts/Events/PaymentEvents.cs` 的 `PaymentFailedEvent` 新增 `UserId` 属性
-  - [ ] SubTask 18.2: 在 `Leno.SharedContracts/Events/PaymentEvents.cs` 的 `RefundCompletedEvent` 新增 `UserId` 属性
-  - [ ] SubTask 18.3: 在 Payment 域发布 `PaymentFailedEvent` 处填充 `UserId`（从支付单的 UserId 获取）
-  - [ ] SubTask 18.4: 在 Payment 域发布 `RefundCompletedEvent` 处填充 `UserId`（从关联订单/售后单获取）
+- [x] Task 18: 修复 PaymentFailedEvent 和 RefundCompletedEvent 事件契约
+  - [x] SubTask 18.1: 在 `Leno.SharedContracts/Events/PaymentEvents.cs` 的 `PaymentFailedEvent` 新增 `UserId` 属性
+  - [x] SubTask 18.2: 在 `Leno.SharedContracts/Events/PaymentEvents.cs` 的 `RefundCompletedEvent` 新增 `UserId` 属性
+  - [x] SubTask 18.3: 在 Payment 域发布 `PaymentFailedEvent` 处填充 `UserId`（从支付单的 UserId 获取）
+  - [x] SubTask 18.4: 在 Payment 域发布 `RefundCompletedEvent` 处填充 `UserId`（从关联订单/售后单获取）
 
 - [ ] Task 19: 修复 Notification 域两个事件消费者
   - [ ] SubTask 19.1: 修改 `PaymentEventConsumer.Consume(PaymentFailedEvent)`，使用事件中的 `UserId` 调用 `_dispatcher.DispatchAsync` 发送支付失败通知（替换跳过逻辑）
   - [ ] SubTask 19.2: 修改 `AfterSalesEventConsumer.Consume(RefundCompletedEvent)`，使用事件中的 `UserId` 发送退款完成通知（替换跳过逻辑）
 
-- [ ] Task 20: 修复 Order 域 ShipAsync 操作人标识与价格校验
-  - [ ] SubTask 20.1: 修改 `OrderAppService` 构造函数注入 `ICurrentUserContext`
-  - [ ] SubTask 20.2: 修改 `ShipAsync`，从 `ICurrentUserContext.UserId` 获取操作人标识传入 `order.Ship()`（替换 `Guid.Empty`）；若为卖家角色则使用卖家标识
-  - [ ] SubTask 20.3: 修改 `OrderPricingDomainService.ValidatePricesAsync`，通过注入的 `IProductAntiCorruptionService` 查询每个 SKU 实际售价，校验与 `ExpectedPrice` 一致，不一致抛出领域异常
+- [x] Task 20: 修复 Order 域 ShipAsync 操作人标识与价格校验
+  - [x] SubTask 20.1: 修改 `IOrderAppService.ShipAsync` 与 `OrderAppService.ShipAsync` 签名，新增 `Guid operatorId` 参数（Application 层不引用 Infrastructure，操作人标识由控制器传入）
+  - [x] SubTask 20.2: 修改 `OrdersController` 的 Ship 端点，传入 `GetCurrentUserId()` 作为 `operatorId`（替换 `Guid.Empty`）
+  - [x] SubTask 20.3: 修改 `OrderPricingDomainService.ValidatePricesAsync`，通过注入的 `IProductAntiCorruptionService` 查询每个 SKU 实际售价，校验与 `ExpectedPrice` 一致，不一致抛出领域异常
 
 - [x] Task 21: 修复 SystemAdmin 域定时任务手动触发
   - [x] SubTask 21.1: 修改 `ScheduledTaskExecutor`，注入 `ISchedulerFactory`（替换或补充现有依赖）

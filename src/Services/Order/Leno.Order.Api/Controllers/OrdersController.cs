@@ -106,7 +106,7 @@ public sealed class OrdersController : OrderControllerBase
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ShipAsync(Guid id, [FromBody] ShipOrderDto dto, CancellationToken ct)
     {
-        await _orderAppService.ShipAsync(id, dto, ct);
+        await _orderAppService.ShipAsync(id, GetCurrentUserId(), dto, ct);
         return Ok(ApiResponse.Success());
     }
 

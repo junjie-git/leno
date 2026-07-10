@@ -52,37 +52,37 @@
 
 ## 阶段四：第三方渠道真实实现
 
-- [ ] Payment 域 `AlipayClient.PreCreateAsync` 通过 HttpClient 调用真实支付宝网关，不再使用 `SimulatePreCreateResponse`
-- [ ] Payment 域 `AlipayClient.QueryAsync` 通过 HttpClient 调用真实 `alipay.trade.query`
-- [ ] Payment 域 `AlipayClient.RefundAsync` 通过 HttpClient 调用真实 `alipay.trade.refund`
-- [ ] Payment 域 `AlipayClient.QueryRefundAsync` 通过 HttpClient 调用真实退款查询
-- [ ] Payment 域 `AlipayClient` 的四个 `Simulate*Response` 模拟方法已移除
-- [ ] Payment 域 `WeChatPayClient.UnifiedOrderAsync` 通过 HttpClient POST XML 调用真实统一下单
-- [ ] Payment 域 `WeChatPayClient.QueryOrderAsync` 通过 HttpClient 调用真实订单查询
-- [ ] Payment 域 `WeChatPayClient.RefundAsync` 通过 HttpClient 调用真实退款（含商户证书）
-- [ ] Payment 域 `WeChatPayClient.QueryRefundAsync` 通过 HttpClient 调用真实退款查询
-- [ ] Payment 域 `WeChatPayClient` 的四个 `Simulate*Response` 模拟方法已移除
-- [ ] Notification 域 `Notification.Infrastructure.csproj` 已添加 `MailKit` 包引用
-- [ ] Notification 域 `SmtpClientWrapper.SendAsync` 使用 MailKit 真实发送邮件
-- [ ] Notification 域 `SmtpClientWrapper` 有连接/认证/发送失败的异常处理
-- [ ] Notification 域 `SmsClient.SendAsync` 通过 HttpClient 调用短信服务商 API
-- [ ] Notification 域 `SmsOptions` 已补充服务商类型、API 地址、签名等配置项
-- [ ] Order 域 `LogisticsTrackingService` 已注入 HttpClient，调用物流轨迹查询 API
-- [ ] Order 域 `LogisticsTrackingService` 解析响应映射为 `LogisticsTrackingNode` 列表
-- [ ] Order 域 `appsettings.json` 已补充物流 API 配置
-- [ ] Order 域 `LogisticsTrackingService` 查询失败时返回空节点列表而非占位文本
+- [x] Payment 域 `AlipayClient.PreCreateAsync` 通过 HttpClient 调用真实支付宝网关，不再使用 `SimulatePreCreateResponse`
+- [x] Payment 域 `AlipayClient.QueryAsync` 通过 HttpClient 调用真实 `alipay.trade.query`
+- [x] Payment 域 `AlipayClient.RefundAsync` 通过 HttpClient 调用真实 `alipay.trade.refund`
+- [x] Payment 域 `AlipayClient.QueryRefundAsync` 通过 HttpClient 调用真实退款查询
+- [x] Payment 域 `AlipayClient` 的四个 `Simulate*Response` 模拟方法已移除
+- [x] Payment 域 `WeChatPayClient.UnifiedOrderAsync` 通过 HttpClient POST XML 调用真实统一下单
+- [x] Payment 域 `WeChatPayClient.QueryOrderAsync` 通过 HttpClient 调用真实订单查询
+- [x] Payment 域 `WeChatPayClient.RefundAsync` 通过 HttpClient 调用真实退款（含商户证书）
+- [x] Payment 域 `WeChatPayClient.QueryRefundAsync` 通过 HttpClient 调用真实退款查询
+- [x] Payment 域 `WeChatPayClient` 的四个 `Simulate*Response` 模拟方法已移除
+- [x] Notification 域 `Notification.Infrastructure.csproj` 已添加 `MailKit` 包引用
+- [x] Notification 域 `SmtpClientWrapper.SendAsync` 使用 MailKit 真实发送邮件
+- [x] Notification 域 `SmtpClientWrapper` 有连接/认证/发送失败的异常处理
+- [x] Notification 域 `SmsClient.SendAsync` 通过 HttpClient 调用短信服务商 API
+- [x] Notification 域 `SmsOptions` 已补充服务商类型、API 地址、签名等配置项
+- [x] Order 域 `LogisticsTrackingService` 已注入 HttpClient，调用物流轨迹查询 API
+- [x] Order 域 `LogisticsTrackingService` 解析响应映射为 `LogisticsTrackingNode` 列表
+- [x] Order 域 `appsettings.json` 已补充物流 API 配置
+- [x] Order 域 `LogisticsTrackingService` 查询失败时返回空节点列表而非占位文本
 
 ## 阶段五：上下文与事件契约修复
 
-- [ ] `PaymentFailedEvent` 已新增 `UserId` 属性
-- [ ] `RefundCompletedEvent` 已新增 `UserId` 属性
-- [ ] Payment 域发布 `PaymentFailedEvent` 时已填充 `UserId`
-- [ ] Payment 域发布 `RefundCompletedEvent` 时已填充 `UserId`
+- [x] `PaymentFailedEvent` 已新增 `UserId` 属性
+- [x] `RefundCompletedEvent` 已新增 `UserId` 属性
+- [x] Payment 域发布 `PaymentFailedEvent` 时已填充 `UserId`
+- [x] Payment 域发布 `RefundCompletedEvent` 时已填充 `UserId`（含 ReviewAfterSales 域发布处）
 - [ ] Notification 域 `PaymentEventConsumer` 使用事件 `UserId` 发送支付失败通知，不再跳过
 - [ ] Notification 域 `AfterSalesEventConsumer` 使用事件 `UserId` 发送退款完成通知，不再跳过
-- [ ] Order 域 `OrderAppService` 构造函数已注入 `ICurrentUserContext`
-- [ ] Order 域 `ShipAsync` 从 `ICurrentUserContext` 获取操作人标识，不再传 `Guid.Empty`
-- [ ] Order 域 `OrderPricingDomainService.ValidatePricesAsync` 通过商品防腐层校验价格一致性
+- [x] Order 域 `IOrderAppService.ShipAsync` 与 `OrderAppService.ShipAsync` 新增 `operatorId` 参数（Application 层不引用 Infrastructure，操作人标识由控制器传入）
+- [x] Order 域 `OrdersController` Ship 端点传入 `GetCurrentUserId()` 作为 `operatorId`，不再传 `Guid.Empty`
+- [x] Order 域 `OrderPricingDomainService.ValidatePricesAsync` 通过商品防腐层校验价格一致性
 - [x] SystemAdmin 域 `ScheduledTaskExecutor` 已注入 `ISchedulerFactory`
 - [x] SystemAdmin 域 `RunNowAsync` 通过 `IScheduler.TriggerJob` 立即触发作业
 

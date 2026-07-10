@@ -302,11 +302,10 @@ public sealed class OrderAppService : IOrderAppService
     }
 
     /// <inheritdoc />
-    public async Task ShipAsync(Guid orderId, ShipOrderDto dto, CancellationToken ct = default)
+    public async Task ShipAsync(Guid orderId, Guid operatorId, ShipOrderDto dto, CancellationToken ct = default)
     {
         var order = await RequireOrderAsync(orderId, ct);
-        // 操作人标识暂以空 Guid 占位，后续接入操作上下文后填充
-        order.Ship(dto.LogisticsNo, DateTime.UtcNow, Guid.Empty);
+        order.Ship(dto.LogisticsNo, DateTime.UtcNow, operatorId);
         await _orderRepository.UpdateAsync(order, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
     }

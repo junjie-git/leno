@@ -8,7 +8,7 @@ namespace Leno.Payment.Infrastructure.Channels.WeChatPay;
 
 /// <summary>
 /// 微信支付渠道 HTTP 客户端，封装统一下单/订单查询/退款/退款查询。
-/// 当前为模拟实现：构造 XML 请求并签名，解析模拟的 XML 响应；生产环境需配置真实商户证书与密钥后通过 <see cref="HttpClient"/> 发起调用。
+/// 通过 <see cref="HttpClient"/> 向微信支付网关发起真实 HTTP 调用（XML 报文）并解析响应。
 /// </summary>
 public sealed class WeChatPayClient
 {
@@ -43,12 +43,11 @@ public sealed class WeChatPayClient
         parameters["sign"] = WeChatPaySignatureHelper.GenerateSign(parameters, config.ApiKey);
 
         var requestXml = BuildXml(parameters);
-        _logger.LogInformation("微信支付统一下单（模拟）Url={Url} OutTradeNo={OutTradeNo} TradeType={TradeType} Request={Request}",
+        _logger.LogInformation("微信支付统一下单 Url={Url} OutTradeNo={OutTradeNo} TradeType={TradeType} Request={Request}",
             BuildUrl(UnifiedOrderPath), outTradeNo, tradeType, requestXml);
 
-        // 模拟成功响应；生产环境：await PostXmlAsync(BuildUrl(UnifiedOrderPath), requestXml, ct)
-        var dict = ParseXml(SimulateUnifiedOrderResponse(outTradeNo, tradeType));
-        await Task.CompletedTask;
+        var responseXml = await PostXmlAsync(BuildUrl(UnifiedOrderPath), requestXml, ct);
+        var dict = ParseXml(responseXml);
         return WeChatPayUnifiedOrderResult.From(dict);
     }
 
@@ -62,11 +61,12 @@ public sealed class WeChatPayClient
         parameters["out_trade_no"] = outTradeNo;
         parameters["sign"] = WeChatPaySignatureHelper.GenerateSign(parameters, config.ApiKey);
 
-        _logger.LogInformation("微信支付订单查询（模拟）Url={Url} OutTradeNo={OutTradeNo}",
+        _logger.LogInformation("微信支付订单查询 Url={Url} OutTradeNo={OutTradeNo}",
             BuildUrl(OrderQueryPath), outTradeNo);
 
-        var dict = ParseXml(SimulateQueryOrderResponse(outTradeNo, paid: true));
-        await Task.CompletedTask;
+        var requestXml = BuildXml(parameters);
+        var responseXml = await PostXmlAsync(BuildUrl(OrderQueryPath), requestXml, ct);
+        var dict = ParseXml(responseXml);
         return WeChatPayQueryOrderResult.From(dict);
     }
 
@@ -85,11 +85,12 @@ public sealed class WeChatPayClient
         parameters["notify_url"] = config.RefundNotifyUrl;
         parameters["sign"] = WeChatPaySignatureHelper.GenerateSign(parameters, config.ApiKey);
 
-        _logger.LogInformation("微信支付退款（模拟）Url={Url} OutRefundNo={OutRefundNo} RefundFee={RefundFee}",
+        _logger.LogInformation("微信支付退款 Url={Url} OutRefundNo={OutRefundNo} RefundFee={RefundFee}",
             BuildUrl(RefundPath), outRefundNo, refundFee);
 
-        var dict = ParseXml(SimulateRefundResponse(outRefundNo));
-        await Task.CompletedTask;
+        var requestXml = BuildXml(parameters);
+        var responseXml = await PostXmlAsync(BuildUrl(RefundPath), requestXml, ct);
+        var dict = ParseXml(responseXml);
         return WeChatPayRefundResult.From(dict);
     }
 
@@ -103,11 +104,12 @@ public sealed class WeChatPayClient
         parameters["out_refund_no"] = outRefundNo;
         parameters["sign"] = WeChatPaySignatureHelper.GenerateSign(parameters, config.ApiKey);
 
-        _logger.LogInformation("微信支付退款查询（模拟）Url={Url} OutRefundNo={OutRefundNo}",
+        _logger.LogInformation("微信支付退款查询 Url={Url} OutRefundNo={OutRefundNo}",
             BuildUrl(RefundQueryPath), outRefundNo);
 
-        var dict = ParseXml(SimulateQueryRefundResponse(outRefundNo, succeeded: true));
-        await Task.CompletedTask;
+        var requestXml = BuildXml(parameters);
+        var responseXml = await PostXmlAsync(BuildUrl(RefundQueryPath), requestXml, ct);
+        var dict = ParseXml(responseXml);
         return WeChatPayQueryRefundResult.From(dict);
     }
 
@@ -156,81 +158,19 @@ public sealed class WeChatPayClient
         return dict;
     }
 
-    private static string SimulateUnifiedOrderResponse(string outTradeNo, string tradeType)
+    private async Task<string> PostXmlAsync(string url, string xml, CancellationToken ct)
     {
-        var now = DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
-        var prepayId = "wx" + outTradeNo;
-        var transactionId = "4200" + now + Random.Shared.Next(1000, 9999);
-        var codeUrl = "weixin://wxpay/bizpayurl?pr=" + Random.Shared.Next(10000, 99999);
-        var mwebUrl = "https://wx.tenpay.com/cgi-bin/mmpayweb-bin/checkmweb?prepay_id=" + prepayId;
-
-        var sb = new StringBuilder("<xml>");
-        sb.Append("<return_code>SUCCESS</return_code>");
-        sb.Append("<result_code>SUCCESS</result_code>");
-        sb.Append("<prepay_id>").Append(prepayId).Append("</prepay_id>");
-        sb.Append("<transaction_id>").Append(transactionId).Append("</transaction_id>");
-        if (tradeType == "NATIVE")
+        using var content = new StringContent(xml, Encoding.UTF8, "application/xml");
+        using var response = await _httpClient.PostAsync(url, content, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        if (!response.IsSuccessStatusCode)
         {
-            sb.Append("<code_url>").Append(codeUrl).Append("</code_url>");
-        }
-        else if (tradeType == "MWEB")
-        {
-            sb.Append("<mweb_url>").Append(mwebUrl).Append("</mweb_url>");
+            _logger.LogError("微信支付网关 HTTP 调用失败 Url={Url} Status={Status} Body={Body}",
+                url, response.StatusCode, body);
+            throw new HttpRequestException($"微信支付网关返回非成功状态码 {response.StatusCode}");
         }
 
-        sb.Append("</xml>");
-        return sb.ToString();
-    }
-
-    private static string SimulateQueryOrderResponse(string outTradeNo, bool paid)
-    {
-        var timeEnd = DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
-        var transactionId = "4200" + timeEnd + Random.Shared.Next(1000, 9999);
-
-        var sb = new StringBuilder("<xml>");
-        sb.Append("<return_code>SUCCESS</return_code>");
-        sb.Append("<result_code>SUCCESS</result_code>");
-        sb.Append("<out_trade_no>").Append(outTradeNo).Append("</out_trade_no>");
-        sb.Append("<transaction_id>").Append(transactionId).Append("</transaction_id>");
-        sb.Append("<trade_state>").Append(paid ? "SUCCESS" : "NOTPAY").Append("</trade_state>");
-        if (paid)
-        {
-            sb.Append("<time_end>").Append(timeEnd).Append("</time_end>");
-        }
-
-        sb.Append("</xml>");
-        return sb.ToString();
-    }
-
-    private static string SimulateRefundResponse(string outRefundNo)
-    {
-        var refundId = "5" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + Random.Shared.Next(1000, 9999);
-
-        var sb = new StringBuilder("<xml>");
-        sb.Append("<return_code>SUCCESS</return_code>");
-        sb.Append("<result_code>SUCCESS</result_code>");
-        sb.Append("<out_refund_no>").Append(outRefundNo).Append("</out_refund_no>");
-        sb.Append("<refund_id>").Append(refundId).Append("</refund_id>");
-        sb.Append("</xml>");
-        return sb.ToString();
-    }
-
-    private static string SimulateQueryRefundResponse(string outRefundNo, bool succeeded)
-    {
-        var successTime = DateTime.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
-
-        var sb = new StringBuilder("<xml>");
-        sb.Append("<return_code>SUCCESS</return_code>");
-        sb.Append("<result_code>SUCCESS</result_code>");
-        sb.Append("<out_refund_no>").Append(outRefundNo).Append("</out_refund_no>");
-        sb.Append("<refund_status>").Append(succeeded ? "SUCCESS" : "PROCESSING").Append("</refund_status>");
-        if (succeeded)
-        {
-            sb.Append("<refund_success_time>").Append(successTime).Append("</refund_success_time>");
-        }
-
-        sb.Append("</xml>");
-        return sb.ToString();
+        return body;
     }
 }
 

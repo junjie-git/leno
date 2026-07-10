@@ -177,7 +177,7 @@ public sealed class PaymentOrder : AggregateRoot
 
         Status = PaymentStatus.Failed;
         FailReason = reason;
-        AddDomainEvent(new PaymentFailedEvent(OrderId, reason, DateTime.UtcNow));
+        AddDomainEvent(new PaymentFailedEvent(OrderId, UserId, reason, DateTime.UtcNow));
     }
 
     /// <summary>

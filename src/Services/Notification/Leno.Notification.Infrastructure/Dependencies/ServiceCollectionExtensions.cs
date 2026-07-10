@@ -52,7 +52,7 @@ public static class ServiceCollectionExtensions
         // 通知渠道
         services.Configure<SmsOptions>(configuration.GetSection("Notification:Sms"));
         services.Configure<EmailOptions>(configuration.GetSection("Notification:Email"));
-        services.AddScoped<SmsClient>();
+        services.AddHttpClient<SmsClient>();
         services.AddScoped<SmtpClientWrapper>();
         services.AddScoped<IChannel, InAppChannel>();
         services.AddScoped<IChannel, SmsChannel>();
