@@ -12,6 +12,9 @@
     <Project Path="src/Services/Order/Leno.Order.Infrastructure/Leno.Order.Infrastructure.csproj" />
     <Project Path="src/Services/Order/Leno.Order.Api/Leno.Order.Api.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Payment/">
+    <Project Path="src/Services/Payment/Leno.Payment.Domain/Leno.Payment.Domain.csproj" />
+  </Folder>
   <Folder Name="/src/Services/Cart/">
     <Project Path="src/Services/Cart/Leno.Cart.Api/Leno.Cart.Api.csproj" />
     <Project Path="src/Services/Cart/Leno.Cart.Domain/Leno.Cart.Domain.csproj" />
