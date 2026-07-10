@@ -20,4 +20,9 @@ public interface IMembershipLevelRepository : IRepository<MembershipLevelAggrega
     /// 查询所有已启用的会员等级，按等级编号升序，供升级判定与展示。
     /// </summary>
     Task<List<MembershipLevelAggregate>> GetAllEnabledAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// 查询全部会员等级（含停用），按等级编号升序，供运营端管理。
+    /// </summary>
+    Task<List<MembershipLevelAggregate>> GetAllAsync(CancellationToken ct = default);
 }

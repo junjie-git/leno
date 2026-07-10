@@ -1,7 +1,9 @@
+using FluentValidation;
+using Leno.PointsMembership.Application;
+using Leno.PointsMembership.Application.Services;
 using Leno.PointsMembership.Domain.Repositories;
 using Leno.PointsMembership.Domain.Services;
 using Leno.PointsMembership.Infrastructure.Repositories;
-using Leno.PointsMembership.Infrastructure.Services;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -12,8 +14,7 @@ namespace Leno.PointsMembership.Infrastructure.Dependencies;
 
 /// <summary>
 /// 积分会员域基础设施层 DI 注册入口。
-/// 注册 DbContext、工作单元、仓储与积分抵扣防腐层实现。
-/// 应用层尚未实现，故暂不注册应用服务与校验器。
+/// 注册 DbContext、工作单元、仓储、积分抵扣防腐层、应用服务与 FluentValidation 校验器。
 /// 调用方在表现层 Program.cs 调用 <c>services.AddPointsMembershipInfrastructure(configuration)</c>。
 /// </summary>
 public static class ServiceCollectionExtensions
@@ -42,7 +43,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMembershipPackageRepository, EfCoreMembershipPackageRepository>();
         services.AddScoped<IUserMembershipRepository, EfCoreUserMembershipRepository>();
 
-        services.AddScoped<IPointsOffsetService, EfCorePointsOffsetService>();
+        // 积分抵扣防腐层实现位于应用层
+        services.AddScoped<IPointsOffsetService, PointsOffsetAppService>();
+
+        // 应用服务
+        services.AddScoped<IPointsAppService, PointsAppService>();
+        services.AddScoped<IMemberAppService, MemberAppService>();
+        services.AddScoped<IMembershipPackageAppService, MembershipPackageAppService>();
+
+        // FluentValidation 校验器
+        services.AddValidatorsFromAssembly(typeof(IPointsAppService).Assembly);
 
         return services;
     }

@@ -34,6 +34,12 @@ public sealed class EfCoreMembershipLevelRepository : IMembershipLevelRepository
             .ToListAsync(ct);
 
     /// <inheritdoc />
+    public async Task<List<MembershipLevelAggregate>> GetAllAsync(CancellationToken ct = default)
+        => await _context.MembershipLevels
+            .OrderBy(l => l.Level)
+            .ToListAsync(ct);
+
+    /// <inheritdoc />
     public async Task AddAsync(MembershipLevelAggregate aggregate, CancellationToken ct = default)
         => await _context.MembershipLevels.AddAsync(aggregate, ct);
 
