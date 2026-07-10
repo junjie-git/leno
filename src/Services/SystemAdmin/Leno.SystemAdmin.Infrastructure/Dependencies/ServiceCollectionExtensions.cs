@@ -2,6 +2,7 @@ using Leno.SharedKernel.Abstractions;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.Services;
 using Leno.SystemAdmin.Infrastructure.Cache;
+using Leno.SystemAdmin.Infrastructure.Consumers;
 using Leno.SystemAdmin.Infrastructure.Jobs;
 using Leno.SystemAdmin.Infrastructure.Repositories;
 using MassTransit;
@@ -66,10 +67,14 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// 注册系统管理域的 MassTransit 集成事件消费者。
     /// 在表现层调用 <c>AddLenoInfrastructure(configuration, cfg => cfg.AddSystemAdminConsumers())</c>。
+    /// 已注册售后审核通过事件的审计日志与操作日志消费者。
     /// </summary>
     public static IBusRegistrationConfigurator AddSystemAdminConsumers(this IBusRegistrationConfigurator configurator)
     {
         ArgumentNullException.ThrowIfNull(configurator);
+
+        configurator.AddConsumer<AuditLogConsumer>();
+        configurator.AddConsumer<AfterSalesEventConsumer>();
 
         return configurator;
     }
