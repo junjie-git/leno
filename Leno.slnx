@@ -66,4 +66,7 @@
     <Project Path="src/Services/UserAuth/Leno.UserAuth.Domain/Leno.UserAuth.Domain.csproj" />
     <Project Path="src/Services/UserAuth/Leno.UserAuth.Infrastructure/Leno.UserAuth.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Services/SystemAdmin/">
+    <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Domain/Leno.SystemAdmin.Domain.csproj" />
+  </Folder>
 </Solution>
