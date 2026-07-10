@@ -63,6 +63,9 @@ public sealed class OrderCompletedEvent : IntegrationEventBase
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
 
+    /// <summary>买家账号标识。</summary>
+    public Guid UserId { get; init; }
+
     /// <summary>卖家（店铺）标识，语义等同卖家与店铺管理域的 ShopId。</summary>
     public Guid SellerId { get; init; }
 
@@ -80,10 +83,11 @@ public sealed class OrderCompletedEvent : IntegrationEventBase
     {
     }
 
-    public OrderCompletedEvent(Guid orderId, Guid sellerId, decimal totalAmount, string currency, DateTime completedAt)
+    public OrderCompletedEvent(Guid orderId, Guid userId, Guid sellerId, decimal totalAmount, string currency, DateTime completedAt)
         : base()
     {
         OrderId = orderId;
+        UserId = userId;
         SellerId = sellerId;
         TotalAmount = totalAmount;
         Currency = string.IsNullOrWhiteSpace(currency) ? "CNY" : currency;

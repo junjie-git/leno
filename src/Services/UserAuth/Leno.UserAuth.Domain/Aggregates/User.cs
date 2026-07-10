@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.UserAuth.Domain.Events;
 using Leno.UserAuth.Domain.Exceptions;
