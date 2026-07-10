@@ -14,6 +14,7 @@
   </Folder>
   <Folder Name="/src/Services/Payment/">
     <Project Path="src/Services/Payment/Leno.Payment.Domain/Leno.Payment.Domain.csproj" />
+    <Project Path="src/Services/Payment/Leno.Payment.Infrastructure/Leno.Payment.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/Cart/">
     <Project Path="src/Services/Cart/Leno.Cart.Api/Leno.Cart.Api.csproj" />
