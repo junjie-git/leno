@@ -90,3 +90,112 @@ public sealed class OrderCompletedEvent : IntegrationEventBase
         CompletedAt = completedAt;
     }
 }
+
+/// <summary>
+/// 订单支付成功集成事件，订单域消费 <c>PaymentSucceededIntegrationEvent</c> 后发布。
+/// 消费方：促销域（核销优惠券）、积分与会员域（正式扣减冻结抵现积分/开通会员）、
+/// 卖家域（通知发货）、消息通知域（支付成功通知）、库存（确认真实扣减）。
+/// 同时实现 <see cref="IDomainEvent"/> 以便订单域经发件箱模式在同一事务内持久化。
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class OrderPaidEvent : IntegrationEventBase, IDomainEvent
+{
+    /// <summary>订单标识。</summary>
+    public Guid OrderId { get; init; }
+
+    /// <summary>买家账号标识。</summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>支付单标识。</summary>
+    public Guid PaymentId { get; init; }
+
+    /// <summary>支付渠道。</summary>
+    public string Channel { get; init; } = string.Empty;
+
+    /// <summary>支付时间（UTC）。</summary>
+    public DateTime PaidAt { get; init; }
+
+    /// <summary>第三方交易号。</summary>
+    public string TradeNo { get; init; } = string.Empty;
+
+    /// <summary>实付金额。</summary>
+    public decimal Amount { get; init; }
+
+    /// <summary>币种（ISO 4217）。</summary>
+    public string Currency { get; init; } = "CNY";
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => OrderId;
+
+    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
+    public OrderPaidEvent() : base()
+    {
+    }
+
+    public OrderPaidEvent(
+        Guid orderId,
+        Guid userId,
+        Guid paymentId,
+        string channel,
+        DateTime paidAt,
+        string tradeNo,
+        decimal amount,
+        string currency) : base()
+    {
+        OrderId = orderId;
+        UserId = userId;
+        PaymentId = paymentId;
+        Channel = channel ?? string.Empty;
+        PaidAt = paidAt;
+        TradeNo = tradeNo ?? string.Empty;
+        Amount = amount;
+        Currency = string.IsNullOrWhiteSpace(currency) ? "CNY" : currency;
+    }
+}
+
+/// <summary>
+/// 订单取消集成事件，订单域在待支付态取消时发布（买家主动取消或支付超时自动取消）。
+/// 消费方：促销域（退还锁定优惠券）、积分与会员域（释放冻结抵现积分）、
+/// 库存（释放预占）、消息通知域（取消通知）。
+/// 同时实现 <see cref="IDomainEvent"/> 以便订单域经发件箱模式在同一事务内持久化。
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class OrderCancelledEvent : IntegrationEventBase, IDomainEvent
+{
+    /// <summary>订单标识。</summary>
+    public Guid OrderId { get; init; }
+
+    /// <summary>取消原因。</summary>
+    public string CancelReason { get; init; } = string.Empty;
+
+    /// <summary>取消时间（UTC）。</summary>
+    public DateTime CancelledAt { get; init; }
+
+    /// <summary>取消方（Buyer/System）。</summary>
+    public string CancelledBy { get; init; } = string.Empty;
+
+    /// <summary>需释放的冻结积分（供积分域回退），0 表示无冻结。</summary>
+    public int PointsToRelease { get; init; }
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => OrderId;
+
+    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
+    public OrderCancelledEvent() : base()
+    {
+    }
+
+    public OrderCancelledEvent(
+        Guid orderId,
+        string cancelReason,
+        DateTime cancelledAt,
+        string cancelledBy,
+        int pointsToRelease) : base()
+    {
+        OrderId = orderId;
+        CancelReason = cancelReason ?? string.Empty;
+        CancelledAt = cancelledAt;
+        CancelledBy = cancelledBy ?? string.Empty;
+        PointsToRelease = pointsToRelease;
+    }
+}

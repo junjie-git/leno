@@ -59,13 +59,14 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// 注册促销域的 MassTransit 集成事件消费者。
     /// 在表现层调用 <c>AddLenoInfrastructure(configuration, cfg => cfg.AddPromotionConsumers())</c>。
-    /// 消费者在 Task 9 中实现。
     /// </summary>
     public static IBusRegistrationConfigurator AddPromotionConsumers(this IBusRegistrationConfigurator configurator)
     {
         ArgumentNullException.ThrowIfNull(configurator);
 
-        // 消费者在 Task 9 中添加
+        configurator.AddConsumer<Consumers.OrderPaidEventConsumer>();
+        configurator.AddConsumer<Consumers.OrderCancelledEventConsumer>();
+
         return configurator;
     }
 }
