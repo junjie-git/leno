@@ -18,13 +18,13 @@
 | 4 | 订单与交易域 | BC4 | 12 | [ ] 未开始 | [order.md](./order.md) |
 | 5 | 促销域 | BC5 | 10 | [x] 已完成 | [promotion.md](./promotion.md) |
 | 6 | 评价与售后域 | BC6 | 9 | [ ] 未开始 | [review-aftersales.md](./review-aftersales.md) |
-| 7 | 积分与会员域 | BC7 | 11 | [ ] 未开始 | [points-membership.md](./points-membership.md) |
+| 7 | 积分与会员域 | BC7 | 11 | [x] 已完成 | [points-membership.md](./points-membership.md) |
 | 8 | 支付集成域 | BC8 | 10 | [ ] 未开始 | [payment.md](./payment.md) |
 | 9 | 消息通知域 | BC9 | 10 | [ ] 未开始 | [notification.md](./notification.md) |
 | 10 | 卖家与店铺管理域 | BC10 | 8 | [x] 已完成 | [seller-shop.md](./seller-shop.md) |
 | 11 | 系统管理域 | BC11 | 13 | [ ] 未开始 | [system-admin.md](./system-admin.md) |
 
-**合计**: 12 个模块 / 120 个任务 / 55 个已完成
+**合计**: 12 个模块 / 120 个任务 / 66 个已完成
 
 ---
 
@@ -37,7 +37,7 @@
 - [ ] **订单与交易域** — Order 聚合、库存预占、状态机、ES 读模型、支付/发货/收货全流程
 - [x] **促销域** — 满减活动、优惠券、秒杀活动、Redis 秒杀库存、订单事件消费
 - [ ] **评价与售后域** — Review 聚合、AfterSales 聚合、退款流程、评价审核
-- [ ] **积分与会员域** — 积分账户、签到、会员等级、会员订阅、积分抵现
+- [x] **积分与会员域** — 积分账户、签到、会员等级、会员订阅、积分抵现
 - [ ] **支付集成域** — 支付订单、退款订单、微信/支付宝适配器、回调处理、补偿任务
 - [ ] **消息通知域** — 通知模板、站内信/短信/邮件渠道、事件消费、重试调度
 - [x] **卖家与店铺管理域** — Shop 聚合、卖家入驻审核、店铺状态联动、工作台数据
