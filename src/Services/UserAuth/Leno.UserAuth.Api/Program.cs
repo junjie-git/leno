@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 共享内核基础设施：JWT 生成器、当前用户上下文、事件总线、Redis、ES、健康检查
 builder.Services.AddLenoInfrastructure(builder.Configuration);
+builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 
 // 用户与认证授权域基础设施：DbContext、工作单元、仓储、领域服务实现、审计拦截器、FluentValidation 校验器
 builder.Services.AddUserAuthInfrastructure(builder.Configuration);
@@ -48,6 +49,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseMiddleware<InternalApiKeyMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

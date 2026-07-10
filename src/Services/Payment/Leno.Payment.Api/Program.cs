@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 共享内核基础设施：JWT 生成器、当前用户上下文、事件总线（含支付域消费者）、Redis、ES、健康检查
 builder.Services.AddLenoInfrastructure(builder.Configuration, cfg => cfg.AddPaymentConsumers());
+builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 
 // 支付域基础设施：DbContext、工作单元、仓储、渠道配置、渠道适配器、通知处理器、补偿任务、应用服务
 builder.Services.AddPaymentInfrastructure(builder.Configuration);
@@ -48,6 +49,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseMiddleware<InternalApiKeyMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

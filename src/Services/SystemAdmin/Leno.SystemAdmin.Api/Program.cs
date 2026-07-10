@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 共享内核基础设施：JWT、当前用户上下文、事件总线（含系统管理域消费者）、Redis、ES、健康检查
 builder.Services.AddLenoInfrastructure(builder.Configuration, cfg => cfg.AddSystemAdminConsumers());
+builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 
 // 系统管理域基础设施：DbContext、工作单元、仓储、缓存、Quartz 调度器、特性开关评估器
 builder.Services.AddSystemAdminInfrastructure(builder.Configuration);
@@ -48,6 +49,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseMiddleware<InternalApiKeyMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

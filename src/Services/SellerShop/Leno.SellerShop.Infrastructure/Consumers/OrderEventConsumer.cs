@@ -5,6 +5,7 @@ using Leno.SellerShop.Domain.Repositories;
 using Leno.SharedKernel.Abstractions;
 using Leno.SharedKernel.ValueObjects;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace Leno.SellerShop.Infrastructure.Consumers;
 
@@ -13,7 +14,7 @@ namespace Leno.SellerShop.Infrastructure.Consumers;
 /// 事件契约 OrderCompletedEvent.SellerId 语义等同卖家与店铺管理域的 ShopId。
 /// 指标按订单完成日期（UTC）聚合，不存在则零值初始化后增量记录。
 /// </summary>
-public sealed class OrderCompletedEventConsumer : IntegrationEventConsumerBase<OrderCompletedEvent>
+public sealed class OrderCompletedEventConsumer : RedisIntegrationEventConsumerBase<OrderCompletedEvent>
 {
     private readonly IShopMetricsRepository _metricsRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -21,8 +22,9 @@ public sealed class OrderCompletedEventConsumer : IntegrationEventConsumerBase<O
     public OrderCompletedEventConsumer(
         IShopMetricsRepository metricsRepository,
         IUnitOfWork unitOfWork,
-        ILogger<OrderCompletedEventConsumer> logger)
-        : base(logger)
+        ILogger<OrderCompletedEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
     {
         _metricsRepository = metricsRepository;
         _unitOfWork = unitOfWork;

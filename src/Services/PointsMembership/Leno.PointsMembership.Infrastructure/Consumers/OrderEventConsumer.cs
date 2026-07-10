@@ -6,6 +6,7 @@ using Leno.PointsMembership.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace Leno.PointsMembership.Infrastructure.Consumers;
 
@@ -13,7 +14,7 @@ namespace Leno.PointsMembership.Infrastructure.Consumers;
 /// 订单完成事件消费者，发放消费返积分、累加会员消费金额并检查升级。
 /// 通过 EventId 幂等去重。
 /// </summary>
-public sealed class OrderCompletedEventConsumer : IntegrationEventConsumerBase<OrderCompletedEvent>
+public sealed class OrderCompletedEventConsumer : RedisIntegrationEventConsumerBase<OrderCompletedEvent>
 {
     private readonly IPointsAccountRepository _accountRepository;
     private readonly IMemberRepository _memberRepository;
@@ -25,8 +26,9 @@ public sealed class OrderCompletedEventConsumer : IntegrationEventConsumerBase<O
         IMemberRepository memberRepository,
         IMembershipLevelRepository levelRepository,
         IUnitOfWork unitOfWork,
-        ILogger<OrderCompletedEventConsumer> logger)
-        : base(logger)
+        ILogger<OrderCompletedEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
     {
         _accountRepository = accountRepository;
         _memberRepository = memberRepository;
@@ -74,7 +76,7 @@ public sealed class OrderCompletedEventConsumer : IntegrationEventConsumerBase<O
 /// 订单取消事件消费者，释放冻结的抵现积分。
 /// 通过 EventId 幂等去重。
 /// </summary>
-public sealed class OrderCancelledEventConsumer : IntegrationEventConsumerBase<OrderCancelledEvent>
+public sealed class OrderCancelledEventConsumer : RedisIntegrationEventConsumerBase<OrderCancelledEvent>
 {
     private readonly IPointsAccountRepository _accountRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -82,8 +84,9 @@ public sealed class OrderCancelledEventConsumer : IntegrationEventConsumerBase<O
     public OrderCancelledEventConsumer(
         IPointsAccountRepository accountRepository,
         IUnitOfWork unitOfWork,
-        ILogger<OrderCancelledEventConsumer> logger)
-        : base(logger)
+        ILogger<OrderCancelledEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
     {
         _accountRepository = accountRepository;
         _unitOfWork = unitOfWork;

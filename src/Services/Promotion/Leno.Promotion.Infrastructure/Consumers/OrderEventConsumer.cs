@@ -3,6 +3,7 @@ using Leno.Promotion.Domain.Repositories;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace Leno.Promotion.Infrastructure.Consumers;
 
@@ -10,7 +11,7 @@ namespace Leno.Promotion.Infrastructure.Consumers;
 /// 订单支付成功事件消费者，核销锁定的用户优惠券（UserCoupon.Consume）。
 /// 通过 EventId 幂等去重；券不存在或非 Locked 态时跳过（该订单未使用优惠券）。
 /// </summary>
-public sealed class OrderPaidEventConsumer : IntegrationEventConsumerBase<OrderPaidEvent>
+public sealed class OrderPaidEventConsumer : RedisIntegrationEventConsumerBase<OrderPaidEvent>
 {
     private readonly IUserCouponRepository _userCouponRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -18,8 +19,9 @@ public sealed class OrderPaidEventConsumer : IntegrationEventConsumerBase<OrderP
     public OrderPaidEventConsumer(
         IUserCouponRepository userCouponRepository,
         IUnitOfWork unitOfWork,
-        ILogger<OrderPaidEventConsumer> logger)
-        : base(logger)
+        ILogger<OrderPaidEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
     {
         ArgumentNullException.ThrowIfNull(userCouponRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
@@ -59,7 +61,7 @@ public sealed class OrderPaidEventConsumer : IntegrationEventConsumerBase<OrderP
 /// 订单取消事件消费者，退还锁定的用户优惠券（UserCoupon.Release）。
 /// 通过 EventId 幂等去重；券不存在或非 Locked 态时跳过。
 /// </summary>
-public sealed class OrderCancelledEventConsumer : IntegrationEventConsumerBase<OrderCancelledEvent>
+public sealed class OrderCancelledEventConsumer : RedisIntegrationEventConsumerBase<OrderCancelledEvent>
 {
     private readonly IUserCouponRepository _userCouponRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -67,8 +69,9 @@ public sealed class OrderCancelledEventConsumer : IntegrationEventConsumerBase<O
     public OrderCancelledEventConsumer(
         IUserCouponRepository userCouponRepository,
         IUnitOfWork unitOfWork,
-        ILogger<OrderCancelledEventConsumer> logger)
-        : base(logger)
+        ILogger<OrderCancelledEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
     {
         ArgumentNullException.ThrowIfNull(userCouponRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);

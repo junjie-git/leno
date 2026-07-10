@@ -1,6 +1,7 @@
 using Leno.Infrastructure.EventBus;
 using Leno.SharedContracts.Events;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace Leno.ReviewAfterSales.Infrastructure.Consumers;
 
@@ -10,10 +11,12 @@ namespace Leno.ReviewAfterSales.Infrastructure.Consumers;
 /// 实际评价资格校验由 <c>IReviewEligibilityChecker</c> 在评价提交时通过订单域防腐层执行。
 /// 通过 EventId 幂等去重。
 /// </summary>
-public sealed class OrderCompletedEventConsumer : IntegrationEventConsumerBase<OrderCompletedEvent>
+public sealed class OrderCompletedEventConsumer : RedisIntegrationEventConsumerBase<OrderCompletedEvent>
 {
-    public OrderCompletedEventConsumer(ILogger<OrderCompletedEventConsumer> logger)
-        : base(logger)
+    public OrderCompletedEventConsumer(
+        ILogger<OrderCompletedEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
     {
     }
 

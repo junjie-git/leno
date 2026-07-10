@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 共享内核基础设施：JWT 生成器、当前用户上下文、事件总线（含积分会员域消费者）、Redis、ES、健康检查
 builder.Services.AddLenoInfrastructure(builder.Configuration, cfg => cfg.AddPointsMembershipConsumers());
+builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 
 // 积分会员域基础设施：DbContext、工作单元、仓储、积分抵扣防腐层、应用服务、FluentValidation 校验器
 builder.Services.AddPointsMembershipInfrastructure(builder.Configuration);
@@ -48,6 +49,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseMiddleware<InternalApiKeyMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

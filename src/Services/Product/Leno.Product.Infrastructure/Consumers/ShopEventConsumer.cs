@@ -3,6 +3,7 @@ using Leno.Product.Domain.Repositories;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace Leno.Product.Infrastructure.Consumers;
 
@@ -10,7 +11,7 @@ namespace Leno.Product.Infrastructure.Consumers;
 /// 店铺暂停事件消费者：将店铺下全部在售商品置为不可售（SuspendedByShop）。
 /// 幂等：SuspendByShop 仅在 OnSale 态流转，重复消费无副作用。
 /// </summary>
-public sealed class ShopSuspendedEventConsumer : IntegrationEventConsumerBase<ShopSuspendedEvent>
+public sealed class ShopSuspendedEventConsumer : RedisIntegrationEventConsumerBase<ShopSuspendedEvent>
 {
     private readonly ISPURepository _spuRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -18,8 +19,9 @@ public sealed class ShopSuspendedEventConsumer : IntegrationEventConsumerBase<Sh
     public ShopSuspendedEventConsumer(
         ISPURepository spuRepository,
         IUnitOfWork unitOfWork,
-        ILogger<ShopSuspendedEventConsumer> logger)
-        : base(logger)
+        ILogger<ShopSuspendedEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
     {
         ArgumentNullException.ThrowIfNull(spuRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
@@ -48,7 +50,7 @@ public sealed class ShopSuspendedEventConsumer : IntegrationEventConsumerBase<Sh
 /// 店铺恢复事件消费者：恢复店铺下被暂停的商品至在售态。
 /// 幂等：ResumeByShop 仅在店铺暂停标记位为 true 时恢复，重复消费无副作用。
 /// </summary>
-public sealed class ShopResumedEventConsumer : IntegrationEventConsumerBase<ShopResumedEvent>
+public sealed class ShopResumedEventConsumer : RedisIntegrationEventConsumerBase<ShopResumedEvent>
 {
     private readonly ISPURepository _spuRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -56,8 +58,9 @@ public sealed class ShopResumedEventConsumer : IntegrationEventConsumerBase<Shop
     public ShopResumedEventConsumer(
         ISPURepository spuRepository,
         IUnitOfWork unitOfWork,
-        ILogger<ShopResumedEventConsumer> logger)
-        : base(logger)
+        ILogger<ShopResumedEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
     {
         ArgumentNullException.ThrowIfNull(spuRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
@@ -86,7 +89,7 @@ public sealed class ShopResumedEventConsumer : IntegrationEventConsumerBase<Shop
 /// 店铺关闭事件消费者：下架店铺下全部在售商品并发布 <see cref="ProductTakenDownEvent"/>。
 /// 幂等：TakeDownForShopClosure 仅在 OnSale 态流转并发布下架事件，重复消费因状态已变更而无副作用。
 /// </summary>
-public sealed class ShopClosedEventConsumer : IntegrationEventConsumerBase<ShopClosedEvent>
+public sealed class ShopClosedEventConsumer : RedisIntegrationEventConsumerBase<ShopClosedEvent>
 {
     private readonly ISPURepository _spuRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -94,8 +97,9 @@ public sealed class ShopClosedEventConsumer : IntegrationEventConsumerBase<ShopC
     public ShopClosedEventConsumer(
         ISPURepository spuRepository,
         IUnitOfWork unitOfWork,
-        ILogger<ShopClosedEventConsumer> logger)
-        : base(logger)
+        ILogger<ShopClosedEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
     {
         ArgumentNullException.ThrowIfNull(spuRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);

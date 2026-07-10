@@ -4,6 +4,7 @@ using Leno.ReviewAfterSales.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace Leno.ReviewAfterSales.Infrastructure.Consumers;
 
@@ -11,7 +12,7 @@ namespace Leno.ReviewAfterSales.Infrastructure.Consumers;
 /// 退款完成事件消费者，将退款中的售后单标记为已完成。
 /// 通过状态检查幂等：售后单不存在、AfterSalesId 为空、已 Completed 或非 Refunding 态时跳过。
 /// </summary>
-public sealed class RefundSucceededEventConsumer : IntegrationEventConsumerBase<RefundCompletedEvent>
+public sealed class RefundSucceededEventConsumer : RedisIntegrationEventConsumerBase<RefundCompletedEvent>
 {
     private readonly IAfterSalesRepository _afterSalesRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -19,8 +20,9 @@ public sealed class RefundSucceededEventConsumer : IntegrationEventConsumerBase<
     public RefundSucceededEventConsumer(
         IAfterSalesRepository afterSalesRepository,
         IUnitOfWork unitOfWork,
-        ILogger<RefundSucceededEventConsumer> logger)
-        : base(logger)
+        ILogger<RefundSucceededEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
     {
         ArgumentNullException.ThrowIfNull(afterSalesRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);

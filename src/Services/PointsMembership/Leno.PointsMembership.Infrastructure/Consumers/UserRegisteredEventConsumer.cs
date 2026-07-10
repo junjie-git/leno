@@ -4,6 +4,7 @@ using Leno.PointsMembership.Domain.Repositories;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace Leno.PointsMembership.Infrastructure.Consumers;
 
@@ -11,7 +12,7 @@ namespace Leno.PointsMembership.Infrastructure.Consumers;
 /// 用户注册事件消费者，自动创建积分账户与会员档案。
 /// 通过 EventId 幂等去重。
 /// </summary>
-public sealed class UserRegisteredEventConsumer : IntegrationEventConsumerBase<UserRegisteredEvent>
+public sealed class UserRegisteredEventConsumer : RedisIntegrationEventConsumerBase<UserRegisteredEvent>
 {
     private readonly IPointsAccountRepository _accountRepository;
     private readonly IMemberRepository _memberRepository;
@@ -21,8 +22,9 @@ public sealed class UserRegisteredEventConsumer : IntegrationEventConsumerBase<U
         IPointsAccountRepository accountRepository,
         IMemberRepository memberRepository,
         IUnitOfWork unitOfWork,
-        ILogger<UserRegisteredEventConsumer> logger)
-        : base(logger)
+        ILogger<UserRegisteredEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
     {
         _accountRepository = accountRepository;
         _memberRepository = memberRepository;

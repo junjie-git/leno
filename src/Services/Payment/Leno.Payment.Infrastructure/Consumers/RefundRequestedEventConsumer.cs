@@ -6,6 +6,7 @@ using Leno.Payment.Infrastructure.Channels;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace Leno.Payment.Infrastructure.Consumers;
 
@@ -14,7 +15,7 @@ namespace Leno.Payment.Infrastructure.Consumers;
 /// 消费时创建退款单、调用渠道退款并保存。退款受理成功保持退款中态，由异步通知或补偿任务确认到账。
 /// 幂等：同一退款单标识已存在则跳过。
 /// </summary>
-public sealed class RefundRequestedEventConsumer : IntegrationEventConsumerBase<RefundRequestedIntegrationEvent>
+public sealed class RefundRequestedEventConsumer : RedisIntegrationEventConsumerBase<RefundRequestedIntegrationEvent>
 {
     private readonly IRefundOrderRepository _refundOrderRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -24,8 +25,9 @@ public sealed class RefundRequestedEventConsumer : IntegrationEventConsumerBase<
         IRefundOrderRepository refundOrderRepository,
         IUnitOfWork unitOfWork,
         PaymentChannelFactory channelFactory,
-        ILogger<RefundRequestedEventConsumer> logger)
-        : base(logger)
+        ILogger<RefundRequestedEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
     {
         _refundOrderRepository = refundOrderRepository ?? throw new ArgumentNullException(nameof(refundOrderRepository));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));

@@ -2,6 +2,7 @@ using Elastic.Clients.Elasticsearch;
 using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.HealthChecks;
+using Leno.Infrastructure.Middleware;
 using Leno.Infrastructure.ReadModel;
 using Leno.Infrastructure.Storage;
 using Leno.SharedKernel.Abstractions;
@@ -42,6 +43,15 @@ public static class ServiceCollectionExtensions
         AddEventBus(services, configuration, configureConsumers);
         AddHealthChecks(services);
 
+        return services;
+    }
+
+    /// <summary>
+    /// 注册内部服务间鉴权（X-Internal-Key 头部校验），保护 internal/ 前缀路由。
+    /// </summary>
+    public static IServiceCollection AddInternalApiKeyAuth(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<InternalApiKeyOptions>(configuration.GetSection(InternalApiKeyOptions.SectionName));
         return services;
     }
 

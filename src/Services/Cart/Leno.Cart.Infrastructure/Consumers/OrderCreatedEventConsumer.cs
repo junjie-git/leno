@@ -3,6 +3,7 @@ using Leno.Infrastructure.EventBus;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 using CartAggregate = Leno.Cart.Domain.Aggregates.Cart;
 
 namespace Leno.Cart.Infrastructure.Consumers;
@@ -11,7 +12,7 @@ namespace Leno.Cart.Infrastructure.Consumers;
 /// 订单创建集成事件消费者，订单创建后清空购物车已结算项。
 /// 通过 EventId 幂等去重，重复消费不重复清空。
 /// </summary>
-public sealed class OrderCreatedEventConsumer : IntegrationEventConsumerBase<OrderCreatedEvent>
+public sealed class OrderCreatedEventConsumer : RedisIntegrationEventConsumerBase<OrderCreatedEvent>
 {
     private readonly ICartRepository _cartRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -19,8 +20,9 @@ public sealed class OrderCreatedEventConsumer : IntegrationEventConsumerBase<Ord
     public OrderCreatedEventConsumer(
         ICartRepository cartRepository,
         IUnitOfWork unitOfWork,
-        ILogger<OrderCreatedEventConsumer> logger)
-        : base(logger)
+        ILogger<OrderCreatedEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
     {
         ArgumentNullException.ThrowIfNull(cartRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
