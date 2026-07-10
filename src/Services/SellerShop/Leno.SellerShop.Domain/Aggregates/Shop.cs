@@ -1,5 +1,5 @@
+using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
-using Leno.SellerShop.Domain.Events;
 using Leno.SellerShop.Domain.Exceptions;
 using Leno.SellerShop.Domain.ValueObjects;
 
