@@ -1,0 +1,35 @@
+using Leno.ReviewAfterSales.Application.DTOs;
+using Leno.ReviewAfterSales.Domain.ValueObjects;
+
+namespace Leno.ReviewAfterSales.Application;
+
+/// <summary>
+/// 售后应用服务接口，编排售后申请、审核、撤销与查询用例。
+/// 审核通过时发布 <c>RefundRequestedIntegrationEvent</c> 请求支付域执行退款。
+/// </summary>
+public interface IAfterSalesAppService
+{
+    /// <summary>买家提交售后申请，校验资格后创建售后单聚合。</summary>
+    Task<AfterSalesDto> SubmitAfterSalesAsync(Guid userId, SubmitAfterSalesDto dto, CancellationToken ct = default);
+
+    /// <summary>运营审核通过售后，置已同意态、进入退款中并发布退款请求集成事件。</summary>
+    Task ApproveAfterSalesAsync(Guid afterSalesId, Guid operatorId, decimal approvedAmount, CancellationToken ct = default);
+
+    /// <summary>运营驳回售后，附驳回原因。</summary>
+    Task RejectAfterSalesAsync(Guid afterSalesId, Guid operatorId, string reason, CancellationToken ct = default);
+
+    /// <summary>买家撤销售后申请，仅待审核态可撤销。</summary>
+    Task CancelAfterSalesAsync(Guid afterSalesId, Guid userId, string reason, CancellationToken ct = default);
+
+    /// <summary>买家端按订单查询售后单列表。</summary>
+    Task<List<AfterSalesDto>> GetByOrderIdAsync(Guid orderId, CancellationToken ct = default);
+
+    /// <summary>买家端分页查询我的售后单。</summary>
+    Task<AfterSalesListResultDto> GetByUserAsync(Guid userId, int page, int pageSize, CancellationToken ct = default);
+
+    /// <summary>卖家端分页查询收到的售后单。</summary>
+    Task<AfterSalesListResultDto> GetBySellerAsync(Guid sellerId, AfterSalesStatus? status, int page, int pageSize, CancellationToken ct = default);
+
+    /// <summary>运营端分页查询全平台售后单。</summary>
+    Task<AfterSalesListResultDto> QueryAsync(Guid? orderId, Guid? userId, Guid? sellerId, AfterSalesStatus? status, int page, int pageSize, CancellationToken ct = default);
+}

@@ -51,6 +51,8 @@
   <Folder Name="/src/Services/ReviewAfterSales/">
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Domain/Leno.ReviewAfterSales.Domain.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/Leno.ReviewAfterSales.Infrastructure.csproj" />
+    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Application/Leno.ReviewAfterSales.Application.csproj" />
+    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Leno.ReviewAfterSales.Api.csproj" />
   </Folder>
   <Folder Name="/src/Services/UserAuth/">
     <Project Path="src/Services/UserAuth/Leno.UserAuth.Api/Leno.UserAuth.Api.csproj" />
