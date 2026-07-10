@@ -1,0 +1,73 @@
+using Leno.Infrastructure.EventBus;
+using Leno.ReviewAfterSales.Domain.Repositories;
+using Leno.ReviewAfterSales.Domain.ValueObjects;
+using Leno.SharedContracts.Events;
+using Leno.SharedKernel.Abstractions;
+using Microsoft.Extensions.Logging;
+
+namespace Leno.ReviewAfterSales.Infrastructure.Consumers;
+
+/// <summary>
+/// 退款失败事件消费者，将退款中的售后单标记为已失败并记录失败原因，可重试。
+/// 通过状态检查幂等：售后单不存在、AfterSalesId 为空、已 Failed 或非 Refunding 态时跳过。
+/// </summary>
+public sealed class RefundFailedEventConsumer : IntegrationEventConsumerBase<RefundFailedEvent>
+{
+    private readonly IAfterSalesRepository _afterSalesRepository;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public RefundFailedEventConsumer(
+        IAfterSalesRepository afterSalesRepository,
+        IUnitOfWork unitOfWork,
+        ILogger<RefundFailedEventConsumer> logger)
+        : base(logger)
+    {
+        ArgumentNullException.ThrowIfNull(afterSalesRepository);
+        ArgumentNullException.ThrowIfNull(unitOfWork);
+        _afterSalesRepository = afterSalesRepository;
+        _unitOfWork = unitOfWork;
+    }
+
+    /// <inheritdoc />
+    protected override async Task HandleAsync(RefundFailedEvent integrationEvent, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        if (integrationEvent.AfterSalesId == Guid.Empty)
+        {
+            Logger.LogInformation("退款失败事件未关联售后单 AfterSalesId 为空 OrderId={OrderId}，跳过",
+                integrationEvent.OrderId);
+            return;
+        }
+
+        var afterSales = await _afterSalesRepository.GetByIdAsync(integrationEvent.AfterSalesId, ct);
+        if (afterSales is null)
+        {
+            Logger.LogInformation("退款失败事件：售后单不存在 AfterSalesId={AfterSalesId}，跳过",
+                integrationEvent.AfterSalesId);
+            return;
+        }
+
+        if (afterSales.Status == AfterSalesStatus.Failed)
+        {
+            Logger.LogInformation("退款失败事件：售后单 {AfterSalesId} 已失败，跳过重复消费",
+                integrationEvent.AfterSalesId);
+            return;
+        }
+
+        if (afterSales.Status != AfterSalesStatus.Refunding)
+        {
+            Logger.LogWarning("退款失败事件：售后单 {AfterSalesId} 当前状态 {Status} 非退款中，跳过",
+                integrationEvent.AfterSalesId, afterSales.Status);
+            return;
+        }
+
+        afterSales.MarkRefundFailed(integrationEvent.Reason);
+
+        await _afterSalesRepository.UpdateAsync(afterSales, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        Logger.LogInformation("售后单 {AfterSalesId} 已标记退款失败 Reason={Reason}",
+            integrationEvent.AfterSalesId, integrationEvent.Reason);
+    }
+}
