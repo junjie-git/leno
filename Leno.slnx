@@ -18,6 +18,9 @@
     <Project Path="src/Services/Product/Leno.Product.Application/Leno.Product.Application.csproj" />
     <Project Path="src/Services/Product/Leno.Product.Infrastructure/Leno.Product.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Promotion/">
+    <Project Path="src/Services/Promotion/Leno.Promotion.Domain/Leno.Promotion.Domain.csproj" />
+  </Folder>
   <Folder Name="/src/Services/SellerShop/">
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Api/Leno.SellerShop.Api.csproj" />
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Application/Leno.SellerShop.Application.csproj" />
