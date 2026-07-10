@@ -1,3 +1,5 @@
+using AppServices = Leno.Notification.Application.Services;
+using Leno.Notification.Application;
 using Leno.Notification.Domain.Repositories;
 using Leno.Notification.Domain.Services;
 using Leno.Notification.Infrastructure.Channels;
@@ -58,6 +60,11 @@ public static class ServiceCollectionExtensions
         // 调度与重试任务
         services.AddScoped<NotificationDispatchJob>();
         services.AddScoped<NotificationRetryJob>();
+
+        // 应用服务
+        services.AddScoped<INotificationAppService, AppServices.NotificationAppService>();
+        services.AddScoped<INotificationTemplateAppService, AppServices.NotificationTemplateAppService>();
+        services.AddScoped<INotificationPreferenceAppService, AppServices.NotificationPreferenceAppService>();
 
         return services;
     }

@@ -57,6 +57,8 @@
   <Folder Name="/src/Services/Notification/">
     <Project Path="src/Services/Notification/Leno.Notification.Domain/Leno.Notification.Domain.csproj" />
     <Project Path="src/Services/Notification/Leno.Notification.Infrastructure/Leno.Notification.Infrastructure.csproj" />
+    <Project Path="src/Services/Notification/Leno.Notification.Application/Leno.Notification.Application.csproj" />
+    <Project Path="src/Services/Notification/Leno.Notification.Api/Leno.Notification.Api.csproj" />
   </Folder>
   <Folder Name="/src/Services/UserAuth/">
     <Project Path="src/Services/UserAuth/Leno.UserAuth.Api/Leno.UserAuth.Api.csproj" />
