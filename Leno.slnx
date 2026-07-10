@@ -54,6 +54,10 @@
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Application/Leno.ReviewAfterSales.Application.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Leno.ReviewAfterSales.Api.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Notification/">
+    <Project Path="src/Services/Notification/Leno.Notification.Domain/Leno.Notification.Domain.csproj" />
+    <Project Path="src/Services/Notification/Leno.Notification.Infrastructure/Leno.Notification.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Services/UserAuth/">
     <Project Path="src/Services/UserAuth/Leno.UserAuth.Api/Leno.UserAuth.Api.csproj" />
     <Project Path="src/Services/UserAuth/Leno.UserAuth.Application/Leno.UserAuth.Application.csproj" />
