@@ -1,3 +1,5 @@
+using Leno.Payment.Application;
+using Leno.Payment.Application.Services;
 using Leno.Payment.Domain.Repositories;
 using Leno.Payment.Domain.Services;
 using Leno.Payment.Infrastructure.Channels;
@@ -8,6 +10,7 @@ using Leno.Payment.Infrastructure.Consumers;
 using Leno.Payment.Infrastructure.Jobs;
 using Leno.Payment.Infrastructure.Notify;
 using Leno.Payment.Infrastructure.Repositories;
+using Leno.Payment.Infrastructure.Services;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -63,6 +66,13 @@ public static class ServiceCollectionExtensions
         // 补偿任务
         services.AddScoped<PaymentStatusCheckJob>();
         services.AddScoped<RefundStatusCheckJob>();
+
+        // 防腐层实现
+        services.AddScoped<IChannelStatusQueryService, ChannelStatusQueryService>();
+
+        // 应用服务
+        services.AddScoped<IPaymentAppService, PaymentAppService>();
+        services.AddScoped<IRefundAppService, RefundAppService>();
 
         return services;
     }
