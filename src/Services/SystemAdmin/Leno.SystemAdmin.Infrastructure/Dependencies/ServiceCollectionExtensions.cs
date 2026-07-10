@@ -1,11 +1,15 @@
 using Leno.SharedKernel.Abstractions;
 using Leno.SystemAdmin.Domain.Repositories;
+using Leno.SystemAdmin.Domain.Services;
 using Leno.SystemAdmin.Infrastructure.Cache;
+using Leno.SystemAdmin.Infrastructure.Jobs;
 using Leno.SystemAdmin.Infrastructure.Repositories;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Quartz;
+using FeatureFlagEvaluatorImpl = Leno.SystemAdmin.Infrastructure.Services.FeatureFlagEvaluator;
 
 namespace Leno.SystemAdmin.Infrastructure.Dependencies;
 
@@ -45,13 +49,23 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SystemConfigCache>();
         services.AddSingleton<FeatureFlagCache>();
 
+        services.AddQuartz(q =>
+        {
+            q.UseSimpleTypeLoader();
+            q.UseDefaultThreadPool(tp => tp.MaxConcurrency = 10);
+        });
+        services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
+
+        services.AddScoped<IFeatureFlagEvaluator, FeatureFlagEvaluatorImpl>();
+        services.AddSingleton<QuartzJobScheduler>();
+        services.AddScoped<ScheduledTaskDispatcher>();
+
         return services;
     }
 
     /// <summary>
     /// 注册系统管理域的 MassTransit 集成事件消费者。
     /// 在表现层调用 <c>AddLenoInfrastructure(configuration, cfg => cfg.AddSystemAdminConsumers())</c>。
-    /// 当前无消费者，待 Task 9 补充。
     /// </summary>
     public static IBusRegistrationConfigurator AddSystemAdminConsumers(this IBusRegistrationConfigurator configurator)
     {
