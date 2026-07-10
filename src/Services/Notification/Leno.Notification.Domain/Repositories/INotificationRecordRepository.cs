@@ -1,0 +1,29 @@
+using Leno.Notification.Domain.ValueObjects;
+using Leno.SharedKernel.Abstractions;
+using NotificationRecordAggregate = Leno.Notification.Domain.Aggregates.NotificationRecord;
+
+namespace Leno.Notification.Domain.Repositories;
+
+/// <summary>
+/// 通知记录仓储接口。
+/// </summary>
+public interface INotificationRecordRepository : IRepository<NotificationRecordAggregate>
+{
+    /// <summary>按事件标识查询是否已存在通知记录（幂等去重）。</summary>
+    Task<bool> ExistsByEventIdAsync(Guid eventId, CancellationToken ct = default);
+
+    /// <summary>按用户分页查询站内信（仅 InApp 渠道）。</summary>
+    Task<List<NotificationRecordAggregate>> QueryByUserAsync(Guid userId, bool? isRead, int page, int pageSize, CancellationToken ct = default);
+
+    /// <summary>按用户统计站内信总数。</summary>
+    Task<int> CountByUserAsync(Guid userId, bool? isRead, CancellationToken ct = default);
+
+    /// <summary>查询待发送通知（状态为 Pending）。</summary>
+    Task<List<NotificationRecordAggregate>> GetPendingAsync(int limit, CancellationToken ct = default);
+
+    /// <summary>查询可重试的失败通知（状态为 Failed 且 RetryCount < MaxRetryCount）。</summary>
+    Task<List<NotificationRecordAggregate>> GetRetryableAsync(int limit, CancellationToken ct = default);
+
+    /// <summary>按用户批量标记已读。</summary>
+    Task<int> MarkAllAsReadAsync(Guid userId, CancellationToken ct = default);
+}
