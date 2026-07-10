@@ -88,11 +88,11 @@
 
 ## 阶段六：构建验证
 
-- [ ] `dotnet build Leno.slnx` 通过，0 Error / 0 Warning
-- [ ] 无 CA1859 警告（使用具体类型如 Dictionary、List）
-- [ ] 无 CA1305 警告（ToString 使用 CultureInfo.InvariantCulture）
-- [ ] 无 CA1716 警告（无关键字参数名）
-- [ ] 无 CA1711 警告（无不当后缀）
-- [ ] 无 CA1725 警告（参数名匹配接口声明）
-- [ ] 各任务按 `feat(<scope>): <description>` 规范提交并推送到远程 dev 分支
-- [ ] 代码中不再存在 `NotImplementedException`、`Simulate*Response`、占位注释（TODO/占位/桩实现/stub/placeholder 等）
+- [x] `dotnet build Leno.slnx` 通过，0 Error / 0 Warning（含 --no-incremental 全量构建）
+- [x] 无 CA1859 警告（使用具体类型如 Dictionary、List）
+- [x] 无 CA1305 警告（ToString 使用 CultureInfo.InvariantCulture）
+- [x] 无 CA1716 警告（无关键字参数名）
+- [x] 无 CA1711 警告（无不当后缀）
+- [x] 无 CA1725 警告（参数名匹配接口声明）
+- [x] 各任务按 `feat(<scope>): <description>` 规范提交并推送到远程 dev 分支
+- [x] 代码中不再存在 `NotImplementedException`、`Simulate*Response`、占位注释（TODO/占位/桩实现/stub/placeholder 等）— 残留"占位"字样均为模板变量语法、配置占位符解析、数据脱敏、空标识哨兵等合法功能描述

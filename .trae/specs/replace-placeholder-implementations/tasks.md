@@ -135,10 +135,10 @@
 
 ## 阶段六：构建验证与提交
 
-- [ ] Task 22: 全量构建验证与逐任务提交
-  - [ ] SubTask 22.1: 运行 `dotnet build Leno.slnx` 确认 0 Error / 0 Warning
-  - [ ] SubTask 22.2: 修复编译警告（CA1859 具体类型、CA1305 CultureInfo、CA1716 关键字参数等）
-  - [ ] SubTask 22.3: 按任务顺序逐个提交（`feat(<scope>): <description>` 规范）并推送到远程 dev 分支
+- [x] Task 22: 全量构建验证与逐任务提交
+  - [x] SubTask 22.1: 运行 `dotnet build Leno.slnx` 确认 0 Error / 0 Warning（含 --no-incremental 全量构建）
+  - [x] SubTask 22.2: 修复编译警告（CA1859 具体类型、CA1305 CultureInfo、CA1716 关键字参数等）— 全程 0 Warning
+  - [x] SubTask 22.3: 按任务顺序逐个提交（`feat(<scope>): <description>` 规范）并推送到远程 dev 分支
 
 # Task Dependencies
 
