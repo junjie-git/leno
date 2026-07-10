@@ -66,7 +66,6 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<ProductPublishedEventConsumer>();
         configurator.AddConsumer<ProductTakenDownEventConsumer>();
         configurator.AddConsumer<OrderCompletedEventConsumer>();
-        configurator.AddConsumer<ReviewSubmittedEventConsumer>();
         return configurator;
     }
 }

@@ -48,6 +48,9 @@
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Domain/Leno.SellerShop.Domain.csproj" />
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Infrastructure/Leno.SellerShop.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Services/ReviewAfterSales/">
+    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Domain/Leno.ReviewAfterSales.Domain.csproj" />
+  </Folder>
   <Folder Name="/src/Services/UserAuth/">
     <Project Path="src/Services/UserAuth/Leno.UserAuth.Api/Leno.UserAuth.Api.csproj" />
     <Project Path="src/Services/UserAuth/Leno.UserAuth.Application/Leno.UserAuth.Application.csproj" />

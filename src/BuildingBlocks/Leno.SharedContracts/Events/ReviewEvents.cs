@@ -1,35 +1,75 @@
 using Leno.SharedContracts.Events;
+using Leno.SharedKernel.Abstractions;
 
 namespace Leno.SharedContracts.Events;
 
 /// <summary>
-/// 评价提交集成事件，评价与售后域发布，卖家域消费维护店铺平均评分。
+/// 评价提交集成事件，评价与售后域在评价提交时发布。
+/// 消费方：商品域（回写商品评分摘要 score、reviewCount、好评率）。
+/// 同时实现 <see cref="IDomainEvent"/> 以便评价域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class ReviewSubmittedEvent : IntegrationEventBase
+public sealed class ReviewSubmittedEvent : IntegrationEventBase, IDomainEvent
 {
     /// <summary>评价标识。</summary>
     public Guid ReviewId { get; init; }
 
-    /// <summary>卖家（店铺）标识，语义等同卖家与店铺管理域的 ShopId。</summary>
-    public Guid SellerId { get; init; }
+    /// <summary>评价人（买家）标识。</summary>
+    public Guid UserId { get; init; }
 
-    /// <summary>商品标识。</summary>
-    public Guid ProductId { get; init; }
+    /// <summary>商品 SPU 标识。</summary>
+    public Guid SpuId { get; init; }
 
     /// <summary>评分（1-5）。</summary>
     public int Rating { get; init; }
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => ReviewId;
 
     /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
     public ReviewSubmittedEvent() : base()
     {
     }
 
-    public ReviewSubmittedEvent(Guid reviewId, Guid sellerId, Guid productId, int rating) : base()
+    public ReviewSubmittedEvent(Guid reviewId, Guid userId, Guid spuId, int rating) : base()
     {
         ReviewId = reviewId;
-        SellerId = sellerId;
-        ProductId = productId;
+        UserId = userId;
+        SpuId = spuId;
         Rating = rating;
+    }
+}
+
+/// <summary>
+/// 评价审核结果集成事件，评价与售后域在运营审核（通过/隐藏）后发布。
+/// 消费方：商品域（重算评分摘要）、消息通知域。
+/// Status 为 int 而非枚举，因共享契约层不可引用领域层枚举；发布方按 (int)ReviewStatus 转换。
+/// 同时实现 <see cref="IDomainEvent"/> 以便评价域经发件箱模式在同一事务内持久化。
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class ReviewModeratedEvent : IntegrationEventBase, IDomainEvent
+{
+    /// <summary>评价标识。</summary>
+    public Guid ReviewId { get; init; }
+
+    /// <summary>审核后状态（ReviewStatus 枚举的 int 值：1=Approved, 2=Hidden）。</summary>
+    public int Status { get; init; }
+
+    /// <summary>审核动作（approve 通过 / hide 隐藏）。</summary>
+    public string Action { get; init; } = string.Empty;
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => ReviewId;
+
+    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
+    public ReviewModeratedEvent() : base()
+    {
+    }
+
+    public ReviewModeratedEvent(Guid reviewId, int status, string action) : base()
+    {
+        ReviewId = reviewId;
+        Status = status;
+        Action = action ?? string.Empty;
     }
 }
