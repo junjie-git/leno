@@ -1,3 +1,6 @@
+using FluentValidation;
+using Leno.Promotion.Application;
+using Leno.Promotion.Application.Services;
 using Leno.Promotion.Domain.Repositories;
 using Leno.Promotion.Domain.Services;
 using Leno.Promotion.Infrastructure.Repositories;
@@ -12,8 +15,7 @@ namespace Leno.Promotion.Infrastructure.Dependencies;
 
 /// <summary>
 /// 促销域基础设施层 DI 注册入口。
-/// 注册 DbContext、工作单元、仓储、Redis 秒杀库存、防腐层实现。
-/// 应用服务注册在 Task 7 创建 Application 层后补充。
+/// 注册 DbContext、工作单元、仓储、Redis 秒杀库存、防腐层实现、应用服务与校验器。
 /// 调用方在表现层 Program.cs 调用 <c>services.AddPromotionInfrastructure(configuration)</c>。
 /// </summary>
 public static class ServiceCollectionExtensions
@@ -42,6 +44,13 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IPromotionQueryService, EfCorePromotionQueryService>();
         services.AddScoped<ISeckillStockService, RedisSeckillStockService>();
+
+        // 应用服务
+        services.AddScoped<IPromotionAppService, PromotionAppService>();
+        services.AddScoped<ICouponAppService, CouponAppService>();
+
+        // FluentValidation 校验器
+        services.AddValidatorsFromAssembly(typeof(IPromotionAppService).Assembly);
 
         return services;
     }
