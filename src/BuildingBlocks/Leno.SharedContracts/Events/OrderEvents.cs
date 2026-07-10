@@ -58,7 +58,7 @@ public sealed class OrderCreatedEvent : IntegrationEventBase, IDomainEvent
 /// 订单完成集成事件，订单域发布，卖家域消费维护店铺销量与销售额。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class OrderCompletedEvent : IntegrationEventBase
+public sealed class OrderCompletedEvent : IntegrationEventBase, IDomainEvent
 {
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
@@ -77,6 +77,9 @@ public sealed class OrderCompletedEvent : IntegrationEventBase
 
     /// <summary>完成时间（UTC）。</summary>
     public DateTime CompletedAt { get; init; }
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => OrderId;
 
     /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
     public OrderCompletedEvent() : base()
@@ -201,5 +204,132 @@ public sealed class OrderCancelledEvent : IntegrationEventBase, IDomainEvent
         CancelledAt = cancelledAt;
         CancelledBy = cancelledBy ?? string.Empty;
         PointsToRelease = pointsToRelease;
+    }
+}
+
+/// <summary>
+/// 订单发货集成事件，订单域在卖家发货时发布。
+/// 消费方：消息通知域（发货通知）、卖家域（待发货数 -1）。
+/// 同时实现 <see cref="IDomainEvent"/> 以便订单域经发件箱模式在同一事务内持久化。
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class OrderShippedEvent : IntegrationEventBase, IDomainEvent
+{
+    /// <summary>订单标识。</summary>
+    public Guid OrderId { get; init; }
+
+    /// <summary>买家账号标识。</summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>卖家（店铺）标识。</summary>
+    public Guid SellerId { get; init; }
+
+    /// <summary>物流单号。</summary>
+    public string LogisticsNo { get; init; } = string.Empty;
+
+    /// <summary>发货时间（UTC）。</summary>
+    public DateTime ShippedAt { get; init; }
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => OrderId;
+
+    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
+    public OrderShippedEvent() : base()
+    {
+    }
+
+    public OrderShippedEvent(Guid orderId, Guid userId, Guid sellerId, string logisticsNo, DateTime shippedAt)
+        : base()
+    {
+        OrderId = orderId;
+        UserId = userId;
+        SellerId = sellerId;
+        LogisticsNo = logisticsNo ?? string.Empty;
+        ShippedAt = shippedAt;
+    }
+}
+
+/// <summary>
+/// 订单售后窗口关闭集成事件，订单域在售后窗口结束时发布。
+/// 消费方：积分与会员域（确认发放购物积分）、卖家域（结算货款）。
+/// 同时实现 <see cref="IDomainEvent"/> 以便订单域经发件箱模式在同一事务内持久化。
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class OrderAfterSalesWindowClosedEvent : IntegrationEventBase, IDomainEvent
+{
+    /// <summary>订单标识。</summary>
+    public Guid OrderId { get; init; }
+
+    /// <summary>买家账号标识。</summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>售后窗口关闭时间（UTC）。</summary>
+    public DateTime ClosedAt { get; init; }
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => OrderId;
+
+    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
+    public OrderAfterSalesWindowClosedEvent() : base()
+    {
+    }
+
+    public OrderAfterSalesWindowClosedEvent(Guid orderId, Guid userId, DateTime closedAt)
+        : base()
+    {
+        OrderId = orderId;
+        UserId = userId;
+        ClosedAt = closedAt;
+    }
+}
+
+/// <summary>
+/// 支付请求集成事件，订单域在待支付订单发起支付时发布。
+/// 消费方：支付域（创建支付单并拉起第三方支付）。
+/// 同时实现 <see cref="IDomainEvent"/> 以便订单域经发件箱模式在同一事务内持久化。
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class PaymentRequestedIntegrationEvent : IntegrationEventBase, IDomainEvent
+{
+    /// <summary>订单标识。</summary>
+    public Guid OrderId { get; init; }
+
+    /// <summary>买家账号标识。</summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>应付金额。</summary>
+    public decimal Amount { get; init; }
+
+    /// <summary>币种（ISO 4217），默认 CNY。</summary>
+    public string Currency { get; init; } = "CNY";
+
+    /// <summary>支付渠道。</summary>
+    public string Channel { get; init; } = string.Empty;
+
+    /// <summary>请求时间（UTC）。</summary>
+    public DateTime RequestedAt { get; init; }
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => OrderId;
+
+    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
+    public PaymentRequestedIntegrationEvent() : base()
+    {
+    }
+
+    public PaymentRequestedIntegrationEvent(
+        Guid orderId,
+        Guid userId,
+        decimal amount,
+        string currency,
+        string channel,
+        DateTime requestedAt) : base()
+    {
+        OrderId = orderId;
+        UserId = userId;
+        Amount = amount;
+        Currency = string.IsNullOrWhiteSpace(currency) ? "CNY" : currency;
+        Channel = channel ?? string.Empty;
+        RequestedAt = requestedAt;
     }
 }
