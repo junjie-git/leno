@@ -16,6 +16,7 @@ public sealed class RefundOrderConfiguration : IEntityTypeConfiguration<RefundOr
 
         builder.Property(r => r.Id).HasColumnName("id");
         builder.Property(r => r.OutRefundNo).HasColumnName("out_refund_no").HasMaxLength(64).IsRequired();
+        builder.Property(r => r.OutTradeNo).HasColumnName("out_trade_no").HasMaxLength(64).IsRequired();
         builder.Property(r => r.PaymentId).HasColumnName("payment_id");
         builder.Property(r => r.OrderId).HasColumnName("order_id");
         builder.Property(r => r.UserId).HasColumnName("user_id");

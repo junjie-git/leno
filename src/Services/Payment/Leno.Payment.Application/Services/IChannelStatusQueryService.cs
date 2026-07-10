@@ -17,8 +17,9 @@ public interface IChannelStatusQueryService
     /// 主动查询渠道退款状态。
     /// </summary>
     /// <param name="channel">支付渠道。</param>
+    /// <param name="outTradeNo">原支付单商户单号。</param>
     /// <param name="outRefundNo">商户退款单号。</param>
-    Task<ChannelRefundStatusResult> QueryRefundStatusAsync(Leno.Payment.Domain.ValueObjects.PaymentChannel channel, string outRefundNo, CancellationToken ct = default);
+    Task<ChannelRefundStatusResult> QueryRefundStatusAsync(Leno.Payment.Domain.ValueObjects.PaymentChannel channel, string outTradeNo, string outRefundNo, CancellationToken ct = default);
 }
 
 /// <summary>

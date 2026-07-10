@@ -18,11 +18,13 @@ namespace Leno.Payment.Infrastructure.Consumers;
 public sealed class RefundRequestedEventConsumer : RedisIntegrationEventConsumerBase<RefundRequestedIntegrationEvent>
 {
     private readonly IRefundOrderRepository _refundOrderRepository;
+    private readonly IPaymentOrderRepository _paymentOrderRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly PaymentChannelFactory _channelFactory;
 
     public RefundRequestedEventConsumer(
         IRefundOrderRepository refundOrderRepository,
+        IPaymentOrderRepository paymentOrderRepository,
         IUnitOfWork unitOfWork,
         PaymentChannelFactory channelFactory,
         ILogger<RefundRequestedEventConsumer> logger,
@@ -30,6 +32,7 @@ public sealed class RefundRequestedEventConsumer : RedisIntegrationEventConsumer
         : base(logger, redisMultiplexer)
     {
         _refundOrderRepository = refundOrderRepository ?? throw new ArgumentNullException(nameof(refundOrderRepository));
+        _paymentOrderRepository = paymentOrderRepository ?? throw new ArgumentNullException(nameof(paymentOrderRepository));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _channelFactory = channelFactory ?? throw new ArgumentNullException(nameof(channelFactory));
     }
@@ -54,6 +57,12 @@ public sealed class RefundRequestedEventConsumer : RedisIntegrationEventConsumer
             return;
         }
 
+        var originalPayment = await _paymentOrderRepository.GetByIdAsync(integrationEvent.PaymentId, ct);
+        if (originalPayment is null)
+        {
+            throw new InvalidOperationException($"原支付单不存在 PaymentId={integrationEvent.PaymentId}");
+        }
+
         var refundOrder = RefundOrder.Create(
             integrationEvent.RefundId,
             integrationEvent.PaymentId,
@@ -62,6 +71,7 @@ public sealed class RefundRequestedEventConsumer : RedisIntegrationEventConsumer
             integrationEvent.AfterSalesId,
             integrationEvent.RefundAmount,
             integrationEvent.Currency,
+            originalPayment.OutTradeNo,
             channel);
 
         var adapter = _channelFactory.GetAdapter(channel);

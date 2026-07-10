@@ -15,6 +15,9 @@ public sealed class RefundOrder : AggregateRoot
     /// <summary>商户退款单号（业务可读，全局唯一），传给第三方渠道作为 out_refund_no。</summary>
     public string OutRefundNo { get; private set; } = string.Empty;
 
+    /// <summary>原支付单商户单号（来自原支付单 OutTradeNo），退款时传给第三方渠道作为 out_trade_no。</summary>
+    public string OutTradeNo { get; private set; } = string.Empty;
+
     /// <summary>关联支付单标识。</summary>
     public Guid PaymentId { get; private set; }
 
@@ -63,6 +66,7 @@ public sealed class RefundOrder : AggregateRoot
     /// <param name="afterSalesId">关联售后单标识。</param>
     /// <param name="refundAmount">退款金额，须 &gt; 0。</param>
     /// <param name="currency">币种，为空默认 CNY。</param>
+    /// <param name="outTradeNo">原支付单商户单号，退款时传给第三方渠道作为 out_trade_no。</param>
     /// <param name="channel">支付渠道，与原支付单一致。</param>
     public static RefundOrder Create(
         Guid refundId,
@@ -72,6 +76,7 @@ public sealed class RefundOrder : AggregateRoot
         Guid afterSalesId,
         decimal refundAmount,
         string currency,
+        string outTradeNo,
         PaymentChannel channel)
     {
         if (refundId == Guid.Empty)
@@ -82,6 +87,11 @@ public sealed class RefundOrder : AggregateRoot
         if (paymentId == Guid.Empty)
         {
             throw new PaymentDomainException("PaymentId 不可为空", "REFUND_PAYMENT_EMPTY");
+        }
+
+        if (string.IsNullOrWhiteSpace(outTradeNo))
+        {
+            throw new PaymentDomainException("原支付单商户单号不可为空", "REFUND_OUT_TRADE_NO_EMPTY");
         }
 
         if (orderId == Guid.Empty)
@@ -113,6 +123,7 @@ public sealed class RefundOrder : AggregateRoot
             AfterSalesId = afterSalesId,
             RefundAmount = refundAmount,
             Currency = string.IsNullOrWhiteSpace(currency) ? "CNY" : currency,
+            OutTradeNo = outTradeNo,
             Channel = channel,
             Status = RefundStatus.Refunding
         };

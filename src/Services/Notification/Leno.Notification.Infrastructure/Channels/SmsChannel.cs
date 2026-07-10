@@ -8,7 +8,6 @@ namespace Leno.Notification.Infrastructure.Channels;
 
 /// <summary>
 /// 短信发送渠道，通过 <see cref="SmsClient"/> 调用短信服务商 API。
-/// 当前为模拟实现，实际部署需配置服务商凭证。
 /// </summary>
 public sealed class SmsChannel : IChannel
 {

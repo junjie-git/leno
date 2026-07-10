@@ -4,36 +4,38 @@ using System.Text;
 namespace Leno.Payment.Infrastructure.Channels.Alipay;
 
 /// <summary>
-/// 支付宝签名工具，生产环境使用 RSA-SHA256（RSA2）算法对参数排序拼接后签名。
-/// 当前为占位实现：以 SHA256 作为签名占位（RSA 需真实证书与密钥），便于模拟联调。
-/// 部署到生产环境前需替换为基于 RSA 私钥/公钥的真实签名与验签逻辑。
+/// 支付宝签名工具，使用 RSA-SHA256（RSA2）算法对排序后的参数串签名与验签。
 /// </summary>
 public static class AlipaySignatureHelper
 {
     /// <summary>
-    /// 生成签名（占位）。生产环境应使用 RSA-SHA256 私钥对排序后的参数串签名。
+    /// 生成签名。使用 RSA-SHA256（RSA2）私钥对排序后的参数串签名，返回 Base64 字符串。
     /// </summary>
-    /// <param name="parameters">参与签名的参数（含 sign 字段会被自动排除）。</param>
-    /// <param name="privateKey">占位密钥（生产环境为 RSA 私钥）。</param>
+    /// <param name="parameters">参与签名的参数（含 sign 字段会被自动排除，空值项会被排除）。</param>
+    /// <param name="privateKey">PEM 格式的 RSA 私钥字符串。</param>
     public static string GenerateSign(Dictionary<string, string> parameters, string privateKey)
     {
         ArgumentNullException.ThrowIfNull(parameters);
+        if (string.IsNullOrWhiteSpace(privateKey))
+        {
+            throw new ArgumentException("支付宝 RSA 私钥不可为空", nameof(privateKey));
+        }
 
-        var sorted = parameters
-            .Where(p => p.Key != "sign" && !string.IsNullOrEmpty(p.Value))
-            .OrderBy(p => p.Key, StringComparer.Ordinal)
-            .Select(p => $"{p.Key}={p.Value}");
-        var raw = string.Join("&", sorted) + privateKey;
-
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
-        return Convert.ToHexString(hash);
+        var content = BuildSignContent(parameters);
+        using var rsa = RSA.Create();
+        rsa.ImportFromPem(privateKey);
+        var signature = rsa.SignData(
+            Encoding.UTF8.GetBytes(content),
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+        return Convert.ToBase64String(signature);
     }
 
     /// <summary>
-    /// 校验签名（占位）。生产环境应使用 RSA-SHA256 公钥验签。
+    /// 校验签名。使用 RSA-SHA256（RSA2）公钥对排序后的参数串验签。
     /// </summary>
-    /// <param name="parameters">通知报文解析出的参数集合（含 sign）。</param>
-    /// <param name="publicKey">占位密钥（生产环境为 RSA 公钥）。</param>
+    /// <param name="parameters">通知报文解析出的参数集合（含 sign，验签时自动排除）。</param>
+    /// <param name="publicKey">PEM 格式的 RSA 公钥字符串。</param>
     /// <param name="sign">通知报文中携带的签名。</param>
     public static bool VerifySign(Dictionary<string, string> parameters, string publicKey, string? sign)
     {
@@ -42,7 +44,33 @@ public static class AlipaySignatureHelper
             return false;
         }
 
-        var expected = GenerateSign(parameters, publicKey);
-        return string.Equals(expected, sign, StringComparison.OrdinalIgnoreCase);
+        try
+        {
+            var content = BuildSignContent(parameters);
+            using var rsa = RSA.Create();
+            rsa.ImportFromPem(publicKey);
+            return rsa.VerifyData(
+                Encoding.UTF8.GetBytes(content),
+                Convert.FromBase64String(sign),
+                HashAlgorithmName.SHA256,
+                RSASignaturePadding.Pkcs1);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 构建待签名内容：排除 sign 字段与空值项，按 key 的 ASCII 升序排序，拼接为 key1=value1&amp;key2=value2...。
+    /// </summary>
+    /// <param name="parameters">参与签名的参数集合。</param>
+    private static string BuildSignContent(Dictionary<string, string> parameters)
+    {
+        var sorted = parameters
+            .Where(p => p.Key != "sign" && !string.IsNullOrEmpty(p.Value))
+            .OrderBy(p => p.Key, StringComparer.Ordinal)
+            .Select(p => $"{p.Key}={p.Value}");
+        return string.Join("&", sorted);
     }
 }

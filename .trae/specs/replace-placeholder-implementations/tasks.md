@@ -127,6 +127,12 @@
   - [x] SubTask 21.2: 修改 `RunNowAsync`，通过 `ISchedulerFactory.GetScheduler` 获取调度器，构造 `JobKey` 并调用 `scheduler.TriggerJob(jobKey, ct)` 立即触发作业
   - [x] SubTask 21.3: 移除占位日志，添加触发失败异常处理
 
+- [x] Task 23: 清理验证阶段发现的残留占位实现（Task 22 扫描时发现）
+  - [x] SubTask 23.1: `AlipaySignatureHelper` 由 SHA256 占位改为真实 RSA-SHA256（RSA2）签名/验签，使用 `RSA.ImportFromPem`
+  - [x] SubTask 23.2: 退款聚合 `RefundOrder` 新增 `OutTradeNo` 属性，`RefundRequestedEventConsumer` 加载原支付单并传入真实 OutTradeNo，替换 `PaymentId.ToString()` 占位
+  - [x] SubTask 23.3: `IPaymentChannelAdapter.QueryRefundAsync` 与 `IChannelStatusQueryService.QueryRefundStatusAsync` 签名新增 `outTradeNo`，支付宝退款查询用真实原支付单号，微信查询按 out_refund_no（忽略 outTradeNo）
+  - [x] SubTask 23.4: 删除 `SmsChannel`/`EmailChannel` 过时的"模拟实现"类注释（实现已是真实 HTTP/MailKit 调用）
+
 ## 阶段六：构建验证与提交
 
 - [ ] Task 22: 全量构建验证与逐任务提交

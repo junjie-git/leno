@@ -33,10 +33,10 @@ public sealed class ChannelStatusQueryService : IChannelStatusQueryService
     }
 
     /// <inheritdoc />
-    public async Task<ChannelRefundStatusResult> QueryRefundStatusAsync(PaymentChannel channel, string outRefundNo, CancellationToken ct = default)
+    public async Task<ChannelRefundStatusResult> QueryRefundStatusAsync(PaymentChannel channel, string outTradeNo, string outRefundNo, CancellationToken ct = default)
     {
         var adapter = _channelFactory.GetAdapter(channel);
-        var result = await adapter.QueryRefundAsync(outRefundNo, ct);
+        var result = await adapter.QueryRefundAsync(outTradeNo, outRefundNo, ct);
 
         return new ChannelRefundStatusResult
         {

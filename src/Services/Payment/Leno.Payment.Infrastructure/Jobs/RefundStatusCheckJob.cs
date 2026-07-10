@@ -55,7 +55,7 @@ public sealed class RefundStatusCheckJob
         try
         {
             var adapter = _channelFactory.GetAdapter(refund.Channel);
-            var result = await adapter.QueryRefundAsync(refund.OutRefundNo, ct);
+            var result = await adapter.QueryRefundAsync(refund.OutTradeNo, refund.OutRefundNo, ct);
 
             if (!result.Succeeded)
             {

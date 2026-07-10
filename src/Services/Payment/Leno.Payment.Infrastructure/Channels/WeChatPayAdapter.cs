@@ -82,8 +82,7 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
 
         var config = await _configProvider.GetConfigAsync(PaymentChannel.WeChatPay, ct);
         var refundFee = (int)Math.Round(refundOrder.RefundAmount * 100m);
-        // 模拟环境以 PaymentId 作为原支付单号占位；生产环境应使用原支付单 OutTradeNo
-        var outTradeNo = refundOrder.PaymentId.ToString();
+        var outTradeNo = refundOrder.OutTradeNo;
 
         var result = await _client.RefundAsync(config, outTradeNo, refundOrder.OutRefundNo, refundFee, refundFee, ct);
 
@@ -101,13 +100,14 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
     }
 
     /// <inheritdoc />
-    public async Task<ChannelRefundQueryResult> QueryRefundAsync(string outRefundNo, CancellationToken ct = default)
+    public async Task<ChannelRefundQueryResult> QueryRefundAsync(string outTradeNo, string outRefundNo, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(outRefundNo))
         {
             throw new ArgumentException("商户退款单号不可为空", nameof(outRefundNo));
         }
 
+        _ = outTradeNo;
         var config = await _configProvider.GetConfigAsync(PaymentChannel.WeChatPay, ct);
         var result = await _client.QueryRefundAsync(config, outRefundNo, ct);
 

@@ -77,8 +77,7 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
 
         var config = await _configProvider.GetConfigAsync(PaymentChannel.Alipay, ct);
         var refundAmount = refundOrder.RefundAmount.ToString("0.00", CultureInfo.InvariantCulture);
-        // 模拟环境以 PaymentId 作为原支付单号占位；生产环境应使用原支付单 OutTradeNo
-        var outTradeNo = refundOrder.PaymentId.ToString();
+        var outTradeNo = refundOrder.OutTradeNo;
 
         var result = await _client.RefundAsync(config, outTradeNo, refundOrder.OutRefundNo, refundAmount, "用户退款", ct);
 
@@ -96,7 +95,7 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
     }
 
     /// <inheritdoc />
-    public async Task<ChannelRefundQueryResult> QueryRefundAsync(string outRefundNo, CancellationToken ct = default)
+    public async Task<ChannelRefundQueryResult> QueryRefundAsync(string outTradeNo, string outRefundNo, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(outRefundNo))
         {
@@ -104,8 +103,6 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
         }
 
         var config = await _configProvider.GetConfigAsync(PaymentChannel.Alipay, ct);
-        // 模拟环境以退款单号回查；生产环境需原支付单 OutTradeNo
-        var outTradeNo = outRefundNo;
 
         var result = await _client.QueryRefundAsync(config, outTradeNo, outRefundNo, ct);
 

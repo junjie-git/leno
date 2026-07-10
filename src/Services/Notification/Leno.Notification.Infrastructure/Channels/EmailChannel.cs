@@ -8,7 +8,6 @@ namespace Leno.Notification.Infrastructure.Channels;
 
 /// <summary>
 /// 邮件发送渠道，通过 <see cref="SmtpClientWrapper"/> 发送 HTML 邮件。
-/// 当前为模拟实现，实际部署需配置 SMTP 凭证。
 /// </summary>
 public sealed class EmailChannel : IChannel
 {

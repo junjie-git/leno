@@ -116,9 +116,10 @@ public interface IPaymentChannelAdapter
     /// <summary>
     /// 主动查询第三方渠道退款到账状态。
     /// </summary>
+    /// <param name="outTradeNo">原支付单商户单号。</param>
     /// <param name="outRefundNo">商户退款单号。</param>
     /// <param name="ct">取消令牌。</param>
-    Task<ChannelRefundQueryResult> QueryRefundAsync(string outRefundNo, CancellationToken ct = default);
+    Task<ChannelRefundQueryResult> QueryRefundAsync(string outTradeNo, string outRefundNo, CancellationToken ct = default);
 
     /// <summary>
     /// 验证并解析第三方渠道异步通知报文。
