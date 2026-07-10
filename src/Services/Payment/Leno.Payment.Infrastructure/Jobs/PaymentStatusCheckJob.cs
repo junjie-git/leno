@@ -1,0 +1,98 @@
+using Leno.Payment.Domain.Repositories;
+using Leno.Payment.Domain.ValueObjects;
+using Leno.Payment.Infrastructure.Channels;
+using Leno.SharedKernel.Abstractions;
+using Microsoft.Extensions.Logging;
+using PaymentOrderAggregate = Leno.Payment.Domain.Aggregates.PaymentOrder;
+
+namespace Leno.Payment.Infrastructure.Jobs;
+
+/// <summary>
+/// 支付状态补偿任务，定期查询长时间停留在待支付/渠道已下单态的支付单。
+/// 超过 5 分钟仍未收到异步通知的支付单主动调用渠道查询接口，若已支付则标记成功。
+/// 由宿主（如 BackgroundService / Hangfire）定时调用 <see cref="ExecuteAsync"/>。
+/// </summary>
+public sealed class PaymentStatusCheckJob
+{
+    private const int ThresholdMinutes = 5;
+    private const int BatchSize = 100;
+
+    private readonly IPaymentOrderRepository _paymentOrderRepository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly PaymentChannelFactory _channelFactory;
+    private readonly ILogger<PaymentStatusCheckJob> _logger;
+
+    public PaymentStatusCheckJob(
+        IPaymentOrderRepository paymentOrderRepository,
+        IUnitOfWork unitOfWork,
+        PaymentChannelFactory channelFactory,
+        ILogger<PaymentStatusCheckJob> logger)
+    {
+        _paymentOrderRepository = paymentOrderRepository ?? throw new ArgumentNullException(nameof(paymentOrderRepository));
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _channelFactory = channelFactory ?? throw new ArgumentNullException(nameof(channelFactory));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    /// <summary>
+    /// 执行一次支付状态补偿扫描。
+    /// </summary>
+    /// <param name="ct">取消令牌。</param>
+    public async Task ExecuteAsync(CancellationToken ct = default)
+    {
+        var threshold = DateTime.UtcNow.AddMinutes(-ThresholdMinutes);
+
+        var pendingOrders = await _paymentOrderRepository.QueryAsync(
+            null, null, PaymentStatus.Pending, null, threshold, 1, BatchSize, ct);
+
+        var channelOrderedOrders = await _paymentOrderRepository.QueryAsync(
+            null, null, PaymentStatus.ChannelOrdered, null, threshold, 1, BatchSize, ct);
+
+        _logger.LogInformation("支付状态补偿：待查支付单 {PendingCount} 笔（待支付）+ {ChannelOrderedCount} 笔（渠道已下单）",
+            pendingOrders.Count, channelOrderedOrders.Count);
+
+        foreach (var order in pendingOrders)
+        {
+            await CheckAsync(order, ct);
+        }
+
+        foreach (var order in channelOrderedOrders)
+        {
+            await CheckAsync(order, ct);
+        }
+    }
+
+    private async Task CheckAsync(PaymentOrderAggregate order, CancellationToken ct)
+    {
+        try
+        {
+            var adapter = _channelFactory.GetAdapter(order.Channel);
+            var result = await adapter.QueryPaymentAsync(order.OutTradeNo, ct);
+
+            if (!result.IsPaid)
+            {
+                return;
+            }
+
+            var channelTradeNo = !string.IsNullOrEmpty(result.ChannelTradeNo)
+                ? result.ChannelTradeNo
+                : order.ChannelTradeNo;
+            if (string.IsNullOrEmpty(channelTradeNo))
+            {
+                _logger.LogWarning("支付状态补偿：缺少第三方交易号 OutTradeNo={OutTradeNo}", order.OutTradeNo);
+                return;
+            }
+
+            order.MarkSucceeded(channelTradeNo, result.PaidAt ?? DateTime.UtcNow);
+            await _paymentOrderRepository.UpdateAsync(order, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+
+            _logger.LogInformation("支付状态补偿：支付单已标记成功 OutTradeNo={OutTradeNo} PaymentId={PaymentId}",
+                order.OutTradeNo, order.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "支付状态补偿异常 OutTradeNo={OutTradeNo}", order.OutTradeNo);
+        }
+    }
+}
