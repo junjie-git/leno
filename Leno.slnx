@@ -69,5 +69,6 @@
   <Folder Name="/src/Services/SystemAdmin/">
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Domain/Leno.SystemAdmin.Domain.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/Leno.SystemAdmin.Infrastructure.csproj" />
+    <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Application/Leno.SystemAdmin.Application.csproj" />
   </Folder>
 </Solution>
