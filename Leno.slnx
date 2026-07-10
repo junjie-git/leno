@@ -5,4 +5,17 @@
     <Project Path="src/BuildingBlocks/Leno.SharedContracts/Leno.SharedContracts.csproj" />
     <Project Path="src/BuildingBlocks/Leno.SharedKernel/Leno.SharedKernel.csproj" />
   </Folder>
+  <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/SellerShop/">
+    <Project Path="src/Services/SellerShop/Leno.SellerShop.Api/Leno.SellerShop.Api.csproj" />
+    <Project Path="src/Services/SellerShop/Leno.SellerShop.Application/Leno.SellerShop.Application.csproj" />
+    <Project Path="src/Services/SellerShop/Leno.SellerShop.Domain/Leno.SellerShop.Domain.csproj" />
+    <Project Path="src/Services/SellerShop/Leno.SellerShop.Infrastructure/Leno.SellerShop.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/UserAuth/">
+    <Project Path="src/Services/UserAuth/Leno.UserAuth.Api/Leno.UserAuth.Api.csproj" />
+    <Project Path="src/Services/UserAuth/Leno.UserAuth.Application/Leno.UserAuth.Application.csproj" />
+    <Project Path="src/Services/UserAuth/Leno.UserAuth.Domain/Leno.UserAuth.Domain.csproj" />
+    <Project Path="src/Services/UserAuth/Leno.UserAuth.Infrastructure/Leno.UserAuth.Infrastructure.csproj" />
+  </Folder>
 </Solution>
