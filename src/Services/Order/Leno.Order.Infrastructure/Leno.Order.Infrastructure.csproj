@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Leno.Order.Domain\Leno.Order.Domain.csproj" />
+    <ProjectReference Include="..\Leno.Order.Application\Leno.Order.Application.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedKernel\Leno.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts\Leno.SharedContracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.Infrastructure\Leno.Infrastructure.csproj" />

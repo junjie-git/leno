@@ -1,3 +1,6 @@
+using FluentValidation;
+using Leno.Order.Application;
+using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
 using Leno.Order.Infrastructure.Consumers;
@@ -14,7 +17,7 @@ namespace Leno.Order.Infrastructure.Dependencies;
 
 /// <summary>
 /// 订单域基础设施层 DI 注册入口。
-/// 注册 DbContext、工作单元、仓储、领域服务与 MassTransit 消费者。
+/// 注册 DbContext、工作单元、仓储、领域服务、防腐层、应用服务、FluentValidation 校验器与 MassTransit 消费者。
 /// 调用方在表现层 Program.cs 调用 <c>services.AddOrderInfrastructure(configuration)</c>。
 /// </summary>
 public static class ServiceCollectionExtensions
@@ -46,6 +49,20 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOrderPricingDomainService, OrderPricingDomainService>();
         services.AddScoped<IOrderNumberGenerator, OrderNumberGenerator>();
         services.AddScoped<IFreightCalculator, FreightCalculator>();
+
+        // 防腐层实现（占位，实际部署替换为 HTTP 调用其他域 API）
+        services.AddScoped<IProductAntiCorruptionService, ProductAntiCorruptionService>();
+        services.AddScoped<IPromotionAntiCorruptionService, PromotionAntiCorruptionService>();
+        services.AddScoped<IPointsAntiCorruptionService, PointsAntiCorruptionService>();
+
+        // 应用服务
+        services.AddScoped<IOrderAppService, OrderAppService>();
+        services.AddScoped<ILogisticsCompanyAppService, LogisticsCompanyAppService>();
+        services.AddScoped<IFreightTemplateAppService, FreightTemplateAppService>();
+        services.AddScoped<ILogisticsTrackingService, LogisticsTrackingService>();
+
+        // FluentValidation 校验器
+        services.AddValidatorsFromAssembly(typeof(IOrderAppService).Assembly);
 
         return services;
     }

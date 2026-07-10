@@ -8,6 +8,7 @@
   <Folder Name="/src/Services/" />
   <Folder Name="/src/Services/Order/">
     <Project Path="src/Services/Order/Leno.Order.Domain/Leno.Order.Domain.csproj" />
+    <Project Path="src/Services/Order/Leno.Order.Application/Leno.Order.Application.csproj" />
     <Project Path="src/Services/Order/Leno.Order.Infrastructure/Leno.Order.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/Cart/">
