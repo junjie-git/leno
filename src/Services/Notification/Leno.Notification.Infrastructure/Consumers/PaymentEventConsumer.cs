@@ -50,9 +50,13 @@ public sealed class PaymentEventConsumer :
         var evt = context.Message;
         _logger.LogInformation("消费支付失败事件 EventId={EventId} OrderId={OrderId}", evt.EventId, evt.OrderId);
 
-        // PaymentFailedEvent 无 UserId 字段，无法关联接收用户
-        // 实际应通过防腐层查询订单买家 UserId，当前跳过通知发送
-        _logger.LogWarning("支付失败事件缺少 UserId，跳过通知发送 EventId={EventId} OrderId={OrderId}", evt.EventId, evt.OrderId);
-        await Task.CompletedTask;
+        var variables = new Dictionary<string, string>
+        {
+            ["orderId"] = evt.OrderId.ToString(),
+            ["reason"] = evt.Reason,
+            ["failedAt"] = evt.FailedAt.ToString("u", CultureInfo.InvariantCulture)
+        };
+
+        await _dispatcher.DispatchAsync(evt.UserId, "PaymentFailedEvent", evt.EventId, variables, context.CancellationToken);
     }
 }

@@ -113,9 +113,9 @@
   - [x] SubTask 18.3: 在 Payment 域发布 `PaymentFailedEvent` 处填充 `UserId`（从支付单的 UserId 获取）
   - [x] SubTask 18.4: 在 Payment 域发布 `RefundCompletedEvent` 处填充 `UserId`（从关联订单/售后单获取）
 
-- [ ] Task 19: 修复 Notification 域两个事件消费者
-  - [ ] SubTask 19.1: 修改 `PaymentEventConsumer.Consume(PaymentFailedEvent)`，使用事件中的 `UserId` 调用 `_dispatcher.DispatchAsync` 发送支付失败通知（替换跳过逻辑）
-  - [ ] SubTask 19.2: 修改 `AfterSalesEventConsumer.Consume(RefundCompletedEvent)`，使用事件中的 `UserId` 发送退款完成通知（替换跳过逻辑）
+- [x] Task 19: 修复 Notification 域两个事件消费者
+  - [x] SubTask 19.1: 修改 `PaymentEventConsumer.Consume(PaymentFailedEvent)`，使用事件中的 `UserId` 调用 `_dispatcher.DispatchAsync` 发送支付失败通知（替换跳过逻辑）
+  - [x] SubTask 19.2: 修改 `AfterSalesEventConsumer.Consume(RefundCompletedEvent)`，使用事件中的 `UserId` 发送退款完成通知（替换跳过逻辑）
 
 - [x] Task 20: 修复 Order 域 ShipAsync 操作人标识与价格校验
   - [x] SubTask 20.1: 修改 `IOrderAppService.ShipAsync` 与 `OrderAppService.ShipAsync` 签名，新增 `Guid operatorId` 参数（Application 层不引用 Infrastructure，操作人标识由控制器传入）

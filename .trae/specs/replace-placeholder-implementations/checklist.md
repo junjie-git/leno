@@ -78,8 +78,8 @@
 - [x] `RefundCompletedEvent` 已新增 `UserId` 属性
 - [x] Payment 域发布 `PaymentFailedEvent` 时已填充 `UserId`
 - [x] Payment 域发布 `RefundCompletedEvent` 时已填充 `UserId`（含 ReviewAfterSales 域发布处）
-- [ ] Notification 域 `PaymentEventConsumer` 使用事件 `UserId` 发送支付失败通知，不再跳过
-- [ ] Notification 域 `AfterSalesEventConsumer` 使用事件 `UserId` 发送退款完成通知，不再跳过
+- [x] Notification 域 `PaymentEventConsumer` 使用事件 `UserId` 发送支付失败通知，不再跳过
+- [x] Notification 域 `AfterSalesEventConsumer` 使用事件 `UserId` 发送退款完成通知，不再跳过
 - [x] Order 域 `IOrderAppService.ShipAsync` 与 `OrderAppService.ShipAsync` 新增 `operatorId` 参数（Application 层不引用 Infrastructure，操作人标识由控制器传入）
 - [x] Order 域 `OrdersController` Ship 端点传入 `GetCurrentUserId()` 作为 `operatorId`，不再传 `Guid.Empty`
 - [x] Order 域 `OrderPricingDomainService.ValidatePricesAsync` 通过商品防腐层校验价格一致性

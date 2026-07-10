@@ -52,14 +52,11 @@ public sealed class AfterSalesEventConsumer :
         var variables = new Dictionary<string, string>
         {
             ["orderId"] = evt.OrderId.ToString(),
+            ["refundId"] = evt.RefundId.ToString(),
             ["refundAmount"] = evt.RefundAmount.ToString("F2", CultureInfo.InvariantCulture),
             ["currency"] = evt.Currency
         };
 
-        // RefundCompletedEvent 无 UserId 字段，以 AfterSalesId 关联（实际应通过防腐层查询）
-        // 退款完成事件由售后域发布，售后域已知 UserId，但事件契约未携带
-        // 此处以 Guid.Empty 占位，通知记录将无法关联用户
-        _logger.LogWarning("退款完成事件缺少 UserId，跳过通知发送 EventId={EventId} OrderId={OrderId}", evt.EventId, evt.OrderId);
-        await Task.CompletedTask;
+        await _dispatcher.DispatchAsync(evt.UserId, "RefundCompletedEvent", evt.EventId, variables, context.CancellationToken);
     }
 }
