@@ -1,4 +1,5 @@
 using Leno.SharedKernel.Abstractions;
+using Leno.SystemAdmin.Application.Abstractions;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.Services;
 using Leno.SystemAdmin.Infrastructure.Cache;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Quartz;
 using FeatureFlagEvaluatorImpl = Leno.SystemAdmin.Infrastructure.Services.FeatureFlagEvaluator;
+using ScheduledTaskExecutorImpl = Leno.SystemAdmin.Infrastructure.Services.ScheduledTaskExecutor;
 
 namespace Leno.SystemAdmin.Infrastructure.Dependencies;
 
@@ -60,6 +62,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFeatureFlagEvaluator, FeatureFlagEvaluatorImpl>();
         services.AddSingleton<QuartzJobScheduler>();
         services.AddScoped<ScheduledTaskDispatcher>();
+        services.AddScoped<IScheduledTaskExecutor, ScheduledTaskExecutorImpl>();
 
         return services;
     }

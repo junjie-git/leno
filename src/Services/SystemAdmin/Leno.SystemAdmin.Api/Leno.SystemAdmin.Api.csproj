@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\Leno.SystemAdmin.Application\Leno.SystemAdmin.Application.csproj" />
+    <ProjectReference Include="..\Leno.SystemAdmin.Infrastructure\Leno.SystemAdmin.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Leno.Infrastructure\Leno.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts\Leno.SharedContracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
+  </ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>
