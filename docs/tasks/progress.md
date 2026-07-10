@@ -16,7 +16,7 @@
 | 2 | 商品域 | BC2 | 11 | [x] 已完成 | [product.md](./product.md) |
 | 3 | 购物车域 | BC3 | 6 | [x] 已完成 | [cart.md](./cart.md) |
 | 4 | 订单与交易域 | BC4 | 12 | [ ] 未开始 | [order.md](./order.md) |
-| 5 | 促销域 | BC5 | 10 | [ ] 未开始 | [promotion.md](./promotion.md) |
+| 5 | 促销域 | BC5 | 10 | [x] 已完成 | [promotion.md](./promotion.md) |
 | 6 | 评价与售后域 | BC6 | 9 | [ ] 未开始 | [review-aftersales.md](./review-aftersales.md) |
 | 7 | 积分与会员域 | BC7 | 11 | [ ] 未开始 | [points-membership.md](./points-membership.md) |
 | 8 | 支付集成域 | BC8 | 10 | [ ] 未开始 | [payment.md](./payment.md) |
@@ -24,7 +24,7 @@
 | 10 | 卖家与店铺管理域 | BC10 | 8 | [x] 已完成 | [seller-shop.md](./seller-shop.md) |
 | 11 | 系统管理域 | BC11 | 13 | [ ] 未开始 | [system-admin.md](./system-admin.md) |
 
-**合计**: 12 个模块 / 120 个任务 / 45 个已完成
+**合计**: 12 个模块 / 120 个任务 / 55 个已完成
 
 ---
 
@@ -35,7 +35,7 @@
 - [x] **商品域** — SPU/SKU 聚合、分类品牌、库存基线、ES 搜索、商品发布审核
 - [x] **购物车域** — Cart 聚合、Redis 缓存、结算预览、订单事件消费
 - [ ] **订单与交易域** — Order 聚合、库存预占、状态机、ES 读模型、支付/发货/收货全流程
-- [ ] **促销域** — 满减活动、优惠券、秒杀活动、Redis 秒杀库存、订单事件消费
+- [x] **促销域** — 满减活动、优惠券、秒杀活动、Redis 秒杀库存、订单事件消费
 - [ ] **评价与售后域** — Review 聚合、AfterSales 聚合、退款流程、评价审核
 - [ ] **积分与会员域** — 积分账户、签到、会员等级、会员订阅、积分抵现
 - [ ] **支付集成域** — 支付订单、退款订单、微信/支付宝适配器、回调处理、补偿任务
