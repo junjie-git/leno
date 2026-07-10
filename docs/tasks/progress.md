@@ -17,14 +17,14 @@
 | 3 | 购物车域 | BC3 | 6 | [x] 已完成 | [cart.md](./cart.md) |
 | 4 | 订单与交易域 | BC4 | 12 | [x] 已完成 | [order.md](./order.md) |
 | 5 | 促销域 | BC5 | 10 | [x] 已完成 | [promotion.md](./promotion.md) |
-| 6 | 评价与售后域 | BC6 | 9 | [ ] 未开始 | [review-aftersales.md](./review-aftersales.md) |
+| 6 | 评价与售后域 | BC6 | 9 | [x] 已完成 | [review-aftersales.md](./review-aftersales.md) |
 | 7 | 积分与会员域 | BC7 | 11 | [x] 已完成 | [points-membership.md](./points-membership.md) |
 | 8 | 支付集成域 | BC8 | 10 | [x] 已完成 | [payment.md](./payment.md) |
 | 9 | 消息通知域 | BC9 | 10 | [ ] 未开始 | [notification.md](./notification.md) |
 | 10 | 卖家与店铺管理域 | BC10 | 8 | [x] 已完成 | [seller-shop.md](./seller-shop.md) |
 | 11 | 系统管理域 | BC11 | 13 | [ ] 未开始 | [system-admin.md](./system-admin.md) |
 
-**合计**: 12 个模块 / 120 个任务 / 88 个已完成
+**合计**: 12 个模块 / 120 个任务 / 97 个已完成
 
 ---
 
@@ -36,7 +36,7 @@
 - [x] **购物车域** — Cart 聚合、Redis 缓存、结算预览、订单事件消费
 - [x] **订单与交易域** — Order 聚合、库存预占、状态机、ES 读模型、支付/发货/收货全流程
 - [x] **促销域** — 满减活动、优惠券、秒杀活动、Redis 秒杀库存、订单事件消费
-- [ ] **评价与售后域** — Review 聚合、AfterSales 聚合、退款流程、评价审核
+- [x] **评价与售后域** — Review 聚合、AfterSales 聚合、退款流程、评价审核
 - [x] **积分与会员域** — 积分账户、签到、会员等级、会员订阅、积分抵现
 - [x] **支付集成域** — 支付订单、退款订单、微信/支付宝适配器、回调处理、补偿任务
 - [ ] **消息通知域** — 通知模板、站内信/短信/邮件渠道、事件消费、重试调度
@@ -140,7 +140,7 @@ shared-kernel (0) ────────────────────�
 - [x] **M2: 身份与店铺就绪** — user-auth + seller-shop + product 完成，可注册登录、卖家入驻审核、商品发布搜索
 - [x] **M3: 购物车可用** — cart 完成，可添加购物车、结算预览
 - [x] **M4: 交易闭环** — order + payment + promotion + points-membership 完成，可下单支付
-- [ ] **M5: 售后完整** — review-aftersales 完成，可评价、退款退货
+- [x] **M5: 售后完整** — review-aftersales 完成，可评价、退款退货
 - [ ] **M6: 通知与管理** — notification + system-admin 完成，全功能可用
 - [ ] **M7: Leno 系统上线** — 所有模块完成，集成测试通过，部署上线
 
