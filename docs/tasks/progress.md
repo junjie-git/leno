@@ -13,7 +13,7 @@
 |---|------|-----------|--------|------|---------|
 | 0 | 共享内核与基础设施 | Shared Kernel | 10 | [x] 已完成 | [shared-kernel.md](./shared-kernel.md) |
 | 1 | 用户与认证授权域 | BC1 | 10 | [x] 已完成 | [user-auth.md](./user-auth.md) |
-| 2 | 商品域 | BC2 | 11 | [ ] 未开始 | [product.md](./product.md) |
+| 2 | 商品域 | BC2 | 11 | [x] 已完成 | [product.md](./product.md) |
 | 3 | 购物车域 | BC3 | 6 | [ ] 未开始 | [cart.md](./cart.md) |
 | 4 | 订单与交易域 | BC4 | 12 | [ ] 未开始 | [order.md](./order.md) |
 | 5 | 促销域 | BC5 | 10 | [ ] 未开始 | [promotion.md](./promotion.md) |
@@ -24,7 +24,7 @@
 | 10 | 卖家与店铺管理域 | BC10 | 8 | [x] 已完成 | [seller-shop.md](./seller-shop.md) |
 | 11 | 系统管理域 | BC11 | 13 | [ ] 未开始 | [system-admin.md](./system-admin.md) |
 
-**合计**: 12 个模块 / 120 个任务 / 28 个已完成
+**合计**: 12 个模块 / 120 个任务 / 39 个已完成
 
 ---
 
@@ -32,7 +32,7 @@
 
 - [x] **共享内核与基础设施** — 值对象、领域基础、发件箱、仓储抽象、横切关注点、消息总线、ES 读模型、配置中心
 - [x] **用户与认证授权域** — User/Address 聚合、JWT 鉴权、密码管理、地址管理、审计日志
-- [ ] **商品域** — SPU/SKU 聚合、分类品牌、库存基线、ES 搜索、商品发布审核
+- [x] **商品域** — SPU/SKU 聚合、分类品牌、库存基线、ES 搜索、商品发布审核
 - [ ] **购物车域** — Cart 聚合、Redis 缓存、结算预览、订单事件消费
 - [ ] **订单与交易域** — Order 聚合、库存预占、状态机、ES 读模型、支付/发货/收货全流程
 - [ ] **促销域** — 满减活动、优惠券、秒杀活动、Redis 秒杀库存、订单事件消费
@@ -137,7 +137,7 @@ shared-kernel (0) ────────────────────�
 ## 关键里程碑
 
 - [x] **M1: 基础设施就绪** — shared-kernel 完成，所有模块可开始开发
-- [ ] **M2: 身份与店铺就绪** — user-auth + seller-shop 完成，可注册登录、卖家入驻审核（product 完成后达成）
+- [x] **M2: 身份与店铺就绪** — user-auth + seller-shop + product 完成，可注册登录、卖家入驻审核、商品发布搜索
 - [ ] **M3: 购物车可用** — cart 完成，可添加购物车、结算预览
 - [ ] **M4: 交易闭环** — order + payment + promotion + points-membership 完成，可下单支付
 - [ ] **M5: 售后完整** — review-aftersales 完成，可评价、退款退货

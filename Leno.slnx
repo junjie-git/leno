@@ -6,6 +6,12 @@
     <Project Path="src/BuildingBlocks/Leno.SharedKernel/Leno.SharedKernel.csproj" />
   </Folder>
   <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/Product/">
+    <Project Path="src/Services/Product/Leno.Product.Api/Leno.Product.Api.csproj" />
+    <Project Path="src/Services/Product/Leno.Product.Domain/Leno.Product.Domain.csproj" />
+    <Project Path="src/Services/Product/Leno.Product.Application/Leno.Product.Application.csproj" />
+    <Project Path="src/Services/Product/Leno.Product.Infrastructure/Leno.Product.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Services/SellerShop/">
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Api/Leno.SellerShop.Api.csproj" />
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Application/Leno.SellerShop.Application.csproj" />

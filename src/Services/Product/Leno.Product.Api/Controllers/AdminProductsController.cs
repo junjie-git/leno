@@ -1,0 +1,60 @@
+using Leno.Infrastructure.Auth;
+using Leno.Product.Application;
+using Leno.Product.Application.DTOs;
+using Leno.SharedContracts.Responses;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Leno.Product.Api.Controllers;
+
+/// <summary>
+/// 运营端商品审核控制器，提供商品审核通过/驳回与库存补货端点。
+/// 仅 Admin/Operator 角色可访问。
+/// </summary>
+[Authorize(Roles = "Admin,Operator")]
+[ApiController]
+[Route("api/admin/products")]
+public sealed class AdminProductsController : ProductControllerBase
+{
+    private readonly ISPUAppService _spuAppService;
+    private readonly IInventoryAppService _inventoryAppService;
+
+    public AdminProductsController(
+        ICurrentUserContext currentUser,
+        ISPUAppService spuAppService,
+        IInventoryAppService inventoryAppService)
+        : base(currentUser)
+    {
+        ArgumentNullException.ThrowIfNull(spuAppService);
+        ArgumentNullException.ThrowIfNull(inventoryAppService);
+        _spuAppService = spuAppService;
+        _inventoryAppService = inventoryAppService;
+    }
+
+    /// <summary>运营审核通过上架。</summary>
+    [HttpPost("{id:guid}/approve")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ApproveAsync(Guid id, CancellationToken ct)
+    {
+        await _spuAppService.ApproveAsync(id, GetCurrentUserId(), ct);
+        return Ok(ApiResponse.Success("已审核通过并上架"));
+    }
+
+    /// <summary>运营审核驳回。</summary>
+    [HttpPost("{id:guid}/reject")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RejectAsync(Guid id, [FromBody] ActionReasonDto dto, CancellationToken ct)
+    {
+        await _spuAppService.RejectAsync(id, GetCurrentUserId(), dto, ct);
+        return Ok(ApiResponse.Success("已驳回"));
+    }
+
+    /// <summary>卖家/运营为指定 SKU 补货。</summary>
+    [HttpPost("skus/{skuId:guid}/replenish")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ReplenishAsync(Guid skuId, [FromBody] ReplenishStockDto dto, CancellationToken ct)
+    {
+        await _inventoryAppService.ReplenishAsync(skuId, dto, ct);
+        return Ok(ApiResponse.Success("补货成功"));
+    }
+}
