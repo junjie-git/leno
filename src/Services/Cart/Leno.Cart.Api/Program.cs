@@ -1,9 +1,11 @@
 using System.Text;
+using Leno.Cart.Infrastructure;
 using Leno.Cart.Infrastructure.Dependencies;
 using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.Dependencies;
 using Leno.Infrastructure.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +16,8 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 
 // 购物车域基础设施：DbContext、工作单元、仓储、Redis 缓存、防腐层、应用服务、FluentValidation 校验器
 builder.Services.AddCartInfrastructure(builder.Configuration);
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<CartDbContext>(tags: new[] { "ready" });
 
 builder.Services.AddControllers();
 
@@ -53,6 +57,15 @@ app.UseMiddleware<InternalApiKeyMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = check => !check.Tags.Contains("ready")
+});
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
 
 app.MapControllers();
 

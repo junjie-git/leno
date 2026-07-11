@@ -14,6 +14,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - leno-net
 
   redis:
     image: redis:7-alpine
@@ -28,6 +30,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - leno-net
 
   rabbitmq:
     image: rabbitmq:3.12-management
@@ -45,6 +49,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - leno-net
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
@@ -62,9 +68,365 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - leno-net
+
+  user-auth-api:
+    build:
+      context: .
+      dockerfile: src/Services/UserAuth/Leno.UserAuth.Api/Dockerfile
+    container_name: leno-user-auth-api
+    ports:
+      - "5151:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - leno-net
+
+  product-api:
+    build:
+      context: .
+      dockerfile: src/Services/Product/Leno.Product.Api/Dockerfile
+    container_name: leno-product-api
+    ports:
+      - "5152:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - leno-net
+
+  cart-api:
+    build:
+      context: .
+      dockerfile: src/Services/Cart/Leno.Cart.Api/Dockerfile
+    container_name: leno-cart-api
+    ports:
+      - "5153:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - leno-net
+
+  order-api:
+    build:
+      context: .
+      dockerfile: src/Services/Order/Leno.Order.Api/Dockerfile
+    container_name: leno-order-api
+    ports:
+      - "5154:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - leno-net
+
+  promotion-api:
+    build:
+      context: .
+      dockerfile: src/Services/Promotion/Leno.Promotion.Api/Dockerfile
+    container_name: leno-promotion-api
+    ports:
+      - "5155:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - leno-net
+
+  payment-api:
+    build:
+      context: .
+      dockerfile: src/Services/Payment/Leno.Payment.Api/Dockerfile
+    container_name: leno-payment-api
+    ports:
+      - "5156:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - leno-net
+
+  points-api:
+    build:
+      context: .
+      dockerfile: src/Services/PointsMembership/Leno.PointsMembership.Api/Dockerfile
+    container_name: leno-points-api
+    ports:
+      - "5157:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - leno-net
+
+  review-aftersales-api:
+    build:
+      context: .
+      dockerfile: src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Dockerfile
+    container_name: leno-review-aftersales-api
+    ports:
+      - "5158:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - leno-net
+
+  seller-shop-api:
+    build:
+      context: .
+      dockerfile: src/Services/SellerShop/Leno.SellerShop.Api/Dockerfile
+    container_name: leno-seller-shop-api
+    ports:
+      - "5159:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - leno-net
+
+  notification-api:
+    build:
+      context: .
+      dockerfile: src/Services/Notification/Leno.Notification.Api/Dockerfile
+    container_name: leno-notification-api
+    ports:
+      - "5160:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - leno-net
+
+  system-admin-api:
+    build:
+      context: .
+      dockerfile: src/Services/SystemAdmin/Leno.SystemAdmin.Api/Dockerfile
+    container_name: leno-system-admin-api
+    ports:
+      - "5161:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - leno-net
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: src/ApiGateway/Leno.ApiGateway/Dockerfile
+    container_name: leno-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    depends_on:
+      user-auth-api:
+        condition: service_healthy
+      product-api:
+        condition: service_healthy
+      cart-api:
+        condition: service_healthy
+      order-api:
+        condition: service_healthy
+      promotion-api:
+        condition: service_healthy
+      payment-api:
+        condition: service_healthy
+      points-api:
+        condition: service_healthy
+      review-aftersales-api:
+        condition: service_healthy
+      seller-shop-api:
+        condition: service_healthy
+      notification-api:
+        condition: service_healthy
+      system-admin-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - leno-net
 
 volumes:
   sqldata:
   redisdata:
   rabbitmqdata:
   esdata:
+
+networks:
+  leno-net:
+    driver: bridge

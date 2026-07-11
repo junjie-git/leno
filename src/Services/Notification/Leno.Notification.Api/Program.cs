@@ -2,8 +2,10 @@ using System.Text;
 using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.Dependencies;
 using Leno.Infrastructure.Middleware;
+using Leno.Notification.Infrastructure;
 using Leno.Notification.Infrastructure.Dependencies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +16,8 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 
 // 通知域基础设施：DbContext、工作单元、仓储、模板渲染、渠道、调度器、任务、应用服务
 builder.Services.AddNotificationInfrastructure(builder.Configuration);
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<NotificationDbContext>(tags: new[] { "ready" });
 
 builder.Services.AddControllers();
 
@@ -53,6 +57,15 @@ app.UseMiddleware<InternalApiKeyMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = check => !check.Tags.Contains("ready")
+});
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
 
 app.MapControllers();
 
