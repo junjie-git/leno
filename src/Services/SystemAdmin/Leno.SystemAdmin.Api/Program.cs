@@ -2,8 +2,10 @@ using System.Text;
 using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.Dependencies;
 using Leno.Infrastructure.Middleware;
+using Leno.SystemAdmin.Infrastructure;
 using Leno.SystemAdmin.Infrastructure.Dependencies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +16,8 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 
 // 系统管理域基础设施：DbContext、工作单元、仓储、缓存、Quartz 调度器、特性开关评估器
 builder.Services.AddSystemAdminInfrastructure(builder.Configuration);
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<SystemAdminDbContext>(tags: new[] { "ready" });
 
 builder.Services.AddControllers();
 
@@ -53,6 +57,15 @@ app.UseMiddleware<InternalApiKeyMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = check => !check.Tags.Contains("ready")
+});
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
 
 app.MapControllers();
 

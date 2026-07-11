@@ -2,8 +2,10 @@ using System.Text;
 using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.Dependencies;
 using Leno.Infrastructure.Middleware;
+using Leno.UserAuth.Infrastructure;
 using Leno.UserAuth.Infrastructure.Dependencies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +16,8 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 
 // 用户与认证授权域基础设施：DbContext、工作单元、仓储、领域服务实现、审计拦截器、FluentValidation 校验器
 builder.Services.AddUserAuthInfrastructure(builder.Configuration);
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<UserAuthDbContext>(tags: new[] { "ready" });
 
 builder.Services.AddControllers();
 
@@ -53,6 +57,15 @@ app.UseMiddleware<InternalApiKeyMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = check => !check.Tags.Contains("ready")
+});
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
 
 app.MapControllers();
 

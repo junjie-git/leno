@@ -139,6 +139,7 @@ public static class ServiceCollectionExtensions
     private static void AddHealthChecks(IServiceCollection services)
     {
         services.AddHealthChecks()
+            .AddCheck("self", () => HealthCheckResult.Healthy(), tags: Array.Empty<string>())
             .AddCheck<RedisHealthCheck>("redis", tags: ReadyTags)
             .AddCheck<ElasticsearchHealthCheck>("elasticsearch", tags: ReadyTags);
     }

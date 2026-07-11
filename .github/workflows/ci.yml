@@ -7,7 +7,7 @@ on:
     branches: [main, develop]
 
 jobs:
-  build-and-test:
+  build-solution:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,8 +16,91 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - name: Restore
-        run: dotnet restore Leno.sln
+        run: dotnet restore Leno.slnx
       - name: Build
-        run: dotnet build Leno.sln --configuration Release --no-restore
+        run: dotnet build Leno.slnx --configuration Release --no-restore
       - name: Unit tests
-        run: dotnet test Leno.sln --configuration Release --no-build --filter "Category=Unit"
+        run: dotnet test Leno.slnx --configuration Release --no-build --filter "Category=Unit"
+
+  build-services:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - name: 'UserAuth'
+            path: 'src/Services/UserAuth/Leno.UserAuth.Api/Leno.UserAuth.Api.csproj'
+          - name: 'Product'
+            path: 'src/Services/Product/Leno.Product.Api/Leno.Product.Api.csproj'
+          - name: 'Cart'
+            path: 'src/Services/Cart/Leno.Cart.Api/Leno.Cart.Api.csproj'
+          - name: 'Order'
+            path: 'src/Services/Order/Leno.Order.Api/Leno.Order.Api.csproj'
+          - name: 'Promotion'
+            path: 'src/Services/Promotion/Leno.Promotion.Api/Leno.Promotion.Api.csproj'
+          - name: 'Payment'
+            path: 'src/Services/Payment/Leno.Payment.Api/Leno.Payment.Api.csproj'
+          - name: 'PointsMembership'
+            path: 'src/Services/PointsMembership/Leno.PointsMembership.Api/Leno.PointsMembership.Api.csproj'
+          - name: 'ReviewAfterSales'
+            path: 'src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Leno.ReviewAfterSales.Api.csproj'
+          - name: 'SellerShop'
+            path: 'src/Services/SellerShop/Leno.SellerShop.Api/Leno.SellerShop.Api.csproj'
+          - name: 'Notification'
+            path: 'src/Services/Notification/Leno.Notification.Api/Leno.Notification.Api.csproj'
+          - name: 'SystemAdmin'
+            path: 'src/Services/SystemAdmin/Leno.SystemAdmin.Api/Leno.SystemAdmin.Api.csproj'
+          - name: 'ApiGateway'
+            path: 'src/ApiGateway/Leno.ApiGateway/Leno.ApiGateway.csproj'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build ${{ matrix.project.name }}
+        run: dotnet build ${{ matrix.project.path }} --configuration Release
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: build-services
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: 'UserAuth'
+            dockerfile: 'src/Services/UserAuth/Leno.UserAuth.Api/Dockerfile'
+          - name: 'Product'
+            dockerfile: 'src/Services/Product/Leno.Product.Api/Dockerfile'
+          - name: 'Cart'
+            dockerfile: 'src/Services/Cart/Leno.Cart.Api/Dockerfile'
+          - name: 'Order'
+            dockerfile: 'src/Services/Order/Leno.Order.Api/Dockerfile'
+          - name: 'Promotion'
+            dockerfile: 'src/Services/Promotion/Leno.Promotion.Api/Dockerfile'
+          - name: 'Payment'
+            dockerfile: 'src/Services/Payment/Leno.Payment.Api/Dockerfile'
+          - name: 'PointsMembership'
+            dockerfile: 'src/Services/PointsMembership/Leno.PointsMembership.Api/Dockerfile'
+          - name: 'ReviewAfterSales'
+            dockerfile: 'src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Dockerfile'
+          - name: 'SellerShop'
+            dockerfile: 'src/Services/SellerShop/Leno.SellerShop.Api/Dockerfile'
+          - name: 'Notification'
+            dockerfile: 'src/Services/Notification/Leno.Notification.Api/Dockerfile'
+          - name: 'SystemAdmin'
+            dockerfile: 'src/Services/SystemAdmin/Leno.SystemAdmin.Api/Dockerfile'
+          - name: 'ApiGateway'
+            dockerfile: 'src/ApiGateway/Leno.ApiGateway/Dockerfile'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker build ${{ matrix.service.name }}
+        run: docker build -f ${{ matrix.service.dockerfile }} -t leno-${{ matrix.service.name }}:ci .
+
+  validate-compose:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docker-compose config
+        run: docker-compose config > /dev/null
