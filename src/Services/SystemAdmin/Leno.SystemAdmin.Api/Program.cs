@@ -17,7 +17,7 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 // 系统管理域基础设施：DbContext、工作单元、仓储、缓存、Quartz 调度器、特性开关评估器
 builder.Services.AddSystemAdminInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<SystemAdminDbContext>(tags: new[] { "ready" });
+    .AddDbContextCheck<SystemAdminDbContext>(tags: ["ready"]);
 
 builder.Services.AddControllers();
 

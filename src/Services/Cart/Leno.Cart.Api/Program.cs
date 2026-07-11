@@ -17,7 +17,7 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 // 购物车域基础设施：DbContext、工作单元、仓储、Redis 缓存、防腐层、应用服务、FluentValidation 校验器
 builder.Services.AddCartInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<CartDbContext>(tags: new[] { "ready" });
+    .AddDbContextCheck<CartDbContext>(tags: ["ready"]);
 
 builder.Services.AddControllers();
 

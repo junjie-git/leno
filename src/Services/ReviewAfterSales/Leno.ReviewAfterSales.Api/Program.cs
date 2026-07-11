@@ -17,7 +17,7 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 // 评价与售后域基础设施：DbContext、工作单元、仓储、防腐层、应用服务
 builder.Services.AddReviewAfterSalesInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<ReviewAfterSalesDbContext>(tags: new[] { "ready" });
+    .AddDbContextCheck<ReviewAfterSalesDbContext>(tags: ["ready"]);
 
 builder.Services.AddControllers();
 

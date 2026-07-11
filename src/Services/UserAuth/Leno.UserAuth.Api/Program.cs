@@ -17,7 +17,7 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 // 用户与认证授权域基础设施：DbContext、工作单元、仓储、领域服务实现、审计拦截器、FluentValidation 校验器
 builder.Services.AddUserAuthInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<UserAuthDbContext>(tags: new[] { "ready" });
+    .AddDbContextCheck<UserAuthDbContext>(tags: ["ready"]);
 
 builder.Services.AddControllers();
 

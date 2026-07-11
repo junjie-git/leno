@@ -7,6 +7,10 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
 
 [*.{json,yml,yaml}]
 indent_size = 2
@@ -38,7 +42,7 @@ dotnet_naming_style.interface_style.capitalization = pascal_case
 dotnet_naming_style.interface_style.required_prefix = I
 
 # 私有字段 _camelCase
-dotnet_naming_rule.private_fields_should_be_camelcase_with_underscore.severity = warning
+dotnet_naming_rule.private_fields_should_be_camelcase_with_underscore.severity = suggestion
 dotnet_naming_rule.private_fields_should_be_camelcase_with_underscore.symbols = private_fields
 dotnet_naming_rule.private_fields_should_be_camelcase_with_underscore.style = underscore_camel_case_style
 
@@ -98,3 +102,17 @@ dotnet_diagnostic.CA2007.severity = none
 # 故关闭要求 LoggerMessage 源生成器的 CA1848 及其伴随的 CA1873，以与规范保持一致。
 dotnet_diagnostic.CA1848.severity = none
 dotnet_diagnostic.CA1873.severity = none
+csharp_style_expression_bodied_constructors = false:silent
+csharp_style_expression_bodied_operators = false:silent
+csharp_style_expression_bodied_indexers = true:silent
+csharp_style_expression_bodied_accessors = true:silent
+csharp_style_expression_bodied_lambdas = true:silent
+csharp_style_expression_bodied_local_functions = false:silent
+csharp_style_conditional_delegate_call = true:suggestion
+csharp_prefer_simple_using_statement = true:suggestion
+csharp_prefer_braces = when_multiline:suggestion
+csharp_style_prefer_method_group_conversion = true:silent
+csharp_style_prefer_top_level_statements = true:silent
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_prefer_system_threading_lock = true:suggestion
+csharp_style_prefer_simple_property_accessors = true:suggestion

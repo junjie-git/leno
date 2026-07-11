@@ -10,27 +10,27 @@
   </Folder>
   <Folder Name="/src/Services/" />
   <Folder Name="/src/Services/Order/">
-    <Project Path="src/Services/Order/Leno.Order.Domain/Leno.Order.Domain.csproj" />
-    <Project Path="src/Services/Order/Leno.Order.Application/Leno.Order.Application.csproj" />
-    <Project Path="src/Services/Order/Leno.Order.Infrastructure/Leno.Order.Infrastructure.csproj" />
     <Project Path="src/Services/Order/Leno.Order.Api/Leno.Order.Api.csproj" />
+    <Project Path="src/Services/Order/Leno.Order.Application/Leno.Order.Application.csproj" />
+    <Project Path="src/Services/Order/Leno.Order.Domain/Leno.Order.Domain.csproj" />
+    <Project Path="src/Services/Order/Leno.Order.Infrastructure/Leno.Order.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/Payment/">
-    <Project Path="src/Services/Payment/Leno.Payment.Domain/Leno.Payment.Domain.csproj" />
-    <Project Path="src/Services/Payment/Leno.Payment.Application/Leno.Payment.Application.csproj" />
-    <Project Path="src/Services/Payment/Leno.Payment.Infrastructure/Leno.Payment.Infrastructure.csproj" />
     <Project Path="src/Services/Payment/Leno.Payment.Api/Leno.Payment.Api.csproj" />
+    <Project Path="src/Services/Payment/Leno.Payment.Application/Leno.Payment.Application.csproj" />
+    <Project Path="src/Services/Payment/Leno.Payment.Domain/Leno.Payment.Domain.csproj" />
+    <Project Path="src/Services/Payment/Leno.Payment.Infrastructure/Leno.Payment.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/Cart/">
     <Project Path="src/Services/Cart/Leno.Cart.Api/Leno.Cart.Api.csproj" />
-    <Project Path="src/Services/Cart/Leno.Cart.Domain/Leno.Cart.Domain.csproj" />
     <Project Path="src/Services/Cart/Leno.Cart.Application/Leno.Cart.Application.csproj" />
+    <Project Path="src/Services/Cart/Leno.Cart.Domain/Leno.Cart.Domain.csproj" />
     <Project Path="src/Services/Cart/Leno.Cart.Infrastructure/Leno.Cart.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/Product/">
     <Project Path="src/Services/Product/Leno.Product.Api/Leno.Product.Api.csproj" />
-    <Project Path="src/Services/Product/Leno.Product.Domain/Leno.Product.Domain.csproj" />
     <Project Path="src/Services/Product/Leno.Product.Application/Leno.Product.Application.csproj" />
+    <Project Path="src/Services/Product/Leno.Product.Domain/Leno.Product.Domain.csproj" />
     <Project Path="src/Services/Product/Leno.Product.Infrastructure/Leno.Product.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/Promotion/">
@@ -52,16 +52,16 @@
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Infrastructure/Leno.SellerShop.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/ReviewAfterSales/">
+    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Leno.ReviewAfterSales.Api.csproj" />
+    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Application/Leno.ReviewAfterSales.Application.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Domain/Leno.ReviewAfterSales.Domain.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/Leno.ReviewAfterSales.Infrastructure.csproj" />
-    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Application/Leno.ReviewAfterSales.Application.csproj" />
-    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Leno.ReviewAfterSales.Api.csproj" />
   </Folder>
   <Folder Name="/src/Services/Notification/">
+    <Project Path="src/Services/Notification/Leno.Notification.Api/Leno.Notification.Api.csproj" />
+    <Project Path="src/Services/Notification/Leno.Notification.Application/Leno.Notification.Application.csproj" />
     <Project Path="src/Services/Notification/Leno.Notification.Domain/Leno.Notification.Domain.csproj" />
     <Project Path="src/Services/Notification/Leno.Notification.Infrastructure/Leno.Notification.Infrastructure.csproj" />
-    <Project Path="src/Services/Notification/Leno.Notification.Application/Leno.Notification.Application.csproj" />
-    <Project Path="src/Services/Notification/Leno.Notification.Api/Leno.Notification.Api.csproj" />
   </Folder>
   <Folder Name="/src/Services/UserAuth/">
     <Project Path="src/Services/UserAuth/Leno.UserAuth.Api/Leno.UserAuth.Api.csproj" />
@@ -70,9 +70,17 @@
     <Project Path="src/Services/UserAuth/Leno.UserAuth.Infrastructure/Leno.UserAuth.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/SystemAdmin/">
+    <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Api/Leno.SystemAdmin.Api.csproj" />
+    <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Application/Leno.SystemAdmin.Application.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Domain/Leno.SystemAdmin.Domain.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/Leno.SystemAdmin.Infrastructure.csproj" />
-    <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Application/Leno.SystemAdmin.Application.csproj" />
-    <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Api/Leno.SystemAdmin.Api.csproj" />
+  </Folder>
+  <Folder Name="/解决方案项/">
+    <File Path=".dockerignore" />
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="docker-compose.yml" />
+    <File Path="mise.toml" />
   </Folder>
 </Solution>

@@ -17,7 +17,7 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 // 促销域基础设施：DbContext、工作单元、仓储、Redis 秒杀库存、防腐层、应用服务、FluentValidation 校验器
 builder.Services.AddPromotionInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<PromotionDbContext>(tags: new[] { "ready" });
+    .AddDbContextCheck<PromotionDbContext>(tags: ["ready"]);
 
 builder.Services.AddControllers();
 

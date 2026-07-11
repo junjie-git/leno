@@ -17,7 +17,7 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 // 卖家与店铺管理域基础设施：DbContext、工作单元、仓储、防腐层、应用服务、FluentValidation 校验器
 builder.Services.AddSellerShopInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<SellerShopDbContext>(tags: new[] { "ready" });
+    .AddDbContextCheck<SellerShopDbContext>(tags: ["ready"]);
 
 builder.Services.AddControllers();
 

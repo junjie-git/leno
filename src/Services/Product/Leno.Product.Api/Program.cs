@@ -17,7 +17,7 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 // 商品域基础设施：DbContext、工作单元、仓储、防腐层、ES 搜索、应用服务、FluentValidation 校验器
 builder.Services.AddProductInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<ProductDbContext>(tags: new[] { "ready" });
+    .AddDbContextCheck<ProductDbContext>(tags: ["ready"]);
 
 builder.Services.AddControllers();
 

@@ -17,7 +17,7 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 // 通知域基础设施：DbContext、工作单元、仓储、模板渲染、渠道、调度器、任务、应用服务
 builder.Services.AddNotificationInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<NotificationDbContext>(tags: new[] { "ready" });
+    .AddDbContextCheck<NotificationDbContext>(tags: ["ready"]);
 
 builder.Services.AddControllers();
 

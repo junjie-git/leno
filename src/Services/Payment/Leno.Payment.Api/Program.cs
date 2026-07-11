@@ -17,7 +17,7 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 // 支付域基础设施：DbContext、工作单元、仓储、渠道配置、渠道适配器、通知处理器、补偿任务、应用服务
 builder.Services.AddPaymentInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<PaymentDbContext>(tags: new[] { "ready" });
+    .AddDbContextCheck<PaymentDbContext>(tags: ["ready"]);
 
 builder.Services.AddControllers();
 

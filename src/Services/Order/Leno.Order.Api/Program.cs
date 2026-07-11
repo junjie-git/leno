@@ -17,7 +17,7 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 // 订单域基础设施：DbContext、工作单元、仓储、Redis 库存、防腐层、应用服务、FluentValidation 校验器
 builder.Services.AddOrderInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<OrderDbContext>(tags: new[] { "ready" });
+    .AddDbContextCheck<OrderDbContext>(tags: ["ready"]);
 
 builder.Services.AddControllers();
 

@@ -17,7 +17,7 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 // 积分会员域基础设施：DbContext、工作单元、仓储、积分抵扣防腐层、应用服务、FluentValidation 校验器
 builder.Services.AddPointsMembershipInfrastructure(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<PointsMembershipDbContext>(tags: new[] { "ready" });
+    .AddDbContextCheck<PointsMembershipDbContext>(tags: ["ready"]);
 
 builder.Services.AddControllers();
 
