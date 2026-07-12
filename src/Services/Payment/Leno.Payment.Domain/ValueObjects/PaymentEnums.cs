@@ -49,3 +49,33 @@ public enum RefundStatus
     /// <summary>退款失败。</summary>
     Failed = 2
 }
+
+/// <summary>
+/// 对账差异类型枚举。
+/// </summary>
+public enum ReconciliationDiffType
+{
+    /// <summary>渠道有记录但系统无记录（长款）。</summary>
+    ChannelOnly = 0,
+
+    /// <summary>系统有记录但渠道无记录（短款）。</summary>
+    SystemOnly = 1,
+
+    /// <summary>金额不一致。</summary>
+    AmountMismatch = 2
+}
+
+/// <summary>
+/// 对账差异状态枚举。
+/// </summary>
+public enum ReconciliationDiffStatus
+{
+    /// <summary>待处理。</summary>
+    Pending = 0,
+
+    /// <summary>已修复。</summary>
+    Resolved = 1,
+
+    /// <summary>已忽略。</summary>
+    Ignored = 2
+}

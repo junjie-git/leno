@@ -457,6 +457,32 @@ public class OrderTests
     }
 
     [Fact]
+    public void ForceCancel_FromPaid_ShouldSetCancelReason()
+    {
+        var order = CreateOrder();
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+
+        order.ForceCancel("Fraudulent order", "Admin-001");
+
+        order.CancelReason.Should().Be("Fraudulent order");
+        order.CancelledAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ForceCancel_FromPaid_ShouldPublishCancelledEvent()
+    {
+        var order = CreateOrder();
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+
+        order.ForceCancel("Fraudulent", "Admin-001");
+
+        order.DomainEvents.Should().Contain(e => e is OrderCancelledEvent);
+        var evt = order.DomainEvents.OfType<OrderCancelledEvent>().Last();
+        evt.CancelledBy.Should().Be("Admin-001");
+        evt.CancelReason.Should().Be("Fraudulent");
+    }
+
+    [Fact]
     public void ForceCancel_FromShipped_ShouldTransitionToCancelled()
     {
         var order = CreateOrder();
@@ -466,6 +492,35 @@ public class OrderTests
         order.ForceCancel("Fraudulent", "Operator");
 
         order.Status.Should().Be(OrderStatus.Cancelled);
+    }
+
+    [Fact]
+    public void ForceCancel_FromCompleted_ShouldThrowException()
+    {
+        var order = CreateOrder();
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
+        order.ConfirmReceipt();
+
+        var act = () => order.ForceCancel("test", "Operator");
+
+        act.Should().Throw<OrderDomainException>().WithMessage("*状态*");
+    }
+
+    [Fact]
+    public void ForceCancel_FromClosed_ShouldThrowException()
+    {
+        var order = CreateOrder();
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
+        order.ConfirmReceipt();
+        typeof(OrderAggregate).GetProperty(nameof(OrderAggregate.AfterSalesWindowEndsAt))!
+            .SetValue(order, DateTime.UtcNow.AddDays(-1));
+        order.CloseAfterSalesWindow();
+
+        var act = () => order.ForceCancel("test", "Operator");
+
+        act.Should().Throw<OrderDomainException>().WithMessage("*状态*");
     }
 
     [Fact]

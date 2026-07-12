@@ -181,6 +181,9 @@ public sealed class CancelOrderDto
 public sealed class ForceCancelOrderDto
 {
     public string Reason { get; init; } = string.Empty;
+
+    /// <summary>操作人标识，从 JWT 声明中解析，前端无需传入。</summary>
+    public Guid OperatorId { get; init; }
 }
 
 /// <summary>

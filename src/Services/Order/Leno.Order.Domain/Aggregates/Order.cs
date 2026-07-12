@@ -198,7 +198,7 @@ public sealed class Order : AggregateRoot
             .Select(i => i.SourceCartItemId!.Value)
             .ToList();
 
-        order.AddDomainEvent(new OrderCreatedEvent(orderId, userId, order.TotalAmount, "CNY", DateTime.UtcNow, sourceCartItemIds));
+        order.AddDomainEvent(new OrderCreatedEvent(orderId, userId, sellerId, order.TotalAmount, "CNY", DateTime.UtcNow, sourceCartItemIds));
 
         return order;
     }
@@ -308,7 +308,7 @@ public sealed class Order : AggregateRoot
         PaymentId = paymentId;
         PaidAt = paidAt;
         TradeNo = tradeNo;
-        AddDomainEvent(new OrderPaidEvent(Id, UserId, paymentId, channel, paidAt, tradeNo, TotalAmount, "CNY"));
+        AddDomainEvent(new OrderPaidEvent(Id, UserId, SellerId ?? Guid.Empty, paymentId, channel, paidAt, tradeNo, TotalAmount, "CNY"));
     }
 
     /// <summary>
@@ -425,7 +425,7 @@ public sealed class Order : AggregateRoot
         Status = OrderStatus.Cancelled;
         CancelReason = reason;
         CancelledAt = DateTime.UtcNow;
-        AddDomainEvent(new OrderCancelledEvent(Id, reason, CancelledAt.Value, cancelledBy, (int)Math.Round(PointsOffsetAmount * 100)));
+        AddDomainEvent(new OrderCancelledEvent(Id, SellerId ?? Guid.Empty, reason, CancelledAt.Value, cancelledBy, (int)Math.Round(PointsOffsetAmount * 100)));
     }
 
     /// <summary>
@@ -445,7 +445,7 @@ public sealed class Order : AggregateRoot
         Status = OrderStatus.Cancelled;
         CancelReason = reason;
         CancelledAt = DateTime.UtcNow;
-        AddDomainEvent(new OrderCancelledEvent(Id, reason, CancelledAt.Value, operatorId, (int)Math.Round(PointsOffsetAmount * 100)));
+        AddDomainEvent(new OrderCancelledEvent(Id, SellerId ?? Guid.Empty, reason, CancelledAt.Value, operatorId, (int)Math.Round(PointsOffsetAmount * 100)));
     }
 
     /// <summary>

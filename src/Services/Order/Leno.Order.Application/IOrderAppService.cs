@@ -67,11 +67,12 @@ public interface IOrderAppService
     Task CancelAsync(Guid orderId, Guid userId, CancelOrderDto dto, CancellationToken ct = default);
 
     /// <summary>
-    /// 运营强制取消订单（已支付/已发货态）。
+    /// 运营强制取消订单（待支付/已支付/已发货态）。
     /// </summary>
     /// <param name="orderId">订单标识。</param>
+    /// <param name="operatorId">操作人标识（运营人员）。</param>
     /// <param name="dto">强制取消入参。</param>
-    Task ForceCancelAsync(Guid orderId, ForceCancelOrderDto dto, CancellationToken ct = default);
+    Task ForceCancelAsync(Guid orderId, Guid operatorId, ForceCancelOrderDto dto, CancellationToken ct = default);
 
     /// <summary>
     /// 按标识查询订单。

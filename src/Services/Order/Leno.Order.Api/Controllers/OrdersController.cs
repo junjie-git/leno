@@ -122,13 +122,13 @@ public sealed class OrdersController : OrderControllerBase
         return Ok(ApiResponse.Success(result));
     }
 
-    /// <summary>运营强制取消订单（已支付/已发货态）。</summary>
-    [Authorize(Roles = "Operator,Admin")]
+    /// <summary>运营强制取消订单（待支付/已支付/已发货态）。</summary>
+    [Authorize(Roles = "Admin")]
     [HttpPost("api/admin/orders/{id:guid}/force-cancel")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ForceCancelAsync(Guid id, [FromBody] ForceCancelOrderDto dto, CancellationToken ct)
     {
-        await _orderAppService.ForceCancelAsync(id, dto, ct);
+        await _orderAppService.ForceCancelAsync(id, GetCurrentUserId(), dto, ct);
         return Ok(ApiResponse.Success());
     }
 }

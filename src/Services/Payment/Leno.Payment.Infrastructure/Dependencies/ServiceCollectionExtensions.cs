@@ -45,6 +45,8 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IPaymentOrderRepository, EfCorePaymentOrderRepository>();
         services.AddScoped<IRefundOrderRepository, EfCoreRefundOrderRepository>();
+        services.AddScoped<IReconciliationDiffRepository, EfCoreReconciliationDiffRepository>();
+        services.AddScoped<IPaymentChannelConfigRepository, EfCorePaymentChannelConfigRepository>();
 
         // 渠道配置
         services.Configure<PaymentChannelOptions>(configuration.GetSection("Payment:Channels"));
@@ -79,9 +81,16 @@ public static class ServiceCollectionExtensions
         // 应用服务
         services.AddScoped<IPaymentAppService, PaymentAppService>();
         services.AddScoped<IRefundAppService, RefundAppService>();
+        services.AddScoped<IReconciliationAppService, ReconciliationAppService>();
+        services.AddScoped<IPaymentChannelConfigAppService, PaymentChannelConfigAppService>();
 
         // 内部查询服务（供跨域调用）
         services.AddScoped<IPaymentInternalQueryService, PaymentInternalQueryService>();
+
+        // 对账服务（后台服务）
+        services.AddSingleton<ReconciliationService>();
+        services.AddSingleton<IReconciliationService>(sp => sp.GetRequiredService<ReconciliationService>());
+        services.AddHostedService(sp => sp.GetRequiredService<ReconciliationService>());
 
         return services;
     }

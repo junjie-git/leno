@@ -243,3 +243,44 @@ public sealed class RefundFailedEvent : IntegrationEventBase, IDomainEvent
         FailedAt = failedAt;
     }
 }
+
+/// <summary>
+/// 支付渠道配置变更集成事件，支付域在渠道配置（值、启用/禁用）变更时发布。
+/// 消费方：渠道适配器（刷新缓存配置）、运维监控（配置变更通知）。
+/// 同时实现 <see cref="IDomainEvent"/> 以便支付域经发件箱模式在同一事务内持久化。
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class PaymentChannelConfigChangedEvent : IntegrationEventBase, IDomainEvent
+{
+    /// <summary>配置标识。</summary>
+    public Guid ConfigId { get; init; }
+
+    /// <summary>支付渠道。</summary>
+    public string Channel { get; init; } = string.Empty;
+
+    /// <summary>配置项名称。</summary>
+    public string ConfigName { get; init; } = string.Empty;
+
+    /// <summary>变更类型：Updated / Enabled / Disabled。</summary>
+    public string ChangeType { get; init; } = string.Empty;
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => ConfigId;
+
+    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
+    public PaymentChannelConfigChangedEvent() : base()
+    {
+    }
+
+    public PaymentChannelConfigChangedEvent(
+        Guid configId,
+        string channel,
+        string configName,
+        string changeType) : base()
+    {
+        ConfigId = configId;
+        Channel = channel ?? string.Empty;
+        ConfigName = configName ?? string.Empty;
+        ChangeType = changeType ?? string.Empty;
+    }
+}

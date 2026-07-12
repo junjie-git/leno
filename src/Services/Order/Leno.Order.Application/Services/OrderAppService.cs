@@ -379,19 +379,72 @@ public sealed class OrderAppService : IOrderAppService
     }
 
     /// <inheritdoc />
-    public async Task ForceCancelAsync(Guid orderId, ForceCancelOrderDto dto, CancellationToken ct = default)
+    public async Task ForceCancelAsync(Guid orderId, Guid operatorId, ForceCancelOrderDto dto, CancellationToken ct = default)
     {
         var order = await RequireOrderAsync(orderId, ct);
-        order.ForceCancel(dto.Reason, "Operator");
+
+        // 待支付订单：直接取消（释放库存、积分、优惠券）
+        if (order.Status == OrderStatus.PendingPayment)
+        {
+            order.Cancel(dto.Reason, "Admin");
+
+            var skuQuantities = BuildSkuQuantities(order);
+            await _stockService.ReleaseBatchAsync(orderId, skuQuantities, ct);
+            await _pointsAntiCorruption.ReleaseAsync(orderId, ct);
+            await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct);
+
+            await _orderRepository.UpdateAsync(order, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+
+            // 发布操作日志事件
+            await PublishAdminOperationLogAsync(operatorId, "ForceCancel", "Order",
+                $"运营强制取消待支付订单 {order.OrderNo}，原因：{dto.Reason}", orderId, ct);
+
+            return;
+        }
+
+        // 已支付/已发货订单：强制取消并触发退款
+        order.ForceCancel(dto.Reason, operatorId.ToString());
 
         // 释放预占库存、冻结积分与优惠券
-        var skuQuantities = BuildSkuQuantities(order);
-        await _stockService.ReleaseBatchAsync(orderId, skuQuantities, ct);
+        var quantities = BuildSkuQuantities(order);
+        await _stockService.ReleaseBatchAsync(orderId, quantities, ct);
         await _pointsAntiCorruption.ReleaseAsync(orderId, ct);
         await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct);
 
+        // 已支付订单：触发退款流程
+        if (order.PaymentId.HasValue)
+        {
+            var refundId = Guid.NewGuid();
+            var channel = order.PaymentMethod?.ToString() ?? "WeChatPay";
+            var refundEvent = new RefundRequestedIntegrationEvent(
+                refundId, orderId, order.UserId, orderId, // 使用 OrderId 作为 AfterSalesId（运营强制取消无售后单）
+                order.PaymentId.Value, order.TotalAmount, "CNY", channel,
+                $"运营强制取消退款：{dto.Reason}");
+            await _eventBus.PublishAsync(refundEvent, ct);
+        }
+
         await _orderRepository.UpdateAsync(order, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+
+        // 发布操作日志事件
+        await PublishAdminOperationLogAsync(operatorId, "ForceCancel", "Order",
+            $"运营强制取消已支付订单 {order.OrderNo}，原因：{dto.Reason}，已触发退款", orderId, ct);
+    }
+
+    /// <summary>
+    /// 发布运营操作日志事件，供系统管理域消费并持久化。
+    /// </summary>
+    private async Task PublishAdminOperationLogAsync(
+        Guid operatorId,
+        string operationType,
+        string module,
+        string description,
+        Guid aggregateId,
+        CancellationToken ct)
+    {
+        var logEvent = new AdminOperationLogEvent(operatorId, operationType, module, description, null, aggregateId);
+        await _eventBus.PublishAsync(logEvent, ct);
     }
 
     /// <inheritdoc />
