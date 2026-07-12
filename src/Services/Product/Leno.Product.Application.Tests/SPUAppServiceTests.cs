@@ -5,6 +5,7 @@ using Leno.Product.Application.Services;
 using Leno.Product.Domain.Aggregates;
 using Leno.Product.Domain.Exceptions;
 using Leno.Product.Domain.Repositories;
+using Leno.Product.Domain.Services;
 using Leno.Product.Domain.ValueObjects;
 using Leno.SharedContracts.Responses;
 using Leno.SharedKernel.Abstractions;
@@ -16,6 +17,7 @@ public class SPUAppServiceTests
 {
     private readonly Mock<ISPURepository> _spuRepoMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
+    private readonly Mock<IProductUniquenessChecker> _uniquenessCheckerMock = new();
     private readonly Mock<IValidator<CreateProductDto>> _createValidatorMock = new();
     private readonly Mock<IValidator<UpdateProductDto>> _updateValidatorMock = new();
     private readonly Mock<IValidator<AddSkuDto>> _addSkuValidatorMock = new();
@@ -31,6 +33,7 @@ public class SPUAppServiceTests
         _sut = new SPUAppService(
             _spuRepoMock.Object,
             _uowMock.Object,
+            _uniquenessCheckerMock.Object,
             _createValidatorMock.Object,
             _updateValidatorMock.Object,
             _addSkuValidatorMock.Object,
@@ -43,6 +46,7 @@ public class SPUAppServiceTests
     public async Task CreateAsync_ValidInput_ShouldReturnProductDto()
     {
         SetupValidValidation(_createValidatorMock);
+        SetupTitleUnique();
         var dto = CreateValidCreateProductDto();
 
         var result = await _sut.CreateAsync(SellerId, ShopId, dto);
@@ -54,6 +58,19 @@ public class SPUAppServiceTests
         result.Status.Should().Be(ProductStatus.Draft);
         _spuRepoMock.Verify(r => r.AddAsync(It.IsAny<SPU>(), It.IsAny<CancellationToken>()), Times.Once);
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_DuplicateTitle_ShouldThrowException()
+    {
+        SetupValidValidation(_createValidatorMock);
+        SetupTitleNotUnique();
+        var dto = CreateValidCreateProductDto();
+
+        var act = () => _sut.CreateAsync(SellerId, ShopId, dto);
+
+        await act.Should().ThrowAsync<ProductDomainException>()
+            .WithMessage("*title already exists*");
     }
 
     [Fact]
@@ -96,6 +113,7 @@ public class SPUAppServiceTests
     public async Task UpdateAsync_ValidInput_ShouldUpdateAndReturnDto()
     {
         SetupValidValidation(_updateValidatorMock);
+        SetupTitleUnique();
         var spu = CreateDraftSpu(SellerId, ShopId);
         _spuRepoMock.Setup(r => r.GetByIdAsync(spu.Id, It.IsAny<CancellationToken>())).ReturnsAsync(spu);
         var dto = new UpdateProductDto
@@ -114,9 +132,31 @@ public class SPUAppServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_DuplicateTitle_ShouldThrowException()
+    {
+        SetupValidValidation(_updateValidatorMock);
+        SetupTitleNotUnique();
+        var spu = CreateDraftSpu(SellerId, ShopId);
+        _spuRepoMock.Setup(r => r.GetByIdAsync(spu.Id, It.IsAny<CancellationToken>())).ReturnsAsync(spu);
+        var dto = new UpdateProductDto
+        {
+            Title = "Duplicate Title",
+            MainImageUrl = "https://img.example.com/2.jpg",
+            CategoryId = CategoryId,
+            Images = new List<ProductImageDto>()
+        };
+
+        var act = () => _sut.UpdateAsync(SellerId, spu.Id, dto);
+
+        await act.Should().ThrowAsync<ProductDomainException>()
+            .WithMessage("*title already exists*");
+    }
+
+    [Fact]
     public async Task UpdateAsync_NotOwned_ShouldThrowException()
     {
         SetupValidValidation(_updateValidatorMock);
+        SetupTitleUnique();
         var spu = CreateDraftSpu(SellerId, ShopId);
         _spuRepoMock.Setup(r => r.GetByIdAsync(spu.Id, It.IsAny<CancellationToken>())).ReturnsAsync(spu);
         var otherSeller = Guid.NewGuid();
@@ -141,6 +181,7 @@ public class SPUAppServiceTests
     public async Task AddSkuAsync_ValidInput_ShouldAddSku()
     {
         SetupValidValidation(_addSkuValidatorMock);
+        SetupSkuCodeUnique();
         var spu = CreateDraftSpu(SellerId, ShopId);
         _spuRepoMock.Setup(r => r.GetByIdAsync(spu.Id, It.IsAny<CancellationToken>())).ReturnsAsync(spu);
         var dto = new AddSkuDto
@@ -160,6 +201,31 @@ public class SPUAppServiceTests
         result.Skus.Should().HaveCount(1);
         _spuRepoMock.Verify(r => r.UpdateAsync(spu, It.IsAny<CancellationToken>()), Times.Once);
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddSkuAsync_DuplicateSkuCode_ShouldThrowException()
+    {
+        SetupValidValidation(_addSkuValidatorMock);
+        SetupSkuCodeNotUnique();
+        var spu = CreateDraftSpu(SellerId, ShopId);
+        _spuRepoMock.Setup(r => r.GetByIdAsync(spu.Id, It.IsAny<CancellationToken>())).ReturnsAsync(spu);
+        var dto = new AddSkuDto
+        {
+            SkuCode = "SKU-001",
+            Price = 199.99m,
+            Currency = "CNY",
+            StockQty = 50,
+            SpecAttributes = new List<SpecAttributeDto>
+            {
+                new() { Name = "Color", Value = "Blue" }
+            }
+        };
+
+        var act = () => _sut.AddSkuAsync(SellerId, spu.Id, dto);
+
+        await act.Should().ThrowAsync<ProductDomainException>()
+            .WithMessage("*SKU code already in use*");
     }
 
     #endregion
@@ -212,7 +278,7 @@ public class SPUAppServiceTests
     #region RejectAsync
 
     [Fact]
-    public async Task RejectAsync_ValidInput_ShouldTransitionToDraft()
+    public async Task RejectAsync_ValidInput_ShouldTransitionToRejected()
     {
         SetupValidValidation(_actionReasonValidatorMock);
         var spu = CreateSpuWithSku(SellerId, ShopId);
@@ -222,7 +288,7 @@ public class SPUAppServiceTests
 
         await _sut.RejectAsync(spu.Id, Guid.NewGuid(), dto);
 
-        spu.Status.Should().Be(ProductStatus.Draft);
+        spu.Status.Should().Be(ProductStatus.Rejected);
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -261,7 +327,7 @@ public class SPUAppServiceTests
     {
         var spu = CreateDraftSpu(SellerId, ShopId);
         _spuRepoMock.Setup(r => r.QueryAsync(
-                null, null, null, null, 1, 20, It.IsAny<CancellationToken>()))
+                null, null, null, null, null, 1, 20, It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<SPU> { spu }, 1));
         var query = new ProductQueryDto();
 
@@ -269,6 +335,39 @@ public class SPUAppServiceTests
 
         result.Items.Should().HaveCount(1);
         result.Total.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task QueryProductsAsync_WithSellerIdFilter_ShouldPassFilterToRepo()
+    {
+        var spu = CreateDraftSpu(SellerId, ShopId);
+        var targetSellerId = Guid.NewGuid();
+        _spuRepoMock.Setup(r => r.QueryAsync(
+                null, targetSellerId, null, null, null, 1, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<SPU> { spu }, 1));
+        var query = new ProductQueryDto { SellerId = targetSellerId };
+
+        var result = await _sut.QueryProductsAsync(query);
+
+        result.Items.Should().HaveCount(1);
+        _spuRepoMock.Verify(r => r.QueryAsync(
+            null, targetSellerId, null, null, null, 1, 20, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task QueryProductsAsync_WithStatusFilter_ShouldParseAndPassFilter()
+    {
+        var spu = CreateDraftSpu(SellerId, ShopId);
+        _spuRepoMock.Setup(r => r.QueryAsync(
+                null, null, ProductStatus.Draft, null, null, 1, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<SPU> { spu }, 1));
+        var query = new ProductQueryDto { Status = "Draft" };
+
+        var result = await _sut.QueryProductsAsync(query);
+
+        result.Items.Should().HaveCount(1);
+        _spuRepoMock.Verify(r => r.QueryAsync(
+            null, null, ProductStatus.Draft, null, null, 1, 20, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion
@@ -284,6 +383,34 @@ public class SPUAppServiceTests
         validatorMock.Setup(v => v.ValidateAsync(It.IsAny<T>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new FluentValidation.Results.ValidationResult(
                 new[] { new FluentValidation.Results.ValidationFailure("Title", "Title is required") }));
+    }
+
+    private void SetupTitleUnique()
+    {
+        _uniquenessCheckerMock.Setup(c => c.IsTitleUniqueInShopAsync(
+                It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+    }
+
+    private void SetupTitleNotUnique()
+    {
+        _uniquenessCheckerMock.Setup(c => c.IsTitleUniqueInShopAsync(
+                It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+    }
+
+    private void SetupSkuCodeUnique()
+    {
+        _uniquenessCheckerMock.Setup(c => c.IsSkuCodeUniqueAsync(
+                It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+    }
+
+    private void SetupSkuCodeNotUnique()
+    {
+        _uniquenessCheckerMock.Setup(c => c.IsSkuCodeUniqueAsync(
+                It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
     }
 
     private static CreateProductDto CreateValidCreateProductDto()

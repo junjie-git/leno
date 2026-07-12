@@ -122,10 +122,10 @@ public sealed class ShopResumedEventConsumer : ShopEventConsumerBase<ShopResumed
     /// <inheritdoc />
     protected override async Task HandleAsync(ShopResumedEvent integrationEvent, CancellationToken ct)
     {
-        // 查询所有 OffShelf 商品，ResumeByShop 仅对 SuspendedByShop=true 的生效
+        // 查询所有 ShopSuspended 商品，ResumeByShop 仅对 SuspendedByShop=true 的生效
         await ProcessBatchAsync(
             integrationEvent.ShopId,
-            ProductStatus.OffShelf,
+            ProductStatus.ShopSuspended,
             spu =>
             {
                 spu.ResumeByShop();

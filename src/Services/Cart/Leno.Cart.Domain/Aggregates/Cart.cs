@@ -142,6 +142,29 @@ public sealed class Cart : AggregateRoot
     }
 
     /// <summary>
+    /// 全选/取消全选所有有效项。无效项（IsValid=false）不参与操作，保持未选中状态。
+    /// 空购物车无副作用，直接返回。
+    /// </summary>
+    /// <param name="isSelected">true=全选，false=取消全选。</param>
+    public void ToggleAllSelection(bool isSelected)
+    {
+        foreach (var item in _items)
+        {
+            if (item.IsValid)
+            {
+                if (isSelected)
+                {
+                    item.Select();
+                }
+                else
+                {
+                    item.Deselect();
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// 清空已选中项（订单创建后调用，提取 SourceCartItemId 用于事件关联）。
     /// 返回被清除项的来源标识列表。
     /// </summary>

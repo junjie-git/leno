@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Leno.Product.Api.Controllers;
 
 /// <summary>
-/// 运营端商品审核控制器，提供商品审核通过/驳回与库存补货端点。
+/// 运营端商品审核控制器，提供商品审核通过/驳回、库存补货与全量商品列表端点。
 /// 仅 Admin/Operator 角色可访问。
 /// </summary>
 [Authorize(Roles = "Admin,Operator")]
@@ -65,5 +65,15 @@ public sealed class AdminProductsController : ProductControllerBase
     {
         await _spuAppService.UpdateStockAsync(id, skuId, dto, GetCurrentUserId().ToString(), ct);
         return Ok(ApiResponse.Success("库存调整成功"));
+    }
+
+    /// <summary>运营/管理员全量商品列表（跨店铺查询，支持按卖家、状态、分类、关键词过滤）。</summary>
+    [HttpGet("all")]
+    [ProducesResponseType(typeof(ApiResponse<PageResult<ProductDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAllProductsAsync([FromQuery] ProductQueryDto query, CancellationToken ct)
+    {
+        // 运营/管理员不限店铺，不强制限制 ShopId
+        var result = await _spuAppService.QueryProductsAsync(query, ct);
+        return Ok(ApiResponse.Success(result));
     }
 }

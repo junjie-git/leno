@@ -17,9 +17,10 @@ public interface ISPURepository : IRepository<SPU>
     Task<SPU?> GetBySkuIdAsync(Guid skuId, CancellationToken ct = default);
 
     /// <summary>
-    /// 分页查询商品列表，支持按店铺、状态、分类过滤与关键词模糊匹配。
+    /// 分页查询商品列表，支持按店铺、卖家、状态、分类过滤与关键词模糊匹配。
     /// </summary>
     /// <param name="shopId">店铺过滤，可空表示不限。</param>
+    /// <param name="sellerId">卖家过滤，可空表示不限。</param>
     /// <param name="status">商品状态过滤，可空表示不限。</param>
     /// <param name="categoryId">分类过滤，可空表示不限。</param>
     /// <param name="keyword">标题关键词，可空。</param>
@@ -27,6 +28,7 @@ public interface ISPURepository : IRepository<SPU>
     /// <param name="pageSize">每页条数，最大 100。</param>
     Task<(IReadOnlyList<SPU> Items, int Total)> QueryAsync(
         Guid? shopId = null,
+        Guid? sellerId = null,
         ProductStatus? status = null,
         Guid? categoryId = null,
         string? keyword = null,

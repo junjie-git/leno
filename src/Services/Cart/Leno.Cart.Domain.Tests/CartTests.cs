@@ -407,6 +407,69 @@ public class CartTests
 
     #endregion
 
+    #region ToggleAllSelection
+
+    [Fact]
+    public void ToggleAllSelection_SelectAll_AllValidItemsSelected()
+    {
+        var cart = CreateCart();
+        var skuId1 = Guid.NewGuid();
+        var skuId2 = Guid.NewGuid();
+        cart.AddItem(skuId1, 1, Guid.NewGuid());
+        cart.AddItem(skuId2, 1, Guid.NewGuid());
+        cart.DeselectItems(new[] { skuId1, skuId2 });
+
+        cart.ToggleAllSelection(true);
+
+        cart.Items.Should().AllSatisfy(i => i.IsSelected.Should().BeTrue());
+    }
+
+    [Fact]
+    public void ToggleAllSelection_DeselectAll_AllItemsDeselected()
+    {
+        var cart = CreateCart();
+        var skuId1 = Guid.NewGuid();
+        var skuId2 = Guid.NewGuid();
+        cart.AddItem(skuId1, 1, Guid.NewGuid());
+        cart.AddItem(skuId2, 1, Guid.NewGuid());
+        // 默认是选中的
+
+        cart.ToggleAllSelection(false);
+
+        cart.Items.Should().AllSatisfy(i => i.IsSelected.Should().BeFalse());
+    }
+
+    [Fact]
+    public void ToggleAllSelection_InvalidItemsUnaffected()
+    {
+        var cart = CreateCart();
+        var validSkuId = Guid.NewGuid();
+        var invalidSkuId = Guid.NewGuid();
+        cart.AddItem(validSkuId, 1, Guid.NewGuid());
+        cart.AddItem(invalidSkuId, 1, Guid.NewGuid());
+        cart.DeselectItems(new[] { validSkuId, invalidSkuId });
+        cart.MarkInvalid(invalidSkuId, "商品已下架");
+
+        cart.ToggleAllSelection(true);
+
+        cart.Items.First(i => i.SkuId == validSkuId).IsSelected.Should().BeTrue();
+        cart.Items.First(i => i.SkuId == invalidSkuId).IsSelected.Should().BeFalse();
+        cart.Items.First(i => i.SkuId == invalidSkuId).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ToggleAllSelection_EmptyCart_NoSideEffect()
+    {
+        var cart = CreateCart();
+
+        var act = () => cart.ToggleAllSelection(true);
+
+        act.Should().NotThrow();
+        cart.Items.Should().BeEmpty();
+    }
+
+    #endregion
+
     private static CartAggregate CreateCart()
     {
         return CartAggregate.Create(Guid.NewGuid(), UserId);

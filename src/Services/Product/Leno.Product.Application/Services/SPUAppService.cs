@@ -4,6 +4,7 @@ using Leno.Product.Application.Exceptions;
 using Leno.Product.Domain.Aggregates;
 using Leno.Product.Domain.Exceptions;
 using Leno.Product.Domain.Repositories;
+using Leno.Product.Domain.Services;
 using Leno.Product.Domain.ValueObjects;
 using Leno.SharedContracts.Responses;
 using Leno.SharedKernel.Abstractions;
@@ -19,6 +20,7 @@ public sealed class SPUAppService : ISPUAppService
 {
     private readonly ISPURepository _spuRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IProductUniquenessChecker _uniquenessChecker;
     private readonly IValidator<CreateProductDto> _createValidator;
     private readonly IValidator<UpdateProductDto> _updateValidator;
     private readonly IValidator<AddSkuDto> _addSkuValidator;
@@ -27,6 +29,7 @@ public sealed class SPUAppService : ISPUAppService
     public SPUAppService(
         ISPURepository spuRepository,
         IUnitOfWork unitOfWork,
+        IProductUniquenessChecker uniquenessChecker,
         IValidator<CreateProductDto> createValidator,
         IValidator<UpdateProductDto> updateValidator,
         IValidator<AddSkuDto> addSkuValidator,
@@ -34,6 +37,7 @@ public sealed class SPUAppService : ISPUAppService
     {
         _spuRepository = spuRepository;
         _unitOfWork = unitOfWork;
+        _uniquenessChecker = uniquenessChecker;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
         _addSkuValidator = addSkuValidator;
@@ -49,6 +53,12 @@ public sealed class SPUAppService : ISPUAppService
         if (shopId == Guid.Empty)
         {
             throw new ProductDomainException("店铺标识不可为空", "SPU_SHOP_EMPTY");
+        }
+
+        // 校验标题同店铺唯一
+        if (!await _uniquenessChecker.IsTitleUniqueInShopAsync(dto.Title, shopId, ct: ct))
+        {
+            throw new ProductDomainException("Product title already exists in this shop", "SPU_TITLE_DUPLICATE", 409);
         }
 
         var images = MapImages(dto.Images);
@@ -77,6 +87,12 @@ public sealed class SPUAppService : ISPUAppService
         await ValidateAsync(_updateValidator, dto, ct);
         var spu = await RequireOwnedSpuAsync(sellerId, spuId, ct);
 
+        // 校验标题同店铺唯一（排除当前商品）
+        if (!await _uniquenessChecker.IsTitleUniqueInShopAsync(dto.Title, spu.ShopId, spuId, ct))
+        {
+            throw new ProductDomainException("Product title already exists in this shop", "SPU_TITLE_DUPLICATE", 409);
+        }
+
         spu.UpdateInfo(
             dto.Title,
             dto.MainImageUrl,
@@ -96,6 +112,12 @@ public sealed class SPUAppService : ISPUAppService
     {
         await ValidateAsync(_addSkuValidator, dto, ct);
         var spu = await RequireOwnedSpuAsync(sellerId, spuId, ct);
+
+        // 校验 SKU 编码全局唯一（排除当前商品下的 SKU）
+        if (!await _uniquenessChecker.IsSkuCodeUniqueAsync(dto.SkuCode, spuId, ct))
+        {
+            throw new ProductDomainException("SKU code already in use", "SPU_SKU_CODE_GLOBAL_DUPLICATE", 409);
+        }
 
         var specs = SkuSpec.Create(dto.SpecAttributes.Select(a => Leno.SharedKernel.ValueObjects.SpecAttribute.Create(a.Name, a.Value)));
         var price = Leno.SharedKernel.ValueObjects.Money.Create(dto.Price, dto.Currency);
@@ -157,7 +179,7 @@ public sealed class SPUAppService : ISPUAppService
         }
 
         var (items, total) = await _spuRepository.QueryAsync(
-            query.ShopId, status, query.CategoryId, query.Keyword, query.Page, query.PageSize, ct);
+            query.ShopId, query.SellerId, status, query.CategoryId, query.Keyword, query.Page, query.PageSize, ct);
 
         var dtos = items.Select(ToProductDto).ToList();
 

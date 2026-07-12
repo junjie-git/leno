@@ -44,6 +44,7 @@ public sealed class EfCoreSPURepository : ISPURepository
     /// <inheritdoc />
     public async Task<(IReadOnlyList<SPU> Items, int Total)> QueryAsync(
         Guid? shopId = null,
+        Guid? sellerId = null,
         ProductStatus? status = null,
         Guid? categoryId = null,
         string? keyword = null,
@@ -56,6 +57,11 @@ public sealed class EfCoreSPURepository : ISPURepository
         if (shopId.HasValue)
         {
             query = query.Where(s => s.ShopId == shopId.Value);
+        }
+
+        if (sellerId.HasValue)
+        {
+            query = query.Where(s => s.SellerId == sellerId.Value);
         }
 
         if (status.HasValue)

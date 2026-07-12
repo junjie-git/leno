@@ -119,14 +119,14 @@ public class SPUTests
     }
 
     [Fact]
-    public void Reject_PendingReview_ShouldTransitionToDraft()
+    public void Reject_PendingReview_ShouldTransitionToRejected()
     {
         var spu = CreateSpuWithSku();
         spu.SubmitForReview();
 
         spu.Reject(Guid.NewGuid(), "Quality issues");
 
-        spu.Status.Should().Be(ProductStatus.Draft);
+        spu.Status.Should().Be(ProductStatus.Rejected);
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public class SPUTests
     }
 
     [Fact]
-    public void TakeDown_OnSale_ShouldTransitionToOffShelf()
+    public void TakeDown_OnSale_ShouldTransitionToTakenDown()
     {
         var spu = CreateSpuWithSku();
         spu.SubmitForReview();
@@ -149,7 +149,7 @@ public class SPUTests
 
         spu.TakeDown("Out of stock");
 
-        spu.Status.Should().Be(ProductStatus.OffShelf);
+        spu.Status.Should().Be(ProductStatus.TakenDown);
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public class SPUTests
     }
 
     [Fact]
-    public void Republish_OffShelf_ShouldTransitionToPendingReview()
+    public void Republish_TakenDown_ShouldTransitionToPendingReview()
     {
         var spu = CreateSpuWithSku();
         spu.SubmitForReview();
@@ -176,7 +176,7 @@ public class SPUTests
     }
 
     [Fact]
-    public void Republish_NotOffShelf_ShouldThrowException()
+    public void Republish_NotTakenDown_ShouldThrowException()
     {
         var spu = CreateDraftSpu();
 
@@ -195,17 +195,11 @@ public class SPUTests
         spu.Status.Should().Be(ProductStatus.PendingReview);
 
         spu.Reject(Guid.NewGuid(), "needs more info");
-        spu.Status.Should().Be(ProductStatus.Draft);
+        spu.Status.Should().Be(ProductStatus.Rejected);
 
-        spu.SubmitForReview();
-        spu.Approve(Guid.NewGuid());
-        spu.Status.Should().Be(ProductStatus.OnSale);
-
-        spu.TakeDown("seasonal");
-        spu.Status.Should().Be(ProductStatus.OffShelf);
-
-        spu.Republish();
-        spu.Status.Should().Be(ProductStatus.PendingReview);
+        // Rejected is terminal - cannot re-submit
+        var act = () => spu.SubmitForReview();
+        act.Should().Throw<ProductDomainException>();
     }
 
     #endregion
@@ -213,7 +207,7 @@ public class SPUTests
     #region Suspend/Resume By Shop
 
     [Fact]
-    public void SuspendByShop_OnSale_ShouldTransitionToOffShelf()
+    public void SuspendByShop_OnSale_ShouldTransitionToShopSuspended()
     {
         var spu = CreateSpuWithSku();
         spu.SubmitForReview();
@@ -221,7 +215,7 @@ public class SPUTests
 
         spu.SuspendByShop();
 
-        spu.Status.Should().Be(ProductStatus.OffShelf);
+        spu.Status.Should().Be(ProductStatus.ShopSuspended);
         spu.SuspendedByShop.Should().BeTrue();
     }
 
@@ -258,11 +252,11 @@ public class SPUTests
 
         spu.ResumeByShop();
 
-        spu.Status.Should().Be(ProductStatus.OffShelf);
+        spu.Status.Should().Be(ProductStatus.TakenDown);
     }
 
     [Fact]
-    public void TakeDownForShopClosure_OnSale_ShouldTransitionToOffShelf()
+    public void TakeDownForShopClosure_OnSale_ShouldTransitionToTakenDown()
     {
         var spu = CreateSpuWithSku();
         spu.SubmitForReview();
@@ -270,7 +264,7 @@ public class SPUTests
 
         spu.TakeDownForShopClosure("Shop closed");
 
-        spu.Status.Should().Be(ProductStatus.OffShelf);
+        spu.Status.Should().Be(ProductStatus.TakenDown);
     }
 
     #endregion
@@ -291,7 +285,7 @@ public class SPUTests
     }
 
     [Fact]
-    public void UpdateInfo_OffShelf_ShouldThrowException()
+    public void UpdateInfo_TakenDown_ShouldThrowException()
     {
         var spu = CreateSpuWithSku();
         spu.SubmitForReview();
@@ -320,7 +314,7 @@ public class SPUTests
     }
 
     [Fact]
-    public void AddSku_OffShelf_ShouldThrowException()
+    public void AddSku_TakenDown_ShouldThrowException()
     {
         var spu = CreateSpuWithSku();
         spu.SubmitForReview();
@@ -433,18 +427,20 @@ public class SPUTests
     [Fact]
     public void GetAuditHistory_MultipleReviews_ShouldReturnAllRecords()
     {
-        var spu = CreateSpuWithSku();
-        spu.SubmitForReview();
+        var spu1 = CreateSpuWithSku();
+        spu1.SubmitForReview();
         var reviewer1 = Guid.NewGuid();
-        spu.Reject(reviewer1, "need fix", "Reviewer1");
-        spu.SubmitForReview();
-        var reviewer2 = Guid.NewGuid();
-        spu.Approve(reviewer2, "Reviewer2");
+        spu1.Reject(reviewer1, "need fix", "Reviewer1");
 
-        var history = spu.GetAuditHistory();
-        history.Should().HaveCount(2);
-        history[0].Result.Should().Be("Rejected");
-        history[1].Result.Should().Be("Approved");
+        var spu2 = CreateSpuWithSku();
+        spu2.SubmitForReview();
+        var reviewer2 = Guid.NewGuid();
+        spu2.Approve(reviewer2, "Reviewer2");
+
+        spu1.GetAuditHistory().Should().HaveCount(1);
+        spu1.GetAuditHistory()[0].Result.Should().Be("Rejected");
+        spu2.GetAuditHistory().Should().HaveCount(1);
+        spu2.GetAuditHistory()[0].Result.Should().Be("Approved");
     }
 
     [Fact]
@@ -504,7 +500,7 @@ public class SPUTests
     }
 
     [Fact]
-    public void AdjustPrice_OffShelf_ShouldThrowException()
+    public void AdjustPrice_TakenDown_ShouldThrowException()
     {
         var spu = CreateSpuWithSku();
         spu.SubmitForReview();

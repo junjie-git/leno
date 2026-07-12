@@ -9,7 +9,7 @@ namespace Leno.Product.Domain.Aggregates;
 
 /// <summary>
 /// 商品 SPU 聚合根，封装商品基础信息、状态机与 SKU 集合不变量。
-/// 状态机：Draft → PendingReview → OnSale → OffShelf；OffShelf → PendingReview（重新上架）；PendingReview → Draft（驳回）。
+/// 状态机：Draft → PendingReview → OnSale → TakenDown；TakenDown → PendingReview（重新上架）；PendingReview → Rejected（驳回）。
 /// 所有状态流转通过行为意图明确的方法完成，禁止外部直接 set 字段。
 /// </summary>
 public sealed class SPU : AggregateRoot
@@ -197,7 +197,7 @@ public sealed class SPU : AggregateRoot
     }
 
     /// <summary>
-    /// 审核驳回，仅待审核态可调用，流转回草稿，附加本地 <see cref="ProductReviewedEvent"/>。
+    /// 审核驳回，仅待审核态可调用，流转至已驳回，附加本地 <see cref="ProductReviewedEvent"/>。
     /// 同时追加审核历史记录（含驳回原因）。
     /// </summary>
     /// <param name="reviewedBy">审核人标识。</param>
@@ -217,7 +217,7 @@ public sealed class SPU : AggregateRoot
 
         ValidateReason(reason);
 
-        Status = ProductStatus.Draft;
+        Status = ProductStatus.Rejected;
         ReviewedBy = reviewedBy;
 
         // 追加审核历史
@@ -226,7 +226,7 @@ public sealed class SPU : AggregateRoot
             operatorName ?? reviewedBy.ToString(),
             reason));
 
-        AddDomainEvent(new ProductReviewedEvent(Id, ProductStatus.Draft, reviewedBy));
+        AddDomainEvent(new ProductReviewedEvent(Id, ProductStatus.Rejected, reviewedBy));
     }
 
     /// <summary>
@@ -242,7 +242,7 @@ public sealed class SPU : AggregateRoot
 
         ValidateReason(reason);
 
-        Status = ProductStatus.OffShelf;
+        Status = ProductStatus.TakenDown;
         SuspendedByShop = false;
 
         // ProductTakenDownEvent.SellerId 语义等同卖家与店铺管理域的 ShopId，故传 ShopId。
@@ -254,7 +254,7 @@ public sealed class SPU : AggregateRoot
     /// </summary>
     public void Republish()
     {
-        if (Status != ProductStatus.OffShelf)
+        if (Status != ProductStatus.TakenDown)
         {
             throw new ProductDomainException($"当前状态为 {Status}，不可重新上架", "SPU_INVALID_TRANSITION", 409);
         }
@@ -347,7 +347,7 @@ public sealed class SPU : AggregateRoot
     }
 
     /// <summary>
-    /// 店铺暂停事件驱动，仅已上架态流转至已下架并标记店铺暂停（不发布下架事件，避免店铺商品数误减）。
+    /// 店铺暂停事件驱动，仅已上架态流转至店铺暂停（不发布下架事件，避免店铺商品数误减）。
     /// </summary>
     public void SuspendByShop()
     {
@@ -356,7 +356,7 @@ public sealed class SPU : AggregateRoot
             return;
         }
 
-        Status = ProductStatus.OffShelf;
+        Status = ProductStatus.ShopSuspended;
         SuspendedByShop = true;
     }
 
@@ -386,7 +386,7 @@ public sealed class SPU : AggregateRoot
 
         ValidateReason(reason);
 
-        Status = ProductStatus.OffShelf;
+        Status = ProductStatus.TakenDown;
         SuspendedByShop = false;
 
         AddDomainEvent(new ProductTakenDownEvent(Id, ShopId));
@@ -551,9 +551,9 @@ public sealed class SPU : AggregateRoot
 
     private void EnsureEditable()
     {
-        if (Status == ProductStatus.OffShelf)
+        if (Status is ProductStatus.TakenDown or ProductStatus.Rejected or ProductStatus.ShopSuspended)
         {
-            throw new ProductDomainException("已下架商品不可直接编辑，请先重新上架", "SPU_OFF_SHELF", 409);
+            throw new ProductDomainException("已下架/已驳回/店铺暂停商品不可直接编辑，请先重新上架", "SPU_OFF_SHELF", 409);
         }
     }
 

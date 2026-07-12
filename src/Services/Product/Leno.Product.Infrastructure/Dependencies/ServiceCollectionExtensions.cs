@@ -46,6 +46,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IProductQueryService, EfCoreProductQueryService>();
         services.AddScoped<IProductSearchService, ProductSearchService>();
+        services.AddScoped<IProductUniquenessChecker, ProductUniquenessChecker>();
 
         services.AddScoped<ISPUAppService, SPUAppService>();
         services.AddScoped<ICategoryAppService, CategoryAppService>();

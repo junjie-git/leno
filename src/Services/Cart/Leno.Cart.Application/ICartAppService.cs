@@ -20,6 +20,9 @@ public interface ICartAppService
     /// <summary>批量选中/取消选中。</summary>
     Task<CartDto> SelectItemsAsync(Guid userId, SelectCartItemsDto dto, CancellationToken ct = default);
 
+    /// <summary>全选/取消全选所有有效项。无效项不受影响。</summary>
+    Task<CartDto> ToggleAllSelectionAsync(Guid userId, bool isSelected, CancellationToken ct = default);
+
     /// <summary>获取购物车（附加实时价格与可售状态）。</summary>
     Task<CartDto> GetCartAsync(Guid userId, CancellationToken ct = default);
 

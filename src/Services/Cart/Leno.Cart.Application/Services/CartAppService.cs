@@ -90,6 +90,15 @@ public sealed class CartAppService : ICartAppService
     }
 
     /// <inheritdoc />
+    public async Task<CartDto> ToggleAllSelectionAsync(Guid userId, bool isSelected, CancellationToken ct = default)
+    {
+        var cart = await RequireCartAsync(userId, ct);
+        cart.ToggleAllSelection(isSelected);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+        return await BuildCartDtoAsync(cart, ct);
+    }
+
+    /// <inheritdoc />
     public async Task<CartDto> GetCartAsync(Guid userId, CancellationToken ct = default)
     {
         var cart = await GetOrCreateCartAsync(userId, ct);

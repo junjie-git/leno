@@ -70,6 +70,15 @@ public sealed class CartsController : CartControllerBase
         return Ok(ApiResponse.Success(cart));
     }
 
+    /// <summary>全选/取消全选所有有效购物车项。无效项不受影响。</summary>
+    [HttpPatch("selection")]
+    [ProducesResponseType(typeof(ApiResponse<CartDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ToggleAllSelectionAsync([FromBody] ToggleAllSelectionDto dto, CancellationToken ct)
+    {
+        var cart = await _cartAppService.ToggleAllSelectionAsync(GetCurrentUserId(), dto.IsSelected, ct);
+        return Ok(ApiResponse.Success(cart));
+    }
+
     /// <summary>结算预览（按卖家分组返回选中项，含价格试算）。</summary>
     [HttpPost("preview")]
     [ProducesResponseType(typeof(ApiResponse<CheckoutPreviewDto>), StatusCodes.Status200OK)]

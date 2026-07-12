@@ -17,6 +17,8 @@ public sealed class ProductQueryDto
 {
     public Guid? ShopId { get; init; }
 
+    public Guid? SellerId { get; init; }
+
     public string? Status { get; init; }
 
     public Guid? CategoryId { get; init; }

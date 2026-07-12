@@ -51,7 +51,7 @@ public class ShopEventConsumerTests
         await consumer.Consume(CreateConsumeContext(evt));
 
         // Assert
-        spu.Status.Should().Be(ProductStatus.OffShelf);
+        spu.Status.Should().Be(ProductStatus.ShopSuspended);
         spu.SuspendedByShop.Should().BeTrue();
         _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
     }
@@ -79,7 +79,7 @@ public class ShopEventConsumerTests
         // Arrange
         var spu = CreateOnSaleSpu();
         spu.SuspendByShop();
-        spu.Status.Should().Be(ProductStatus.OffShelf);
+        spu.Status.Should().Be(ProductStatus.ShopSuspended);
         spu.SuspendedByShop.Should().BeTrue();
 
         SetupQueryReturns(new[] { spu }, 1);
@@ -102,7 +102,7 @@ public class ShopEventConsumerTests
         // Arrange
         var spu = CreateOnSaleSpu();
         spu.TakeDown("manual take down");
-        spu.Status.Should().Be(ProductStatus.OffShelf);
+        spu.Status.Should().Be(ProductStatus.TakenDown);
         spu.SuspendedByShop.Should().BeFalse();
 
         SetupQueryReturns(new[] { spu }, 1);
@@ -115,7 +115,7 @@ public class ShopEventConsumerTests
         await consumer.Consume(CreateConsumeContext(evt));
 
         // Assert
-        spu.Status.Should().Be(ProductStatus.OffShelf); // 不应恢复
+        spu.Status.Should().Be(ProductStatus.TakenDown); // 不应恢复
         spu.SuspendedByShop.Should().BeFalse();
     }
 
@@ -134,12 +134,12 @@ public class ShopEventConsumerTests
         await consumer.Consume(CreateConsumeContext(evt));
 
         // Assert
-        spu.Status.Should().Be(ProductStatus.OffShelf);
+        spu.Status.Should().Be(ProductStatus.TakenDown);
         spu.SuspendedByShop.Should().BeFalse();
     }
 
     [Fact]
-    public async Task ShopClosedEventConsumer_AlreadyOffShelfProducts_ShouldNotChange()
+    public async Task ShopClosedEventConsumer_AlreadyTakenDownProducts_ShouldNotChange()
     {
         // Arrange
         var spu = CreateOnSaleSpu();
@@ -154,7 +154,7 @@ public class ShopEventConsumerTests
         await consumer.Consume(CreateConsumeContext(evt));
 
         // Assert
-        spu.Status.Should().Be(ProductStatus.OffShelf);
+        spu.Status.Should().Be(ProductStatus.TakenDown);
     }
 
     [Fact]
@@ -166,10 +166,10 @@ public class ShopEventConsumerTests
 
         // 模拟分页：第一页返回1条，第二页返回1条
         _spuRepoMock
-            .Setup(r => r.QueryAsync(ShopId, ProductStatus.OnSale, null, null, 1, 100, It.IsAny<CancellationToken>()))
+            .Setup(r => r.QueryAsync(ShopId, null, ProductStatus.OnSale, null, null, 1, 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<SPU> { spu1 }, 2));
         _spuRepoMock
-            .Setup(r => r.QueryAsync(ShopId, ProductStatus.OnSale, null, null, 2, 100, It.IsAny<CancellationToken>()))
+            .Setup(r => r.QueryAsync(ShopId, null, ProductStatus.OnSale, null, null, 2, 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<SPU> { spu2 }, 2));
 
         var consumer = new ShopSuspendedEventConsumer(
@@ -180,9 +180,9 @@ public class ShopEventConsumerTests
         await consumer.Consume(CreateConsumeContext(evt));
 
         // Assert
-        spu1.Status.Should().Be(ProductStatus.OffShelf);
+        spu1.Status.Should().Be(ProductStatus.ShopSuspended);
         spu1.SuspendedByShop.Should().BeTrue();
-        spu2.Status.Should().Be(ProductStatus.OffShelf);
+        spu2.Status.Should().Be(ProductStatus.ShopSuspended);
         spu2.SuspendedByShop.Should().BeTrue();
         _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.AtLeast(2));
     }
@@ -203,9 +203,9 @@ public class ShopEventConsumerTests
 
         // Assert
         await act.Should().NotThrowAsync();
-        _spuRepoMock.Verify(r => r.QueryAsync(It.IsAny<Guid?>(), It.IsAny<ProductStatus?>(),
-            It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        _spuRepoMock.Verify(r => r.QueryAsync(It.IsAny<Guid?>(), It.IsAny<Guid?>(),
+            It.IsAny<ProductStatus?>(), It.IsAny<Guid?>(), It.IsAny<string?>(),
+            It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private SPU CreateOnSaleSpu()
@@ -224,7 +224,7 @@ public class ShopEventConsumerTests
     private void SetupQueryReturns(IReadOnlyList<SPU> items, int total)
     {
         _spuRepoMock
-            .Setup(r => r.QueryAsync(ShopId, It.IsAny<ProductStatus?>(), null, null, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.QueryAsync(ShopId, null, It.IsAny<ProductStatus?>(), null, null, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((items, total));
     }
 

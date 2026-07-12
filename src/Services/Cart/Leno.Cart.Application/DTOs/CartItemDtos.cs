@@ -31,3 +31,12 @@ public sealed class SelectCartItemsDto
     /// <summary>true=选中，false=取消选中。</summary>
     public bool Selected { get; init; } = true;
 }
+
+/// <summary>
+/// 全选/取消全选 DTO。
+/// </summary>
+public sealed class ToggleAllSelectionDto
+{
+    /// <summary>true=全选，false=取消全选。</summary>
+    public bool IsSelected { get; init; } = true;
+}

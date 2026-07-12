@@ -194,6 +194,47 @@ public class ProductApiTests : IClassFixture<WebApplicationFactory<Program>>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    [Fact]
+    public async Task AdminGetAllProducts_ShouldReturnPagedResult()
+    {
+        SetupAdminAuth();
+        _spuAppServiceMock.Setup(s => s.QueryProductsAsync(It.IsAny<ProductQueryDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PageResult<ProductDto>(new List<ProductDto>(), 0, 1, 20));
+
+        var response = await _client.GetAsync("/api/admin/products/all");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task AdminGetAllProducts_WithFilters_ShouldReturnFilteredResult()
+    {
+        SetupAdminAuth();
+        var dto = CreateProductDto();
+        _spuAppServiceMock.Setup(s => s.QueryProductsAsync(It.IsAny<ProductQueryDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PageResult<ProductDto>(new List<ProductDto> { dto }, 1, 1, 20));
+
+        var response = await _client.GetAsync("/api/admin/products/all?status=Draft&keyword=Test&page=1&pageSize=10");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task AdminGetAllProducts_WithSellerIdFilter_ShouldPassFilter()
+    {
+        SetupAdminAuth();
+        var sellerId = Guid.NewGuid();
+        _spuAppServiceMock.Setup(s => s.QueryProductsAsync(
+                It.Is<ProductQueryDto>(q => q.SellerId == sellerId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PageResult<ProductDto>(new List<ProductDto>(), 0, 1, 20));
+
+        var response = await _client.GetAsync($"/api/admin/products/all?sellerId={sellerId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        _spuAppServiceMock.Verify(s => s.QueryProductsAsync(
+            It.Is<ProductQueryDto>(q => q.SellerId == sellerId), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     #endregion
 
     private void SetupSellerAuth()

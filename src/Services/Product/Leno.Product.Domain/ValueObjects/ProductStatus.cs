@@ -2,7 +2,7 @@ namespace Leno.Product.Domain.ValueObjects;
 
 /// <summary>
 /// 商品 SPU 状态枚举。
-/// 状态流转：Draft → PendingReview → OnSale → OffShelf；OffShelf → PendingReview（重新上架）；PendingReview → Draft（驳回）。
+/// 状态流转：Draft → PendingReview → OnSale → TakenDown；TakenDown → PendingReview（重新上架）；PendingReview → Rejected（驳回）。
 /// </summary>
 public enum ProductStatus
 {
@@ -15,8 +15,14 @@ public enum ProductStatus
     /// <summary>已上架：运营审核通过后对外可售。</summary>
     OnSale = 2,
 
-    /// <summary>已下架：卖家下架或店铺事件驱动下架，买家侧不可见、不可售。</summary>
-    OffShelf = 3
+    /// <summary>已下架：卖家主动下架，买家侧不可见、不可售。</summary>
+    TakenDown = 3,
+
+    /// <summary>已驳回：运营审核驳回，终态，卖家需重新创建。</summary>
+    Rejected = 4,
+
+    /// <summary>店铺暂停：店铺事件驱动下架，买家侧不可见、不可售。</summary>
+    ShopSuspended = 5
 }
 
 /// <summary>
