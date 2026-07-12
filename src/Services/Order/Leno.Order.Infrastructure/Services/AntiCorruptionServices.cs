@@ -177,6 +177,31 @@ public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionSer
         }
     }
 
+    /// <inheritdoc />
+    public async Task ReleaseCouponsAsync(Guid orderId, CancellationToken ct = default)
+    {
+        try
+        {
+            var request = new { orderId = orderId };
+            var json = JsonSerializer.Serialize(request, JsonOptions);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var response = await _httpClient.PostAsync("internal/promotions/release-coupons", content, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("促销域释放优惠券失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "促销域释放优惠券异常 OrderId={OrderId}", orderId);
+        }
+    }
+
     private sealed class DiscountResultResponse
     {
         public decimal TotalDiscountAmount { get; set; }
@@ -292,6 +317,31 @@ public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
         catch (Exception ex)
         {
             _logger.LogError(ex, "积分域释放异常 OrderId={OrderId}", orderId);
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task ConfirmDeductionAsync(Guid orderId, CancellationToken ct = default)
+    {
+        try
+        {
+            var request = new { orderId = orderId };
+            var json = JsonSerializer.Serialize(request, JsonOptions);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var response = await _httpClient.PostAsync("internal/points/confirm", content, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("积分域确认扣减失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "积分域确认扣减异常 OrderId={OrderId}", orderId);
         }
     }
 

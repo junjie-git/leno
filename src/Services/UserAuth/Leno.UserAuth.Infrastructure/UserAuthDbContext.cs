@@ -24,6 +24,9 @@ public sealed class UserAuthDbContext : BaseDbContext
     /// <summary>审计日志聚合根（只追加）。</summary>
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    /// <summary>角色权限聚合根。</summary>
+    public DbSet<Role> Roles => Set<Role>();
+
     /// <summary>发件箱消息表，与聚合变更同事务写入。</summary>
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 }

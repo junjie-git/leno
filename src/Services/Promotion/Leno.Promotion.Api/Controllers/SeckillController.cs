@@ -37,7 +37,7 @@ public sealed class SeckillController : PromotionControllerBase
         return Ok(ApiResponse.Success(activity));
     }
 
-    /// <summary>激活秒杀活动（初始化 Redis 库存）。</summary>
+    /// <summary>激活秒杀活动（初始化 Redis 多 SKU 库存）。</summary>
     [Authorize(Roles = "Operator,Admin")]
     [HttpPost("api/admin/seckill/activities/{activityId:guid}/activate")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
@@ -47,13 +47,13 @@ public sealed class SeckillController : PromotionControllerBase
         return Ok(ApiResponse.Success());
     }
 
-    /// <summary>关闭秒杀活动。</summary>
+    /// <summary>关闭秒杀活动（含 Redis 库存回写 DB）。</summary>
     [Authorize(Roles = "Operator,Admin")]
     [HttpPost("api/admin/seckill/activities/{activityId:guid}/close")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> CloseAsync(Guid activityId, CancellationToken ct)
     {
-        await _seckillAppService.CloseAsync(activityId, ct);
+        await _seckillAppService.CloseActivityWithStockWriteBackAsync(activityId, ct);
         return Ok(ApiResponse.Success());
     }
 
@@ -92,11 +92,24 @@ public sealed class SeckillController : PromotionControllerBase
     /// <summary>
     /// 秒杀下单（异步模式）：Redis 原子预扣库存 + 限购校验 → 发布 SeckillOrderCreatedEvent。
     /// 前端凭返回的 OrderId 轮询订单域获取结果。
+    /// 支持通过 skuId 指定具体 SKU 下单。
     /// </summary>
     [Authorize(Roles = "Buyer")]
     [HttpPost("api/seckill/activities/{activityId:guid}/place")]
     [ProducesResponseType(typeof(ApiResponse<SeckillPlaceOrderResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> PlaceOrderAsync(Guid activityId, [FromBody] SeckillPlaceOrderDto dto, CancellationToken ct)
+    {
+        var result = await _seckillAppService.PlaceOrderAsync(activityId, GetCurrentUserId(), dto, ct);
+        return Ok(ApiResponse.Success(result));
+    }
+
+    /// <summary>
+    /// 秒杀下单（带 skuId 参数），支持多 SKU 秒杀场景。
+    /// </summary>
+    [Authorize(Roles = "Buyer")]
+    [HttpPost("api/seckill/{activityId:guid}/order")]
+    [ProducesResponseType(typeof(ApiResponse<SeckillPlaceOrderResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> PlaceOrderWithSkuIdAsync(Guid activityId, [FromBody] SeckillPlaceOrderDto dto, CancellationToken ct)
     {
         var result = await _seckillAppService.PlaceOrderAsync(activityId, GetCurrentUserId(), dto, ct);
         return Ok(ApiResponse.Success(result));

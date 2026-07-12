@@ -18,7 +18,16 @@ public enum PointsSource
     Refund = 3,
 
     /// <summary>积分抵扣（订单使用积分）。</summary>
-    Offset = 4
+    Offset = 4,
+
+    /// <summary>评价返积分。</summary>
+    Review = 5,
+
+    /// <summary>新人注册积分。</summary>
+    NewUser = 6,
+
+    /// <summary>积分兑换优惠券。</summary>
+    CouponExchange = 7
 }
 
 /// <summary>
@@ -39,5 +48,14 @@ public enum PointsTxType
     Release = 3,
 
     /// <summary>退款回补积分。</summary>
-    Refund = 4
+    Refund = 4,
+
+    /// <summary>直接消费积分（扣减）。</summary>
+    Consume = 5,
+
+    /// <summary>积分扣回（退款扣回已发放积分）。</summary>
+    Revert = 6,
+
+    /// <summary>积分兑换优惠券。</summary>
+    CouponExchange = 7
 }

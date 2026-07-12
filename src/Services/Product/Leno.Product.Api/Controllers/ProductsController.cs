@@ -104,6 +104,24 @@ public sealed class ProductsController : ProductControllerBase
         return Ok(ApiResponse.Success(result));
     }
 
+    /// <summary>卖家调整 SKU 价格。</summary>
+    [HttpPost("{id:guid}/skus/{skuId:guid}/price")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AdjustPriceAsync(Guid id, Guid skuId, [FromBody] AdjustPriceDto dto, CancellationToken ct)
+    {
+        await _spuAppService.AdjustPriceAsync(id, skuId, dto, GetCurrentUserId().ToString(), ct);
+        return Ok(ApiResponse.Success("价格调整成功"));
+    }
+
+    /// <summary>查询商品价格变更历史。</summary>
+    [HttpGet("{id:guid}/price-history")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PriceChangeRecordDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPriceHistoryAsync(Guid id, [FromQuery] Guid? skuId = null, CancellationToken ct = default)
+    {
+        var history = await _spuAppService.GetPriceHistoryAsync(id, skuId, ct);
+        return Ok(ApiResponse.Success(history));
+    }
+
     private ProductQueryDto ApplyShopScope(ProductQueryDto query)
     {
         if (string.Equals(CurrentUser.Role, "Seller", StringComparison.OrdinalIgnoreCase))

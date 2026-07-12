@@ -81,6 +81,8 @@ public sealed class Review : AggregateRoot
     /// <param name="rating">评分，须 1-5。</param>
     /// <param name="content">文字内容，1-500 字。</param>
     /// <param name="images">图片 URL 列表，最多 9 张。</param>
+    /// <param name="newScore">提交后商品的新加权平均分，由应用层计算后传入。</param>
+    /// <param name="reviewCount">提交后商品的可见评价总数，由应用层计算后传入。</param>
     public static Review Create(
         Guid reviewId,
         Guid orderId,
@@ -90,7 +92,9 @@ public sealed class Review : AggregateRoot
         Guid userId,
         int rating,
         string content,
-        List<string> images)
+        List<string> images,
+        double newScore = 0,
+        int reviewCount = 0)
     {
         if (reviewId == Guid.Empty)
         {
@@ -157,7 +161,7 @@ public sealed class Review : AggregateRoot
             Images = imageList
         };
 
-        review.AddDomainEvent(new ReviewSubmittedEvent(reviewId, userId, spuId, rating));
+        review.AddDomainEvent(new ReviewSubmittedEvent(reviewId, userId, spuId, rating, newScore, reviewCount));
 
         return review;
     }
@@ -190,63 +194,65 @@ public sealed class Review : AggregateRoot
     }
 
     /// <summary>
-    /// 运营审核通过，校验待审核态，置已通过态并发布 <see cref="ReviewModeratedEvent"/>。
-    /// </summary>
-    /// <param name="auditorId">审核人标识。</param>
-    public void Approve(Guid auditorId)
-    {
-        if (Status != ReviewStatus.Pending)
-        {
-            throw new ReviewDomainException(
-                $"当前状态 {Status} 不可审核通过，仅 Pending 可审核",
-                "REVIEW_APPROVE_STATUS_INVALID");
-        }
+	    /// 运营审核通过，校验待审核态，置已通过态并发布 <see cref="ReviewApprovedEvent"/>。
+	    /// ReviewApprovedEvent 驱动积分域发放评价积分。
+	    /// </summary>
+	    /// <param name="auditorId">审核人标识。</param>
+	    public void Approve(Guid auditorId)
+	    {
+	        if (Status != ReviewStatus.Pending)
+	        {
+	            throw new ReviewDomainException(
+	                $"当前状态 {Status} 不可审核通过，仅 Pending 可审核",
+	                "REVIEW_APPROVE_STATUS_INVALID");
+	        }
 
-        if (auditorId == Guid.Empty)
-        {
-            throw new ReviewDomainException("AuditorId 不可为空", "REVIEW_AUDITOR_EMPTY");
-        }
+	        if (auditorId == Guid.Empty)
+	        {
+	            throw new ReviewDomainException("AuditorId 不可为空", "REVIEW_AUDITOR_EMPTY");
+	        }
 
-        Status = ReviewStatus.Approved;
-        AuditedAt = DateTime.UtcNow;
-        AuditorId = auditorId;
-        AddDomainEvent(new ReviewModeratedEvent(Id, (int)ReviewStatus.Approved, "approve"));
-    }
+	        Status = ReviewStatus.Approved;
+	        AuditedAt = DateTime.UtcNow;
+	        AuditorId = auditorId;
+	        AddDomainEvent(new ReviewApprovedEvent(Id, UserId, SpuId, Rating));
+	    }
 
     /// <summary>
-    /// 运营隐藏违规评价，校验已通过态，置已隐藏态并发布 <see cref="ReviewModeratedEvent"/>。
-    /// 隐藏后买家侧不可见但聚合记录保留供审计，已隐藏为终态不可逆。
-    /// </summary>
-    /// <param name="operatorId">操作人标识。</param>
-    /// <param name="reason">隐藏原因，1-200 字。</param>
-    public void Hide(Guid operatorId, string reason)
-    {
-        if (Status != ReviewStatus.Approved)
-        {
-            throw new ReviewDomainException(
-                $"当前状态 {Status} 不可隐藏，仅 Approved 可隐藏",
-                "REVIEW_HIDE_STATUS_INVALID");
-        }
+	    /// 运营隐藏违规评价，校验已通过态，置已隐藏态并发布 <see cref="ReviewHiddenEvent"/>。
+	    /// ReviewHiddenEvent 驱动商品域从评分统计中移除该评价。
+	    /// 隐藏后买家侧不可见但聚合记录保留供审计，已隐藏为终态不可逆。
+	    /// </summary>
+	    /// <param name="operatorId">操作人标识。</param>
+	    /// <param name="reason">隐藏原因，1-200 字。</param>
+	    public void Hide(Guid operatorId, string reason)
+	    {
+	        if (Status != ReviewStatus.Approved)
+	        {
+	            throw new ReviewDomainException(
+	                $"当前状态 {Status} 不可隐藏，仅 Approved 可隐藏",
+	                "REVIEW_HIDE_STATUS_INVALID");
+	        }
 
-        if (operatorId == Guid.Empty)
-        {
-            throw new ReviewDomainException("OperatorId 不可为空", "REVIEW_OPERATOR_EMPTY");
-        }
+	        if (operatorId == Guid.Empty)
+	        {
+	            throw new ReviewDomainException("OperatorId 不可为空", "REVIEW_OPERATOR_EMPTY");
+	        }
 
-        if (string.IsNullOrWhiteSpace(reason))
-        {
-            throw new ReviewDomainException("隐藏原因不可为空", "REVIEW_HIDE_REASON_EMPTY");
-        }
+	        if (string.IsNullOrWhiteSpace(reason))
+	        {
+	            throw new ReviewDomainException("隐藏原因不可为空", "REVIEW_HIDE_REASON_EMPTY");
+	        }
 
-        if (reason.Length > 200)
-        {
-            throw new ReviewDomainException("隐藏原因不可超过 200 字", "REVIEW_HIDE_REASON_TOO_LONG");
-        }
+	        if (reason.Length > 200)
+	        {
+	            throw new ReviewDomainException("隐藏原因不可超过 200 字", "REVIEW_HIDE_REASON_TOO_LONG");
+	        }
 
-        Status = ReviewStatus.Hidden;
-        HiddenAt = DateTime.UtcNow;
-        HiddenBy = operatorId;
-        HideReason = reason;
-        AddDomainEvent(new ReviewModeratedEvent(Id, (int)ReviewStatus.Hidden, "hide"));
-    }
+	        Status = ReviewStatus.Hidden;
+	        HiddenAt = DateTime.UtcNow;
+	        HiddenBy = operatorId;
+	        HideReason = reason;
+	        AddDomainEvent(new ReviewHiddenEvent(Id, SpuId, Rating));
+	    }
 }

@@ -1,0 +1,341 @@
+using Leno.Payment.Domain.Aggregates;
+using Leno.Payment.Domain.Exceptions;
+using Leno.Payment.Domain.ValueObjects;
+
+namespace Leno.Payment.Domain.Tests;
+
+public class PaymentOrderTests
+{
+    private static readonly Guid OrderId = Guid.NewGuid();
+    private static readonly Guid UserId = Guid.NewGuid();
+
+    [Fact]
+    public void Create_Valid_ShouldCreatePendingPayment()
+    {
+        var payment = PaymentOrder.Create(Guid.NewGuid(), OrderId, UserId, 100m, "CNY", PaymentChannel.WeChatPay);
+
+        payment.Status.Should().Be(PaymentStatus.Pending);
+        payment.OrderId.Should().Be(OrderId);
+        payment.UserId.Should().Be(UserId);
+        payment.Amount.Should().Be(100m);
+        payment.Currency.Should().Be("CNY");
+        payment.Channel.Should().Be(PaymentChannel.WeChatPay);
+        payment.OutTradeNo.Should().StartWith("PAY");
+        payment.ExpireAt.Should().BeAfter(DateTime.UtcNow.AddHours(1));
+    }
+
+    [Fact]
+    public void Create_DefaultCurrency_ShouldSetCny()
+    {
+        var payment = PaymentOrder.Create(Guid.NewGuid(), OrderId, UserId, 100m, "", PaymentChannel.Alipay);
+
+        payment.Currency.Should().Be("CNY");
+    }
+
+    [Fact]
+    public void Create_EmptyPaymentId_ShouldThrowException()
+    {
+        var act = () => PaymentOrder.Create(Guid.Empty, OrderId, UserId, 100m, "CNY", PaymentChannel.WeChatPay);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*PaymentId*");
+    }
+
+    [Fact]
+    public void Create_EmptyOrderId_ShouldThrowException()
+    {
+        var act = () => PaymentOrder.Create(Guid.NewGuid(), Guid.Empty, UserId, 100m, "CNY", PaymentChannel.WeChatPay);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*OrderId*");
+    }
+
+    [Fact]
+    public void Create_EmptyUserId_ShouldThrowException()
+    {
+        var act = () => PaymentOrder.Create(Guid.NewGuid(), OrderId, Guid.Empty, 100m, "CNY", PaymentChannel.WeChatPay);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*UserId*");
+    }
+
+    [Fact]
+    public void Create_ZeroAmount_ShouldThrowException()
+    {
+        var act = () => PaymentOrder.Create(Guid.NewGuid(), OrderId, UserId, 0m, "CNY", PaymentChannel.WeChatPay);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*金额*");
+    }
+
+    [Fact]
+    public void MarkChannelOrdered_Valid_ShouldTransitionAndRecordParams()
+    {
+        var payment = CreatePayment();
+
+        payment.MarkChannelOrdered("TRADE001", "prepay_123", "https://qr.example.com", null);
+
+        payment.Status.Should().Be(PaymentStatus.ChannelOrdered);
+        payment.ChannelTradeNo.Should().Be("TRADE001");
+        payment.PrepayId.Should().Be("prepay_123");
+        payment.CodeUrl.Should().Be("https://qr.example.com");
+    }
+
+    [Fact]
+    public void MarkChannelOrdered_NotPending_ShouldThrowException()
+    {
+        var payment = CreatePayment();
+        payment.MarkChannelOrdered("TRADE001", null, null, null);
+
+        var act = () => payment.MarkChannelOrdered("TRADE002", null, null, null);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*状态*");
+    }
+
+    [Fact]
+    public void MarkChannelOrdered_EmptyTradeNo_ShouldThrowException()
+    {
+        var payment = CreatePayment();
+
+        var act = () => payment.MarkChannelOrdered("", null, null, null);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*交易号*");
+    }
+
+    [Fact]
+    public void MarkSucceeded_FromPending_ShouldTransitionToPaid()
+    {
+        var payment = CreatePayment();
+        var paidAt = DateTime.UtcNow;
+
+        payment.MarkSucceeded("TRADE001", paidAt);
+
+        payment.Status.Should().Be(PaymentStatus.Paid);
+        payment.ChannelTradeNo.Should().Be("TRADE001");
+        payment.PaidAt.Should().Be(paidAt);
+    }
+
+    [Fact]
+    public void MarkSucceeded_FromChannelOrdered_ShouldTransitionToPaid()
+    {
+        var payment = CreatePayment();
+        payment.MarkChannelOrdered("TRADE001", null, null, null);
+        var paidAt = DateTime.UtcNow;
+
+        payment.MarkSucceeded("TRADE001", paidAt);
+
+        payment.Status.Should().Be(PaymentStatus.Paid);
+    }
+
+    [Fact]
+    public void MarkSucceeded_AlreadyPaid_ShouldThrowException()
+    {
+        var payment = CreatePayment();
+        payment.MarkSucceeded("TRADE001", DateTime.UtcNow);
+
+        var act = () => payment.MarkSucceeded("TRADE002", DateTime.UtcNow);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*状态*");
+    }
+
+    [Fact]
+    public void MarkSucceeded_EmptyTradeNo_ShouldThrowException()
+    {
+        var payment = CreatePayment();
+
+        var act = () => payment.MarkSucceeded("", DateTime.UtcNow);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*交易号*");
+    }
+
+    [Fact]
+    public void MarkFailed_FromPending_ShouldTransitionToFailed()
+    {
+        var payment = CreatePayment();
+
+        payment.MarkFailed("余额不足");
+
+        payment.Status.Should().Be(PaymentStatus.Failed);
+        payment.FailReason.Should().Be("余额不足");
+    }
+
+    [Fact]
+    public void MarkFailed_FromChannelOrdered_ShouldTransitionToFailed()
+    {
+        var payment = CreatePayment();
+        payment.MarkChannelOrdered("TRADE001", null, null, null);
+
+        payment.MarkFailed("用户取消");
+
+        payment.Status.Should().Be(PaymentStatus.Failed);
+    }
+
+    [Fact]
+    public void MarkFailed_AlreadyPaid_ShouldThrowException()
+    {
+        var payment = CreatePayment();
+        payment.MarkSucceeded("TRADE001", DateTime.UtcNow);
+
+        var act = () => payment.MarkFailed("reason");
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*状态*");
+    }
+
+    [Fact]
+    public void MarkClosed_FromPending_ShouldTransitionToClosed()
+    {
+        var payment = CreatePayment();
+
+        payment.MarkClosed("超时未支付");
+
+        payment.Status.Should().Be(PaymentStatus.Closed);
+        payment.FailReason.Should().Be("超时未支付");
+    }
+
+    [Fact]
+    public void MarkClosed_FromFailed_ShouldTransitionToClosed()
+    {
+        var payment = CreatePayment();
+        payment.MarkFailed("失败");
+
+        payment.MarkClosed("手动关闭");
+
+        payment.Status.Should().Be(PaymentStatus.Closed);
+    }
+
+    [Fact]
+    public void MarkClosed_AlreadyPaid_ShouldThrowException()
+    {
+        var payment = CreatePayment();
+        payment.MarkSucceeded("TRADE001", DateTime.UtcNow);
+
+        var act = () => payment.MarkClosed("原因");
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*状态*");
+    }
+
+    private static PaymentOrder CreatePayment()
+    {
+        return PaymentOrder.Create(Guid.NewGuid(), OrderId, UserId, 100m, "CNY", PaymentChannel.WeChatPay);
+    }
+}
+
+public class RefundOrderTests
+{
+    private static readonly Guid PaymentId = Guid.NewGuid();
+    private static readonly Guid OrderId = Guid.NewGuid();
+    private static readonly Guid UserId = Guid.NewGuid();
+    private static readonly Guid AfterSalesId = Guid.NewGuid();
+
+    [Fact]
+    public void Create_Valid_ShouldCreateRefunding()
+    {
+        var refund = RefundOrder.Create(
+            Guid.NewGuid(), PaymentId, OrderId, UserId, AfterSalesId,
+            50m, "CNY", "PAY20260701000001", PaymentChannel.WeChatPay);
+
+        refund.Status.Should().Be(RefundStatus.Refunding);
+        refund.RefundAmount.Should().Be(50m);
+        refund.OutTradeNo.Should().Be("PAY20260701000001");
+        refund.OutRefundNo.Should().StartWith("RFD");
+    }
+
+    [Fact]
+    public void Create_EmptyRefundId_ShouldThrowException()
+    {
+        var act = () => RefundOrder.Create(
+            Guid.Empty, PaymentId, OrderId, UserId, AfterSalesId,
+            50m, "CNY", "PAY20260701000001", PaymentChannel.WeChatPay);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*RefundId*");
+    }
+
+    [Fact]
+    public void Create_EmptyPaymentId_ShouldThrowException()
+    {
+        var act = () => RefundOrder.Create(
+            Guid.NewGuid(), Guid.Empty, OrderId, UserId, AfterSalesId,
+            50m, "CNY", "PAY20260701000001", PaymentChannel.WeChatPay);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*PaymentId*");
+    }
+
+    [Fact]
+    public void Create_EmptyOutTradeNo_ShouldThrowException()
+    {
+        var act = () => RefundOrder.Create(
+            Guid.NewGuid(), PaymentId, OrderId, UserId, AfterSalesId,
+            50m, "CNY", "", PaymentChannel.WeChatPay);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*商户单号*");
+    }
+
+    [Fact]
+    public void Create_ZeroAmount_ShouldThrowException()
+    {
+        var act = () => RefundOrder.Create(
+            Guid.NewGuid(), PaymentId, OrderId, UserId, AfterSalesId,
+            0m, "CNY", "PAY20260701000001", PaymentChannel.WeChatPay);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*金额*");
+    }
+
+    [Fact]
+    public void MarkSucceeded_Valid_ShouldTransitionToSucceeded()
+    {
+        var refund = CreateRefund();
+        var refundedAt = DateTime.UtcNow;
+
+        refund.MarkSucceeded("REFUND001", refundedAt);
+
+        refund.Status.Should().Be(RefundStatus.Succeeded);
+        refund.ChannelRefundNo.Should().Be("REFUND001");
+        refund.RefundedAt.Should().Be(refundedAt);
+    }
+
+    [Fact]
+    public void MarkSucceeded_NotRefunding_ShouldThrowException()
+    {
+        var refund = CreateRefund();
+        refund.MarkSucceeded("REFUND001", DateTime.UtcNow);
+
+        var act = () => refund.MarkSucceeded("REFUND002", DateTime.UtcNow);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*状态*");
+    }
+
+    [Fact]
+    public void MarkSucceeded_EmptyChannelRefundNo_ShouldThrowException()
+    {
+        var refund = CreateRefund();
+
+        var act = () => refund.MarkSucceeded("", DateTime.UtcNow);
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*退款单号*");
+    }
+
+    [Fact]
+    public void MarkFailed_Valid_ShouldTransitionToFailed()
+    {
+        var refund = CreateRefund();
+
+        refund.MarkFailed("账户异常");
+
+        refund.Status.Should().Be(RefundStatus.Failed);
+        refund.FailReason.Should().Be("账户异常");
+    }
+
+    [Fact]
+    public void MarkFailed_NotRefunding_ShouldThrowException()
+    {
+        var refund = CreateRefund();
+        refund.MarkFailed("失败");
+
+        var act = () => refund.MarkFailed("再次失败");
+
+        act.Should().Throw<PaymentDomainException>().WithMessage("*状态*");
+    }
+
+    private static RefundOrder CreateRefund()
+    {
+        return RefundOrder.Create(
+            Guid.NewGuid(), PaymentId, OrderId, UserId, AfterSalesId,
+            50m, "CNY", "PAY20260701000001", PaymentChannel.WeChatPay);
+    }
+}

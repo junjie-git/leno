@@ -1,11 +1,15 @@
 using Leno.SharedKernel.Abstractions;
+using Leno.SystemAdmin.Application;
 using Leno.SystemAdmin.Application.Abstractions;
+using Leno.SystemAdmin.Application.Services;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.Services;
 using Leno.SystemAdmin.Infrastructure.Cache;
 using Leno.SystemAdmin.Infrastructure.Consumers;
 using Leno.SystemAdmin.Infrastructure.Jobs;
 using Leno.SystemAdmin.Infrastructure.Repositories;
+using Leno.SystemAdmin.Infrastructure.Services;
+using ReconciliationServiceImpl = Leno.SystemAdmin.Infrastructure.Services.StatisticsReconciliationService;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -48,6 +52,23 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISystemAnnouncementRepository, EfCoreSystemAnnouncementRepository>();
         services.AddScoped<IFeatureFlagRepository, EfCoreFeatureFlagRepository>();
         services.AddScoped<IScheduledTaskRepository, EfCoreScheduledTaskRepository>();
+        services.AddScoped<IIndexRebuildTaskRepository, EfCoreIndexRebuildTaskRepository>();
+        services.AddScoped<IDeadLetterMessageRepository, EfCoreDeadLetterMessageRepository>();
+        services.AddScoped<IDashboardReportRepository, EfCoreDashboardReportRepository>();
+        services.AddScoped<IReconciliationRecordRepository, EfCoreReconciliationRecordRepository>();
+        services.AddScoped<IAuditLogEntryRepository, EfCoreAuditLogEntryRepository>();
+        services.AddScoped<IRateLimitRuleRepository, EfCoreRateLimitRuleRepository>();
+
+        services.AddScoped<IDeadLetterQueueManager, DeadLetterQueueManager>();
+
+        services.AddScoped<IIndexRebuildOrchestrator, IndexRebuildOrchestrator>();
+
+        // 基础设施抽象：通过 HttpClientFactory 注册需要 HTTP 调用的服务
+        services.AddHttpClient<IIndexRebuildTrigger, ElasticsearchRebuildTrigger>();
+        services.AddHttpClient<IModuleHealthProbe, HttpModuleHealthProbe>();
+
+        services.AddScoped<IHealthAggregator, HealthAggregator>();
+        services.AddSingleton<IRateLimitCounter, RedisRateLimitCounter>();
 
         services.AddSingleton<SystemConfigCache>();
         services.AddSingleton<FeatureFlagCache>();
@@ -60,9 +81,27 @@ public static class ServiceCollectionExtensions
         services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 
         services.AddScoped<IFeatureFlagEvaluator, FeatureFlagEvaluatorImpl>();
+        services.AddScoped<IStatisticsAggregationService, StatisticsAggregationService>();
+        services.AddScoped<IStatisticsReconciliationService, ReconciliationServiceImpl>();
         services.AddSingleton<QuartzJobScheduler>();
         services.AddScoped<ScheduledTaskDispatcher>();
         services.AddScoped<IScheduledTaskExecutor, ScheduledTaskExecutorImpl>();
+
+        // 限流策略解析器
+        services.AddScoped<IRateLimitPolicyResolver, RateLimitPolicyResolver>();
+
+        // 审计日志保留后台服务
+        services.AddHostedService<AuditLogRetentionService>();
+
+        // Application Services
+        services.AddScoped<IDeadLetterAppService, DeadLetterAppService>();
+        services.AddScoped<IHealthAppService, HealthAppService>();
+
+        // 对账后台作业
+        services.AddHostedService<StatisticsReconciliationJob>();
+
+        services.AddScoped<IAuditLogEntryAppService, AuditLogEntryAppService>();
+        services.AddScoped<IRateLimitRuleAppService, RateLimitRuleAppService>();
 
         return services;
     }

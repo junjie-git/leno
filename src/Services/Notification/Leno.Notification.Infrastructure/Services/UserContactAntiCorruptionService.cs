@@ -1,4 +1,5 @@
 using Leno.Infrastructure.Auth;
+using Leno.Notification.Domain.Services;
 using Leno.SharedContracts.Responses;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,7 +10,7 @@ namespace Leno.Notification.Infrastructure.Services;
 /// <summary>
 /// 用户联系方式防腐层，通过 HTTP 调用用户域内部端点获取手机号与邮箱。
 /// </summary>
-public sealed class UserContactAntiCorruptionService
+public sealed class UserContactAntiCorruptionService : IUserContactService
 {
     private readonly HttpClient _httpClient;
     private readonly InternalApiKeyOptions _internalKeyOptions;
@@ -29,10 +30,8 @@ public sealed class UserContactAntiCorruptionService
         _logger = logger;
     }
 
-    /// <summary>
-    /// 查询用户联系方式（手机号、邮箱）。
-    /// </summary>
-    public async Task<UserContactsDto?> GetContactsAsync(Guid userId, CancellationToken ct = default)
+    /// <inheritdoc />
+    public async Task<UserContactInfo?> GetContactsAsync(Guid userId, CancellationToken ct = default)
     {
         try
         {
@@ -54,7 +53,12 @@ public sealed class UserContactAntiCorruptionService
                 return null;
             }
 
-            return apiResponse.Data;
+            return new UserContactInfo
+            {
+                UserId = apiResponse.Data.UserId,
+                Email = apiResponse.Data.Email,
+                PhoneNumber = apiResponse.Data.PhoneNumber
+            };
         }
         catch (Exception ex)
         {

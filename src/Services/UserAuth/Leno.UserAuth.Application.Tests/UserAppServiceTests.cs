@@ -1,0 +1,372 @@
+using FluentValidation;
+using FluentValidation.Results;
+using Leno.UserAuth.Application.Abstractions;
+using Leno.UserAuth.Application.DTOs;
+using Leno.UserAuth.Application.Exceptions;
+using Leno.UserAuth.Application.Services;
+using Leno.UserAuth.Domain.Aggregates;
+using Leno.UserAuth.Domain.Exceptions;
+using Leno.UserAuth.Domain.Repositories;
+using Leno.UserAuth.Domain.Services;
+using Leno.UserAuth.Domain.ValueObjects;
+using Leno.SharedKernel.Abstractions;
+using Moq;
+using StackExchange.Redis;
+
+namespace Leno.UserAuth.Application.Tests;
+
+public class UserAppServiceTests
+{
+    private readonly Mock<IUserRepository> _userRepoMock = new();
+    private readonly Mock<IPasswordHasher> _hasherMock = new();
+    private readonly Mock<IUserUniquenessChecker> _uniquenessMock = new();
+    private readonly Mock<ITokenService> _tokenMock = new();
+    private readonly Mock<ITokenVerifier> _tokenVerifierMock = new();
+    private readonly Mock<IRefreshTokenStore> _refreshTokenMock = new();
+    private readonly Mock<IUnitOfWork> _uowMock = new();
+    private readonly Mock<IValidator<RegisterDto>> _registerValidatorMock = new();
+    private readonly Mock<IValidator<LoginDto>> _loginValidatorMock = new();
+    private readonly Mock<IValidator<UpdateProfileDto>> _updateProfileValidatorMock = new();
+    private readonly Mock<IValidator<ChangePasswordDto>> _changePasswordValidatorMock = new();
+    private readonly Mock<IConnectionMultiplexer> _redisMock = new();
+    private readonly Mock<IDatabase> _databaseMock = new();
+    private readonly UserAppService _sut;
+
+    public UserAppServiceTests()
+    {
+        _hasherMock.Setup(h => h.Hash(It.IsAny<string>())).Returns((string p) => $"hashed:{p}");
+        _hasherMock.Setup(h => h.Verify(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((string plain, string hash) => hash == $"hashed:{plain}");
+
+        _tokenMock.Setup(t => t.GenerateAccessToken(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Guid?>()))
+            .Returns("access-token");
+        _tokenMock.Setup(t => t.AccessTokenExpirySeconds).Returns(3600);
+
+        _refreshTokenMock.Setup(r => r.IssueAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("refresh-token");
+
+        _registerValidatorMock.Setup(v => v.ValidateAsync(It.IsAny<RegisterDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ValidationResult());
+        _loginValidatorMock.Setup(v => v.ValidateAsync(It.IsAny<LoginDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ValidationResult());
+        _updateProfileValidatorMock.Setup(v => v.ValidateAsync(It.IsAny<UpdateProfileDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ValidationResult());
+        _changePasswordValidatorMock.Setup(v => v.ValidateAsync(It.IsAny<ChangePasswordDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ValidationResult());
+
+        _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(_databaseMock.Object);
+
+        _sut = new UserAppService(
+            _userRepoMock.Object,
+            _hasherMock.Object,
+            _uniquenessMock.Object,
+            _tokenMock.Object,
+            _tokenVerifierMock.Object,
+            _refreshTokenMock.Object,
+            _uowMock.Object,
+            _registerValidatorMock.Object,
+            _loginValidatorMock.Object,
+            _updateProfileValidatorMock.Object,
+            _changePasswordValidatorMock.Object,
+            Array.Empty<IExternalAuthService>(),
+            _redisMock.Object);
+    }
+
+    #region RegisterAsync
+
+    [Fact]
+    public async Task RegisterAsync_ValidInput_ShouldReturnTokenDto()
+    {
+        _uniquenessMock.Setup(u => u.IsUsernameUniqueAsync("testuser", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _uniquenessMock.Setup(u => u.IsEmailUniqueAsync("test@test.com", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var dto = new RegisterDto
+        {
+            Username = "testuser",
+            Email = "test@test.com",
+            Password = "Pass123!",
+            Nickname = "Test Nick"
+        };
+
+        var result = await _sut.RegisterAsync(dto);
+
+        result.Should().NotBeNull();
+        result.Username.Should().Be("testuser");
+        result.AccessToken.Should().Be("access-token");
+        result.RefreshToken.Should().Be("refresh-token");
+        result.ExpiresIn.Should().Be(3600);
+        _userRepoMock.Verify(r => r.AddAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_DuplicateUsername_ShouldThrowDomainException()
+    {
+        _uniquenessMock.Setup(u => u.IsUsernameUniqueAsync("testuser", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var dto = new RegisterDto
+        {
+            Username = "testuser",
+            Email = "test@test.com",
+            Password = "Pass123!",
+            Nickname = "Test Nick"
+        };
+
+        var act = () => _sut.RegisterAsync(dto);
+
+        await act.Should().ThrowAsync<UserAuthDomainException>()
+            .WithMessage("*用户名已被注册*");
+    }
+
+    [Fact]
+    public async Task RegisterAsync_DuplicateEmail_ShouldThrowDomainException()
+    {
+        _uniquenessMock.Setup(u => u.IsUsernameUniqueAsync("testuser", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _uniquenessMock.Setup(u => u.IsEmailUniqueAsync("test@test.com", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var dto = new RegisterDto
+        {
+            Username = "testuser",
+            Email = "test@test.com",
+            Password = "Pass123!",
+            Nickname = "Test Nick"
+        };
+
+        var act = () => _sut.RegisterAsync(dto);
+
+        await act.Should().ThrowAsync<UserAuthDomainException>()
+            .WithMessage("*邮箱已被注册*");
+    }
+
+    [Fact]
+    public async Task RegisterAsync_ValidationFailure_ShouldThrowValidationException()
+    {
+        _registerValidatorMock.Setup(v => v.ValidateAsync(It.IsAny<RegisterDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ValidationResult(new[] { new ValidationFailure("Username", "用户名格式错误") }));
+
+        var dto = new RegisterDto { Username = "", Password = "", Nickname = "" };
+
+        var act = () => _sut.RegisterAsync(dto);
+
+        await act.Should().ThrowAsync<UserAuthValidationException>();
+    }
+
+    #endregion
+
+    #region LoginAsync
+
+    [Fact]
+    public async Task LoginAsync_ValidCredentials_ShouldReturnTokenDto()
+    {
+        var user = CreateUser();
+        _userRepoMock.Setup(r => r.GetByUsernameAsync("testuser", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var dto = new LoginDto { Account = "testuser", Password = "Pass123!" };
+
+        var result = await _sut.LoginAsync(dto);
+
+        result.Should().NotBeNull();
+        result.AccessToken.Should().Be("access-token");
+        _userRepoMock.Verify(r => r.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoginAsync_DisabledUser_ShouldThrowDomainException()
+    {
+        var user = CreateUser();
+        user.Disable("test", Guid.NewGuid());
+        _userRepoMock.Setup(r => r.GetByUsernameAsync("testuser", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var dto = new LoginDto { Account = "testuser", Password = "Pass123!" };
+
+        var act = () => _sut.LoginAsync(dto);
+
+        await act.Should().ThrowAsync<UserAuthDomainException>()
+            .WithMessage("*已被禁用*");
+    }
+
+    [Fact]
+    public async Task LoginAsync_UserNotFound_ShouldThrowUnauthorized()
+    {
+        _userRepoMock.Setup(r => r.GetByUsernameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+
+        var dto = new LoginDto { Account = "nonexistent", Password = "Pass123!" };
+
+        var act = () => _sut.LoginAsync(dto);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("*账号或密码错误*");
+    }
+
+    [Fact]
+    public async Task LoginAsync_WrongPassword_ShouldThrowUnauthorized()
+    {
+        var user = CreateUser();
+        _userRepoMock.Setup(r => r.GetByUsernameAsync("testuser", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var dto = new LoginDto { Account = "testuser", Password = "wrong" };
+
+        var act = () => _sut.LoginAsync(dto);
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("*账号或密码错误*");
+    }
+
+    [Fact]
+    public async Task LoginAsync_LockedExpired_ShouldUnlockAndLogin()
+    {
+        var user = CreateUser();
+        user.Lock("test", TimeSpan.FromMinutes(-1)); // expired
+        _userRepoMock.Setup(r => r.GetByUsernameAsync("testuser", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var dto = new LoginDto { Account = "testuser", Password = "Pass123!" };
+
+        var result = await _sut.LoginAsync(dto);
+
+        result.Should().NotBeNull();
+        user.Status.Should().Be(AccountStatus.Active);
+    }
+
+    [Fact]
+    public async Task LoginAsync_ByEmail_ShouldFindUser()
+    {
+        var user = CreateUser();
+        _userRepoMock.Setup(r => r.GetByEmailAsync("test@test.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var dto = new LoginDto { Account = "test@test.com", Password = "Pass123!" };
+
+        var result = await _sut.LoginAsync(dto);
+
+        result.Should().NotBeNull();
+    }
+
+    #endregion
+
+    #region ChangePasswordAsync
+
+    [Fact]
+    public async Task ChangePasswordAsync_ValidInput_ShouldSucceed()
+    {
+        var user = CreateUser();
+        _userRepoMock.Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var dto = new ChangePasswordDto { OldPassword = "Pass123!", NewPassword = "NewPass456!" };
+
+        await _sut.Invoking(s => s.ChangePasswordAsync(user.Id, dto))
+            .Should().NotThrowAsync();
+
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_UserNotFound_ShouldThrowDomainException()
+    {
+        _userRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+
+        var dto = new ChangePasswordDto { OldPassword = "Pass123!", NewPassword = "NewPass456!" };
+
+        var act = () => _sut.ChangePasswordAsync(Guid.NewGuid(), dto);
+
+        await act.Should().ThrowAsync<UserAuthDomainException>()
+            .WithMessage("*用户不存在*");
+    }
+
+    #endregion
+
+    #region GetProfileAsync
+
+    [Fact]
+    public async Task GetProfileAsync_ExistingUser_ShouldReturnUserDto()
+    {
+        var user = CreateUser();
+        _userRepoMock.Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var result = await _sut.GetProfileAsync(user.Id);
+
+        result.Should().NotBeNull();
+        result.Username.Should().Be("testuser");
+        result.Nickname.Should().Be("Test Nick");
+    }
+
+    #endregion
+
+    #region UpdateProfileAsync
+
+    [Fact]
+    public async Task UpdateProfileAsync_ValidInput_ShouldUpdateAndReturnDto()
+    {
+        var user = CreateUser();
+        _userRepoMock.Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var dto = new UpdateProfileDto { Nickname = "New Nick", AvatarUrl = null };
+
+        var result = await _sut.UpdateProfileAsync(user.Id, dto);
+
+        result.Nickname.Should().Be("New Nick");
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    #endregion
+
+    #region RefreshTokenAsync
+
+    [Fact]
+    public async Task RefreshTokenAsync_ValidToken_ShouldReturnNewTokens()
+    {
+        var user = CreateUser();
+        _refreshTokenMock.Setup(r => r.ValidateAndRotateAsync("valid-refresh", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user.Id);
+        _userRepoMock.Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var result = await _sut.RefreshTokenAsync("valid-refresh");
+
+        result.Should().NotBeNull();
+        result.AccessToken.Should().Be("access-token");
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_InvalidToken_ShouldThrowUnauthorized()
+    {
+        _refreshTokenMock.Setup(r => r.ValidateAndRotateAsync("invalid", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid?)null);
+
+        var act = () => _sut.RefreshTokenAsync("invalid");
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_EmptyToken_ShouldThrowValidationException()
+    {
+        var act = () => _sut.RefreshTokenAsync("");
+
+        await act.Should().ThrowAsync<UserAuthValidationException>();
+    }
+
+    #endregion
+
+    private static User CreateUser()
+    {
+        var hasher = new Mock<IPasswordHasher>();
+        hasher.Setup(h => h.Hash(It.IsAny<string>())).Returns((string p) => $"hashed:{p}");
+        return User.Create(
+            Guid.NewGuid(), "testuser", "test@test.com", null,
+            hasher.Object.Hash("Pass123!"), "Test Nick", null);
+    }
+}

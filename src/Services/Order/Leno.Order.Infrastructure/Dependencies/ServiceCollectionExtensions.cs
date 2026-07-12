@@ -61,7 +61,7 @@ public static class ServiceCollectionExtensions
 
         // 物流轨迹查询：通过 HttpClient 调用第三方物流 API
         services.Configure<LogisticsApiOptions>(configuration.GetSection(LogisticsApiOptions.SectionName));
-        services.AddHttpClient<ILogisticsTrackingService, LogisticsTrackingService>();
+        services.AddHttpClient<Domain.Services.ILogisticsTrackingService, LogisticsTrackingService>();
 
         // 应用服务
         services.AddScoped<IOrderAppService, OrderAppService>();
@@ -71,6 +71,9 @@ public static class ServiceCollectionExtensions
 
         // FluentValidation 校验器
         services.AddValidatorsFromAssembly(typeof(IOrderAppService).Assembly);
+
+        // 库存对账后台服务
+        services.AddHostedService<StockReconciliationService>();
 
         return services;
     }
@@ -87,6 +90,7 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<PaymentSucceededEventConsumer>();
         configurator.AddConsumer<PaymentFailedEventConsumer>();
         configurator.AddConsumer<OrderTimeoutDelayMessageConsumer>();
+        configurator.AddConsumer<AfterSalesWindowConsumer>();
         configurator.AddConsumer<RefundCompletedEventConsumer>();
         configurator.AddConsumer<StockAdjustedEventConsumer>();
         configurator.AddConsumer<OrderReadModelSyncConsumer>();

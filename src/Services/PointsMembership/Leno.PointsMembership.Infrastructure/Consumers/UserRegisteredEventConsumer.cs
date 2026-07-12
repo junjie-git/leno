@@ -1,6 +1,7 @@
 using Leno.Infrastructure.EventBus;
 using Leno.PointsMembership.Domain.Aggregates;
 using Leno.PointsMembership.Domain.Repositories;
+using Leno.PointsMembership.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -9,11 +10,13 @@ using StackExchange.Redis;
 namespace Leno.PointsMembership.Infrastructure.Consumers;
 
 /// <summary>
-/// 用户注册事件消费者，自动创建积分账户与会员档案。
+/// 用户注册事件消费者，自动创建积分账户与会员档案，并发放新人积分（100 分）。
 /// 通过 EventId 幂等去重。
 /// </summary>
 public sealed class UserRegisteredEventConsumer : RedisIntegrationEventConsumerBase<UserRegisteredEvent>
 {
+    private const int NewUserPoints = 100;
+
     private readonly IPointsAccountRepository _accountRepository;
     private readonly IMemberRepository _memberRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -47,12 +50,15 @@ public sealed class UserRegisteredEventConsumer : RedisIntegrationEventConsumerB
         var account = PointsAccount.Create(Guid.NewGuid(), integrationEvent.UserId);
         await _accountRepository.AddAsync(account, ct);
 
+        // 发放新人积分
+        account.Earn(PointsSource.NewUser, NewUserPoints, "新人注册奖励");
+
         var member = Member.Create(Guid.NewGuid(), integrationEvent.UserId);
         await _memberRepository.AddAsync(member, ct);
 
         await _unitOfWork.SaveEntitiesAsync(ct);
 
-        Logger.LogInformation("用户 {UserId} 注册，已创建积分账户 {AccountId} 与会员档案 {MemberId}",
-            integrationEvent.UserId, account.Id, member.Id);
+        Logger.LogInformation("用户 {UserId} 注册，已创建积分账户 {AccountId} 与会员档案 {MemberId}，发放新人积分 {Points}",
+            integrationEvent.UserId, account.Id, member.Id, NewUserPoints);
     }
 }

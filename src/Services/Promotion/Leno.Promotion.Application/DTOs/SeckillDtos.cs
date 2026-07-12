@@ -63,6 +63,9 @@ public sealed class CreateSeckillActivityDto
 /// </summary>
 public sealed class SeckillPlaceOrderDto
 {
+    /// <summary>下单 SKU 标识，须与活动 SKU 一致。</summary>
+    public Guid SkuId { get; init; }
+
     /// <summary>下单数量，须 &gt; 0 且 ≤ 活动限购。</summary>
     public int Quantity { get; init; }
 }

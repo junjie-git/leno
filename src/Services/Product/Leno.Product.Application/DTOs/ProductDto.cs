@@ -35,6 +35,8 @@ public sealed class ProductDto
 
     public Guid? ReviewedBy { get; init; }
 
+    public IReadOnlyList<AuditInfoDto> AuditHistory { get; init; } = Array.Empty<AuditInfoDto>();
+
     public DateTime CreatedAt { get; init; }
 
     public DateTime UpdatedAt { get; init; }
@@ -78,4 +80,63 @@ public sealed class SpecAttributeDto
     public string Name { get; init; } = string.Empty;
 
     public string Value { get; init; } = string.Empty;
+}
+
+/// <summary>审核历史 DTO。</summary>
+public sealed class AuditInfoDto
+{
+    public string OperatorId { get; init; } = string.Empty;
+
+    public string OperatorName { get; init; } = string.Empty;
+
+    public string Result { get; init; } = string.Empty;
+
+    public string? Reason { get; init; }
+
+    public DateTime AuditedAt { get; init; }
+}
+
+/// <summary>价格变更记录 DTO。</summary>
+public sealed class PriceChangeRecordDto
+{
+    public string SkuId { get; init; } = string.Empty;
+
+    public decimal OldPrice { get; init; }
+
+    public decimal NewPrice { get; init; }
+
+    public DateTime ChangedAt { get; init; }
+
+    public string ChangedBy { get; init; } = string.Empty;
+}
+
+/// <summary>库存操作记录 DTO。</summary>
+public sealed class StockOperationRecordDto
+{
+    public string SkuId { get; init; } = string.Empty;
+
+    public string Operator { get; init; } = string.Empty;
+
+    public int Delta { get; init; }
+
+    public int NewStock { get; init; }
+
+    public DateTime OperatedAt { get; init; }
+}
+
+/// <summary>调整价格 DTO。</summary>
+public sealed class AdjustPriceDto
+{
+    /// <summary>新价格，须 > 0。</summary>
+    public decimal Price { get; init; }
+
+    /// <summary>币种，默认 CNY。</summary>
+    public string Currency { get; init; } = "CNY";
+}
+
+/// <summary>库存调整 DTO。</summary>
+public sealed class UpdateStockDto
+{
+    /// <summary>库存变动量（正数补货，负数扣减）。</summary>
+    public int Delta { get; init; }
 }

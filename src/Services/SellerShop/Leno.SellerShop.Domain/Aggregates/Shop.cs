@@ -1,5 +1,6 @@
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
+using Leno.SellerShop.Domain.Entities;
 using Leno.SellerShop.Domain.Exceptions;
 using Leno.SellerShop.Domain.ValueObjects;
 
@@ -57,6 +58,11 @@ public sealed class Shop : AggregateRoot
 
     /// <summary>审核人标识（通过/驳回时记录）。</summary>
     public Guid? ReviewedBy { get; private set; }
+
+    private readonly List<ShopQualification> _qualifications = new();
+
+    /// <summary>店铺资质列表（只读）。</summary>
+    public IReadOnlyCollection<ShopQualification> Qualifications => _qualifications.AsReadOnly();
 
     /// <summary>EF Core 无参构造。</summary>
     private Shop() { }
@@ -292,6 +298,59 @@ public sealed class Shop : AggregateRoot
         }
 
         ProductCount--;
+    }
+
+    /// <summary>
+    /// 添加店铺资质，任意非关闭态可调用。
+    /// </summary>
+    /// <param name="qualification">资质实体。</param>
+    public void AddQualification(ShopQualification qualification)
+    {
+        EnsureNotClosed();
+
+        ArgumentNullException.ThrowIfNull(qualification);
+
+        if (qualification.ShopId != Id)
+        {
+            throw new SellerShopDomainException("资质所属店铺不匹配", "QUALIFICATION_SHOP_MISMATCH");
+        }
+
+        _qualifications.Add(qualification);
+    }
+
+    /// <summary>
+    /// 按标识获取资质，不存在时返回 null。
+    /// </summary>
+    public ShopQualification? GetQualification(Guid qualificationId)
+    {
+        return _qualifications.FirstOrDefault(q => q.Id == qualificationId);
+    }
+
+    /// <summary>
+    /// 审核通过指定资质。
+    /// </summary>
+    /// <param name="qualificationId">资质标识。</param>
+    /// <param name="reviewedBy">审核人标识。</param>
+    public void ApproveQualification(Guid qualificationId, Guid reviewedBy)
+    {
+        var qualification = GetQualification(qualificationId)
+            ?? throw new SellerShopDomainException("资质不存在", "QUALIFICATION_NOT_FOUND", 404);
+
+        qualification.Approve(reviewedBy);
+    }
+
+    /// <summary>
+    /// 驳回指定资质。
+    /// </summary>
+    /// <param name="qualificationId">资质标识。</param>
+    /// <param name="reviewedBy">审核人标识。</param>
+    /// <param name="reason">驳回原因。</param>
+    public void RejectQualification(Guid qualificationId, Guid reviewedBy, string reason)
+    {
+        var qualification = GetQualification(qualificationId)
+            ?? throw new SellerShopDomainException("资质不存在", "QUALIFICATION_NOT_FOUND", 404);
+
+        qualification.Reject(reviewedBy, reason);
     }
 
     private void EnsureNotClosed()

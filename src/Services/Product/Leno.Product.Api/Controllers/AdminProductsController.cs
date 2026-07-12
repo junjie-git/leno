@@ -57,4 +57,13 @@ public sealed class AdminProductsController : ProductControllerBase
         await _inventoryAppService.ReplenishAsync(skuId, dto, ct);
         return Ok(ApiResponse.Success("补货成功"));
     }
+
+    /// <summary>运营/管理员调整商品 SKU 库存（delta 方式）。</summary>
+    [HttpPost("{id:guid}/skus/{skuId:guid}/stock")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateStockAsync(Guid id, Guid skuId, [FromBody] UpdateStockDto dto, CancellationToken ct)
+    {
+        await _spuAppService.UpdateStockAsync(id, skuId, dto, GetCurrentUserId().ToString(), ct);
+        return Ok(ApiResponse.Success("库存调整成功"));
+    }
 }

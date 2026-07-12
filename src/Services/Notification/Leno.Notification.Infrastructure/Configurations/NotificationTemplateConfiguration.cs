@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Leno.Notification.Domain.Aggregates;
+using Leno.Notification.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -11,24 +12,30 @@ namespace Leno.Notification.Infrastructure.Configurations;
 /// </summary>
 public sealed class NotificationTemplateConfiguration : IEntityTypeConfiguration<NotificationTemplate>
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
     public void Configure(EntityTypeBuilder<NotificationTemplate> builder)
     {
         builder.ToTable("notification_templates");
         builder.HasKey(t => t.Id);
 
         builder.Property(t => t.Id).HasColumnName("id");
-        builder.Property(t => t.EventType).HasColumnName("event_type").HasMaxLength(128).IsRequired();
+        builder.Property(t => t.Code).HasColumnName("code").HasMaxLength(128).IsRequired();
+        builder.Property(t => t.Name).HasColumnName("name").HasMaxLength(128).IsRequired();
         builder.Property(t => t.Channel).HasColumnName("channel").HasConversion<int>();
-        builder.Property(t => t.TitleTemplate).HasColumnName("title_template").HasMaxLength(200).IsRequired();
-        builder.Property(t => t.ContentTemplate).HasColumnName("content_template").HasMaxLength(2000).IsRequired();
+        builder.Property(t => t.Subject).HasColumnName("subject").HasMaxLength(200).IsRequired();
+        builder.Property(t => t.Body).HasColumnName("body").HasMaxLength(2000).IsRequired();
+        builder.Property(t => t.SmsTemplateCode).HasColumnName("sms_template_code").HasMaxLength(64);
+        builder.Property(t => t.Description).HasColumnName("description").HasMaxLength(512);
+        builder.Property(t => t.OperatorId).HasColumnName("operator_id");
         builder.Property(t => t.Status).HasColumnName("status").HasConversion<int>();
 
         builder.Property(t => t.Variables)
             .HasColumnName("variables")
             .HasColumnType("nvarchar(max)")
             .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-                v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>());
+                v => JsonSerializer.Serialize(v, JsonOptions),
+                v => JsonSerializer.Deserialize<List<TemplateVariable>>(v, JsonOptions) ?? new List<TemplateVariable>());
 
         builder.Property(t => t.Version).HasColumnName("version").IsRowVersion();
         builder.Property(t => t.CreatedAt).HasColumnName("created_at");
@@ -36,6 +43,6 @@ public sealed class NotificationTemplateConfiguration : IEntityTypeConfiguration
         builder.Property(t => t.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(t => t.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
 
-        builder.HasIndex(t => new { t.EventType, t.Channel }).HasDatabaseName("ix_notification_templates_event_channel");
+        builder.HasIndex(t => new { t.Code, t.Channel }).HasDatabaseName("ix_notification_templates_code_channel");
     }
 }

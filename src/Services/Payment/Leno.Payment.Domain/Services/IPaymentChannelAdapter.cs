@@ -122,10 +122,29 @@ public interface IPaymentChannelAdapter
     Task<ChannelRefundQueryResult> QueryRefundAsync(string outTradeNo, string outRefundNo, CancellationToken ct = default);
 
     /// <summary>
+    /// 关闭第三方渠道支付订单（仅支持已创建但未支付的订单）。
+    /// </summary>
+    /// <param name="outTradeNo">商户支付单号。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task<ChannelPaymentCloseResult> ClosePaymentAsync(string outTradeNo, CancellationToken ct = default);
+
+    /// <summary>
     /// 验证并解析第三方渠道异步通知报文。
     /// </summary>
     /// <param name="rawBody">原始报文体。</param>
     /// <param name="headers">通知请求头字典。</param>
     /// <param name="ct">取消令牌。</param>
     Task<ChannelNotifyResult> VerifyNotifyAsync(string rawBody, Dictionary<string, string> headers, CancellationToken ct = default);
+}
+
+/// <summary>
+/// 渠道关闭支付订单结果。
+/// </summary>
+public sealed class ChannelPaymentCloseResult
+{
+    /// <summary>关闭是否成功。</summary>
+    public bool Succeeded { get; init; }
+
+    /// <summary>第三方交易号。</summary>
+    public string? ChannelTradeNo { get; init; }
 }

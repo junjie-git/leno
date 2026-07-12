@@ -22,4 +22,10 @@ public sealed class TokenDto
 
     /// <summary>令牌类型，固定 Bearer。</summary>
     public string TokenType { get; init; } = "Bearer";
+
+    /// <summary>是否需要双因子认证二次验证。</summary>
+    public bool TwoFactorRequired { get; init; }
+
+    /// <summary>临时令牌（用于双因子二次验证），仅当 TwoFactorRequired=true 时填充。</summary>
+    public string? TempToken { get; init; }
 }

@@ -6,19 +6,22 @@ using Leno.SharedKernel.Abstractions;
 namespace Leno.SellerShop.Application.Services;
 
 /// <summary>
-/// 卖家工作台应用服务实现，聚合店铺信息与 ShopMetrics 指标数据。
+/// 卖家工作台应用服务实现，聚合店铺信息、ShopMetrics 指标数据与 ShopDashboardData 经营数据。
 /// </summary>
 public sealed class SellerDashboardAppService : ISellerDashboardAppService
 {
     private readonly IShopRepository _shopRepository;
     private readonly IShopMetricsRepository _metricsRepository;
+    private readonly IShopDashboardRepository _dashboardRepository;
 
     public SellerDashboardAppService(
         IShopRepository shopRepository,
-        IShopMetricsRepository metricsRepository)
+        IShopMetricsRepository metricsRepository,
+        IShopDashboardRepository dashboardRepository)
     {
         _shopRepository = shopRepository;
         _metricsRepository = metricsRepository;
+        _dashboardRepository = dashboardRepository;
     }
 
     /// <inheritdoc />
@@ -37,6 +40,7 @@ public sealed class SellerDashboardAppService : ISellerDashboardAppService
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var metrics = await _metricsRepository.GetByShopIdAsync(shop.Id, today, ct);
+        var dashboard = await _dashboardRepository.GetByShopIdAsync(shop.Id, ct);
 
         return new SellerDashboardDto
         {
@@ -44,6 +48,10 @@ public sealed class SellerDashboardAppService : ISellerDashboardAppService
             ShopName = shop.ShopName,
             Status = shop.Status,
             ProductCount = shop.ProductCount,
+            TotalOrders = dashboard?.TotalOrders ?? 0,
+            PendingOrders = dashboard?.PendingOrders ?? 0,
+            CompletedOrders = dashboard?.CompletedOrders ?? 0,
+            TotalRevenue = dashboard?.TotalRevenue ?? 0m,
             TodayOrderCount = metrics?.OrderCount ?? 0,
             TodaySalesAmount = metrics?.SalesAmount.Amount ?? 0m,
             TodaySalesCurrency = metrics?.SalesAmount.Currency ?? "CNY",

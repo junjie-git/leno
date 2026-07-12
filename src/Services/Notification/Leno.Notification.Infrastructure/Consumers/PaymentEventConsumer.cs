@@ -1,5 +1,6 @@
 using System.Globalization;
-using Leno.Notification.Infrastructure.Services;
+using Leno.Notification.Domain.Services;
+using Leno.Notification.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -13,14 +14,14 @@ public sealed class PaymentEventConsumer :
     IConsumer<PaymentSucceededEvent>,
     IConsumer<PaymentFailedEvent>
 {
-    private readonly INotificationDispatcher _dispatcher;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<PaymentEventConsumer> _logger;
 
-    public PaymentEventConsumer(INotificationDispatcher dispatcher, ILogger<PaymentEventConsumer> logger)
+    public PaymentEventConsumer(INotificationService notificationService, ILogger<PaymentEventConsumer> logger)
     {
-        ArgumentNullException.ThrowIfNull(dispatcher);
+        ArgumentNullException.ThrowIfNull(notificationService);
         ArgumentNullException.ThrowIfNull(logger);
-        _dispatcher = dispatcher;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -31,16 +32,22 @@ public sealed class PaymentEventConsumer :
         var evt = context.Message;
         _logger.LogInformation("消费支付成功事件 EventId={EventId} OrderId={OrderId}", evt.EventId, evt.OrderId);
 
-        var variables = new Dictionary<string, string>
+        var request = new NotificationRequest
         {
-            ["orderId"] = evt.OrderId.ToString(),
-            ["amount"] = evt.Amount.ToString("F2", CultureInfo.InvariantCulture),
-            ["currency"] = evt.Currency,
-            ["tradeNo"] = evt.TradeNo,
-            ["channel"] = evt.Channel
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(PaymentSucceededEvent))!,
+            UserId = evt.UserId,
+            IdempotencyKey = evt.EventId.ToString(),
+            Variables = new Dictionary<string, string>
+            {
+                ["orderId"] = evt.OrderId.ToString(),
+                ["amount"] = evt.Amount.ToString("F2", CultureInfo.InvariantCulture),
+                ["currency"] = evt.Currency,
+                ["tradeNo"] = evt.TradeNo,
+                ["channel"] = evt.Channel
+            }
         };
 
-        await _dispatcher.DispatchAsync(evt.UserId, "PaymentSucceededEvent", evt.EventId, variables, context.CancellationToken);
+        await _notificationService.SendAsync(request, context.CancellationToken);
     }
 
     /// <inheritdoc />
@@ -50,13 +57,19 @@ public sealed class PaymentEventConsumer :
         var evt = context.Message;
         _logger.LogInformation("消费支付失败事件 EventId={EventId} OrderId={OrderId}", evt.EventId, evt.OrderId);
 
-        var variables = new Dictionary<string, string>
+        var request = new NotificationRequest
         {
-            ["orderId"] = evt.OrderId.ToString(),
-            ["reason"] = evt.Reason,
-            ["failedAt"] = evt.FailedAt.ToString("u", CultureInfo.InvariantCulture)
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(PaymentFailedEvent))!,
+            UserId = evt.UserId,
+            IdempotencyKey = evt.EventId.ToString(),
+            Variables = new Dictionary<string, string>
+            {
+                ["orderId"] = evt.OrderId.ToString(),
+                ["reason"] = evt.Reason,
+                ["failedAt"] = evt.FailedAt.ToString("u", CultureInfo.InvariantCulture)
+            }
         };
 
-        await _dispatcher.DispatchAsync(evt.UserId, "PaymentFailedEvent", evt.EventId, variables, context.CancellationToken);
+        await _notificationService.SendAsync(request, context.CancellationToken);
     }
 }

@@ -35,6 +35,14 @@ public sealed class RejectAfterSalesDto
 }
 
 /// <summary>
+/// 买家退货填写物流单号请求 DTO。
+/// </summary>
+public sealed class ReturnGoodsDto
+{
+    public string TrackingNo { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// 买家撤销售后请求 DTO。
 /// </summary>
 public sealed class CancelAfterSalesDto

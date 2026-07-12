@@ -3,8 +3,6 @@ using Leno.Notification.Application;
 using Leno.Notification.Domain.Repositories;
 using Leno.Notification.Domain.Services;
 using Leno.Notification.Infrastructure.Channels;
-using Leno.Notification.Infrastructure.Channels.Email;
-using Leno.Notification.Infrastructure.Channels.Sms;
 using Leno.Notification.Infrastructure.Consumers;
 using Leno.Notification.Infrastructure.Jobs;
 using Leno.Notification.Infrastructure.Repositories;
@@ -44,22 +42,35 @@ public static class ServiceCollectionExtensions
 
         // 模板渲染器
         services.AddScoped<ITemplateRenderer, TemplateRenderer>();
+        services.AddScoped<ITemplateRenderService, TemplateRenderer>();
 
         // 用户联系方式防腐层（通过 HTTP 调用用户域内部端点获取手机号/邮箱）
         var userAuthApiUrl = configuration["ServiceUrls:UserAuthApi"] ?? "http://localhost:5173";
-        services.AddHttpClient<UserContactAntiCorruptionService>(c => c.BaseAddress = new Uri(userAuthApiUrl));
+        services.AddHttpClient<IUserContactService, UserContactAntiCorruptionService>(c => c.BaseAddress = new Uri(userAuthApiUrl));
 
-        // 通知渠道
-        services.Configure<SmsOptions>(configuration.GetSection("Notification:Sms"));
-        services.Configure<EmailOptions>(configuration.GetSection("Notification:Email"));
-        services.AddHttpClient<SmsClient>();
-        services.AddScoped<SmtpClientWrapper>();
-        services.AddScoped<IChannel, InAppChannel>();
-        services.AddScoped<IChannel, SmsChannel>();
-        services.AddScoped<IChannel, EmailChannel>();
+        // 通知渠道配置
+        services.Configure<EmailChannelOptions>(configuration.GetSection("Notification:Email"));
+        services.Configure<SmsChannelOptions>(configuration.GetSection("Notification:Sms"));
+
+        // 通知渠道实现
+        services.AddHttpClient<AliyunSmsChannel>();
+        services.AddHttpClient<TencentSmsChannel>();
+        services.AddScoped<INotificationChannel, InAppChannel>();
+        services.AddScoped<INotificationChannel, SmtpEmailChannel>();
+        services.AddScoped<INotificationChannel, AliyunSmsChannel>();
+        services.AddScoped<INotificationChannel, TencentSmsChannel>();
+
+        // 重试策略
+        services.AddSingleton<Domain.Services.IRetryPolicy, Infrastructure.Services.RetryPolicy>();
+
+        // 频率限制器
+        services.AddSingleton<Domain.Services.IRateLimiter, Infrastructure.Services.RedisRateLimiter>();
 
         // 通知调度器
         services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
+
+        // 通知统一发送服务
+        services.AddScoped<INotificationService, AppServices.NotificationService>();
 
         // 调度与重试任务
         services.AddScoped<NotificationDispatchJob>();
@@ -69,8 +80,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INotificationAppService, AppServices.NotificationAppService>();
         services.AddScoped<INotificationTemplateAppService, AppServices.NotificationTemplateAppService>();
         services.AddScoped<INotificationPreferenceAppService, AppServices.NotificationPreferenceAppService>();
+        services.AddScoped<IDeadLetterAppService, AppServices.DeadLetterAppService>();
+		services.AddScoped<INotificationConfigAppService, Infrastructure.Services.NotificationConfigAppService>();
+		services.AddScoped<IRateLimitAppService, AppServices.RateLimitAppService>();
 
-        return services;
+		return services;
     }
 
     public static IBusRegistrationConfigurator AddNotificationConsumers(
@@ -84,6 +98,7 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<PromotionEventConsumer>();
         configurator.AddConsumer<PointsEventConsumer>();
         configurator.AddConsumer<AfterSalesEventConsumer>();
+        configurator.AddConsumer<NotificationEventConsumer>();
 
         return configurator;
     }

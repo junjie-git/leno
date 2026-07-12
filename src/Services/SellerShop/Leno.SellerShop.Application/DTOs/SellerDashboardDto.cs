@@ -13,7 +13,20 @@ public sealed class SellerDashboardDto
 
     public ShopStatus Status { get; init; }
 
+    /// <summary>在售商品数。</summary>
     public int ProductCount { get; init; }
+
+    /// <summary>累计订单总数。</summary>
+    public int TotalOrders { get; init; }
+
+    /// <summary>待处理订单数。</summary>
+    public int PendingOrders { get; init; }
+
+    /// <summary>已完成订单数。</summary>
+    public int CompletedOrders { get; init; }
+
+    /// <summary>累计销售收入。</summary>
+    public decimal TotalRevenue { get; init; }
 
     /// <summary>当日已完成订单数。</summary>
     public int TodayOrderCount { get; init; }

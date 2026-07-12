@@ -40,6 +40,9 @@ public sealed class ShopMetrics : AggregateRoot
     /// <summary>当日售后数。</summary>
     public int RefundCount { get; private set; }
 
+    /// <summary>当日退款金额。</summary>
+    public Money RefundAmount { get; private set; } = null!;
+
     /// <summary>EF Core 无参构造。</summary>
     private ShopMetrics() { }
 
@@ -79,7 +82,8 @@ public sealed class ShopMetrics : AggregateRoot
             AvgRating = 0m,
             RatingSum = 0m,
             RatingCount = 0,
-            RefundCount = 0
+            RefundCount = 0,
+            RefundAmount = Money.Zero(currency.Trim().ToUpperInvariant())
         };
     }
 
@@ -139,5 +143,33 @@ public sealed class ShopMetrics : AggregateRoot
     public void RecordRefund()
     {
         RefundCount++;
+    }
+
+    /// <summary>
+    /// 记录一笔售后退款金额，累加售后数与退款金额。
+    /// 幂等：同一售后重复记录由调用方按 EventId 去重，此处只做增量。
+    /// </summary>
+    /// <param name="refundAmount">退款金额。</param>
+    public void RecordRefund(Money refundAmount)
+    {
+        ArgumentNullException.ThrowIfNull(refundAmount);
+
+        if (RefundAmount.Currency != refundAmount.Currency)
+        {
+            throw new SellerShopDomainException(
+                $"币种不匹配: {RefundAmount.Currency} vs {refundAmount.Currency}", "METRICS_CURRENCY_MISMATCH");
+        }
+
+        RefundCount++;
+        RefundAmount = RefundAmount.Add(refundAmount);
+    }
+
+    /// <summary>
+    /// 记录一笔新订单创建，仅累加订单数（不累加销售额，销售额由完成订单驱动）。
+    /// 幂等：同一订单重复记录由调用方按 EventId 去重，此处只做增量。
+    /// </summary>
+    public void RecordOrderCreation()
+    {
+        OrderCount++;
     }
 }

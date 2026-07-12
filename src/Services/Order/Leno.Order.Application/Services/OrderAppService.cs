@@ -1,4 +1,5 @@
 using Leno.Order.Application.DTOs;
+using Leno.Order.Application.Messages;
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Exceptions;
 using Leno.Order.Domain.Repositories;
@@ -6,6 +7,7 @@ using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
+using MassTransit;
 using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
 
 namespace Leno.Order.Application.Services;
@@ -25,7 +27,10 @@ public sealed class OrderAppService : IOrderAppService
     private readonly IProductAntiCorruptionService _productAntiCorruption;
     private readonly IPromotionAntiCorruptionService _promotionAntiCorruption;
     private readonly IPointsAntiCorruptionService _pointsAntiCorruption;
+    private readonly ILogisticsTrackingService _logisticsTrackingService;
+    private readonly ILogisticsCompanyRepository _logisticsCompanyRepository;
     private readonly IEventBus _eventBus;
+    private readonly IBus _bus;
 
     public OrderAppService(
         IOrderRepository orderRepository,
@@ -37,7 +42,10 @@ public sealed class OrderAppService : IOrderAppService
         IProductAntiCorruptionService productAntiCorruption,
         IPromotionAntiCorruptionService promotionAntiCorruption,
         IPointsAntiCorruptionService pointsAntiCorruption,
-        IEventBus eventBus)
+        ILogisticsTrackingService logisticsTrackingService,
+        ILogisticsCompanyRepository logisticsCompanyRepository,
+        IEventBus eventBus,
+        IBus bus)
     {
         _orderRepository = orderRepository;
         _unitOfWork = unitOfWork;
@@ -48,7 +56,10 @@ public sealed class OrderAppService : IOrderAppService
         _productAntiCorruption = productAntiCorruption;
         _promotionAntiCorruption = promotionAntiCorruption;
         _pointsAntiCorruption = pointsAntiCorruption;
+        _logisticsTrackingService = logisticsTrackingService;
+        _logisticsCompanyRepository = logisticsCompanyRepository;
         _eventBus = eventBus;
+        _bus = bus;
     }
 
     /// <inheritdoc />
@@ -79,6 +90,10 @@ public sealed class OrderAppService : IOrderAppService
 
         // 总积分抵现金额与总商品金额，用于按比例分摊积分到各卖家订单
         var totalPointsOffset = dto.PointsToUse > 0 ? dto.PointsToUse / 100m : 0m;
+        if (totalPointsOffset > OrderAggregate.MaxPointsOffsetAmount)
+        {
+            totalPointsOffset = OrderAggregate.MaxPointsOffsetAmount;
+        }
         var totalItemsAmount = dto.Items.Sum(i => skuInfos[i.SkuId].UnitPrice * i.Quantity);
 
         OrderAggregate? firstOrder = null;
@@ -171,11 +186,19 @@ public sealed class OrderAppService : IOrderAppService
             // 应用优惠分摊
             if (discount > 0 && allocations.Count > 0)
             {
-                order.ApplyDiscount(allocations);
+                order.ApplyDiscount(discount, allocations);
             }
 
             await _orderRepository.AddAsync(order, ct);
             await _unitOfWork.SaveEntitiesAsync(ct);
+
+            // Schedule timeout cancellation (30 minutes)
+            var scheduler = _bus.CreateMessageScheduler();
+            await scheduler.ScheduleSend(
+                new Uri("queue:order-timeout"),
+                order.ExpireAt,
+                new OrderTimeoutMessage(orderId),
+                ct);
 
             // 多卖家拆单返回首单 DTO
             firstOrder ??= order;
@@ -259,6 +282,10 @@ public sealed class OrderAppService : IOrderAppService
 
         // 积分抵现，上限为商品总额 - 优惠
         var pointsOffset = dto.PointsToUse > 0 ? dto.PointsToUse / 100m : 0m;
+        if (pointsOffset > OrderAggregate.MaxPointsOffsetAmount)
+        {
+            pointsOffset = OrderAggregate.MaxPointsOffsetAmount;
+        }
         var maxOffset = itemsAmount - discountAmount;
         if (pointsOffset > maxOffset)
         {
@@ -305,7 +332,7 @@ public sealed class OrderAppService : IOrderAppService
     public async Task ShipAsync(Guid orderId, Guid operatorId, ShipOrderDto dto, CancellationToken ct = default)
     {
         var order = await RequireOrderAsync(orderId, ct);
-        order.Ship(dto.LogisticsNo, DateTime.UtcNow, operatorId);
+        order.Ship(dto.LogisticsNo, dto.LogisticsCompanyCode, DateTime.UtcNow, operatorId);
         await _orderRepository.UpdateAsync(order, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
@@ -321,6 +348,14 @@ public sealed class OrderAppService : IOrderAppService
         order.ConfirmReceipt();
         await _orderRepository.UpdateAsync(order, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+
+        // 调度售后窗口结束延迟消息（7 天后）
+        var scheduler = _bus.CreateMessageScheduler();
+        await scheduler.ScheduleSend(
+            new Uri("queue:order-after-sales-window"),
+            order.AfterSalesWindowEndsAt!.Value,
+            new AfterSalesWindowMessage(orderId),
+            ct);
     }
 
     /// <inheritdoc />
@@ -333,10 +368,11 @@ public sealed class OrderAppService : IOrderAppService
         }
         order.Cancel(dto.Reason, "Buyer");
 
-        // 释放预占库存与冻结积分
+        // 释放预占库存、冻结积分与优惠券
         var skuQuantities = BuildSkuQuantities(order);
         await _stockService.ReleaseBatchAsync(orderId, skuQuantities, ct);
         await _pointsAntiCorruption.ReleaseAsync(orderId, ct);
+        await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct);
 
         await _orderRepository.UpdateAsync(order, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
@@ -348,10 +384,11 @@ public sealed class OrderAppService : IOrderAppService
         var order = await RequireOrderAsync(orderId, ct);
         order.ForceCancel(dto.Reason, "Operator");
 
-        // 释放预占库存与冻结积分
+        // 释放预占库存、冻结积分与优惠券
         var skuQuantities = BuildSkuQuantities(order);
         await _stockService.ReleaseBatchAsync(orderId, skuQuantities, ct);
         await _pointsAntiCorruption.ReleaseAsync(orderId, ct);
+        await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct);
 
         await _orderRepository.UpdateAsync(order, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
@@ -376,6 +413,64 @@ public sealed class OrderAppService : IOrderAppService
             Total = total,
             Page = page,
             PageSize = pageSize
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task<LogisticsTrackingDto> GetLogisticsTraceAsync(Guid orderId, CancellationToken ct = default)
+    {
+        var order = await RequireOrderAsync(orderId, ct);
+
+        if (string.IsNullOrWhiteSpace(order.LogisticsNo))
+        {
+            return new LogisticsTrackingDto { LogisticsNo = string.Empty, Nodes = new List<LogisticsTrackingNode>() };
+        }
+
+        if (string.IsNullOrWhiteSpace(order.LogisticsCompanyCode))
+        {
+            return new LogisticsTrackingDto
+            {
+                LogisticsNo = order.LogisticsNo,
+                CompanyCode = string.Empty,
+                Nodes = new List<LogisticsTrackingNode>(),
+                HasWarning = true
+            };
+        }
+
+        // 校验物流公司是否支持轨迹查询
+        // 通过查询所有已启用的物流公司来匹配 Code
+        var companies = await _logisticsCompanyRepository.ListAsync(1, 100, ct);
+        var company = companies.FirstOrDefault(c =>
+            string.Equals(c.Code, order.LogisticsCompanyCode, StringComparison.OrdinalIgnoreCase) &&
+            c.Status == LogisticsCompanyStatus.Enabled);
+
+        if (company is null || !company.SupportTracking)
+        {
+            return new LogisticsTrackingDto
+            {
+                LogisticsNo = order.LogisticsNo,
+                CompanyCode = order.LogisticsCompanyCode,
+                Nodes = new List<LogisticsTrackingNode>(),
+                HasWarning = true
+            };
+        }
+
+        // 调用领域服务查询物流轨迹
+        var traceResult = await _logisticsTrackingService.QueryTraceAsync(
+            order.LogisticsNo, order.LogisticsCompanyCode, ct);
+
+        return new LogisticsTrackingDto
+        {
+            LogisticsNo = traceResult.LogisticsNo,
+            CompanyCode = traceResult.CompanyCode,
+            Nodes = traceResult.Nodes.Select(n => new LogisticsTrackingNode
+            {
+                Description = n.Description,
+                OccurredAt = n.OccurredAt,
+                Location = n.Location
+            }).ToList(),
+            IsFromCache = traceResult.IsFromCache,
+            HasWarning = false
         };
     }
 
@@ -406,7 +501,7 @@ public sealed class OrderAppService : IOrderAppService
             OrderNo = order.OrderNo,
             OrderType = order.OrderType,
             UserId = order.UserId,
-            SellerId = order.SellerId,
+            SellerId = order.SellerId ?? Guid.Empty,
             Status = order.Status,
             ItemsAmount = order.ItemsAmount,
             DiscountAmount = order.DiscountAmount,
@@ -418,6 +513,7 @@ public sealed class OrderAppService : IOrderAppService
             PaidAt = order.PaidAt,
             ShippedAt = order.ShippedAt,
             LogisticsNo = order.LogisticsNo,
+            LogisticsCompanyCode = order.LogisticsCompanyCode,
             CompletedAt = order.CompletedAt,
             CancelledAt = order.CancelledAt,
             CancelReason = order.CancelReason,

@@ -166,6 +166,75 @@ public sealed class PointsAccount : AggregateRoot
         AddDomainEvent(new PointsReleasedEvent(Id, UserId, entry.Amount, orderId));
     }
 
+    /// <summary>
+    /// 直接消费积分（不经过冻结-确认流程），扣减可用余额，累加累计消耗，发布 <see cref="PointsConsumedEvent"/>。
+    /// 校验数量 &gt; 0 且余额充足。
+    /// 用于积分兑换优惠券等场景。
+    /// </summary>
+    /// <param name="amount">消费积分数量，须 &gt; 0。</param>
+    /// <param name="referenceId">关联业务标识（如兑换记录 ID）。</param>
+    /// <param name="reason">消费原因。</param>
+    public void ConsumePoints(int amount, Guid referenceId, string reason)
+    {
+        if (amount <= 0)
+        {
+            throw new PointsDomainException("消费积分数量须大于 0", "POINTS_CONSUME_AMOUNT_INVALID");
+        }
+
+        if (Balance < amount)
+        {
+            throw new PointsDomainException(
+                $"积分余额不足：可用 {Balance}，本次消费 {amount}",
+                "POINTS_BALANCE_INSUFFICIENT");
+        }
+
+        Balance -= amount;
+        TotalSpent += amount;
+        AddDomainEvent(new PointsConsumedEvent(Id, UserId, amount, referenceId, reason));
+    }
+
+    /// <summary>
+    /// 积分扣回（退款/售后扣回已发放积分），允许余额为负（未来收入抵扣）。
+    /// 校验数量 &gt; 0，扣减余额（可能为负），累加累计消耗，发布 <see cref="PointsRevertedEvent"/>。
+    /// </summary>
+    /// <param name="amount">扣回积分数量，须 &gt; 0。</param>
+    /// <param name="referenceId">关联业务标识（如退款单 ID）。</param>
+    /// <param name="reason">扣回原因。</param>
+    public void RevertPoints(int amount, Guid referenceId, string reason)
+    {
+        if (amount <= 0)
+        {
+            throw new PointsDomainException("扣回积分数量须大于 0", "POINTS_REVERT_AMOUNT_INVALID");
+        }
+
+        Balance -= amount;
+        TotalSpent += amount;
+        AddDomainEvent(new PointsRevertedEvent(Id, UserId, amount, referenceId, reason));
+    }
+
+    /// <summary>
+    /// 过期积分清理，扣减可用余额，发布 <see cref="PointsExpiredEvent"/>。
+    /// 校验数量 &gt; 0 且余额充足。
+    /// </summary>
+    /// <param name="points">过期积分数量，须 &gt; 0。</param>
+    public void ExpirePoints(int points)
+    {
+        if (points <= 0)
+        {
+            throw new PointsDomainException("过期积分数量须大于 0", "POINTS_EXPIRE_AMOUNT_INVALID");
+        }
+
+        if (Balance < points)
+        {
+            throw new PointsDomainException(
+                $"积分余额不足：可用 {Balance}，本次过期 {points}",
+                "POINTS_EXPIRE_BALANCE_INSUFFICIENT");
+        }
+
+        Balance -= points;
+        AddDomainEvent(new PointsExpiredEvent(UserId, points, DateTime.UtcNow));
+    }
+
     private PointsFrozenEntry FindFrozenEntry(Guid orderId)
     {
         var entry = FrozenEntries.FirstOrDefault(e => e.OrderId == orderId);

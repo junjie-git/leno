@@ -73,7 +73,7 @@ public sealed class StockBaseline : AggregateRoot
 
         AvailableQty += qty;
 
-        AddDomainEvent(new StockAdjustedEvent(SkuId, AvailableQty, DateTime.UtcNow));
+        AddDomainEvent(new StockAdjustedEvent(SkuId, Guid.Empty, AvailableQty, qty, DateTime.UtcNow));
     }
 
     /// <summary>

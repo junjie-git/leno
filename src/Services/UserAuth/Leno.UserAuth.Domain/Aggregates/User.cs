@@ -21,6 +21,7 @@ public sealed partial class User : AggregateRoot
     public static readonly TimeSpan DefaultLockDuration = TimeSpan.FromMinutes(30);
 
     private readonly List<UserRole> _roles = new();
+    private readonly List<ExternalLogin> _externalLogins = new();
 
     /// <summary>用户名，全局唯一，登录账号之一。</summary>
     public string Username { get; private set; } = string.Empty;
@@ -46,6 +47,9 @@ public sealed partial class User : AggregateRoot
     /// <summary>角色集合，至少 1 个。</summary>
     public IReadOnlyCollection<UserRole> Roles => _roles.AsReadOnly();
 
+    /// <summary>外部登录绑定集合，OAuth 用户至少 1 个。</summary>
+    public IReadOnlyCollection<ExternalLogin> ExternalLogins => _externalLogins.AsReadOnly();
+
     /// <summary>默认收货地址标识，可空。</summary>
     public Guid? DefaultAddressId { get; private set; }
 
@@ -54,6 +58,12 @@ public sealed partial class User : AggregateRoot
 
     /// <summary>锁定截止时间（UTC），锁定状态非空。</summary>
     public DateTime? LockedUntil { get; private set; }
+
+    /// <summary>是否已启用双因子认证。</summary>
+    public bool TwoFactorEnabled { get; private set; }
+
+    /// <summary>双因子认证 TOTP 共享密钥（Base32）。为空表示未设置。</summary>
+    public string? TwoFactorSecret { get; private set; }
 
     /// <summary>EF Core 无参构造。</summary>
     private User() { }
@@ -297,6 +307,125 @@ public sealed partial class User : AggregateRoot
         PhoneNumber = string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim();
     }
 
+    /// <summary>
+    /// 绑定外部登录，若同 Provider 已绑定则抛出异常。
+    /// 附加 <see cref="ExternalLoginLinkedEvent"/>。
+    /// </summary>
+    public void LinkExternalLogin(string provider, string providerUserId, string? email, string? name, string? avatarUrl)
+    {
+        if (string.IsNullOrWhiteSpace(provider))
+        {
+            throw new UserAuthDomainException("OAuth2 提供方不可为空", "OAUTH_PROVIDER_EMPTY");
+        }
+
+        if (string.IsNullOrWhiteSpace(providerUserId))
+        {
+            throw new UserAuthDomainException("第三方用户标识不可为空", "OAUTH_PROVIDER_USER_ID_EMPTY");
+        }
+
+        var normalizedProvider = provider.Trim().ToLowerInvariant();
+        if (_externalLogins.Any(el => el.Provider == normalizedProvider))
+        {
+            throw new UserAuthDomainException(
+                $"已绑定 {provider} 登录，不可重复绑定", "EXTERNAL_LOGIN_ALREADY_LINKED", 409);
+        }
+
+        _externalLogins.Add(new ExternalLogin(normalizedProvider, providerUserId.Trim(), email, name, avatarUrl));
+
+        AddDomainEvent(new ExternalLoginLinkedEvent(Id, normalizedProvider, providerUserId.Trim()));
+    }
+
+    /// <summary>
+    /// 解绑指定提供方的外部登录。若未绑定则忽略。
+    /// OAuth 用户须至少保留一个外部登录绑定。
+    /// 附加 <see cref="ExternalLoginUnlinkedEvent"/>。
+    /// </summary>
+    public void UnlinkExternalLogin(string provider)
+    {
+        if (string.IsNullOrWhiteSpace(provider))
+        {
+            throw new UserAuthDomainException("OAuth2 提供方不可为空", "OAUTH_PROVIDER_EMPTY");
+        }
+
+        var normalizedProvider = provider.Trim().ToLowerInvariant();
+        var existing = _externalLogins.FirstOrDefault(el => el.Provider == normalizedProvider);
+        if (existing is null)
+        {
+            return;
+        }
+
+        // 仅 OAuth 用户（无密码、无手机号）须至少保留一个外部登录
+        if (string.IsNullOrEmpty(PasswordHash) && string.IsNullOrEmpty(PhoneNumber) && _externalLogins.Count <= 1)
+        {
+            throw new UserAuthDomainException("至少保留一个外部登录绑定", "EXTERNAL_LOGIN_LAST", 409);
+        }
+
+        _externalLogins.Remove(existing);
+
+        AddDomainEvent(new ExternalLoginUnlinkedEvent(Id, normalizedProvider, existing.ProviderUserId));
+    }
+
+    /// <summary>
+    /// 从外部登录信息创建 OAuth 用户（无密码、无手机号）。
+    /// 用户名从邮箱前缀生成，初始角色为 Buyer，附加 <see cref="UserRegisteredEvent"/>。
+    /// </summary>
+    public static User CreateFromExternal(Guid id, ExternalLoginInfo info)
+    {
+        if (id == Guid.Empty)
+        {
+            throw new UserAuthDomainException("用户标识不可为空", "USER_ID_EMPTY");
+        }
+
+        ArgumentNullException.ThrowIfNull(info);
+
+        var username = GenerateUsernameFromEmail(info.Email);
+        var nickname = info.Name;
+
+        // 昵称可能为空，使用邮箱前缀兜底
+        if (string.IsNullOrWhiteSpace(nickname))
+        {
+            nickname = username;
+        }
+
+        var user = new User(id)
+        {
+            Username = username,
+            Email = info.Email,
+            PhoneNumber = null,
+            PasswordHash = null,
+            Nickname = nickname.Trim(),
+            AvatarUrl = info.AvatarUrl,
+            Status = AccountStatus.Active,
+            FailedLoginCount = 0
+        };
+        user._roles.Add(new UserRole(RoleType.Buyer));
+        user._externalLogins.Add(new ExternalLogin(info.Provider, info.ProviderUserId, info.Email, info.Name, info.AvatarUrl));
+
+        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Username, user.Email, user.PhoneNumber));
+
+        return user;
+    }
+
+    /// <summary>从邮箱前缀生成用户名，若冲突由应用层重试时追加后缀。</summary>
+    private static string GenerateUsernameFromEmail(string email)
+    {
+        var atIndex = email.IndexOf('@');
+        var prefix = atIndex > 0 ? email[..atIndex] : email;
+        var sanitized = new string(prefix.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray());
+
+        if (sanitized.Length < 3)
+        {
+            sanitized = sanitized.PadRight(3, '0');
+        }
+
+        if (sanitized.Length > 32)
+        {
+            sanitized = sanitized[..32];
+        }
+
+        return sanitized;
+    }
+
     /// <summary>判断账户当前是否可登录（未禁用且未在锁定期）。</summary>
     public bool CanLogin()
     {
@@ -311,6 +440,133 @@ public sealed partial class User : AggregateRoot
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// 启用双因子认证：生成 TOTP 密钥，置 TwoFactorEnabled=false 待确认。
+    /// 调用 <see cref="ConfirmTwoFactor"/> 完成验证后才会真正启用。
+    /// </summary>
+    /// <param name="tokenVerifier">TOTP 令牌验证器。</param>
+    /// <returns>生成的 QR 码 URI（Base32 密钥可通过 TwoFactorSecret 属性获取）。</returns>
+    public string EnableTwoFactor(ITokenVerifier tokenVerifier)
+    {
+        ArgumentNullException.ThrowIfNull(tokenVerifier);
+
+        if (TwoFactorEnabled)
+        {
+            throw new UserAuthDomainException("双因子认证已启用，请先禁用后再重新设置", "USER_2FA_ALREADY_ENABLED", 409);
+        }
+
+        TwoFactorSecret = tokenVerifier.GenerateSecret();
+        TwoFactorEnabled = false;
+
+        var accountName = !string.IsNullOrWhiteSpace(Email) ? Email : Username;
+        return tokenVerifier.GenerateQrCodeUri(accountName, TwoFactorSecret);
+    }
+
+    /// <summary>
+    /// 确认双因子认证：验证 TOTP 码，通过后置 TwoFactorEnabled=true。
+    /// </summary>
+    /// <param name="totpCode">用户输入的 6 位 TOTP 验证码。</param>
+    /// <param name="tokenVerifier">TOTP 令牌验证器。</param>
+    public void ConfirmTwoFactor(string totpCode, ITokenVerifier tokenVerifier)
+    {
+        ArgumentNullException.ThrowIfNull(tokenVerifier);
+
+        if (TwoFactorEnabled)
+        {
+            throw new UserAuthDomainException("双因子认证已确认，无需重复确认", "USER_2FA_ALREADY_CONFIRMED", 409);
+        }
+
+        if (string.IsNullOrWhiteSpace(TwoFactorSecret))
+        {
+            throw new UserAuthDomainException("请先启用双因子认证", "USER_2FA_NOT_INITIATED", 400);
+        }
+
+        if (string.IsNullOrWhiteSpace(totpCode))
+        {
+            throw new UserAuthDomainException("验证码不可为空", "USER_2FA_CODE_EMPTY");
+        }
+
+        if (!tokenVerifier.Verify(TwoFactorSecret, totpCode.Trim()))
+        {
+            throw new UserAuthDomainException("验证码无效或已过期", "USER_2FA_CODE_INVALID", 401);
+        }
+
+        TwoFactorEnabled = true;
+    }
+
+    /// <summary>
+    /// 禁用双因子认证：清除密钥与启用状态。
+    /// 需重新确认当前身份（如密码验证）后方可调用。
+    /// </summary>
+    public void DisableTwoFactor()
+    {
+        if (!TwoFactorEnabled)
+        {
+            throw new UserAuthDomainException("双因子认证未启用", "USER_2FA_NOT_ENABLED", 409);
+        }
+
+        TwoFactorEnabled = false;
+        TwoFactorSecret = null;
+    }
+
+    /// <summary>
+    /// 验证 TOTP 码（用于登录第二因子验证），不改变任何状态。
+    /// </summary>
+    /// <param name="totpCode">用户输入的 6 位 TOTP 验证码。</param>
+    /// <param name="tokenVerifier">TOTP 令牌验证器。</param>
+    /// <returns>验证通过返回 true。</returns>
+    public bool VerifyTwoFactorCode(string totpCode, ITokenVerifier tokenVerifier)
+    {
+        ArgumentNullException.ThrowIfNull(tokenVerifier);
+
+        if (!TwoFactorEnabled)
+        {
+            throw new UserAuthDomainException("双因子认证未启用", "USER_2FA_NOT_ENABLED", 409);
+        }
+
+        if (string.IsNullOrWhiteSpace(TwoFactorSecret))
+        {
+            throw new UserAuthDomainException("双因子认证密钥缺失", "USER_2FA_SECRET_MISSING", 500);
+        }
+
+        if (string.IsNullOrWhiteSpace(totpCode))
+        {
+            return false;
+        }
+
+        return tokenVerifier.Verify(TwoFactorSecret, totpCode.Trim());
+    }
+
+    /// <summary>
+    /// 重置密码（密码找回流程），直接设置新密码哈希，附加 <see cref="UserPasswordChangedEvent"/>。
+    /// </summary>
+    public void ResetPassword(string newPasswordHash, IPasswordHasher hasher)
+    {
+        ArgumentNullException.ThrowIfNull(hasher);
+
+        if (string.IsNullOrWhiteSpace(newPasswordHash))
+        {
+            throw new UserAuthDomainException("新密码哈希不可为空", "USER_PASSWORD_HASH_EMPTY");
+        }
+
+        PasswordHash = newPasswordHash;
+
+        AddDomainEvent(new UserPasswordChangedEvent(Id));
+    }
+
+    /// <summary>
+    /// 发布忘记密码请求事件，附加 <see cref="ForgotPasswordRequestedEvent"/>。
+    /// </summary>
+    public void PublishForgotPasswordRequested(string resetToken)
+    {
+        if (string.IsNullOrWhiteSpace(resetToken))
+        {
+            throw new UserAuthDomainException("重置令牌不可为空", "USER_RESET_TOKEN_EMPTY");
+        }
+
+        AddDomainEvent(new ForgotPasswordRequestedEvent(Id, Email, PhoneNumber, resetToken));
     }
 
     private static void ValidateUsername(string username)

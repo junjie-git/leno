@@ -11,21 +11,25 @@ namespace Leno.Promotion.Application.Services;
 
 /// <summary>
 /// 秒杀应用服务实现。
-/// 秒杀下单采用“Redis 预扣 + 异步创建订单”模式，保证高并发下的库存安全与最终一致性。
+/// 秒杀下单采用"Redis 预扣 + 异步创建订单"模式，保证高并发下的库存安全与最终一致性。
+/// 支持多 SKU 库存管理，Redis 使用 Hash 结构存储。
 /// </summary>
 public sealed class SeckillAppService : ISeckillAppService
 {
     private readonly ISeckillActivityRepository _repository;
     private readonly ISeckillStockService _stockService;
+    private readonly ISeckillPreOccupationRecordRepository _preOccupationRecordRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public SeckillAppService(
         ISeckillActivityRepository repository,
         ISeckillStockService stockService,
+        ISeckillPreOccupationRecordRepository preOccupationRecordRepository,
         IUnitOfWork unitOfWork)
     {
         _repository = repository;
         _stockService = stockService;
+        _preOccupationRecordRepository = preOccupationRecordRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -54,8 +58,12 @@ public sealed class SeckillAppService : ISeckillAppService
         var activity = await RequireActivityAsync(activityId, ct);
         activity.Activate();
 
-        // 初始化 Redis 库存（总库存写入 Redis，供秒杀下单原子预扣）
-        await _stockService.InitializeAsync(activity.Id, activity.TotalStock, ct);
+        // 初始化 Redis 多 SKU 库存（Hash 结构）
+        var skuStocks = new Dictionary<Guid, int>
+        {
+            { activity.SkuId, activity.TotalStock }
+        };
+        await _stockService.InitializeAsync(activity.Id, skuStocks, ct);
 
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
@@ -65,6 +73,18 @@ public sealed class SeckillAppService : ISeckillAppService
     {
         var activity = await RequireActivityAsync(activityId, ct);
         activity.Close();
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task CloseActivityWithStockWriteBackAsync(Guid activityId, CancellationToken ct = default)
+    {
+        var activity = await RequireActivityAsync(activityId, ct);
+        activity.Close();
+
+        // 活动关闭时，将 Redis 剩余库存回写到 DB
+        await _stockService.WriteBackToDbAsync(activityId, ct);
+
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
@@ -89,14 +109,23 @@ public sealed class SeckillAppService : ISeckillAppService
 
         var activity = await RequireActivityAsync(activityId, ct);
 
-        // 1. Redis 原子预扣库存 + 限购校验（高频路径）
-        var deducted = await _stockService.TryDeductAsync(
-            activity.Id, userId, dto.Quantity, activity.LimitPerUser, ct);
+        // 使用请求中的 SkuId，若未指定则使用活动的默认 SkuId（向后兼容）
+        var skuId = dto.SkuId != Guid.Empty ? dto.SkuId : activity.SkuId;
 
-        if (!deducted)
+        // 1. Redis 原子预扣库存 + 限购校验（高频路径，支持多 SKU）
+        var deductResult = await _stockService.TryDeductAsync(
+            activity.Id, skuId, userId, dto.Quantity, activity.LimitPerUser, ct);
+
+        if (deductResult != 0)
         {
+            var reason = deductResult switch
+            {
+                1 => "库存不足",
+                2 => "超出限购",
+                _ => "未知错误"
+            };
             throw new PromotionDomainException(
-                "秒杀失败：库存不足或超出限购", "SECKILL_DEDUCT_FAILED");
+                $"秒杀失败：{reason}", "SECKILL_DEDUCT_FAILED");
         }
 
         // 2. Redis 预扣成功后同步 DB 基线并发布事件；若 DB 失败则回退 Redis
@@ -108,12 +137,17 @@ public sealed class SeckillAppService : ISeckillAppService
             orderId = Guid.NewGuid();
             activity.RecordOrderCreated(userId, orderId, dto.Quantity);
 
+            // 创建预占记录，供补偿任务跟踪履约状态
+            var preOccupationRecord = SeckillPreOccupationRecord.Create(
+                activity.Id, skuId, userId, orderId, dto.Quantity);
+            await _preOccupationRecordRepository.AddAsync(preOccupationRecord, ct);
+
             await _unitOfWork.SaveEntitiesAsync(ct);
         }
         catch
         {
             // DB 写入失败，回退 Redis 预扣，保持库存最终一致
-            await _stockService.RestoreAsync(activity.Id, userId, dto.Quantity, CancellationToken.None);
+            await _stockService.RestoreAsync(activity.Id, skuId, dto.Quantity, CancellationToken.None);
             throw;
         }
 
@@ -169,7 +203,7 @@ public sealed class SeckillAppService : ISeckillAppService
     private async Task<SeckillActivityDto> ToDtoAsync(SeckillActivityAggregate activity, CancellationToken ct)
     {
         var realtimeStock = activity.Status == SeckillStatus.Active
-            ? await _stockService.GetAvailableAsync(activity.Id, ct)
+            ? await _stockService.GetAvailableAsync(activity.Id, activity.SkuId, ct)
             : activity.AvailableStock;
 
         return new SeckillActivityDto

@@ -1,5 +1,6 @@
 using Leno.Notification.Application.DTOs;
 using Leno.Notification.Domain.Aggregates;
+using Leno.Notification.Domain.Exceptions;
 using Leno.Notification.Domain.Repositories;
 using Leno.Notification.Domain.Services;
 using Leno.Notification.Domain.ValueObjects;
@@ -16,21 +17,25 @@ public sealed class NotificationTemplateAppService : INotificationTemplateAppSer
 {
     private readonly INotificationTemplateRepository _templateRepository;
     private readonly ITemplateRenderer _renderer;
+    private readonly ITemplateRenderService _templateRenderService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<NotificationTemplateAppService> _logger;
 
     public NotificationTemplateAppService(
         INotificationTemplateRepository templateRepository,
         ITemplateRenderer renderer,
+        ITemplateRenderService templateRenderService,
         IUnitOfWork unitOfWork,
         ILogger<NotificationTemplateAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(templateRepository);
         ArgumentNullException.ThrowIfNull(renderer);
+        ArgumentNullException.ThrowIfNull(templateRenderService);
         ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(logger);
         _templateRepository = templateRepository;
         _renderer = renderer;
+        _templateRenderService = templateRenderService;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -40,12 +45,23 @@ public sealed class NotificationTemplateAppService : INotificationTemplateAppSer
     {
         var templateId = Guid.NewGuid();
         var template = NotificationTemplateAggregate.Create(
-            templateId, dto.EventType, dto.Channel, dto.TitleTemplate, dto.ContentTemplate, dto.Variables);
+            templateId, dto.Code, dto.Name, dto.Channel, dto.Subject, dto.Body, dto.Variables,
+            dto.SmsTemplateCode, dto.Description);
+
+        // 校验未定义占位符
+        var undefined = _templateRenderService.ValidateUndefinedPlaceholders(template);
+        if (undefined.Count > 0)
+        {
+            throw new NotificationDomainException(
+                $"模板中存在未定义的占位符：{string.Join(", ", undefined)}",
+                "TEMPLATE_UNDEFINED_PLACEHOLDERS",
+                400);
+        }
 
         await _templateRepository.AddAsync(template, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
 
-        _logger.LogInformation("通知模板已创建 TemplateId={TemplateId} EventType={EventType} Channel={Channel}", templateId, dto.EventType, dto.Channel);
+        _logger.LogInformation("通知模板已创建 TemplateId={TemplateId} Code={Code} Channel={Channel}", templateId, dto.Code, dto.Channel);
         return ToDto(template);
     }
 
@@ -55,7 +71,18 @@ public sealed class NotificationTemplateAppService : INotificationTemplateAppSer
         var template = await _templateRepository.GetByIdAsync(templateId, ct)
             ?? throw new InvalidOperationException($"通知模板不存在 TemplateId={templateId}");
 
-        template.Update(dto.TitleTemplate, dto.ContentTemplate, dto.Variables);
+        template.Update(dto.Subject, dto.Body, dto.Variables);
+
+        // 校验未定义占位符
+        var undefined = _templateRenderService.ValidateUndefinedPlaceholders(template);
+        if (undefined.Count > 0)
+        {
+            throw new NotificationDomainException(
+                $"模板中存在未定义的占位符：{string.Join(", ", undefined)}",
+                "TEMPLATE_UNDEFINED_PLACEHOLDERS",
+                400);
+        }
+
         await _templateRepository.UpdateAsync(template, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
 
@@ -85,10 +112,10 @@ public sealed class NotificationTemplateAppService : INotificationTemplateAppSer
     }
 
     /// <inheritdoc />
-    public async Task<NotificationTemplateListResultDto> QueryTemplatesAsync(string? eventType, NotificationChannel? channel, int page, int pageSize, CancellationToken ct = default)
+    public async Task<NotificationTemplateListResultDto> QueryTemplatesAsync(string? code, NotificationChannel? channel, int page, int pageSize, CancellationToken ct = default)
     {
-        var items = await _templateRepository.QueryAsync(eventType, channel, page, pageSize, ct);
-        var total = await _templateRepository.CountAsync(eventType, channel, ct);
+        var items = await _templateRepository.QueryAsync(code, channel, page, pageSize, ct);
+        var total = await _templateRepository.CountAsync(code, channel, ct);
 
         return new NotificationTemplateListResultDto
         {
@@ -114,10 +141,13 @@ public sealed class NotificationTemplateAppService : INotificationTemplateAppSer
         return new NotificationTemplateDto
         {
             TemplateId = template.Id,
-            EventType = template.EventType,
+            Code = template.Code,
+            Name = template.Name,
             Channel = template.Channel,
-            TitleTemplate = template.TitleTemplate,
-            ContentTemplate = template.ContentTemplate,
+            Subject = template.Subject,
+            Body = template.Body,
+            SmsTemplateCode = template.SmsTemplateCode,
+            Description = template.Description,
             Variables = template.Variables,
             Status = template.Status,
             CreatedAt = template.CreatedAt,

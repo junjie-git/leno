@@ -66,11 +66,15 @@ public static class ServiceCollectionExtensions
     private static void AddFileStorage(IServiceCollection services, IConfiguration configuration)
     {
         var provider = configuration["FileStorage:Provider"] ?? "Local";
-        if (string.Equals(provider, "Local", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(provider, "MinIO", StringComparison.OrdinalIgnoreCase))
         {
+            services.AddScoped<IFileStorageService, ObjectStorageService>();
+        }
+        else
+        {
+            // 默认使用本地文件存储（开发环境）
             services.AddScoped<IFileStorageService, LocalFileStorageService>();
         }
-        // 对象存储（MinIO/OSS）适配器预留，后续按需注册
     }
 
     private static void AddAuth(IServiceCollection services)

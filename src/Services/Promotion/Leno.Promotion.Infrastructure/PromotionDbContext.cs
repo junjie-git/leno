@@ -9,7 +9,7 @@ namespace Leno.Promotion.Infrastructure;
 /// 促销域 DbContext，继承 <see cref="BaseDbContext"/> 复用审计字段填充与软删除查询过滤器。
 /// 暴露 PromotionActivity、Coupon、UserCoupon、SeckillActivity 聚合与 OutboxMessage 发件箱表的 DbSet。
 /// </summary>
-public sealed class PromotionDbContext : BaseDbContext
+public class PromotionDbContext : BaseDbContext
 {
     public PromotionDbContext(DbContextOptions<PromotionDbContext> options) : base(options)
     {
@@ -26,6 +26,9 @@ public sealed class PromotionDbContext : BaseDbContext
 
     /// <summary>秒杀活动聚合根。</summary>
     public DbSet<SeckillActivity> SeckillActivities => Set<SeckillActivity>();
+
+    /// <summary>秒杀预占记录表，跟踪 Redis 预扣后的履约状态。</summary>
+    public DbSet<SeckillPreOccupationRecord> SeckillPreOccupationRecords => Set<SeckillPreOccupationRecord>();
 
     /// <summary>发件箱消息表，与聚合变更同事务写入。</summary>
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();

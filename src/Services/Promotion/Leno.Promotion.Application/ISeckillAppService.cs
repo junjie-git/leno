@@ -21,8 +21,14 @@ public interface ISeckillAppService
     /// </summary>
     Task ActivateAsync(Guid activityId, CancellationToken ct = default);
 
-    /// <summary>关闭秒杀活动（终态）。</summary>
+    /// <summary>关闭秒杀活动（终态），并将 Redis 剩余库存回写到 DB。</summary>
     Task CloseAsync(Guid activityId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 关闭秒杀活动并将 Redis 剩余库存回写到 DB（用于活动结束时的库存同步）。
+    /// 与 <see cref="CloseAsync"/> 的区别在于增加了库存回写步骤。
+    /// </summary>
+    Task CloseActivityWithStockWriteBackAsync(Guid activityId, CancellationToken ct = default);
 
     // 买家端
 

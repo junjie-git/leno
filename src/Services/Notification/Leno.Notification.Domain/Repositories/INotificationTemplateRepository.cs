@@ -9,12 +9,15 @@ namespace Leno.Notification.Domain.Repositories;
 /// </summary>
 public interface INotificationTemplateRepository : IRepository<NotificationTemplateAggregate>
 {
-    /// <summary>按事件类型与渠道查询启用态模板。</summary>
-    Task<NotificationTemplateAggregate?> GetEnabledAsync(string eventType, NotificationChannel channel, CancellationToken ct = default);
+    /// <summary>按模板编码与渠道查询启用态模板。</summary>
+    Task<NotificationTemplateAggregate?> GetEnabledAsync(string code, NotificationChannel channel, CancellationToken ct = default);
 
     /// <summary>分页查询模板列表。</summary>
-    Task<List<NotificationTemplateAggregate>> QueryAsync(string? eventType, NotificationChannel? channel, int page, int pageSize, CancellationToken ct = default);
+    Task<List<NotificationTemplateAggregate>> QueryAsync(string? code, NotificationChannel? channel, int page, int pageSize, CancellationToken ct = default);
 
     /// <summary>统计模板总数。</summary>
-    Task<int> CountAsync(string? eventType, NotificationChannel? channel, CancellationToken ct = default);
+    Task<int> CountAsync(string? code, NotificationChannel? channel, CancellationToken ct = default);
+
+    /// <summary>按模板编码查询首个启用态模板（不限制渠道）。</summary>
+    Task<NotificationTemplateAggregate?> GetEnabledByCodeAsync(string code, CancellationToken ct = default);
 }

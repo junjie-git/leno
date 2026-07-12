@@ -72,7 +72,7 @@ public sealed class EfCoreNotificationRecordRepository : INotificationRecordRepo
     public async Task<List<NotificationRecord>> GetRetryableAsync(int limit, CancellationToken ct = default)
     {
         return await _context.NotificationRecords
-            .Where(n => n.Status == NotificationStatus.Failed && n.RetryCount < NotificationRecord.MaxRetryCount)
+            .Where(n => n.Status == NotificationStatus.Failed && n.RetryCount < NotificationRecord.DefaultMaxRetry)
             .OrderBy(n => n.CreatedAt)
             .Take(limit)
             .ToListAsync(ct);
@@ -95,6 +95,41 @@ public sealed class EfCoreNotificationRecordRepository : INotificationRecordRepo
     {
         _context.NotificationRecords.Update(aggregate);
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<NotificationRecord?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken ct = default)
+        => _context.NotificationRecords.FirstOrDefaultAsync(n => n.IdempotencyKey == idempotencyKey, ct);
+
+    /// <inheritdoc />
+    public async Task<List<NotificationRecord>> GetRetriedWithExpiredNextRetryAsync(int limit, CancellationToken ct = default)
+    {
+        return await _context.NotificationRecords
+            .Where(n => n.Status == NotificationStatus.Retried
+                        && n.NextRetryAt != null
+                        && n.NextRetryAt <= DateTime.UtcNow)
+            .OrderBy(n => n.NextRetryAt)
+            .Take(limit)
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<NotificationRecord>> GetDeadLetteredAsync(int page, int pageSize, CancellationToken ct = default)
+    {
+        return await _context.NotificationRecords
+            .Where(n => n.Status == NotificationStatus.DeadLettered)
+            .OrderByDescending(n => n.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<int> CountDeadLetteredAsync(CancellationToken ct = default)
+    {
+        return await _context.NotificationRecords
+            .Where(n => n.Status == NotificationStatus.DeadLettered)
+            .CountAsync(ct);
     }
 
     /// <inheritdoc />

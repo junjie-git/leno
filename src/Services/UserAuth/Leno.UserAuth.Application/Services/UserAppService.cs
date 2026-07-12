@@ -3,11 +3,13 @@ using Leno.UserAuth.Application.Abstractions;
 using Leno.UserAuth.Application.DTOs;
 using Leno.UserAuth.Application.Exceptions;
 using Leno.UserAuth.Domain.Aggregates;
+using Leno.UserAuth.Domain.Events;
 using Leno.UserAuth.Domain.Exceptions;
 using Leno.UserAuth.Domain.Repositories;
 using Leno.UserAuth.Domain.Services;
 using Leno.UserAuth.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
+using StackExchange.Redis;
 
 namespace Leno.UserAuth.Application.Services;
 
@@ -21,35 +23,44 @@ public sealed class UserAppService : IUserAppService
     private readonly IPasswordHasher _passwordHasher;
     private readonly IUserUniquenessChecker _uniquenessChecker;
     private readonly ITokenService _tokenService;
+    private readonly ITokenVerifier _tokenVerifier;
     private readonly IRefreshTokenStore _refreshTokenStore;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<RegisterDto> _registerValidator;
     private readonly IValidator<LoginDto> _loginValidator;
     private readonly IValidator<UpdateProfileDto> _updateProfileValidator;
     private readonly IValidator<ChangePasswordDto> _changePasswordValidator;
+    private readonly IEnumerable<IExternalAuthService> _externalAuthServices;
+    private readonly IDatabase _redis;
 
     public UserAppService(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
         IUserUniquenessChecker uniquenessChecker,
         ITokenService tokenService,
+        ITokenVerifier tokenVerifier,
         IRefreshTokenStore refreshTokenStore,
         IUnitOfWork unitOfWork,
         IValidator<RegisterDto> registerValidator,
         IValidator<LoginDto> loginValidator,
         IValidator<UpdateProfileDto> updateProfileValidator,
-        IValidator<ChangePasswordDto> changePasswordValidator)
+        IValidator<ChangePasswordDto> changePasswordValidator,
+        IEnumerable<IExternalAuthService> externalAuthServices,
+        IConnectionMultiplexer connectionMultiplexer)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _uniquenessChecker = uniquenessChecker;
         _tokenService = tokenService;
+        _tokenVerifier = tokenVerifier;
         _refreshTokenStore = refreshTokenStore;
         _unitOfWork = unitOfWork;
         _registerValidator = registerValidator;
         _loginValidator = loginValidator;
         _updateProfileValidator = updateProfileValidator;
         _changePasswordValidator = changePasswordValidator;
+        _externalAuthServices = externalAuthServices;
+        _redis = connectionMultiplexer.GetDatabase();
     }
 
     /// <inheritdoc />
@@ -133,6 +144,12 @@ public sealed class UserAppService : IUserAppService
         await _userRepository.UpdateAsync(user, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
 
+        // 如已启用双因子认证，返回临时令牌要求二次验证
+        if (user.TwoFactorEnabled)
+        {
+            return await IssueTwoFactorRequiredTokenAsync(user, ct);
+        }
+
         return await IssueTokensAsync(user, ct);
     }
 
@@ -188,6 +205,316 @@ public sealed class UserAppService : IUserAppService
         user.ChangePassword(dto.OldPassword, dto.NewPassword, _passwordHasher);
         await _userRepository.UpdateAsync(user, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<string> GetOAuthLoginUrlAsync(string provider, string redirectUri, CancellationToken ct = default)
+    {
+        var authService = ResolveAuthService(provider);
+        var state = Guid.NewGuid().ToString("N");
+
+        // 存储 state 到 Redis，TTL 5 分钟
+        var redisKey = $"oauth:state:{state}";
+        var redisValue = $"{authService.Provider}|{redirectUri}";
+        await _redis.StringSetAsync(redisKey, redisValue, TimeSpan.FromMinutes(5));
+
+        return authService.GetAuthorizationUrl(state, redirectUri);
+    }
+
+    /// <inheritdoc />
+    public async Task<TokenDto> HandleOAuthCallbackAsync(string provider, string code, string state, string redirectUri, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            throw new UserAuthDomainException("授权码不可为空", "OAUTH_CODE_EMPTY");
+        }
+
+        if (string.IsNullOrWhiteSpace(state))
+        {
+            throw new UserAuthDomainException("State 参数不可为空", "OAUTH_STATE_EMPTY");
+        }
+
+        // 校验 state
+        var redisKey = $"oauth:state:{state}";
+        var redisValue = await _redis.StringGetAsync(redisKey);
+
+        if (!redisValue.HasValue)
+        {
+            throw new UserAuthDomainException("State 已过期或无效", "OAUTH_STATE_EXPIRED", 400);
+        }
+
+        // 删除 state，防止重放
+        await _redis.KeyDeleteAsync(redisKey);
+
+        var parts = redisValue.ToString().Split('|');
+        if (parts.Length < 1)
+        {
+            throw new UserAuthDomainException("State 数据无效", "OAUTH_STATE_INVALID", 400);
+        }
+
+        var stateProvider = parts[0];
+
+        var authService = ResolveAuthService(provider);
+
+        // 交换授权码获取用户信息
+        var externalLoginInfo = await authService.ExchangeCodeAsync(code, redirectUri, ct);
+
+        // 查找是否已绑定外部登录
+        var user = await _userRepository.FindByExternalLoginAsync(
+            externalLoginInfo.Provider, externalLoginInfo.ProviderUserId, ct);
+
+        if (user is not null)
+        {
+            // 已绑定用户直接登录
+            if (!user.CanLogin())
+            {
+                if (user.Status == AccountStatus.Disabled)
+                {
+                    throw new UserAuthDomainException("账户已被禁用，请联系管理员", "USER_DISABLED", 403);
+                }
+
+                throw new UserAuthDomainException(
+                    $"账户已锁定，请于 {user.LockedUntil:O} 后重试", "USER_LOCKED", 403);
+            }
+
+            user.RecordLogin();
+            await _userRepository.UpdateAsync(user, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+
+            return await IssueTokensAsync(user, ct);
+        }
+
+        // 首次登录：检查邮箱是否已被其他账户使用
+        if (!string.IsNullOrWhiteSpace(externalLoginInfo.Email))
+        {
+            var existingByEmail = await _userRepository.GetByEmailAsync(externalLoginInfo.Email, ct);
+            if (existingByEmail is not null)
+            {
+                // 邮箱已存在，绑定到已有账户
+                existingByEmail.LinkExternalLogin(
+                    externalLoginInfo.Provider,
+                    externalLoginInfo.ProviderUserId,
+                    externalLoginInfo.Email,
+                    externalLoginInfo.Name,
+                    externalLoginInfo.AvatarUrl);
+
+                await _userRepository.UpdateAsync(existingByEmail, ct);
+                await _unitOfWork.SaveEntitiesAsync(ct);
+
+                return await IssueTokensAsync(existingByEmail, ct);
+            }
+        }
+
+        // 创建新账户
+        var newUser = User.CreateFromExternal(Guid.NewGuid(), externalLoginInfo);
+
+        // 确保用户名唯一（冲突时追加随机后缀）
+        var baseUsername = newUser.Username;
+        var retry = 0;
+        while (!await _uniquenessChecker.IsUsernameUniqueAsync(newUser.Username, null, ct))
+        {
+            retry++;
+            newUser = User.CreateFromExternal(Guid.NewGuid(), externalLoginInfo);
+            // 重试追加后缀
+            var suffix = Random.Shared.Next(1000, 9999).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var candidate = baseUsername.Length + suffix.Length <= 32
+                ? baseUsername + suffix
+                : baseUsername[..(32 - suffix.Length)] + suffix;
+
+            // Use reflection to set the username since CreateFromExternal generates it
+            typeof(User).GetProperty(nameof(User.Username))!.SetValue(newUser, candidate);
+
+            if (retry > 10)
+            {
+                throw new UserAuthDomainException("无法生成唯一用户名，请稍后重试", "USER_USERNAME_CONFLICT", 409);
+            }
+        }
+
+        await _userRepository.AddAsync(newUser, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        return await IssueTokensAsync(newUser, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<TwoFactorEnableResponseDto> EnableTwoFactorAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await RequireUserAsync(userId, ct);
+
+        var qrCodeUri = user.EnableTwoFactor(_tokenVerifier);
+        await _userRepository.UpdateAsync(user, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        return new TwoFactorEnableResponseDto
+        {
+            Secret = user.TwoFactorSecret!,
+            QrCodeUri = qrCodeUri
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task ConfirmTwoFactorAsync(Guid userId, TwoFactorConfirmDto dto, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Code))
+        {
+            throw new UserAuthDomainException("验证码不可为空", "USER_2FA_CODE_EMPTY");
+        }
+
+        var user = await RequireUserAsync(userId, ct);
+        user.ConfirmTwoFactor(dto.Code, _tokenVerifier);
+        await _userRepository.UpdateAsync(user, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task DisableTwoFactorAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await RequireUserAsync(userId, ct);
+        user.DisableTwoFactor();
+        await _userRepository.UpdateAsync(user, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<TokenDto> VerifyTwoFactorAsync(TwoFactorVerifyDto dto, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(dto.TempToken))
+        {
+            throw new UserAuthDomainException("临时令牌不可为空", "USER_2FA_TEMP_TOKEN_EMPTY");
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.Code))
+        {
+            throw new UserAuthDomainException("验证码不可为空", "USER_2FA_CODE_EMPTY");
+        }
+
+        // 从 Redis 验证临时令牌
+        var redisKey = $"2fa:temp:{dto.TempToken}";
+        var redisValue = await _redis.StringGetAsync(redisKey);
+
+        if (!redisValue.HasValue)
+        {
+            throw new UserAuthDomainException("临时令牌已过期或无效", "USER_2FA_TEMP_TOKEN_INVALID", 401);
+        }
+
+        if (!Guid.TryParse(redisValue.ToString(), out var userId))
+        {
+            throw new UserAuthDomainException("临时令牌数据无效", "USER_2FA_TEMP_TOKEN_INVALID", 401);
+        }
+
+        // 删除临时令牌，防止重放
+        await _redis.KeyDeleteAsync(redisKey);
+
+        var user = await RequireUserAsync(userId, ct);
+
+        if (!user.VerifyTwoFactorCode(dto.Code, _tokenVerifier))
+        {
+            throw new UserAuthDomainException("验证码无效或已过期", "USER_2FA_CODE_INVALID", 401);
+        }
+
+        return await IssueTokensAsync(user, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task ForgotPasswordAsync(ForgotPasswordDto dto, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Account))
+        {
+            throw new UserAuthDomainException("账号不可为空", "USER_ACCOUNT_EMPTY");
+        }
+
+        var user = await FindByAccountAsync(dto.Account, ct);
+        // 不暴露用户是否存在，统一返回成功
+        if (user is null)
+        {
+            return;
+        }
+
+        if (user.Status == AccountStatus.Disabled)
+        {
+            return;
+        }
+
+        // 生成一次性重置令牌
+        var resetToken = Guid.NewGuid().ToString("N");
+        var redisKey = $"reset:pwd:{resetToken}";
+
+        // 存储到 Redis，10 分钟过期
+        await _redis.StringSetAsync(redisKey, user.Id.ToString(), TimeSpan.FromMinutes(10));
+
+        // 发布领域事件
+        user.PublishForgotPasswordRequested(resetToken);
+
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task ResetPasswordAsync(ResetPasswordDto dto, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Token))
+        {
+            throw new UserAuthDomainException("重置令牌不可为空", "USER_RESET_TOKEN_EMPTY");
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.NewPassword))
+        {
+            throw new UserAuthDomainException("新密码不可为空", "USER_NEW_PASSWORD_EMPTY");
+        }
+
+        // 从 Redis 获取并删除令牌
+        var redisKey = $"reset:pwd:{dto.Token}";
+        var redisValue = await _redis.StringGetAsync(redisKey);
+
+        // 删除令牌，防止重复使用
+        await _redis.KeyDeleteAsync(redisKey);
+
+        if (!redisValue.HasValue)
+        {
+            throw new UserAuthDomainException("重置令牌无效或已过期", "USER_RESET_TOKEN_INVALID", 401);
+        }
+
+        if (!Guid.TryParse(redisValue.ToString(), out var userId))
+        {
+            throw new UserAuthDomainException("重置令牌数据无效", "USER_RESET_TOKEN_INVALID", 401);
+        }
+
+        var user = await RequireUserAsync(userId, ct);
+
+        if (user.Status == AccountStatus.Disabled)
+        {
+            throw new UserAuthDomainException("账户已被禁用", "USER_DISABLED", 403);
+        }
+
+        // 重置密码
+        if (string.IsNullOrEmpty(user.PasswordHash))
+        {
+            // 纯 OAuth 用户首次设置密码
+            user.ResetPassword(_passwordHasher.Hash(dto.NewPassword), _passwordHasher);
+        }
+        else
+        {
+            // 直接设置新密码（无需旧密码验证）
+            user.ResetPassword(_passwordHasher.Hash(dto.NewPassword), _passwordHasher);
+        }
+
+        await _userRepository.UpdateAsync(user, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    private async Task<TokenDto> IssueTwoFactorRequiredTokenAsync(User user, CancellationToken ct)
+    {
+        // 生成临时令牌，存储到 Redis（5 分钟过期）
+        var tempToken = Guid.NewGuid().ToString("N");
+        var redisKey = $"2fa:temp:{tempToken}";
+        await _redis.StringSetAsync(redisKey, user.Id.ToString(), TimeSpan.FromMinutes(5));
+
+        return new TokenDto
+        {
+            UserId = user.Id,
+            Username = user.Username,
+            TwoFactorRequired = true,
+            TempToken = tempToken
+        };
     }
 
     private async Task<TokenDto> IssueTokensAsync(User user, CancellationToken ct)
@@ -252,6 +579,26 @@ public sealed class UserAppService : IUserAppService
             .OrderByDescending(r => (int)r)
             .First()
             .ToString();
+    }
+
+    private IExternalAuthService ResolveAuthService(string provider)
+    {
+        if (string.IsNullOrWhiteSpace(provider))
+        {
+            throw new UserAuthDomainException("OAuth2 提供方不可为空", "OAUTH_PROVIDER_EMPTY");
+        }
+
+        var normalized = provider.Trim().ToLowerInvariant();
+        var service = _externalAuthServices.FirstOrDefault(s =>
+            string.Equals(s.Provider, normalized, StringComparison.OrdinalIgnoreCase));
+
+        if (service is null)
+        {
+            throw new UserAuthDomainException(
+                $"不支持的 OAuth2 提供方: {provider}", "OAUTH_PROVIDER_NOT_FOUND", 400);
+        }
+
+        return service;
     }
 
     private static UserDto ToUserDto(User user)

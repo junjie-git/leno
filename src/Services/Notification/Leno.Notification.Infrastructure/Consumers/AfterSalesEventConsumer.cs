@@ -1,5 +1,6 @@
 using System.Globalization;
-using Leno.Notification.Infrastructure.Services;
+using Leno.Notification.Domain.Services;
+using Leno.Notification.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -13,14 +14,14 @@ public sealed class AfterSalesEventConsumer :
     IConsumer<AfterSalesApprovedEvent>,
     IConsumer<RefundCompletedEvent>
 {
-    private readonly INotificationDispatcher _dispatcher;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<AfterSalesEventConsumer> _logger;
 
-    public AfterSalesEventConsumer(INotificationDispatcher dispatcher, ILogger<AfterSalesEventConsumer> logger)
+    public AfterSalesEventConsumer(INotificationService notificationService, ILogger<AfterSalesEventConsumer> logger)
     {
-        ArgumentNullException.ThrowIfNull(dispatcher);
+        ArgumentNullException.ThrowIfNull(notificationService);
         ArgumentNullException.ThrowIfNull(logger);
-        _dispatcher = dispatcher;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -31,15 +32,21 @@ public sealed class AfterSalesEventConsumer :
         var evt = context.Message;
         _logger.LogInformation("消费售后审核通过事件 EventId={EventId} AfterSalesId={AfterSalesId}", evt.EventId, evt.AfterSalesId);
 
-        var variables = new Dictionary<string, string>
+        var request = new NotificationRequest
         {
-            ["afterSalesId"] = evt.AfterSalesId.ToString(),
-            ["orderId"] = evt.OrderId.ToString(),
-            ["approvedAmount"] = evt.ApprovedAmount.ToString("F2", CultureInfo.InvariantCulture),
-            ["currency"] = evt.Currency
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(AfterSalesApprovedEvent))!,
+            UserId = evt.UserId,
+            IdempotencyKey = evt.EventId.ToString(),
+            Variables = new Dictionary<string, string>
+            {
+                ["afterSalesId"] = evt.AfterSalesId.ToString(),
+                ["orderId"] = evt.OrderId.ToString(),
+                ["approvedAmount"] = evt.ApprovedAmount.ToString("F2", CultureInfo.InvariantCulture),
+                ["currency"] = evt.Currency
+            }
         };
 
-        await _dispatcher.DispatchAsync(evt.UserId, "AfterSalesApprovedEvent", evt.EventId, variables, context.CancellationToken);
+        await _notificationService.SendAsync(request, context.CancellationToken);
     }
 
     /// <inheritdoc />
@@ -49,14 +56,20 @@ public sealed class AfterSalesEventConsumer :
         var evt = context.Message;
         _logger.LogInformation("消费退款完成事件 EventId={EventId} OrderId={OrderId}", evt.EventId, evt.OrderId);
 
-        var variables = new Dictionary<string, string>
+        var request = new NotificationRequest
         {
-            ["orderId"] = evt.OrderId.ToString(),
-            ["refundId"] = evt.RefundId.ToString(),
-            ["refundAmount"] = evt.RefundAmount.ToString("F2", CultureInfo.InvariantCulture),
-            ["currency"] = evt.Currency
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(RefundCompletedEvent))!,
+            UserId = evt.UserId,
+            IdempotencyKey = evt.EventId.ToString(),
+            Variables = new Dictionary<string, string>
+            {
+                ["orderId"] = evt.OrderId.ToString(),
+                ["refundId"] = evt.RefundId.ToString(),
+                ["refundAmount"] = evt.RefundAmount.ToString("F2", CultureInfo.InvariantCulture),
+                ["currency"] = evt.Currency
+            }
         };
 
-        await _dispatcher.DispatchAsync(evt.UserId, "RefundCompletedEvent", evt.EventId, variables, context.CancellationToken);
+        await _notificationService.SendAsync(request, context.CancellationToken);
     }
 }

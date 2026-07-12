@@ -5,12 +5,14 @@ using Leno.Payment.Domain.ValueObjects;
 using Leno.Payment.Infrastructure.Channels;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace Leno.Payment.Infrastructure.Notify;
 
 /// <summary>
 /// 微信支付异步通知处理器，解析通知 XML、验签、更新支付单/退款单状态并经发件箱发布集成事件。
 /// 验签或状态机非法时返回 <c>FAIL</c>，通知渠道重试；处理成功返回 <c>SUCCESS</c>。
+/// 回调幂等：使用 Redis 记录已处理的渠道交易号，防止重复处理。
 /// </summary>
 public sealed class WeChatPayNotifyHandler
 {
@@ -18,6 +20,7 @@ public sealed class WeChatPayNotifyHandler
     private readonly IPaymentOrderRepository _paymentOrderRepository;
     private readonly IRefundOrderRepository _refundOrderRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IConnectionMultiplexer? _redis;
     private readonly ILogger<WeChatPayNotifyHandler> _logger;
 
     public WeChatPayNotifyHandler(
@@ -25,13 +28,15 @@ public sealed class WeChatPayNotifyHandler
         IPaymentOrderRepository paymentOrderRepository,
         IRefundOrderRepository refundOrderRepository,
         IUnitOfWork unitOfWork,
-        ILogger<WeChatPayNotifyHandler> logger)
+        IConnectionMultiplexer? redis = null,
+        ILogger<WeChatPayNotifyHandler>? logger = null)
     {
         _adapter = adapter ?? throw new ArgumentNullException(nameof(adapter));
         _paymentOrderRepository = paymentOrderRepository ?? throw new ArgumentNullException(nameof(paymentOrderRepository));
         _refundOrderRepository = refundOrderRepository ?? throw new ArgumentNullException(nameof(refundOrderRepository));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _redis = redis;
+        _logger = logger ?? InternalNullLoggerFactory.CreateLogger<WeChatPayNotifyHandler>();
     }
 
     /// <summary>
@@ -54,6 +59,17 @@ public sealed class WeChatPayNotifyHandler
             {
                 _logger.LogWarning("微信支付通知验签失败 ChannelTradeNo={ChannelTradeNo}", result.ChannelTradeNo);
                 return "FAIL";
+            }
+
+            // 回调幂等：使用 Redis 记录已处理的渠道交易号
+            var channelTradeNo = result.ChannelTradeNo;
+            if (!string.IsNullOrEmpty(channelTradeNo))
+            {
+                if (!await MarkCallbackProcessedAsync(channelTradeNo))
+                {
+                    _logger.LogInformation("微信支付通知：回调已处理，幂等跳过 ChannelTradeNo={ChannelTradeNo}", channelTradeNo);
+                    return "SUCCESS";
+                }
             }
 
             if (result.IsPaid)
@@ -99,18 +115,18 @@ public sealed class WeChatPayNotifyHandler
             return "SUCCESS";
         }
 
-        var channelTradeNo = !string.IsNullOrEmpty(result.ChannelTradeNo) ? result.ChannelTradeNo : order.ChannelTradeNo;
-        if (string.IsNullOrEmpty(channelTradeNo))
+        var tradeNo = !string.IsNullOrEmpty(result.ChannelTradeNo) ? result.ChannelTradeNo : order.ChannelTradeNo;
+        if (string.IsNullOrEmpty(tradeNo))
         {
             _logger.LogWarning("微信支付通知：缺少第三方交易号 OutTradeNo={OutTradeNo}", outTradeNo);
             return "FAIL";
         }
 
-        order.MarkSucceeded(channelTradeNo, result.PaidAt ?? DateTime.UtcNow);
+        order.MarkSucceeded(tradeNo, result.PaidAt ?? DateTime.UtcNow);
         await _paymentOrderRepository.UpdateAsync(order);
         await _unitOfWork.SaveEntitiesAsync();
 
-        _logger.LogInformation("微信支付通知：支付单已标记成功 OutTradeNo={OutTradeNo} PaymentId={PaymentId}",
+        _logger.LogInformation("微信支付通知：支付单已标记成功并发布 PaymentSucceededEvent OutTradeNo={OutTradeNo} PaymentId={PaymentId}",
             outTradeNo, order.Id);
         return "SUCCESS";
     }
@@ -151,6 +167,29 @@ public sealed class WeChatPayNotifyHandler
         _logger.LogInformation("微信退款通知：退款单已标记成功 OutRefundNo={OutRefundNo} RefundId={RefundId}",
             outRefundNo, refund.Id);
         return "SUCCESS";
+    }
+
+    /// <summary>
+    /// 标记回调已处理（Redis 幂等），返回 true 表示首次处理。
+    /// </summary>
+    private async Task<bool> MarkCallbackProcessedAsync(string channelTradeNo)
+    {
+        if (_redis is null)
+        {
+            return true; // Redis 不可用时放行
+        }
+
+        try
+        {
+            var db = _redis.GetDatabase();
+            var key = $"payment:callback:wechatpay:{channelTradeNo}";
+            return await db.StringSetAsync(key, "processed", TimeSpan.FromDays(30), When.NotExists);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "微信支付回调幂等检查异常 ChannelTradeNo={ChannelTradeNo}", channelTradeNo);
+            return true; // 降级：Redis 异常时放行
+        }
     }
 
     private static Dictionary<string, string> ParseXml(string xml)

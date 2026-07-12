@@ -15,7 +15,10 @@ public enum AfterSalesType
 
 /// <summary>
 /// 售后状态枚举。
-/// 流转：Pending → Approved/Rejected/Cancelled；Approved → Refunding；Refunding → Completed/Failed。
+/// 流转：
+///   Pending → Approved/Rejected/Cancelled；
+///   Approved → ReturnGoods（退货退款）→ ConfirmReturn → Refunding → Completed/Failed；
+///   或 Approved → Refunding（仅退款）→ Completed/Failed。
 /// Rejected、Completed、Failed、Cancelled 为终态。
 /// </summary>
 public enum AfterSalesStatus
@@ -23,7 +26,7 @@ public enum AfterSalesStatus
     /// <summary>待审核。</summary>
     Pending = 0,
 
-    /// <summary>已同意（待退款处理）。</summary>
+    /// <summary>已同意（待买家退货/待退款处理）。</summary>
     Approved = 1,
 
     /// <summary>已驳回（终态）。</summary>
@@ -39,5 +42,11 @@ public enum AfterSalesStatus
     Failed = 5,
 
     /// <summary>已撤销（终态）。</summary>
-    Cancelled = 6
+    Cancelled = 6,
+
+    /// <summary>已退货（买家已寄回商品，待卖家确认收货）。</summary>
+    ReturnGoods = 7,
+
+    /// <summary>已确认收货（卖家已确认收到退货，待退款）。</summary>
+    ConfirmReturn = 8
 }

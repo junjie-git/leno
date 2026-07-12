@@ -143,6 +143,98 @@ public enum TaskRunStatus
 }
 
 /// <summary>
+/// 索引重建任务状态枚举。
+/// 状态机：Created → Running → Completed/Failed → Retry → Running。
+/// </summary>
+public enum RebuildTaskStatus
+{
+    /// <summary>已创建：任务已创建但未开始执行。</summary>
+    Created = 0,
+
+    /// <summary>运行中：任务正在执行重建。</summary>
+    Running = 1,
+
+    /// <summary>已完成：任务成功完成。</summary>
+    Completed = 2,
+
+    /// <summary>失败：任务执行失败，可重试。</summary>
+    Failed = 3
+}
+
+/// <summary>
+/// 死信消息状态枚举。
+/// 状态流转：Pending → Retried；Pending → Discarded。
+/// </summary>
+public enum DeadLetterStatus
+{
+    /// <summary>待处理：初始进入死信队列。</summary>
+    Pending = 0,
+
+    /// <summary>已重投：已重新发布回原主题。</summary>
+    Retried = 1,
+
+    /// <summary>已丢弃：经人工审核后确认丢弃。</summary>
+    Discarded = 2
+}
+
+/// <summary>
+/// 运营数据报表类型枚举。
+/// </summary>
+public enum ReportType
+{
+    /// <summary>订单GMV（成交总额）。</summary>
+    OrderGmv = 0,
+
+    /// <summary>支付成功率。</summary>
+    PaymentSuccessRate = 1,
+
+    /// <summary>积分发放量。</summary>
+    PointsIssued = 2,
+
+    /// <summary>通知送达率。</summary>
+    NotificationDelivery = 3,
+
+    /// <summary>售后量/退款金额。</summary>
+    AfterSalesVolume = 4,
+
+    /// <summary>店铺排行。</summary>
+    ShopRanking = 5,
+
+    /// <summary>转化率。</summary>
+    ConversionRate = 6
+}
+
+/// <summary>
+/// 模块健康状态枚举。
+/// </summary>
+public enum ModuleHealthStatus
+{
+    /// <summary>健康：模块正常运行。</summary>
+    Healthy = 0,
+
+    /// <summary>降级：模块部分功能不可用。</summary>
+    Degraded = 1,
+
+    /// <summary>不健康：模块不可用。</summary>
+    Unhealthy = 2
+}
+
+/// <summary>
+/// 统计对账状态枚举。
+/// </summary>
+public enum ReconciliationStatus
+{
+    /// <summary>一致：SystemAdmin 聚合数据与各域统计数据一致。</summary>
+    Consistent = 0,
+
+    /// <summary>发现差异：存在不一致的指标，需人工审核或自动修正。</summary>
+    DiscrepancyFound = 1,
+
+    /// <summary>对账失败：对账过程发生异常，无法完成比对。</summary>
+    Error = 2
+}
+
+/// <summary>
 /// 公告目标受众枚举。
 /// </summary>
 public enum AnnouncementTargetAudience

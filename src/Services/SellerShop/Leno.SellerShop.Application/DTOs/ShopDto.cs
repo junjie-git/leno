@@ -36,4 +36,7 @@ public sealed class ShopDto
     public DateTime CreatedAt { get; init; }
 
     public DateTime UpdatedAt { get; init; }
+
+    /// <summary>店铺资质列表。</summary>
+    public List<QualificationDto> Qualifications { get; init; } = new();
 }

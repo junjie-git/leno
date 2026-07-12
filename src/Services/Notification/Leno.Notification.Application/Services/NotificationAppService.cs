@@ -81,7 +81,7 @@ public sealed class NotificationAppService : INotificationAppService
         {
             RecordId = record.Id,
             UserId = record.UserId,
-            EventType = record.EventType,
+            TemplateCode = record.TemplateCode,
             Channel = record.Channel,
             Title = record.Title,
             Content = record.Content,

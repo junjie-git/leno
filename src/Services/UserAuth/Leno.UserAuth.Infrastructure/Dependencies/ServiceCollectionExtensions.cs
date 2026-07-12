@@ -6,6 +6,7 @@ using Leno.UserAuth.Application.Services;
 using Leno.UserAuth.Domain.Repositories;
 using Leno.UserAuth.Domain.Services;
 using Leno.UserAuth.Infrastructure.Audit;
+using Leno.UserAuth.Infrastructure.Auth;
 using Leno.UserAuth.Infrastructure.Repositories;
 using Leno.UserAuth.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -52,11 +53,31 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserUniquenessChecker, UserUniquenessChecker>();
 
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<ITokenVerifier, TotpTokenVerifier>();
         services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
 
         services.AddScoped<IUserInternalQueryService, UserInternalQueryService>();
 
+        services.AddScoped<IPermissionRepository, EfCorePermissionRepository>();
+
         services.AddScoped<AuditLogInterceptor>();
+
+        // OAuth2 第三方登录
+        services.AddHttpClient<GoogleOAuth2Client>();
+        services.AddHttpClient<WeChatOAuth2Client>();
+        services.AddHttpClient<AlipayOAuth2Client>();
+
+        services.AddScoped<IExternalAuthService, GoogleOAuth2Client>();
+        services.AddScoped<IExternalAuthService, WeChatOAuth2Client>();
+        services.AddScoped<IExternalAuthService, AlipayOAuth2Client>();
+
+        services.AddScoped<OAuth2ProviderResolver>();
+
+        // 应用服务
+        services.AddScoped<IUserAppService, UserAppService>();
+        services.AddScoped<IUserAdminAppService, UserAdminAppService>();
+        services.AddScoped<IAddressAppService, AddressAppService>();
+        services.AddScoped<IPermissionAppService, PermissionAppService>();
 
         services.AddValidatorsFromAssembly(typeof(IUserAppService).Assembly);
 

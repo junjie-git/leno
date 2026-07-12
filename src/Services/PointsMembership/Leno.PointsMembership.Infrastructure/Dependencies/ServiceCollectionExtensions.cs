@@ -42,6 +42,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMembershipLevelRepository, EfCoreMembershipLevelRepository>();
         services.AddScoped<IMembershipPackageRepository, EfCoreMembershipPackageRepository>();
         services.AddScoped<IUserMembershipRepository, EfCoreUserMembershipRepository>();
+        services.AddScoped<IMemberLevelRepository, EfCoreMemberLevelRepository>();
 
         // 积分抵扣防腐层实现位于应用层
         services.AddScoped<IPointsOffsetService, PointsOffsetAppService>();
@@ -51,6 +52,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPointsInternalAppService, PointsInternalAppService>();
         services.AddScoped<IMemberAppService, MemberAppService>();
         services.AddScoped<IMembershipPackageAppService, MembershipPackageAppService>();
+        services.AddScoped<IExchangeCouponAppService, ExchangeCouponAppService>();
 
         // FluentValidation 校验器
         services.AddValidatorsFromAssembly(typeof(IPointsAppService).Assembly);
@@ -70,7 +72,12 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<Consumers.OrderCompletedEventConsumer>();
         configurator.AddConsumer<Consumers.OrderCancelledEventConsumer>();
         configurator.AddConsumer<Consumers.OrderPaidEventConsumer>();
+        configurator.AddConsumer<Consumers.OrderAfterSalesWindowClosedEventConsumer>();
         configurator.AddConsumer<Consumers.UserRegisteredEventConsumer>();
+        configurator.AddConsumer<Consumers.ReviewApprovedEventConsumer>();
+        configurator.AddConsumer<Consumers.RefundCompletedEventConsumer>();
+        configurator.AddConsumer<Consumers.CouponExchangeSucceededEventConsumer>();
+        configurator.AddConsumer<Consumers.CouponExchangeFailedEventConsumer>();
 
         return configurator;
     }

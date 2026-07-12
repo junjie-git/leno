@@ -115,7 +115,15 @@ public sealed class LogisticsTrackingDto
 {
     public string LogisticsNo { get; init; } = string.Empty;
 
+    public string CompanyCode { get; init; } = string.Empty;
+
     public List<LogisticsTrackingNode> Nodes { get; init; } = new();
+
+    /// <summary>是否来自缓存。</summary>
+    public bool IsFromCache { get; init; }
+
+    /// <summary>是否带有警告标识（查询失败时返回缓存数据）。</summary>
+    public bool HasWarning { get; init; }
 }
 
 /// <summary>

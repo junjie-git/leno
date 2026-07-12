@@ -32,6 +32,18 @@ public sealed class CartItem : Entity
     /// </summary>
     public Guid SourceCartItemId { get; private set; }
 
+    /// <summary>是否有效（商品域事件驱动，下架时标记无效，上架时恢复）。</summary>
+    public bool IsValid { get; private set; } = true;
+
+    /// <summary>失效原因（商品下架时记录）。</summary>
+    public string? InvalidReason { get; private set; }
+
+    /// <summary>展示用商品标题（商品域信息更新时刷新）。</summary>
+    public string DisplayTitle { get; private set; } = string.Empty;
+
+    /// <summary>展示用主图 URL（商品域信息更新时刷新）。</summary>
+    public string DisplayImageUrl { get; private set; } = string.Empty;
+
     /// <summary>EF Core 无参构造。</summary>
     private CartItem() { }
 
@@ -53,6 +65,7 @@ public sealed class CartItem : Entity
         SetQuantity(quantity);
         IsSelected = true;
         SourceCartItemId = Id;
+        IsValid = true;
     }
 
     /// <summary>设置数量，校验 1-99 范围。</summary>
@@ -71,4 +84,25 @@ public sealed class CartItem : Entity
 
     /// <summary>取消选中。</summary>
     internal void Deselect() => IsSelected = false;
+
+    /// <summary>标记为无效（商品下架事件驱动），记录原因。</summary>
+    internal void MarkInvalid(string reason)
+    {
+        IsValid = false;
+        InvalidReason = string.IsNullOrWhiteSpace(reason) ? "商品已下架" : reason;
+    }
+
+    /// <summary>标记为有效（商品重新上架事件驱动），清除失效原因。</summary>
+    internal void MarkValid()
+    {
+        IsValid = true;
+        InvalidReason = null;
+    }
+
+    /// <summary>刷新展示快照（商品信息更新事件驱动）。</summary>
+    internal void RefreshDisplaySnapshot(string title, string mainImageUrl)
+    {
+        DisplayTitle = title ?? string.Empty;
+        DisplayImageUrl = mainImageUrl ?? string.Empty;
+    }
 }

@@ -11,7 +11,7 @@ using AfterSalesAggregate = Leno.ReviewAfterSales.Domain.Aggregates.AfterSales;
 namespace Leno.ReviewAfterSales.Application.Services;
 
 /// <summary>
-/// 售后应用服务实现，编排售后申请、审核、撤销与查询用例。
+/// 售后应用服务实现，编排售后申请、审核、撤销、退货、确认收货与查询用例。
 /// 审核通过时经 <see cref="IEventBus"/> 发布 <see cref="RefundRequestedIntegrationEvent"/> 请求支付域退款。
 /// 支付单标识与渠道通过 <see cref="IPaymentInfoQueryService"/> 防腐层查询。
 /// </summary>
@@ -71,22 +71,29 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
             ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
 
         afterSales.Approve(operatorId, approvedAmount);
-        afterSales.MarkRefunding();
 
-        // 查询支付单信息以发布退款请求集成事件
-        var paymentInfo = await _paymentInfoQueryService.GetByOrderIdAsync(afterSales.OrderId, ct)
-            ?? throw new InvalidOperationException($"订单支付信息不存在 OrderId={afterSales.OrderId}");
+        // 仅退款类型直接进入退款流程，经发件箱模式发布退款请求集成事件
+        if (afterSales.Type == AfterSalesType.RefundOnly)
+        {
+            afterSales.MarkRefunding();
 
-        var refundId = Guid.NewGuid();
-        var evt = new RefundRequestedIntegrationEvent(
-            refundId, afterSales.OrderId, afterSales.UserId, afterSales.Id,
-            paymentInfo.PaymentId, approvedAmount, afterSales.Currency, paymentInfo.Channel);
-        await _eventBus.PublishAsync(evt, ct);
+            var paymentInfo = await _paymentInfoQueryService.GetByOrderIdAsync(afterSales.OrderId, ct)
+                ?? throw new InvalidOperationException($"订单支付信息不存在 OrderId={afterSales.OrderId}");
+
+            var refundId = Guid.NewGuid();
+            afterSales.AddRefundRequestedEvent(
+                refundId, paymentInfo.PaymentId, approvedAmount,
+                paymentInfo.Channel, afterSales.Reason);
+
+            _logger.LogInformation("卖家审核通过仅退款售后并已入发件箱 AfterSalesId={AfterSalesId} RefundId={RefundId}", afterSalesId, refundId);
+        }
+        else
+        {
+            _logger.LogInformation("售后审核通过（退货退款，等待买家退货） AfterSalesId={AfterSalesId} ApprovedAmount={ApprovedAmount}", afterSalesId, approvedAmount);
+        }
 
         await _afterSalesRepository.UpdateAsync(afterSales, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
-
-        _logger.LogInformation("售后审核通过并已发布退款请求 AfterSalesId={AfterSalesId} RefundId={RefundId}", afterSalesId, refundId);
     }
 
     /// <inheritdoc />
@@ -96,6 +103,81 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
             ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
 
         afterSales.Reject(operatorId, reason);
+        await _afterSalesRepository.UpdateAsync(afterSales, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task ConfirmReturnAsync(Guid afterSalesId, Guid operatorId, CancellationToken ct = default)
+    {
+        var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
+            ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        afterSales.ConfirmReturn();
+        afterSales.MarkRefunding();
+
+        // 查询支付单信息，经发件箱模式发布退款请求集成事件
+        var paymentInfo = await _paymentInfoQueryService.GetByOrderIdAsync(afterSales.OrderId, ct)
+            ?? throw new InvalidOperationException($"订单支付信息不存在 OrderId={afterSales.OrderId}");
+
+        var refundId = Guid.NewGuid();
+        var refundAmount = afterSales.ApprovedAmount ?? afterSales.RequestedAmount;
+        afterSales.AddRefundRequestedEvent(
+            refundId, paymentInfo.PaymentId, refundAmount,
+            paymentInfo.Channel, afterSales.Reason);
+
+        await _afterSalesRepository.UpdateAsync(afterSales, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        _logger.LogInformation("卖家确认收货并已入发件箱 AfterSalesId={AfterSalesId} RefundId={RefundId}", afterSalesId, refundId);
+    }
+
+    /// <inheritdoc />
+    public async Task AdminApproveAfterSalesAsync(Guid afterSalesId, Guid operatorId, decimal approvedAmount, CancellationToken ct = default)
+    {
+        var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
+            ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        afterSales.Approve(operatorId, approvedAmount);
+
+        // 仅退款类型直接进入退款流程，经发件箱模式发布退款请求集成事件
+        if (afterSales.Type == AfterSalesType.RefundOnly)
+        {
+            afterSales.MarkRefunding();
+
+            var paymentInfo = await _paymentInfoQueryService.GetByOrderIdAsync(afterSales.OrderId, ct)
+                ?? throw new InvalidOperationException($"订单支付信息不存在 OrderId={afterSales.OrderId}");
+
+            var refundId = Guid.NewGuid();
+            afterSales.AddRefundRequestedEvent(
+                refundId, paymentInfo.PaymentId, approvedAmount,
+                paymentInfo.Channel, afterSales.Reason);
+        }
+
+        await _afterSalesRepository.UpdateAsync(afterSales, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        _logger.LogInformation("运营审核通过售后 AfterSalesId={AfterSalesId} ApprovedAmount={ApprovedAmount}", afterSalesId, approvedAmount);
+    }
+
+    /// <inheritdoc />
+    public async Task AdminRejectAfterSalesAsync(Guid afterSalesId, Guid operatorId, string reason, CancellationToken ct = default)
+    {
+        var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
+            ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        afterSales.Reject(operatorId, reason);
+        await _afterSalesRepository.UpdateAsync(afterSales, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task ReturnGoodsAsync(Guid afterSalesId, Guid userId, string trackingNo, CancellationToken ct = default)
+    {
+        var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
+            ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        afterSales.ReturnGoods(trackingNo);
         await _afterSalesRepository.UpdateAsync(afterSales, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
     }

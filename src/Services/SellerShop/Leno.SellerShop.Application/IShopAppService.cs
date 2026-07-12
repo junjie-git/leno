@@ -38,4 +38,16 @@ public interface IShopAppService
 
     /// <summary>运营端分页查询店铺列表。</summary>
     Task<PageResult<ShopDto>> QueryShopsAsync(AdminShopQueryDto query, CancellationToken ct = default);
+
+    /// <summary>卖家上传店铺资质。</summary>
+    Task<QualificationDto> SubmitQualificationAsync(Guid shopId, SubmitQualificationDto dto, Stream fileStream, string fileName, string contentType, CancellationToken ct = default);
+
+    /// <summary>运营查询店铺资质列表。</summary>
+    Task<List<QualificationDto>> GetQualificationsAsync(Guid shopId, CancellationToken ct = default);
+
+    /// <summary>运营审核通过资质。</summary>
+    Task ApproveQualificationAsync(Guid shopId, Guid qualificationId, Guid reviewedBy, CancellationToken ct = default);
+
+    /// <summary>运营驳回资质。</summary>
+    Task RejectQualificationAsync(Guid shopId, Guid qualificationId, Guid reviewedBy, ActionReasonDto dto, CancellationToken ct = default);
 }

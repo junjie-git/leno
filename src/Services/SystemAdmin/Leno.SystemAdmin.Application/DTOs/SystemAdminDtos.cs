@@ -369,3 +369,208 @@ public sealed class UpdateScheduledTaskDto
     public string CronExpression { get; set; } = string.Empty;
     public string? Parameters { get; set; }
 }
+
+/// <summary>
+/// 索引重建任务 DTO。
+/// </summary>
+public sealed class IndexRebuildTaskDto
+{
+    public Guid TaskId { get; set; }
+    public string TargetContext { get; set; } = string.Empty;
+    public string IndexName { get; set; } = string.Empty;
+    public RebuildTaskStatus Status { get; set; }
+    public string TriggeredBy { get; set; } = string.Empty;
+    public int Progress { get; set; }
+    public string? ErrorMessage { get; set; }
+    public int RetryCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+}
+
+/// <summary>
+/// 索引重建任务分页结果 DTO。
+/// </summary>
+public sealed class IndexRebuildTaskListResultDto
+{
+    public List<IndexRebuildTaskDto> Items { get; set; } = [];
+    public int Total { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+}
+
+/// <summary>
+/// 触发索引重建 DTO。
+/// </summary>
+public sealed class TriggerIndexRebuildDto
+{
+    public string TargetContext { get; set; } = string.Empty;
+    public string IndexName { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// 死信消息 DTO。
+/// </summary>
+public sealed class DeadLetterMessageDto
+{
+    public Guid MessageId { get; set; }
+    public string OriginalMessageId { get; set; } = string.Empty;
+    public string SourceContext { get; set; } = string.Empty;
+    public string OriginalTopic { get; set; } = string.Empty;
+    public string Payload { get; set; } = string.Empty;
+    public string Headers { get; set; } = string.Empty;
+    public string ErrorReason { get; set; } = string.Empty;
+    public DeadLetterStatus Status { get; set; }
+    public string? OperatorId { get; set; }
+    public string? DiscardReason { get; set; }
+    public DateTime OccurredAt { get; set; }
+    public DateTime? ProcessedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+/// <summary>
+/// 死信消息分页结果 DTO。
+/// </summary>
+public sealed class DeadLetterListResultDto
+{
+    public List<DeadLetterMessageDto> Items { get; set; } = [];
+    public int Total { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+}
+
+/// <summary>
+/// 丢弃死信消息 DTO。
+/// </summary>
+public sealed class DiscardDeadLetterDto
+{
+    public string Reason { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// 批量操作 DTO。
+/// </summary>
+public sealed class BatchOperationDto
+{
+    public List<Guid> MessageIds { get; set; } = [];
+}
+
+/// <summary>
+/// 批量操作结果 DTO。
+/// </summary>
+public sealed class BatchOperationResultDto
+{
+    public int SuccessCount { get; set; }
+    public int FailureCount { get; set; }
+    public List<BatchOperationErrorDto> Errors { get; set; } = [];
+}
+
+/// <summary>
+/// 批量操作错误明细 DTO。
+/// </summary>
+public sealed class BatchOperationErrorDto
+{
+    public Guid MessageId { get; set; }
+    public string Error { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// 模块健康详情 DTO。
+/// </summary>
+public sealed class ModuleHealthDto
+{
+    public string Module { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public List<string> Dependencies { get; set; } = [];
+    public DateTime CheckedAt { get; set; }
+    public long ResponseTimeMs { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+/// <summary>
+/// 健康聚合结果 DTO，包含整体状态与各模块详情。
+/// </summary>
+public sealed class HealthAggregationResultDto
+{
+    public string OverallStatus { get; set; } = string.Empty;
+    public List<ModuleHealthDto> Modules { get; set; } = [];
+    public DateTime AggregatedAt { get; set; }
+}
+
+// ============================================================
+// SYS-05: 跨域审计日志条目 DTOs
+// ============================================================
+
+/// <summary>
+/// 跨域审计日志条目 DTO。
+/// </summary>
+public sealed class AuditLogEntryDto
+{
+    public Guid EntryId { get; set; }
+    public Guid EventId { get; set; }
+    public string EventType { get; set; } = string.Empty;
+    public Guid AggregateId { get; set; }
+    public string Module { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public Guid OperatorId { get; set; }
+    public string? OperatorName { get; set; }
+    public string? RequestSummary { get; set; }
+    public DateTime Timestamp { get; set; }
+    public string? IpAddress { get; set; }
+}
+
+/// <summary>
+/// 跨域审计日志条目分页结果 DTO。
+/// </summary>
+public sealed class AuditLogEntryListResultDto
+{
+    public List<AuditLogEntryDto> Items { get; set; } = [];
+    public int Total { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+}
+
+// ============================================================
+// SYS-06: 接口限流规则 DTOs
+// ============================================================
+
+/// <summary>
+/// 限流规则 DTO。
+/// </summary>
+public sealed class RateLimitRuleDto
+{
+    public Guid RuleId { get; set; }
+    public string TargetApi { get; set; } = string.Empty;
+    public string? TargetContext { get; set; }
+    public int Limit { get; set; }
+    public int WindowSeconds { get; set; }
+    public LimitAlgorithm Algorithm { get; set; }
+    public LimitScope Scope { get; set; }
+    public bool Enabled { get; set; }
+    public byte[] Version { get; set; } = Array.Empty<byte>();
+}
+
+/// <summary>
+/// 限流规则分页结果 DTO。
+/// </summary>
+public sealed class RateLimitRuleListResultDto
+{
+    public List<RateLimitRuleDto> Items { get; set; } = [];
+    public int Total { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+}
+
+/// <summary>
+/// 创建/更新限流规则 DTO。
+/// </summary>
+public sealed class SaveRateLimitRuleDto
+{
+    public string TargetApi { get; set; } = string.Empty;
+    public string? TargetContext { get; set; }
+    public int Limit { get; set; }
+    public int WindowSeconds { get; set; }
+    public LimitAlgorithm Algorithm { get; set; }
+    public LimitScope Scope { get; set; }
+}

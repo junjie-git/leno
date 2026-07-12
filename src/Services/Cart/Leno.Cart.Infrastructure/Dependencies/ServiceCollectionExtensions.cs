@@ -49,6 +49,10 @@ public static class ServiceCollectionExtensions
         });
         services.AddSingleton<RedisCartCache>();
 
+        // 匿名购物车：Redis 仓储 + 应用服务
+        services.AddSingleton<IAnonymousCartRepository, RedisAnonymousCartRepository>();
+        services.AddScoped<IAnonymousCartAppService, AnonymousCartAppService>();
+
         services.AddScoped<ICartAppService, CartAppService>();
 
         services.AddValidatorsFromAssembly(typeof(ICartAppService).Assembly);
@@ -59,7 +63,7 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// 注册购物车域的 MassTransit 集成事件消费者。
     /// 在表现层调用 <c>AddLenoInfrastructure(configuration, cfg => cfg.AddCartConsumers())</c>。
-    /// 含订单创建事件消费者（清空已结算项）。
+    /// 含订单创建事件消费者（清空已结算项）与商品事件消费者（联动商品可售性）。
     /// </summary>
     public static IBusRegistrationConfigurator AddCartConsumers(this IBusRegistrationConfigurator configurator)
     {
@@ -67,6 +71,11 @@ public static class ServiceCollectionExtensions
 
         // 订单创建后清空购物车已结算项
         configurator.AddConsumer<OrderCreatedEventConsumer>();
+
+        // 商品事件联动购物车
+        configurator.AddConsumer<ProductTakenDownEventConsumer>();
+        configurator.AddConsumer<ProductPublishedEventConsumer>();
+        configurator.AddConsumer<ProductUpdatedEventConsumer>();
 
         return configurator;
     }

@@ -16,6 +16,10 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 
 // 积分会员域基础设施：DbContext、工作单元、仓储、积分抵扣防腐层、应用服务、FluentValidation 校验器
 builder.Services.AddPointsMembershipInfrastructure(builder.Configuration);
+
+// 后台服务：会员成长值等级评估 + 积分过期处理
+builder.Services.AddHostedService<Leno.PointsMembership.Api.BackgroundServices.MemberLevelEvaluationJob>();
+builder.Services.AddHostedService<Leno.PointsMembership.Api.BackgroundServices.PointsExpiryService>();
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<PointsMembershipDbContext>(tags: ["ready"]);
 

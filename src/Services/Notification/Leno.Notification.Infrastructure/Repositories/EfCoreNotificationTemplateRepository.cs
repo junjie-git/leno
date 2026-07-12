@@ -23,14 +23,14 @@ public sealed class EfCoreNotificationTemplateRepository : INotificationTemplate
         => _context.NotificationTemplates.FirstOrDefaultAsync(t => t.Id == id, ct);
 
     /// <inheritdoc />
-    public Task<NotificationTemplate?> GetEnabledAsync(string eventType, NotificationChannel channel, CancellationToken ct = default)
+    public Task<NotificationTemplate?> GetEnabledAsync(string code, NotificationChannel channel, CancellationToken ct = default)
         => _context.NotificationTemplates.FirstOrDefaultAsync(
-            t => t.EventType == eventType && t.Channel == channel && t.Status == TemplateStatus.Enabled, ct);
+            t => t.Code == code && t.Channel == channel && t.Status == TemplateStatus.Enabled, ct);
 
     /// <inheritdoc />
-    public async Task<List<NotificationTemplate>> QueryAsync(string? eventType, NotificationChannel? channel, int page, int pageSize, CancellationToken ct = default)
+    public async Task<List<NotificationTemplate>> QueryAsync(string? code, NotificationChannel? channel, int page, int pageSize, CancellationToken ct = default)
     {
-        var query = ApplyFilters(_context.NotificationTemplates.AsQueryable(), eventType, channel);
+        var query = ApplyFilters(_context.NotificationTemplates.AsQueryable(), code, channel);
         return await query
             .OrderByDescending(t => t.UpdatedAt)
             .Skip((page - 1) * pageSize)
@@ -39,9 +39,9 @@ public sealed class EfCoreNotificationTemplateRepository : INotificationTemplate
     }
 
     /// <inheritdoc />
-    public async Task<int> CountAsync(string? eventType, NotificationChannel? channel, CancellationToken ct = default)
+    public async Task<int> CountAsync(string? code, NotificationChannel? channel, CancellationToken ct = default)
     {
-        var query = ApplyFilters(_context.NotificationTemplates.AsQueryable(), eventType, channel);
+        var query = ApplyFilters(_context.NotificationTemplates.AsQueryable(), code, channel);
         return await query.CountAsync(ct);
     }
 
@@ -57,6 +57,11 @@ public sealed class EfCoreNotificationTemplateRepository : INotificationTemplate
     }
 
     /// <inheritdoc />
+    public Task<NotificationTemplate?> GetEnabledByCodeAsync(string code, CancellationToken ct = default)
+        => _context.NotificationTemplates.FirstOrDefaultAsync(
+            t => t.Code == code && t.Status == TemplateStatus.Enabled, ct);
+
+    /// <inheritdoc />
     public Task RemoveAsync(NotificationTemplate aggregate, CancellationToken ct = default)
     {
         _context.NotificationTemplates.Remove(aggregate);
@@ -65,12 +70,12 @@ public sealed class EfCoreNotificationTemplateRepository : INotificationTemplate
 
     private static IQueryable<NotificationTemplate> ApplyFilters(
         IQueryable<NotificationTemplate> query,
-        string? eventType,
+        string? code,
         NotificationChannel? channel)
     {
-        if (!string.IsNullOrWhiteSpace(eventType))
+        if (!string.IsNullOrWhiteSpace(code))
         {
-            query = query.Where(t => t.EventType == eventType);
+            query = query.Where(t => t.Code == code);
         }
 
         if (channel.HasValue)

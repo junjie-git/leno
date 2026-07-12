@@ -1,4 +1,5 @@
 using Leno.SellerShop.Domain.Aggregates;
+using Leno.SellerShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -38,5 +39,10 @@ public sealed class ShopConfiguration : IEntityTypeConfiguration<Shop>
 
         builder.HasIndex(s => s.SellerId).HasDatabaseName("ix_shops_seller_id").IsUnique();
         builder.HasIndex(s => s.Status).HasDatabaseName("ix_shops_status");
+
+        builder.HasMany<ShopQualification>("_qualifications")
+            .WithOne()
+            .HasForeignKey("ShopId")
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

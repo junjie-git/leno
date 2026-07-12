@@ -13,6 +13,8 @@ namespace Leno.Order.Domain.Aggregates;
 /// </summary>
 public sealed class Order : AggregateRoot
 {
+    /// <summary>单笔订单积分抵扣金额上限（100 积分 = 1 元）。</summary>
+    public const decimal MaxPointsOffsetAmount = 50.00m;
     /// <summary>订单编号（业务可读，全局唯一）。</summary>
     public string OrderNo { get; private set; } = string.Empty;
 
@@ -22,8 +24,8 @@ public sealed class Order : AggregateRoot
     /// <summary>买家账号标识。</summary>
     public Guid UserId { get; private set; }
 
-    /// <summary>卖家（店铺）标识，语义等同卖家与店铺管理域的 ShopId。</summary>
-    public Guid SellerId { get; private set; }
+    /// <summary>卖家（店铺）标识，语义等同卖家与店铺管理域的 ShopId。会员订阅订单可为空。</summary>
+    public Guid? SellerId { get; private set; }
 
     /// <summary>
     /// 订单明细集合，仅经聚合根维护。
@@ -73,6 +75,9 @@ public sealed class Order : AggregateRoot
     /// <summary>物流单号。</summary>
     public string? LogisticsNo { get; private set; }
 
+    /// <summary>物流公司编码，发货时记录，用于物流轨迹查询。</summary>
+    public string? LogisticsCompanyCode { get; private set; }
+
     /// <summary>完成时间（UTC）。</summary>
     public DateTime? CompletedAt { get; private set; }
 
@@ -97,7 +102,7 @@ public sealed class Order : AggregateRoot
     /// <param name="orderNo">订单编号。</param>
     /// <param name="orderType">订单类型。</param>
     /// <param name="userId">买家标识。</param>
-    /// <param name="sellerId">卖家标识。</param>
+    /// <param name="sellerId">卖家标识，会员订阅订单可传入 Guid.Empty。</param>
     /// <param name="items">订单明细列表，须非空。</param>
     /// <param name="address">收货地址快照。</param>
     /// <param name="freightAmount">运费金额。</param>
@@ -130,7 +135,7 @@ public sealed class Order : AggregateRoot
             throw new OrderDomainException("UserId 不可为空", "ORDER_USER_EMPTY");
         }
 
-        if (sellerId == Guid.Empty)
+        if (sellerId == Guid.Empty && orderType != OrderType.Membership)
         {
             throw new OrderDomainException("SellerId 不可为空", "ORDER_SELLER_EMPTY");
         }
@@ -164,12 +169,19 @@ public sealed class Order : AggregateRoot
                 "ORDER_POINTS_OFFSET_INVALID");
         }
 
+        if (pointsOffsetAmount > MaxPointsOffsetAmount)
+        {
+            throw new OrderDomainException(
+                $"积分抵现超过单笔上限：抵现 {pointsOffsetAmount}，上限 {MaxPointsOffsetAmount}",
+                "ORDER_POINTS_OFFSET_EXCEED_LIMIT");
+        }
+
         var order = new Order(orderId)
         {
             OrderNo = orderNo,
             OrderType = orderType,
             UserId = userId,
-            SellerId = sellerId,
+            SellerId = sellerId == Guid.Empty ? null : sellerId,
             Items = items,
             ItemsAmount = itemsAmount,
             DiscountAmount = 0,
@@ -192,11 +204,12 @@ public sealed class Order : AggregateRoot
     }
 
     /// <summary>
-    /// 应用优惠分摊，校验待支付态、按 SKU 定位明细并校验分摊额度，
+    /// 应用优惠分摊，校验待支付态、分摊总和等于总优惠金额、按 SKU 定位明细并校验分摊额度，
     /// 汇总分摊为 <see cref="DiscountAmount"/> 并重算 <see cref="TotalAmount"/>。
     /// </summary>
+    /// <param name="discountAmount">总优惠金额。</param>
     /// <param name="discountAllocations">按 SKU 的优惠分摊列表。</param>
-    public void ApplyDiscount(List<(Guid SkuId, decimal Allocation)> discountAllocations)
+    public void ApplyDiscount(decimal discountAmount, List<(Guid SkuId, decimal Allocation)> discountAllocations)
     {
         if (Status != OrderStatus.PendingPayment)
         {
@@ -210,7 +223,14 @@ public sealed class Order : AggregateRoot
             throw new OrderDomainException("优惠分摊列表不可为空", "ORDER_DISCOUNT_ALLOCATIONS_EMPTY");
         }
 
-        decimal totalDiscount = 0;
+        var totalDiscount = discountAllocations.Sum(a => a.Allocation);
+        if (totalDiscount != discountAmount)
+        {
+            throw new OrderDomainException(
+                $"优惠分摊总和与总优惠金额不匹配：分摊总和 {totalDiscount}，总优惠 {discountAmount}",
+                "ORDER_DISCOUNT_SUM_MISMATCH");
+        }
+
         foreach (var (skuId, allocation) in discountAllocations)
         {
             var item = Items.FirstOrDefault(i => i.SkuId == skuId);
@@ -230,7 +250,6 @@ public sealed class Order : AggregateRoot
             }
 
             item.ApplyDiscount(allocation);
-            totalDiscount += allocation;
         }
 
         DiscountAmount = totalDiscount;
@@ -256,6 +275,13 @@ public sealed class Order : AggregateRoot
             throw new OrderDomainException(
                 $"积分抵现金额非法：抵现 {pointsOffsetAmount}，可抵上限 {maxOffset}",
                 "ORDER_POINTS_OFFSET_INVALID");
+        }
+
+        if (pointsOffsetAmount > MaxPointsOffsetAmount)
+        {
+            throw new OrderDomainException(
+                $"积分抵现超过单笔上限：抵现 {pointsOffsetAmount}，上限 {MaxPointsOffsetAmount}",
+                "ORDER_POINTS_OFFSET_EXCEED_LIMIT");
         }
 
         PointsOffsetAmount = pointsOffsetAmount;
@@ -289,9 +315,10 @@ public sealed class Order : AggregateRoot
     /// 发货，校验已支付态与物流单号非空，置已发货态并发布 <see cref="OrderShippedEvent"/>。
     /// </summary>
     /// <param name="logisticsNo">物流单号。</param>
+    /// <param name="logisticsCompanyCode">物流公司编码。</param>
     /// <param name="shippedAt">发货时间（UTC）。</param>
     /// <param name="operatorId">操作人标识（审计用）。</param>
-    public void Ship(string logisticsNo, DateTime shippedAt, Guid operatorId)
+    public void Ship(string logisticsNo, string logisticsCompanyCode, DateTime shippedAt, Guid operatorId)
     {
         if (Status != OrderStatus.Paid)
         {
@@ -305,10 +332,16 @@ public sealed class Order : AggregateRoot
             throw new OrderDomainException("物流单号不可为空", "ORDER_LOGISTICS_NO_EMPTY");
         }
 
+        if (string.IsNullOrWhiteSpace(logisticsCompanyCode))
+        {
+            throw new OrderDomainException("物流公司编码不可为空", "ORDER_LOGISTICS_COMPANY_CODE_EMPTY");
+        }
+
         Status = OrderStatus.Shipped;
         LogisticsNo = logisticsNo;
+        LogisticsCompanyCode = logisticsCompanyCode;
         ShippedAt = shippedAt;
-        AddDomainEvent(new OrderShippedEvent(Id, UserId, SellerId, logisticsNo, shippedAt));
+        AddDomainEvent(new OrderShippedEvent(Id, UserId, SellerId ?? Guid.Empty, logisticsNo, shippedAt));
     }
 
     /// <summary>
@@ -326,7 +359,7 @@ public sealed class Order : AggregateRoot
         Status = OrderStatus.Completed;
         CompletedAt = DateTime.UtcNow;
         AfterSalesWindowEndsAt = CompletedAt.Value.AddDays(7);
-        AddDomainEvent(new OrderCompletedEvent(Id, UserId, SellerId, TotalAmount, "CNY", CompletedAt.Value));
+        AddDomainEvent(new OrderCompletedEvent(Id, UserId, SellerId ?? Guid.Empty, TotalAmount, "CNY", CompletedAt.Value));
     }
 
     /// <summary>
@@ -349,11 +382,11 @@ public sealed class Order : AggregateRoot
         Status = OrderStatus.Completed;
         CompletedAt = DateTime.UtcNow;
         AfterSalesWindowEndsAt = CompletedAt.Value;
-        AddDomainEvent(new OrderCompletedEvent(Id, UserId, SellerId, TotalAmount, "CNY", CompletedAt.Value));
+        AddDomainEvent(new OrderCompletedEvent(Id, UserId, SellerId ?? Guid.Empty, TotalAmount, "CNY", CompletedAt.Value));
     }
 
     /// <summary>
-    /// 关闭售后窗口，校验已完成态，置已关闭态并发布 <see cref="OrderAfterSalesWindowClosedEvent"/>。
+    /// 关闭售后窗口，校验已完成态且当前时间已到达售后窗口结束时间，置已关闭态并发布 <see cref="OrderAfterSalesWindowClosedEvent"/>。
     /// </summary>
     public void CloseAfterSalesWindow()
     {
@@ -364,8 +397,15 @@ public sealed class Order : AggregateRoot
                 "ORDER_CLOSE_STATUS_INVALID");
         }
 
+        if (AfterSalesWindowEndsAt is null || DateTime.UtcNow < AfterSalesWindowEndsAt.Value)
+        {
+            throw new OrderDomainException(
+                "售后窗口尚未结束，不可关闭",
+                "ORDER_AFTERSALES_WINDOW_NOT_ENDED");
+        }
+
         Status = OrderStatus.Closed;
-        AddDomainEvent(new OrderAfterSalesWindowClosedEvent(Id, UserId, AfterSalesWindowEndsAt!.Value));
+        AddDomainEvent(new OrderAfterSalesWindowClosedEvent(Id, UserId, TotalAmount, AfterSalesWindowEndsAt!.Value));
     }
 
     /// <summary>

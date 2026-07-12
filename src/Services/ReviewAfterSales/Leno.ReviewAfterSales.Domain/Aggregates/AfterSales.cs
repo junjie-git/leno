@@ -7,7 +7,10 @@ namespace Leno.ReviewAfterSales.Domain.Aggregates;
 
 /// <summary>
 /// 售后单聚合根，封装售后类型、申请金额与状态机。
-/// 状态流转：Pending → Approved/Rejected/Cancelled；Approved → Refunding；Refunding → Completed/Failed。
+/// 状态流转：
+///   Pending → Approved/Rejected/Cancelled；
+///   Approved → ReturnGoods（退货退款）→ ConfirmReturn → Refunding → Completed/Failed；
+///   或 Approved → Refunding（仅退款）→ Completed/Failed。
 /// 聚合标识 <see cref="Entity.Id"/> 即对外 <c>AfterSalesId</c>。
 /// </summary>
 public sealed class AfterSales : AggregateRoot
@@ -81,6 +84,15 @@ public sealed class AfterSales : AggregateRoot
 
     /// <summary>撤销原因。</summary>
     public string? CancelReason { get; private set; }
+
+    /// <summary>买家退货时间（UTC）。</summary>
+    public DateTime? ReturnedAt { get; private set; }
+
+    /// <summary>退货物流单号。</summary>
+    public string? TrackingNo { get; private set; }
+
+    /// <summary>卖家确认收货时间（UTC）。</summary>
+    public DateTime? ReturnConfirmedAt { get; private set; }
 
     /// <summary>EF Core 无参构造。</summary>
     private AfterSales() { }
@@ -222,7 +234,7 @@ public sealed class AfterSales : AggregateRoot
     }
 
     /// <summary>
-    /// 审核驳回，校验待审核态，置已驳回态并记录驳回原因。
+    /// 审核驳回，校验待审核态，置已驳回态并记录驳回原因，发布 <see cref="AfterSalesRejectedEvent"/>。
     /// </summary>
     /// <param name="operatorId">审核人标识。</param>
     /// <param name="reason">驳回原因，1-200 字。</param>
@@ -254,22 +266,84 @@ public sealed class AfterSales : AggregateRoot
         RejectReason = reason;
         ApproverId = operatorId;
         ApprovedAt = DateTime.UtcNow;
+        AddDomainEvent(new AfterSalesRejectedEvent(Id, OrderId, UserId, reason));
     }
 
     /// <summary>
-    /// 进入退款中，校验已同意态，置退款中态。
+    /// 买家退货，仅退货退款类型在已同意态可调用，置已退货态并发布 <see cref="AfterSalesReturnedEvent"/>。
     /// </summary>
-    public void MarkRefunding()
+    /// <param name="trackingNo">退货物流单号，不可为空。</param>
+    public void ReturnGoods(string trackingNo)
     {
+        if (Type != AfterSalesType.ReturnRefund)
+        {
+            throw new ReviewDomainException(
+                $"售后类型 {Type} 不可退货，仅 ReturnRefund 可退货",
+                "AFTERSALES_RETURN_TYPE_INVALID");
+        }
+
         if (Status != AfterSalesStatus.Approved)
         {
             throw new ReviewDomainException(
-                $"当前状态 {Status} 不可进入退款中，仅 Approved 可退款",
-                "AFTERSALES_REFUNDING_STATUS_INVALID");
+                $"当前状态 {Status} 不可退货，仅 Approved 可退货",
+                "AFTERSALES_RETURN_STATUS_INVALID");
         }
 
-        Status = AfterSalesStatus.Refunding;
+        if (string.IsNullOrWhiteSpace(trackingNo))
+        {
+            throw new ReviewDomainException("退货物流单号不可为空", "AFTERSALES_TRACKING_NO_EMPTY");
+        }
+
+        if (trackingNo.Length > 64)
+        {
+            throw new ReviewDomainException("退货物流单号不可超过 64 字", "AFTERSALES_TRACKING_NO_TOO_LONG");
+        }
+
+        Status = AfterSalesStatus.ReturnGoods;
+        ReturnedAt = DateTime.UtcNow;
+        TrackingNo = trackingNo;
+        AddDomainEvent(new AfterSalesReturnedEvent(Id, OrderId, SellerId, trackingNo));
     }
+
+    /// <summary>
+    /// 卖家确认收货，校验已退货态，置已确认收货态并发布 <see cref="AfterSalesReturnConfirmedEvent"/>。
+    /// </summary>
+    public void ConfirmReturn()
+    {
+        if (Status != AfterSalesStatus.ReturnGoods)
+        {
+            throw new ReviewDomainException(
+                $"当前状态 {Status} 不可确认收货，仅 ReturnGoods 可确认",
+                "AFTERSALES_CONFIRM_RETURN_STATUS_INVALID");
+        }
+
+        Status = AfterSalesStatus.ConfirmReturn;
+        ReturnConfirmedAt = DateTime.UtcNow;
+        AddDomainEvent(new AfterSalesReturnConfirmedEvent(
+            Id, OrderId, UserId, ApprovedAmount ?? RequestedAmount));
+    }
+
+    /// <summary>
+	    /// 进入退款中，校验类型与状态：仅退款须 Approved 态，退货退款须 ConfirmReturn 态，置退款中态。
+	    /// </summary>
+	    public void MarkRefunding()
+	    {
+	        var isValid = Type switch
+	        {
+	            AfterSalesType.RefundOnly => Status == AfterSalesStatus.Approved,
+	            AfterSalesType.ReturnRefund => Status == AfterSalesStatus.ConfirmReturn,
+	            _ => false
+	        };
+
+	        if (!isValid)
+	        {
+	            throw new ReviewDomainException(
+	                $"当前状态 {Status} 与类型 {Type} 不可进入退款中",
+	                "AFTERSALES_REFUNDING_STATUS_INVALID");
+	        }
+
+	        Status = AfterSalesStatus.Refunding;
+	    }
 
     /// <summary>
     /// 标记退款完成，校验退款中态与退款金额 ≤ 审核同意金额，置已完成态并发布 <see cref="RefundCompletedEvent"/>。
@@ -325,7 +399,46 @@ public sealed class AfterSales : AggregateRoot
     }
 
     /// <summary>
-    /// 买家撤销，仅在待审核或已同意（未退款）态可调用，置已撤销态并记录撤销原因。
+    /// 发布退款请求集成事件，经发件箱模式在同一事务内持久化以保障原子性。
+    /// 由应用层在审核通过/确认收货后调用，校验 Refunding 态。
+    /// 事件携带 PaymentId、RefundAmount、RefundReason、AfterSalesId 供支付域执行退款。
+    /// </summary>
+    /// <param name="refundId">退款单标识，由应用层生成。</param>
+    /// <param name="paymentId">支付单标识，由应用层通过防腐层查询。</param>
+    /// <param name="refundAmount">退款金额。</param>
+    /// <param name="channel">支付渠道。</param>
+    /// <param name="refundReason">退款原因。</param>
+    public void AddRefundRequestedEvent(Guid refundId, Guid paymentId, decimal refundAmount, string channel, string refundReason)
+    {
+        if (Status != AfterSalesStatus.Refunding)
+        {
+            throw new ReviewDomainException(
+                $"当前状态 {Status} 不可发布退款请求，仅 Refunding 可发布",
+                "AFTERSALES_REFUND_REQUEST_STATUS_INVALID");
+        }
+
+        if (refundId == Guid.Empty)
+        {
+            throw new ReviewDomainException("RefundId 不可为空", "AFTERSALES_REFUND_ID_EMPTY");
+        }
+
+        if (paymentId == Guid.Empty)
+        {
+            throw new ReviewDomainException("PaymentId 不可为空", "AFTERSALES_PAYMENT_ID_EMPTY");
+        }
+
+        if (refundAmount <= 0)
+        {
+            throw new ReviewDomainException("退款金额须大于 0", "AFTERSALES_REFUND_AMOUNT_INVALID");
+        }
+
+        AddDomainEvent(new RefundRequestedIntegrationEvent(
+            refundId, OrderId, UserId, Id,
+            paymentId, refundAmount, Currency, channel, refundReason));
+    }
+
+    /// <summary>
+    /// 买家撤销，仅在待审核或已同意（未退货）态可调用，置已撤销态并记录撤销原因。
     /// </summary>
     /// <param name="userId">撤销人标识。</param>
     /// <param name="reason">撤销原因。</param>

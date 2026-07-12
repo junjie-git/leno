@@ -1,4 +1,5 @@
 using Leno.PointsMembership.Domain.Repositories;
+using Leno.PointsMembership.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using MemberAggregate = Leno.PointsMembership.Domain.Aggregates.Member;
 
@@ -24,6 +25,15 @@ public sealed class EfCoreMemberRepository : IMemberRepository
     /// <inheritdoc />
     public async Task<MemberAggregate?> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
         => await _context.Members.FirstOrDefaultAsync(m => m.UserId == userId, ct);
+
+    /// <inheritdoc />
+    public async Task<List<MemberAggregate>> GetAllActiveAsync(int skip, int take, CancellationToken ct = default)
+        => await _context.Members
+            .Where(m => m.Status == MemberStatus.Active)
+            .OrderBy(m => m.Id)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(ct);
 
     /// <inheritdoc />
     public async Task AddAsync(MemberAggregate aggregate, CancellationToken ct = default)

@@ -4,7 +4,7 @@ using Leno.SharedKernel.ValueObjects;
 namespace Leno.Cart.Application;
 
 /// <summary>
-/// 购物车管理应用服务，编排添加/修改/删除/选中/查询/结算预览用例。
+/// 购物车管理应用服务，编排添加/修改/删除/选中/查询/结算预览/合并用例。
 /// </summary>
 public interface ICartAppService
 {
@@ -25,4 +25,7 @@ public interface ICartAppService
 
     /// <summary>结算预览（按卖家分组返回选中项）。</summary>
     Task<CheckoutPreviewDto> PreviewCheckoutAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>登录时合并匿名购物车：遍历匿名购物车项逐项合并，合并后删除匿名购物车。</summary>
+    Task<CartDto> MergeAnonymousCartAsync(Guid userId, string anonymousId, CancellationToken ct = default);
 }

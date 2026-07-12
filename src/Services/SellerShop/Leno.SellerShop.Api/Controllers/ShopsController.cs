@@ -52,4 +52,25 @@ public sealed class ShopsController : SellerShopControllerBase
         var updated = await _shopAppService.UpdateShopInfoAsync(shop.Id, dto, ct);
         return Ok(ApiResponse.Success(updated));
     }
+
+    /// <summary>卖家上传店铺资质。</summary>
+    [HttpPost("me/qualifications")]
+    [ProducesResponseType(typeof(ApiResponse<QualificationDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SubmitQualificationAsync(
+        [FromForm] SubmitQualificationDto dto,
+        IFormFile file,
+        CancellationToken ct)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(ApiResponse.Fail(400, "资质文件不可为空"));
+        }
+
+        var shop = await _shopAppService.GetMyShopAsync(GetCurrentUserId(), ct);
+
+        using var stream = file.OpenReadStream();
+        var qualification = await _shopAppService.SubmitQualificationAsync(
+            shop.Id, dto, stream, file.FileName, file.ContentType, ct);
+        return Ok(ApiResponse.Success(qualification));
+    }
 }

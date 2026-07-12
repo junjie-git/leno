@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CA1707;CA1711;CA1051;CA1863;CA1305;CA1822</NoWarn>
     <AnalysisLevel>latest</AnalysisLevel>
     <AnalysisMode>Recommended</AnalysisMode>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
@@ -19,6 +19,17 @@
     <Company>Leno</Company>
     <Copyright>Copyright (c) 2026 Leno. All rights reserved.</Copyright>
     <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <!-- Test package versions -->
+  <PropertyGroup>
+    <XUnitVersion>2.9.0</XUnitVersion>
+    <XUnitRunnerVersion>2.8.2</XUnitRunnerVersion>
+    <MoqVersion>4.20.72</MoqVersion>
+    <FluentAssertionsVersion>7.0.0</FluentAssertionsVersion>
+    <TestContainersVersion>4.0.0</TestContainersVersion>
+    <CoverletVersion>6.0.2</CoverletVersion>
+    <ReportGeneratorVersion>5.3.8</ReportGeneratorVersion>
   </PropertyGroup>
 
 </Project>

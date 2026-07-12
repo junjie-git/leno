@@ -10,8 +10,8 @@ namespace Leno.ReviewAfterSales.Api.Controllers;
 
 /// <summary>
 /// 售后控制器。
-/// 买家端：提交售后申请、撤销、查询我的售后。
-/// 卖家端：查询收到的售后单。
+/// 买家端：提交售后申请、退货、撤销、查询我的售后。
+/// 卖家端：审核同意/驳回、确认收货、查询收到的售后单。
 /// 运营端：审核通过/驳回、分页查询全平台售后单。
 /// </summary>
 [ApiController]
@@ -37,6 +37,17 @@ public sealed class AfterSalesController : ReviewControllerBase
         var userId = GetCurrentUserId();
         var result = await _afterSalesAppService.SubmitAfterSalesAsync(userId, dto, ct);
         return CreatedAtAction(nameof(GetAfterSalesByOrderAsync), new { orderId = result.OrderId }, ApiResponse.Success(result));
+    }
+
+    /// <summary>买家退货填写物流单号。</summary>
+    [Authorize(Roles = "Buyer")]
+    [HttpPost("api/after-sales/{id:guid}/return-goods")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ReturnGoodsAsync(Guid id, [FromBody] ReturnGoodsDto dto, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        await _afterSalesAppService.ReturnGoodsAsync(id, userId, dto.TrackingNo, ct);
+        return Ok(ApiResponse.Success());
     }
 
     /// <summary>买家撤销售后申请。</summary>
@@ -83,20 +94,41 @@ public sealed class AfterSalesController : ReviewControllerBase
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
-        // 当前用户为卖家，SellerId 等同于 UserId
         var sellerId = GetCurrentUserId();
         var result = await _afterSalesAppService.GetBySellerAsync(sellerId, status, page, pageSize, ct);
         return Ok(ApiResponse.Success(result));
     }
 
-    /// <summary>卖家同意售后（转发运营审核接口，卖家即审核人）。</summary>
+    /// <summary>卖家审核同意售后。</summary>
     [Authorize(Roles = "Seller")]
-    [HttpPost("api/seller/after-sales/{id:guid}/agree")]
+    [HttpPost("api/seller/after-sales/{id:guid}/approve")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> AgreeAfterSalesAsync(Guid id, [FromBody] ApproveAfterSalesDto dto, CancellationToken ct)
+    public async Task<IActionResult> SellerApproveAfterSalesAsync(Guid id, [FromBody] ApproveAfterSalesDto dto, CancellationToken ct)
     {
         var operatorId = GetCurrentUserId();
         await _afterSalesAppService.ApproveAfterSalesAsync(id, operatorId, dto.ApprovedAmount, ct);
+        return Ok(ApiResponse.Success());
+    }
+
+    /// <summary>卖家驳回售后。</summary>
+    [Authorize(Roles = "Seller")]
+    [HttpPost("api/seller/after-sales/{id:guid}/reject")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SellerRejectAfterSalesAsync(Guid id, [FromBody] RejectAfterSalesDto dto, CancellationToken ct)
+    {
+        var operatorId = GetCurrentUserId();
+        await _afterSalesAppService.RejectAfterSalesAsync(id, operatorId, dto.Reason, ct);
+        return Ok(ApiResponse.Success());
+    }
+
+    /// <summary>卖家确认收到退货。</summary>
+    [Authorize(Roles = "Seller")]
+    [HttpPost("api/seller/after-sales/{id:guid}/confirm-return")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SellerConfirmReturnAsync(Guid id, CancellationToken ct)
+    {
+        var operatorId = GetCurrentUserId();
+        await _afterSalesAppService.ConfirmReturnAsync(id, operatorId, ct);
         return Ok(ApiResponse.Success());
     }
 
@@ -106,10 +138,10 @@ public sealed class AfterSalesController : ReviewControllerBase
     [Authorize(Roles = "Operator,Admin")]
     [HttpPost("api/admin/after-sales/{id:guid}/approve")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> ApproveAfterSalesAsync(Guid id, [FromBody] ApproveAfterSalesDto dto, CancellationToken ct)
+    public async Task<IActionResult> AdminApproveAfterSalesAsync(Guid id, [FromBody] ApproveAfterSalesDto dto, CancellationToken ct)
     {
         var operatorId = GetCurrentUserId();
-        await _afterSalesAppService.ApproveAfterSalesAsync(id, operatorId, dto.ApprovedAmount, ct);
+        await _afterSalesAppService.AdminApproveAfterSalesAsync(id, operatorId, dto.ApprovedAmount, ct);
         return Ok(ApiResponse.Success());
     }
 
@@ -117,10 +149,10 @@ public sealed class AfterSalesController : ReviewControllerBase
     [Authorize(Roles = "Operator,Admin")]
     [HttpPost("api/admin/after-sales/{id:guid}/reject")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> RejectAfterSalesAsync(Guid id, [FromBody] RejectAfterSalesDto dto, CancellationToken ct)
+    public async Task<IActionResult> AdminRejectAfterSalesAsync(Guid id, [FromBody] RejectAfterSalesDto dto, CancellationToken ct)
     {
         var operatorId = GetCurrentUserId();
-        await _afterSalesAppService.RejectAfterSalesAsync(id, operatorId, dto.Reason, ct);
+        await _afterSalesAppService.AdminRejectAfterSalesAsync(id, operatorId, dto.Reason, ct);
         return Ok(ApiResponse.Success());
     }
 

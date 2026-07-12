@@ -9,19 +9,25 @@ namespace Leno.PointsMembership.Api.Controllers;
 
 /// <summary>
 /// 积分控制器。
-/// 买家端（/api/points）：每日签到、积分账户查询、积分流水查询，需 Buyer 角色。
+/// 买家端（/api/points）：每日签到、积分账户查询、积分流水查询、积分兑换优惠券，需 Buyer 角色。
 /// 运营端（/api/admin/points）：手动发放积分，需 Operator/Admin 角色。
 /// </summary>
 [ApiController]
 public sealed class PointsController : PointsMembershipControllerBase
 {
     private readonly IPointsAppService _pointsAppService;
+    private readonly IExchangeCouponAppService _exchangeCouponAppService;
 
-    public PointsController(ICurrentUserContext currentUser, IPointsAppService pointsAppService)
+    public PointsController(
+        ICurrentUserContext currentUser,
+        IPointsAppService pointsAppService,
+        IExchangeCouponAppService exchangeCouponAppService)
         : base(currentUser)
     {
         ArgumentNullException.ThrowIfNull(pointsAppService);
+        ArgumentNullException.ThrowIfNull(exchangeCouponAppService);
         _pointsAppService = pointsAppService;
+        _exchangeCouponAppService = exchangeCouponAppService;
     }
 
     // ========== 买家端 ==========
@@ -54,6 +60,16 @@ public sealed class PointsController : PointsMembershipControllerBase
     {
         var ledger = await _pointsAppService.GetLedgerAsync(GetCurrentUserId(), page, pageSize, ct);
         return Ok(ApiResponse.Success(ledger));
+    }
+
+    /// <summary>积分兑换优惠券，冻结积分并发布兑换请求事件。</summary>
+    [Authorize(Roles = "Buyer")]
+    [HttpPost("api/points/exchange-coupon")]
+    [ProducesResponseType(typeof(ApiResponse<ExchangeCouponResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ExchangeCouponAsync([FromBody] ExchangeCouponDto input, CancellationToken ct)
+    {
+        var result = await _exchangeCouponAppService.ExchangeCouponAsync(input, ct);
+        return Ok(ApiResponse.Success(result));
     }
 
     // ========== 运营端 ==========

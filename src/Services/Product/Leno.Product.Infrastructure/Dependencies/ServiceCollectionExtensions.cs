@@ -72,9 +72,14 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<ShopResumedEventConsumer>();
         configurator.AddConsumer<ShopClosedEventConsumer>();
 
+        // 评价评分回写商品域
+        configurator.AddConsumer<ReviewSubmittedEventConsumer>();
+        configurator.AddConsumer<ReviewHiddenEventConsumer>();
+
         // ES 读模型同步
         configurator.AddConsumer<ProductPublishedReadModelSyncConsumer>();
         configurator.AddConsumer<ProductTakenDownReadModelSyncConsumer>();
+        configurator.AddConsumer<StockAdjustedEventConsumer>();
 
         return configurator;
     }

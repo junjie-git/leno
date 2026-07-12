@@ -48,4 +48,7 @@ public sealed class ObjectStorageOptions
     public string BucketName { get; set; } = default!;
 
     public string PublicUrl { get; set; } = default!;
+
+    /// <summary>是否使用 SSL 连接（默认 true）。</summary>
+    public bool UseSsl { get; set; } = true;
 }

@@ -41,6 +41,12 @@ public sealed class ShopMetricsConfiguration : IEntityTypeConfiguration<ShopMetr
             money.Property(p => p.Currency).HasColumnName("sales_currency").HasMaxLength(3).IsRequired();
         });
 
+        builder.OwnsOne(m => m.RefundAmount, money =>
+        {
+            money.Property(p => p.Amount).HasColumnName("refund_amount").HasPrecision(18, 2);
+            money.Property(p => p.Currency).HasColumnName("refund_currency").HasMaxLength(3).IsRequired();
+        });
+
         builder.HasIndex(m => new { m.ShopId, m.Date })
             .HasDatabaseName("ix_shop_metrics_shop_date")
             .IsUnique();

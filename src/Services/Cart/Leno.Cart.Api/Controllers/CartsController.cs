@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Leno.Cart.Api.Controllers;
 
 /// <summary>
-/// 购物车控制器，提供购物车查询、添加/修改/删除项、选中与结算预览端点。
+/// 购物车控制器，提供购物车查询、添加/修改/删除项、选中、结算预览与合并端点。
 /// 全部端点需买家角色认证，仅可操作自身购物车。
 /// </summary>
 [Authorize(Roles = "Buyer")]
@@ -77,5 +77,14 @@ public sealed class CartsController : CartControllerBase
     {
         var preview = await _cartAppService.PreviewCheckoutAsync(GetCurrentUserId(), ct);
         return Ok(ApiResponse.Success(preview));
+    }
+
+    /// <summary>登录时合并匿名购物车。</summary>
+    [HttpPost("merge")]
+    [ProducesResponseType(typeof(ApiResponse<CartDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> MergeAsync([FromBody] MergeCartRequestDto dto, CancellationToken ct)
+    {
+        var cart = await _cartAppService.MergeAnonymousCartAsync(GetCurrentUserId(), dto.AnonymousId, ct);
+        return Ok(ApiResponse.Success(cart));
     }
 }

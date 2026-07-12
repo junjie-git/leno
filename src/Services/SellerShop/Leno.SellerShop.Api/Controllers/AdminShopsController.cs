@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Leno.SellerShop.Api.Controllers;
 
 /// <summary>
-/// 运营端店铺管理控制器，提供店铺分页查询、审核与状态管理端点。
+/// 运营端店铺管理控制器，提供店铺分页查询、审核、状态管理及资质管理端点。
 /// 仅 Admin/Operator 角色可访问。
 /// </summary>
 [Authorize(Roles = "Admin,Operator")]
@@ -86,5 +86,32 @@ public sealed class AdminShopsController : SellerShopControllerBase
     {
         await _shopAppService.CloseShopAsync(id, dto, ct);
         return Ok(ApiResponse.Success("店铺已关闭"));
+    }
+
+    /// <summary>查询店铺资质列表。</summary>
+    [HttpGet("{id:guid}/qualifications")]
+    [ProducesResponseType(typeof(ApiResponse<List<QualificationDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetQualificationsAsync(Guid id, CancellationToken ct)
+    {
+        var qualifications = await _shopAppService.GetQualificationsAsync(id, ct);
+        return Ok(ApiResponse.Success(qualifications));
+    }
+
+    /// <summary>审核通过资质。</summary>
+    [HttpPost("{id:guid}/qualifications/{qualId:guid}/approve")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ApproveQualificationAsync(Guid id, Guid qualId, CancellationToken ct)
+    {
+        await _shopAppService.ApproveQualificationAsync(id, qualId, GetCurrentUserId(), ct);
+        return Ok(ApiResponse.Success("资质已审核通过"));
+    }
+
+    /// <summary>驳回资质。</summary>
+    [HttpPost("{id:guid}/qualifications/{qualId:guid}/reject")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RejectQualificationAsync(Guid id, Guid qualId, [FromBody] ActionReasonDto dto, CancellationToken ct)
+    {
+        await _shopAppService.RejectQualificationAsync(id, qualId, GetCurrentUserId(), dto, ct);
+        return Ok(ApiResponse.Success("资质已驳回"));
     }
 }

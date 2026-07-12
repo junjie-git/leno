@@ -9,7 +9,7 @@ public sealed class NotificationRecordDto
 {
     public Guid RecordId { get; set; }
     public Guid UserId { get; set; }
-    public string EventType { get; set; } = string.Empty;
+    public string TemplateCode { get; set; } = string.Empty;
     public NotificationChannel Channel { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
@@ -37,11 +37,14 @@ public sealed class NotificationListResultDto
 public sealed class NotificationTemplateDto
 {
     public Guid TemplateId { get; set; }
-    public string EventType { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public NotificationChannel Channel { get; set; }
-    public string TitleTemplate { get; set; } = string.Empty;
-    public string ContentTemplate { get; set; } = string.Empty;
-    public List<string> Variables { get; set; } = [];
+    public string Subject { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
+    public string? SmsTemplateCode { get; set; }
+    public string? Description { get; set; }
+    public List<TemplateVariable> Variables { get; set; } = [];
     public TemplateStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -52,11 +55,14 @@ public sealed class NotificationTemplateDto
 /// </summary>
 public sealed class SaveNotificationTemplateDto
 {
-    public string EventType { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public NotificationChannel Channel { get; set; }
-    public string TitleTemplate { get; set; } = string.Empty;
-    public string ContentTemplate { get; set; } = string.Empty;
-    public List<string> Variables { get; set; } = [];
+    public string Subject { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
+    public string? SmsTemplateCode { get; set; }
+    public string? Description { get; set; }
+    public List<TemplateVariable> Variables { get; set; } = [];
 }
 
 /// <summary>
@@ -113,4 +119,178 @@ public sealed class SetChannelPreferenceDto
 public sealed class MarkAsReadDto
 {
     public List<Guid> RecordIds { get; set; } = [];
+}
+
+/// <summary>
+/// 通知发送请求 DTO（内部服务间调用）。
+/// </summary>
+public sealed class SendNotificationRequest
+{
+    /// <summary>模板编码（对应 NotificationTemplate.Code）。</summary>
+    public string TemplateCode { get; set; } = string.Empty;
+
+    /// <summary>接收用户标识。</summary>
+    public Guid UserId { get; set; }
+
+    /// <summary>模板变量键值对。</summary>
+    public Dictionary<string, string> Variables { get; set; } = [];
+
+    /// <summary>幂等键，用于去重。</summary>
+    public string? IdempotencyKey { get; set; }
+
+    /// <summary>业务引用标识（如订单号）。</summary>
+    public string? BusinessRef { get; set; }
+}
+
+/// <summary>
+/// 通知发送响应 DTO。
+/// </summary>
+public sealed class SendNotificationResponse
+{
+    /// <summary>是否发送成功。</summary>
+    public bool Succeeded { get; set; }
+
+    /// <summary>通知记录标识。</summary>
+    public Guid? RecordId { get; set; }
+
+    /// <summary>错误码。</summary>
+    public string? ErrorCode { get; set; }
+
+    /// <summary>错误信息。</summary>
+    public string? ErrorMessage { get; set; }
+}
+
+/// <summary>
+/// 死信通知记录 DTO。
+/// </summary>
+public sealed class DeadLetterRecordDto
+{
+    public Guid RecordId { get; set; }
+    public Guid UserId { get; set; }
+    public string TemplateCode { get; set; } = string.Empty;
+    public NotificationChannel Channel { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+    public NotificationStatus Status { get; set; }
+    public int RetryCount { get; set; }
+    public string? ErrorMessage { get; set; }
+    public string? ErrorCode { get; set; }
+    public DateTime? FailedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>
+/// 死信列表分页查询结果。
+/// </summary>
+public sealed class DeadLetterListResultDto
+{
+    public List<DeadLetterRecordDto> Items { get; set; } = [];
+    public int Total { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+}
+
+/// <summary>
+/// 批量操作死信请求 DTO。
+/// </summary>
+public sealed class BatchDeadLetterRequestDto
+{
+    public List<Guid> RecordIds { get; set; } = [];
+    /// <summary>丢弃原因（丢弃操作时必填）。</summary>
+    public string? DiscardReason { get; set; }
+}
+
+/// <summary>
+/// 批量操作结果 DTO。
+/// </summary>
+public sealed class BatchOperationResultDto
+{
+    public int SuccessCount { get; set; }
+    public int FailureCount { get; set; }
+    public List<string> Errors { get; set; } = [];
+}
+
+/// <summary>
+/// 渠道配置 DTO（显示时敏感字段脱敏为 ******）。
+/// </summary>
+public sealed class NotificationConfigDto
+{
+    public NotificationChannel Channel { get; set; }
+    public bool Enabled { get; set; }
+    public string? SmtpHost { get; set; }
+    public int? SmtpPort { get; set; }
+    public string? SmtpUsername { get; set; }
+    /// <summary>脱敏后的密码，总是显示为 ****** 或空。</summary>
+    public string? SmtpPassword { get; set; }
+    public string? FromAddress { get; set; }
+    public bool? UseSsl { get; set; }
+    public string? SmsProvider { get; set; }
+    public string? AccessKeyId { get; set; }
+    /// <summary>脱敏后的密钥，总是显示为 ****** 或空。</summary>
+    public string? AccessKeySecret { get; set; }
+    public string? SmsSignName { get; set; }
+}
+
+/// <summary>
+/// 保存渠道配置请求 DTO。
+/// </summary>
+public sealed class SaveNotificationConfigDto
+{
+    public bool? Enabled { get; set; }
+    public string? SmtpHost { get; set; }
+    public int? SmtpPort { get; set; }
+    public string? SmtpUsername { get; set; }
+    public string? SmtpPassword { get; set; }
+    public string? FromAddress { get; set; }
+    public bool? UseSsl { get; set; }
+    public string? SmsProvider { get; set; }
+    public string? AccessKeyId { get; set; }
+    public string? AccessKeySecret { get; set; }
+    public string? SmsSignName { get; set; }
+}
+
+/// <summary>
+/// 测试发送请求 DTO。
+/// </summary>
+public sealed class TestSendRequestDto
+{
+    public NotificationChannel Channel { get; set; }
+    /// <summary>测试接收邮箱（Email 渠道必填）。</summary>
+    public string? Email { get; set; }
+    /// <summary>测试接收手机号（Sms 渠道必填）。</summary>
+    public string? PhoneNumber { get; set; }
+}
+
+/// <summary>
+/// 测试发送结果 DTO。
+/// </summary>
+public sealed class TestSendResultDto
+{
+    public bool Succeeded { get; set; }
+    public string? ErrorMessage { get; set; }
+    public string? ErrorCode { get; set; }
+}
+
+/// <summary>
+/// 频率限制配置 DTO。
+/// </summary>
+public sealed class RateLimitConfigDto
+{
+    public NotificationChannel Channel { get; set; }
+    /// <summary>每小时限制条数。</summary>
+    public int HourlyLimit { get; set; }
+    /// <summary>每日限制条数（仅 SMS 渠道）。</summary>
+    public int? DailyLimit { get; set; }
+    /// <summary>是否启用。</summary>
+    public bool Enabled { get; set; }
+}
+
+/// <summary>
+/// 保存频率限制配置请求 DTO。
+/// </summary>
+public sealed class SaveRateLimitConfigDto
+{
+    public int? HourlyLimit { get; set; }
+    public int? DailyLimit { get; set; }
+    public bool? Enabled { get; set; }
 }

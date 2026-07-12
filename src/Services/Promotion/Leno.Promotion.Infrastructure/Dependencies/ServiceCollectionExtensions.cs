@@ -41,6 +41,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICouponRepository, EfCoreCouponRepository>();
         services.AddScoped<IUserCouponRepository, EfCoreUserCouponRepository>();
         services.AddScoped<ISeckillActivityRepository, EfCoreSeckillActivityRepository>();
+        services.AddScoped<ISeckillPreOccupationRecordRepository, EfCoreSeckillPreOccupationRecordRepository>();
 
         services.AddScoped<IPromotionQueryService, EfCorePromotionQueryService>();
         services.AddScoped<ISeckillStockService, RedisSeckillStockService>();
@@ -67,7 +68,23 @@ public static class ServiceCollectionExtensions
 
         configurator.AddConsumer<Consumers.OrderPaidEventConsumer>();
         configurator.AddConsumer<Consumers.OrderCancelledEventConsumer>();
+        configurator.AddConsumer<Consumers.RefundCompletedEventConsumer>();
+        configurator.AddConsumer<Consumers.SeckillOrderCreationFailedEventConsumer>();
+        configurator.AddConsumer<Consumers.SeckillOrderConfirmedEventConsumer>();
+        configurator.AddConsumer<Consumers.PointsExchangeConsumer>();
 
         return configurator;
+    }
+
+    /// <summary>
+    /// 注册促销域的后台服务（补偿任务等）。
+    /// </summary>
+    public static IServiceCollection AddPromotionHostedServices(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.AddHostedService<BackgroundServices.SeckillPreOccupationCompensationService>();
+
+        return services;
     }
 }

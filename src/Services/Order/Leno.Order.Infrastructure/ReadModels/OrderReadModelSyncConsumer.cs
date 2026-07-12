@@ -16,7 +16,8 @@ public sealed class OrderReadModelSyncConsumer :
     IConsumer<OrderPaidEvent>,
     IConsumer<OrderShippedEvent>,
     IConsumer<OrderCompletedEvent>,
-    IConsumer<OrderCancelledEvent>
+    IConsumer<OrderCancelledEvent>,
+    IConsumer<OrderAfterSalesWindowClosedEvent>
 {
     private const string IndexName = "orders";
 
@@ -72,6 +73,13 @@ public sealed class OrderReadModelSyncConsumer :
         await SyncAsync(context.Message.OrderId, nameof(OrderCancelledEvent), context.CancellationToken);
     }
 
+    /// <inheritdoc />
+    public async Task Consume(ConsumeContext<OrderAfterSalesWindowClosedEvent> context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        await SyncAsync(context.Message.OrderId, nameof(OrderAfterSalesWindowClosedEvent), context.CancellationToken);
+    }
+
     /// <summary>
     /// 加载订单聚合并同步索引到 ES。
     /// </summary>
@@ -123,7 +131,7 @@ public sealed class OrderReadModelSyncConsumer :
             OrderId = order.Id.ToString(),
             OrderNo = order.OrderNo,
             UserId = order.UserId.ToString(),
-            SellerId = order.SellerId.ToString(),
+            SellerId = order.SellerId?.ToString() ?? string.Empty,
             Status = order.Status.ToString(),
             OrderType = order.OrderType.ToString(),
             ItemsAmount = order.ItemsAmount,

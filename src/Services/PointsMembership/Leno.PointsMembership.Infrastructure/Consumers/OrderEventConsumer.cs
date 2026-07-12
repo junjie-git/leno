@@ -111,3 +111,68 @@ public sealed class OrderCancelledEventConsumer : RedisIntegrationEventConsumerB
             integrationEvent.OrderId, account.UserId);
     }
 }
+
+/// <summary>
+/// 订单售后窗口关闭事件消费者，在售后窗口关闭后发放消费返积分并累加会员消费金额。
+/// 通过 EventId 幂等去重。
+/// </summary>
+public sealed class OrderAfterSalesWindowClosedEventConsumer : RedisIntegrationEventConsumerBase<OrderAfterSalesWindowClosedEvent>
+{
+    private readonly IPointsAccountRepository _accountRepository;
+    private readonly IMemberRepository _memberRepository;
+    private readonly IMembershipLevelRepository _levelRepository;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public OrderAfterSalesWindowClosedEventConsumer(
+        IPointsAccountRepository accountRepository,
+        IMemberRepository memberRepository,
+        IMembershipLevelRepository levelRepository,
+        IUnitOfWork unitOfWork,
+        ILogger<OrderAfterSalesWindowClosedEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
+    {
+        _accountRepository = accountRepository;
+        _memberRepository = memberRepository;
+        _levelRepository = levelRepository;
+        _unitOfWork = unitOfWork;
+    }
+
+    /// <inheritdoc />
+    protected override async Task HandleAsync(OrderAfterSalesWindowClosedEvent integrationEvent, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        // 消费返积分：1 元 = 1 积分
+        var points = (int)Math.Floor(integrationEvent.PaidAmount);
+        if (points > 0)
+        {
+            var account = await _accountRepository.GetByUserIdAsync(integrationEvent.UserId, ct);
+            if (account is not null)
+            {
+                account.Earn(PointsSource.Consumption, points, $"消费返积分-订单{integrationEvent.OrderId}");
+            }
+        }
+
+        // 累加会员消费金额并检查升级
+        if (integrationEvent.PaidAmount > 0)
+        {
+            var member = await _memberRepository.GetByUserIdAsync(integrationEvent.UserId, ct);
+            if (member is not null)
+            {
+                member.AddConsumption(integrationEvent.PaidAmount);
+
+                var levels = await _levelRepository.GetAllEnabledAsync(ct);
+                var thresholds = levels
+                    .Select(l => new LevelThreshold(l.Level, l.Name, l.MinConsumption))
+                    .ToList();
+                member.CheckUpgrade(thresholds);
+            }
+        }
+
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        Logger.LogInformation("订单 {OrderId} 售后窗口关闭，发放 {Points} 消费积分给用户 {UserId}",
+            integrationEvent.OrderId, points, integrationEvent.UserId);
+    }
+}

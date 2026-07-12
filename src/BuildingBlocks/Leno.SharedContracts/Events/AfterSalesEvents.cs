@@ -121,3 +121,108 @@ public sealed class AfterSalesApprovedEvent : IntegrationEventBase, IDomainEvent
         Type = type;
     }
 }
+
+/// <summary>
+/// 售后驳回集成事件，评价与售后域在售后单被驳回时发布。
+/// 消费方：消息通知域（通知买家驳回原因）。
+/// 同时实现 <see cref="IDomainEvent"/> 以便售后域经发件箱模式在同一事务内持久化。
+/// </summary>
+public sealed class AfterSalesRejectedEvent : IntegrationEventBase, IDomainEvent
+{
+    /// <summary>售后单标识。</summary>
+    public Guid AfterSalesId { get; init; }
+
+    /// <summary>订单标识。</summary>
+    public Guid OrderId { get; init; }
+
+    /// <summary>申请人（买家）标识。</summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>驳回原因。</summary>
+    public string RejectReason { get; init; } = string.Empty;
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => AfterSalesId;
+
+    public AfterSalesRejectedEvent() : base()
+    {
+    }
+
+    public AfterSalesRejectedEvent(Guid afterSalesId, Guid orderId, Guid userId, string rejectReason) : base()
+    {
+        AfterSalesId = afterSalesId;
+        OrderId = orderId;
+        UserId = userId;
+        RejectReason = rejectReason ?? string.Empty;
+    }
+}
+
+/// <summary>
+/// 买家退货集成事件，评价与售后域在买家寄回商品后发布。
+/// 消费方：消息通知域（通知卖家确认收货）。
+/// 同时实现 <see cref="IDomainEvent"/> 以便售后域经发件箱模式在同一事务内持久化。
+/// </summary>
+public sealed class AfterSalesReturnedEvent : IntegrationEventBase, IDomainEvent
+{
+    /// <summary>售后单标识。</summary>
+    public Guid AfterSalesId { get; init; }
+
+    /// <summary>订单标识。</summary>
+    public Guid OrderId { get; init; }
+
+    /// <summary>被申请卖家标识。</summary>
+    public Guid SellerId { get; init; }
+
+    /// <summary>退货物流单号。</summary>
+    public string TrackingNo { get; init; } = string.Empty;
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => AfterSalesId;
+
+    public AfterSalesReturnedEvent() : base()
+    {
+    }
+
+    public AfterSalesReturnedEvent(Guid afterSalesId, Guid orderId, Guid sellerId, string trackingNo) : base()
+    {
+        AfterSalesId = afterSalesId;
+        OrderId = orderId;
+        SellerId = sellerId;
+        TrackingNo = trackingNo ?? string.Empty;
+    }
+}
+
+/// <summary>
+/// 卖家确认收货集成事件，评价与售后域在卖家确认收到退货后发布。
+/// 消费方：消息通知域（通知买家退货已确认）、支付域（准备退款）。
+/// 同时实现 <see cref="IDomainEvent"/> 以便售后域经发件箱模式在同一事务内持久化。
+/// </summary>
+public sealed class AfterSalesReturnConfirmedEvent : IntegrationEventBase, IDomainEvent
+{
+    /// <summary>售后单标识。</summary>
+    public Guid AfterSalesId { get; init; }
+
+    /// <summary>订单标识。</summary>
+    public Guid OrderId { get; init; }
+
+    /// <summary>申请人（买家）标识。</summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>确认退款金额。</summary>
+    public decimal RefundAmount { get; init; }
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => AfterSalesId;
+
+    public AfterSalesReturnConfirmedEvent() : base()
+    {
+    }
+
+    public AfterSalesReturnConfirmedEvent(Guid afterSalesId, Guid orderId, Guid userId, decimal refundAmount) : base()
+    {
+        AfterSalesId = afterSalesId;
+        OrderId = orderId;
+        UserId = userId;
+        RefundAmount = refundAmount;
+    }
+}

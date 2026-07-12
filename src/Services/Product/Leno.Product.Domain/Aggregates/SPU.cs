@@ -22,6 +22,9 @@ public sealed class SPU : AggregateRoot
     private const int MaxSkuCount = 100;
 
     private readonly List<SKU> _skus = new();
+    private readonly List<AuditInfo> _auditHistory = new();
+    private readonly List<PriceChangeRecord> _priceChangeHistory = new();
+    private readonly List<StockOperationRecord> _stockOperationHistory = new();
 
     /// <summary>所属店铺标识（引用卖家与店铺管理域 ShopId）。</summary>
     public Guid ShopId { get; private set; }
@@ -61,6 +64,12 @@ public sealed class SPU : AggregateRoot
 
     /// <summary>审核人标识（通过/驳回时记录）。</summary>
     public Guid? ReviewedBy { get; private set; }
+
+    /// <summary>当前加权平均评分（基于所有可见评价计算）。</summary>
+    public double Score { get; private set; }
+
+    /// <summary>可见评价总数。</summary>
+    public int ReviewCount { get; private set; }
 
     /// <summary>EF Core 无参构造。</summary>
     private SPU() { }
@@ -155,9 +164,11 @@ public sealed class SPU : AggregateRoot
 
     /// <summary>
     /// 审核通过上架，仅待审核态可调用，流转至已上架，附加跨域 <see cref="ProductPublishedEvent"/> 与本地 <see cref="ProductReviewedEvent"/>。
+    /// 同时追加审核历史记录。
     /// </summary>
     /// <param name="reviewedBy">审核人标识。</param>
-    public void Approve(Guid reviewedBy)
+    /// <param name="operatorName">审核人名称，可选。</param>
+    public void Approve(Guid reviewedBy, string? operatorName = null)
     {
         if (Status != ProductStatus.PendingReview)
         {
@@ -175,6 +186,11 @@ public sealed class SPU : AggregateRoot
         ReviewedBy = reviewedBy;
         SuspendedByShop = false;
 
+        // 追加审核历史
+        _auditHistory.Add(AuditInfo.Approved(
+            reviewedBy.ToString(),
+            operatorName ?? reviewedBy.ToString()));
+
         // ProductPublishedEvent.SellerId 语义等同卖家与店铺管理域的 ShopId，故传 ShopId。
         AddDomainEvent(new ProductPublishedEvent(Id, ShopId));
         AddDomainEvent(new ProductReviewedEvent(Id, ProductStatus.OnSale, reviewedBy));
@@ -182,10 +198,12 @@ public sealed class SPU : AggregateRoot
 
     /// <summary>
     /// 审核驳回，仅待审核态可调用，流转回草稿，附加本地 <see cref="ProductReviewedEvent"/>。
+    /// 同时追加审核历史记录（含驳回原因）。
     /// </summary>
     /// <param name="reviewedBy">审核人标识。</param>
     /// <param name="reason">驳回原因。</param>
-    public void Reject(Guid reviewedBy, string reason)
+    /// <param name="operatorName">审核人名称，可选。</param>
+    public void Reject(Guid reviewedBy, string reason, string? operatorName = null)
     {
         if (Status != ProductStatus.PendingReview)
         {
@@ -201,6 +219,12 @@ public sealed class SPU : AggregateRoot
 
         Status = ProductStatus.Draft;
         ReviewedBy = reviewedBy;
+
+        // 追加审核历史
+        _auditHistory.Add(AuditInfo.Rejected(
+            reviewedBy.ToString(),
+            operatorName ?? reviewedBy.ToString(),
+            reason));
 
         AddDomainEvent(new ProductReviewedEvent(Id, ProductStatus.Draft, reviewedBy));
     }
@@ -367,6 +391,163 @@ public sealed class SPU : AggregateRoot
 
         AddDomainEvent(new ProductTakenDownEvent(Id, ShopId));
     }
+
+    #region Review Score
+
+    /// <summary>
+    /// 新增一条可见评价后更新商品评分摘要。
+    /// 加权平均：累计所有可见评价的评分总和 / 可见评价数量。
+    /// </summary>
+    /// <param name="newRating">新评价的评分（1-5）。</param>
+    public void UpdateReviewScore(int newRating)
+    {
+        if (newRating is < 1 or > 5)
+        {
+            throw new ProductDomainException($"评分越界：{newRating}，须 1-5", "SPU_RATING_INVALID");
+        }
+
+        var totalScore = Score * ReviewCount + newRating;
+        ReviewCount++;
+        Score = Math.Round(totalScore / ReviewCount, 2);
+    }
+
+    /// <summary>
+    /// 隐藏一条评价后重新计算商品评分摘要（从统计中移除该评分）。
+    /// </summary>
+    /// <param name="rating">被隐藏评价的评分（1-5）。</param>
+    public void RemoveReviewScore(int rating)
+    {
+        if (rating is < 1 or > 5)
+        {
+            throw new ProductDomainException($"评分越界：{rating}，须 1-5", "SPU_RATING_INVALID");
+        }
+
+        if (ReviewCount <= 0)
+        {
+            return;
+        }
+
+        if (ReviewCount == 1)
+        {
+            Score = 0;
+            ReviewCount = 0;
+            return;
+        }
+
+        var totalScore = Score * ReviewCount - rating;
+        ReviewCount--;
+        Score = Math.Round(totalScore / ReviewCount, 2);
+    }
+
+    #endregion
+
+    #region Audit History
+
+    /// <summary>
+    /// 获取审核历史记录（只读）。
+    /// </summary>
+    public IReadOnlyList<AuditInfo> GetAuditHistory() => _auditHistory.AsReadOnly();
+
+    #endregion
+
+    #region Price Change History
+
+    /// <summary>
+    /// 调整指定 SKU 的价格，记录价格变更历史。
+    /// </summary>
+    /// <param name="skuId">SKU 标识。</param>
+    /// <param name="newPrice">新价格，须 > 0。</param>
+    /// <param name="changedBy">变更人标识。</param>
+    public void AdjustPrice(Guid skuId, Money newPrice, string changedBy)
+    {
+        EnsureEditable();
+
+        if (string.IsNullOrWhiteSpace(changedBy))
+        {
+            throw new ProductDomainException("变更人标识不可为空", "SPU_CHANGED_BY_EMPTY");
+        }
+
+        ArgumentNullException.ThrowIfNull(newPrice);
+        if (newPrice.Amount <= 0)
+        {
+            throw new ProductDomainException("SKU 价格须大于 0", "SKU_PRICE_INVALID");
+        }
+
+        var sku = GetSku(skuId);
+        var oldPrice = sku.Price.Amount;
+
+        sku.UpdatePrice(newPrice);
+
+        _priceChangeHistory.Add(PriceChangeRecord.Create(
+            skuId.ToString(),
+            oldPrice,
+            newPrice.Amount,
+            changedBy));
+    }
+
+    /// <summary>
+    /// 获取指定 SKU 的价格变更历史。
+    /// </summary>
+    /// <param name="skuId">SKU 标识。</param>
+    public IReadOnlyList<PriceChangeRecord> GetPriceHistory(Guid skuId)
+    {
+        var skuIdStr = skuId.ToString();
+        return _priceChangeHistory
+            .Where(r => string.Equals(r.SkuId, skuIdStr, StringComparison.OrdinalIgnoreCase))
+            .ToList()
+            .AsReadOnly();
+    }
+
+    #endregion
+
+    #region Stock Operations
+
+    /// <summary>
+    /// 调整指定 SKU 的库存（delta 方式），校验结果 ≥ 0，记录操作日志并发布 <see cref="StockAdjustedEvent"/>。
+    /// </summary>
+    /// <param name="skuId">SKU 标识。</param>
+    /// <param name="delta">库存变动量（正数补货，负数扣减）。</param>
+    /// <param name="operatorId">操作人标识。</param>
+    public void UpdateStock(Guid skuId, int delta, string operatorId)
+    {
+        if (string.IsNullOrWhiteSpace(operatorId))
+        {
+            throw new ProductDomainException("操作人标识不可为空", "SPU_OPERATOR_EMPTY");
+        }
+
+        var sku = GetSku(skuId);
+        var newStock = sku.StockQty + delta;
+
+        if (newStock < 0)
+        {
+            throw new ProductDomainException("库存调整后不可为负", "SPU_STOCK_NEGATIVE");
+        }
+
+        sku.UpdateStock(newStock);
+
+        _stockOperationHistory.Add(StockOperationRecord.Create(
+            skuId.ToString(),
+            operatorId,
+            delta,
+            newStock));
+
+        AddDomainEvent(new StockAdjustedEvent(skuId, Id, newStock, delta, DateTime.UtcNow));
+    }
+
+    /// <summary>
+    /// 获取指定 SKU 的库存操作历史。
+    /// </summary>
+    /// <param name="skuId">SKU 标识。</param>
+    public IReadOnlyList<StockOperationRecord> GetStockOperationHistory(Guid skuId)
+    {
+        var skuIdStr = skuId.ToString();
+        return _stockOperationHistory
+            .Where(r => string.Equals(r.SkuId, skuIdStr, StringComparison.OrdinalIgnoreCase))
+            .ToList()
+            .AsReadOnly();
+    }
+
+    #endregion
 
     private void EnsureEditable()
     {

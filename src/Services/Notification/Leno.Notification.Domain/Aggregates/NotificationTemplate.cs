@@ -11,23 +11,35 @@ namespace Leno.Notification.Domain.Aggregates;
 /// </summary>
 public sealed class NotificationTemplate : AggregateRoot
 {
-    /// <summary>事件类型名（如 OrderCreatedEvent），同一事件类型每渠道仅一个启用模板。</summary>
-    public string EventType { get; private set; } = string.Empty;
+    /// <summary>模板编码（如 OrderCreated），同一编码每渠道仅一个启用模板。</summary>
+    public string Code { get; private set; } = string.Empty;
+
+    /// <summary>模板名称（用户友好名称）。</summary>
+    public string Name { get; private set; } = string.Empty;
 
     /// <summary>通知渠道。</summary>
     public NotificationChannel Channel { get; private set; }
 
-    /// <summary>标题模板（含 {{variable}} 占位符）。</summary>
-    public string TitleTemplate { get; private set; } = string.Empty;
+    /// <summary>标题/主题模板（含 {{variable}} 占位符）。</summary>
+    public string Subject { get; private set; } = string.Empty;
 
-    /// <summary>内容模板（含 {{variable}} 占位符）。</summary>
-    public string ContentTemplate { get; private set; } = string.Empty;
+    /// <summary>内容/正文模板（含 {{variable}} 占位符）。</summary>
+    public string Body { get; private set; } = string.Empty;
+
+    /// <summary>短信模板编码（仅 Sms 渠道使用，可选）。</summary>
+    public string? SmsTemplateCode { get; private set; }
+
+    /// <summary>模板描述。</summary>
+    public string? Description { get; private set; }
+
+    /// <summary>操作人标识（运营端创建/编辑时记录）。</summary>
+    public Guid? OperatorId { get; private set; }
 
     /// <summary>
-    /// 模板变量名列表，持久化为 JSON。
+    /// 模板变量列表，持久化为 JSON。
     /// </summary>
-    private List<string> _variables = [];
-    public List<string> Variables { get => _variables; private set => _variables = value ?? []; }
+    private List<TemplateVariable> _variables = [];
+    public List<TemplateVariable> Variables { get => _variables; private set => _variables = value ?? []; }
 
     /// <summary>模板状态。</summary>
     public TemplateStatus Status { get; private set; }
@@ -42,21 +54,29 @@ public sealed class NotificationTemplate : AggregateRoot
     /// </summary>
     public static NotificationTemplate Create(
         Guid templateId,
-        string eventType,
+        string code,
+        string name,
         NotificationChannel channel,
-        string titleTemplate,
-        string contentTemplate,
-        List<string> variables)
+        string subject,
+        string body,
+        List<TemplateVariable> variables,
+        string? smsTemplateCode = null,
+        string? description = null,
+        Guid? operatorId = null)
     {
-        ValidateCommon(templateId, eventType, channel, titleTemplate, contentTemplate);
+        ValidateCommon(templateId, code, name, channel, subject, body);
 
         return new NotificationTemplate(templateId)
         {
-            EventType = eventType,
+            Code = code,
+            Name = name,
             Channel = channel,
-            TitleTemplate = titleTemplate,
-            ContentTemplate = contentTemplate,
+            Subject = subject,
+            Body = body,
             Variables = variables ?? [],
+            SmsTemplateCode = smsTemplateCode,
+            Description = description,
+            OperatorId = operatorId,
             Status = TemplateStatus.Enabled
         };
     }
@@ -64,12 +84,59 @@ public sealed class NotificationTemplate : AggregateRoot
     /// <summary>
     /// 更新模板内容与变量。
     /// </summary>
-    public void Update(string titleTemplate, string contentTemplate, List<string> variables)
+    public void Update(string subject, string body, List<TemplateVariable> variables)
     {
-        ValidateCommon(Id, EventType, Channel, titleTemplate, contentTemplate);
-        TitleTemplate = titleTemplate;
-        ContentTemplate = contentTemplate;
+        ValidateCommon(Id, Code, Name, Channel, subject, body);
+        Subject = subject;
+        Body = body;
         Variables = variables ?? [];
+    }
+
+    /// <summary>
+    /// 添加模板变量。
+    /// </summary>
+    public void AddVariable(TemplateVariable variable)
+    {
+        ArgumentNullException.ThrowIfNull(variable);
+
+        if (_variables.Any(v => v.Name.Equals(variable.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new NotificationDomainException($"变量 {variable.Name} 已存在", "NOTIFICATION_VARIABLE_DUPLICATE");
+        }
+
+        _variables.Add(variable);
+    }
+
+    /// <summary>
+    /// 移除模板变量。
+    /// </summary>
+    public void RemoveVariable(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new NotificationDomainException("变量名不可为空", "NOTIFICATION_VARIABLE_NAME_EMPTY");
+        }
+
+        var existing = _variables.FirstOrDefault(v => v.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            _variables.Remove(existing);
+        }
+    }
+
+    /// <summary>
+    /// 判断模板是否包含指定占位符变量。
+    /// </summary>
+    public bool ContainsPlaceholder(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return false;
+        }
+
+        var placeholder = $"{{{{{name}}}}}";
+        return Subject.Contains(placeholder, StringComparison.OrdinalIgnoreCase)
+               || Body.Contains(placeholder, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>启用模板。</summary>
@@ -86,19 +153,25 @@ public sealed class NotificationTemplate : AggregateRoot
 
     private static void ValidateCommon(
         Guid templateId,
-        string eventType,
+        string code,
+        string name,
         NotificationChannel channel,
-        string titleTemplate,
-        string contentTemplate)
+        string subject,
+        string body)
     {
         if (templateId == Guid.Empty)
         {
             throw new NotificationDomainException("TemplateId 不可为空", "NOTIFICATION_TEMPLATE_ID_EMPTY");
         }
 
-        if (string.IsNullOrWhiteSpace(eventType))
+        if (string.IsNullOrWhiteSpace(code))
         {
-            throw new NotificationDomainException("EventType 不可为空", "NOTIFICATION_TEMPLATE_EVENT_TYPE_EMPTY");
+            throw new NotificationDomainException("Code 不可为空", "NOTIFICATION_TEMPLATE_CODE_EMPTY");
+        }
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new NotificationDomainException("Name 不可为空", "NOTIFICATION_TEMPLATE_NAME_EMPTY");
         }
 
         if (!Enum.IsDefined(channel))
@@ -106,24 +179,34 @@ public sealed class NotificationTemplate : AggregateRoot
             throw new NotificationDomainException($"通知渠道非法：{channel}", "NOTIFICATION_TEMPLATE_CHANNEL_INVALID");
         }
 
-        if (string.IsNullOrWhiteSpace(titleTemplate))
+        if (string.IsNullOrWhiteSpace(subject))
         {
-            throw new NotificationDomainException("标题模板不可为空", "NOTIFICATION_TEMPLATE_TITLE_EMPTY");
+            throw new NotificationDomainException("标题模板不可为空", "NOTIFICATION_TEMPLATE_SUBJECT_EMPTY");
         }
 
-        if (string.IsNullOrWhiteSpace(contentTemplate))
+        if (string.IsNullOrWhiteSpace(body))
         {
-            throw new NotificationDomainException("内容模板不可为空", "NOTIFICATION_TEMPLATE_CONTENT_EMPTY");
+            throw new NotificationDomainException("内容模板不可为空", "NOTIFICATION_TEMPLATE_BODY_EMPTY");
         }
 
-        if (titleTemplate.Length > 200)
+        if (subject.Length > 200)
         {
-            throw new NotificationDomainException("标题模板不可超过 200 字", "NOTIFICATION_TEMPLATE_TITLE_TOO_LONG");
+            throw new NotificationDomainException("标题模板不可超过 200 字", "NOTIFICATION_TEMPLATE_SUBJECT_TOO_LONG");
         }
 
-        if (contentTemplate.Length > 2000)
+        if (body.Length > 2000)
         {
-            throw new NotificationDomainException("内容模板不可超过 2000 字", "NOTIFICATION_TEMPLATE_CONTENT_TOO_LONG");
+            throw new NotificationDomainException("内容模板不可超过 2000 字", "NOTIFICATION_TEMPLATE_BODY_TOO_LONG");
+        }
+
+        if (code.Length > 128)
+        {
+            throw new NotificationDomainException("Code 不可超过 128 字", "NOTIFICATION_TEMPLATE_CODE_TOO_LONG");
+        }
+
+        if (name.Length > 128)
+        {
+            throw new NotificationDomainException("Name 不可超过 128 字", "NOTIFICATION_TEMPLATE_NAME_TOO_LONG");
         }
     }
 }

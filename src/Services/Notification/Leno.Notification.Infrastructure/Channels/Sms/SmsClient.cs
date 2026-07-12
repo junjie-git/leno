@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Leno.Notification.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -27,19 +28,19 @@ public sealed class SmsClient
     }
 
     /// <summary>
-    /// 发送短信，返回是否成功。
+    /// 发送短信，返回发送结果。
     /// </summary>
-    public async Task<(bool Succeeded, string? FailReason)> SendAsync(string phoneNumber, string content, CancellationToken ct = default)
+    public async Task<ChannelSendResult> SendAsync(string phoneNumber, string content, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(phoneNumber))
         {
-            return (false, "手机号为空");
+            return new ChannelSendResult(false, "手机号为空", "SMS_PHONE_EMPTY", null);
         }
 
         if (string.IsNullOrWhiteSpace(_options.AccessKey))
         {
             _logger.LogWarning("短信渠道未配置 AccessKey");
-            return (false, "短信渠道未配置");
+            return new ChannelSendResult(false, "短信渠道未配置", "SMS_CONFIG_MISSING", null);
         }
 
         try
@@ -68,16 +69,16 @@ public sealed class SmsClient
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation("短信已发送 Phone={Phone}", phoneNumber);
-                return (true, null);
+                return new ChannelSendResult(true, null, null, responseContent);
             }
 
             _logger.LogWarning("短信发送失败 Phone={Phone} Status={Status} Response={Response}", phoneNumber, response.StatusCode, responseContent);
-            return (false, $"短信服务返回 {response.StatusCode}");
+            return new ChannelSendResult(false, $"短信服务返回 {(int)response.StatusCode}", "SMS_HTTP_ERROR", responseContent);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "短信发送异常 Phone={Phone}", phoneNumber);
-            return (false, ex.Message);
+            return new ChannelSendResult(false, ex.Message, "SMS_EXCEPTION", null);
         }
     }
 }

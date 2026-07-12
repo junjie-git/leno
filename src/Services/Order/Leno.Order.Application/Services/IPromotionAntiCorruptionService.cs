@@ -14,6 +14,13 @@ public interface IPromotionAntiCorruptionService
     /// <param name="ct">取消令牌。</param>
     /// <returns>优惠总金额。</returns>
     Task<decimal> CalculateDiscountAsync(Guid userId, List<(Guid SkuId, decimal Subtotal)> items, CancellationToken ct = default);
+
+    /// <summary>
+    /// 订单取消时释放已使用的优惠券，由促销域根据 orderId 反查并退还。
+    /// </summary>
+    /// <param name="orderId">关联订单标识。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task ReleaseCouponsAsync(Guid orderId, CancellationToken ct = default);
 }
 
 /// <summary>

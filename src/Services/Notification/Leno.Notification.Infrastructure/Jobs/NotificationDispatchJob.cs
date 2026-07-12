@@ -1,5 +1,8 @@
+using Leno.Notification.Domain.Aggregates;
 using Leno.Notification.Domain.Repositories;
-using Leno.Notification.Infrastructure.Channels;
+using Leno.Notification.Domain.Services;
+using Leno.Notification.Domain.ValueObjects;
+using Leno.Notification.Infrastructure.Services;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -12,22 +15,26 @@ namespace Leno.Notification.Infrastructure.Jobs;
 public sealed class NotificationDispatchJob
 {
     private readonly INotificationRecordRepository _recordRepository;
-    private readonly IEnumerable<IChannel> _channels;
+    private readonly IEnumerable<INotificationChannel> _channels;
+    private readonly IUserContactService _userContactService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<NotificationDispatchJob> _logger;
 
     public NotificationDispatchJob(
         INotificationRecordRepository recordRepository,
-        IEnumerable<IChannel> channels,
+        IEnumerable<INotificationChannel> channels,
+        IUserContactService userContactService,
         IUnitOfWork unitOfWork,
         ILogger<NotificationDispatchJob> logger)
     {
         ArgumentNullException.ThrowIfNull(recordRepository);
         ArgumentNullException.ThrowIfNull(channels);
+        ArgumentNullException.ThrowIfNull(userContactService);
         ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(logger);
         _recordRepository = recordRepository;
         _channels = channels;
+        _userContactService = userContactService;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -50,20 +57,22 @@ public sealed class NotificationDispatchJob
             {
                 try
                 {
-                    var result = await sender.SendAsync(record, ct);
+                    record.MarkSending();
+                    var sendRequest = await BuildChannelSendRequestAsync(record, ct);
+                    var result = await sender.SendAsync(sendRequest, ct);
                     if (result.Succeeded)
                     {
-                        record.MarkSent();
+                        record.MarkSucceeded(result.ChannelMessageId);
                     }
                     else
                     {
-                        record.MarkFailed(result.FailReason ?? "发送失败");
+                        record.MarkFailed(result.ErrorMessage ?? "发送失败", result.ErrorCode);
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "调度发送异常 RecordId={RecordId}", record.Id);
-                    record.MarkFailed(ex.Message);
+                    record.MarkFailed(ex.Message, "DISPATCH_EXCEPTION");
                 }
 
                 await _recordRepository.UpdateAsync(record, ct);
@@ -72,5 +81,21 @@ public sealed class NotificationDispatchJob
 
         await _unitOfWork.SaveChangesAsync(ct);
         _logger.LogInformation("通知调度完成 处理 {Count} 条", pending.Count);
+    }
+
+    private async Task<ChannelSendRequest> BuildChannelSendRequestAsync(NotificationRecord record, CancellationToken ct)
+    {
+        var contacts = await _userContactService.GetContactsAsync(record.UserId, ct);
+        var recipient = Recipient.Create(
+            record.UserId,
+            contacts?.Email,
+            contacts?.PhoneNumber);
+
+        return new ChannelSendRequest(
+            record.Channel,
+            recipient,
+            record.Title,
+            record.Content,
+            record.IdempotencyKey ?? string.Empty);
     }
 }

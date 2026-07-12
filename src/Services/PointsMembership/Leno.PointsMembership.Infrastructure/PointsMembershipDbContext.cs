@@ -33,6 +33,9 @@ public sealed class PointsMembershipDbContext : BaseDbContext
     /// <summary>会员等级聚合根。</summary>
     public DbSet<MembershipLevel> MembershipLevels => Set<MembershipLevel>();
 
+    /// <summary>会员等级（成长值体系）聚合根。</summary>
+    public DbSet<MemberLevel> MemberLevels => Set<MemberLevel>();
+
     /// <summary>会员套餐聚合根。</summary>
     public DbSet<MembershipPackage> MembershipPackages => Set<MembershipPackage>();
 

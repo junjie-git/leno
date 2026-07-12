@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="$(XUnitVersion)" />
+    <PackageReference Include="Moq" Version="$(MoqVersion)" />
+    <PackageReference Include="FluentAssertions" Version="$(FluentAssertionsVersion)" />
+    <PackageReference Include="Testcontainers" Version="$(TestContainersVersion)" />
+    <PackageReference Include="Testcontainers.MsSql" Version="$(TestContainersVersion)" />
+    <PackageReference Include="Testcontainers.Redis" Version="$(TestContainersVersion)" />
+    <PackageReference Include="Testcontainers.RabbitMq" Version="$(TestContainersVersion)" />
+    <PackageReference Include="Testcontainers.Elasticsearch" Version="$(TestContainersVersion)" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Leno.SharedKernel\Leno.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

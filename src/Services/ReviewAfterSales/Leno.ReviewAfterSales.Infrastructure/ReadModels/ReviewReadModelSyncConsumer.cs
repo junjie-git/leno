@@ -13,7 +13,8 @@ namespace Leno.ReviewAfterSales.Infrastructure.ReadModels;
 /// </summary>
 public sealed class ReviewReadModelSyncConsumer :
     IConsumer<ReviewSubmittedEvent>,
-    IConsumer<ReviewModeratedEvent>
+    IConsumer<ReviewApprovedEvent>,
+    IConsumer<ReviewHiddenEvent>
 {
     private const string IndexName = "reviews";
 
@@ -42,10 +43,17 @@ public sealed class ReviewReadModelSyncConsumer :
     }
 
     /// <inheritdoc />
-    public async Task Consume(ConsumeContext<ReviewModeratedEvent> context)
+    public async Task Consume(ConsumeContext<ReviewApprovedEvent> context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        await SyncAsync(context.Message.ReviewId, nameof(ReviewModeratedEvent), context.CancellationToken);
+        await SyncAsync(context.Message.ReviewId, nameof(ReviewApprovedEvent), context.CancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task Consume(ConsumeContext<ReviewHiddenEvent> context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        await SyncAsync(context.Message.ReviewId, nameof(ReviewHiddenEvent), context.CancellationToken);
     }
 
     /// <summary>

@@ -4,7 +4,7 @@ using Leno.ReviewAfterSales.Domain.ValueObjects;
 namespace Leno.ReviewAfterSales.Application;
 
 /// <summary>
-/// 售后应用服务接口，编排售后申请、审核、撤销与查询用例。
+/// 售后应用服务接口，编排售后申请、审核、撤销、退货、确认收货与查询用例。
 /// 审核通过时发布 <c>RefundRequestedIntegrationEvent</c> 请求支付域执行退款。
 /// </summary>
 public interface IAfterSalesAppService
@@ -12,11 +12,23 @@ public interface IAfterSalesAppService
     /// <summary>买家提交售后申请，校验资格后创建售后单聚合。</summary>
     Task<AfterSalesDto> SubmitAfterSalesAsync(Guid userId, SubmitAfterSalesDto dto, CancellationToken ct = default);
 
-    /// <summary>运营审核通过售后，置已同意态、进入退款中并发布退款请求集成事件。</summary>
+    /// <summary>卖家审核同意售后，置已同意态。</summary>
     Task ApproveAfterSalesAsync(Guid afterSalesId, Guid operatorId, decimal approvedAmount, CancellationToken ct = default);
 
-    /// <summary>运营驳回售后，附驳回原因。</summary>
+    /// <summary>卖家驳回售后，附驳回原因。</summary>
     Task RejectAfterSalesAsync(Guid afterSalesId, Guid operatorId, string reason, CancellationToken ct = default);
+
+    /// <summary>卖家确认收到退货，置已确认收货态。</summary>
+    Task ConfirmReturnAsync(Guid afterSalesId, Guid operatorId, CancellationToken ct = default);
+
+    /// <summary>运营审核同意售后，进入退款流程。</summary>
+    Task AdminApproveAfterSalesAsync(Guid afterSalesId, Guid operatorId, decimal approvedAmount, CancellationToken ct = default);
+
+    /// <summary>运营驳回售后，附驳回原因。</summary>
+    Task AdminRejectAfterSalesAsync(Guid afterSalesId, Guid operatorId, string reason, CancellationToken ct = default);
+
+    /// <summary>买家退货并填写物流单号，置已退货态。</summary>
+    Task ReturnGoodsAsync(Guid afterSalesId, Guid userId, string trackingNo, CancellationToken ct = default);
 
     /// <summary>买家撤销售后申请，仅待审核态可撤销。</summary>
     Task CancelAfterSalesAsync(Guid afterSalesId, Guid userId, string reason, CancellationToken ct = default);

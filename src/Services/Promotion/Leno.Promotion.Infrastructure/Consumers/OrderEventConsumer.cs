@@ -1,4 +1,4 @@
-using Leno.Infrastructure.EventBus;
+﻿using Leno.Infrastructure.EventBus;
 using Leno.Promotion.Domain.Repositories;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
@@ -95,6 +95,48 @@ public sealed class OrderCancelledEventConsumer : RedisIntegrationEventConsumerB
         await _unitOfWork.SaveEntitiesAsync(ct);
 
         Logger.LogInformation("订单 {OrderId} 已退还用户券 {UserCouponId}",
+            integrationEvent.OrderId, userCoupon.Id);
+    }
+}
+
+/// <summary>
+/// 退款完成事件消费者，退还已核销的用户优惠券（UserCoupon.Return）。
+/// 通过 EventId 幂等去重；券不存在或非 Used 态时跳过。
+/// </summary>
+public sealed class RefundCompletedEventConsumer : RedisIntegrationEventConsumerBase<RefundCompletedEvent>
+{
+    private readonly IUserCouponRepository _userCouponRepository;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public RefundCompletedEventConsumer(
+        IUserCouponRepository userCouponRepository,
+        IUnitOfWork unitOfWork,
+        ILogger<RefundCompletedEventConsumer> logger,
+        IConnectionMultiplexer redisMultiplexer)
+        : base(logger, redisMultiplexer)
+    {
+        ArgumentNullException.ThrowIfNull(userCouponRepository);
+        ArgumentNullException.ThrowIfNull(unitOfWork);
+        _userCouponRepository = userCouponRepository;
+        _unitOfWork = unitOfWork;
+    }
+
+    /// <inheritdoc />
+    protected override async Task HandleAsync(RefundCompletedEvent integrationEvent, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        var userCoupon = await _userCouponRepository.GetByUsedOrderIdAsync(integrationEvent.OrderId, ct);
+        if (userCoupon is null)
+        {
+            Logger.LogInformation("订单 {OrderId} 未绑定已核销优惠券，跳过退还", integrationEvent.OrderId);
+            return;
+        }
+
+        userCoupon.Return();
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        Logger.LogInformation("退款完成，订单 {OrderId} 已退还用户券 {UserCouponId}",
             integrationEvent.OrderId, userCoupon.Id);
     }
 }

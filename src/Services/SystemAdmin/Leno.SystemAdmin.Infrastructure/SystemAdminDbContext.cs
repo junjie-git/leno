@@ -38,6 +38,24 @@ public sealed class SystemAdminDbContext : BaseDbContext
     /// <summary>定时任务聚合根。</summary>
     public DbSet<ScheduledTask> ScheduledTasks => Set<ScheduledTask>();
 
+    /// <summary>索引重建任务聚合根。</summary>
+    public DbSet<IndexRebuildTask> IndexRebuildTasks => Set<IndexRebuildTask>();
+
+    /// <summary>死信消息聚合根。</summary>
+    public DbSet<DeadLetterMessage> DeadLetterMessages => Set<DeadLetterMessage>();
+
+    /// <summary>运营数据看板报表聚合根。</summary>
+    public DbSet<DashboardReport> DashboardReports => Set<DashboardReport>();
+
+    /// <summary>对账记录聚合根。</summary>
+    public DbSet<ReconciliationRecord> ReconciliationRecords => Set<ReconciliationRecord>();
+
+    /// <summary>跨域审计日志条目聚合根。</summary>
+    public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
+
+    /// <summary>限流规则聚合根。</summary>
+    public DbSet<RateLimitRule> RateLimitRules => Set<RateLimitRule>();
+
     /// <summary>发件箱消息表。</summary>
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 }

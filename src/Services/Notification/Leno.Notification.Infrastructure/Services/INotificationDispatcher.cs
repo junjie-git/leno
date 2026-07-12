@@ -11,8 +11,8 @@ public interface INotificationDispatcher
     /// 调度通知发送。
     /// </summary>
     /// <param name="userId">接收用户标识。</param>
-    /// <param name="eventType">事件类型名（如 OrderCreatedEvent）。</param>
+    /// <param name="templateCode">模板编码（如 OrderCreated）。</param>
     /// <param name="eventId">事件标识（用于幂等去重），可空。</param>
     /// <param name="variables">模板变量键值对。</param>
-    Task DispatchAsync(Guid userId, string eventType, Guid? eventId, Dictionary<string, string> variables, CancellationToken ct = default);
+    Task DispatchAsync(Guid userId, string templateCode, Guid? eventId, Dictionary<string, string> variables, CancellationToken ct = default);
 }

@@ -62,6 +62,21 @@ public sealed class EfCoreUserCouponRepository : IUserCouponRepository
     }
 
     /// <inheritdoc />
+    public async Task<List<UserCouponAggregate>> GetExpiredUnusedCouponsAsync(
+        int skip,
+        int take,
+        CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        return await _context.UserCoupons
+            .Where(u => u.Status == CouponStatus.Unused && u.ExpiredAt.HasValue && u.ExpiredAt.Value < now)
+            .OrderBy(u => u.ExpiredAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
     public Task RemoveAsync(UserCouponAggregate aggregate, CancellationToken ct = default)
     {
         _context.UserCoupons.Remove(aggregate);

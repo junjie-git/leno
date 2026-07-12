@@ -30,4 +30,11 @@ public interface IPointsAntiCorruptionService
     /// <param name="orderId">关联订单标识。</param>
     /// <param name="ct">取消令牌。</param>
     Task ReleaseAsync(Guid orderId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 支付成功后确认扣减积分（冻结 → 正式扣减）。
+    /// </summary>
+    /// <param name="orderId">关联订单标识。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task ConfirmDeductionAsync(Guid orderId, CancellationToken ct = default);
 }

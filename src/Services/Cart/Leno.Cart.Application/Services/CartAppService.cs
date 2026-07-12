@@ -3,7 +3,9 @@ using Leno.Cart.Domain.Aggregates;
 using Leno.Cart.Domain.Exceptions;
 using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
+using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
+using Microsoft.Extensions.Logging;
 using CartAggregate = Leno.Cart.Domain.Aggregates.Cart;
 
 namespace Leno.Cart.Application.Services;
@@ -17,18 +19,30 @@ public sealed class CartAppService : ICartAppService
     private readonly ICartRepository _cartRepository;
     private readonly ICartPriceService _priceService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAnonymousCartRepository _anonymousCartRepository;
+    private readonly IEventBus _eventBus;
+    private readonly ILogger<CartAppService> _logger;
 
     public CartAppService(
         ICartRepository cartRepository,
         ICartPriceService priceService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IAnonymousCartRepository anonymousCartRepository,
+        IEventBus eventBus,
+        ILogger<CartAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(cartRepository);
         ArgumentNullException.ThrowIfNull(priceService);
         ArgumentNullException.ThrowIfNull(unitOfWork);
+        ArgumentNullException.ThrowIfNull(anonymousCartRepository);
+        ArgumentNullException.ThrowIfNull(eventBus);
+        ArgumentNullException.ThrowIfNull(logger);
         _cartRepository = cartRepository;
         _priceService = priceService;
         _unitOfWork = unitOfWork;
+        _anonymousCartRepository = anonymousCartRepository;
+        _eventBus = eventBus;
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -117,6 +131,46 @@ public sealed class CartAppService : ICartAppService
             Currency = groups.FirstOrDefault()?.Currency ?? "CNY",
             TotalCount = selectedItems.Sum(i => i.Quantity)
         };
+    }
+
+    /// <inheritdoc />
+    public async Task<CartDto> MergeAnonymousCartAsync(Guid userId, string anonymousId, CancellationToken ct = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new CartDomainException("UserId 不可为空", "CART_USER_REQUIRED", 401);
+        }
+
+        if (string.IsNullOrWhiteSpace(anonymousId))
+        {
+            throw new CartDomainException("匿名会话标识不可为空", "CART_ANONYMOUS_ID_REQUIRED", 400);
+        }
+
+        // 加载匿名购物车
+        var anonymousCart = await _anonymousCartRepository.GetAsync(anonymousId, ct);
+        if (anonymousCart is null)
+        {
+            _logger.LogInformation("匿名购物车不存在或已合并，跳过合并 AnonymousId={AnonymousId}", anonymousId);
+            var existingCart = await GetOrCreateCartAsync(userId, ct);
+            return await BuildCartDtoAsync(existingCart, ct);
+        }
+
+        // 加载用户购物车（不存在则创建）
+        var userCart = await GetOrCreateCartAsync(userId, ct);
+
+        // 执行合并
+        var mergedCount = userCart.MergeFrom(anonymousCart);
+
+        // 保存用户购物车
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        // 删除匿名购物车
+        await _anonymousCartRepository.RemoveAsync(anonymousId, ct);
+
+        // 发布合并事件
+        await _eventBus.PublishAsync(new CartMergedEvent(userId, anonymousId, mergedCount), ct);
+
+        return await BuildCartDtoAsync(userCart, ct);
     }
 
     private async Task<CartAggregate> GetOrCreateCartAsync(Guid userId, CancellationToken ct)

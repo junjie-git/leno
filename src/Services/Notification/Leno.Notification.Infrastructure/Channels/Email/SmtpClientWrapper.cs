@@ -1,5 +1,6 @@
 using MailKit.Net.Smtp;
 using MailKit.Security;
+using Leno.Notification.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
@@ -23,19 +24,19 @@ public sealed class SmtpClientWrapper
     }
 
     /// <summary>
-    /// 发送邮件，返回是否成功。
+    /// 发送邮件，返回发送结果。
     /// </summary>
-    public async Task<(bool Succeeded, string? FailReason)> SendAsync(string toAddress, string subject, string htmlBody, CancellationToken ct = default)
+    public async Task<ChannelSendResult> SendAsync(string toAddress, string subject, string htmlBody, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(toAddress))
         {
-            return (false, "收件地址为空");
+            return new ChannelSendResult(false, "收件地址为空", "EMAIL_EMPTY", null);
         }
 
         if (string.IsNullOrWhiteSpace(_options.SmtpHost))
         {
             _logger.LogWarning("邮件渠道未配置 SmtpHost");
-            return (false, "邮件渠道未配置");
+            return new ChannelSendResult(false, "邮件渠道未配置", "EMAIL_CONFIG_MISSING", null);
         }
 
         try
@@ -58,16 +59,16 @@ public sealed class SmtpClientWrapper
                 await client.AuthenticateAsync(_options.Username, _options.Password, ct);
             }
 
-            await client.SendAsync(message, ct);
+            var messageId = await client.SendAsync(message, ct);
             await client.DisconnectAsync(true, ct);
 
             _logger.LogInformation("邮件已发送 To={To} Subject={Subject}", toAddress, subject);
-            return (true, null);
+            return new ChannelSendResult(true, null, null, messageId);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "邮件发送失败 To={To} Subject={Subject}", toAddress, subject);
-            return (false, ex.Message);
+            return new ChannelSendResult(false, ex.Message, "EMAIL_EXCEPTION", null);
         }
     }
 }

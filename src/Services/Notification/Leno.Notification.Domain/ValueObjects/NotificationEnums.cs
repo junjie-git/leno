@@ -16,21 +16,28 @@ public enum NotificationChannel
 }
 
 /// <summary>
-/// 通知发送状态。
+/// 通知发送状态（6 状态机）。
+/// 迁移前旧值：Sent=1, Abandoned=3（已移除，由 Succeeded 和 DeadLettered 替代）。
 /// </summary>
 public enum NotificationStatus
 {
-    /// <summary>待发送。</summary>
+    /// <summary>待发送（初始态）。</summary>
     Pending = 0,
 
-    /// <summary>已发送。</summary>
-    Sent = 1,
+    /// <summary>发送中。</summary>
+    Sending = 1,
+
+    /// <summary>发送成功（终态）。</summary>
+    Succeeded = 2,
 
     /// <summary>发送失败。</summary>
-    Failed = 2,
+    Failed = 3,
 
-    /// <summary>已放弃（超过最大重试次数）。</summary>
-    Abandoned = 3
+    /// <summary>已重试。</summary>
+    Retried = 4,
+
+    /// <summary>死信/已放弃（超过最大重试次数，终态）。</summary>
+    DeadLettered = 5
 }
 
 /// <summary>

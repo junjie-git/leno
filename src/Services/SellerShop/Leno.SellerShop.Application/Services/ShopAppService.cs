@@ -2,6 +2,7 @@ using FluentValidation;
 using Leno.SellerShop.Application.DTOs;
 using Leno.SellerShop.Application.Exceptions;
 using Leno.SellerShop.Domain.Aggregates;
+using Leno.SellerShop.Domain.Entities;
 using Leno.SellerShop.Domain.Exceptions;
 using Leno.SellerShop.Domain.Repositories;
 using Leno.SellerShop.Domain.ValueObjects;
@@ -20,6 +21,7 @@ public sealed class ShopAppService : IShopAppService
     private readonly IShopRepository _shopRepository;
     private readonly ISellerProfileRepository _sellerProfileRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IFileStorageService _fileStorageService;
     private readonly IValidator<SubmitShopApplicationDto> _submitValidator;
     private readonly IValidator<UpdateShopInfoDto> _updateShopValidator;
     private readonly IValidator<ActionReasonDto> _actionReasonValidator;
@@ -28,6 +30,7 @@ public sealed class ShopAppService : IShopAppService
         IShopRepository shopRepository,
         ISellerProfileRepository sellerProfileRepository,
         IUnitOfWork unitOfWork,
+        IFileStorageService fileStorageService,
         IValidator<SubmitShopApplicationDto> submitValidator,
         IValidator<UpdateShopInfoDto> updateShopValidator,
         IValidator<ActionReasonDto> actionReasonValidator)
@@ -35,6 +38,7 @@ public sealed class ShopAppService : IShopAppService
         _shopRepository = shopRepository;
         _sellerProfileRepository = sellerProfileRepository;
         _unitOfWork = unitOfWork;
+        _fileStorageService = fileStorageService;
         _submitValidator = submitValidator;
         _updateShopValidator = updateShopValidator;
         _actionReasonValidator = actionReasonValidator;
@@ -184,6 +188,55 @@ public sealed class ShopAppService : IShopAppService
         return new PageResult<ShopDto>(dtos, total, safePage, safePageSize);
     }
 
+    /// <inheritdoc />
+    public async Task<QualificationDto> SubmitQualificationAsync(Guid shopId, SubmitQualificationDto dto, Stream fileStream, string fileName, string contentType, CancellationToken ct = default)
+    {
+        var shop = await RequireShopAsync(shopId, ct);
+
+        var uploadResult = await _fileStorageService.UploadAsync(fileStream, fileName, contentType, "qualifications", ct);
+
+        var qualification = ShopQualification.Create(
+            Guid.NewGuid(),
+            shopId,
+            dto.Type,
+            dto.Number,
+            uploadResult.Url,
+            dto.ValidFrom,
+            dto.ValidTo);
+
+        shop.AddQualification(qualification);
+        await _shopRepository.UpdateAsync(shop, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        return ToQualificationDto(qualification);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<QualificationDto>> GetQualificationsAsync(Guid shopId, CancellationToken ct = default)
+    {
+        var shop = await RequireShopAsync(shopId, ct);
+        return shop.Qualifications.Select(ToQualificationDto).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task ApproveQualificationAsync(Guid shopId, Guid qualificationId, Guid reviewedBy, CancellationToken ct = default)
+    {
+        var shop = await RequireShopAsync(shopId, ct);
+        shop.ApproveQualification(qualificationId, reviewedBy);
+        await _shopRepository.UpdateAsync(shop, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task RejectQualificationAsync(Guid shopId, Guid qualificationId, Guid reviewedBy, ActionReasonDto dto, CancellationToken ct = default)
+    {
+        await ValidateAsync(_actionReasonValidator, dto, ct);
+        var shop = await RequireShopAsync(shopId, ct);
+        shop.RejectQualification(qualificationId, reviewedBy, dto.Reason);
+        await _shopRepository.UpdateAsync(shop, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
     private async Task<Shop> RequireShopAsync(Guid shopId, CancellationToken ct)
     {
         var shop = await _shopRepository.GetByIdAsync(shopId, ct);
@@ -229,6 +282,23 @@ public sealed class ShopAppService : IShopAppService
             StatusReason = shop.StatusReason,
             ReviewedBy = shop.ReviewedBy,
             CreatedAt = shop.CreatedAt,
-            UpdatedAt = shop.UpdatedAt
+            UpdatedAt = shop.UpdatedAt,
+            Qualifications = shop.Qualifications.Select(ToQualificationDto).ToList()
+        };
+
+    private static QualificationDto ToQualificationDto(ShopQualification qualification)
+        => new()
+        {
+            Id = qualification.Id,
+            ShopId = qualification.ShopId,
+            Type = qualification.Type,
+            Number = qualification.Number,
+            ImageUrl = qualification.ImageUrl,
+            ValidFrom = qualification.ValidFrom,
+            ValidTo = qualification.ValidTo,
+            Status = qualification.Status,
+            RejectReason = qualification.RejectReason,
+            ReviewedBy = qualification.ReviewedBy,
+            CreatedAt = qualification.CreatedAt
         };
 }

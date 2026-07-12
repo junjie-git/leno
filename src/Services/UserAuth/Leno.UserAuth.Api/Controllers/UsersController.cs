@@ -51,4 +51,31 @@ public sealed class UsersController : UserAuthControllerBase
         await _userAppService.ChangePasswordAsync(GetCurrentUserId(), dto, ct);
         return Ok(ApiResponse.Success("密码修改成功"));
     }
+
+    /// <summary>启用双因子认证：生成密钥与 QR 码 URI。</summary>
+    [HttpPost("two-factor/enable")]
+    [ProducesResponseType(typeof(ApiResponse<TwoFactorEnableResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> EnableTwoFactorAsync(CancellationToken ct)
+    {
+        var result = await _userAppService.EnableTwoFactorAsync(GetCurrentUserId(), ct);
+        return Ok(ApiResponse.Success(result));
+    }
+
+    /// <summary>确认双因子认证：验证 TOTP 码。</summary>
+    [HttpPost("two-factor/confirm")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ConfirmTwoFactorAsync([FromBody] TwoFactorConfirmDto dto, CancellationToken ct)
+    {
+        await _userAppService.ConfirmTwoFactorAsync(GetCurrentUserId(), dto, ct);
+        return Ok(ApiResponse.Success("双因子认证已启用"));
+    }
+
+    /// <summary>禁用双因子认证。</summary>
+    [HttpPost("two-factor/disable")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> DisableTwoFactorAsync(CancellationToken ct)
+    {
+        await _userAppService.DisableTwoFactorAsync(GetCurrentUserId(), ct);
+        return Ok(ApiResponse.Success("双因子认证已禁用"));
+    }
 }

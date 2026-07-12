@@ -3,6 +3,7 @@ using Leno.SellerShop.Application;
 using Leno.SellerShop.Application.Services;
 using Leno.SellerShop.Domain.Repositories;
 using Leno.SellerShop.Domain.Services;
+using Leno.SellerShop.Infrastructure.BackgroundServices;
 using Leno.SellerShop.Infrastructure.Consumers;
 using Leno.SellerShop.Infrastructure.Repositories;
 using Leno.SellerShop.Infrastructure.Services;
@@ -44,6 +45,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IShopRepository, EfCoreShopRepository>();
         services.AddScoped<ISellerProfileRepository, EfCoreSellerProfileRepository>();
         services.AddScoped<IShopMetricsRepository, EfCoreShopMetricsRepository>();
+        services.AddScoped<IShopDashboardRepository, EfCoreShopDashboardRepository>();
 
         services.AddScoped<IShopQueryService, EfCoreShopQueryService>();
 
@@ -52,6 +54,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISellerDashboardAppService, SellerDashboardAppService>();
 
         services.AddValidatorsFromAssembly(typeof(IShopAppService).Assembly);
+
+        services.AddHostedService<QualificationExpiryReminder>();
 
         return services;
     }
@@ -66,6 +70,9 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<ProductPublishedEventConsumer>();
         configurator.AddConsumer<ProductTakenDownEventConsumer>();
         configurator.AddConsumer<OrderCompletedEventConsumer>();
+        configurator.AddConsumer<OrderCreatedEventConsumer>();
+        configurator.AddConsumer<OrderPaidEventConsumer>();
+        configurator.AddConsumer<OrderCancelledEventConsumer>();
         return configurator;
     }
 }

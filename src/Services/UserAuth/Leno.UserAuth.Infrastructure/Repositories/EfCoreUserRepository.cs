@@ -116,4 +116,15 @@ public sealed class EfCoreUserRepository : IUserRepository
         _context.Users.Remove(user);
         return Task.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public Task<User?> FindByExternalLoginAsync(string provider, string providerUserId, CancellationToken ct = default)
+    {
+        var normalizedProvider = (provider ?? string.Empty).Trim().ToLowerInvariant();
+        var normalizedProviderUserId = (providerUserId ?? string.Empty).Trim();
+
+        return _context.Users
+            .FirstOrDefaultAsync(u => u.ExternalLogins.Any(el =>
+                el.Provider == normalizedProvider && el.ProviderUserId == normalizedProviderUserId), ct);
+    }
 }

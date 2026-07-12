@@ -1,5 +1,6 @@
 using Leno.PointsMembership.Domain.Aggregates;
 using Leno.PointsMembership.Domain.Repositories;
+using Leno.PointsMembership.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using PointsAccountAggregate = Leno.PointsMembership.Domain.Aggregates.PointsAccount;
 
@@ -36,6 +37,25 @@ public sealed class EfCorePointsAccountRepository : IPointsAccountRepository
         => await _context.PointsAccounts
             .Include(a => a.FrozenEntries)
             .FirstOrDefaultAsync(a => a.FrozenEntries.Any(e => e.OrderId == orderId), ct);
+
+    /// <inheritdoc />
+    public async Task<List<PointsAccountAggregate>> GetAllWithPositiveBalanceAsync(
+        int skip, int take, CancellationToken ct = default)
+        => await _context.PointsAccounts
+            .Include(a => a.FrozenEntries)
+            .Where(a => a.Balance > 0)
+            .OrderBy(a => a.Id)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(ct);
+
+    /// <inheritdoc />
+    public async Task<List<PointsLedger>> GetEarnLedgersByAccountIdAsync(
+        Guid accountId, CancellationToken ct = default)
+        => await _context.PointsLedgers
+            .Where(l => l.AccountId == accountId && l.TxType == PointsTxType.Earn)
+            .OrderBy(l => l.OccurredAt)
+            .ToListAsync(ct);
 
     /// <inheritdoc />
     public async Task AddAsync(PointsAccountAggregate aggregate, CancellationToken ct = default)

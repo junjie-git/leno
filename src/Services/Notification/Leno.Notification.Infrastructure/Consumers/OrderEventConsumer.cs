@@ -1,5 +1,6 @@
 using System.Globalization;
-using Leno.Notification.Infrastructure.Services;
+using Leno.Notification.Domain.Services;
+using Leno.Notification.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -14,14 +15,14 @@ public sealed class OrderEventConsumer :
     IConsumer<OrderShippedEvent>,
     IConsumer<OrderCompletedEvent>
 {
-    private readonly INotificationDispatcher _dispatcher;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<OrderEventConsumer> _logger;
 
-    public OrderEventConsumer(INotificationDispatcher dispatcher, ILogger<OrderEventConsumer> logger)
+    public OrderEventConsumer(INotificationService notificationService, ILogger<OrderEventConsumer> logger)
     {
-        ArgumentNullException.ThrowIfNull(dispatcher);
+        ArgumentNullException.ThrowIfNull(notificationService);
         ArgumentNullException.ThrowIfNull(logger);
-        _dispatcher = dispatcher;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -32,14 +33,20 @@ public sealed class OrderEventConsumer :
         var evt = context.Message;
         _logger.LogInformation("消费订单创建事件 EventId={EventId} OrderId={OrderId}", evt.EventId, evt.OrderId);
 
-        var variables = new Dictionary<string, string>
+        var request = new NotificationRequest
         {
-            ["orderId"] = evt.OrderId.ToString(),
-            ["totalAmount"] = evt.TotalAmount.ToString("F2", CultureInfo.InvariantCulture),
-            ["currency"] = evt.Currency
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(OrderCreatedEvent))!,
+            UserId = evt.BuyerId,
+            IdempotencyKey = evt.EventId.ToString(),
+            Variables = new Dictionary<string, string>
+            {
+                ["orderId"] = evt.OrderId.ToString(),
+                ["totalAmount"] = evt.TotalAmount.ToString("F2", CultureInfo.InvariantCulture),
+                ["currency"] = evt.Currency
+            }
         };
 
-        await _dispatcher.DispatchAsync(evt.BuyerId, "OrderCreatedEvent", evt.EventId, variables, context.CancellationToken);
+        await _notificationService.SendAsync(request, context.CancellationToken);
     }
 
     /// <inheritdoc />
@@ -49,13 +56,19 @@ public sealed class OrderEventConsumer :
         var evt = context.Message;
         _logger.LogInformation("消费订单发货事件 EventId={EventId} OrderId={OrderId}", evt.EventId, evt.OrderId);
 
-        var variables = new Dictionary<string, string>
+        var request = new NotificationRequest
         {
-            ["orderId"] = evt.OrderId.ToString(),
-            ["logisticsNo"] = evt.LogisticsNo
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(OrderShippedEvent))!,
+            UserId = evt.UserId,
+            IdempotencyKey = evt.EventId.ToString(),
+            Variables = new Dictionary<string, string>
+            {
+                ["orderId"] = evt.OrderId.ToString(),
+                ["logisticsNo"] = evt.LogisticsNo
+            }
         };
 
-        await _dispatcher.DispatchAsync(evt.UserId, "OrderShippedEvent", evt.EventId, variables, context.CancellationToken);
+        await _notificationService.SendAsync(request, context.CancellationToken);
     }
 
     /// <inheritdoc />
@@ -65,13 +78,19 @@ public sealed class OrderEventConsumer :
         var evt = context.Message;
         _logger.LogInformation("消费订单完成事件 EventId={EventId} OrderId={OrderId}", evt.EventId, evt.OrderId);
 
-        var variables = new Dictionary<string, string>
+        var request = new NotificationRequest
         {
-            ["orderId"] = evt.OrderId.ToString(),
-            ["totalAmount"] = evt.TotalAmount.ToString("F2", CultureInfo.InvariantCulture),
-            ["currency"] = evt.Currency
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(OrderCompletedEvent))!,
+            UserId = evt.UserId,
+            IdempotencyKey = evt.EventId.ToString(),
+            Variables = new Dictionary<string, string>
+            {
+                ["orderId"] = evt.OrderId.ToString(),
+                ["totalAmount"] = evt.TotalAmount.ToString("F2", CultureInfo.InvariantCulture),
+                ["currency"] = evt.Currency
+            }
         };
 
-        await _dispatcher.DispatchAsync(evt.UserId, "OrderCompletedEvent", evt.EventId, variables, context.CancellationToken);
+        await _notificationService.SendAsync(request, context.CancellationToken);
     }
 }

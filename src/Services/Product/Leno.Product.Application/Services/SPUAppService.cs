@@ -188,6 +188,59 @@ public sealed class SPUAppService : ISPUAppService
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
+    /// <inheritdoc />
+    public async Task AdjustPriceAsync(Guid spuId, Guid skuId, AdjustPriceDto dto, string changedBy, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+        if (string.IsNullOrWhiteSpace(changedBy))
+        {
+            throw new ProductDomainException("变更人标识不可为空", "SPU_CHANGED_BY_EMPTY");
+        }
+
+        if (dto.Price <= 0)
+        {
+            throw new ProductDomainException("价格须大于 0", "SPU_PRICE_INVALID");
+        }
+
+        var spu = await RequireSpuAsync(spuId, ct);
+        var price = Leno.SharedKernel.ValueObjects.Money.Create(dto.Price, dto.Currency);
+        spu.AdjustPrice(skuId, price, changedBy);
+        await _spuRepository.UpdateAsync(spu, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<PriceChangeRecordDto>> GetPriceHistoryAsync(Guid spuId, Guid? skuId = null, CancellationToken ct = default)
+    {
+        var spu = await RequireSpuAsync(spuId, ct);
+
+        if (skuId.HasValue)
+        {
+            return spu.GetPriceHistory(skuId.Value)
+                .Select(ToPriceChangeRecordDto)
+                .ToList();
+        }
+
+        return spu.GetPriceHistory(skuId ?? Guid.Empty)
+            .Select(ToPriceChangeRecordDto)
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task UpdateStockAsync(Guid spuId, Guid skuId, UpdateStockDto dto, string operatorId, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+        if (string.IsNullOrWhiteSpace(operatorId))
+        {
+            throw new ProductDomainException("操作人标识不可为空", "SPU_OPERATOR_EMPTY");
+        }
+
+        var spu = await RequireSpuAsync(spuId, ct);
+        spu.UpdateStock(skuId, dto.Delta, operatorId);
+        await _spuRepository.UpdateAsync(spu, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
     private async Task<SPU> RequireSpuAsync(Guid spuId, CancellationToken ct)
     {
         var spu = await _spuRepository.GetByIdAsync(spuId, ct);
@@ -265,9 +318,27 @@ public sealed class SPUAppService : ISPUAppService
                 Status = s.Status,
                 ImageUrl = s.ImageUrl
             }).ToList(),
+            AuditHistory = spu.GetAuditHistory().Select(a => new AuditInfoDto
+            {
+                OperatorId = a.OperatorId,
+                OperatorName = a.OperatorName,
+                Result = a.Result,
+                Reason = a.Reason,
+                AuditedAt = a.AuditedAt
+            }).ToList(),
             SuspendedByShop = spu.SuspendedByShop,
             ReviewedBy = spu.ReviewedBy,
             CreatedAt = spu.CreatedAt,
             UpdatedAt = spu.UpdatedAt
+        };
+
+    private static PriceChangeRecordDto ToPriceChangeRecordDto(PriceChangeRecord record)
+        => new()
+        {
+            SkuId = record.SkuId,
+            OldPrice = record.OldPrice,
+            NewPrice = record.NewPrice,
+            ChangedAt = record.ChangedAt,
+            ChangedBy = record.ChangedBy
         };
 }

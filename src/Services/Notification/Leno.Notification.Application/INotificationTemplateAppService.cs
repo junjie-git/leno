@@ -21,7 +21,7 @@ public interface INotificationTemplateAppService
     Task DisableAsync(Guid templateId, CancellationToken ct = default);
 
     /// <summary>分页查询模板列表。</summary>
-    Task<NotificationTemplateListResultDto> QueryTemplatesAsync(string? eventType, NotificationChannel? channel, int page, int pageSize, CancellationToken ct = default);
+    Task<NotificationTemplateListResultDto> QueryTemplatesAsync(string? code, NotificationChannel? channel, int page, int pageSize, CancellationToken ct = default);
 
     /// <summary>预览模板渲染结果。</summary>
     Task<TemplatePreviewResultDto> PreviewAsync(Guid templateId, PreviewTemplateDto dto, CancellationToken ct = default);

@@ -9,6 +9,7 @@ namespace Leno.Payment.Infrastructure.Channels;
 /// <summary>
 /// 支付宝渠道适配器，实现 <see cref="IPaymentChannelAdapter"/>。
 /// 通过 <see cref="Alipay.AlipayClient"/> 与支付宝交互，屏蔽渠道差异。
+/// 支持扫码支付（precreate）、PC 网页支付（page.pay）、手机网页支付（wap.pay）、App 支付（app.pay）。
 /// </summary>
 public sealed class AlipayAdapter : IPaymentChannelAdapter
 {
@@ -27,8 +28,22 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
     }
 
     /// <inheritdoc />
+    /// <remarks>默认使用扫码支付（precreate）。如需指定场景，请使用 <see cref="CreatePaymentAsync(PaymentOrder, PaymentScene, string?, CancellationToken)"/>。</remarks>
     public async Task<ChannelPaymentResult> CreatePaymentAsync(
         PaymentOrder paymentOrder, CancellationToken ct = default)
+    {
+        return await CreatePaymentAsync(paymentOrder, PaymentScene.QrCode, null, ct);
+    }
+
+    /// <summary>
+    /// 向支付宝发起下单，支持指定支付场景。
+    /// </summary>
+    /// <param name="paymentOrder">支付单聚合。</param>
+    /// <param name="scene">支付场景（QrCode/Page/Wap/App）。</param>
+    /// <param name="returnUrl">同步回跳地址（Page/Wap 场景必需）。</param>
+    /// <param name="ct">取消令牌。</param>
+    public async Task<ChannelPaymentResult> CreatePaymentAsync(
+        PaymentOrder paymentOrder, PaymentScene scene, string? returnUrl = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(paymentOrder);
 
@@ -36,18 +51,13 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
         var totalAmount = paymentOrder.Amount.ToString("0.00", CultureInfo.InvariantCulture);
         var subject = $"订单 {paymentOrder.OrderId} 支付宝支付";
 
-        var result = await _client.PreCreateAsync(config, paymentOrder.OutTradeNo, totalAmount, subject, ct);
-
-        if (!result.IsSuccess)
+        return scene switch
         {
-            _logger.LogWarning("支付宝预下单失败 OutTradeNo={OutTradeNo} SubMsg={SubMsg}",
-                paymentOrder.OutTradeNo, result.SubMsg);
-        }
-
-        return new ChannelPaymentResult
-        {
-            CodeUrl = result.QrCode,
-            ChannelTradeNo = result.TradeNo
+            PaymentScene.QrCode => await CreateQrCodePaymentAsync(config, paymentOrder.OutTradeNo, totalAmount, subject, ct),
+            PaymentScene.Page => CreatePagePaymentUrl(config, paymentOrder.OutTradeNo, totalAmount, subject, returnUrl ?? string.Empty),
+            PaymentScene.Wap => CreateWapPaymentUrl(config, paymentOrder.OutTradeNo, totalAmount, subject, returnUrl ?? string.Empty),
+            PaymentScene.App => CreateAppPaymentOrderString(config, paymentOrder.OutTradeNo, totalAmount, subject),
+            _ => throw new ArgumentOutOfRangeException(nameof(scene), scene, "不支持的支付场景")
         };
     }
 
@@ -67,6 +77,30 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
             IsPaid = result.IsPaid,
             ChannelTradeNo = result.TradeNo,
             PaidAt = ParseAlipayTime(result.SendPayDate)
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task<ChannelPaymentCloseResult> ClosePaymentAsync(string outTradeNo, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(outTradeNo))
+        {
+            throw new ArgumentException("商户支付单号不可为空", nameof(outTradeNo));
+        }
+
+        var config = await _configProvider.GetConfigAsync(PaymentChannel.Alipay, ct);
+        var result = await _client.CloseAsync(config, outTradeNo, ct);
+
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning("支付宝交易关闭失败 OutTradeNo={OutTradeNo} SubMsg={SubMsg}",
+                outTradeNo, result.SubMsg);
+        }
+
+        return new ChannelPaymentCloseResult
+        {
+            Succeeded = result.IsSuccess,
+            ChannelTradeNo = result.TradeNo
         };
     }
 
@@ -194,5 +228,59 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
             "yyyy-MM-dd HH:mm:ss",
             CultureInfo.InvariantCulture,
             DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+    }
+
+    private async Task<ChannelPaymentResult> CreateQrCodePaymentAsync(
+        ChannelConfig config, string outTradeNo, string totalAmount, string subject, CancellationToken ct)
+    {
+        var result = await _client.PreCreateAsync(config, outTradeNo, totalAmount, subject, ct);
+
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning("支付宝当面付预下单失败 OutTradeNo={OutTradeNo} SubMsg={SubMsg}",
+                outTradeNo, result.SubMsg);
+        }
+
+        return new ChannelPaymentResult
+        {
+            CodeUrl = result.QrCode,
+            ChannelTradeNo = result.TradeNo
+        };
+    }
+
+    private ChannelPaymentResult CreatePagePaymentUrl(
+        ChannelConfig config, string outTradeNo, string totalAmount, string subject, string returnUrl)
+    {
+        var url = _client.BuildPagePayUrl(config, outTradeNo, totalAmount, subject, returnUrl);
+
+        return new ChannelPaymentResult
+        {
+            H5Url = url,
+            ChannelTradeNo = outTradeNo
+        };
+    }
+
+    private ChannelPaymentResult CreateWapPaymentUrl(
+        ChannelConfig config, string outTradeNo, string totalAmount, string subject, string returnUrl)
+    {
+        var url = _client.BuildWapPayUrl(config, outTradeNo, totalAmount, subject, returnUrl);
+
+        return new ChannelPaymentResult
+        {
+            H5Url = url,
+            ChannelTradeNo = outTradeNo
+        };
+    }
+
+    private ChannelPaymentResult CreateAppPaymentOrderString(
+        ChannelConfig config, string outTradeNo, string totalAmount, string subject)
+    {
+        var orderString = _client.BuildAppPayOrderString(config, outTradeNo, totalAmount, subject);
+
+        return new ChannelPaymentResult
+        {
+            PrepayId = orderString,
+            ChannelTradeNo = outTradeNo
+        };
     }
 }

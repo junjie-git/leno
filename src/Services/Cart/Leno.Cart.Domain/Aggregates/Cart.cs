@@ -43,6 +43,20 @@ public sealed class Cart : AggregateRoot
     }
 
     /// <summary>
+    /// 工厂方法，为匿名用户初始化空购物车（UserId 为 Guid.Empty）。
+    /// </summary>
+    /// <param name="cartId">购物车标识，由应用层生成。</param>
+    public static Cart CreateAnonymous(Guid cartId)
+    {
+        var cart = new Cart(cartId == Guid.Empty ? Guid.NewGuid() : cartId)
+        {
+            UserId = Guid.Empty
+        };
+
+        return cart;
+    }
+
+    /// <summary>
     /// 添加购物车项，同 SKU 合并数量（校验上限 99），不同 SKU 新增。
     /// </summary>
     /// <param name="skuId">商品 SKU 标识。</param>
@@ -157,6 +171,87 @@ public sealed class Cart : AggregateRoot
         {
             _items.Remove(item);
         }
+    }
+
+    /// <summary>
+    /// 合并匿名购物车：遍历匿名购物车项，逐项调用 AddItem 合并数量或新增。
+    /// 合并后校验：单 SKU 数量上限 99，品类上限 50。
+    /// 选中状态：若任一来源选中则选中。
+    /// 返回合并项数量。
+    /// </summary>
+    /// <param name="anonymousCart">匿名购物车聚合。</param>
+    /// <returns>合并的购物车项数量（以匿名购物车项数计）。</returns>
+    public int MergeFrom(Cart anonymousCart)
+    {
+        ArgumentNullException.ThrowIfNull(anonymousCart);
+        const int maxVariety = 50;
+
+        var mergedCount = 0;
+        foreach (var item in anonymousCart.Items)
+        {
+            // 检查品类上限（新增项时）
+            var existing = FindItem(item.SkuId);
+            if (existing is null && _items.Count >= maxVariety)
+            {
+                throw new CartDomainException($"购物车品类数量已达上限 {maxVariety}", "CART_VARIETY_LIMIT", 409);
+            }
+
+            AddItem(item.SkuId, item.Quantity, item.SellerId);
+
+            // 选中状态：任一来源选中则选中
+            if (item.IsSelected)
+            {
+                var merged = FindItem(item.SkuId);
+                merged?.Select();
+            }
+
+            mergedCount++;
+        }
+
+        return mergedCount;
+    }
+
+    /// <summary>
+    /// 标记指定 SKU 的购物车项为无效（商品下架时调用），同时自动取消选中。
+    /// 幂等：已标记无效的项重复标记无副作用。
+    /// </summary>
+    /// <param name="skuId">商品 SKU 标识。</param>
+    /// <param name="reason">失效原因。</param>
+    public void MarkInvalid(Guid skuId, string reason)
+    {
+        var item = FindItem(skuId);
+        if (item is null) return;
+
+        item.MarkInvalid(reason);
+        item.Deselect(); // 自动取消选中
+    }
+
+    /// <summary>
+    /// 标记指定 SKU 的购物车项为有效（商品重新上架时调用），恢复可售性。
+    /// 幂等：已标记有效的项重复标记无副作用。
+    /// </summary>
+    /// <param name="skuId">商品 SKU 标识。</param>
+    public void MarkValid(Guid skuId)
+    {
+        var item = FindItem(skuId);
+        if (item is null) return;
+
+        item.MarkValid();
+    }
+
+    /// <summary>
+    /// 刷新指定 SKU 购物车项的展示快照（商品信息更新时调用）。
+    /// 幂等：不存在的 SKU 忽略。
+    /// </summary>
+    /// <param name="skuId">商品 SKU 标识。</param>
+    /// <param name="title">商品标题。</param>
+    /// <param name="mainImageUrl">主图 URL。</param>
+    public void RefreshDisplaySnapshot(Guid skuId, string title, string mainImageUrl)
+    {
+        var item = FindItem(skuId);
+        if (item is null) return;
+
+        item.RefreshDisplaySnapshot(title, mainImageUrl);
     }
 
     private CartItem? FindItem(Guid skuId) => _items.FirstOrDefault(i => i.SkuId == skuId);

@@ -46,6 +46,12 @@ public interface IOrderAppService
     Task ShipAsync(Guid orderId, Guid operatorId, ShipOrderDto dto, CancellationToken ct = default);
 
     /// <summary>
+    /// 查询订单物流轨迹。
+    /// </summary>
+    /// <param name="orderId">订单标识。</param>
+    Task<LogisticsTrackingDto> GetLogisticsTraceAsync(Guid orderId, CancellationToken ct = default);
+
+    /// <summary>
     /// 确认收货。
     /// </summary>
     /// <param name="orderId">订单标识。</param>

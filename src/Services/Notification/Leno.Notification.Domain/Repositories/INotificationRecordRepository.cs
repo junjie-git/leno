@@ -21,9 +21,21 @@ public interface INotificationRecordRepository : IRepository<NotificationRecordA
     /// <summary>查询待发送通知（状态为 Pending）。</summary>
     Task<List<NotificationRecordAggregate>> GetPendingAsync(int limit, CancellationToken ct = default);
 
-    /// <summary>查询可重试的失败通知（状态为 Failed 且 RetryCount < MaxRetryCount）。</summary>
+    /// <summary>查询可重试的失败通知（状态为 Failed 且 RetryCount &lt; DefaultMaxRetry）。</summary>
     Task<List<NotificationRecordAggregate>> GetRetryableAsync(int limit, CancellationToken ct = default);
 
     /// <summary>按用户批量标记已读。</summary>
     Task<int> MarkAllAsReadAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>按幂等键查询通知记录（幂等去重）。</summary>
+    Task<NotificationRecordAggregate?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken ct = default);
+
+    /// <summary>查询已安排重试且 NextRetryAt 已到期的通知记录。</summary>
+    Task<List<NotificationRecordAggregate>> GetRetriedWithExpiredNextRetryAsync(int limit, CancellationToken ct = default);
+
+    /// <summary>查询死信通知记录（分页）。</summary>
+    Task<List<NotificationRecordAggregate>> GetDeadLetteredAsync(int page, int pageSize, CancellationToken ct = default);
+
+    /// <summary>统计死信通知记录总数。</summary>
+    Task<int> CountDeadLetteredAsync(CancellationToken ct = default);
 }

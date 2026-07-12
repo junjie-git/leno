@@ -32,4 +32,14 @@ public interface IUserCouponRepository : IRepository<UserCouponAggregate>
     /// 按核销订单查询用户券（幂等校验：是否已核销）。
     /// </summary>
     Task<UserCouponAggregate?> GetByUsedOrderIdAsync(Guid orderId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 分页查询已领取但未使用且已过期的用户券，用于定时任务批量标记过期。
+    /// </summary>
+    /// <param name="skip">跳过的记录数。</param>
+    /// <param name="take">每次取回的记录数。</param>
+    Task<List<UserCouponAggregate>> GetExpiredUnusedCouponsAsync(
+        int skip,
+        int take,
+        CancellationToken ct = default);
 }

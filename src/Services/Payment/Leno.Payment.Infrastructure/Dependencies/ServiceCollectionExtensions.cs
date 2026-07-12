@@ -48,6 +48,8 @@ public static class ServiceCollectionExtensions
 
         // 渠道配置
         services.Configure<PaymentChannelOptions>(configuration.GetSection("Payment:Channels"));
+        services.Configure<AlipayOptions>(configuration.GetSection("Payment:Alipay"));
+        services.Configure<WeChatPayOptions>(configuration.GetSection("Payment:WeChatPayV3"));
         services.AddSingleton<IChannelConfigProvider, ChannelConfigProvider>();
 
         // 渠道 HTTP 客户端（通过 IHttpClientFactory 注入 HttpClient）
@@ -58,6 +60,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<WeChatPayAdapter>();
         services.AddScoped<AlipayAdapter>();
         services.AddScoped<PaymentChannelFactory>();
+
+        // 渠道签名验证（供表现层验签后处理业务）
+        services.AddScoped<WeChatPayChannel>();
+        services.AddScoped<AlipayChannel>();
 
         // 异步通知处理器
         services.AddScoped<WeChatPayNotifyHandler>();

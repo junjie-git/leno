@@ -61,6 +61,8 @@ public sealed class OrderDto
 
     public string? LogisticsNo { get; init; }
 
+    public string? LogisticsCompanyCode { get; init; }
+
     public DateTime? CompletedAt { get; init; }
 
     public DateTime? CancelledAt { get; init; }
@@ -161,6 +163,8 @@ public sealed class PayOrderDto
 public sealed class ShipOrderDto
 {
     public string LogisticsNo { get; init; } = string.Empty;
+
+    public string LogisticsCompanyCode { get; init; } = string.Empty;
 }
 
 /// <summary>

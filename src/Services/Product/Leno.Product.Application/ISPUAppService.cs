@@ -38,4 +38,13 @@ public interface ISPUAppService
 
     /// <summary>运营审核驳回。</summary>
     Task RejectAsync(Guid spuId, Guid reviewedBy, ActionReasonDto dto, CancellationToken ct = default);
+
+    /// <summary>调整 SKU 价格，记录价格变更历史。</summary>
+    Task AdjustPriceAsync(Guid spuId, Guid skuId, AdjustPriceDto dto, string changedBy, CancellationToken ct = default);
+
+    /// <summary>查询商品价格变更历史。</summary>
+    Task<IReadOnlyList<PriceChangeRecordDto>> GetPriceHistoryAsync(Guid spuId, Guid? skuId = null, CancellationToken ct = default);
+
+    /// <summary>调整 SKU 库存（delta 方式），记录操作日志并发布事件。</summary>
+    Task UpdateStockAsync(Guid spuId, Guid skuId, UpdateStockDto dto, string operatorId, CancellationToken ct = default);
 }

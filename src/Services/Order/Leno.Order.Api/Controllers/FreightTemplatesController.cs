@@ -1,7 +1,6 @@
 using Leno.Infrastructure.Auth;
 using Leno.Order.Application;
 using Leno.Order.Application.DTOs;
-using Leno.Order.Application.Services;
 using Leno.SharedContracts.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,28 +10,24 @@ namespace Leno.Order.Api.Controllers;
 /// <summary>
 /// 运费模板控制器。
 /// 卖家/管理端（/api/seller/freight-templates）：运费模板 CRUD、区域规则更新、启停、查询，需 Seller/Admin 角色。
-/// 另含物流轨迹查询端点（/api/orders/{id}/logistics），需 Buyer/Seller/Admin 角色。
+/// 另含物流轨迹查询端点（/api/orders/{id}/logistics-trace），需 Buyer/Seller/Admin 角色。
 /// </summary>
 [ApiController]
 public sealed class FreightTemplatesController : OrderControllerBase
 {
     private readonly IFreightTemplateAppService _freightTemplateAppService;
     private readonly IOrderAppService _orderAppService;
-    private readonly ILogisticsTrackingService _logisticsTrackingService;
 
     public FreightTemplatesController(
         ICurrentUserContext currentUser,
         IFreightTemplateAppService freightTemplateAppService,
-        IOrderAppService orderAppService,
-        ILogisticsTrackingService logisticsTrackingService)
+        IOrderAppService orderAppService)
         : base(currentUser)
     {
         ArgumentNullException.ThrowIfNull(freightTemplateAppService);
         ArgumentNullException.ThrowIfNull(orderAppService);
-        ArgumentNullException.ThrowIfNull(logisticsTrackingService);
         _freightTemplateAppService = freightTemplateAppService;
         _orderAppService = orderAppService;
-        _logisticsTrackingService = logisticsTrackingService;
     }
 
     // ========== 卖家/管理端：运费模板 ==========
@@ -99,20 +94,13 @@ public sealed class FreightTemplatesController : OrderControllerBase
 
     // ========== 物流轨迹查询 ==========
 
-    /// <summary>查询订单物流轨迹。订单未发货（LogisticsNo 为空）时返回空数据。</summary>
+    /// <summary>查询订单物流轨迹，验证物流公司支持轨迹查询，失败时返回缓存数据并带警告标识。</summary>
     [Authorize(Roles = "Buyer,Seller,Admin")]
-    [HttpGet("api/orders/{id:guid}/logistics")]
+    [HttpGet("api/orders/{id:guid}/logistics-trace")]
     [ProducesResponseType(typeof(ApiResponse<LogisticsTrackingDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetLogisticsTrackingAsync(Guid id, CancellationToken ct)
+    public async Task<IActionResult> GetLogisticsTraceAsync(Guid id, CancellationToken ct)
     {
-        var order = await _orderAppService.GetByIdAsync(id, ct);
-
-        if (string.IsNullOrEmpty(order.LogisticsNo))
-        {
-            return Ok(ApiResponse.Success(new LogisticsTrackingDto()));
-        }
-
-        var tracking = await _logisticsTrackingService.GetTrackingAsync(order.LogisticsNo, ct);
+        var tracking = await _orderAppService.GetLogisticsTraceAsync(id, ct);
         return Ok(ApiResponse.Success(tracking));
     }
 }

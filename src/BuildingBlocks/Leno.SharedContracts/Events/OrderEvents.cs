@@ -17,6 +17,9 @@ public sealed class OrderCreatedEvent : IntegrationEventBase, IDomainEvent
     /// <summary>买家账号标识（用户域 UserId）。</summary>
     public Guid BuyerId { get; init; }
 
+    /// <summary>卖家（店铺）标识，语义等同卖家与店铺管理域的 ShopId。</summary>
+    public Guid SellerId { get; init; }
+
     /// <summary>订单总金额。</summary>
     public decimal TotalAmount { get; init; }
 
@@ -40,6 +43,7 @@ public sealed class OrderCreatedEvent : IntegrationEventBase, IDomainEvent
     public OrderCreatedEvent(
         Guid orderId,
         Guid buyerId,
+        Guid sellerId,
         decimal totalAmount,
         string currency,
         DateTime createdAt,
@@ -47,6 +51,7 @@ public sealed class OrderCreatedEvent : IntegrationEventBase, IDomainEvent
     {
         OrderId = orderId;
         BuyerId = buyerId;
+        SellerId = sellerId;
         TotalAmount = totalAmount;
         Currency = string.IsNullOrWhiteSpace(currency) ? "CNY" : currency;
         CreatedAt = createdAt;
@@ -113,6 +118,9 @@ public sealed class OrderPaidEvent : IntegrationEventBase, IDomainEvent
     /// <summary>买家账号标识。</summary>
     public Guid UserId { get; init; }
 
+    /// <summary>卖家（店铺）标识，语义等同卖家与店铺管理域的 ShopId。</summary>
+    public Guid SellerId { get; init; }
+
     /// <summary>支付单标识。</summary>
     public Guid PaymentId { get; init; }
 
@@ -142,6 +150,7 @@ public sealed class OrderPaidEvent : IntegrationEventBase, IDomainEvent
     public OrderPaidEvent(
         Guid orderId,
         Guid userId,
+        Guid sellerId,
         Guid paymentId,
         string channel,
         DateTime paidAt,
@@ -151,6 +160,7 @@ public sealed class OrderPaidEvent : IntegrationEventBase, IDomainEvent
     {
         OrderId = orderId;
         UserId = userId;
+        SellerId = sellerId;
         PaymentId = paymentId;
         Channel = channel ?? string.Empty;
         PaidAt = paidAt;
@@ -171,6 +181,9 @@ public sealed class OrderCancelledEvent : IntegrationEventBase, IDomainEvent
 {
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
+
+    /// <summary>卖家（店铺）标识，语义等同卖家与店铺管理域的 ShopId。</summary>
+    public Guid SellerId { get; init; }
 
     /// <summary>取消原因。</summary>
     public string CancelReason { get; init; } = string.Empty;
@@ -194,12 +207,14 @@ public sealed class OrderCancelledEvent : IntegrationEventBase, IDomainEvent
 
     public OrderCancelledEvent(
         Guid orderId,
+        Guid sellerId,
         string cancelReason,
         DateTime cancelledAt,
         string cancelledBy,
         int pointsToRelease) : base()
     {
         OrderId = orderId;
+        SellerId = sellerId;
         CancelReason = cancelReason ?? string.Empty;
         CancelledAt = cancelledAt;
         CancelledBy = cancelledBy ?? string.Empty;
@@ -263,6 +278,9 @@ public sealed class OrderAfterSalesWindowClosedEvent : IntegrationEventBase, IDo
     /// <summary>买家账号标识。</summary>
     public Guid UserId { get; init; }
 
+    /// <summary>实付金额，用于积分域计算消费返积分（1 元 = 1 积分）。</summary>
+    public decimal PaidAmount { get; init; }
+
     /// <summary>售后窗口关闭时间（UTC）。</summary>
     public DateTime ClosedAt { get; init; }
 
@@ -274,11 +292,12 @@ public sealed class OrderAfterSalesWindowClosedEvent : IntegrationEventBase, IDo
     {
     }
 
-    public OrderAfterSalesWindowClosedEvent(Guid orderId, Guid userId, DateTime closedAt)
+    public OrderAfterSalesWindowClosedEvent(Guid orderId, Guid userId, decimal paidAmount, DateTime closedAt)
         : base()
     {
         OrderId = orderId;
         UserId = userId;
+        PaidAmount = paidAmount;
         ClosedAt = closedAt;
     }
 }

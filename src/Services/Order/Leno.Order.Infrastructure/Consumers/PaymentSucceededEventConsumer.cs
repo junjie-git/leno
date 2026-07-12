@@ -1,5 +1,7 @@
 using Leno.Infrastructure.EventBus;
+using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
+using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
@@ -16,18 +18,26 @@ public sealed class PaymentSucceededEventConsumer : RedisIntegrationEventConsume
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IStockReservationDomainService _stockService;
+    private readonly IPointsAntiCorruptionService _pointsAntiCorruption;
 
     public PaymentSucceededEventConsumer(
         IOrderRepository orderRepository,
         IUnitOfWork unitOfWork,
+        IStockReservationDomainService stockService,
+        IPointsAntiCorruptionService pointsAntiCorruption,
         ILogger<PaymentSucceededEventConsumer> logger,
         IConnectionMultiplexer redisMultiplexer)
         : base(logger, redisMultiplexer)
     {
         ArgumentNullException.ThrowIfNull(orderRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
+        ArgumentNullException.ThrowIfNull(stockService);
+        ArgumentNullException.ThrowIfNull(pointsAntiCorruption);
         _orderRepository = orderRepository;
         _unitOfWork = unitOfWork;
+        _stockService = stockService;
+        _pointsAntiCorruption = pointsAntiCorruption;
     }
 
     /// <inheritdoc />
@@ -50,6 +60,27 @@ public sealed class PaymentSucceededEventConsumer : RedisIntegrationEventConsume
         }
 
         order.MarkAsPaid(integrationEvent.PaymentId, integrationEvent.Channel, integrationEvent.PaidAt, integrationEvent.TradeNo);
+
+        // 会员订阅订单支付后自动完成（无发货流程）
+        if (order.OrderType == OrderType.Membership)
+        {
+            order.CompleteMembershipOrder();
+
+            await _orderRepository.UpdateAsync(order, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+
+            Logger.LogInformation("会员订单 {OrderId} 已支付并自动完成", integrationEvent.OrderId);
+            return;
+        }
+
+        // 确认库存扣减（预占 → 真实扣减）
+        var skuQuantities = order.Items
+            .GroupBy(i => i.SkuId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+        await _stockService.ConfirmBatchAsync(order.Id, skuQuantities, ct);
+
+        // 确认积分扣减（冻结 → 正式扣减）
+        await _pointsAntiCorruption.ConfirmDeductionAsync(order.Id, ct);
 
         await _orderRepository.UpdateAsync(order, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);

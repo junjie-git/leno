@@ -28,4 +28,7 @@ public interface IUserRepository : IRepository<User>
         int page = 1,
         int pageSize = 20,
         CancellationToken ct = default);
+
+    /// <summary>按外部登录提供方与提供方用户标识查询用户。</summary>
+    Task<User?> FindByExternalLoginAsync(string provider, string providerUserId, CancellationToken ct = default);
 }

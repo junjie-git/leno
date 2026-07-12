@@ -1,5 +1,6 @@
 using System.Globalization;
-using Leno.Notification.Infrastructure.Services;
+using Leno.Notification.Domain.Services;
+using Leno.Notification.Domain.ValueObjects;
 using Leno.PointsMembership.Domain.Events;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -14,14 +15,14 @@ public sealed class PointsEventConsumer :
     IConsumer<MemberLevelUpgradedEvent>,
     IConsumer<MembershipActivatedEvent>
 {
-    private readonly INotificationDispatcher _dispatcher;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<PointsEventConsumer> _logger;
 
-    public PointsEventConsumer(INotificationDispatcher dispatcher, ILogger<PointsEventConsumer> logger)
+    public PointsEventConsumer(INotificationService notificationService, ILogger<PointsEventConsumer> logger)
     {
-        ArgumentNullException.ThrowIfNull(dispatcher);
+        ArgumentNullException.ThrowIfNull(notificationService);
         ArgumentNullException.ThrowIfNull(logger);
-        _dispatcher = dispatcher;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -32,13 +33,19 @@ public sealed class PointsEventConsumer :
         var evt = context.Message;
         _logger.LogInformation("消费积分到账事件 EventId={EventId} UserId={UserId} Amount={Amount}", evt.EventId, evt.UserId, evt.Amount);
 
-        var variables = new Dictionary<string, string>
+        var request = new NotificationRequest
         {
-            ["amount"] = evt.Amount.ToString(CultureInfo.InvariantCulture),
-            ["source"] = evt.Source
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(PointsEarnedEvent))!,
+            UserId = evt.UserId,
+            IdempotencyKey = evt.EventId.ToString(),
+            Variables = new Dictionary<string, string>
+            {
+                ["amount"] = evt.Amount.ToString(CultureInfo.InvariantCulture),
+                ["source"] = evt.Source
+            }
         };
 
-        await _dispatcher.DispatchAsync(evt.UserId, "PointsEarnedEvent", evt.EventId, variables, context.CancellationToken);
+        await _notificationService.SendAsync(request, context.CancellationToken);
     }
 
     /// <inheritdoc />
@@ -48,13 +55,19 @@ public sealed class PointsEventConsumer :
         var evt = context.Message;
         _logger.LogInformation("消费会员升级事件 EventId={EventId} UserId={UserId} OldLevel={OldLevel} NewLevel={NewLevel}", evt.EventId, evt.UserId, evt.OldLevel, evt.NewLevel);
 
-        var variables = new Dictionary<string, string>
+        var request = new NotificationRequest
         {
-            ["oldLevel"] = evt.OldLevel.ToString(CultureInfo.InvariantCulture),
-            ["newLevel"] = evt.NewLevel.ToString(CultureInfo.InvariantCulture)
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(MemberLevelUpgradedEvent))!,
+            UserId = evt.UserId,
+            IdempotencyKey = evt.EventId.ToString(),
+            Variables = new Dictionary<string, string>
+            {
+                ["oldLevel"] = evt.OldLevel.ToString(CultureInfo.InvariantCulture),
+                ["newLevel"] = evt.NewLevel.ToString(CultureInfo.InvariantCulture)
+            }
         };
 
-        await _dispatcher.DispatchAsync(evt.UserId, "MemberLevelUpgradedEvent", evt.EventId, variables, context.CancellationToken);
+        await _notificationService.SendAsync(request, context.CancellationToken);
     }
 
     /// <inheritdoc />
@@ -64,13 +77,19 @@ public sealed class PointsEventConsumer :
         var evt = context.Message;
         _logger.LogInformation("消费会员激活事件 EventId={EventId} UserId={UserId} Level={Level}", evt.EventId, evt.UserId, evt.Level);
 
-        var variables = new Dictionary<string, string>
+        var request = new NotificationRequest
         {
-            ["level"] = evt.Level.ToString(CultureInfo.InvariantCulture),
-            ["endTime"] = evt.EndTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            ["packageId"] = evt.PackageId.ToString()
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(MembershipActivatedEvent))!,
+            UserId = evt.UserId,
+            IdempotencyKey = evt.EventId.ToString(),
+            Variables = new Dictionary<string, string>
+            {
+                ["level"] = evt.Level.ToString(CultureInfo.InvariantCulture),
+                ["endTime"] = evt.EndTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                ["packageId"] = evt.PackageId.ToString()
+            }
         };
 
-        await _dispatcher.DispatchAsync(evt.UserId, "MembershipActivatedEvent", evt.EventId, variables, context.CancellationToken);
+        await _notificationService.SendAsync(request, context.CancellationToken);
     }
 }

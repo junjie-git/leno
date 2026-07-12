@@ -4,12 +4,14 @@ using Leno.Payment.Domain.ValueObjects;
 using Leno.Payment.Infrastructure.Channels;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace Leno.Payment.Infrastructure.Notify;
 
 /// <summary>
 /// 支付宝异步通知处理器，解析通知表单字段、验签、更新支付单/退款单状态并经发件箱发布集成事件。
 /// 验签或状态机非法时返回 <c>fail</c>，通知渠道重试；处理成功返回 <c>success</c>。
+/// 回调幂等：使用 Redis 记录已处理的渠道交易号，防止重复处理。
 /// </summary>
 public sealed class AlipayNotifyHandler
 {
@@ -17,6 +19,7 @@ public sealed class AlipayNotifyHandler
     private readonly IPaymentOrderRepository _paymentOrderRepository;
     private readonly IRefundOrderRepository _refundOrderRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IConnectionMultiplexer? _redis;
     private readonly ILogger<AlipayNotifyHandler> _logger;
 
     public AlipayNotifyHandler(
@@ -24,13 +27,15 @@ public sealed class AlipayNotifyHandler
         IPaymentOrderRepository paymentOrderRepository,
         IRefundOrderRepository refundOrderRepository,
         IUnitOfWork unitOfWork,
-        ILogger<AlipayNotifyHandler> logger)
+        IConnectionMultiplexer? redis = null,
+        ILogger<AlipayNotifyHandler>? logger = null)
     {
         _adapter = adapter ?? throw new ArgumentNullException(nameof(adapter));
         _paymentOrderRepository = paymentOrderRepository ?? throw new ArgumentNullException(nameof(paymentOrderRepository));
         _refundOrderRepository = refundOrderRepository ?? throw new ArgumentNullException(nameof(refundOrderRepository));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _redis = redis;
+        _logger = logger ?? InternalNullLoggerFactory.CreateLogger<AlipayNotifyHandler>();
     }
 
     /// <summary>
@@ -52,6 +57,17 @@ public sealed class AlipayNotifyHandler
             {
                 _logger.LogWarning("支付宝通知验签失败 ChannelTradeNo={ChannelTradeNo}", result.ChannelTradeNo);
                 return "fail";
+            }
+
+            // 回调幂等：使用 Redis 记录已处理的渠道交易号
+            var channelTradeNo = result.ChannelTradeNo;
+            if (!string.IsNullOrEmpty(channelTradeNo))
+            {
+                if (!await MarkCallbackProcessedAsync(channelTradeNo))
+                {
+                    _logger.LogInformation("支付宝通知：回调已处理，幂等跳过 ChannelTradeNo={ChannelTradeNo}", channelTradeNo);
+                    return "success";
+                }
             }
 
             if (result.IsPaid)
@@ -97,18 +113,18 @@ public sealed class AlipayNotifyHandler
             return "success";
         }
 
-        var channelTradeNo = !string.IsNullOrEmpty(result.ChannelTradeNo) ? result.ChannelTradeNo : order.ChannelTradeNo;
-        if (string.IsNullOrEmpty(channelTradeNo))
+        var tradeNo = !string.IsNullOrEmpty(result.ChannelTradeNo) ? result.ChannelTradeNo : order.ChannelTradeNo;
+        if (string.IsNullOrEmpty(tradeNo))
         {
             _logger.LogWarning("支付宝通知：缺少第三方交易号 OutTradeNo={OutTradeNo}", outTradeNo);
             return "fail";
         }
 
-        order.MarkSucceeded(channelTradeNo, result.PaidAt ?? DateTime.UtcNow);
+        order.MarkSucceeded(tradeNo, result.PaidAt ?? DateTime.UtcNow);
         await _paymentOrderRepository.UpdateAsync(order);
         await _unitOfWork.SaveEntitiesAsync();
 
-        _logger.LogInformation("支付宝通知：支付单已标记成功 OutTradeNo={OutTradeNo} PaymentId={PaymentId}",
+        _logger.LogInformation("支付宝通知：支付单已标记成功并发布 PaymentSucceededEvent OutTradeNo={OutTradeNo} PaymentId={PaymentId}",
             outTradeNo, order.Id);
         return "success";
     }
@@ -149,6 +165,29 @@ public sealed class AlipayNotifyHandler
         _logger.LogInformation("支付宝退款通知：退款单已标记成功 OutRefundNo={OutRefundNo} RefundId={RefundId}",
             outRefundNo, refund.Id);
         return "success";
+    }
+
+    /// <summary>
+    /// 标记回调已处理（Redis 幂等），返回 true 表示首次处理。
+    /// </summary>
+    private async Task<bool> MarkCallbackProcessedAsync(string channelTradeNo)
+    {
+        if (_redis is null)
+        {
+            return true; // Redis 不可用时放行
+        }
+
+        try
+        {
+            var db = _redis.GetDatabase();
+            var key = $"payment:callback:alipay:{channelTradeNo}";
+            return await db.StringSetAsync(key, "processed", TimeSpan.FromDays(30), When.NotExists);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "支付宝回调幂等检查异常 ChannelTradeNo={ChannelTradeNo}", channelTradeNo);
+            return true; // 降级：Redis 异常时放行
+        }
     }
 
     private static string GetField(Dictionary<string, string> dict, string key)

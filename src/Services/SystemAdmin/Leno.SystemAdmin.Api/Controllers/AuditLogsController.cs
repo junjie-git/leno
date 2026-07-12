@@ -16,12 +16,18 @@ namespace Leno.SystemAdmin.Api.Controllers;
 public sealed class AuditLogsController : SystemAdminControllerBase
 {
     private readonly IAuditLogAppService _auditLogAppService;
+    private readonly IAuditLogEntryAppService _auditLogEntryAppService;
 
-    public AuditLogsController(ICurrentUserContext currentUser, IAuditLogAppService auditLogAppService)
+    public AuditLogsController(
+        ICurrentUserContext currentUser,
+        IAuditLogAppService auditLogAppService,
+        IAuditLogEntryAppService auditLogEntryAppService)
         : base(currentUser)
     {
         ArgumentNullException.ThrowIfNull(auditLogAppService);
+        ArgumentNullException.ThrowIfNull(auditLogEntryAppService);
         _auditLogAppService = auditLogAppService;
+        _auditLogEntryAppService = auditLogEntryAppService;
     }
 
     /// <summary>分页查询审计日志，支持运营人员、资源类型与时间区间过滤。</summary>
@@ -67,6 +73,38 @@ public sealed class AuditLogsController : SystemAdminControllerBase
         CancellationToken ct = default)
     {
         var result = await _auditLogAppService.QueryOperationLogsAsync(operatorId, moduleName, fromTime, toTime, page, pageSize, ct);
+        return Ok(ApiResponse.Success(result));
+    }
+
+    /// <summary>按标识获取跨域审计日志条目详情。</summary>
+    [HttpGet("api/admin/audit-logs/{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<AuditLogEntryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAuditLogByIdAsync(Guid id, CancellationToken ct)
+    {
+        var entry = await _auditLogEntryAppService.GetByIdAsync(id, ct);
+        if (entry is null)
+        {
+            return NotFound(ApiResponse.Fail(404, "审计日志条目不存在"));
+        }
+
+        return Ok(ApiResponse.Success(entry));
+    }
+
+    /// <summary>分页查询跨域审计日志条目，支持模块、操作动作、时间区间与操作人过滤。</summary>
+    [HttpGet("api/admin/audit-log-entries")]
+    [ProducesResponseType(typeof(ApiResponse<AuditLogEntryListResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> QueryAuditLogEntriesAsync(
+        [FromQuery(Name = "module")] string? moduleName,
+        [FromQuery] string? action,
+        [FromQuery] DateTime? fromTime,
+        [FromQuery] DateTime? toTime,
+        [FromQuery] Guid? operatorId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        var result = await _auditLogEntryAppService.QueryAsync(moduleName, action, fromTime, toTime, operatorId, page, pageSize, ct);
         return Ok(ApiResponse.Success(result));
     }
 }
