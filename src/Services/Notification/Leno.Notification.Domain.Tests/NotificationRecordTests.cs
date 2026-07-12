@@ -1244,4 +1244,194 @@ public class NotificationRecordTests
     }
 
     #endregion
+
+    #region ApplyReceipt
+
+    private static void SetChannelMessageId(NotificationRecord record, string messageId)
+    {
+        var prop = typeof(NotificationRecord).GetProperty("ChannelMessageId");
+        prop?.SetValue(record, messageId);
+    }
+
+    [Fact]
+    public void ApplyReceipt_MatchingChannelMessageIdSucceeded_ShouldUpdateStatus()
+    {
+        // Arrange
+        var record = CreateValidRecord();
+        record.MarkSending();
+        SetChannelMessageId(record, "msg-abc-456");
+
+        // Act
+        var applied = record.ApplyReceipt("msg-abc-456", true, "{\"status\":\"delivered\"}");
+
+        // Assert
+        applied.Should().BeTrue();
+        record.Status.Should().Be(NotificationStatus.Succeeded);
+        record.ChannelReceipt.Should().NotBeNull();
+        record.ErrorMessage.Should().BeNull();
+        record.ErrorCode.Should().BeNull();
+    }
+
+    [Fact]
+    public void ApplyReceipt_MatchingChannelMessageIdFailed_ShouldRecordError()
+    {
+        // Arrange
+        var record = CreateValidRecord();
+        record.MarkSending();
+        SetChannelMessageId(record, "msg-fail-789");
+
+        // Act
+        var applied = record.ApplyReceipt("msg-fail-789", false, "{\"status\":\"bounced\"}");
+
+        // Assert
+        applied.Should().BeTrue();
+        record.ErrorMessage.Should().Be("渠道回执确认失败");
+        record.ErrorCode.Should().Be("CHANNEL_RECEIPT_FAILED");
+        record.ChannelReceipt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ApplyReceipt_AlreadySucceeded_ShouldBeIdempotent()
+    {
+        // Arrange
+        var record = CreateValidRecord();
+        record.MarkSending();
+        record.MarkSucceeded("msg-idem-001");
+        record.Status.Should().Be(NotificationStatus.Succeeded);
+
+        // Act
+        var applied = record.ApplyReceipt("msg-idem-001", true, "{\"status\":\"delivered\"}");
+
+        // Assert
+        applied.Should().BeFalse(); // Idempotent skip
+        record.Status.Should().Be(NotificationStatus.Succeeded); // No change
+    }
+
+    [Fact]
+    public void ApplyReceipt_NonMatchingChannelMessageId_ShouldReturnFalse()
+    {
+        // Arrange
+        var record = CreateValidRecord();
+        record.MarkSending();
+        SetChannelMessageId(record, "msg-original");
+
+        // Act
+        var applied = record.ApplyReceipt("msg-different", true, null);
+
+        // Assert
+        applied.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ApplyReceipt_EmptyChannelMessageId_ShouldThrowNotificationDomainException()
+    {
+        // Arrange
+        var record = CreateValidRecord();
+
+        // Act
+        var act = () => record.ApplyReceipt("", true, null);
+
+        // Assert
+        act.Should().Throw<NotificationDomainException>()
+            .And.ErrorCode.Should().Be("NOTIFICATION_RECEIPT_MESSAGE_ID_EMPTY");
+    }
+
+    [Fact]
+    public void ApplyReceipt_NullChannelMessageId_ShouldThrowNotificationDomainException()
+    {
+        // Arrange
+        var record = CreateValidRecord();
+
+        // Act
+        var act = () => record.ApplyReceipt(null!, true, null);
+
+        // Assert
+        act.Should().Throw<NotificationDomainException>()
+            .And.ErrorCode.Should().Be("NOTIFICATION_RECEIPT_MESSAGE_ID_EMPTY");
+    }
+
+    [Fact]
+    public void ApplyReceipt_WhitespaceChannelMessageId_ShouldThrowNotificationDomainException()
+    {
+        // Arrange
+        var record = CreateValidRecord();
+
+        // Act
+        var act = () => record.ApplyReceipt("   ", true, null);
+
+        // Assert
+        act.Should().Throw<NotificationDomainException>()
+            .And.ErrorCode.Should().Be("NOTIFICATION_RECEIPT_MESSAGE_ID_EMPTY");
+    }
+
+    [Fact]
+    public void ApplyReceipt_MasksPhoneNumberInPayload()
+    {
+        // Arrange
+        var record = CreateValidRecord();
+        record.MarkSending();
+        SetChannelMessageId(record, "msg-phone-001");
+        var payload = "{\"phone\":\"13812345678\",\"status\":\"delivered\"}";
+
+        // Act
+        record.ApplyReceipt("msg-phone-001", true, payload);
+
+        // Assert
+        record.ChannelReceipt.Should().NotBeNull();
+        record.ChannelReceipt.Should().NotContain("13812345678");
+        record.ChannelReceipt.Should().Contain("138****5678");
+    }
+
+    [Fact]
+    public void ApplyReceipt_MasksEmailInPayload()
+    {
+        // Arrange
+        var record = CreateValidRecord();
+        record.MarkSending();
+        SetChannelMessageId(record, "msg-email-001");
+        var payload = "{\"email\":\"testuser@example.com\",\"status\":\"delivered\"}";
+
+        // Act
+        record.ApplyReceipt("msg-email-001", true, payload);
+
+        // Assert
+        record.ChannelReceipt.Should().NotBeNull();
+        record.ChannelReceipt.Should().NotContain("testuser@example.com");
+        record.ChannelReceipt.Should().Contain("tes***@");
+    }
+
+    [Fact]
+    public void ApplyReceipt_NullPayload_ShouldNotMask()
+    {
+        // Arrange
+        var record = CreateValidRecord();
+        record.MarkSending();
+        SetChannelMessageId(record, "msg-null");
+
+        // Act
+        record.ApplyReceipt("msg-null", true, null);
+
+        // Assert
+        record.ChannelReceipt.Should().BeNull();
+    }
+
+    [Fact]
+    public void ApplyReceipt_DuplicateCall_ShouldBeIdempotent()
+    {
+        // Arrange
+        var record = CreateValidRecord();
+        record.MarkSending();
+        SetChannelMessageId(record, "msg-dup");
+
+        // Act
+        var first = record.ApplyReceipt("msg-dup", true, "{}");
+        var second = record.ApplyReceipt("msg-dup", true, "{\"retry\":true}");
+
+        // Assert
+        first.Should().BeTrue();
+        second.Should().BeFalse(); // Already Succeeded, idempotent
+        record.Status.Should().Be(NotificationStatus.Succeeded);
+    }
+
+    #endregion
 }

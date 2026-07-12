@@ -294,3 +294,114 @@ public sealed class SaveRateLimitConfigDto
     public int? DailyLimit { get; set; }
     public bool? Enabled { get; set; }
 }
+
+/// <summary>
+/// 渠道回执请求 DTO（邮件回执）。
+/// </summary>
+public sealed class EmailReceiptDto
+{
+    /// <summary>渠道消息标识。</summary>
+    public string ChannelMessageId { get; set; } = string.Empty;
+    /// <summary>是否送达成功。</summary>
+    public bool Succeeded { get; set; }
+    /// <summary>回执原始数据。</summary>
+    public string? RawPayload { get; set; }
+    /// <summary>签名，用于防伪造。</summary>
+    public string Signature { get; set; } = string.Empty;
+    /// <summary>时间戳。</summary>
+    public long Timestamp { get; set; }
+}
+
+/// <summary>
+/// 渠道回执请求 DTO（短信回执）。
+/// </summary>
+public sealed class SmsReceiptDto
+{
+    /// <summary>渠道消息标识。</summary>
+    public string ChannelMessageId { get; set; } = string.Empty;
+    /// <summary>是否送达成功。</summary>
+    public bool Succeeded { get; set; }
+    /// <summary>回执原始数据。</summary>
+    public string? RawPayload { get; set; }
+    /// <summary>签名，用于防伪造。</summary>
+    public string Signature { get; set; } = string.Empty;
+    /// <summary>时间戳。</summary>
+    public long Timestamp { get; set; }
+}
+
+/// <summary>
+/// 通知记录详情 DTO（管理员端，含脱敏字段）。
+/// </summary>
+public sealed class NotificationRecordDetailDto
+{
+    public Guid RecordId { get; set; }
+    public Guid UserId { get; set; }
+    public string TemplateCode { get; set; } = string.Empty;
+    public NotificationChannel Channel { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+    public NotificationStatus Status { get; set; }
+    public int RetryCount { get; set; }
+    public string? ErrorMessage { get; set; }
+    public string? ErrorCode { get; set; }
+    /// <summary>脱敏后的邮箱或手机号。</summary>
+    public string? MaskedContact { get; set; }
+    public string? BusinessRef { get; set; }
+    public string? ChannelMessageId { get; set; }
+    public DateTime? SentAt { get; set; }
+    public DateTime? FailedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>
+/// 通知记录列表项 DTO（管理员端，含脱敏字段）。
+/// </summary>
+public sealed class NotificationRecordListItemDto
+{
+    public Guid RecordId { get; set; }
+    public Guid UserId { get; set; }
+    public string TemplateCode { get; set; } = string.Empty;
+    public NotificationChannel Channel { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public NotificationStatus Status { get; set; }
+    /// <summary>脱敏的联系方式。</summary>
+    public string? MaskedContact { get; set; }
+    public string? BusinessRef { get; set; }
+    public DateTime? SentAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>
+/// 通知记录分页查询结果。
+/// </summary>
+public sealed class NotificationRecordListResultDto
+{
+    public List<NotificationRecordListItemDto> Items { get; set; } = [];
+    public int Total { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+}
+
+/// <summary>
+/// 送达率统计 DTO。
+/// </summary>
+public sealed class DeliveryStatisticsDto
+{
+    public NotificationChannel Channel { get; set; }
+    public string TemplateCode { get; set; } = string.Empty;
+    public int TotalCount { get; set; }
+    public int SucceededCount { get; set; }
+    public int FailedCount { get; set; }
+    public int DeadLetteredCount { get; set; }
+    public double DeliveryRate { get; set; }
+}
+
+/// <summary>
+/// 送达率统计列表 DTO。
+/// </summary>
+public sealed class DeliveryStatisticsListDto
+{
+    public List<DeliveryStatisticsDto> Items { get; set; } = [];
+    public DateTime? From { get; set; }
+    public DateTime? To { get; set; }
+}

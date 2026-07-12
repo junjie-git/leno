@@ -13,7 +13,8 @@ namespace Leno.Notification.Infrastructure.Consumers;
 public sealed class OrderEventConsumer :
     IConsumer<OrderCreatedEvent>,
     IConsumer<OrderShippedEvent>,
-    IConsumer<OrderCompletedEvent>
+    IConsumer<OrderCompletedEvent>,
+    IConsumer<OrderCancelledEvent>
 {
     private readonly INotificationService _notificationService;
     private readonly ILogger<OrderEventConsumer> _logger;
@@ -88,6 +89,29 @@ public sealed class OrderEventConsumer :
                 ["orderId"] = evt.OrderId.ToString(),
                 ["totalAmount"] = evt.TotalAmount.ToString("F2", CultureInfo.InvariantCulture),
                 ["currency"] = evt.Currency
+            }
+        };
+
+        await _notificationService.SendAsync(request, context.CancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task Consume(ConsumeContext<OrderCancelledEvent> context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        var evt = context.Message;
+        _logger.LogInformation("消费订单取消事件 EventId={EventId} OrderId={OrderId}", evt.EventId, evt.OrderId);
+
+        var request = new NotificationRequest
+        {
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(OrderCancelledEvent))!,
+            UserId = Guid.Empty, // 通知发送给买家需通过订单查询，这里使用事件中的 sellerId 作为 fallback
+            IdempotencyKey = evt.EventId.ToString(),
+            Variables = new Dictionary<string, string>
+            {
+                ["orderId"] = evt.OrderId.ToString(),
+                ["cancelReason"] = evt.CancelReason,
+                ["cancelledBy"] = evt.CancelledBy
             }
         };
 

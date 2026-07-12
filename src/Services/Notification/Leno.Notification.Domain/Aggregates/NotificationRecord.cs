@@ -286,4 +286,91 @@ public sealed class NotificationRecord : AggregateRoot
 
         ErrorMessage = $"已丢弃：{reason}";
     }
+
+    /// <summary>
+    /// 应用渠道回执，更新通知记录状态。
+    /// 仅当回执的 ChannelMessageId 匹配且记录非终态时更新。
+    /// 已 Succeeded 的记录幂等处理（不重复更新）。
+    /// </summary>
+    /// <param name="channelMessageId">渠道消息标识，用于匹配记录。</param>
+    /// <param name="succeeded">渠道是否确认送达成功。</param>
+    /// <param name="receiptPayload">渠道回执原始数据（JSON），敏感字段已脱敏。</param>
+    /// <returns>true 表示回执已应用，false 表示幂等跳过（已 Succeeded 或不匹配）。</returns>
+    public bool ApplyReceipt(string channelMessageId, bool succeeded, string? receiptPayload)
+    {
+        if (string.IsNullOrWhiteSpace(channelMessageId))
+        {
+            throw new NotificationDomainException("渠道消息标识不可为空", "NOTIFICATION_RECEIPT_MESSAGE_ID_EMPTY");
+        }
+
+        // 仅当 ChannelMessageId 匹配时处理
+        if (!string.Equals(ChannelMessageId, channelMessageId, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        // 已 Succeeded 的记录幂等处理
+        if (Status == NotificationStatus.Succeeded)
+        {
+            return false;
+        }
+
+        if (succeeded)
+        {
+            Status = NotificationStatus.Succeeded;
+            SentAt = DateTime.UtcNow;
+            ErrorMessage = null;
+            ErrorCode = null;
+        }
+        else
+        {
+            // 渠道回调确认失败，记录失败但保留当前状态
+            ErrorMessage = "渠道回执确认失败";
+            ErrorCode = "CHANNEL_RECEIPT_FAILED";
+        }
+
+        ChannelReceipt = MaskSensitiveData(receiptPayload);
+        return true;
+    }
+
+    /// <summary>
+    /// 脱敏回执中的敏感数据（手机号、邮箱）。
+    /// </summary>
+    private static string? MaskSensitiveData(string? receiptPayload)
+    {
+        if (string.IsNullOrWhiteSpace(receiptPayload))
+        {
+            return receiptPayload;
+        }
+
+        // 脱敏手机号：138****1234
+        var masked = System.Text.RegularExpressions.Regex.Replace(
+            receiptPayload,
+            @"(\+?86)?1[3-9]\d{9}",
+            match =>
+            {
+                var phone = match.Value;
+                if (phone.Length >= 11)
+                {
+                    return phone[..3] + "****" + phone[^4..];
+                }
+                return "***";
+            });
+
+        // 脱敏邮箱：将 @ 前部分脱敏
+        masked = System.Text.RegularExpressions.Regex.Replace(
+            masked,
+            @"([a-zA-Z0-9._%+-]+)@",
+            m =>
+            {
+                var local = m.Groups[1].Value;
+                if (local.Length <= 3)
+                {
+                    return "***@";
+                }
+                return local[..3] + "***@";
+            });
+
+        return masked;
+    }
 }

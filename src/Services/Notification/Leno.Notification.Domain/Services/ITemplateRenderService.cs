@@ -26,6 +26,14 @@ public interface ITemplateRenderService
     /// <param name="notificationTemplate">通知模板。</param>
     /// <returns>未定义的占位符列表，为空表示所有占位符均已在变量中声明。</returns>
     List<string> ValidateUndefinedPlaceholders(NotificationTemplate notificationTemplate);
+
+    /// <summary>
+    /// 验证模板声明的变量中是否存在未在占位符中使用的变量（即 Variables 中声明了但模板中无 {{xxx}}）。
+    /// 用于保存模板时校验，确保所有声明的变量都有对应的占位符。
+    /// </summary>
+    /// <param name="notificationTemplate">通知模板。</param>
+    /// <returns>未使用的变量名列表，为空表示所有声明的变量均在占位符中使用。</returns>
+    List<string> ValidateUnusedVariables(NotificationTemplate notificationTemplate);
 }
 
 /// <summary>

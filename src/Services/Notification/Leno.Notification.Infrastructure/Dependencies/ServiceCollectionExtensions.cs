@@ -83,6 +83,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDeadLetterAppService, AppServices.DeadLetterAppService>();
 		services.AddScoped<INotificationConfigAppService, Infrastructure.Services.NotificationConfigAppService>();
 		services.AddScoped<IRateLimitAppService, AppServices.RateLimitAppService>();
+		services.AddScoped<INotificationRecordAppService, AppServices.NotificationRecordAppService>();
+
+		// 渠道选择器
+		services.AddSingleton<Domain.Services.IChannelSelector>(sp =>
+		{
+			var smsProvider = configuration["Notification:Sms:Provider"] ?? "Aliyun";
+			return new Domain.Services.ChannelSelector(smsProvider);
+		});
 
 		return services;
     }

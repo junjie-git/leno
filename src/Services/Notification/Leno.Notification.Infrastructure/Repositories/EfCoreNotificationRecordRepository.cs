@@ -2,6 +2,7 @@ using Leno.Notification.Domain.Aggregates;
 using Leno.Notification.Domain.Repositories;
 using Leno.Notification.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
+using DeliveryStatistics = Leno.Notification.Domain.Repositories.DeliveryStatistics;
 
 namespace Leno.Notification.Infrastructure.Repositories;
 
@@ -137,5 +138,98 @@ public sealed class EfCoreNotificationRecordRepository : INotificationRecordRepo
     {
         _context.NotificationRecords.Remove(aggregate);
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<NotificationRecord?> GetByChannelMessageIdAsync(string channelMessageId, CancellationToken ct = default)
+        => _context.NotificationRecords.FirstOrDefaultAsync(n => n.ChannelMessageId == channelMessageId, ct);
+
+    /// <inheritdoc />
+    public async Task<List<NotificationRecord>> QueryRecordsAsync(
+        Guid? userId, NotificationChannel? channel, NotificationStatus? status,
+        string? templateCode, string? businessRef, DateTime? fromTime, DateTime? toTime,
+        int page, int pageSize, CancellationToken ct = default)
+    {
+        var query = _context.NotificationRecords.AsQueryable();
+
+        if (userId.HasValue)
+            query = query.Where(n => n.UserId == userId.Value);
+        if (channel.HasValue)
+            query = query.Where(n => n.Channel == channel.Value);
+        if (status.HasValue)
+            query = query.Where(n => n.Status == status.Value);
+        if (!string.IsNullOrWhiteSpace(templateCode))
+            query = query.Where(n => n.TemplateCode == templateCode);
+        if (!string.IsNullOrWhiteSpace(businessRef))
+            query = query.Where(n => n.BusinessRef == businessRef);
+        if (fromTime.HasValue)
+            query = query.Where(n => n.CreatedAt >= fromTime.Value);
+        if (toTime.HasValue)
+            query = query.Where(n => n.CreatedAt <= toTime.Value);
+
+        return await query
+            .OrderByDescending(n => n.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<int> CountRecordsAsync(
+        Guid? userId, NotificationChannel? channel, NotificationStatus? status,
+        string? templateCode, string? businessRef, DateTime? fromTime, DateTime? toTime,
+        CancellationToken ct = default)
+    {
+        var query = _context.NotificationRecords.AsQueryable();
+
+        if (userId.HasValue)
+            query = query.Where(n => n.UserId == userId.Value);
+        if (channel.HasValue)
+            query = query.Where(n => n.Channel == channel.Value);
+        if (status.HasValue)
+            query = query.Where(n => n.Status == status.Value);
+        if (!string.IsNullOrWhiteSpace(templateCode))
+            query = query.Where(n => n.TemplateCode == templateCode);
+        if (!string.IsNullOrWhiteSpace(businessRef))
+            query = query.Where(n => n.BusinessRef == businessRef);
+        if (fromTime.HasValue)
+            query = query.Where(n => n.CreatedAt >= fromTime.Value);
+        if (toTime.HasValue)
+            query = query.Where(n => n.CreatedAt <= toTime.Value);
+
+        return await query.CountAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<NotificationRecord>> GetByBusinessRefAsync(string businessRef, CancellationToken ct = default)
+    {
+        return await _context.NotificationRecords
+            .Where(n => n.BusinessRef == businessRef)
+            .OrderByDescending(n => n.CreatedAt)
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<DeliveryStatistics>> GetDeliveryStatisticsAsync(DateTime? fromTime, DateTime? toTime, CancellationToken ct = default)
+    {
+        var query = _context.NotificationRecords.AsQueryable();
+
+        if (fromTime.HasValue)
+            query = query.Where(n => n.CreatedAt >= fromTime.Value);
+        if (toTime.HasValue)
+            query = query.Where(n => n.CreatedAt <= toTime.Value);
+
+        return await query
+            .GroupBy(n => new { n.Channel, n.TemplateCode })
+            .Select(g => new DeliveryStatistics
+            {
+                Channel = g.Key.Channel,
+                TemplateCode = g.Key.TemplateCode,
+                TotalCount = g.Count(),
+                SucceededCount = g.Count(n => n.Status == NotificationStatus.Succeeded),
+                FailedCount = g.Count(n => n.Status == NotificationStatus.Failed),
+                DeadLetteredCount = g.Count(n => n.Status == NotificationStatus.DeadLettered)
+            })
+            .ToListAsync(ct);
     }
 }

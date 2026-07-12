@@ -12,6 +12,7 @@ public static class EventTemplateMapping
         ["OrderCreatedEvent"] = "order_created",
         ["OrderShippedEvent"] = "order_shipped",
         ["OrderCompletedEvent"] = "order_completed",
+        ["OrderCancelledEvent"] = "order_cancelled",
         ["PaymentSucceededEvent"] = "payment_succeeded",
         ["PaymentFailedEvent"] = "payment_failed",
         ["AfterSalesApprovedEvent"] = "after_sales_approved",

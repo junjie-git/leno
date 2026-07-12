@@ -38,4 +38,39 @@ public interface INotificationRecordRepository : IRepository<NotificationRecordA
 
     /// <summary>统计死信通知记录总数。</summary>
     Task<int> CountDeadLetteredAsync(CancellationToken ct = default);
+
+    /// <summary>按渠道消息标识查询通知记录（用于回执匹配）。</summary>
+    Task<NotificationRecordAggregate?> GetByChannelMessageIdAsync(string channelMessageId, CancellationToken ct = default);
+
+    /// <summary>多维度分页查询通知记录（管理员端）。</summary>
+    Task<List<NotificationRecordAggregate>> QueryRecordsAsync(
+        Guid? userId, NotificationChannel? channel, NotificationStatus? status,
+        string? templateCode, string? businessRef, DateTime? fromTime, DateTime? toTime,
+        int page, int pageSize, CancellationToken ct = default);
+
+    /// <summary>多维度查询统计总数。</summary>
+    Task<int> CountRecordsAsync(
+        Guid? userId, NotificationChannel? channel, NotificationStatus? status,
+        string? templateCode, string? businessRef, DateTime? fromTime, DateTime? toTime,
+        CancellationToken ct = default);
+
+    /// <summary>按业务引用标识查询通知记录。</summary>
+    Task<List<NotificationRecordAggregate>> GetByBusinessRefAsync(string businessRef, CancellationToken ct = default);
+
+    /// <summary>获取送达率统计（按渠道和模板分组）。</summary>
+    Task<List<DeliveryStatistics>> GetDeliveryStatisticsAsync(DateTime? fromTime, DateTime? toTime, CancellationToken ct = default);
+}
+
+/// <summary>
+/// 送达率统计结果。
+/// </summary>
+public sealed class DeliveryStatistics
+{
+    public NotificationChannel Channel { get; set; }
+    public string TemplateCode { get; set; } = string.Empty;
+    public int TotalCount { get; set; }
+    public int SucceededCount { get; set; }
+    public int FailedCount { get; set; }
+    public int DeadLetteredCount { get; set; }
+    public double DeliveryRate => TotalCount > 0 ? (double)SucceededCount / TotalCount : 0;
 }

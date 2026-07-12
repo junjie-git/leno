@@ -103,6 +103,30 @@ public sealed partial class TemplateRenderer : ITemplateRenderer, ITemplateRende
         return undefined;
     }
 
+    /// <inheritdoc />
+    public List<string> ValidateUnusedVariables(NotificationTemplate notificationTemplate)
+    {
+        ArgumentNullException.ThrowIfNull(notificationTemplate);
+
+        var unused = new List<string>();
+
+        // 提取模板中所有的 {{variable}} 占位符
+        var bodyPlaceholders = ExtractPlaceholders(notificationTemplate.Body);
+        var subjectPlaceholders = ExtractPlaceholders(notificationTemplate.Subject);
+        var allPlaceholders = new HashSet<string>(bodyPlaceholders.Concat(subjectPlaceholders), StringComparer.OrdinalIgnoreCase);
+
+        // 检查每个声明的变量是否在占位符中使用
+        foreach (var variable in notificationTemplate.Variables)
+        {
+            if (!allPlaceholders.Contains(variable.Name))
+            {
+                unused.Add(variable.Name);
+            }
+        }
+
+        return unused;
+    }
+
     /// <summary>
     /// 校验必填变量是否存在。
     /// </summary>

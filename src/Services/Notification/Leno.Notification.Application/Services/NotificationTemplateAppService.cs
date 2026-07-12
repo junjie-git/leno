@@ -71,15 +71,34 @@ public sealed class NotificationTemplateAppService : INotificationTemplateAppSer
         var template = await _templateRepository.GetByIdAsync(templateId, ct)
             ?? throw new InvalidOperationException($"通知模板不存在 TemplateId={templateId}");
 
+        // 禁用的模板必须先启用才能编辑
+        if (template.Status == TemplateStatus.Disabled)
+        {
+            throw new NotificationDomainException(
+                "禁用的模板必须先启用才能编辑",
+                "TEMPLATE_DISABLED_CANNOT_EDIT",
+                400);
+        }
+
         template.Update(dto.Subject, dto.Body, dto.Variables);
 
-        // 校验未定义占位符
+        // 校验未定义占位符（模板中有 {{xxx}} 但未在 Variables 中声明）
         var undefined = _templateRenderService.ValidateUndefinedPlaceholders(template);
         if (undefined.Count > 0)
         {
             throw new NotificationDomainException(
                 $"模板中存在未定义的占位符：{string.Join(", ", undefined)}",
                 "TEMPLATE_UNDEFINED_PLACEHOLDERS",
+                400);
+        }
+
+        // 校验未使用的变量（Variables 中声明了但模板中无 {{xxx}}）
+        var unused = _templateRenderService.ValidateUnusedVariables(template);
+        if (unused.Count > 0)
+        {
+            throw new NotificationDomainException(
+                $"模板中存在未使用的变量：{string.Join(", ", unused)}",
+                "TEMPLATE_UNUSED_VARIABLES",
                 400);
         }
 

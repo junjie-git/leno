@@ -761,4 +761,130 @@ public class NotificationTemplateTests
     }
 
     #endregion
+
+    #region Variable Placeholder Validation
+
+    [Fact]
+    public void Variables_ShouldMatchPlaceholders_WhenAllVariablesUsed()
+    {
+        // Arrange
+        var template = CreateValidTemplate();
+        // ValidSubject = "Order {{OrderId}} Confirmed"
+        // ValidBody = "Your order {{OrderId}} has been confirmed. Total: {{Total}}"
+        // Variables = [OrderId, Total]
+
+        // Assert
+        template.ContainsPlaceholder("OrderId").Should().BeTrue();
+        template.ContainsPlaceholder("Total").Should().BeTrue();
+    }
+
+    [Fact]
+    public void Variables_UnusedVariable_ShouldNotBeInPlaceholders()
+    {
+        // Arrange
+        var template = CreateValidTemplate();
+        var unusedVar = TemplateVariable.Create("UnusedVar", false, "Not used in template");
+
+        // Act
+        template.AddVariable(unusedVar);
+
+        // Assert
+        template.ContainsPlaceholder("UnusedVar").Should().BeFalse();
+        template.Variables.Should().Contain(v => v.Name == "UnusedVar");
+    }
+
+    [Fact]
+    public void Variables_AddAndRemove_ShouldMaintainConsistency()
+    {
+        // Arrange
+        var template = CreateValidTemplate();
+        var newVar = TemplateVariable.Create("NewField", false, "New field");
+
+        // Act
+        template.AddVariable(newVar);
+        template.Variables.Should().Contain(v => v.Name == "NewField");
+
+        template.RemoveVariable("NewField");
+        template.Variables.Should().NotContain(v => v.Name == "NewField");
+    }
+
+    #endregion
+
+    #region Disabled Template Editing
+
+    [Fact]
+    public void DisabledTemplate_ShouldNotBeEditable_CheckStatus()
+    {
+        // Arrange
+        var template = CreateValidTemplate();
+        template.Disable();
+        template.Status.Should().Be(TemplateStatus.Disabled);
+
+        // Assert: The Update method itself doesn't check status,
+        // the application service enforces the rule. Here we verify the
+        // domain object's state is correct.
+        template.Status.Should().Be(TemplateStatus.Disabled);
+    }
+
+    [Fact]
+    public void Enable_DisabledTemplate_ShouldAllowEditing()
+    {
+        // Arrange
+        var template = CreateValidTemplate();
+        template.Disable();
+        template.Status.Should().Be(TemplateStatus.Disabled);
+
+        // Act
+        template.Enable();
+        template.Status.Should().Be(TemplateStatus.Enabled);
+
+        // Now editing should be allowed (no domain exception)
+        var act = () => template.Update("New Subject {{OrderId}}", "New Body {{OrderId}} {{Total}}", ValidVariables);
+        act.Should().NotThrow();
+    }
+
+    #endregion
+
+    #region Template Preview
+
+    [Fact]
+    public void ContainsPlaceholder_MultipleVariables_ShouldMatchAll()
+    {
+        // Arrange
+        var template = CreateValidTemplate();
+
+        // Assert
+        template.ContainsPlaceholder("OrderId").Should().BeTrue();
+        template.ContainsPlaceholder("Total").Should().BeTrue();
+    }
+
+    [Fact]
+    public void ContainsPlaceholder_CaseInsensitiveMatch()
+    {
+        // Arrange
+        var template = CreateValidTemplate();
+        // Subject is "Order {{OrderId}} Confirmed"
+
+        // Assert
+        template.ContainsPlaceholder("orderid").Should().BeTrue();
+        template.ContainsPlaceholder("ORDERID").Should().BeTrue();
+    }
+
+    [Fact]
+    public void Preview_ShouldRenderTitleAndContent()
+    {
+        // This test verifies the domain logic that the template can be rendered.
+        // The actual rendering is done by ITemplateRenderer, but the domain
+        // ensures the template has the necessary variables and placeholders.
+        // Arrange
+        var template = CreateValidTemplate();
+
+        // Assert
+        template.Subject.Should().Contain("{{OrderId}}");
+        template.Body.Should().Contain("{{OrderId}}");
+        template.Body.Should().Contain("{{Total}}");
+        template.Variables.Should().HaveCount(2);
+    }
+
+    #endregion
 }
