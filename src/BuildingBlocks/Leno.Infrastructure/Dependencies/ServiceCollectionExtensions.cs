@@ -147,4 +147,16 @@ public static class ServiceCollectionExtensions
             .AddCheck<RedisHealthCheck>("redis", tags: ReadyTags)
             .AddCheck<ElasticsearchHealthCheck>("elasticsearch", tags: ReadyTags);
     }
+
+    /// <summary>
+    /// 使用 NuGet 健康检查包添加完整的依赖健康检查（DB、Redis、ES、RabbitMQ）。
+    /// 在 Program.cs 中 <c>services.AddLenoHealthChecks(configuration)</c> 后调用此方法映射端点。
+    /// </summary>
+    public static IServiceCollection AddLenoFullHealthChecks(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        HealthChecksUIExtensions.AddLenoHealthChecks(services, configuration);
+        return services;
+    }
 }
