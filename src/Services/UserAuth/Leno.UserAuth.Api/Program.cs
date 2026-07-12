@@ -3,6 +3,7 @@ using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.Dependencies;
 using Leno.Infrastructure.Middleware;
 using Leno.UserAuth.Infrastructure;
+using Leno.UserAuth.Infrastructure.Audit;
 using Leno.UserAuth.Infrastructure.Dependencies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -57,6 +58,8 @@ app.UseMiddleware<InternalApiKeyMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseMiddleware<AuditLogMiddleware>();
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {

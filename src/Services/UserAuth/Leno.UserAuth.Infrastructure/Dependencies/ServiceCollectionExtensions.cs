@@ -48,6 +48,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserRepository, EfCoreUserRepository>();
         services.AddScoped<IAddressRepository, EfCoreAddressRepository>();
         services.AddScoped<IAuditLogRepository, EfCoreAuditLogRepository>();
+        services.AddScoped<IOAuthClientRepository, EfCoreOAuthClientRepository>();
 
         services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<IUserUniquenessChecker, UserUniquenessChecker>();
@@ -61,6 +62,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPermissionRepository, EfCorePermissionRepository>();
 
         services.AddScoped<AuditLogInterceptor>();
+        services.AddScoped<AuditLogMiddleware>();
 
         // OAuth2 第三方登录
         services.AddHttpClient<GoogleOAuth2Client>();
@@ -72,12 +74,22 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IExternalAuthService, AlipayOAuth2Client>();
 
         services.AddScoped<OAuth2ProviderResolver>();
+        services.AddScoped<IOAuth2ProviderResolver>(sp => sp.GetRequiredService<OAuth2ProviderResolver>());
+
+        // AES-256 加密服务（用于 OAuth ClientSecret）
+        var aesKey = configuration["OAuth2:AesKey"];
+        if (!string.IsNullOrWhiteSpace(aesKey))
+        {
+            services.AddSingleton<IClientSecretEncryptionService>(new AesEncryptionService(aesKey));
+        }
 
         // 应用服务
         services.AddScoped<IUserAppService, UserAppService>();
         services.AddScoped<IUserAdminAppService, UserAdminAppService>();
         services.AddScoped<IAddressAppService, AddressAppService>();
         services.AddScoped<IPermissionAppService, PermissionAppService>();
+        services.AddScoped<IOAuthClientAppService, OAuthClientAppService>();
+        services.AddScoped<IAccountAppService, AccountAppService>();
 
         services.AddValidatorsFromAssembly(typeof(IUserAppService).Assembly);
 

@@ -1,3 +1,4 @@
+using Leno.UserAuth.Application.Abstractions;
 using Leno.UserAuth.Domain.Exceptions;
 using Leno.UserAuth.Domain.Services;
 
@@ -6,7 +7,7 @@ namespace Leno.UserAuth.Infrastructure.Auth;
 /// <summary>
 /// OAuth2 提供方解析器，根据 Provider 字符串（google / wechat / alipay）解析对应的 <see cref="IExternalAuthService"/> 实现。
 /// </summary>
-public sealed class OAuth2ProviderResolver
+public sealed class OAuth2ProviderResolver : IOAuth2ProviderResolver
 {
     private readonly IEnumerable<IExternalAuthService> _services;
 
