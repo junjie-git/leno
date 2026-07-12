@@ -3,6 +3,7 @@ using Leno.ReviewAfterSales.Application;
 using Leno.ReviewAfterSales.Application.DTOs;
 using Leno.ReviewAfterSales.Domain.ValueObjects;
 using Leno.SharedContracts.Responses;
+using Leno.SharedKernel.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,12 +19,15 @@ namespace Leno.ReviewAfterSales.Api.Controllers;
 public sealed class AfterSalesController : ReviewControllerBase
 {
     private readonly IAfterSalesAppService _afterSalesAppService;
+    private readonly IFileStorageService _fileStorage;
 
-    public AfterSalesController(ICurrentUserContext currentUser, IAfterSalesAppService afterSalesAppService)
+    public AfterSalesController(ICurrentUserContext currentUser, IAfterSalesAppService afterSalesAppService, IFileStorageService fileStorage)
         : base(currentUser)
     {
         ArgumentNullException.ThrowIfNull(afterSalesAppService);
+        ArgumentNullException.ThrowIfNull(fileStorage);
         _afterSalesAppService = afterSalesAppService;
+        _fileStorage = fileStorage;
     }
 
     // ========== 买家端 ==========
@@ -80,6 +84,52 @@ public sealed class AfterSalesController : ReviewControllerBase
         var userId = GetCurrentUserId();
         var result = await _afterSalesAppService.GetByUserAsync(userId, page, pageSize, ct);
         return Ok(ApiResponse.Success(result));
+    }
+
+    /// <summary>买家上传售后凭证图片。</summary>
+    [Authorize(Roles = "Buyer")]
+    [HttpPost("api/after-sales/images")]
+    [ProducesResponseType(typeof(ApiResponse<ImageUploadResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UploadAfterSalesImagesAsync(IFormFileCollection files, CancellationToken ct)
+    {
+        const int maxFiles = 5;
+        const long maxFileSize = 5 * 1024 * 1024; // 5MB
+        var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".webp" };
+
+        if (files == null || files.Count == 0)
+        {
+            return BadRequest(ApiResponse.Fail(400, "请至少上传一张图片"));
+        }
+
+        if (files.Count > maxFiles)
+        {
+            return BadRequest(ApiResponse.Fail(400, $"最多上传 {maxFiles} 张图片"));
+        }
+
+        var urls = new List<string>();
+        foreach (var file in files)
+        {
+            if (file.Length == 0)
+            {
+                return BadRequest(ApiResponse.Fail(400, "文件内容为空"));
+            }
+
+            if (file.Length > maxFileSize)
+            {
+                return BadRequest(ApiResponse.Fail(400, $"文件 {file.FileName} 超过 5MB 限制"));
+            }
+
+            var extension = Path.GetExtension(file.FileName);
+            if (string.IsNullOrEmpty(extension) || !allowedExtensions.Contains(extension))
+            {
+                return BadRequest(ApiResponse.Fail(400, $"文件 {file.FileName} 格式不支持，仅支持 JPG/PNG/WebP"));
+            }
+
+            var result = await _fileStorage.UploadAsync(file.OpenReadStream(), file.FileName, file.ContentType, "aftersales", ct);
+            urls.Add(result.Url);
+        }
+
+        return Ok(ApiResponse.Success(new ImageUploadResultDto { Urls = urls }));
     }
 
     // ========== 卖家端 ==========

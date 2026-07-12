@@ -43,6 +43,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMembershipPackageRepository, EfCoreMembershipPackageRepository>();
         services.AddScoped<IUserMembershipRepository, EfCoreUserMembershipRepository>();
         services.AddScoped<IMemberLevelRepository, EfCoreMemberLevelRepository>();
+        services.AddScoped<ITaskRepository, EfCoreTaskRepository>();
+        services.AddScoped<IUserTaskRepository, EfCoreUserTaskRepository>();
 
         // 积分抵扣防腐层实现位于应用层
         services.AddScoped<IPointsOffsetService, PointsOffsetAppService>();
@@ -53,6 +55,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMemberAppService, MemberAppService>();
         services.AddScoped<IMembershipPackageAppService, MembershipPackageAppService>();
         services.AddScoped<IExchangeCouponAppService, ExchangeCouponAppService>();
+        services.AddScoped<ITaskAppService, TaskAppService>();
 
         // FluentValidation 校验器
         services.AddValidatorsFromAssembly(typeof(IPointsAppService).Assembly);

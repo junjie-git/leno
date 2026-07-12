@@ -27,7 +27,10 @@ public enum PointsSource
     NewUser = 6,
 
     /// <summary>积分兑换优惠券。</summary>
-    CouponExchange = 7
+    CouponExchange = 7,
+
+    /// <summary>任务奖励。</summary>
+    Task = 8
 }
 
 /// <summary>

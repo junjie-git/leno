@@ -37,7 +37,7 @@ public sealed class AfterSales : AggregateRoot
     public string Reason { get; private set; } = string.Empty;
 
     /// <summary>
-    /// 凭证图片 URL 列表，仅经聚合根维护，最多 9 张。
+    /// 凭证图片 URL 列表，仅经聚合根维护，最多 5 张。
     /// 持久化为聚合子集合，私有 setter 阻止外部整体替换。
     /// </summary>
     private List<string> _images = [];
@@ -110,7 +110,7 @@ public sealed class AfterSales : AggregateRoot
     /// <param name="type">售后类型。</param>
     /// <param name="reasonCategory">原因分类。</param>
     /// <param name="reason">申请原因描述，1-500 字。</param>
-    /// <param name="images">凭证图片 URL 列表，最多 9 张。</param>
+    /// <param name="images">凭证图片 URL 列表，最多 5 张。</param>
     /// <param name="requestedAmount">申请金额，须 &gt; 0。</param>
     /// <param name="currency">币种，为空默认 CNY。</param>
     public static AfterSales Create(
@@ -167,9 +167,9 @@ public sealed class AfterSales : AggregateRoot
         }
 
         var imageList = images ?? [];
-        if (imageList.Count > 9)
+        if (imageList.Count > 5)
         {
-            throw new ReviewDomainException($"凭证图片数量超限：{imageList.Count}，最多 9 张", "AFTERSALES_IMAGES_TOO_MANY");
+            throw new ReviewDomainException($"凭证图片数量超限：{imageList.Count}，最多 5 张", "AFTERSALES_IMAGES_TOO_MANY");
         }
 
         if (requestedAmount <= 0)

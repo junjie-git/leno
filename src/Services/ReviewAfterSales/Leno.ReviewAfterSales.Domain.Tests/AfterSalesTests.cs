@@ -79,13 +79,23 @@ public class AfterSalesTests
     [Fact]
     public void Create_ImagesAtMaximumBoundary_ShouldCreateSuccessfully()
     {
-        var images = Enumerable.Range(1, 9).Select(i => $"img{i}.jpg").ToList();
+        var images = Enumerable.Range(1, 5).Select(i => $"img{i}.jpg").ToList();
 
         var afterSales = AfterSales.Create(
             ValidAfterSalesId, ValidOrderId, null, ValidUserId, ValidSellerId,
             AfterSalesType.RefundOnly, "不想要了", "七天无理由", images, 50m, "CNY");
 
-        afterSales.Images.Should().HaveCount(9);
+        afterSales.Images.Should().HaveCount(5);
+    }
+
+    [Fact]
+    public void Create_ZeroImages_ShouldSucceed()
+    {
+        var afterSales = AfterSales.Create(
+            ValidAfterSalesId, ValidOrderId, null, ValidUserId, ValidSellerId,
+            AfterSalesType.RefundOnly, "不想要了", "七天无理由", new List<string>(), 50m, "CNY");
+
+        afterSales.Images.Should().BeEmpty();
     }
 
     [Fact]
@@ -186,7 +196,7 @@ public class AfterSalesTests
     [Fact]
     public void Create_ImagesTooMany_ShouldThrow()
     {
-        var images = Enumerable.Range(1, 10).Select(i => $"img{i}.jpg").ToList();
+        var images = Enumerable.Range(1, 6).Select(i => $"img{i}.jpg").ToList();
         var act = () => AfterSales.Create(
             ValidAfterSalesId, ValidOrderId, null, ValidUserId, ValidSellerId,
             AfterSalesType.RefundOnly, "x", "reason", images, 10m, "CNY");
