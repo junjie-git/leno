@@ -157,6 +157,7 @@ public class SeckillAppServiceTests
 {
     private readonly Mock<ISeckillActivityRepository> _repoMock = new();
     private readonly Mock<ISeckillStockService> _stockServiceMock = new();
+    private readonly Mock<ISeckillPreOccupationRecordRepository> _preOccupationRecordRepoMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly SeckillAppService _sut;
 
@@ -167,7 +168,7 @@ public class SeckillAppServiceTests
 
     public SeckillAppServiceTests()
     {
-        _sut = new SeckillAppService(_repoMock.Object, _stockServiceMock.Object, _uowMock.Object);
+        _sut = new SeckillAppService(_repoMock.Object, _stockServiceMock.Object, _preOccupationRecordRepoMock.Object, _uowMock.Object);
     }
 
     [Fact]

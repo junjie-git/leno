@@ -42,7 +42,7 @@ public class OrderPaidEventConsumerTests
         var consumer = new OrderPaidEventConsumer(
             _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _redisMock.Object);
 
-        var evt = new OrderPaidEvent(orderId, Guid.NewGuid(), Guid.NewGuid(), "Alipay", DateTime.UtcNow, "trade123", 100m, "CNY");
+        var evt = new OrderPaidEvent(orderId, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Alipay", DateTime.UtcNow, "trade123", 100m, "CNY");
         var ctx = CreateConsumeContext(evt);
         await consumer.Consume(ctx);
 
@@ -62,7 +62,7 @@ public class OrderPaidEventConsumerTests
         var consumer = new OrderPaidEventConsumer(
             _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _redisMock.Object);
 
-        var evt = new OrderPaidEvent(orderId, Guid.NewGuid(), Guid.NewGuid(), "Alipay", DateTime.UtcNow, "trade123", 100m, "CNY");
+        var evt = new OrderPaidEvent(orderId, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Alipay", DateTime.UtcNow, "trade123", 100m, "CNY");
         var ctx = CreateConsumeContext(evt);
         await consumer.Consume(ctx);
 
@@ -108,7 +108,7 @@ public class OrderCancelledEventConsumerTests
         var consumer = new OrderCancelledEventConsumer(
             _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _redisMock.Object);
 
-        var evt = new OrderCancelledEvent(orderId, "cancel", DateTime.UtcNow, "Buyer", 0);
+        var evt = new OrderCancelledEvent(orderId, Guid.NewGuid(), "cancel", DateTime.UtcNow, "Buyer", 0);
         await consumer.Consume(CreateConsumeContext(evt));
 
         userCoupon.Status.Should().Be(CouponStatus.Unused);
@@ -124,7 +124,7 @@ public class OrderCancelledEventConsumerTests
         var consumer = new OrderCancelledEventConsumer(
             _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _redisMock.Object);
 
-        var evt = new OrderCancelledEvent(orderId, "cancel", DateTime.UtcNow, "Buyer", 0);
+        var evt = new OrderCancelledEvent(orderId, Guid.NewGuid(), "cancel", DateTime.UtcNow, "Buyer", 0);
         await consumer.Consume(CreateConsumeContext(evt));
 
         _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);

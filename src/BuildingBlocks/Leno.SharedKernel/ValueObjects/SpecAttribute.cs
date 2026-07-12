@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 namespace Leno.SharedKernel.ValueObjects;
 
@@ -9,10 +10,11 @@ namespace Leno.SharedKernel.ValueObjects;
 [SuppressMessage("Naming", "CA1711", Justification = "SpecAttribute 为领域统一语言的规格属性值对象，非 System.Attribute 子类。")]
 public sealed record SpecAttribute
 {
-    public string Name { get; private set; } = default!;
+    public string Name { get; init; } = default!;
 
-    public string Value { get; private set; } = default!;
+    public string Value { get; init; } = default!;
 
+    [JsonConstructor]
     private SpecAttribute() { }
 
     private SpecAttribute(string name, string value)

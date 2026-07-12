@@ -185,14 +185,14 @@ public class OrderApiTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task ForceCancel_ShouldCallService()
     {
         SetupAdminAuth();
-        _orderAppServiceMock.Setup(s => s.ForceCancelAsync(OrderId, It.IsAny<ForceCancelOrderDto>(), It.IsAny<CancellationToken>()))
+        _orderAppServiceMock.Setup(s => s.ForceCancelAsync(OrderId, It.IsAny<Guid>(), It.IsAny<ForceCancelOrderDto>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var dto = new { Reason = "Fraudulent" };
         var response = await _client.PostAsJsonAsync($"/api/admin/orders/{OrderId}/force-cancel", dto);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        _orderAppServiceMock.Verify(s => s.ForceCancelAsync(OrderId, It.IsAny<ForceCancelOrderDto>(), It.IsAny<CancellationToken>()), Times.Once);
+        _orderAppServiceMock.Verify(s => s.ForceCancelAsync(OrderId, It.IsAny<Guid>(), It.IsAny<ForceCancelOrderDto>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion

@@ -189,7 +189,7 @@ public class OrderAppServiceTests
         _stockServiceMock.Setup(s => s.ReleaseBatchAsync(OrderId, It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        await _sut.ForceCancelAsync(OrderId, new ForceCancelOrderDto { Reason = "Fraudulent" });
+        await _sut.ForceCancelAsync(OrderId, Guid.NewGuid(), new ForceCancelOrderDto { Reason = "Fraudulent" });
 
         order.Status.Should().Be(OrderStatus.Cancelled);
         _promotionAcMock.Verify(p => p.ReleaseCouponsAsync(OrderId, It.IsAny<CancellationToken>()), Times.Once);

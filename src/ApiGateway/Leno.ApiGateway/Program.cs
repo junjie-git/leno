@@ -1,9 +1,23 @@
+using Leno.Infrastructure.HealthChecks;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
 builder.Services.AddHttpClient("health-check");
+
+// 添加 HealthChecksUI 仪表盘
+builder.Services.AddLenoHealthChecksUI(builder.Configuration);
+
+// 添加网关自身健康检查
+#pragma warning disable CA1861
+builder.Services.AddHealthChecks()
+    .AddUrlGroup(
+        new Uri(builder.Configuration["HealthChecks:SelfUrl"] ?? "http://localhost:5000"),
+        "self",
+        tags: new[] { "ready" });
+#pragma warning restore CA1861
 
 var app = builder.Build();
 
@@ -53,6 +67,10 @@ app.MapGet("/health", async (IHttpClientFactory httpClientFactory, IConfiguratio
         ? Results.Ok(new { status = "Healthy", services = results })
         : Results.Json(new { status = "Unhealthy", services = results }, statusCode: 503);
 });
+
+// 映射 HealthChecksUI 仪表盘
+app.MapLenoHealthChecks();
+app.MapLenoHealthChecksUI();
 
 app.MapReverseProxy();
 
