@@ -3,6 +3,7 @@ using Leno.ApiGateway.Options;
 using Leno.ApiGateway.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Leno.ApiGateway.Extensions;
 
@@ -44,5 +45,20 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    // Task 3 Step 5 将在此处追加 AddConsulDestinationResolver 方法
+    /// <summary>
+    /// 用 <see cref="ConsulDestinationResolver"/> 替换 YARP 默认的
+    /// <see cref="Yarp.ReverseProxy.ServiceDiscovery.IDestinationResolver"/>，
+    /// 使每个请求经过 Consul 动态解析健康实例。
+    /// </summary>
+    public static IServiceCollection AddConsulDestinationResolver(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.Replace(
+            ServiceDescriptor.Singleton<
+                Yarp.ReverseProxy.ServiceDiscovery.IDestinationResolver,
+                ConsulDestinationResolver>());
+
+        return services;
+    }
 }
