@@ -44,6 +44,7 @@
     <Project Path="src/BuildingBlocks/Leno.Testing/Leno.Testing.csproj" />
   </Folder>
   <Folder Name="/src/ApiGateway/">
+    <Project Path="src/ApiGateway/Leno.ApiGateway.Tests/Leno.ApiGateway.Tests.csproj" />
     <Project Path="src/ApiGateway/Leno.ApiGateway/Leno.ApiGateway.csproj" />
   </Folder>
   <Folder Name="/src/Services/" />
