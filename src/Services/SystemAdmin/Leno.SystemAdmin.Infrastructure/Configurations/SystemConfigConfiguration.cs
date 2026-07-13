@@ -22,7 +22,6 @@ public sealed class SystemConfigConfiguration : IEntityTypeConfiguration<SystemC
         builder.Property(c => c.IsEncrypted).HasColumnName("is_encrypted");
         builder.Property(c => c.Status).HasColumnName("status").HasConversion<int>();
 
-        builder.Property(c => c.Version).HasColumnName("version").IsRowVersion();
         builder.Property(c => c.CreatedAt).HasColumnName("created_at");
         builder.Property(c => c.UpdatedAt).HasColumnName("updated_at");
         builder.Property(c => c.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

@@ -26,7 +26,6 @@ public sealed class AuditLogEntryConfiguration : IEntityTypeConfiguration<AuditL
         builder.Property(a => a.Timestamp).HasColumnName("timestamp");
         builder.Property(a => a.IpAddress).HasColumnName("ip_address").HasMaxLength(64);
 
-        builder.Property(a => a.Version).HasColumnName("version").IsRowVersion();
         builder.Property(a => a.CreatedAt).HasColumnName("created_at");
         builder.Property(a => a.UpdatedAt).HasColumnName("updated_at");
         builder.Property(a => a.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

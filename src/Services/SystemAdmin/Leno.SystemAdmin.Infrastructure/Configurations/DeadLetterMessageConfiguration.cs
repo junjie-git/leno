@@ -27,7 +27,6 @@ public sealed class DeadLetterMessageConfiguration : IEntityTypeConfiguration<De
         builder.Property(m => m.OccurredAt).HasColumnName("occurred_at").IsRequired();
         builder.Property(m => m.ProcessedAt).HasColumnName("processed_at");
 
-        builder.Property(m => m.Version).HasColumnName("version").IsRowVersion();
         builder.Property(m => m.CreatedAt).HasColumnName("created_at");
         builder.Property(m => m.UpdatedAt).HasColumnName("updated_at");
         builder.Property(m => m.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

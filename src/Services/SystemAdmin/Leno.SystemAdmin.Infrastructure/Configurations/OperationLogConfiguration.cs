@@ -24,7 +24,6 @@ public sealed class OperationLogConfiguration : IEntityTypeConfiguration<Operati
         builder.Property(o => o.IpAddress).HasColumnName("ip_address").HasMaxLength(64);
         builder.Property(o => o.OccurredAt).HasColumnName("occurred_at");
 
-        builder.Property(o => o.Version).HasColumnName("version").IsRowVersion();
         builder.Property(o => o.CreatedAt).HasColumnName("created_at");
         builder.Property(o => o.UpdatedAt).HasColumnName("updated_at");
         builder.Property(o => o.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

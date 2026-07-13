@@ -23,7 +23,6 @@ public sealed class SystemAnnouncementConfiguration : IEntityTypeConfiguration<S
         builder.Property(a => a.ExpireAt).HasColumnName("expire_at");
         builder.Property(a => a.Status).HasColumnName("status").HasConversion<int>();
 
-        builder.Property(a => a.Version).HasColumnName("version").IsRowVersion();
         builder.Property(a => a.CreatedAt).HasColumnName("created_at");
         builder.Property(a => a.UpdatedAt).HasColumnName("updated_at");
         builder.Property(a => a.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

@@ -34,9 +34,6 @@ public sealed class ShopConfiguration : IEntityTypeConfiguration<Shop>
         builder.Property(s => s.UpdatedAt).HasColumnName("updated_at");
         builder.Property(s => s.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(s => s.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-
-        builder.Property(s => s.Version).HasColumnName("version").IsRowVersion();
-
         builder.HasIndex(s => s.SellerId).HasDatabaseName("ix_shops_seller_id").IsUnique();
         builder.HasIndex(s => s.Status).HasDatabaseName("ix_shops_status");
 

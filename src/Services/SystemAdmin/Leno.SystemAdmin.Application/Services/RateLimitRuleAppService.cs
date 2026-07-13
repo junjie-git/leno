@@ -135,7 +135,6 @@ public sealed class RateLimitRuleAppService : IRateLimitRuleAppService
             WindowSeconds = entity.WindowSeconds,
             Algorithm = entity.Algorithm,
             Scope = entity.Scope,
-            Enabled = entity.Enabled,
-            Version = entity.Version
+            Enabled = entity.Enabled
         };
 }

@@ -39,7 +39,6 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<OrderAggregate
         builder.Property(o => o.CancelledAt).HasColumnName("cancelled_at");
         builder.Property(o => o.CancelReason).HasColumnName("cancel_reason").HasMaxLength(512);
 
-        builder.Property(o => o.Version).HasColumnName("version").IsRowVersion();
         builder.Property(o => o.CreatedAt).HasColumnName("created_at");
         builder.Property(o => o.UpdatedAt).HasColumnName("updated_at");
         builder.Property(o => o.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
@@ -73,7 +72,6 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<OrderAggregate
             item.Property(i => i.UpdatedAt).HasColumnName("updated_at");
             item.Property(i => i.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
             item.Property(i => i.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-            item.Property(i => i.Version).HasColumnName("version");
 
             // 商品快照，作为 owned type 映射到 order_items 表
             item.OwnsOne(i => i.ProductSnapshot, snapshot =>

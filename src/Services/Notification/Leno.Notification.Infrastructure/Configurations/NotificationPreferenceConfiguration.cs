@@ -28,7 +28,6 @@ public sealed class NotificationPreferenceConfiguration : IEntityTypeConfigurati
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
                 v => JsonSerializer.Deserialize<Dictionary<string, List<NotificationChannel>>>(v, (JsonSerializerOptions?)null) ?? new Dictionary<string, List<NotificationChannel>>());
 
-        builder.Property(p => p.Version).HasColumnName("version").IsRowVersion();
         builder.Property(p => p.CreatedAt).HasColumnName("created_at");
         builder.Property(p => p.UpdatedAt).HasColumnName("updated_at");
         builder.Property(p => p.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

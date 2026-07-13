@@ -26,9 +26,6 @@ public sealed class OAuthClientConfiguration : IEntityTypeConfiguration<OAuthCli
         builder.Property(o => o.UpdatedAt).HasColumnName("updated_at");
         builder.Property(o => o.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(o => o.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-
-        builder.Property(o => o.Version).HasColumnName("version").IsRowVersion();
-
         builder.HasIndex(o => o.Provider).HasDatabaseName("ix_oauth_clients_provider").IsUnique();
     }
 }

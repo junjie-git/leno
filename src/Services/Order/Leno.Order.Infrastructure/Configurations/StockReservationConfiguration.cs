@@ -20,7 +20,6 @@ public sealed class StockReservationConfiguration : IEntityTypeConfiguration<Sto
         builder.Property(s => s.ReservedQty).HasColumnName("reserved_qty");
         builder.Property(s => s.DeductedQty).HasColumnName("deducted_qty");
 
-        builder.Property(s => s.Version).HasColumnName("version").IsRowVersion();
         builder.Property(s => s.CreatedAt).HasColumnName("created_at");
         builder.Property(s => s.UpdatedAt).HasColumnName("updated_at");
         builder.Property(s => s.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

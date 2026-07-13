@@ -24,9 +24,6 @@ public sealed class BrandConfiguration : IEntityTypeConfiguration<Brand>
         builder.Property(b => b.UpdatedAt).HasColumnName("updated_at");
         builder.Property(b => b.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(b => b.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-
-        builder.Property(b => b.Version).HasColumnName("version").IsRowVersion();
-
         builder.HasIndex(b => b.Name).HasDatabaseName("ix_brands_name");
     }
 }

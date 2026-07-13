@@ -21,7 +21,6 @@ public sealed class LogisticsCompanyConfiguration : IEntityTypeConfiguration<Log
         builder.Property(l => l.SupportTracking).HasColumnName("support_tracking");
         builder.Property(l => l.Status).HasColumnName("status").HasConversion<int>();
 
-        builder.Property(l => l.Version).HasColumnName("version").IsRowVersion();
         builder.Property(l => l.CreatedAt).HasColumnName("created_at");
         builder.Property(l => l.UpdatedAt).HasColumnName("updated_at");
         builder.Property(l => l.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

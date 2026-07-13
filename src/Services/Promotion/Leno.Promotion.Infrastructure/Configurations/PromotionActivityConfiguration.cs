@@ -28,7 +28,6 @@ public sealed class PromotionActivityConfiguration : IEntityTypeConfiguration<Pr
         builder.Property(a => a.UpdatedAt).HasColumnName("updated_at");
         builder.Property(a => a.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(a => a.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-        builder.Property(a => a.Version).HasColumnName("version").IsRowVersion();
 
         // Rules 满减规则集合序列化为 JSON 列
         builder.Property(a => a.Rules)

@@ -22,7 +22,6 @@ public sealed class FreightTemplateConfiguration : IEntityTypeConfiguration<Frei
         builder.Property(f => f.SellerId).HasColumnName("seller_id");
         builder.Property(f => f.Status).HasColumnName("status").HasConversion<int>();
 
-        builder.Property(f => f.Version).HasColumnName("version").IsRowVersion();
         builder.Property(f => f.CreatedAt).HasColumnName("created_at");
         builder.Property(f => f.UpdatedAt).HasColumnName("updated_at");
         builder.Property(f => f.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

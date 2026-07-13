@@ -27,7 +27,6 @@ public sealed class IndexRebuildTaskConfiguration : IEntityTypeConfiguration<Ind
         builder.Property(t => t.StartedAt).HasColumnName("started_at");
         builder.Property(t => t.CompletedAt).HasColumnName("completed_at");
 
-        builder.Property(t => t.Version).HasColumnName("version").IsRowVersion();
         builder.Property(t => t.UpdatedAt).HasColumnName("updated_at");
         builder.Property(t => t.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(t => t.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);

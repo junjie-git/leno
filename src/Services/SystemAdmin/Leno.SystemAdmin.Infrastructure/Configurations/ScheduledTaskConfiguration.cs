@@ -25,7 +25,6 @@ public sealed class ScheduledTaskConfiguration : IEntityTypeConfiguration<Schedu
         builder.Property(t => t.LastRunStatus).HasColumnName("last_run_status").HasConversion<int>();
         builder.Property(t => t.NextRunAt).HasColumnName("next_run_at");
 
-        builder.Property(t => t.Version).HasColumnName("version").IsRowVersion();
         builder.Property(t => t.CreatedAt).HasColumnName("created_at");
         builder.Property(t => t.UpdatedAt).HasColumnName("updated_at");
         builder.Property(t => t.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

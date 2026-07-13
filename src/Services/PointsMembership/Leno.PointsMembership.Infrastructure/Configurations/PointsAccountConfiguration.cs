@@ -26,7 +26,6 @@ public sealed class PointsAccountConfiguration : IEntityTypeConfiguration<Points
         builder.Property(a => a.UpdatedAt).HasColumnName("updated_at");
         builder.Property(a => a.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(a => a.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-        builder.Property(a => a.Version).HasColumnName("version").IsRowVersion();
 
         // FrozenEntries 冻结明细集合，外键为影子属性 points_account_id，删除账户级联删除明细。
         builder.HasMany(a => a.FrozenEntries)

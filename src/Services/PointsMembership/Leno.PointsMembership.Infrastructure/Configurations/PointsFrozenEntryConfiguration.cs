@@ -23,7 +23,6 @@ public sealed class PointsFrozenEntryConfiguration : IEntityTypeConfiguration<Po
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at");
         builder.Property(e => e.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(e => e.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-        builder.Property(e => e.Version).HasColumnName("version").IsRowVersion();
 
         // 反向配置与 PointsAccount 的一对多关系，并显式设置影子外键列名。
         builder.HasOne<PointsAccount>()

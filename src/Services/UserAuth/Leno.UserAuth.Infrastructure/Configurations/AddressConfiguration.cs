@@ -31,9 +31,6 @@ public sealed class AddressConfiguration : IEntityTypeConfiguration<Address>
         builder.Property(a => a.UpdatedAt).HasColumnName("updated_at");
         builder.Property(a => a.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(a => a.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-
-        builder.Property(a => a.Version).HasColumnName("version").IsRowVersion();
-
         builder.HasIndex(a => a.UserId).HasDatabaseName("ix_addresses_user_id");
         builder.HasIndex(a => new { a.UserId, a.IsDefault }).HasDatabaseName("ix_addresses_user_default");
     }

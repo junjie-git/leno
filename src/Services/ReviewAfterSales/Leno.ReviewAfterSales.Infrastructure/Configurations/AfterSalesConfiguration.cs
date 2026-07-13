@@ -42,7 +42,6 @@ public sealed class AfterSalesConfiguration : IEntityTypeConfiguration<AfterSale
         builder.Property(a => a.TrackingNo).HasColumnName("tracking_no").HasMaxLength(64);
         builder.Property(a => a.ReturnConfirmedAt).HasColumnName("return_confirmed_at");
 
-        builder.Property(a => a.Version).HasColumnName("version").IsRowVersion();
         builder.Property(a => a.CreatedAt).HasColumnName("created_at");
         builder.Property(a => a.UpdatedAt).HasColumnName("updated_at");
         builder.Property(a => a.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

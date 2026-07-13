@@ -37,7 +37,6 @@ public sealed class NotificationTemplateConfiguration : IEntityTypeConfiguration
                 v => JsonSerializer.Serialize(v, JsonOptions),
                 v => JsonSerializer.Deserialize<List<TemplateVariable>>(v, JsonOptions) ?? new List<TemplateVariable>());
 
-        builder.Property(t => t.Version).HasColumnName("version").IsRowVersion();
         builder.Property(t => t.CreatedAt).HasColumnName("created_at");
         builder.Property(t => t.UpdatedAt).HasColumnName("updated_at");
         builder.Property(t => t.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

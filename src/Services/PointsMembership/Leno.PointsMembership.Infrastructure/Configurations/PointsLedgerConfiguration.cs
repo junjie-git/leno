@@ -29,7 +29,6 @@ public sealed class PointsLedgerConfiguration : IEntityTypeConfiguration<PointsL
         builder.Property(l => l.UpdatedAt).HasColumnName("updated_at");
         builder.Property(l => l.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(l => l.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-        builder.Property(l => l.Version).HasColumnName("version").IsRowVersion();
 
         // 流水引用积分账户，无反向导航集合，删除账户时禁止级联以保留历史。
         builder.HasOne<PointsAccount>()

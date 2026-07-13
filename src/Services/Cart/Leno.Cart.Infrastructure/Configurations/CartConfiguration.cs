@@ -23,7 +23,6 @@ public sealed class CartConfiguration : IEntityTypeConfiguration<CartAggregate>
         builder.Property(c => c.UpdatedAt).HasColumnName("updated_at");
         builder.Property(c => c.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(c => c.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-        builder.Property(c => c.Version).HasColumnName("version").IsRowVersion();
 
         // CartItem 一对多，独立表，级联删除
         builder.HasMany(c => c.Items)
@@ -57,7 +56,6 @@ public sealed class CartItemConfiguration : IEntityTypeConfiguration<CartItem>
         builder.Property(i => i.UpdatedAt).HasColumnName("updated_at");
         builder.Property(i => i.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(i => i.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-        builder.Property(i => i.Version).HasColumnName("version").IsRowVersion();
 
         builder.HasIndex(i => i.SkuId).HasDatabaseName("ix_cart_items_sku_id");
         builder.HasIndex(i => i.SellerId).HasDatabaseName("ix_cart_items_seller_id");

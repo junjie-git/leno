@@ -24,6 +24,19 @@ public abstract class BaseDbContext : DbContext
 
         modelBuilder.ApplyConfigurationsFromAssembly(GetType().Assembly);
 
+        // 统一配置乐观锁 shadow property（避免领域层 Entity 携带持久化细节）
+        // 所有继承 Entity 的实体自动获得名为 "Version" 的 rowversion shadow property
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(Entity).IsAssignableFrom(entityType.ClrType))
+            {
+                modelBuilder.Entity(entityType.ClrType)
+                    .Property<byte[]>("Version")
+                    .HasColumnName("version")
+                    .IsRowVersion();
+            }
+        }
+
         ApplySoftDeleteQueryFilters(modelBuilder);
 
         base.OnModelCreating(modelBuilder);

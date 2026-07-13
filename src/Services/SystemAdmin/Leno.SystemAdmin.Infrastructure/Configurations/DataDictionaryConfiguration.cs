@@ -21,7 +21,6 @@ public sealed class DataDictionaryConfiguration : IEntityTypeConfiguration<DataD
         builder.Property(d => d.Description).HasColumnName("description").HasMaxLength(500);
         builder.Property(d => d.Status).HasColumnName("status").HasConversion<int>();
 
-        builder.Property(d => d.Version).HasColumnName("version").IsRowVersion();
         builder.Property(d => d.CreatedAt).HasColumnName("created_at");
         builder.Property(d => d.UpdatedAt).HasColumnName("updated_at");
         builder.Property(d => d.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
