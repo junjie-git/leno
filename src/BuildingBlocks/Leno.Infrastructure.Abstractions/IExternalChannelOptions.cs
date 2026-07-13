@@ -1,4 +1,4 @@
-namespace Leno.SharedKernel.Abstractions;
+namespace Leno.Infrastructure.Abstractions;
 
 /// <summary>
 /// 外部渠道配置抽象契约（支付、通知、存储等渠道统一配置驱动）。

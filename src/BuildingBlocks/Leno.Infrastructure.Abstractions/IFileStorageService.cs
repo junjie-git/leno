@@ -1,4 +1,4 @@
-namespace Leno.SharedKernel.Abstractions;
+namespace Leno.Infrastructure.Abstractions;
 
 /// <summary>
 /// 文件上传结果。

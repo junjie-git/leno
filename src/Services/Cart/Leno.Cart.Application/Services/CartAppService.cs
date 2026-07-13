@@ -5,6 +5,7 @@ using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 using CartAggregate = Leno.Cart.Domain.Aggregates.Cart;
 

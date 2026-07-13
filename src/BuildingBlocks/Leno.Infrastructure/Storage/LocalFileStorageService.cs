@@ -1,4 +1,5 @@
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Leno.SharedKernel.Exceptions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

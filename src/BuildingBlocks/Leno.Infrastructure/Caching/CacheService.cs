@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 

@@ -7,6 +7,7 @@ using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using MassTransit;
 using MassTransit.Scheduling;
 using Moq;

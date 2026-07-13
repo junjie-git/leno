@@ -1,4 +1,4 @@
-namespace Leno.SharedKernel.Abstractions;
+namespace Leno.Infrastructure.Abstractions;
 
 /// <summary>
 /// 事件总线抽象，发布跨上下文集成事件。

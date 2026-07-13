@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Leno.Infrastructure.Abstractions\Leno.Infrastructure.Abstractions.csproj" />
     <ProjectReference Include="..\Leno.SharedKernel\Leno.SharedKernel.csproj" />
     <ProjectReference Include="..\Leno.SharedContracts\Leno.SharedContracts.csproj" />
   </ItemGroup>

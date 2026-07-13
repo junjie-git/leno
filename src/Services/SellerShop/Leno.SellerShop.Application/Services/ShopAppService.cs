@@ -8,6 +8,7 @@ using Leno.SellerShop.Domain.Repositories;
 using Leno.SellerShop.Domain.ValueObjects;
 using Leno.SharedContracts.Responses;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.SellerShop.Application.Services;
 

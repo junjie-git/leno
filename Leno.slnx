@@ -36,6 +36,7 @@
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Leno.Infrastructure.Abstractions/Leno.Infrastructure.Abstractions.csproj" />
     <Project Path="src/BuildingBlocks/Leno.Infrastructure/Leno.Infrastructure.csproj" />
     <Project Path="src/BuildingBlocks/Leno.SharedContracts/Leno.SharedContracts.csproj" />
     <Project Path="src/BuildingBlocks/Leno.SharedKernel/Leno.SharedKernel.csproj" />
@@ -69,6 +70,7 @@
     <Project Path="src/Services/Cart/Leno.Cart.Api/Leno.Cart.Api.csproj" />
     <Project Path="src/Services/Cart/Leno.Cart.Application/Leno.Cart.Application.csproj" />
     <Project Path="src/Services/Cart/Leno.Cart.Domain/Leno.Cart.Domain.csproj" />
+    <Project Path="src/Services/Cart/Leno.Cart.Infrastructure.Tests/Leno.Cart.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/Cart/Leno.Cart.Infrastructure/Leno.Cart.Infrastructure.csproj" />
     <Project Path="src/Services/Cart/Leno.Cart.Domain.Tests/Leno.Cart.Domain.Tests.csproj" />
   </Folder>
@@ -96,6 +98,7 @@
     <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Api/Leno.PointsMembership.Api.csproj" />
     <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Application/Leno.PointsMembership.Application.csproj" />
     <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Domain/Leno.PointsMembership.Domain.csproj" />
+    <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Infrastructure.Tests/Leno.PointsMembership.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Infrastructure/Leno.PointsMembership.Infrastructure.csproj" />
     <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Domain.Tests/Leno.PointsMembership.Domain.Tests.csproj" />
   </Folder>
@@ -138,6 +141,7 @@
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Api/Leno.SystemAdmin.Api.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Application/Leno.SystemAdmin.Application.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Domain/Leno.SystemAdmin.Domain.csproj" />
+    <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure.Tests/Leno.SystemAdmin.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/Leno.SystemAdmin.Infrastructure.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Domain.Tests/Leno.SystemAdmin.Domain.Tests.csproj" />
   </Folder>

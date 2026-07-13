@@ -1,5 +1,6 @@
 using Leno.Infrastructure.Caching;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using StackExchange.Redis;

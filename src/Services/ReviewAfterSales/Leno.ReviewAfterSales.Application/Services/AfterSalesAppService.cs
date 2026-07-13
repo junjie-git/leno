@@ -5,6 +5,7 @@ using Leno.ReviewAfterSales.Domain.Services;
 using Leno.ReviewAfterSales.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 using AfterSalesAggregate = Leno.ReviewAfterSales.Domain.Aggregates.AfterSales;
 

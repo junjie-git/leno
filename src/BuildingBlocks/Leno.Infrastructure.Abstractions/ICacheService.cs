@@ -1,4 +1,4 @@
-namespace Leno.SharedKernel.Abstractions;
+namespace Leno.Infrastructure.Abstractions;
 
 /// <summary>
 /// 分布式缓存服务抽象，提供缓存穿透防护（布隆过滤器）、缓存击穿防护（互斥锁）、

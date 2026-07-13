@@ -1,4 +1,4 @@
-namespace Leno.SharedKernel.Abstractions;
+namespace Leno.Infrastructure.Abstractions;
 
 /// <summary>
 /// 布隆过滤器接口，用于缓存穿透防护。
