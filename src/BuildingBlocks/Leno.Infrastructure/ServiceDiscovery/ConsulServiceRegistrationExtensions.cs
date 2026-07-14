@@ -67,11 +67,22 @@ public sealed class ConsulServiceRegistrationHostedService : IHostedService, IAs
             }
         };
 
-        await _consulClient.Agent.ServiceRegister(registration, cancellationToken);
+        try
+        {
+            await _consulClient.Agent.ServiceRegister(registration, cancellationToken);
 
-        _logger.LogInformation(
-            "Registered service {ServiceName} (ID: {ServiceId}) with Consul at {Address}:{Port}",
-            _options.ServiceName, _options.ServiceId, _options.Address, _options.Port);
+            _logger.LogInformation(
+                "Registered service {ServiceName} (ID: {ServiceId}) with Consul at {Address}:{Port}",
+                _options.ServiceName, _options.ServiceId, _options.Address, _options.Port);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Consul 不可达时不阻止应用启动，服务将在下次健康检查时被重新发现
+            _logger.LogWarning(ex,
+                "Failed to register service {ServiceName} (ID: {ServiceId}) with Consul at {Address}:{Port}. " +
+                "Application will continue startup; service may be unreachable until Consul recovers.",
+                _options.ServiceName, _options.ServiceId, _options.Address, _options.Port);
+        }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
