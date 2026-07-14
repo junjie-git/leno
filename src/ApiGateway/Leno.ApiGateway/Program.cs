@@ -1,12 +1,17 @@
 using Leno.ApiGateway.Extensions;
 using Leno.ApiGateway.Middleware;
 using Leno.Infrastructure.HealthChecks;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// YARP 反向代理从配置加载路由（含 RateLimiterPolicy/TimeoutPolicy 字段）
-builder.Services.AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+// Serilog 替换默认日志
+builder.Host.UseSerilog((context, services, configuration) =>
+    configuration.ReadFrom.Configuration(context.Configuration.GetSection("Serilog")));
+
+// 可观测性（Serilog + OpenTelemetry + Prometheus + TracingTransform）
+// 注意：AddObservability 内部已调用 AddReverseProxy().LoadFromConfig().AddTransforms<TracingTransform>()
+builder.Services.AddObservability(builder.Configuration);
 
 // Phase 1：Consul 服务发现 + 动态 Destination 解析器
 builder.Services.AddConsulServiceDiscovery(builder.Configuration);
@@ -42,11 +47,13 @@ app.MapGet("/health/live", () => Results.Ok(new { status = "Healthy" }));
 app.MapLenoHealthChecks();
 app.MapLenoHealthChecksUI();
 
-// 中间件管道顺序（Phase 4 新增）：
-//   1. FallbackResponseMiddleware — 拦截 YARP 503 改写为降级 JSON（在 MapReverseProxy 之前）
-//   2. UseRateLimiter — 应用路由级 RateLimiterPolicy（ASP.NET Core 内建）
-//   3. UseRequestTimeouts — 应用路由级 TimeoutPolicy（由 AddGatewayTimeouts 隐式注册）
-//   4. MapReverseProxy — YARP 反向代理（含 CircuitBreaker/Retry/HttpRequest.ActivityTimeout）
+// 中间件管道顺序：
+//   1. UseObservability — 访问日志 + 指标中间件 + /metrics 端点
+//   2. FallbackResponseMiddleware — 503 降级
+//   3. UseRateLimiter — 路由级限流
+//   4. UseRequestTimeouts — 路由级超时
+//   5. MapReverseProxy — YARP 反向代理
+app.UseObservability(builder.Configuration);
 app.UseMiddleware<FallbackResponseMiddleware>();
 app.UseRateLimiter();
 app.UseRequestTimeouts();

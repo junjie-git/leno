@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Yarp.ReverseProxy.Transforms;
+using Yarp.ReverseProxy.Transforms.Builder;
 
 namespace Leno.ApiGateway.Transforms;
 
@@ -11,8 +12,13 @@ namespace Leno.ApiGateway.Transforms;
 /// 在 YARP 内部 HttpClient 发起出站请求时自动注入，本 Transform 不重复设置。
 /// <c>X-Trace-Id</c> 仅为尚未集成 OTel SDK 的旧后端服务提供 TraceId 关联能力。
 /// </para>
+/// <para>
+/// 本类型同时继承 <see cref="RequestTransform"/> 与实现 <see cref="ITransformProvider"/>，
+/// 以便通过 <c>AddTransforms&lt;TracingTransform&gt;()</c> 注册到 YARP 管道，
+/// 同时保留可直接调用的 <see cref="ApplyAsync"/> 方法供单元测试使用。
+/// </para>
 /// </summary>
-public sealed class TracingTransform : RequestTransform
+public sealed class TracingTransform : RequestTransform, ITransformProvider
 {
     private const string XTraceIdHeader = "X-Trace-Id";
 
@@ -43,5 +49,31 @@ public sealed class TracingTransform : RequestTransform
         }
 
         return ValueTask.CompletedTask;
+    }
+
+    /// <summary>
+    /// 路由级校验钩子。本 Transform 不依赖路由配置数据，无需校验。
+    /// </summary>
+    public void ValidateRoute(TransformRouteValidationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+    }
+
+    /// <summary>
+    /// 集群级校验钩子。本 Transform 不依赖集群配置数据，无需校验。
+    /// </summary>
+    public void ValidateCluster(TransformClusterValidationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+    }
+
+    /// <summary>
+    /// 为每条路由注册 <see cref="ApplyAsync"/> 作为请求 Transform。
+    /// YARP 在构建每条路由时调用此方法。
+    /// </summary>
+    public void Apply(TransformBuilderContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        context.AddRequestTransform(ApplyAsync);
     }
 }
