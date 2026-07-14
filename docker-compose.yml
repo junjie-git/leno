@@ -103,6 +103,50 @@ services:
     networks:
       - leno-net
 
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: leno-prometheus
+    volumes:
+      - ./grafana/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheusdata:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9090/-/healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - leno-net
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: leno-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=leno
+      - GF_SECURITY_ADMIN_PASSWORD=Leno@Grafana2026
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/leno-gateway-dashboard.json:/var/lib/grafana/dashboards/leno-gateway-dashboard.json:ro
+      - grafanadata:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - leno-net
+
   user-auth-api:
     build:
       context: .
@@ -469,6 +513,8 @@ services:
         condition: service_healthy
       jaeger:
         condition: service_healthy
+      prometheus:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
       interval: 10s
@@ -484,6 +530,8 @@ volumes:
   redisdata:
   rabbitmqdata:
   esdata:
+  prometheusdata:
+  grafanadata:
 
 networks:
   leno-net:
