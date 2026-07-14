@@ -19,7 +19,7 @@ public static class RateLimiterExtensions
     public static class Policies
     {
         public const string Global = "global";
-        public const string Default = "default";
+        public const string Default = "leno-default";
         public const string Seckill = "seckill";
         public const string PerUser = "per-user";
     }

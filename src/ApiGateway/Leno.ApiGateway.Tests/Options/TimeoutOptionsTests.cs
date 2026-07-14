@@ -21,11 +21,11 @@ public class TimeoutOptionsTests
         // Arrange
         var data = new Dictionary<string, string?>
         {
-            ["Timeout:DefaultPolicy"] = "default",
-            ["Timeout:Policies:default:RouteType"] = "default",
-            ["Timeout:Policies:default:RequestTimeout"] = "00:00:30",
-            ["Timeout:Policies:default:ConnectTimeout"] = "00:00:05",
-            ["Timeout:Policies:default:ReadTimeout"] = "00:00:30",
+            ["Timeout:DefaultPolicy"] = "leno-default",
+            ["Timeout:Policies:leno-default:RouteType"] = "default",
+            ["Timeout:Policies:leno-default:RequestTimeout"] = "00:00:30",
+            ["Timeout:Policies:leno-default:ConnectTimeout"] = "00:00:05",
+            ["Timeout:Policies:leno-default:ReadTimeout"] = "00:00:30",
             ["Timeout:Policies:seckill:RouteType"] = "seckill",
             ["Timeout:Policies:seckill:RequestTimeout"] = "00:00:05",
             ["Timeout:Policies:seckill:ConnectTimeout"] = "00:00:02",
@@ -44,10 +44,10 @@ public class TimeoutOptionsTests
         var opts = BindFromDictionary(data);
 
         // Assert
-        opts.DefaultPolicy.Should().Be("default");
+        opts.DefaultPolicy.Should().Be("leno-default");
         opts.Policies.Should().HaveCount(4);
-        opts.Policies["default"].RequestTimeout.Should().Be(TimeSpan.FromSeconds(30));
-        opts.Policies["default"].ConnectTimeout.Should().Be(TimeSpan.FromSeconds(5));
+        opts.Policies["leno-default"].RequestTimeout.Should().Be(TimeSpan.FromSeconds(30));
+        opts.Policies["leno-default"].ConnectTimeout.Should().Be(TimeSpan.FromSeconds(5));
         opts.Policies["seckill"].RequestTimeout.Should().Be(TimeSpan.FromSeconds(5));
         opts.Policies["seckill"].ConnectTimeout.Should().Be(TimeSpan.FromSeconds(2));
         opts.Policies["upload"].RequestTimeout.Should().Be(TimeSpan.FromSeconds(120));
@@ -60,7 +60,7 @@ public class TimeoutOptionsTests
     public void Defaults_AreSensible()
     {
         var opts = new TimeoutOptions();
-        opts.DefaultPolicy.Should().Be("default");
+        opts.DefaultPolicy.Should().Be("leno-default");
         opts.Policies.Should().BeEmpty();
 
         var policy = new TimeoutPolicyOptions();
@@ -83,6 +83,6 @@ public class TimeoutOptionsTests
     {
         var opts = BindFromDictionary(new Dictionary<string, string?>());
         opts.Policies.Should().BeEmpty();
-        opts.DefaultPolicy.Should().Be("default");
+        opts.DefaultPolicy.Should().Be("leno-default");
     }
 }

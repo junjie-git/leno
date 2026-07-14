@@ -26,9 +26,9 @@ public class RateLimitOptionsTests
             ["RateLimit:Global:TokenLimit"] = "5000",
             ["RateLimit:Global:TokensPerPeriod"] = "5000",
             ["RateLimit:Global:ReplenishmentPeriod"] = "00:00:01",
-            ["RateLimit:Routes:default:PermitLimit"] = "200",
-            ["RateLimit:Routes:default:Window"] = "00:00:01",
-            ["RateLimit:Routes:default:SegmentsPerWindow"] = "4",
+            ["RateLimit:Routes:leno-default:PermitLimit"] = "200",
+            ["RateLimit:Routes:leno-default:Window"] = "00:00:01",
+            ["RateLimit:Routes:leno-default:SegmentsPerWindow"] = "4",
             ["RateLimit:Routes:seckill:PermitLimit"] = "50",
             ["RateLimit:Routes:seckill:Window"] = "00:00:01",
             ["RateLimit:Routes:seckill:SegmentsPerWindow"] = "4",
@@ -46,10 +46,10 @@ public class RateLimitOptionsTests
         opts.Global.TokenLimit.Should().Be(5000);
         opts.Global.TokensPerPeriod.Should().Be(5000);
         opts.Global.ReplenishmentPeriod.Should().Be(TimeSpan.FromSeconds(1));
-        opts.Routes.Should().ContainKey("default");
-        opts.Routes["default"].PermitLimit.Should().Be(200);
-        opts.Routes["default"].Window.Should().Be(TimeSpan.FromSeconds(1));
-        opts.Routes["default"].SegmentsPerWindow.Should().Be(4);
+        opts.Routes.Should().ContainKey("leno-default");
+        opts.Routes["leno-default"].PermitLimit.Should().Be(200);
+        opts.Routes["leno-default"].Window.Should().Be(TimeSpan.FromSeconds(1));
+        opts.Routes["leno-default"].SegmentsPerWindow.Should().Be(4);
         opts.Routes["seckill"].PermitLimit.Should().Be(50);
         opts.User.PermitLimit.Should().Be(100);
         opts.User.Window.Should().Be(TimeSpan.FromMinutes(1));

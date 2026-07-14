@@ -17,8 +17,8 @@ public class RateLimiterExtensionsTests
                 ["RateLimit:UseRedisDistributed"] = useRedis.ToString(),
                 ["RateLimit:RedisKeyPrefix"] = "leno:rl:",
                 ["RateLimit:Global:TokenLimit"] = "5000",
-                ["RateLimit:Routes:default:PermitLimit"] = "200",
-                ["RateLimit:Routes:default:Window"] = "00:00:01",
+                ["RateLimit:Routes:leno-default:PermitLimit"] = "200",
+                ["RateLimit:Routes:leno-default:Window"] = "00:00:01",
                 ["RateLimit:Routes:seckill:PermitLimit"] = "50",
                 ["RateLimit:Routes:seckill:Window"] = "00:00:01",
                 ["RateLimit:User:PermitLimit"] = "100",
@@ -55,7 +55,7 @@ public class RateLimiterExtensionsTests
 
         // Assert
         opts.Global.TokenLimit.Should().Be(5000);
-        opts.Routes["default"].PermitLimit.Should().Be(200);
+        opts.Routes["leno-default"].PermitLimit.Should().Be(200);
         opts.Routes["seckill"].PermitLimit.Should().Be(50);
         opts.User.PermitLimit.Should().Be(100);
         opts.UseRedisDistributed.Should().BeTrue();
@@ -101,7 +101,7 @@ public class RateLimiterExtensionsTests
     public void Policies_ConstantsMatchExpectedNames()
     {
         RateLimiterExtensions.Policies.Global.Should().Be("global");
-        RateLimiterExtensions.Policies.Default.Should().Be("default");
+        RateLimiterExtensions.Policies.Default.Should().Be("leno-default");
         RateLimiterExtensions.Policies.Seckill.Should().Be("seckill");
         RateLimiterExtensions.Policies.PerUser.Should().Be("per-user");
     }

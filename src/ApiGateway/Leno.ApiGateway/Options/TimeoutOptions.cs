@@ -10,7 +10,7 @@ public sealed class TimeoutOptions
     public Dictionary<string, TimeoutPolicyOptions> Policies { get; set; } = new();
 
     /// <summary>默认超时策略名（无显式 TimeoutPolicy 的路由使用）。</summary>
-    public string DefaultPolicy { get; set; } = "default";
+    public string DefaultPolicy { get; set; } = "leno-default";
 }
 
 /// <summary>命名超时策略配置。</summary>
