@@ -7,12 +7,14 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Prometheus;
 using Serilog;
+using StackExchange.Redis;
 using Yarp.ReverseProxy.Transforms;
 
 namespace Leno.ApiGateway.Extensions;
@@ -130,9 +132,11 @@ public static class ServiceCollectionExtensions
         // ===== YARP + TracingTransform =====
         // 此处统一注册 YARP，调用方不应再单独调用 AddReverseProxy().LoadFromConfig()
         // TracingTransform 同时实现 ITransformProvider，通过 AddTransforms<T>() 注册到 YARP 管道
+        // Phase 6：追加 UserContextTransformProvider 注入用户上下文头并清理内部响应头
         services.AddReverseProxy()
             .LoadFromConfig(configuration.GetSection("ReverseProxy"))
-            .AddTransforms<TracingTransform>();
+            .AddTransforms<TracingTransform>()
+            .AddTransforms<UserContextTransformProvider>();
 
         return services;
     }
@@ -186,5 +190,83 @@ public static class ServiceCollectionExtensions
         }
 
         return app;
+    }
+
+    /// <summary>
+    /// 注册 YARP 自定义 Transform Provider（用户上下文注入 + 响应头清理）。
+    /// 必须在 <c>AddReverseProxy().LoadFromConfig()</c> 之后调用 AddTransforms。
+    /// <para>
+    /// 注意：<see cref="AddObservability"/> 已在内部链式调用
+    /// <c>AddTransforms&lt;TracingTransform&gt;().AddTransforms&lt;UserContextTransformProvider&gt;()</c>，
+    /// Program.cs 无需再单独调用此方法，保留仅为计划完整性与可单独测试场景。
+    /// </para>
+    /// </summary>
+    public static IReverseProxyBuilder AddGatewayTransforms(this IReverseProxyBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.AddTransforms<UserContextTransformProvider>();
+        return builder;
+    }
+
+    /// <summary>
+    /// 注册响应缓存中间件相关服务：Redis 连接、CacheOptions、缓存失效订阅。
+    /// 若 <see cref="IConnectionMultiplexer"/> 已由其他阶段注册则不重复注册（<see cref="TryAddSingleton"/>）。
+    /// </summary>
+    public static IServiceCollection AddGatewayCaching(
+        this IServiceCollection services, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        services.Configure<CacheOptions>(configuration.GetSection("Gateway:Cache"));
+
+        services.TryAddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var redisConfig = configuration["Redis:Configuration"] ?? "localhost:6379";
+            return ConnectionMultiplexer.Connect(redisConfig);
+        });
+
+        services.AddHostedService<CacheInvalidationSubscriber>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// 注册 CORS 服务：自定义 <see cref="CorsOptions"/> 配置绑定、
+    /// <see cref="ConsulCorsOriginProvider"/> 单例、定时刷新 <see cref="CorsOriginRefreshService"/>、
+    /// 以及通过 <see cref="IConfigureOptions{TOptions}"/> 在运行时向框架
+    /// <see cref="Microsoft.AspNetCore.Cors.Infrastructure.CorsOptions"/> 注入
+    /// <c>SetIsOriginAllowed</c> 回调（实现 Origin 从 Consul KV 热更新）。
+    /// </summary>
+    public static IServiceCollection AddGatewayCors(
+        this IServiceCollection services, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        // 绑定自定义 CorsOptions（Leno.ApiGateway.Options.CorsOptions）
+        services.Configure<CorsOptions>(configuration.GetSection("Gateway:Cors"));
+        services.AddSingleton<ICorsOriginProvider, ConsulCorsOriginProvider>();
+        services.AddHostedService<CorsOriginRefreshService>();
+
+        // 关键：注册到框架 CorsOptions（Microsoft.AspNetCore.Cors.Infrastructure.CorsOptions），
+        // 而非自定义 CorsOptions，否则 ASP.NET Core CORS 中间件无法识别。
+        services.AddSingleton<
+            IConfigureOptions<Microsoft.AspNetCore.Cors.Infrastructure.CorsOptions>,
+            ConfigureGatewayCors>();
+        services.AddCors();
+
+        return services;
+    }
+
+    /// <summary>
+    /// 注册协议转换注册表。当前无 <see cref="IProtocolTranslator"/> 实现，仅预留 DI 注入点。
+    /// 待 gRPC 迁移后注册具体实现即可启用 HTTP↔gRPC 转换。
+    /// </summary>
+    public static IServiceCollection AddProtocolTranslators(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.AddSingleton<ProtocolTranslatorRegistry>();
+        return services;
     }
 }

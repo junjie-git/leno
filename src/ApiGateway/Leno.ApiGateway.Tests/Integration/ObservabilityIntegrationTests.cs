@@ -32,7 +32,9 @@ public class ObservabilityIntegrationTests : IClassFixture<WebApplicationFactory
                     ["Metrics:Path"] = "/metrics",
                     ["Consul:Url"] = "http://localhost:8500",
                     ["Consul:Token"] = "",
-                    ["Consul:PassingOnly"] = "true"
+                    ["Consul:PassingOnly"] = "true",
+                    // Phase 6 集成后 CacheMiddleware 会访问 Redis，测试环境禁用缓存避免 500
+                    ["Gateway:Cache:Enabled"] = "false"
                 });
             });
 

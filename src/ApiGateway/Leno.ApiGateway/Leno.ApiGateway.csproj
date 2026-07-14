@@ -21,4 +21,8 @@
     <ProjectReference Include="..\..\BuildingBlocks\Leno.Infrastructure\Leno.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Leno.ApiGateway.Tests" />
+  </ItemGroup>
+
 </Project>

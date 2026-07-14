@@ -26,6 +26,21 @@ builder.Services.AddGatewayRateLimiter(builder.Configuration);
 // Phase 4：超时策略（default/seckill/upload/internal）
 builder.Services.AddGatewayTimeouts(builder.Configuration);
 
+// Phase 6：响应缓存（Redis + Pub/Sub 失效）
+builder.Services.AddGatewayCaching(builder.Configuration);
+
+// Phase 6：统一 CORS（Origin 从 Consul KV 热更新）
+builder.Services.AddGatewayCors(builder.Configuration);
+
+// Phase 6：协议转换预留注册表（当前无实现）
+builder.Services.AddProtocolTranslators();
+
+// Phase 6：响应压缩
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
+
 // HealthChecksUI 仪表盘
 builder.Services.AddLenoHealthChecksUI(builder.Configuration);
 
@@ -49,12 +64,18 @@ app.MapLenoHealthChecksUI();
 
 // 中间件管道顺序：
 //   1. UseObservability — 访问日志 + 指标中间件 + /metrics 端点
-//   2. FallbackResponseMiddleware — 503 降级
-//   3. UseRateLimiter — 路由级限流
-//   4. UseRequestTimeouts — 路由级超时
-//   5. MapReverseProxy — YARP 反向代理
+//   2. UseCors — Phase 6：预检 OPTIONS 在缓存之前处理
+//   3. FallbackResponseMiddleware — 503 降级
+//   4. UseResponseCompression — Phase 6：响应压缩
+//   5. CacheMiddleware — Phase 6：命中即短路，未命中透传到 YARP
+//   6. UseRateLimiter — 路由级限流
+//   7. UseRequestTimeouts — 路由级超时
+//   8. MapReverseProxy — YARP 反向代理
 app.UseObservability(builder.Configuration);
+app.UseCors();
 app.UseMiddleware<FallbackResponseMiddleware>();
+app.UseResponseCompression();
+app.UseMiddleware<CacheMiddleware>();
 app.UseRateLimiter();
 app.UseRequestTimeouts();
 
