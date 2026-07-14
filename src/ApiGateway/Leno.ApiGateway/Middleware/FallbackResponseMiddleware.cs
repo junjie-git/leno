@@ -14,7 +14,7 @@ namespace Leno.ApiGateway.Middleware;
 /// { "code": 503, "message": "服务暂时不可用，请稍后重试", "data": null }
 /// </code>
 /// </para>
-/// 仅对反向代理转发的请求生效（通过 <c>X-Forwarded-By</c> 标记或非 <c>/health</c> 路径区分）。
+/// 仅对反向代理转发的请求生效（健康检查端点 <c>/health/*</c> 跳过）。
 /// </summary>
 public sealed class FallbackResponseMiddleware
 {
