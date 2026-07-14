@@ -3,12 +3,28 @@ using Leno.Cart.Infrastructure;
 using Leno.Cart.Infrastructure.Dependencies;
 using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.Dependencies;
+using Leno.Infrastructure.Logging;
 using Leno.Infrastructure.Middleware;
+using Leno.Infrastructure.ServiceDiscovery;
+using Leno.Infrastructure.Telemetry;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Serilog 结构化日志（JSON 输出 + Application/Environment/TraceId 富化）
+builder.Host.UseSerilog((context, _, configuration) =>
+{
+    var appName = context.Configuration["Application:Name"] ?? "leno-cart-api";
+    SerilogConfig.ConfigureDefaults(
+        configuration, appName, context.HostingEnvironment.EnvironmentName)
+        .ReadFrom.Configuration(context.Configuration.GetSection("Serilog"));
+});
+
+// OpenTelemetry 分布式追踪（ASP.NET Core / HttpClient / EF Core / MassTransit 自动埋点 + OTLP 导出）
+builder.AddLenoOpenTelemetry();
 
 // 共享内核基础设施：JWT 生成器、当前用户上下文、事件总线（含购物车域消费者）、Redis、ES、健康检查
 builder.Services.AddLenoInfrastructure(builder.Configuration, cfg => cfg.AddCartConsumers());
@@ -16,6 +32,10 @@ builder.Services.AddInternalApiKeyAuth(builder.Configuration);
 
 // 购物车域基础设施：DbContext、工作单元、仓储、Redis 缓存、防腐层、应用服务、FluentValidation 校验器
 builder.Services.AddCartInfrastructure(builder.Configuration);
+
+// Consul 服务自注册（启动时注册，关闭时注销，健康检查路径 /health/live）
+builder.AddConsulServiceRegistration("leno-cart-api");
+
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<CartDbContext>(tags: ["ready"]);
 
