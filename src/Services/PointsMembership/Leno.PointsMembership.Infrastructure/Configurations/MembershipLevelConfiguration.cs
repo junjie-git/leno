@@ -26,7 +26,6 @@ public sealed class MembershipLevelConfiguration : IEntityTypeConfiguration<Memb
         builder.Property(l => l.UpdatedAt).HasColumnName("updated_at");
         builder.Property(l => l.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(l => l.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-        builder.Property(l => l.Version).HasColumnName("version").IsRowVersion();
 
         builder.HasIndex(l => l.Level).IsUnique().HasDatabaseName("ix_membership_levels_level");
     }

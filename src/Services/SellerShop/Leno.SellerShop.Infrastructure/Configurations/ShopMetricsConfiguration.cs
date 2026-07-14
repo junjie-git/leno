@@ -31,9 +31,6 @@ public sealed class ShopMetricsConfiguration : IEntityTypeConfiguration<ShopMetr
         builder.Property(m => m.UpdatedAt).HasColumnName("updated_at");
         builder.Property(m => m.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(m => m.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-
-        builder.Property(m => m.Version).HasColumnName("version").IsRowVersion();
-
         // Money 值对象拆列：金额与币种同表落库，作为聚合拥有的值对象。
         builder.OwnsOne(m => m.SalesAmount, money =>
         {

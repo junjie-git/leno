@@ -29,7 +29,6 @@ public sealed class ReconciliationRecordConfiguration : IEntityTypeConfiguration
         builder.Property(r => r.AlertTriggered).HasColumnName("alert_triggered");
         builder.Property(r => r.CorrectionTriggered).HasColumnName("correction_triggered");
 
-        builder.Property(r => r.Version).HasColumnName("version").IsRowVersion();
         builder.Property(r => r.CreatedAt).HasColumnName("created_at");
         builder.Property(r => r.UpdatedAt).HasColumnName("updated_at");
         builder.Property(r => r.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

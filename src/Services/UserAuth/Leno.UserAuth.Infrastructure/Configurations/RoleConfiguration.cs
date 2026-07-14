@@ -34,7 +34,6 @@ public sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
             .HasColumnType("nvarchar(max)")
             .HasConversion(PermissionsConverter);
 
-        builder.Property(r => r.Version).HasColumnName("version").IsRowVersion();
         builder.Property(r => r.CreatedAt).HasColumnName("created_at");
         builder.Property(r => r.UpdatedAt).HasColumnName("updated_at");
         builder.Property(r => r.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

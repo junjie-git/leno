@@ -27,7 +27,6 @@ public sealed class MemberConfiguration : IEntityTypeConfiguration<Member>
         builder.Property(m => m.UpdatedAt).HasColumnName("updated_at");
         builder.Property(m => m.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(m => m.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-        builder.Property(m => m.Version).HasColumnName("version").IsRowVersion();
 
         builder.HasIndex(m => m.UserId).IsUnique().HasDatabaseName("ix_members_user_id");
     }

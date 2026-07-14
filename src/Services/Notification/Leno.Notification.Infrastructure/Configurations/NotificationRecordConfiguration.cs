@@ -36,7 +36,6 @@ public sealed class NotificationRecordConfiguration : IEntityTypeConfiguration<N
         builder.Property(n => n.BusinessRef).HasColumnName("business_ref").HasMaxLength(128);
         builder.Property(n => n.IdempotencyKey).HasColumnName("idempotency_key").HasMaxLength(128);
 
-        builder.Property(n => n.Version).HasColumnName("version").IsRowVersion();
         builder.Property(n => n.CreatedAt).HasColumnName("created_at");
         builder.Property(n => n.UpdatedAt).HasColumnName("updated_at");
         builder.Property(n => n.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

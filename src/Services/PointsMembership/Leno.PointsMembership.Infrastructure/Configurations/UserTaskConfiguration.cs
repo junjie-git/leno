@@ -26,7 +26,6 @@ public sealed class UserTaskConfiguration : IEntityTypeConfiguration<UserTask>
         builder.Property(ut => ut.UpdatedAt).HasColumnName("updated_at");
         builder.Property(ut => ut.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(ut => ut.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-        builder.Property(ut => ut.Version).HasColumnName("version").IsRowVersion();
 
         builder.HasIndex(ut => new { ut.UserId, ut.TaskId })
             .IsUnique()

@@ -30,9 +30,6 @@ public sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(a => a.UpdatedAt).HasColumnName("updated_at");
         builder.Property(a => a.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(a => a.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-
-        builder.Property(a => a.Version).HasColumnName("version").IsRowVersion();
-
         builder.HasIndex(a => a.OperatorId).HasDatabaseName("ix_audit_logs_operator_id");
         builder.HasIndex(a => a.OperatedAt).HasDatabaseName("ix_audit_logs_operated_at");
     }

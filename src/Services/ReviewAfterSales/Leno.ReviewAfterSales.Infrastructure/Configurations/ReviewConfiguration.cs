@@ -33,7 +33,6 @@ public sealed class ReviewConfiguration : IEntityTypeConfiguration<Review>
         builder.Property(r => r.HiddenBy).HasColumnName("hidden_by");
         builder.Property(r => r.HideReason).HasColumnName("hide_reason").HasMaxLength(200);
 
-        builder.Property(r => r.Version).HasColumnName("version").IsRowVersion();
         builder.Property(r => r.CreatedAt).HasColumnName("created_at");
         builder.Property(r => r.UpdatedAt).HasColumnName("updated_at");
         builder.Property(r => r.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

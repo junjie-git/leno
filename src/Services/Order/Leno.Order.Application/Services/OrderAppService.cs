@@ -7,6 +7,7 @@ using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using MassTransit;
 using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
 

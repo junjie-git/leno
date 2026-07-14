@@ -4,6 +4,7 @@ using Leno.ReviewAfterSales.Application.DTOs;
 using Leno.ReviewAfterSales.Domain.ValueObjects;
 using Leno.SharedContracts.Responses;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -40,7 +41,7 @@ public sealed class ReviewsController : ReviewControllerBase
     {
         var userId = GetCurrentUserId();
         var result = await _reviewAppService.SubmitReviewAsync(userId, dto, ct);
-        return CreatedAtAction(nameof(GetReviewByOrderLineAsync), new { orderLineId = result.OrderLineId }, ApiResponse.Success(result));
+        return CreatedAtAction("GetReviewByOrderLine", new { orderLineId = result.OrderLineId }, ApiResponse.Success(result));
     }
 
     /// <summary>按订单行查询评价。</summary>

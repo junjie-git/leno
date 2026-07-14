@@ -6,6 +6,7 @@ using Leno.Infrastructure.Middleware;
 using Leno.Infrastructure.ReadModel;
 using Leno.Infrastructure.Storage;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

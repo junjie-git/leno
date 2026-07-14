@@ -380,7 +380,7 @@ public class AuditLogEntryTests
 
         foreach (var prop in properties)
         {
-            if (prop.Name is nameof(AuditLogEntry.EntryId) or nameof(AuditLogEntry.Version)
+            if (prop.Name is nameof(AuditLogEntry.EntryId)
                 or nameof(AuditLogEntry.CreatedAt) or nameof(AuditLogEntry.UpdatedAt)
                 or nameof(AuditLogEntry.CreatedBy) or nameof(AuditLogEntry.UpdatedBy)
                 or nameof(AuditLogEntry.DomainEvents))

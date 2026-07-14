@@ -28,7 +28,6 @@ public sealed class TaskConfiguration : IEntityTypeConfiguration<TaskDefinition>
         builder.Property(t => t.UpdatedAt).HasColumnName("updated_at");
         builder.Property(t => t.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(t => t.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-        builder.Property(t => t.Version).HasColumnName("version").IsRowVersion();
 
         builder.HasIndex(t => t.Type).IsUnique().HasDatabaseName("ix_tasks_type");
     }

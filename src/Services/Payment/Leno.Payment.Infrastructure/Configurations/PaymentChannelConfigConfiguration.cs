@@ -21,7 +21,6 @@ public sealed class PaymentChannelConfigConfiguration : IEntityTypeConfiguration
         builder.Property(c => c.Description).HasColumnName("description").HasMaxLength(500);
         builder.Property(c => c.Enabled).HasColumnName("enabled").IsRequired();
 
-        builder.Property(c => c.Version).HasColumnName("version").IsRowVersion();
         builder.Property(c => c.CreatedAt).HasColumnName("created_at");
         builder.Property(c => c.UpdatedAt).HasColumnName("updated_at");
         builder.Property(c => c.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

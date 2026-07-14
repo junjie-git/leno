@@ -26,9 +26,6 @@ public sealed class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(c => c.UpdatedAt).HasColumnName("updated_at");
         builder.Property(c => c.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(c => c.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-
-        builder.Property(c => c.Version).HasColumnName("version").IsRowVersion();
-
         builder.HasIndex(c => c.ParentId).HasDatabaseName("ix_categories_parent_id");
     }
 }

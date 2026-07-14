@@ -3,6 +3,7 @@ using Leno.PointsMembership.Domain.Exceptions;
 using Leno.PointsMembership.Domain.Repositories;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 using PointsAccountAggregate = Leno.PointsMembership.Domain.Aggregates.PointsAccount;
 

@@ -25,7 +25,6 @@ public sealed class CheckInRecordConfiguration : IEntityTypeConfiguration<CheckI
         builder.Property(r => r.UpdatedAt).HasColumnName("updated_at");
         builder.Property(r => r.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(r => r.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-        builder.Property(r => r.Version).HasColumnName("version").IsRowVersion();
 
         builder.HasIndex(r => new { r.UserId, r.CheckInDate })
             .IsUnique()

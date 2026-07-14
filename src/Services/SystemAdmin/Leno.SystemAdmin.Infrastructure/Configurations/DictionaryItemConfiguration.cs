@@ -23,7 +23,6 @@ public sealed class DictionaryItemConfiguration : IEntityTypeConfiguration<Dicti
         builder.Property(i => i.SortOrder).HasColumnName("sort_order");
         builder.Property(i => i.Status).HasColumnName("status").HasConversion<int>();
 
-        builder.Property(i => i.Version).HasColumnName("version").IsRowVersion();
         builder.Property(i => i.CreatedAt).HasColumnName("created_at");
         builder.Property(i => i.UpdatedAt).HasColumnName("updated_at");
         builder.Property(i => i.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

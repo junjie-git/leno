@@ -30,7 +30,6 @@ public sealed class PaymentOrderConfiguration : IEntityTypeConfiguration<Payment
         builder.Property(o => o.PaidAt).HasColumnName("paid_at");
         builder.Property(o => o.FailReason).HasColumnName("fail_reason").HasMaxLength(512);
 
-        builder.Property(o => o.Version).HasColumnName("version").IsRowVersion();
         builder.Property(o => o.CreatedAt).HasColumnName("created_at");
         builder.Property(o => o.UpdatedAt).HasColumnName("updated_at");
         builder.Property(o => o.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

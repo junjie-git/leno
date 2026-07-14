@@ -35,11 +35,6 @@ public abstract class Entity : IAuditable
 
     public string? UpdatedBy { get; set; }
 
-    /// <summary>
-    /// 乐观锁版本号（SQL Server rowversion），由 EF Core 与数据库协同维护。
-    /// </summary>
-    public byte[] Version { get; set; } = Array.Empty<byte>();
-
     protected Entity() { }
 
     protected Entity(Guid id)

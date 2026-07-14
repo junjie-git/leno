@@ -35,9 +35,6 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(u => u.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
 
-        // 乐观锁版本
-        builder.Property(u => u.Version).HasColumnName("version").IsRowVersion();
-
         // 角色集合：owned collection，落 user_roles 表，支持按角色过滤查询
         builder.OwnsMany(u => u.Roles, owned =>
         {

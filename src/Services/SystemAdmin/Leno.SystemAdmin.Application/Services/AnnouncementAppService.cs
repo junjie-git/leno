@@ -4,6 +4,7 @@ using Leno.SystemAdmin.Domain.Events;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.SystemAdmin.Application.Services;

@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 

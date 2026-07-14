@@ -8,6 +8,7 @@ using Leno.Product.Application.DTOs;
 using Leno.Product.Domain.ValueObjects;
 using Leno.SharedContracts.Responses;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;

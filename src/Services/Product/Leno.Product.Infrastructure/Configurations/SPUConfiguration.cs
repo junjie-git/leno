@@ -36,9 +36,6 @@ public sealed class SPUConfiguration : IEntityTypeConfiguration<SPU>
         builder.Property(s => s.UpdatedAt).HasColumnName("updated_at");
         builder.Property(s => s.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(s => s.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-
-        builder.Property(s => s.Version).HasColumnName("version").IsRowVersion();
-
         // 规格维度名集合序列化为 JSON 列
         builder.Property(s => s.Specs)
             .HasColumnName("specs")

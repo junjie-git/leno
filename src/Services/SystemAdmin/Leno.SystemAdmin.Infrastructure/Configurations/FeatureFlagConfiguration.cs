@@ -23,7 +23,6 @@ public sealed class FeatureFlagConfiguration : IEntityTypeConfiguration<FeatureF
         builder.Property(f => f.Strategy).HasColumnName("strategy").HasConversion<int>();
         builder.Property(f => f.Rules).HasColumnName("rules").HasColumnType("nvarchar(max)");
 
-        builder.Property(f => f.Version).HasColumnName("version").IsRowVersion();
         builder.Property(f => f.CreatedAt).HasColumnName("created_at");
         builder.Property(f => f.UpdatedAt).HasColumnName("updated_at");
         builder.Property(f => f.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

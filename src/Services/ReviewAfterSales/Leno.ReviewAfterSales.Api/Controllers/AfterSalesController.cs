@@ -4,6 +4,7 @@ using Leno.ReviewAfterSales.Application.DTOs;
 using Leno.ReviewAfterSales.Domain.ValueObjects;
 using Leno.SharedContracts.Responses;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -40,7 +41,7 @@ public sealed class AfterSalesController : ReviewControllerBase
     {
         var userId = GetCurrentUserId();
         var result = await _afterSalesAppService.SubmitAfterSalesAsync(userId, dto, ct);
-        return CreatedAtAction(nameof(GetAfterSalesByOrderAsync), new { orderId = result.OrderId }, ApiResponse.Success(result));
+        return CreatedAtAction("GetAfterSalesByOrder", new { orderId = result.OrderId }, ApiResponse.Success(result));
     }
 
     /// <summary>买家退货填写物流单号。</summary>

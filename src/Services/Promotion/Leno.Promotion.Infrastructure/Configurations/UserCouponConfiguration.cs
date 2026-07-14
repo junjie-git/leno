@@ -30,7 +30,6 @@ public sealed class UserCouponConfiguration : IEntityTypeConfiguration<UserCoupo
         builder.Property(u => u.UpdatedAt).HasColumnName("updated_at");
         builder.Property(u => u.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(u => u.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-        builder.Property(u => u.Version).HasColumnName("version").IsRowVersion();
 
         builder.HasIndex(u => u.UserId).HasDatabaseName("ix_user_coupons_user_id");
         builder.HasIndex(u => u.CouponId).HasDatabaseName("ix_user_coupons_coupon_id");

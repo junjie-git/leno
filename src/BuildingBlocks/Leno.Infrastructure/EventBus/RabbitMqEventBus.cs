@@ -1,4 +1,5 @@
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using MassTransit;
 
 namespace Leno.Infrastructure.EventBus;

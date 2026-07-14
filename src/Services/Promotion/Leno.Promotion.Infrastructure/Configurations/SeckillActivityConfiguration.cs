@@ -30,7 +30,6 @@ public sealed class SeckillActivityConfiguration : IEntityTypeConfiguration<Seck
         builder.Property(s => s.UpdatedAt).HasColumnName("updated_at");
         builder.Property(s => s.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(s => s.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-        builder.Property(s => s.Version).HasColumnName("version").IsRowVersion();
 
         builder.HasIndex(s => s.Status).HasDatabaseName("ix_seckill_activities_status");
         builder.HasIndex(s => s.SkuId).HasDatabaseName("ix_seckill_activities_sku_id");

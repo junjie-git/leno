@@ -25,7 +25,6 @@ public sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(a => a.TraceId).HasColumnName("trace_id").HasMaxLength(64);
         builder.Property(a => a.OccurredAt).HasColumnName("occurred_at");
 
-        builder.Property(a => a.Version).HasColumnName("version").IsRowVersion();
         builder.Property(a => a.CreatedAt).HasColumnName("created_at");
         builder.Property(a => a.UpdatedAt).HasColumnName("updated_at");
         builder.Property(a => a.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

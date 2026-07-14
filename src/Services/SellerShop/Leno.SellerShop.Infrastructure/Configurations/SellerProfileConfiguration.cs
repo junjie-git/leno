@@ -29,9 +29,6 @@ public sealed class SellerProfileConfiguration : IEntityTypeConfiguration<Seller
         builder.Property(p => p.UpdatedAt).HasColumnName("updated_at");
         builder.Property(p => p.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(p => p.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
-
-        builder.Property(p => p.Version).HasColumnName("version").IsRowVersion();
-
         builder.HasIndex(p => p.UserId).HasDatabaseName("ix_seller_profiles_user_id").IsUnique();
         builder.HasIndex(p => p.Status).HasDatabaseName("ix_seller_profiles_status");
     }
