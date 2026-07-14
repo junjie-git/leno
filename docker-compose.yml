@@ -86,6 +86,23 @@ services:
     networks:
       - leno-net
 
+  jaeger:
+    image: jaegertracing/all-in-one:1.55
+    container_name: leno-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "16686:16686" # Jaeger UI
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:14269/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - leno-net
+
   user-auth-api:
     build:
       context: .
@@ -449,6 +466,8 @@ services:
       system-admin-api:
         condition: service_healthy
       consul:
+        condition: service_healthy
+      jaeger:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
