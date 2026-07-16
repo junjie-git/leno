@@ -108,6 +108,7 @@
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Api.Tests/Leno.SellerShop.Api.Tests.csproj" />
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Api/Leno.SellerShop.Api.csproj" />
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Application/Leno.SellerShop.Application.csproj" />
+    <Project Path="src/Services/SellerShop/Leno.SellerShop.Application.Tests/Leno.SellerShop.Application.Tests.csproj" />
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Domain/Leno.SellerShop.Domain.csproj" />
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Infrastructure/Leno.SellerShop.Infrastructure.csproj" />
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Domain.Tests/Leno.SellerShop.Domain.Tests.csproj" />
@@ -116,6 +117,7 @@
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api.Tests/Leno.ReviewAfterSales.Api.Tests.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Leno.ReviewAfterSales.Api.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Application/Leno.ReviewAfterSales.Application.csproj" />
+    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Application.Tests/Leno.ReviewAfterSales.Application.Tests.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Domain/Leno.ReviewAfterSales.Domain.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/Leno.ReviewAfterSales.Infrastructure.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Domain.Tests/Leno.ReviewAfterSales.Domain.Tests.csproj" />
@@ -142,6 +144,7 @@
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Api.Tests/Leno.SystemAdmin.Api.Tests.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Api/Leno.SystemAdmin.Api.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Application/Leno.SystemAdmin.Application.csproj" />
+    <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Application.Tests/Leno.SystemAdmin.Application.Tests.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Domain/Leno.SystemAdmin.Domain.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure.Tests/Leno.SystemAdmin.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/Leno.SystemAdmin.Infrastructure.csproj" />

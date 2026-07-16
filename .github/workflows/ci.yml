@@ -19,6 +19,8 @@ jobs:
         run: dotnet restore Leno.slnx
       - name: Build
         run: dotnet build Leno.slnx --configuration Release --no-restore
+      - name: Check placeholders
+        run: bash scripts/check-placeholders.sh
       - name: Unit tests with coverage
         run: dotnet test Leno.slnx --configuration Release --no-build --filter "Category!=Integration" --collect:"XPlat Code Coverage" --results-directory ./TestResults
       - name: Generate coverage report
