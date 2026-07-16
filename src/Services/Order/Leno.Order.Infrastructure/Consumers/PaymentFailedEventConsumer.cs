@@ -1,7 +1,7 @@
 using Leno.Infrastructure.EventBus;
 using Leno.SharedContracts.Events;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.Order.Infrastructure.Consumers;
 
@@ -10,12 +10,12 @@ namespace Leno.Order.Infrastructure.Consumers;
 /// 订单保持待支付态，由延迟消息超时取消机制处理。
 /// 通过 EventId 幂等去重。
 /// </summary>
-public sealed class PaymentFailedEventConsumer : RedisIntegrationEventConsumerBase<PaymentFailedEvent>
+public sealed class PaymentFailedEventConsumer : IntegrationEventConsumerBase<PaymentFailedEvent>
 {
     public PaymentFailedEventConsumer(
         ILogger<PaymentFailedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
     }
 

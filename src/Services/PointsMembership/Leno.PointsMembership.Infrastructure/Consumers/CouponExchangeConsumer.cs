@@ -3,7 +3,7 @@ using Leno.PointsMembership.Domain.Repositories;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.PointsMembership.Infrastructure.Consumers;
 
@@ -11,7 +11,7 @@ namespace Leno.PointsMembership.Infrastructure.Consumers;
 /// 优惠券兑换成功事件消费者，正式扣减冻结积分。
 /// 通过 EventId 幂等去重。
 /// </summary>
-public sealed class CouponExchangeSucceededEventConsumer : RedisIntegrationEventConsumerBase<CouponExchangeSucceededEvent>
+public sealed class CouponExchangeSucceededEventConsumer : IntegrationEventConsumerBase<CouponExchangeSucceededEvent>
 {
     private readonly IPointsAccountRepository _accountRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -20,8 +20,8 @@ public sealed class CouponExchangeSucceededEventConsumer : RedisIntegrationEvent
         IPointsAccountRepository accountRepository,
         IUnitOfWork unitOfWork,
         ILogger<CouponExchangeSucceededEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         _accountRepository = accountRepository;
         _unitOfWork = unitOfWork;
@@ -50,7 +50,7 @@ public sealed class CouponExchangeSucceededEventConsumer : RedisIntegrationEvent
 /// 优惠券兑换失败事件消费者，释放冻结积分。
 /// 通过 EventId 幂等去重。
 /// </summary>
-public sealed class CouponExchangeFailedEventConsumer : RedisIntegrationEventConsumerBase<CouponExchangeFailedEvent>
+public sealed class CouponExchangeFailedEventConsumer : IntegrationEventConsumerBase<CouponExchangeFailedEvent>
 {
     private readonly IPointsAccountRepository _accountRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -59,8 +59,8 @@ public sealed class CouponExchangeFailedEventConsumer : RedisIntegrationEventCon
         IPointsAccountRepository accountRepository,
         IUnitOfWork unitOfWork,
         ILogger<CouponExchangeFailedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         _accountRepository = accountRepository;
         _unitOfWork = unitOfWork;

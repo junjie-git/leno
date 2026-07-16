@@ -4,7 +4,7 @@ using Leno.Promotion.Domain.Repositories;
 using Leno.Promotion.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 using CouponAggregate = Leno.Promotion.Domain.Aggregates.Coupon;
 using UserCouponAggregate = Leno.Promotion.Domain.Aggregates.UserCoupon;
 
@@ -14,7 +14,7 @@ namespace Leno.Promotion.Infrastructure.Consumers;
 /// 积分兑换优惠券消费者，验证模板有效性并创建用户券。
 /// 通过 EventId 幂等去重（Redis 24h）。
 /// </summary>
-public sealed class PointsExchangeConsumer : Leno.Infrastructure.EventBus.RedisIntegrationEventConsumerBase<PointsExchangeCouponRequestedEvent>
+public sealed class PointsExchangeConsumer : Leno.Infrastructure.EventBus.IntegrationEventConsumerBase<PointsExchangeCouponRequestedEvent>
 {
     private readonly ICouponRepository _couponRepository;
     private readonly IUserCouponRepository _userCouponRepository;
@@ -25,8 +25,8 @@ public sealed class PointsExchangeConsumer : Leno.Infrastructure.EventBus.RedisI
         IUserCouponRepository userCouponRepository,
         PromotionDbContext dbContext,
         ILogger<PointsExchangeConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(couponRepository);
         ArgumentNullException.ThrowIfNull(userCouponRepository);

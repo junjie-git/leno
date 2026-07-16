@@ -9,6 +9,8 @@ namespace Leno.Infrastructure.Outbox;
 public enum OutboxMessageStatus
 {
     Pending,
+    /// <summary>两阶段标记中间态：事务已提交置此状态，正在发布到 MQ，未确认完成。</summary>
+    Publishing,
     Processed,
     DeadLetter
 }
@@ -28,6 +30,9 @@ public class OutboxMessage
     public DateTime OccurredAt { get; private set; }
 
     public DateTime? ProcessedAt { get; private set; }
+
+    /// <summary>进入 <see cref="OutboxMessageStatus.Publishing"/> 状态的时刻，用于扫描超时消息。</summary>
+    public DateTime? PublishingStartedAt { get; private set; }
 
     public int RetryCount { get; private set; }
 
@@ -55,6 +60,7 @@ public class OutboxMessage
     {
         Status = OutboxMessageStatus.Processed;
         ProcessedAt = DateTime.UtcNow;
+        PublishingStartedAt = null;
         Error = null;
     }
 
@@ -63,5 +69,27 @@ public class OutboxMessage
         RetryCount++;
         Error = string.IsNullOrEmpty(error) ? "未知错误" : error;
         Status = RetryCount >= maxRetryCount ? OutboxMessageStatus.DeadLetter : OutboxMessageStatus.Pending;
+        PublishingStartedAt = null;
+    }
+
+    /// <summary>
+    /// 两阶段标记第一阶段：进入 <see cref="OutboxMessageStatus.Publishing"/> 中间态，并记录起始时间。
+    /// 该状态在事务内提交，确保后续发布动作可被恢复扫描识别。
+    /// </summary>
+    public void MarkAsPublishing()
+    {
+        Status = OutboxMessageStatus.Publishing;
+        PublishingStartedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// 重启扫描超时 <see cref="OutboxMessageStatus.Publishing"/> 消息时调用：
+    /// 将消息回退至 <see cref="OutboxMessageStatus.Pending"/> 以便下次轮询重试，
+    /// 由下游消费者幂等性保证不重复执行业务。
+    /// </summary>
+    public void ResetStalePublishing()
+    {
+        Status = OutboxMessageStatus.Pending;
+        PublishingStartedAt = null;
     }
 }

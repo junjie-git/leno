@@ -6,7 +6,7 @@ using Leno.Order.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.Order.Infrastructure.Consumers;
 
@@ -14,7 +14,7 @@ namespace Leno.Order.Infrastructure.Consumers;
 /// 支付成功事件消费者，将待支付订单标记为已支付。
 /// 通过 EventId 幂等去重；订单非待支付态时跳过（已处理或状态非法）。
 /// </summary>
-public sealed class PaymentSucceededEventConsumer : RedisIntegrationEventConsumerBase<PaymentSucceededEvent>
+public sealed class PaymentSucceededEventConsumer : IntegrationEventConsumerBase<PaymentSucceededEvent>
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -27,8 +27,8 @@ public sealed class PaymentSucceededEventConsumer : RedisIntegrationEventConsume
         IStockReservationDomainService stockService,
         IPointsAntiCorruptionService pointsAntiCorruption,
         ILogger<PaymentSucceededEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(orderRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);

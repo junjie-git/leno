@@ -2,7 +2,7 @@ using Leno.Infrastructure.EventBus;
 using Leno.Order.Domain.Repositories;
 using Leno.SharedContracts.Events;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.Order.Infrastructure.Consumers;
 
@@ -10,15 +10,15 @@ namespace Leno.Order.Infrastructure.Consumers;
 /// 库存调整事件消费者，同步商品域可用库存到订单域 Redis 库存基线。
 /// 通过 EventId 幂等去重。
 /// </summary>
-public sealed class StockAdjustedEventConsumer : RedisIntegrationEventConsumerBase<StockAdjustedEvent>
+public sealed class StockAdjustedEventConsumer : IntegrationEventConsumerBase<StockAdjustedEvent>
 {
     private readonly IInventoryRepository _inventoryRepository;
 
     public StockAdjustedEventConsumer(
         IInventoryRepository inventoryRepository,
         ILogger<StockAdjustedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(inventoryRepository);
         _inventoryRepository = inventoryRepository;

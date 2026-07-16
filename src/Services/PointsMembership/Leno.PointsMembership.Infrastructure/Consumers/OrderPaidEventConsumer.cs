@@ -5,7 +5,7 @@ using Leno.PointsMembership.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.PointsMembership.Infrastructure.Consumers;
 
@@ -14,7 +14,7 @@ namespace Leno.PointsMembership.Infrastructure.Consumers;
 /// 确认积分扣减（ConfirmDeduct）；若为会员订阅订单则激活 UserMembership。
 /// 通过 EventId 幂等去重。
 /// </summary>
-public sealed class OrderPaidEventConsumer : RedisIntegrationEventConsumerBase<OrderPaidEvent>
+public sealed class OrderPaidEventConsumer : IntegrationEventConsumerBase<OrderPaidEvent>
 {
     private readonly IPointsAccountRepository _accountRepository;
     private readonly IUserMembershipRepository _userMembershipRepository;
@@ -27,8 +27,8 @@ public sealed class OrderPaidEventConsumer : RedisIntegrationEventConsumerBase<O
         IMembershipPackageRepository packageRepository,
         IUnitOfWork unitOfWork,
         ILogger<OrderPaidEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         _accountRepository = accountRepository;
         _userMembershipRepository = userMembershipRepository;

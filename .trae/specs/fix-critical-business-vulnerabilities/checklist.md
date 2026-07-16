@@ -81,16 +81,16 @@
 ## P0 批次六：幂等性与 Outbox
 
 ### Task 13: Outbox 两阶段标记防重复发布
-- [ ] `OutboxMessage` 状态枚举含 `Publishing`
-- [ ] `OutboxPublisher` 两阶段：事务内置 `Publishing` 提交 → 发布 → `Processed` 提交
-- [ ] 重启扫描 `Publishing` 超时消息
-- [ ] 测试覆盖发布成功标记失败、发布失败重试
+- [x] `OutboxMessage` 状态枚举含 `Publishing` —— `Leno.Infrastructure/Outbox/OutboxMessage.cs` `OutboxMessageStatus.Publishing` + `PublishingStartedAt` 字段 + `MarkAsPublishing()`/`ResetStalePublishing()` 方法
+- [x] `OutboxPublisher` 两阶段：事务内置 `Publishing` 提交 → 发布 → `Processed` 提交 —— `Leno.Infrastructure/Outbox/OutboxPublisher.cs` `ProcessAsync` 内 `MarkAsPublishing` 同事务提交 → 发布 MQ → `MarkAsProcessed` 提交；发布失败回退 Pending + RetryCount++
+- [x] 重启扫描 `Publishing` 超时消息 —— `OutboxPublisher.RecoverStalePublishingAsync`（默认 5 分钟超时，`StalePublishingTimeout`），扫描超时 `Publishing` 消息回退 Pending
+- [x] 测试覆盖发布成功标记失败、发布失败重试 —— `Leno.Infrastructure.Tests/Outbox/OutboxPublisherTests.cs`（6 例：发布成功标记 Processed、发布失败回退 Pending+RetryCount++、Publishing 超时回退、空批次、发布异常重试、Processed 提交失败依赖恢复）
 
 ### Task 14: 消费者幂等强制
-- [ ] `IIdempotencyStore` 接口与 `RedisIdempotencyStore` 实现存在
-- [ ] `IntegrationEventConsumerBase` 幂等方法为 abstract，双基类已合并
-- [ ] 全量 Consumer 子类已审计并注入 `IIdempotencyStore`
-- [ ] 测试覆盖重复事件去重
+- [x] `IIdempotencyStore` 接口与 `RedisIdempotencyStore` 实现存在 —— `Leno.Infrastructure.Abstractions/IIdempotencyStore.cs`（`IsProcessedAsync`/`MarkAsProcessedAsync`）+ `Leno.Infrastructure/EventBus/RedisIdempotencyStore.cs`（`StringSetAsync(key,"1",24h,When.NotExists)` SET NX + 24h TTL，key 前缀 `evt:processed`）
+- [x] `IntegrationEventConsumerBase` 幂等方法为 abstract，双基类已合并 —— `Leno.Infrastructure/EventBus/IntegrationEventConsumerBase.cs` 构造函数强制注入 `IIdempotencyStore`，`Consume` 内 `IsProcessedAsync`→`HandleAsync`→`MarkAsProcessedAsync`；`RedisIntegrationEventConsumerBase.cs` 已删除，所有 Consumer 直接继承 `IntegrationEventConsumerBase`
+- [x] 全量 Consumer 子类已审计并注入 `IIdempotencyStore` —— 23 个标准 Consumer（Cart/Order/Payment/Promotion/Product/PointsMembership/SellerShop/ReviewAfterSales）批量改造 + 1 个特殊 Consumer（`ReviewApprovedEventConsumer` 保留 `IConnectionMultiplexer` 用于每日评价积分上限 Redis 计数，同时注入 `IIdempotencyStore`）；DI 注册 `services.AddSingleton<IIdempotencyStore, RedisIdempotencyStore>()`（`ServiceCollectionExtensions.AddRedis`）
+- [x] 测试覆盖重复事件去重 —— `Promotion.Infrastructure.Tests/ConsumerTests.cs` `Consume_DuplicateEvent_ShouldSkipViaIdempotencyStore`（IsProcessedAsync 返回 true 验证仓储与 UoW 不调用）+ `Product.Infrastructure.Tests/ReviewEventConsumerTests.cs` `ReviewSubmittedEventConsumer_Idempotent_ShouldSkipDuplicateEvent`/`ReviewHiddenEventConsumer_Idempotent_ShouldSkipDuplicateEvent` + `Product.Infrastructure.Tests/ShopEventConsumerTests.cs` `ShopEventConsumer_Idempotent_ShouldSkipDuplicateEvent`
 
 ## P0 批次七：死信队列真实实现
 

@@ -2,7 +2,7 @@ using Leno.Infrastructure.EventBus;
 using Leno.Order.Domain.Repositories;
 using Leno.SharedContracts.Events;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.Order.Infrastructure.Consumers;
 
@@ -10,7 +10,7 @@ namespace Leno.Order.Infrastructure.Consumers;
 /// 退款完成事件消费者，释放已退款订单的预占库存。
 /// 通过 EventId 幂等去重；订单不存在时跳过。
 /// </summary>
-public sealed class RefundCompletedEventConsumer : RedisIntegrationEventConsumerBase<RefundCompletedEvent>
+public sealed class RefundCompletedEventConsumer : IntegrationEventConsumerBase<RefundCompletedEvent>
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IInventoryRepository _inventoryRepository;
@@ -19,8 +19,8 @@ public sealed class RefundCompletedEventConsumer : RedisIntegrationEventConsumer
         IOrderRepository orderRepository,
         IInventoryRepository inventoryRepository,
         ILogger<RefundCompletedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(orderRepository);
         ArgumentNullException.ThrowIfNull(inventoryRepository);

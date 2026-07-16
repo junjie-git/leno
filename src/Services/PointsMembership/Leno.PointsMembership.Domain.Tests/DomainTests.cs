@@ -6,9 +6,9 @@ using Leno.PointsMembership.Domain.ValueObjects;
 using Leno.PointsMembership.Infrastructure.Consumers;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using StackExchange.Redis;
 using System.Reflection;
 
 namespace Leno.PointsMembership.Domain.Tests;
@@ -992,7 +992,7 @@ public class OrderAfterSalesWindowClosedEventConsumerTests
 
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<OrderAfterSalesWindowClosedEventConsumer>>();
-        var redisMock = new Mock<IConnectionMultiplexer>();
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
 
         var consumer = new OrderAfterSalesWindowClosedEventConsumer(
             accountRepoMock.Object,
@@ -1000,7 +1000,7 @@ public class OrderAfterSalesWindowClosedEventConsumerTests
             levelRepoMock.Object,
             uowMock.Object,
             loggerMock.Object,
-            redisMock.Object);
+            idempotencyStoreMock.Object);
 
         // Act
         await InvokeHandleAsync(consumer, evt);
@@ -1035,7 +1035,7 @@ public class OrderAfterSalesWindowClosedEventConsumerTests
 
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<OrderAfterSalesWindowClosedEventConsumer>>();
-        var redisMock = new Mock<IConnectionMultiplexer>();
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
 
         var consumer = new OrderAfterSalesWindowClosedEventConsumer(
             accountRepoMock.Object,
@@ -1043,7 +1043,7 @@ public class OrderAfterSalesWindowClosedEventConsumerTests
             levelRepoMock.Object,
             uowMock.Object,
             loggerMock.Object,
-            redisMock.Object);
+            idempotencyStoreMock.Object);
 
         // Act
         await InvokeHandleAsync(consumer, evt);
@@ -1078,7 +1078,7 @@ public class OrderAfterSalesWindowClosedEventConsumerTests
 
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<OrderAfterSalesWindowClosedEventConsumer>>();
-        var redisMock = new Mock<IConnectionMultiplexer>();
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
 
         var consumer = new OrderAfterSalesWindowClosedEventConsumer(
             accountRepoMock.Object,
@@ -1086,7 +1086,7 @@ public class OrderAfterSalesWindowClosedEventConsumerTests
             levelRepoMock.Object,
             uowMock.Object,
             loggerMock.Object,
-            redisMock.Object);
+            idempotencyStoreMock.Object);
 
         // Act
         await InvokeHandleAsync(consumer, evt);
@@ -1118,7 +1118,7 @@ public class OrderAfterSalesWindowClosedEventConsumerTests
 
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<OrderAfterSalesWindowClosedEventConsumer>>();
-        var redisMock = new Mock<IConnectionMultiplexer>();
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
 
         var consumer = new OrderAfterSalesWindowClosedEventConsumer(
             accountRepoMock.Object,
@@ -1126,7 +1126,7 @@ public class OrderAfterSalesWindowClosedEventConsumerTests
             levelRepoMock.Object,
             uowMock.Object,
             loggerMock.Object,
-            redisMock.Object);
+            idempotencyStoreMock.Object);
 
         // Act
         await InvokeHandleAsync(consumer, evt);
@@ -1166,7 +1166,7 @@ public class OrderAfterSalesWindowClosedEventConsumerTests
 
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<OrderAfterSalesWindowClosedEventConsumer>>();
-        var redisMock = new Mock<IConnectionMultiplexer>();
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
 
         var consumer = new OrderAfterSalesWindowClosedEventConsumer(
             accountRepoMock.Object,
@@ -1174,7 +1174,7 @@ public class OrderAfterSalesWindowClosedEventConsumerTests
             levelRepoMock.Object,
             uowMock.Object,
             loggerMock.Object,
-            redisMock.Object);
+            idempotencyStoreMock.Object);
 
         // Act
         await InvokeHandleAsync(consumer, evt);
@@ -1211,7 +1211,7 @@ public class OrderAfterSalesWindowClosedEventConsumerTests
 
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<OrderAfterSalesWindowClosedEventConsumer>>();
-        var redisMock = new Mock<IConnectionMultiplexer>();
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
 
         var consumer = new OrderAfterSalesWindowClosedEventConsumer(
             accountRepoMock.Object,
@@ -1219,7 +1219,7 @@ public class OrderAfterSalesWindowClosedEventConsumerTests
             levelRepoMock.Object,
             uowMock.Object,
             loggerMock.Object,
-            redisMock.Object);
+            idempotencyStoreMock.Object);
 
         // Act
         await InvokeHandleAsync(consumer, evt);

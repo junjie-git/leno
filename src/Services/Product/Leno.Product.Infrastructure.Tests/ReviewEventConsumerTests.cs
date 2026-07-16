@@ -6,8 +6,8 @@ using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.SharedKernel.ValueObjects;
 using Microsoft.Extensions.Logging;
+using Leno.Infrastructure.Abstractions;
 using Moq;
-using StackExchange.Redis;
 
 namespace Leno.Product.Infrastructure.Tests;
 
@@ -17,8 +17,7 @@ public class ReviewEventConsumerTests
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly Mock<ILogger<ReviewSubmittedEventConsumer>> _submitLoggerMock = new();
     private readonly Mock<ILogger<ReviewHiddenEventConsumer>> _hideLoggerMock = new();
-    private readonly Mock<IConnectionMultiplexer> _redisMock = new();
-    private readonly Mock<IDatabase> _dbMock = new();
+    private readonly Mock<IIdempotencyStore> _idempotencyStoreMock = new();
 
     private static readonly Guid ShopId = Guid.NewGuid();
     private static readonly Guid SellerId = Guid.NewGuid();
@@ -26,13 +25,10 @@ public class ReviewEventConsumerTests
 
     public ReviewEventConsumerTests()
     {
-        _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-            .Returns(_dbMock.Object);
-        _dbMock.Setup(d => d.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
-        _dbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(),
-            It.IsAny<TimeSpan>(), It.IsAny<bool>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(true);
+        _idempotencyStoreMock.Setup(s => s.MarkAsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
     }
 
     #region ReviewSubmittedEventConsumer
@@ -46,7 +42,7 @@ public class ReviewEventConsumerTests
             .ReturnsAsync(spu);
 
         var consumer = new ReviewSubmittedEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _submitLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _submitLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ReviewSubmittedEvent(Guid.NewGuid(), Guid.NewGuid(), spu.Id, 5);
 
         // Act
@@ -67,7 +63,7 @@ public class ReviewEventConsumerTests
             .ReturnsAsync((SPU?)null);
 
         var consumer = new ReviewSubmittedEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _submitLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _submitLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ReviewSubmittedEvent(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 5);
 
         // Act
@@ -88,7 +84,7 @@ public class ReviewEventConsumerTests
             .ReturnsAsync(spu);
 
         var consumer = new ReviewSubmittedEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _submitLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _submitLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ReviewSubmittedEvent(Guid.NewGuid(), Guid.NewGuid(), spu.Id, 5);
 
         // Act
@@ -103,11 +99,11 @@ public class ReviewEventConsumerTests
     public async Task ReviewSubmittedEventConsumer_Idempotent_ShouldSkipDuplicateEvent()
     {
         // Arrange
-        _dbMock.Setup(d => d.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true); // Already processed
 
         var consumer = new ReviewSubmittedEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _submitLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _submitLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ReviewSubmittedEvent(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 5);
 
         // Act
@@ -134,7 +130,7 @@ public class ReviewEventConsumerTests
             .ReturnsAsync(spu);
 
         var consumer = new ReviewHiddenEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _hideLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _hideLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ReviewHiddenEvent(Guid.NewGuid(), spu.Id, 3);
 
         // Act
@@ -155,7 +151,7 @@ public class ReviewEventConsumerTests
             .ReturnsAsync((SPU?)null);
 
         var consumer = new ReviewHiddenEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _hideLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _hideLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ReviewHiddenEvent(Guid.NewGuid(), Guid.NewGuid(), 3);
 
         // Act
@@ -176,7 +172,7 @@ public class ReviewEventConsumerTests
             .ReturnsAsync(spu);
 
         var consumer = new ReviewHiddenEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _hideLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _hideLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ReviewHiddenEvent(Guid.NewGuid(), spu.Id, 4);
 
         // Act
@@ -191,11 +187,11 @@ public class ReviewEventConsumerTests
     public async Task ReviewHiddenEventConsumer_Idempotent_ShouldSkipDuplicateEvent()
     {
         // Arrange
-        _dbMock.Setup(d => d.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true); // Already processed
 
         var consumer = new ReviewHiddenEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _hideLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _hideLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ReviewHiddenEvent(Guid.NewGuid(), Guid.NewGuid(), 3);
 
         // Act

@@ -1,3 +1,4 @@
+using Leno.Infrastructure.Abstractions;
 using Leno.PointsMembership.Domain.Aggregates;
 using Leno.PointsMembership.Domain.Repositories;
 using Leno.PointsMembership.Infrastructure.Consumers;
@@ -55,8 +56,9 @@ public class ReviewApprovedEventConsumerTests
         var dbMock = CreateDatabaseMock(0);
         redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(dbMock.Object);
 
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
         var consumer = new ReviewApprovedEventConsumer(
-            accountRepoMock.Object, uowMock.Object, loggerMock.Object, redisMock.Object);
+            accountRepoMock.Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object, redisMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 
@@ -81,8 +83,9 @@ public class ReviewApprovedEventConsumerTests
         var dbMock = CreateDatabaseMock(5);
         redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(dbMock.Object);
 
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
         var consumer = new ReviewApprovedEventConsumer(
-            accountRepoMock.Object, uowMock.Object, loggerMock.Object, redisMock.Object);
+            accountRepoMock.Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object, redisMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 
@@ -105,8 +108,9 @@ public class ReviewApprovedEventConsumerTests
         var dbMock = CreateDatabaseMock(0);
         redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(dbMock.Object);
 
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
         var consumer = new ReviewApprovedEventConsumer(
-            accountRepoMock.Object, uowMock.Object, loggerMock.Object, redisMock.Object);
+            accountRepoMock.Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object, redisMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 

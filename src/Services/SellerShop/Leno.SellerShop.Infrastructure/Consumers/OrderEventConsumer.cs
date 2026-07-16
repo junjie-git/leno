@@ -5,7 +5,7 @@ using Leno.SellerShop.Domain.Repositories;
 using Leno.SharedKernel.Abstractions;
 using Leno.SharedKernel.ValueObjects;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.SellerShop.Infrastructure.Consumers;
 
@@ -14,7 +14,7 @@ namespace Leno.SellerShop.Infrastructure.Consumers;
 /// 事件契约 OrderCompletedEvent.SellerId 语义等同卖家与店铺管理域的 ShopId。
 /// 指标按订单完成日期（UTC）聚合，不存在则零值初始化后增量记录。
 /// </summary>
-public sealed class OrderCompletedEventConsumer : RedisIntegrationEventConsumerBase<OrderCompletedEvent>
+public sealed class OrderCompletedEventConsumer : IntegrationEventConsumerBase<OrderCompletedEvent>
 {
     private readonly IShopMetricsRepository _metricsRepository;
     private readonly IShopDashboardRepository _dashboardRepository;
@@ -25,8 +25,8 @@ public sealed class OrderCompletedEventConsumer : RedisIntegrationEventConsumerB
         IShopDashboardRepository dashboardRepository,
         IUnitOfWork unitOfWork,
         ILogger<OrderCompletedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         _metricsRepository = metricsRepository;
         _dashboardRepository = dashboardRepository;
@@ -76,9 +76,9 @@ public sealed class OrderCompletedEventConsumer : RedisIntegrationEventConsumerB
 /// <summary>
 /// 订单创建事件消费者：维护店铺经营数据的总订单数与待处理订单数。
 /// 事件契约 OrderCreatedEvent.SellerId 语义等同卖家与店铺管理域的 ShopId。
-/// 幂等：经 RedisIntegrationEventConsumerBase 以 EventId 去重。
+/// 幂等：经 IntegrationEventConsumerBase 以 EventId 去重。
 /// </summary>
-public sealed class OrderCreatedEventConsumer : RedisIntegrationEventConsumerBase<OrderCreatedEvent>
+public sealed class OrderCreatedEventConsumer : IntegrationEventConsumerBase<OrderCreatedEvent>
 {
     private readonly IShopDashboardRepository _dashboardRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -87,8 +87,8 @@ public sealed class OrderCreatedEventConsumer : RedisIntegrationEventConsumerBas
         IShopDashboardRepository dashboardRepository,
         IUnitOfWork unitOfWork,
         ILogger<OrderCreatedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         _dashboardRepository = dashboardRepository;
         _unitOfWork = unitOfWork;
@@ -122,9 +122,9 @@ public sealed class OrderCreatedEventConsumer : RedisIntegrationEventConsumerBas
 /// <summary>
 /// 订单支付成功事件消费者：维护店铺经营数据的累计收入。
 /// 事件契约 OrderPaidEvent.SellerId 语义等同卖家与店铺管理域的 ShopId。
-/// 幂等：经 RedisIntegrationEventConsumerBase 以 EventId 去重。
+/// 幂等：经 IntegrationEventConsumerBase 以 EventId 去重。
 /// </summary>
-public sealed class OrderPaidEventConsumer : RedisIntegrationEventConsumerBase<OrderPaidEvent>
+public sealed class OrderPaidEventConsumer : IntegrationEventConsumerBase<OrderPaidEvent>
 {
     private readonly IShopDashboardRepository _dashboardRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -133,8 +133,8 @@ public sealed class OrderPaidEventConsumer : RedisIntegrationEventConsumerBase<O
         IShopDashboardRepository dashboardRepository,
         IUnitOfWork unitOfWork,
         ILogger<OrderPaidEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         _dashboardRepository = dashboardRepository;
         _unitOfWork = unitOfWork;
@@ -168,9 +168,9 @@ public sealed class OrderPaidEventConsumer : RedisIntegrationEventConsumerBase<O
 /// <summary>
 /// 订单取消事件消费者：维护店铺经营数据的待处理订单数。
 /// 事件契约 OrderCancelledEvent.SellerId 语义等同卖家与店铺管理域的 ShopId。
-/// 幂等：经 RedisIntegrationEventConsumerBase 以 EventId 去重；OnOrderCancelled 已防负。
+/// 幂等：经 IntegrationEventConsumerBase 以 EventId 去重；OnOrderCancelled 已防负。
 /// </summary>
-public sealed class OrderCancelledEventConsumer : RedisIntegrationEventConsumerBase<OrderCancelledEvent>
+public sealed class OrderCancelledEventConsumer : IntegrationEventConsumerBase<OrderCancelledEvent>
 {
     private readonly IShopDashboardRepository _dashboardRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -179,8 +179,8 @@ public sealed class OrderCancelledEventConsumer : RedisIntegrationEventConsumerB
         IShopDashboardRepository dashboardRepository,
         IUnitOfWork unitOfWork,
         ILogger<OrderCancelledEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         _dashboardRepository = dashboardRepository;
         _unitOfWork = unitOfWork;

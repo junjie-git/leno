@@ -1,3 +1,4 @@
+using Leno.Infrastructure.Abstractions;
 using Leno.Infrastructure.EventBus;
 using Leno.PointsMembership.Domain.Aggregates;
 using Leno.PointsMembership.Domain.Repositories;
@@ -13,7 +14,7 @@ namespace Leno.PointsMembership.Infrastructure.Consumers;
 /// 评价审核通过事件消费者，发放评价返积分（10 分/条），每日最多 5 条评价获得积分。
 /// 通过 EventId 幂等去重，通过 Redis 计数每日评价积分发放次数。
 /// </summary>
-public sealed class ReviewApprovedEventConsumer : RedisIntegrationEventConsumerBase<ReviewApprovedEvent>
+public sealed class ReviewApprovedEventConsumer : IntegrationEventConsumerBase<ReviewApprovedEvent>
 {
     private const int ReviewPointsPerReview = 10;
     private const int MaxDailyReviewPoints = 5;
@@ -26,8 +27,9 @@ public sealed class ReviewApprovedEventConsumer : RedisIntegrationEventConsumerB
         IPointsAccountRepository accountRepository,
         IUnitOfWork unitOfWork,
         ILogger<ReviewApprovedEventConsumer> logger,
+        IIdempotencyStore idempotencyStore,
         IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        : base(logger, idempotencyStore)
     {
         _accountRepository = accountRepository;
         _unitOfWork = unitOfWork;

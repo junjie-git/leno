@@ -5,9 +5,9 @@ using Leno.PointsMembership.Domain.Repositories;
 using Leno.PointsMembership.Infrastructure.Consumers;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using StackExchange.Redis;
 using System.Reflection;
 
 namespace Leno.PointsMembership.Domain.Tests;
@@ -40,10 +40,10 @@ public class CouponExchangeConsumerTests
 
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<CouponExchangeSucceededEventConsumer>>();
-        var redisMock = new Mock<IConnectionMultiplexer>();
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
 
         var consumer = new CouponExchangeSucceededEventConsumer(
-            accountRepoMock.Object, uowMock.Object, loggerMock.Object, redisMock.Object);
+            accountRepoMock.Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 
@@ -63,10 +63,10 @@ public class CouponExchangeConsumerTests
 
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<CouponExchangeSucceededEventConsumer>>();
-        var redisMock = new Mock<IConnectionMultiplexer>();
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
 
         var consumer = new CouponExchangeSucceededEventConsumer(
-            accountRepoMock.Object, uowMock.Object, loggerMock.Object, redisMock.Object);
+            accountRepoMock.Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 
@@ -87,10 +87,10 @@ public class CouponExchangeConsumerTests
 
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<CouponExchangeFailedEventConsumer>>();
-        var redisMock = new Mock<IConnectionMultiplexer>();
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
 
         var consumer = new CouponExchangeFailedEventConsumer(
-            accountRepoMock.Object, uowMock.Object, loggerMock.Object, redisMock.Object);
+            accountRepoMock.Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 
@@ -110,10 +110,10 @@ public class CouponExchangeConsumerTests
 
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<CouponExchangeFailedEventConsumer>>();
-        var redisMock = new Mock<IConnectionMultiplexer>();
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
 
         var consumer = new CouponExchangeFailedEventConsumer(
-            accountRepoMock.Object, uowMock.Object, loggerMock.Object, redisMock.Object);
+            accountRepoMock.Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 

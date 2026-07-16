@@ -3,9 +3,9 @@ using Leno.PointsMembership.Domain.Repositories;
 using Leno.PointsMembership.Infrastructure.Consumers;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using StackExchange.Redis;
 using System.Reflection;
 
 namespace Leno.PointsMembership.Domain.Tests;
@@ -38,10 +38,10 @@ public class UserRegisteredEventConsumerNewUserPointsTests
         var memberRepoMock = new Mock<IMemberRepository>();
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<UserRegisteredEventConsumer>>();
-        var redisMock = new Mock<IConnectionMultiplexer>();
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
 
         var consumer = new UserRegisteredEventConsumer(
-            accountRepoMock.Object, memberRepoMock.Object, uowMock.Object, loggerMock.Object, redisMock.Object);
+            accountRepoMock.Object, memberRepoMock.Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 
@@ -63,10 +63,10 @@ public class UserRegisteredEventConsumerNewUserPointsTests
         var memberRepoMock = new Mock<IMemberRepository>();
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<UserRegisteredEventConsumer>>();
-        var redisMock = new Mock<IConnectionMultiplexer>();
+        var idempotencyStoreMock = new Mock<IIdempotencyStore>();
 
         var consumer = new UserRegisteredEventConsumer(
-            accountRepoMock.Object, memberRepoMock.Object, uowMock.Object, loggerMock.Object, redisMock.Object);
+            accountRepoMock.Object, memberRepoMock.Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 

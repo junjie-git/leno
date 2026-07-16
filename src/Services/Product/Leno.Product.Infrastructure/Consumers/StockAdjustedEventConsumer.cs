@@ -4,7 +4,7 @@ using Leno.Product.Domain.Repositories;
 using Leno.Product.Infrastructure.ReadModels;
 using Leno.SharedContracts.Events;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.Product.Infrastructure.Consumers;
 
@@ -13,7 +13,7 @@ namespace Leno.Product.Infrastructure.Consumers;
 /// 加载对应 SPU 聚合并更新 ES 读模型中的价格区间。
 /// 幂等：ES 索引以商品标识为 _id，重复索引为覆盖更新。
 /// </summary>
-public sealed class StockAdjustedEventConsumer : RedisIntegrationEventConsumerBase<StockAdjustedEvent>
+public sealed class StockAdjustedEventConsumer : IntegrationEventConsumerBase<StockAdjustedEvent>
 {
     private readonly ISPURepository _spuRepository;
     private readonly IEsReadModelRepository<ProductReadModel> _repository;
@@ -22,8 +22,8 @@ public sealed class StockAdjustedEventConsumer : RedisIntegrationEventConsumerBa
         ISPURepository spuRepository,
         IEsReadModelRepository<ProductReadModel> repository,
         ILogger<StockAdjustedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(spuRepository);
         ArgumentNullException.ThrowIfNull(repository);

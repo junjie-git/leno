@@ -5,7 +5,7 @@ using Leno.Product.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.Product.Infrastructure.Consumers;
 
@@ -13,7 +13,7 @@ namespace Leno.Product.Infrastructure.Consumers;
 /// 店铺事件消费者基类，提供分页批量处理与幂等消费能力。
 /// 通过 EventId + Redis SET NX 实现幂等去重，分页处理避免大事务。
 /// </summary>
-public abstract class ShopEventConsumerBase<TEvent> : RedisIntegrationEventConsumerBase<TEvent>
+public abstract class ShopEventConsumerBase<TEvent> : IntegrationEventConsumerBase<TEvent>
     where TEvent : class, Leno.SharedContracts.Events.IIntegrationEvent
 {
     private const int BatchSize = 100;
@@ -25,8 +25,8 @@ public abstract class ShopEventConsumerBase<TEvent> : RedisIntegrationEventConsu
         ISPURepository spuRepository,
         IUnitOfWork unitOfWork,
         ILogger logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(spuRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
@@ -84,8 +84,8 @@ public sealed class ShopSuspendedEventConsumer : ShopEventConsumerBase<ShopSuspe
         ISPURepository spuRepository,
         IUnitOfWork unitOfWork,
         ILogger<ShopSuspendedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(spuRepository, unitOfWork, logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(spuRepository, unitOfWork, logger, idempotencyStore)
     {
     }
 
@@ -114,8 +114,8 @@ public sealed class ShopResumedEventConsumer : ShopEventConsumerBase<ShopResumed
         ISPURepository spuRepository,
         IUnitOfWork unitOfWork,
         ILogger<ShopResumedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(spuRepository, unitOfWork, logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(spuRepository, unitOfWork, logger, idempotencyStore)
     {
     }
 
@@ -147,8 +147,8 @@ public sealed class ShopClosedEventConsumer : ShopEventConsumerBase<ShopClosedEv
         ISPURepository spuRepository,
         IUnitOfWork unitOfWork,
         ILogger<ShopClosedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(spuRepository, unitOfWork, logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(spuRepository, unitOfWork, logger, idempotencyStore)
     {
     }
 

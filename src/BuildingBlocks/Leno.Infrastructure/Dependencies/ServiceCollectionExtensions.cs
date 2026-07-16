@@ -89,6 +89,8 @@ public static class ServiceCollectionExtensions
     {
         var redisConfig = configuration["Redis:Configuration"] ?? "localhost:6379";
         services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConfig));
+        // 集成事件消费幂等去重存储，基于 Redis SET NX + 24h TTL
+        services.AddSingleton<IIdempotencyStore, RedisIdempotencyStore>();
     }
 
     private static void AddElasticsearch(IServiceCollection services, IConfiguration configuration)

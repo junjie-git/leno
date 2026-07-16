@@ -6,7 +6,7 @@ using Leno.Payment.Infrastructure.Channels;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.Payment.Infrastructure.Consumers;
 
@@ -15,7 +15,7 @@ namespace Leno.Payment.Infrastructure.Consumers;
 /// 消费时创建支付单、调用渠道下单、标记渠道已下单并保存。
 /// 幂等：同一订单已存在支付单则跳过。
 /// </summary>
-public sealed class PaymentRequestedEventConsumer : RedisIntegrationEventConsumerBase<PaymentRequestedIntegrationEvent>
+public sealed class PaymentRequestedEventConsumer : IntegrationEventConsumerBase<PaymentRequestedIntegrationEvent>
 {
     private readonly IPaymentOrderRepository _paymentOrderRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -26,8 +26,8 @@ public sealed class PaymentRequestedEventConsumer : RedisIntegrationEventConsume
         IUnitOfWork unitOfWork,
         PaymentChannelFactory channelFactory,
         ILogger<PaymentRequestedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         _paymentOrderRepository = paymentOrderRepository ?? throw new ArgumentNullException(nameof(paymentOrderRepository));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));

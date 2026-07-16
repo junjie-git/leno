@@ -4,8 +4,8 @@ using Leno.Cart.Infrastructure.Consumers;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using Leno.Infrastructure.Abstractions;
 using Moq;
-using StackExchange.Redis;
 
 namespace Leno.Cart.Infrastructure.Tests;
 
@@ -81,13 +81,10 @@ public class ProductEventConsumerTests
         var mockCartRepo = new Mock<ICartRepository>();
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockLogger = new Mock<ILogger<ProductTakenDownEventConsumer>>();
-        var mockDatabase = new Mock<IDatabase>();
-        var mockRedis = new Mock<IConnectionMultiplexer>();
-        mockRedis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-            .Returns(mockDatabase.Object);
+        var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new ProductTakenDownEventConsumer(
-            mockCartRepo.Object, mockUnitOfWork.Object, mockLogger.Object, mockRedis.Object);
+            mockCartRepo.Object, mockUnitOfWork.Object, mockLogger.Object, mockIdempotencyStore.Object);
         return (consumer, mockUnitOfWork);
     }
 
@@ -96,13 +93,10 @@ public class ProductEventConsumerTests
         var mockCartRepo = new Mock<ICartRepository>();
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockLogger = new Mock<ILogger<ProductPublishedEventConsumer>>();
-        var mockDatabase = new Mock<IDatabase>();
-        var mockRedis = new Mock<IConnectionMultiplexer>();
-        mockRedis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-            .Returns(mockDatabase.Object);
+        var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new ProductPublishedEventConsumer(
-            mockCartRepo.Object, mockUnitOfWork.Object, mockLogger.Object, mockRedis.Object);
+            mockCartRepo.Object, mockUnitOfWork.Object, mockLogger.Object, mockIdempotencyStore.Object);
         return (consumer, mockUnitOfWork);
     }
 
@@ -111,13 +105,10 @@ public class ProductEventConsumerTests
         var mockCartRepo = new Mock<ICartRepository>();
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockLogger = new Mock<ILogger<ProductUpdatedEventConsumer>>();
-        var mockDatabase = new Mock<IDatabase>();
-        var mockRedis = new Mock<IConnectionMultiplexer>();
-        mockRedis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-            .Returns(mockDatabase.Object);
+        var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new ProductUpdatedEventConsumer(
-            mockCartRepo.Object, mockUnitOfWork.Object, mockLogger.Object, mockRedis.Object);
+            mockCartRepo.Object, mockUnitOfWork.Object, mockLogger.Object, mockIdempotencyStore.Object);
         return (consumer, mockUnitOfWork);
     }
 

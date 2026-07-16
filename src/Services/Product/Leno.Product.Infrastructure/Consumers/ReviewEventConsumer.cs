@@ -4,7 +4,7 @@ using Leno.Product.Domain.Repositories;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.Product.Infrastructure.Consumers;
 
@@ -13,7 +13,7 @@ namespace Leno.Product.Infrastructure.Consumers;
 /// 加载对应 SPU 聚合并更新评分摘要（加权平均分与评价数）。
 /// 幂等：通过 EventId + Redis SET NX 去重；SPU 方法幂等，重复调用不产生副作用。
 /// </summary>
-public sealed class ReviewSubmittedEventConsumer : RedisIntegrationEventConsumerBase<ReviewSubmittedEvent>
+public sealed class ReviewSubmittedEventConsumer : IntegrationEventConsumerBase<ReviewSubmittedEvent>
 {
     private readonly ISPURepository _spuRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -22,8 +22,8 @@ public sealed class ReviewSubmittedEventConsumer : RedisIntegrationEventConsumer
         ISPURepository spuRepository,
         IUnitOfWork unitOfWork,
         ILogger<ReviewSubmittedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(spuRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
@@ -57,7 +57,7 @@ public sealed class ReviewSubmittedEventConsumer : RedisIntegrationEventConsumer
 /// 加载对应 SPU 聚合并从评分统计中移除被隐藏评价。
 /// 幂等：通过 EventId + Redis SET NX 去重；SPU 方法幂等，重复调用不产生副作用。
 /// </summary>
-public sealed class ReviewHiddenEventConsumer : RedisIntegrationEventConsumerBase<ReviewHiddenEvent>
+public sealed class ReviewHiddenEventConsumer : IntegrationEventConsumerBase<ReviewHiddenEvent>
 {
     private readonly ISPURepository _spuRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -66,8 +66,8 @@ public sealed class ReviewHiddenEventConsumer : RedisIntegrationEventConsumerBas
         ISPURepository spuRepository,
         IUnitOfWork unitOfWork,
         ILogger<ReviewHiddenEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(spuRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);

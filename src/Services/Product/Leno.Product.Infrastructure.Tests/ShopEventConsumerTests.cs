@@ -6,8 +6,8 @@ using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.SharedKernel.ValueObjects;
 using Microsoft.Extensions.Logging;
+using Leno.Infrastructure.Abstractions;
 using Moq;
-using StackExchange.Redis;
 
 namespace Leno.Product.Infrastructure.Tests;
 
@@ -18,8 +18,7 @@ public class ShopEventConsumerTests
     private readonly Mock<ILogger<ShopSuspendedEventConsumer>> _suspendLoggerMock = new();
     private readonly Mock<ILogger<ShopResumedEventConsumer>> _resumeLoggerMock = new();
     private readonly Mock<ILogger<ShopClosedEventConsumer>> _closeLoggerMock = new();
-    private readonly Mock<IConnectionMultiplexer> _redisMock = new();
-    private readonly Mock<IDatabase> _dbMock = new();
+    private readonly Mock<IIdempotencyStore> _idempotencyStoreMock = new();
 
     private static readonly Guid ShopId = Guid.NewGuid();
     private static readonly Guid SellerId = Guid.NewGuid();
@@ -27,13 +26,10 @@ public class ShopEventConsumerTests
 
     public ShopEventConsumerTests()
     {
-        _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-            .Returns(_dbMock.Object);
-        _dbMock.Setup(d => d.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
-        _dbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(),
-            It.IsAny<TimeSpan>(), It.IsAny<bool>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(true);
+        _idempotencyStoreMock.Setup(s => s.MarkAsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
     }
 
     [Fact]
@@ -44,7 +40,7 @@ public class ShopEventConsumerTests
         SetupQueryReturns(new[] { spu }, 1);
 
         var consumer = new ShopSuspendedEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _suspendLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _suspendLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ShopSuspendedEvent(ShopId, SellerId);
 
         // Act
@@ -63,7 +59,7 @@ public class ShopEventConsumerTests
         SetupQueryReturns(Array.Empty<SPU>(), 0);
 
         var consumer = new ShopSuspendedEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _suspendLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _suspendLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ShopSuspendedEvent(ShopId, SellerId);
 
         // Act
@@ -85,7 +81,7 @@ public class ShopEventConsumerTests
         SetupQueryReturns(new[] { spu }, 1);
 
         var consumer = new ShopResumedEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _resumeLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _resumeLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ShopResumedEvent(ShopId, SellerId);
 
         // Act
@@ -108,7 +104,7 @@ public class ShopEventConsumerTests
         SetupQueryReturns(new[] { spu }, 1);
 
         var consumer = new ShopResumedEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _resumeLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _resumeLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ShopResumedEvent(ShopId, SellerId);
 
         // Act
@@ -127,7 +123,7 @@ public class ShopEventConsumerTests
         SetupQueryReturns(new[] { spu }, 1);
 
         var consumer = new ShopClosedEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _closeLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _closeLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ShopClosedEvent(ShopId, SellerId);
 
         // Act
@@ -147,7 +143,7 @@ public class ShopEventConsumerTests
         SetupQueryReturns(new[] { spu }, 1);
 
         var consumer = new ShopClosedEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _closeLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _closeLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ShopClosedEvent(ShopId, SellerId);
 
         // Act
@@ -173,7 +169,7 @@ public class ShopEventConsumerTests
             .ReturnsAsync((new List<SPU> { spu2 }, 2));
 
         var consumer = new ShopSuspendedEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _suspendLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _suspendLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ShopSuspendedEvent(ShopId, SellerId);
 
         // Act
@@ -191,11 +187,11 @@ public class ShopEventConsumerTests
     public async Task ShopEventConsumer_Idempotent_ShouldSkipDuplicateEvent()
     {
         // Arrange
-        _dbMock.Setup(d => d.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true); // 已处理
 
         var consumer = new ShopSuspendedEventConsumer(
-            _spuRepoMock.Object, _unitOfWorkMock.Object, _suspendLoggerMock.Object, _redisMock.Object);
+            _spuRepoMock.Object, _unitOfWorkMock.Object, _suspendLoggerMock.Object, _idempotencyStoreMock.Object);
         var evt = new ShopSuspendedEvent(ShopId, SellerId);
 
         // Act

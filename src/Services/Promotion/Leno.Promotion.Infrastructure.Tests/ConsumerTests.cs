@@ -9,8 +9,8 @@ using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Leno.Infrastructure.Abstractions;
 using Moq;
-using StackExchange.Redis;
 
 namespace Leno.Promotion.Infrastructure.Tests;
 
@@ -19,14 +19,12 @@ public class OrderPaidEventConsumerTests
     private readonly Mock<IUserCouponRepository> _userCouponRepoMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly Mock<ILogger<OrderPaidEventConsumer>> _loggerMock = new();
-    private readonly Mock<IConnectionMultiplexer> _redisMock = new();
-    private readonly Mock<IDatabase> _redisDbMock = new();
+    private readonly Mock<IIdempotencyStore> _idempotencyStoreMock = new();
 
     public OrderPaidEventConsumerTests()
     {
-        _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(_redisDbMock.Object);
-        _redisDbMock.Setup(d => d.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>())).ReturnsAsync(false);
-        _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), It.IsAny<bool>(), It.IsAny<When>(), It.IsAny<CommandFlags>())).ReturnsAsync(true);
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _idempotencyStoreMock.Setup(s => s.MarkAsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
     }
 
     [Fact]
@@ -40,7 +38,7 @@ public class OrderPaidEventConsumerTests
         _unitOfWorkMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var consumer = new OrderPaidEventConsumer(
-            _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _redisMock.Object);
+            _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
 
         var evt = new OrderPaidEvent(orderId, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Alipay", DateTime.UtcNow, "trade123", 100m, "CNY");
         var ctx = CreateConsumeContext(evt);
@@ -60,12 +58,34 @@ public class OrderPaidEventConsumerTests
         _userCouponRepoMock.Setup(r => r.GetByUsedOrderIdAsync(orderId, It.IsAny<CancellationToken>())).ReturnsAsync(userCoupon);
 
         var consumer = new OrderPaidEventConsumer(
-            _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _redisMock.Object);
+            _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
 
         var evt = new OrderPaidEvent(orderId, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Alipay", DateTime.UtcNow, "trade123", 100m, "CNY");
         var ctx = CreateConsumeContext(evt);
         await consumer.Consume(ctx);
 
+        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Consume_DuplicateEvent_ShouldSkipViaIdempotencyStore()
+    {
+        // Arrange — 事件已被处理过，幂等存储返回 true
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var consumer = new OrderPaidEventConsumer(
+            _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
+
+        var evt = new OrderPaidEvent(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Alipay", DateTime.UtcNow, "trade123", 100m, "CNY");
+        var ctx = CreateConsumeContext(evt);
+
+        // Act
+        await consumer.Consume(ctx);
+
+        // Assert — 重复事件被去重，仓储与工作单元均不应被调用
+        _userCouponRepoMock.Verify(r => r.GetByUsedOrderIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        _userCouponRepoMock.Verify(r => r.GetByLockedOrderIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -86,14 +106,12 @@ public class OrderCancelledEventConsumerTests
     private readonly Mock<IUserCouponRepository> _userCouponRepoMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly Mock<ILogger<OrderCancelledEventConsumer>> _loggerMock = new();
-    private readonly Mock<IConnectionMultiplexer> _redisMock = new();
-    private readonly Mock<IDatabase> _redisDbMock = new();
+    private readonly Mock<IIdempotencyStore> _idempotencyStoreMock = new();
 
     public OrderCancelledEventConsumerTests()
     {
-        _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(_redisDbMock.Object);
-        _redisDbMock.Setup(d => d.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>())).ReturnsAsync(false);
-        _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), It.IsAny<bool>(), It.IsAny<When>(), It.IsAny<CommandFlags>())).ReturnsAsync(true);
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _idempotencyStoreMock.Setup(s => s.MarkAsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
     }
 
     [Fact]
@@ -106,7 +124,7 @@ public class OrderCancelledEventConsumerTests
         _unitOfWorkMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var consumer = new OrderCancelledEventConsumer(
-            _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _redisMock.Object);
+            _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
 
         var evt = new OrderCancelledEvent(orderId, Guid.NewGuid(), "cancel", DateTime.UtcNow, "Buyer", 0);
         await consumer.Consume(CreateConsumeContext(evt));
@@ -122,7 +140,7 @@ public class OrderCancelledEventConsumerTests
         _userCouponRepoMock.Setup(r => r.GetByLockedOrderIdAsync(orderId, It.IsAny<CancellationToken>())).ReturnsAsync((UserCoupon?)null);
 
         var consumer = new OrderCancelledEventConsumer(
-            _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _redisMock.Object);
+            _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
 
         var evt = new OrderCancelledEvent(orderId, Guid.NewGuid(), "cancel", DateTime.UtcNow, "Buyer", 0);
         await consumer.Consume(CreateConsumeContext(evt));
@@ -147,14 +165,12 @@ public class RefundCompletedEventConsumerTests
     private readonly Mock<IUserCouponRepository> _userCouponRepoMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly Mock<ILogger<RefundCompletedEventConsumer>> _loggerMock = new();
-    private readonly Mock<IConnectionMultiplexer> _redisMock = new();
-    private readonly Mock<IDatabase> _redisDbMock = new();
+    private readonly Mock<IIdempotencyStore> _idempotencyStoreMock = new();
 
     public RefundCompletedEventConsumerTests()
     {
-        _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(_redisDbMock.Object);
-        _redisDbMock.Setup(d => d.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>())).ReturnsAsync(false);
-        _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), It.IsAny<bool>(), It.IsAny<When>(), It.IsAny<CommandFlags>())).ReturnsAsync(true);
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _idempotencyStoreMock.Setup(s => s.MarkAsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
     }
 
     [Fact]
@@ -166,7 +182,7 @@ public class RefundCompletedEventConsumerTests
         _unitOfWorkMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var consumer = new RefundCompletedEventConsumer(
-            _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _redisMock.Object);
+            _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
 
         var evt = new RefundCompletedEvent(orderId, Guid.NewGuid(), Guid.NewGuid(), 100m, "CNY", DateTime.UtcNow);
         await consumer.Consume(CreateConsumeContext(evt));
@@ -182,7 +198,7 @@ public class RefundCompletedEventConsumerTests
         _userCouponRepoMock.Setup(r => r.GetByUsedOrderIdAsync(orderId, It.IsAny<CancellationToken>())).ReturnsAsync((UserCoupon?)null);
 
         var consumer = new RefundCompletedEventConsumer(
-            _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _redisMock.Object);
+            _userCouponRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
 
         var evt = new RefundCompletedEvent(orderId, Guid.NewGuid(), Guid.NewGuid(), 100m, "CNY", DateTime.UtcNow);
         await consumer.Consume(CreateConsumeContext(evt));
@@ -212,14 +228,12 @@ public class PointsExchangeConsumerTests
     private readonly Mock<ICouponRepository> _couponRepoMock = new();
     private readonly Mock<IUserCouponRepository> _userCouponRepoMock = new();
     private readonly Mock<ILogger<PointsExchangeConsumer>> _loggerMock = new();
-    private readonly Mock<IConnectionMultiplexer> _redisMock = new();
-    private readonly Mock<IDatabase> _redisDbMock = new();
+    private readonly Mock<IIdempotencyStore> _idempotencyStoreMock = new();
 
     public PointsExchangeConsumerTests()
     {
-        _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(_redisDbMock.Object);
-        _redisDbMock.Setup(d => d.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>())).ReturnsAsync(false);
-        _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), It.IsAny<bool>(), It.IsAny<When>(), It.IsAny<CommandFlags>())).ReturnsAsync(true);
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _idempotencyStoreMock.Setup(s => s.MarkAsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
     }
 
     [Fact]
@@ -230,7 +244,7 @@ public class PointsExchangeConsumerTests
 
         var mockDb = new Mock<PromotionDbContext>(new DbContextOptions<PromotionDbContext>());
         var consumer = new PointsExchangeConsumer(
-            _couponRepoMock.Object, _userCouponRepoMock.Object, mockDb.Object, _loggerMock.Object, _redisMock.Object);
+            _couponRepoMock.Object, _userCouponRepoMock.Object, mockDb.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
 
         var evt = new PointsExchangeCouponRequestedEvent(Guid.NewGuid(), Guid.NewGuid(), couponId, 100);
         await consumer.Consume(CreateConsumeContext(evt));
@@ -249,7 +263,7 @@ public class PointsExchangeConsumerTests
 
         var mockDb = new Mock<PromotionDbContext>(new DbContextOptions<PromotionDbContext>());
         var consumer = new PointsExchangeConsumer(
-            _couponRepoMock.Object, _userCouponRepoMock.Object, mockDb.Object, _loggerMock.Object, _redisMock.Object);
+            _couponRepoMock.Object, _userCouponRepoMock.Object, mockDb.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
 
         var evt = new PointsExchangeCouponRequestedEvent(Guid.NewGuid(), Guid.NewGuid(), couponId, 100);
         await consumer.Consume(CreateConsumeContext(evt));
@@ -268,7 +282,7 @@ public class PointsExchangeConsumerTests
 
         var mockDb = new Mock<PromotionDbContext>(new DbContextOptions<PromotionDbContext>());
         var consumer = new PointsExchangeConsumer(
-            _couponRepoMock.Object, _userCouponRepoMock.Object, mockDb.Object, _loggerMock.Object, _redisMock.Object);
+            _couponRepoMock.Object, _userCouponRepoMock.Object, mockDb.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
 
         var evt = new PointsExchangeCouponRequestedEvent(Guid.NewGuid(), Guid.NewGuid(), couponId, 100);
         await consumer.Consume(CreateConsumeContext(evt));
@@ -292,14 +306,12 @@ public class SeckillOrderCreationFailedEventConsumerTests
     private readonly Mock<ISeckillPreOccupationRecordRepository> _preOccupationRepoMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly Mock<ILogger<SeckillOrderCreationFailedEventConsumer>> _loggerMock = new();
-    private readonly Mock<IConnectionMultiplexer> _redisMock = new();
-    private readonly Mock<IDatabase> _redisDbMock = new();
+    private readonly Mock<IIdempotencyStore> _idempotencyStoreMock = new();
 
     public SeckillOrderCreationFailedEventConsumerTests()
     {
-        _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(_redisDbMock.Object);
-        _redisDbMock.Setup(d => d.KeyExistsAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>())).ReturnsAsync(false);
-        _redisDbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan>(), It.IsAny<bool>(), It.IsAny<When>(), It.IsAny<CommandFlags>())).ReturnsAsync(true);
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _idempotencyStoreMock.Setup(s => s.MarkAsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
     }
 
     [Fact]
@@ -319,7 +331,7 @@ public class SeckillOrderCreationFailedEventConsumerTests
 
         var consumer = new SeckillOrderCreationFailedEventConsumer(
             _activityRepoMock.Object, _stockServiceMock.Object, _preOccupationRepoMock.Object,
-            _unitOfWorkMock.Object, _loggerMock.Object, _redisMock.Object);
+            _unitOfWorkMock.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
 
         var evt = new SeckillOrderCreationFailedEvent(activityId, skuId, Guid.NewGuid(), orderId, 5, "fail");
         await consumer.Consume(CreateConsumeContext(evt));

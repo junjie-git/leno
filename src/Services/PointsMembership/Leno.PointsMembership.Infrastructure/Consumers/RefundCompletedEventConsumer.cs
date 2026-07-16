@@ -4,7 +4,7 @@ using Leno.PointsMembership.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.PointsMembership.Infrastructure.Consumers;
 
@@ -12,7 +12,7 @@ namespace Leno.PointsMembership.Infrastructure.Consumers;
 /// 退款完成事件消费者，扣回已发放的消费积分（允许余额为负）。
 /// 通过 EventId 幂等去重。
 /// </summary>
-public sealed class RefundCompletedEventConsumer : RedisIntegrationEventConsumerBase<RefundCompletedEvent>
+public sealed class RefundCompletedEventConsumer : IntegrationEventConsumerBase<RefundCompletedEvent>
 {
     private readonly IPointsAccountRepository _accountRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -21,8 +21,8 @@ public sealed class RefundCompletedEventConsumer : RedisIntegrationEventConsumer
         IPointsAccountRepository accountRepository,
         IUnitOfWork unitOfWork,
         ILogger<RefundCompletedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         _accountRepository = accountRepository;
         _unitOfWork = unitOfWork;

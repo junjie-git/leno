@@ -3,7 +3,7 @@ using Leno.SharedContracts.Events;
 using Leno.SellerShop.Domain.Repositories;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.SellerShop.Infrastructure.Consumers;
 
@@ -12,7 +12,7 @@ namespace Leno.SellerShop.Infrastructure.Consumers;
 /// 事件契约 ProductPublishedEvent.SellerId 语义等同卖家与店铺管理域的 ShopId。
 /// 幂等：经 <see cref="IntegrationEventConsumerBase{T}"/> 以 EventId 去重；DecrementProductCount 已防负。
 /// </summary>
-public sealed class ProductPublishedEventConsumer : RedisIntegrationEventConsumerBase<ProductPublishedEvent>
+public sealed class ProductPublishedEventConsumer : IntegrationEventConsumerBase<ProductPublishedEvent>
 {
     private readonly IShopRepository _shopRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -21,8 +21,8 @@ public sealed class ProductPublishedEventConsumer : RedisIntegrationEventConsume
         IShopRepository shopRepository,
         IUnitOfWork unitOfWork,
         ILogger<ProductPublishedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         _shopRepository = shopRepository;
         _unitOfWork = unitOfWork;
@@ -48,7 +48,7 @@ public sealed class ProductPublishedEventConsumer : RedisIntegrationEventConsume
 /// 商品下架事件消费者：维护店铺在售商品数 -1。
 /// 幂等：DecrementProductCount 在商品数已为 0 时直接返回，重复消费不会产生负数。
 /// </summary>
-public sealed class ProductTakenDownEventConsumer : RedisIntegrationEventConsumerBase<ProductTakenDownEvent>
+public sealed class ProductTakenDownEventConsumer : IntegrationEventConsumerBase<ProductTakenDownEvent>
 {
     private readonly IShopRepository _shopRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -57,8 +57,8 @@ public sealed class ProductTakenDownEventConsumer : RedisIntegrationEventConsume
         IShopRepository shopRepository,
         IUnitOfWork unitOfWork,
         ILogger<ProductTakenDownEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         _shopRepository = shopRepository;
         _unitOfWork = unitOfWork;

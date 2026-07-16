@@ -5,8 +5,8 @@ using Leno.Cart.Infrastructure.Consumers;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using Leno.Infrastructure.Abstractions;
 using Moq;
-using StackExchange.Redis;
 using CartAggregate = Leno.Cart.Domain.Aggregates.Cart;
 
 namespace Leno.Cart.Infrastructure.Tests;
@@ -145,22 +145,19 @@ public class OrderCreatedEventConsumerTests
         mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private static (OrderCreatedEventConsumer consumer, Mock<IConnectionMultiplexer> redis) CreateConsumer(
+    private static (OrderCreatedEventConsumer consumer, Mock<IIdempotencyStore> idempotencyStore) CreateConsumer(
         Mock<ICartRepository> mockCartRepo, Mock<IUnitOfWork> mockUnitOfWork)
     {
         var mockLogger = new Mock<ILogger<OrderCreatedEventConsumer>>();
-        var mockDatabase = new Mock<IDatabase>();
-        var mockRedis = new Mock<IConnectionMultiplexer>();
-        mockRedis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-            .Returns(mockDatabase.Object);
+        var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new OrderCreatedEventConsumer(
             mockCartRepo.Object,
             mockUnitOfWork.Object,
             mockLogger.Object,
-            mockRedis.Object);
+            mockIdempotencyStore.Object);
 
-        return (consumer, mockRedis);
+        return (consumer, mockIdempotencyStore);
     }
 
     private static async Task InvokeHandleAsync(OrderCreatedEventConsumer consumer, OrderCreatedEvent integrationEvent)

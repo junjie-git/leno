@@ -3,7 +3,7 @@ using Leno.Promotion.Domain.Repositories;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.Promotion.Infrastructure.Consumers;
 
@@ -11,7 +11,7 @@ namespace Leno.Promotion.Infrastructure.Consumers;
 /// 订单支付成功事件消费者，核销锁定的用户优惠券（UserCoupon.Consume）。
 /// 通过 EventId 幂等去重；券不存在或非 Locked 态时跳过（该订单未使用优惠券）。
 /// </summary>
-public sealed class OrderPaidEventConsumer : RedisIntegrationEventConsumerBase<OrderPaidEvent>
+public sealed class OrderPaidEventConsumer : IntegrationEventConsumerBase<OrderPaidEvent>
 {
     private readonly IUserCouponRepository _userCouponRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -20,8 +20,8 @@ public sealed class OrderPaidEventConsumer : RedisIntegrationEventConsumerBase<O
         IUserCouponRepository userCouponRepository,
         IUnitOfWork unitOfWork,
         ILogger<OrderPaidEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(userCouponRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
@@ -61,7 +61,7 @@ public sealed class OrderPaidEventConsumer : RedisIntegrationEventConsumerBase<O
 /// 订单取消事件消费者，退还锁定的用户优惠券（UserCoupon.Release）。
 /// 通过 EventId 幂等去重；券不存在或非 Locked 态时跳过。
 /// </summary>
-public sealed class OrderCancelledEventConsumer : RedisIntegrationEventConsumerBase<OrderCancelledEvent>
+public sealed class OrderCancelledEventConsumer : IntegrationEventConsumerBase<OrderCancelledEvent>
 {
     private readonly IUserCouponRepository _userCouponRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -70,8 +70,8 @@ public sealed class OrderCancelledEventConsumer : RedisIntegrationEventConsumerB
         IUserCouponRepository userCouponRepository,
         IUnitOfWork unitOfWork,
         ILogger<OrderCancelledEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(userCouponRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
@@ -103,7 +103,7 @@ public sealed class OrderCancelledEventConsumer : RedisIntegrationEventConsumerB
 /// 退款完成事件消费者，退还已核销的用户优惠券（UserCoupon.Return）。
 /// 通过 EventId 幂等去重；券不存在或非 Used 态时跳过。
 /// </summary>
-public sealed class RefundCompletedEventConsumer : RedisIntegrationEventConsumerBase<RefundCompletedEvent>
+public sealed class RefundCompletedEventConsumer : IntegrationEventConsumerBase<RefundCompletedEvent>
 {
     private readonly IUserCouponRepository _userCouponRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -112,8 +112,8 @@ public sealed class RefundCompletedEventConsumer : RedisIntegrationEventConsumer
         IUserCouponRepository userCouponRepository,
         IUnitOfWork unitOfWork,
         ILogger<RefundCompletedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(userCouponRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);

@@ -9,8 +9,8 @@ using Leno.Order.Infrastructure.Consumers;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using Leno.Infrastructure.Abstractions;
 using Moq;
-using StackExchange.Redis;
 using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
 
 namespace Leno.Order.Infrastructure.Tests;
@@ -38,10 +38,7 @@ public class PaymentSucceededEventConsumerTests
         var mockStockService = new Mock<IStockReservationDomainService>();
         var mockPointsAc = new Mock<IPointsAntiCorruptionService>();
         var mockLogger = new Mock<ILogger<PaymentSucceededEventConsumer>>();
-        var mockDatabase = new Mock<IDatabase>();
-        var mockRedis = new Mock<IConnectionMultiplexer>();
-        mockRedis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-            .Returns(mockDatabase.Object);
+        var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new PaymentSucceededEventConsumer(
             mockOrderRepo.Object,
@@ -49,7 +46,7 @@ public class PaymentSucceededEventConsumerTests
             mockStockService.Object,
             mockPointsAc.Object,
             mockLogger.Object,
-            mockRedis.Object);
+            mockIdempotencyStore.Object);
 
         var integrationEvent = new PaymentSucceededEvent
         {
@@ -107,10 +104,7 @@ public class PaymentSucceededEventConsumerTests
         var mockStockService = new Mock<IStockReservationDomainService>();
         var mockPointsAc = new Mock<IPointsAntiCorruptionService>();
         var mockLogger = new Mock<ILogger<PaymentSucceededEventConsumer>>();
-        var mockDatabase = new Mock<IDatabase>();
-        var mockRedis = new Mock<IConnectionMultiplexer>();
-        mockRedis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-            .Returns(mockDatabase.Object);
+        var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new PaymentSucceededEventConsumer(
             mockOrderRepo.Object,
@@ -118,7 +112,7 @@ public class PaymentSucceededEventConsumerTests
             mockStockService.Object,
             mockPointsAc.Object,
             mockLogger.Object,
-            mockRedis.Object);
+            mockIdempotencyStore.Object);
 
         var integrationEvent = new PaymentSucceededEvent
         {
@@ -162,10 +156,7 @@ public class PaymentSucceededEventConsumerTests
         var mockStockService = new Mock<IStockReservationDomainService>();
         var mockPointsAc = new Mock<IPointsAntiCorruptionService>();
         var mockLogger = new Mock<ILogger<PaymentSucceededEventConsumer>>();
-        var mockDatabase = new Mock<IDatabase>();
-        var mockRedis = new Mock<IConnectionMultiplexer>();
-        mockRedis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-            .Returns(mockDatabase.Object);
+        var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new PaymentSucceededEventConsumer(
             mockOrderRepo.Object,
@@ -173,7 +164,7 @@ public class PaymentSucceededEventConsumerTests
             mockStockService.Object,
             mockPointsAc.Object,
             mockLogger.Object,
-            mockRedis.Object);
+            mockIdempotencyStore.Object);
 
         var integrationEvent = new PaymentSucceededEvent
         {
@@ -213,10 +204,7 @@ public class PaymentSucceededEventConsumerTests
         var mockStockService = new Mock<IStockReservationDomainService>();
         var mockPointsAc = new Mock<IPointsAntiCorruptionService>();
         var mockLogger = new Mock<ILogger<PaymentSucceededEventConsumer>>();
-        var mockDatabase = new Mock<IDatabase>();
-        var mockRedis = new Mock<IConnectionMultiplexer>();
-        mockRedis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
-            .Returns(mockDatabase.Object);
+        var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new PaymentSucceededEventConsumer(
             mockOrderRepo.Object,
@@ -224,7 +212,7 @@ public class PaymentSucceededEventConsumerTests
             mockStockService.Object,
             mockPointsAc.Object,
             mockLogger.Object,
-            mockRedis.Object);
+            mockIdempotencyStore.Object);
 
         var integrationEvent = new PaymentSucceededEvent
         {

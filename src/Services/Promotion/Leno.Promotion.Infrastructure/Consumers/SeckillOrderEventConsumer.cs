@@ -4,7 +4,7 @@ using Leno.Promotion.Domain.Repositories;
 using Leno.Promotion.Domain.Services;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 
 namespace Leno.Promotion.Infrastructure.Consumers;
 
@@ -12,7 +12,7 @@ namespace Leno.Promotion.Infrastructure.Consumers;
 /// 秒杀订单创建失败事件消费者，回退 Redis 库存与 DB 基线。
 /// 通过 EventId 幂等去重（Redis 24h）。
 /// </summary>
-public sealed class SeckillOrderCreationFailedEventConsumer : RedisIntegrationEventConsumerBase<SeckillOrderCreationFailedEvent>
+public sealed class SeckillOrderCreationFailedEventConsumer : IntegrationEventConsumerBase<SeckillOrderCreationFailedEvent>
 {
     private readonly ISeckillActivityRepository _activityRepository;
     private readonly ISeckillStockService _stockService;
@@ -25,8 +25,8 @@ public sealed class SeckillOrderCreationFailedEventConsumer : RedisIntegrationEv
         ISeckillPreOccupationRecordRepository preOccupationRecordRepository,
         IUnitOfWork unitOfWork,
         ILogger<SeckillOrderCreationFailedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(activityRepository);
         ArgumentNullException.ThrowIfNull(stockService);
@@ -72,7 +72,7 @@ public sealed class SeckillOrderCreationFailedEventConsumer : RedisIntegrationEv
 /// 秒杀订单确认事件消费者，标记预占记录为已履约。
 /// 通过 EventId 幂等去重（Redis 24h）。
 /// </summary>
-public sealed class SeckillOrderConfirmedEventConsumer : RedisIntegrationEventConsumerBase<SeckillOrderConfirmedEvent>
+public sealed class SeckillOrderConfirmedEventConsumer : IntegrationEventConsumerBase<SeckillOrderConfirmedEvent>
 {
     private readonly ISeckillPreOccupationRecordRepository _preOccupationRecordRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -81,8 +81,8 @@ public sealed class SeckillOrderConfirmedEventConsumer : RedisIntegrationEventCo
         ISeckillPreOccupationRecordRepository preOccupationRecordRepository,
         IUnitOfWork unitOfWork,
         ILogger<SeckillOrderConfirmedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(preOccupationRecordRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);

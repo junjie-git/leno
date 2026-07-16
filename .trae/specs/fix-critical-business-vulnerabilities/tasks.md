@@ -74,16 +74,16 @@
 
 ## P0 批次六：幂等性与 Outbox
 
-- [ ] Task 13: Outbox 两阶段标记防重复发布
-  - [ ] SubTask 13.1: `OutboxMessage` 状态枚举新增 `Publishing` 中间态
-  - [ ] SubTask 13.2: `OutboxPublisher` 改两阶段：事务内置 `Publishing` 提交 → 发布 MQ → 置 `Processed` 提交
-  - [ ] SubTask 13.3: 重启扫描 `Publishing` 超时（默认 5 分钟）消息，依赖下游幂等兜底
-  - [ ] SubTask 13.4: 补测试覆盖发布成功标记失败、发布失败重试场景
-- [ ] Task 14: 消费者幂等强制
-  - [ ] SubTask 14.1: 新建 `IIdempotencyStore` 接口与 `RedisIdempotencyStore`（SET NX + 24h TTL）实现
-  - [ ] SubTask 14.2: `IntegrationEventConsumerBase` 幂等方法改 abstract，合并 `RedisIntegrationEventConsumerBase`（既有方案主线 3.4）
-  - [ ] SubTask 14.3: 全量审计所有 Consumer 子类，未注入 `IIdempotencyStore` 者补齐
-  - [ ] SubTask 14.4: 补测试覆盖重复事件去重
+- [x] Task 13: Outbox 两阶段标记防重复发布
+  - [x] SubTask 13.1: `OutboxMessage` 状态枚举新增 `Publishing` 中间态
+  - [x] SubTask 13.2: `OutboxPublisher` 改两阶段：事务内置 `Publishing` 提交 → 发布 MQ → 置 `Processed` 提交
+  - [x] SubTask 13.3: 重启扫描 `Publishing` 超时（默认 5 分钟）消息，依赖下游幂等兜底
+  - [x] SubTask 13.4: 补测试覆盖发布成功标记失败、发布失败重试场景
+- [x] Task 14: 消费者幂等强制
+  - [x] SubTask 14.1: 新建 `IIdempotencyStore` 接口与 `RedisIdempotencyStore`（SET NX + 24h TTL）实现
+  - [x] SubTask 14.2: `IntegrationEventConsumerBase` 幂等方法改 abstract，合并 `RedisIntegrationEventConsumerBase`（既有方案主线 3.4）
+  - [x] SubTask 14.3: 全量审计所有 Consumer 子类，未注入 `IIdempotencyStore` 者补齐
+  - [x] SubTask 14.4: 补测试覆盖重复事件去重
 
 ## P0 批次七：死信队列真实实现
 

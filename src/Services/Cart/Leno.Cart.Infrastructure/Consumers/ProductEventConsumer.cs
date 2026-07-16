@@ -3,7 +3,7 @@ using Leno.Infrastructure.EventBus;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
+using Leno.Infrastructure.Abstractions;
 using CartAggregate = Leno.Cart.Domain.Aggregates.Cart;
 
 namespace Leno.Cart.Infrastructure.Consumers;
@@ -12,7 +12,7 @@ namespace Leno.Cart.Infrastructure.Consumers;
 /// 商品下架事件消费者：标记购物车中对应 SKU 为无效，自动取消选中。
 /// 幂等：通过 EventId + Redis SET NX 去重，MarkInvalid 幂等。
 /// </summary>
-public sealed class ProductTakenDownEventConsumer : RedisIntegrationEventConsumerBase<ProductTakenDownEvent>
+public sealed class ProductTakenDownEventConsumer : IntegrationEventConsumerBase<ProductTakenDownEvent>
 {
     private readonly ICartRepository _cartRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -21,8 +21,8 @@ public sealed class ProductTakenDownEventConsumer : RedisIntegrationEventConsume
         ICartRepository cartRepository,
         IUnitOfWork unitOfWork,
         ILogger<ProductTakenDownEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(cartRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
@@ -51,7 +51,7 @@ public sealed class ProductTakenDownEventConsumer : RedisIntegrationEventConsume
 /// 商品上架事件消费者：恢复购物车中对应 SKU 的有效性。
 /// 幂等：通过 EventId + Redis SET NX 去重，MarkValid 幂等。
 /// </summary>
-public sealed class ProductPublishedEventConsumer : RedisIntegrationEventConsumerBase<ProductPublishedEvent>
+public sealed class ProductPublishedEventConsumer : IntegrationEventConsumerBase<ProductPublishedEvent>
 {
     private readonly ICartRepository _cartRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -60,8 +60,8 @@ public sealed class ProductPublishedEventConsumer : RedisIntegrationEventConsume
         ICartRepository cartRepository,
         IUnitOfWork unitOfWork,
         ILogger<ProductPublishedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(cartRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
@@ -81,7 +81,7 @@ public sealed class ProductPublishedEventConsumer : RedisIntegrationEventConsume
 /// 商品更新事件消费者：刷新购物车中对应 SKU 的展示快照。
 /// 幂等：通过 EventId + Redis SET NX 去重，RefreshDisplaySnapshot 幂等。
 /// </summary>
-public sealed class ProductUpdatedEventConsumer : RedisIntegrationEventConsumerBase<ProductUpdatedEvent>
+public sealed class ProductUpdatedEventConsumer : IntegrationEventConsumerBase<ProductUpdatedEvent>
 {
     private readonly ICartRepository _cartRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -90,8 +90,8 @@ public sealed class ProductUpdatedEventConsumer : RedisIntegrationEventConsumerB
         ICartRepository cartRepository,
         IUnitOfWork unitOfWork,
         ILogger<ProductUpdatedEventConsumer> logger,
-        IConnectionMultiplexer redisMultiplexer)
-        : base(logger, redisMultiplexer)
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(cartRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
