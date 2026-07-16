@@ -32,6 +32,7 @@ public sealed class OrderAppService : IOrderAppService
     private readonly ILogisticsCompanyRepository _logisticsCompanyRepository;
     private readonly IEventBus _eventBus;
     private readonly IBus _bus;
+    private readonly IOrderSagaOrchestrator _sagaOrchestrator;
 
     public OrderAppService(
         IOrderRepository orderRepository,
@@ -46,7 +47,8 @@ public sealed class OrderAppService : IOrderAppService
         ILogisticsTrackingService logisticsTrackingService,
         ILogisticsCompanyRepository logisticsCompanyRepository,
         IEventBus eventBus,
-        IBus bus)
+        IBus bus,
+        IOrderSagaOrchestrator sagaOrchestrator)
     {
         _orderRepository = orderRepository;
         _unitOfWork = unitOfWork;
@@ -61,6 +63,7 @@ public sealed class OrderAppService : IOrderAppService
         _logisticsCompanyRepository = logisticsCompanyRepository;
         _eventBus = eventBus;
         _bus = bus;
+        _sagaOrchestrator = sagaOrchestrator;
     }
 
     /// <inheritdoc />
@@ -97,115 +100,47 @@ public sealed class OrderAppService : IOrderAppService
         }
         var totalItemsAmount = dto.Items.Sum(i => skuInfos[i.SkuId].UnitPrice * i.Quantity);
 
-        OrderAggregate? firstOrder = null;
+        // 构建各分组 Saga 输入：按比例分摊积分抵现（尾差归最后一组）；积分上限裁剪（商品总额 - 优惠）交由 Saga 在优惠计算后执行
+        var sagaGroups = new List<OrderSagaGroupInput>();
         var pointsRemaining = totalPointsOffset;
         for (var idx = 0; idx < groups.Count; idx++)
         {
             var group = groups[idx];
-            var sellerId = group.SellerId;
+            var groupItemsAmount = group.Items.Sum(i => skuInfos[i.SkuId].UnitPrice * i.Quantity);
 
-            // 构建订单明细
-            var orderItems = new List<OrderItem>();
-            var skuQuantities = new Dictionary<Guid, int>();
-            var itemSubtotals = new List<(Guid SkuId, decimal Subtotal)>();
-            decimal groupItemsAmount = 0;
-            foreach (var ci in group.Items)
-            {
-                var info = skuInfos[ci.SkuId];
-                var snapshot = ProductSnapshot.Create(
-                    info.SkuId, info.SpuId, info.ProductName, info.SkuName, info.MainImage, info.SellerId);
-                var orderItem = OrderItem.Create(Guid.NewGuid(), info.SkuId, snapshot, info.UnitPrice, ci.Quantity, ci.SourceCartItemId);
-                orderItems.Add(orderItem);
-                skuQuantities[info.SkuId] = ci.Quantity;
-                itemSubtotals.Add((info.SkuId, orderItem.Subtotal));
-                groupItemsAmount += orderItem.Subtotal;
-            }
-
-            // 价格防篡改校验
-            var skuPrices = itemSubtotals.Select(s => (s.SkuId, skuInfos[s.SkuId].UnitPrice)).ToList();
-            await _pricingService.ValidatePricesAsync(skuPrices, ct);
-
-            // 计算优惠并按 SKU 分摊
-            var discount = await _promotionAntiCorruption.CalculateDiscountAsync(userId, itemSubtotals, ct);
-            var allocations = discount > 0
-                ? await _pricingService.CalculateAndAllocateAsync(discount, itemSubtotals, ct)
-                : new List<(Guid SkuId, decimal Allocation)>();
-
-            // 计算运费
-            var quantity = group.Items.Sum(i => i.Quantity);
-            var freight = await _freightCalculator.CalculateAsync(sellerId, dto.Province, quantity, groupItemsAmount, ct);
-
-            // 按比例分摊积分抵现，尾差归到最后一组
-            decimal groupPointsOffset;
+            decimal groupPointsOffsetRaw;
             if (idx == groups.Count - 1)
             {
-                groupPointsOffset = pointsRemaining;
+                groupPointsOffsetRaw = pointsRemaining;
             }
             else
             {
-                groupPointsOffset = totalItemsAmount > 0
+                groupPointsOffsetRaw = totalItemsAmount > 0
                     ? Math.Round(totalPointsOffset * (groupItemsAmount / totalItemsAmount), 2, MidpointRounding.ToEven)
                     : 0m;
-                pointsRemaining -= groupPointsOffset;
+                pointsRemaining -= groupPointsOffsetRaw;
             }
 
-            // 积分抵现上限：商品总额 - 优惠
-            var maxOffset = groupItemsAmount - discount;
-            if (groupPointsOffset > maxOffset)
+            sagaGroups.Add(new OrderSagaGroupInput
             {
-                groupPointsOffset = maxOffset;
-            }
-            if (groupPointsOffset < 0)
-            {
-                groupPointsOffset = 0m;
-            }
-
-            // 预占库存
-            var orderId = Guid.NewGuid();
-            var reserved = await _stockService.ReserveBatchAsync(orderId, skuQuantities, ct);
-            if (!reserved)
-            {
-                throw new OrderDomainException("库存预占失败，SKU 库存不足", "ORDER_STOCK_RESERVE_FAILED");
-            }
-
-            // 冻结积分
-            if (dto.PointsToUse > 0 && groupPointsOffset > 0)
-            {
-                var groupPoints = (int)Math.Round(groupPointsOffset * 100m, MidpointRounding.ToEven);
-                if (groupPoints > 0)
-                {
-                    await _pointsAntiCorruption.FreezeAsync(userId, orderId, groupPoints, ct);
-                }
-            }
-
-            // 生成订单编号并创建订单聚合
-            var orderNo = await _orderNumberGenerator.GenerateAsync(ct);
-            var order = OrderAggregate.Create(
-                orderId, orderNo, OrderType.Normal, userId, sellerId,
-                orderItems, address, freight, groupPointsOffset, DateTime.UtcNow.AddMinutes(30));
-
-            // 应用优惠分摊
-            if (discount > 0 && allocations.Count > 0)
-            {
-                order.ApplyDiscount(discount, allocations);
-            }
-
-            await _orderRepository.AddAsync(order, ct);
-            await _unitOfWork.SaveEntitiesAsync(ct);
-
-            // Schedule timeout cancellation (30 minutes)
-            var scheduler = _bus.CreateMessageScheduler();
-            await scheduler.ScheduleSend(
-                new Uri("queue:order-timeout"),
-                order.ExpireAt,
-                new OrderTimeoutMessage(orderId),
-                ct);
-
-            // 多卖家拆单返回首单 DTO
-            firstOrder ??= order;
+                SellerId = group.SellerId,
+                Items = group.Items,
+                SkuInfos = skuInfos,
+                GroupPointsOffsetRaw = groupPointsOffsetRaw,
+                UsePoints = dto.PointsToUse > 0
+            });
         }
 
-        return ToDto(firstOrder!);
+        // 接入 Saga 编排：顺序执行各组（预占库存 → 冻结积分 → 保存订单），任一组失败补偿已成功组（Task 7）
+        var sagaContext = new OrderSagaContext
+        {
+            UserId = userId,
+            Address = address,
+            Groups = sagaGroups
+        };
+        var sagaResult = await _sagaOrchestrator.ExecuteAsync(sagaContext, ct);
+
+        return ToDto(sagaResult.FirstOrder);
     }
 
     /// <inheritdoc />

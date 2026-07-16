@@ -1,0 +1,329 @@
+using Leno.Order.Application.DTOs;
+using Leno.Order.Application.Messages;
+using Leno.Order.Domain.Aggregates;
+using Leno.Order.Domain.Exceptions;
+using Leno.Order.Domain.Repositories;
+using Leno.Order.Domain.Services;
+using Leno.Order.Domain.ValueObjects;
+using Leno.SharedKernel.Abstractions;
+using MassTransit;
+using Microsoft.Extensions.Logging;
+using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
+
+namespace Leno.Order.Application.Services;
+
+/// <summary>
+/// 多卖家拆单 Saga 编排器，按顺序执行每组（预占库存 → 冻结积分 → 保存订单），
+/// 任一组失败时对已成功组执行补偿（释放库存/积分/优惠券、移除未提交的订单聚合），最终抛原始异常。
+/// 全部组成功后在统一工作单元提交（<see cref="IUnitOfWork.SaveEntitiesAsync"/>），保证"要么全部持久化、要么全部不持久化"。
+/// </summary>
+public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
+{
+    private readonly IOrderRepository _orderRepository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IOrderNumberGenerator _orderNumberGenerator;
+    private readonly IStockReservationDomainService _stockService;
+    private readonly IOrderPricingDomainService _pricingService;
+    private readonly IFreightCalculator _freightCalculator;
+    private readonly IPromotionAntiCorruptionService _promotionAntiCorruption;
+    private readonly IPointsAntiCorruptionService _pointsAntiCorruption;
+    private readonly IBus _bus;
+    private readonly ILogger<OrderSagaOrchestrator> _logger;
+
+    public OrderSagaOrchestrator(
+        IOrderRepository orderRepository,
+        IUnitOfWork unitOfWork,
+        IOrderNumberGenerator orderNumberGenerator,
+        IStockReservationDomainService stockService,
+        IOrderPricingDomainService pricingService,
+        IFreightCalculator freightCalculator,
+        IPromotionAntiCorruptionService promotionAntiCorruption,
+        IPointsAntiCorruptionService pointsAntiCorruption,
+        IBus bus,
+        ILogger<OrderSagaOrchestrator> logger)
+    {
+        _orderRepository = orderRepository;
+        _unitOfWork = unitOfWork;
+        _orderNumberGenerator = orderNumberGenerator;
+        _stockService = stockService;
+        _pricingService = pricingService;
+        _freightCalculator = freightCalculator;
+        _promotionAntiCorruption = promotionAntiCorruption;
+        _pointsAntiCorruption = pointsAntiCorruption;
+        _bus = bus;
+        _logger = logger;
+    }
+
+    /// <inheritdoc />
+    public async Task<OrderSagaResult> ExecuteAsync(OrderSagaContext context, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var completed = new List<CompletedGroup>();
+        foreach (var group in context.Groups)
+        {
+            try
+            {
+                completed.Add(await ExecuteGroupAsync(context.UserId, context.Address, group, ct));
+            }
+            catch (Exception)
+            {
+                // 任一组失败：补偿已成功组后向上抛原始异常（库存/积分/券/订单聚合回滚）
+                await CompensateAsync(completed, CancellationToken.None);
+                throw;
+            }
+        }
+
+        // 全部组成功 → 统一提交工作单元（订单聚合 + 发件箱集成事件同事务持久化）
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        return new OrderSagaResult
+        {
+            FirstOrder = completed[0].Order,
+            Orders = completed.Select(c => c.Order).ToList()
+        };
+    }
+
+    /// <summary>
+    /// 执行单组下单流程：构建明细 → 价格校验 → 优惠计算 → 运费 → 预占库存 → 冻结积分 → 创建订单聚合 → 入库追踪 → 调度超时。
+    /// 积分冻结失败时执行组内回滚（释放已预占库存）后向上抛（Task 8 单组原子回滚）。
+    /// </summary>
+    private async Task<CompletedGroup> ExecuteGroupAsync(
+        Guid userId,
+        AddressSnapshot address,
+        OrderSagaGroupInput group,
+        CancellationToken ct)
+    {
+        // 构建订单明细与 SKU 数量映射
+        var orderItems = new List<OrderItem>();
+        var skuQuantities = new Dictionary<Guid, int>();
+        var itemSubtotals = new List<(Guid SkuId, decimal Subtotal)>();
+        decimal groupItemsAmount = 0;
+        foreach (var ci in group.Items)
+        {
+            var info = group.SkuInfos[ci.SkuId];
+            var snapshot = ProductSnapshot.Create(
+                info.SkuId, info.SpuId, info.ProductName, info.SkuName, info.MainImage, info.SellerId);
+            var orderItem = OrderItem.Create(Guid.NewGuid(), info.SkuId, snapshot, info.UnitPrice, ci.Quantity, ci.SourceCartItemId);
+            orderItems.Add(orderItem);
+            skuQuantities[info.SkuId] = ci.Quantity;
+            itemSubtotals.Add((info.SkuId, orderItem.Subtotal));
+            groupItemsAmount += orderItem.Subtotal;
+        }
+
+        // 价格防篡改校验
+        var skuPrices = itemSubtotals.Select(s => (s.SkuId, group.SkuInfos[s.SkuId].UnitPrice)).ToList();
+        await _pricingService.ValidatePricesAsync(skuPrices, ct);
+
+        // 计算优惠并按 SKU 分摊
+        var discount = await _promotionAntiCorruption.CalculateDiscountAsync(userId, itemSubtotals, ct);
+        var allocations = discount > 0
+            ? await _pricingService.CalculateAndAllocateAsync(discount, itemSubtotals, ct)
+            : new List<(Guid SkuId, decimal Allocation)>();
+
+        // 计算运费
+        var quantity = group.Items.Sum(i => i.Quantity);
+        var freight = await _freightCalculator.CalculateAsync(group.SellerId, address.Province, quantity, groupItemsAmount, ct);
+
+        // 积分抵现上限裁剪：抵现金额不得超过 商品总额 - 优惠（避免总金额为负）
+        var groupPointsOffset = group.GroupPointsOffsetRaw;
+        var maxOffset = groupItemsAmount - discount;
+        if (groupPointsOffset > maxOffset)
+        {
+            groupPointsOffset = maxOffset;
+        }
+        if (groupPointsOffset < 0)
+        {
+            groupPointsOffset = 0m;
+        }
+        var groupPoints = (group.UsePoints && groupPointsOffset > 0)
+            ? (int)Math.Round(groupPointsOffset * 100m, MidpointRounding.ToEven)
+            : 0;
+
+        // 预占库存
+        var orderId = Guid.NewGuid();
+        var reserved = await _stockService.ReserveBatchAsync(orderId, skuQuantities, ct);
+        if (!reserved)
+        {
+            throw new OrderDomainException("库存预占失败，SKU 库存不足", "ORDER_STOCK_RESERVE_FAILED");
+        }
+
+        // 冻结积分（Task 8 单组原子回滚：失败时释放已预占库存后向上抛）
+        var pointsFrozen = false;
+        if (groupPoints > 0)
+        {
+            try
+            {
+                await _pointsAntiCorruption.FreezeAsync(userId, orderId, groupPoints, ct);
+                pointsFrozen = true;
+            }
+            catch (Exception)
+            {
+                await _stockService.ReleaseBatchAsync(orderId, skuQuantities, CancellationToken.None);
+                throw;
+            }
+        }
+
+        // 生成订单编号并创建订单聚合
+        var orderNo = await _orderNumberGenerator.GenerateAsync(ct);
+        var order = OrderAggregate.Create(
+            orderId, orderNo, OrderType.Normal, userId, group.SellerId,
+            orderItems, address, freight, groupPointsOffset, DateTime.UtcNow.AddMinutes(30));
+
+        // 应用优惠分摊
+        if (discount > 0 && allocations.Count > 0)
+        {
+            order.ApplyDiscount(discount, allocations);
+        }
+
+        // 入库追踪（未提交，待 Saga 全部成功后统一 SaveEntitiesAsync）
+        await _orderRepository.AddAsync(order, ct);
+
+        // 调度支付超时取消延迟消息（30 分钟）
+        var scheduler = _bus.CreateMessageScheduler();
+        await scheduler.ScheduleSend(
+            new Uri("queue:order-timeout"),
+            order.ExpireAt,
+            new OrderTimeoutMessage(orderId),
+            ct);
+
+        return new CompletedGroup
+        {
+            Order = order,
+            OrderId = orderId,
+            SkuQuantities = skuQuantities,
+            PointsFrozen = pointsFrozen,
+            HasDiscount = discount > 0
+        };
+    }
+
+    /// <summary>
+    /// 对已成功组逆序执行补偿：释放优惠券 → 释放积分 → 释放库存 → 移除未提交的订单聚合。
+    /// 每个补偿动作独立 try/catch，单动作失败仅记录日志不阻止其它补偿（积分/促销防腐层在 Task 10/11 后远程失败会抛 <see cref="OrderDomainException"/>）。
+    /// </summary>
+    private async Task CompensateAsync(List<CompletedGroup> completed, CancellationToken ct)
+    {
+        for (var i = completed.Count - 1; i >= 0; i--)
+        {
+            var g = completed[i];
+
+            // 释放优惠券（若该组涉及优惠）
+            if (g.HasDiscount)
+            {
+                try
+                {
+                    await _promotionAntiCorruption.ReleaseCouponsAsync(g.OrderId, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Saga 补偿：释放优惠券失败 OrderId={OrderId}", g.OrderId);
+                }
+            }
+
+            // 释放积分（若该组已冻结积分）
+            if (g.PointsFrozen)
+            {
+                try
+                {
+                    await _pointsAntiCorruption.ReleaseAsync(g.OrderId, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Saga 补偿：释放积分失败 OrderId={OrderId}", g.OrderId);
+                }
+            }
+
+            // 释放预占库存
+            try
+            {
+                await _stockService.ReleaseBatchAsync(g.OrderId, g.SkuQuantities, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Saga 补偿：释放库存失败 OrderId={OrderId}", g.OrderId);
+            }
+
+            // 移除未提交的订单聚合（Saga 失败未统一提交，聚合仅在变更跟踪器中）
+            try
+            {
+                await _orderRepository.RemoveAsync(g.Order, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Saga 补偿：移除订单聚合失败 OrderId={OrderId}", g.OrderId);
+            }
+        }
+    }
+
+    private sealed class CompletedGroup
+    {
+        public required OrderAggregate Order { get; init; }
+        public Guid OrderId { get; init; }
+        public required Dictionary<Guid, int> SkuQuantities { get; init; }
+        public bool PointsFrozen { get; init; }
+        public bool HasDiscount { get; init; }
+    }
+}
+
+/// <summary>
+/// 多卖家拆单 Saga 编排器接口。
+/// </summary>
+public interface IOrderSagaOrchestrator
+{
+    /// <summary>
+    /// 按顺序执行所有分组（预占库存 → 冻结积分 → 保存订单），任一组失败时补偿已成功组并抛原始异常。
+    /// 全部成功后统一提交工作单元。
+    /// </summary>
+    /// <param name="context">Saga 上下文，含买家标识、收货地址与分组输入。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task<OrderSagaResult> ExecuteAsync(OrderSagaContext context, CancellationToken ct = default);
+}
+
+/// <summary>
+/// Saga 上下文，承载跨分组共享的买家信息与收货地址，以及各分组输入列表。
+/// </summary>
+public sealed class OrderSagaContext
+{
+    /// <summary>买家标识。</summary>
+    public required Guid UserId { get; init; }
+
+    /// <summary>收货地址快照（各分组共享）。</summary>
+    public required AddressSnapshot Address { get; init; }
+
+    /// <summary>按卖家拆分后的分组输入列表，按顺序执行。</summary>
+    public required IReadOnlyList<OrderSagaGroupInput> Groups { get; init; }
+}
+
+/// <summary>
+/// 单个卖家分组的 Saga 输入，含明细、SKU 信息与积分抵现原始分摊金额。
+/// 积分抵现上限裁剪（商品总额 - 优惠）在 Saga 内部优惠计算后执行。
+/// </summary>
+public sealed class OrderSagaGroupInput
+{
+    /// <summary>卖家标识。</summary>
+    public Guid SellerId { get; init; }
+
+    /// <summary>该分组的下单明细。</summary>
+    public required IReadOnlyList<CheckoutItemDto> Items { get; init; }
+
+    /// <summary>SKU 信息映射（各分组共享，按 SkuId 索引）。</summary>
+    public required IReadOnlyDictionary<Guid, SkuInfo> SkuInfos { get; init; }
+
+    /// <summary>该分组按比例分摊的积分抵现原始金额（未按优惠裁剪）。</summary>
+    public decimal GroupPointsOffsetRaw { get; init; }
+
+    /// <summary>是否启用积分抵现（<c>dto.PointsToUse &gt; 0</c>）。</summary>
+    public bool UsePoints { get; init; }
+}
+
+/// <summary>
+/// Saga 执行结果，含首单聚合（多卖家拆单返回首单）与全部订单聚合列表。
+/// </summary>
+public sealed class OrderSagaResult
+{
+    /// <summary>首个订单聚合（多卖家拆单返回首单）。</summary>
+    public required OrderAggregate FirstOrder { get; init; }
+
+    /// <summary>全部成功创建的订单聚合列表。</summary>
+    public required IReadOnlyList<OrderAggregate> Orders { get; init; }
+}

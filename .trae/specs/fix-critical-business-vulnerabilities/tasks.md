@@ -41,14 +41,14 @@
 
 ## P0 批次四：分布式事务与补偿
 
-- [ ] Task 7: 多卖家拆单 Saga 补偿
-  - [ ] SubTask 7.1: 新建 `OrderSagaOrchestrator`（Order.Application），记录每组执行状态与补偿动作
-  - [ ] SubTask 7.2: 任一组失败时对已成功组执行补偿：`ReleaseBatchAsync`（库存）、`ReleaseAsync`（积分）、`ReleaseCouponsAsync`（券）、取消/删除已保存订单
-  - [ ] SubTask 7.3: `OrderAppService.CreateOrderAsync` 接入 Saga 编排
-  - [ ] SubTask 7.4: 补集成测试覆盖第二组失败回滚第一组场景
-- [ ] Task 8: 单组下单库存/积分原子回滚
-  - [ ] SubTask 8.1: `CreateOrderAsync` 单组流程用 try/catch 包裹，`FreezeAsync` 失败时调用 `ReleaseBatchAsync` 释放库存再抛异常
-  - [ ] SubTask 8.2: 补测试覆盖积分冻结失败释放库存场景
+- [x] Task 7: 多卖家拆单 Saga 补偿
+  - [x] SubTask 7.1: 新建 `OrderSagaOrchestrator`（Order.Application），记录每组执行状态与补偿动作
+  - [x] SubTask 7.2: 任一组失败时对已成功组执行补偿：`ReleaseBatchAsync`（库存）、`ReleaseAsync`（积分）、`ReleaseCouponsAsync`（券）、取消/删除已保存订单
+  - [x] SubTask 7.3: `OrderAppService.CreateOrderAsync` 接入 Saga 编排
+  - [x] SubTask 7.4: 补集成测试覆盖第二组失败回滚第一组场景
+- [x] Task 8: 单组下单库存/积分原子回滚
+  - [x] SubTask 8.1: `CreateOrderAsync` 单组流程用 try/catch 包裹，`FreezeAsync` 失败时调用 `ReleaseBatchAsync` 释放库存再抛异常
+  - [x] SubTask 8.2: 补测试覆盖积分冻结失败释放库存场景
 - [ ] Task 9: PayAsync 事件发布原子化
   - [ ] SubTask 9.1: `Order` 聚合新增 `MarkPaymentInitiated` 方法与"已发起支付"状态/标记
   - [ ] SubTask 9.2: `PayAsync` 改为聚合状态变更 + 领域事件 `PaymentRequestedIntegrationEvent`（经 Outbox 同事务发布），移除直接 `_eventBus.PublishAsync`
@@ -57,14 +57,14 @@
 
 ## P0 批次五：防腐层显式错误传播
 
-- [ ] Task 10: 积分防腐层显式异常
-  - [ ] SubTask 10.1: `PointsAntiCorruptionService.Freeze/Confirm/Release` 移除 try-catch 吞异常，远程失败抛 `OrderDomainException`
-  - [ ] SubTask 10.2: `CreateOrderAsync`/`CancelOrderAsync` 调用处按 spec 处理（回滚/补偿表）
-  - [ ] SubTask 10.3: 补测试覆盖远程失败抛异常
-- [ ] Task 11: 优惠券释放与促销计算显式失败
-  - [ ] SubTask 11.1: `PromotionAntiCorruptionService.ReleaseCouponsAsync` 失败抛异常或写"待释放券"补偿表
-  - [ ] SubTask 11.2: `CalculateDiscountAsync` 失败返回显式 `TryCalcResult` 或抛异常，应用层不再按 0 优惠兜底
-  - [ ] SubTask 11.3: 补测试覆盖释放失败/计算失败场景
+- [x] Task 10: 积分防腐层显式异常
+  - [x] SubTask 10.1: `PointsAntiCorruptionService.Freeze/Confirm/Release` 移除 try-catch 吞异常，远程失败抛 `OrderDomainException`
+  - [x] SubTask 10.2: `CreateOrderAsync`/`CancelOrderAsync` 调用处按 spec 处理（回滚/补偿表）
+  - [x] SubTask 10.3: 补测试覆盖远程失败抛异常
+- [x] Task 11: 优惠券释放与促销计算显式失败
+  - [x] SubTask 11.1: `PromotionAntiCorruptionService.ReleaseCouponsAsync` 失败抛异常或写"待释放券"补偿表
+  - [x] SubTask 11.2: `CalculateDiscountAsync` 失败返回显式 `TryCalcResult` 或抛异常，应用层不再按 0 优惠兜底
+  - [x] SubTask 11.3: 补测试覆盖释放失败/计算失败场景
 - [x] Task 12: CartPriceService 失败处理
   - [x] SubTask 12.1: `CartPriceService` 失败不再返回空集合掩盖，改为抛异常或返回显式失败标记
   - [x] SubTask 12.2: `CartAppService.BuildItemDto` 价格不可用时标记"价格加载失败"并禁用结算，不再展示 0 元

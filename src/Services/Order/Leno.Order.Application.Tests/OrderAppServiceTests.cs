@@ -10,6 +10,7 @@ using Leno.SharedKernel.Abstractions;
 using Leno.Infrastructure.Abstractions;
 using MassTransit;
 using MassTransit.Scheduling;
+using Microsoft.Extensions.Logging;
 using Moq;
 using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
 
@@ -30,6 +31,7 @@ public class OrderAppServiceTests
     private readonly Mock<ILogisticsCompanyRepository> _logisticsCompanyRepoMock = new();
     private readonly Mock<IEventBus> _eventBusMock = new();
     private readonly Mock<IBus> _busMock = new();
+    private readonly IOrderSagaOrchestrator _sagaOrchestrator;
     private readonly OrderAppService _sut;
 
     private static readonly Guid UserId = Guid.NewGuid();
@@ -39,6 +41,19 @@ public class OrderAppServiceTests
 
     public OrderAppServiceTests()
     {
+        // 以共享 Mock 构造真实 Saga 编排器，使 CreateOrderAsync 的断言可直击底层依赖调用
+        _sagaOrchestrator = new OrderSagaOrchestrator(
+            _orderRepoMock.Object,
+            _uowMock.Object,
+            _numberGenMock.Object,
+            _stockServiceMock.Object,
+            _pricingServiceMock.Object,
+            _freightCalculatorMock.Object,
+            _promotionAcMock.Object,
+            _pointsAcMock.Object,
+            _busMock.Object,
+            new Mock<ILogger<OrderSagaOrchestrator>>().Object);
+
         _sut = new OrderAppService(
             _orderRepoMock.Object,
             _uowMock.Object,
@@ -52,7 +67,8 @@ public class OrderAppServiceTests
             _logisticsTrackingMock.Object,
             _logisticsCompanyRepoMock.Object,
             _eventBusMock.Object,
-            _busMock.Object);
+            _busMock.Object,
+            _sagaOrchestrator);
     }
 
     #region GetByIdAsync
@@ -312,6 +328,157 @@ public class OrderAppServiceTests
         _busMock.Verify(
             b => b.Publish(It.IsAny<ScheduleMessage>(), It.IsAny<IPipe<PublishContext<ScheduleMessage>>>(), It.IsAny<CancellationToken>()),
             Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task CreateOrderAsync_PointsFreezeFails_ShouldReleaseStockAndNotPersistOrder()
+    {
+        // Arrange — 单卖家 + 使用积分触发 FreezeAsync
+        var skuInfo = new SkuInfo
+        {
+            SkuId = SkuId,
+            SpuId = Guid.NewGuid(),
+            SellerId = SellerId,
+            ProductName = "Test Product",
+            SkuName = "Red-XL",
+            UnitPrice = 99.99m,
+            IsOnSale = true
+        };
+        _productAcMock.Setup(p => p.GetSkuInfoAsync(SkuId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(skuInfo);
+        _pricingServiceMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _promotionAcMock.Setup(p => p.CalculateDiscountAsync(UserId, It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0m);
+        _freightCalculatorMock.Setup(f => f.CalculateAsync(SellerId, It.IsAny<string>(), 1, 99.99m, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(10m);
+        _stockServiceMock.Setup(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _pointsAcMock.Setup(p => p.FreezeAsync(UserId, It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OrderDomainException("积分域冻结失败", "ORDER_POINTS_FREEZE_FAILED"));
+
+        var dto = new CreateOrderDto
+        {
+            Items = new List<CheckoutItemDto>
+            {
+                new() { SkuId = SkuId, Quantity = 1 }
+            },
+            PointsToUse = 100, // 触发 FreezeAsync
+            RecipientName = "张三",
+            RecipientPhone = "13800138000",
+            Province = "广东",
+            City = "深圳",
+            District = "南山区",
+            Detail = "科技园路1号"
+        };
+
+        // Act
+        var act = () => _sut.CreateOrderAsync(UserId, dto);
+
+        // Assert — 积分冻结失败须回滚已预占库存、不持久化订单、异常向上抛
+        await act.Should().ThrowAsync<OrderDomainException>().WithMessage("*积分域冻结失败*");
+
+        _stockServiceMock.Verify(
+            s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _stockServiceMock.Verify(
+            s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _pointsAcMock.Verify(
+            p => p.FreezeAsync(UserId, It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _orderRepoMock.Verify(
+            r => r.AddAsync(It.IsAny<OrderAggregate>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateOrderAsync_MultiSellerSecondGroupReserveFails_ShouldCompensateFirstGroupAndNotPersist()
+    {
+        // Arrange — 两卖家拆单：第一组（卖家1）成功，第二组（卖家2）库存预占失败
+        var sellerId2 = Guid.NewGuid();
+        var skuId2 = Guid.NewGuid();
+        var skuInfo1 = new SkuInfo
+        {
+            SkuId = SkuId,
+            SpuId = Guid.NewGuid(),
+            SellerId = SellerId,
+            ProductName = "Product A",
+            SkuName = "A-XL",
+            UnitPrice = 100m,
+            IsOnSale = true
+        };
+        var skuInfo2 = new SkuInfo
+        {
+            SkuId = skuId2,
+            SpuId = Guid.NewGuid(),
+            SellerId = sellerId2,
+            ProductName = "Product B",
+            SkuName = "B-M",
+            UnitPrice = 50m,
+            IsOnSale = true
+        };
+        _productAcMock.Setup(p => p.GetSkuInfoAsync(SkuId, It.IsAny<CancellationToken>())).ReturnsAsync(skuInfo1);
+        _productAcMock.Setup(p => p.GetSkuInfoAsync(skuId2, It.IsAny<CancellationToken>())).ReturnsAsync(skuInfo2);
+        _pricingServiceMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        // 第一组涉及优惠（discount > 0），补偿时须释放优惠券
+        _promotionAcMock.Setup(p => p.CalculateDiscountAsync(UserId, It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(10m);
+        _pricingServiceMock.Setup(p => p.CalculateAndAllocateAsync(It.IsAny<decimal>(), It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<(Guid SkuId, decimal Allocation)> { (SkuId, 10m) });
+        _freightCalculatorMock.Setup(f => f.CalculateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(10m);
+        // 第一组预占成功，第二组预占失败（顺序触发）
+        _stockServiceMock.SetupSequence(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .ReturnsAsync(false);
+        _pointsAcMock.Setup(p => p.FreezeAsync(UserId, It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _numberGenMock.Setup(n => n.GenerateAsync(It.IsAny<CancellationToken>())).ReturnsAsync("ORD-001");
+
+        var dto = new CreateOrderDto
+        {
+            Items = new List<CheckoutItemDto>
+            {
+                new() { SkuId = SkuId, Quantity = 1 },
+                new() { SkuId = skuId2, Quantity = 1 }
+            },
+            PointsToUse = 100, // 触发积分冻结，验证补偿释放积分
+            RecipientName = "张三",
+            RecipientPhone = "13800138000",
+            Province = "广东",
+            City = "深圳",
+            District = "南山区",
+            Detail = "科技园路1号"
+        };
+
+        // Act
+        var act = () => _sut.CreateOrderAsync(UserId, dto);
+
+        // Assert — 第二组失败须补偿第一组：释放库存/积分/优惠券、移除未提交订单聚合；订单未持久化；抛原始异常
+        await act.Should().ThrowAsync<OrderDomainException>().WithMessage("*库存预占失败*");
+
+        _stockServiceMock.Verify(
+            s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+        _stockServiceMock.Verify(
+            s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _pointsAcMock.Verify(
+            p => p.FreezeAsync(UserId, It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _pointsAcMock.Verify(
+            p => p.ReleaseAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _promotionAcMock.Verify(
+            p => p.ReleaseCouponsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _orderRepoMock.Verify(
+            r => r.RemoveAsync(It.IsAny<OrderAggregate>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion

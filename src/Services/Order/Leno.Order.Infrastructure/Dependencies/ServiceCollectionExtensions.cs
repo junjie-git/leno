@@ -69,6 +69,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFreightTemplateAppService, FreightTemplateAppService>();
         services.AddScoped<IOrderInternalQueryService, OrderInternalQueryService>();
 
+        // 多卖家拆单 Saga 编排器
+        services.AddScoped<IOrderSagaOrchestrator, OrderSagaOrchestrator>();
+
         // FluentValidation 校验器
         services.AddValidatorsFromAssembly(typeof(IOrderAppService).Assembly);
 

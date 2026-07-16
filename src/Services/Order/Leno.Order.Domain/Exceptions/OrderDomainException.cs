@@ -11,4 +11,12 @@ public sealed class OrderDomainException : DomainException
         : base(message, errorCode, httpStatusCode)
     {
     }
+
+    /// <summary>
+    /// 包装远程/底层异常，保留原始堆栈用于排障，错误码与 HTTP 状态码由调用方指定。
+    /// </summary>
+    public OrderDomainException(string message, Exception innerException, string errorCode = "ORDER_ERROR", int httpStatusCode = 400)
+        : base(message, innerException, errorCode, httpStatusCode)
+    {
+    }
 }

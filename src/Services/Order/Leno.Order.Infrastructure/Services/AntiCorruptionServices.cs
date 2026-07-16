@@ -1,5 +1,6 @@
 using Leno.Infrastructure.Auth;
 using Leno.Order.Application.Services;
+using Leno.Order.Domain.Exceptions;
 using Leno.SharedContracts.Responses;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -103,7 +104,7 @@ public sealed class ProductAntiCorruptionService : IProductAntiCorruptionService
 
 /// <summary>
 /// 促销域防腐层实现，通过 HTTP 调用促销域内部 API 计算订单可享优惠总金额。
-/// 失败时返回 0 优惠。
+/// 远程失败（网络异常、非 2xx、超时）抛 <see cref="OrderDomainException"/>，由应用层处理；用户取消透传 <see cref="OperationCanceledException"/>。
 /// </summary>
 public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionService
 {
@@ -144,7 +145,9 @@ public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionSer
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("促销域计算优惠失败 UserId={UserId} Status={Status}", userId, (int)response.StatusCode);
-                return 0m;
+                throw new OrderDomainException(
+                    $"促销域计算优惠失败，状态码 {(int)response.StatusCode}",
+                    "ORDER_PROMOTION_CALCULATE_FAILED");
             }
 
             await using var stream = await response.Content.ReadAsStreamAsync(ct);
@@ -152,19 +155,28 @@ public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionSer
             if (payload is null || payload.Data is null)
             {
                 _logger.LogWarning("促销域计算优惠返回空数据 UserId={UserId}", userId);
-                return 0m;
+                throw new OrderDomainException(
+                    "促销域计算优惠返回空数据",
+                    "ORDER_PROMOTION_CALCULATE_FAILED");
             }
 
             return payload.Data.TotalDiscountAmount;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OrderDomainException)
         {
             throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "促销域计算优惠异常 UserId={UserId}", userId);
-            return 0m;
+            throw new OrderDomainException(
+                $"促销域计算优惠失败：{ex.Message}",
+                ex,
+                "ORDER_PROMOTION_CALCULATE_FAILED");
         }
     }
 
@@ -190,15 +202,26 @@ public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionSer
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("促销域释放优惠券失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
+                throw new OrderDomainException(
+                    $"促销域释放优惠券失败，状态码 {(int)response.StatusCode}",
+                    "ORDER_PROMOTION_RELEASE_COUPONS_FAILED");
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OrderDomainException)
         {
             throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "促销域释放优惠券异常 OrderId={OrderId}", orderId);
+            throw new OrderDomainException(
+                $"促销域释放优惠券失败：{ex.Message}",
+                ex,
+                "ORDER_PROMOTION_RELEASE_COUPONS_FAILED");
         }
     }
 
@@ -212,7 +235,7 @@ public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionSer
 
 /// <summary>
 /// 积分域防腐层实现，通过 HTTP 调用积分域内部 API 试算/冻结/释放积分。
-/// TryOffsetAsync 返回实际可抵金额（失败返回 0），Freeze/Release 失败仅记录日志不抛异常。
+/// TryOffsetAsync 返回实际可抵金额（失败返回 0，预览降级）；Freeze/ConfirmDeduction/Release 远程失败（网络异常、非 2xx、超时）抛 <see cref="OrderDomainException"/>，用户取消透传 <see cref="OperationCanceledException"/>。
 /// </summary>
 public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
 {
@@ -283,15 +306,26 @@ public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("积分域冻结失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
+                throw new OrderDomainException(
+                    $"积分域冻结失败，状态码 {(int)response.StatusCode}",
+                    "ORDER_POINTS_FREEZE_FAILED");
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OrderDomainException)
         {
             throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "积分域冻结异常 OrderId={OrderId}", orderId);
+            throw new OrderDomainException(
+                $"积分域冻结失败：{ex.Message}",
+                ex,
+                "ORDER_POINTS_FREEZE_FAILED");
         }
     }
 
@@ -308,15 +342,26 @@ public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("积分域释放失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
+                throw new OrderDomainException(
+                    $"积分域释放失败，状态码 {(int)response.StatusCode}",
+                    "ORDER_POINTS_RELEASE_FAILED");
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OrderDomainException)
         {
             throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "积分域释放异常 OrderId={OrderId}", orderId);
+            throw new OrderDomainException(
+                $"积分域释放失败：{ex.Message}",
+                ex,
+                "ORDER_POINTS_RELEASE_FAILED");
         }
     }
 
@@ -333,15 +378,26 @@ public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("积分域确认扣减失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
+                throw new OrderDomainException(
+                    $"积分域确认扣减失败，状态码 {(int)response.StatusCode}",
+                    "ORDER_POINTS_CONFIRM_FAILED");
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OrderDomainException)
         {
             throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "积分域确认扣减异常 OrderId={OrderId}", orderId);
+            throw new OrderDomainException(
+                $"积分域确认扣减失败：{ex.Message}",
+                ex,
+                "ORDER_POINTS_CONFIRM_FAILED");
         }
     }
 

@@ -47,13 +47,13 @@
 ## P0 批次四：分布式事务与补偿
 
 ### Task 7: 多卖家拆单 Saga 补偿
-- [ ] `OrderSagaOrchestrator` 存在并记录每组状态与补偿动作
-- [ ] 第二组失败时第一组库存/积分/券/订单被补偿回滚
-- [ ] 集成测试覆盖第二组失败回滚第一组场景
+- [x] `OrderSagaOrchestrator` 存在并记录每组状态与补偿动作 —— `Leno.Order.Application/Services/OrderSagaOrchestrator.cs`，`ExecuteAsync` 顺序遍历分组，`CompletedGroup` 记录每组订单/SKU/积分冻结/优惠状态，`CompensateAsync` 逆序补偿
+- [x] 第二组失败时第一组库存/积分/券/订单被补偿回滚 —— `CompensateAsync` 逐组 try/catch 执行 `ReleaseCouponsAsync`→`ReleaseAsync`→`ReleaseBatchAsync`→`RemoveAsync`，单动作失败仅记日志不阻塞其它补偿；`SaveEntitiesAsync` 延迟到全部成功后统一提交，失败时无订单持久化
+- [x] 集成测试覆盖第二组失败回滚第一组场景 —— `OrderAppServiceTests.CreateOrderAsync_MultiSellerSecondGroupReserveFails_ShouldCompensateFirstGroupAndNotPersist`
 
 ### Task 8: 单组下单库存/积分原子回滚
-- [ ] `FreezeAsync` 失败时 `ReleaseBatchAsync` 释放已预占库存
-- [ ] 测试覆盖积分冻结失败释放库存场景
+- [x] `FreezeAsync` 失败时 `ReleaseBatchAsync` 释放已预占库存 —— `OrderSagaOrchestrator.ExecuteGroupAsync` 第 151-165 行 try/catch 包裹 `FreezeAsync`，失败时 `ReleaseBatchAsync` 后重抛
+- [x] 测试覆盖积分冻结失败释放库存场景 —— `OrderAppServiceTests.CreateOrderAsync_PointsFreezeFails_ShouldReleaseStockAndNotPersistOrder`
 
 ### Task 9: PayAsync 事件发布原子化
 - [ ] `Order` 聚合含"已发起支付"状态/标记与 `MarkPaymentInitiated`
@@ -64,14 +64,14 @@
 ## P0 批次五：防腐层显式错误传播
 
 ### Task 10: 积分防腐层显式异常
-- [ ] `PointsAntiCorruptionService.Freeze/Confirm/Release` 远程失败抛 `OrderDomainException`，不再吞异常
-- [ ] 调用处按 spec 回滚/补偿
-- [ ] 测试覆盖远程失败抛异常
+- [x] `PointsAntiCorruptionService.Freeze/Confirm/Release` 远程失败抛 `OrderDomainException`，不再吞异常 —— `Leno.Order.Infrastructure/Services/AntiCorruptionServices.cs` 第 297-366 行，`catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }` + `catch (OrderDomainException) { throw; }` + 末尾 catch 包装抛 `OrderDomainException`
+- [x] 调用处按 spec 回滚/补偿 —— `OrderSagaOrchestrator.ExecuteGroupAsync`（T8 单组回滚）+ `CompensateAsync`（T7 多组补偿）均 try/catch 包裹积分释放
+- [x] 测试覆盖远程失败抛异常 —— `AntiCorruptionServicesTests.Points_RemoteFailure_ShouldThrowOrderDomainException` / `Points_NonSuccessStatusCode_ShouldThrowOrderDomainException` / `Points_Timeout_ShouldThrowOrderDomainException` / `Points_UserCancellation_ShouldPropagateOperationCanceledException` / `Points_Success_ShouldNotThrow`
 
 ### Task 11: 优惠券释放与促销计算显式失败
-- [ ] `ReleaseCouponsAsync` 失败抛异常或写补偿表
-- [ ] `CalculateDiscountAsync` 失败显式失败，不再按 0 优惠兜底
-- [ ] 测试覆盖释放失败/计算失败
+- [x] `ReleaseCouponsAsync` 失败抛异常或写补偿表 —— `AntiCorruptionServices.cs` 第 193-226 行，远程失败抛 `OrderDomainException("ORDER_PROMOTION_RELEASE_COUPONS_FAILED")`
+- [x] `CalculateDiscountAsync` 失败显式失败，不再按 0 优惠兜底 —— `AntiCorruptionServices.cs` 第 129-181 行，非 2xx/空数据/异常均抛 `OrderDomainException("ORDER_PROMOTION_CALCULATE_FAILED")`
+- [x] 测试覆盖释放失败/计算失败 —— `AntiCorruptionServicesTests.Promotion_CalculateDiscount_RemoteFailure_ShouldThrowOrderDomainException` / `Promotion_ReleaseCoupons_RemoteFailure_ShouldThrowOrderDomainException`
 
 ### Task 12: CartPriceService 失败处理
 - [x] `CartPriceService` 失败不再静默返回空集合（改抛 `CartDomainException`）
