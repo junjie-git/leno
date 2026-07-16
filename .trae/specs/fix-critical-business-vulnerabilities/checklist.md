@@ -110,16 +110,16 @@
 ## P1 批次九：健壮性与可观测性
 
 ### Task 17: 防腐层降级告警
-- [ ] 防腐层远程失败记录 Prometheus 指标 `anticorruption_failure_total{service,operation}` 与结构化日志
+- [x] 防腐层远程失败记录 Prometheus 指标 `anticorruption_failure_total{service,operation}` 与结构化日志 —— `Leno.Order.Infrastructure/Services/AntiCorruptionMetrics.cs` 静态 `Meter`+`Counter<int>`，`AntiCorruptionServices.cs` 中 `PointsAntiCorruptionService`/`PromotionAntiCorruptionService` catch 块调用 `RecordFailure`，`ServiceCollectionExtensions.cs` `AddMeter` 订阅；测试：`AntiCorruptionMetricsTests`（9 例全绿，MeterListener 验证 service/operation 标签计数）
 
 ### Task 18: 批量库存预占回滚补偿表
-- [ ] 回滚失败记入补偿表，后台任务定期重试
+- [x] 回滚失败记入补偿表，后台任务定期重试 —— `StockReservationCompensation` 聚合（4 态状态机+MaxRetries）+ `EfCoreStockReservationCompensationRepository` + `StockReservationCompensationConfiguration` + `StockReservationDomainService.RecordCompensationAsync`（IServiceScopeFactory 独立 scope）+ `StockReservationCompensationBackgroundService`（5min/50条）；测试：`StockReservationCompensationTests`（13 例全绿，聚合流转+后台重试成功/失败/混合/持久化异常）
 
 ### Task 19: 支付回调 Redis 故障降级
-- [ ] `MarkCallbackProcessedAsync` Redis 故障返回 FAIL，不再 fail-open
+- [x] `MarkCallbackProcessedAsync` Redis 故障返回 FAIL，不再 fail-open —— `AlipayNotifyHandler.cs`/`WeChatPayNotifyHandler.cs` catch 块改为 `throw`，外层 `HandleAsync` catch 返回 fail；Redis null 仍放行（配置选择）；测试：`NotifyHandlerRedisFailoverTests`（3 例全绿：Redis 故障返回 fail 不标记 Paid、Redis null 放行标记 Paid、WeChatPay Redis null 不崩溃）
 
 ### Task 20: 死信积压告警
-- [ ] `DeadLetterMonitorBackgroundService` 每 5 分钟扫描，超阈值告警
+- [x] `DeadLetterMonitorBackgroundService` 每 5 分钟扫描，超阈值告警 —— `DeadLetterMonitorBackgroundService`（`ObservableGauge<int>` dead_letter_count）+ `DeadLetterMonitorOptions`（5min/10/SourceContexts）+ `RunScanCycleAsync` 调 `IDeadLetterQueueManager.CountAsync`；`ServiceCollectionExtensions.cs` 注册；测试：`DeadLetterMonitorBackgroundServiceTests`（6 例全绿：低阈值不告警、超阈值告警、多 Context 扫描、单 Context 超阈值、零死信不记 Info、异常传播）
 
 ### Task 21: 缓存失效健壮性
 - [x] `CacheInvalidationSubscriber` 监听 Redis 断连事件自动重连 —— `Leno.ApiGateway/Services/CacheInvalidationSubscriber.cs` `SubscribeToRedisEvents()` 订阅 `ConnectionFailed`/`InternalError` 事件，`OnConnectionFailed`/`OnInternalError` 触发 `ReconnectWithBackoffAsync()`（指数退避 1s→2s→4s→8s→16s→30s 封顶）后台重新订阅通道；`StartAsync`/`StopAsync`/`Dispose` 正确挂载/卸载事件处理器；测试：`CacheInvalidationSubscriberTests.StartAsync_ShouldAttachConnectionFailedEventHandler` / `StartAsync_ShouldAttachInternalErrorEventHandler` / `StopAsync_ShouldDetachConnectionEventHandlers` / `ConnectionFailed_ShouldTriggerResubscribeWithBackoff` / `InternalError_ShouldTriggerResubscribeWithBackoff`

@@ -43,6 +43,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILogisticsCompanyRepository, EfCoreLogisticsCompanyRepository>();
         services.AddScoped<IFreightTemplateRepository, EfCoreFreightTemplateRepository>();
         services.AddScoped<IInventoryRepository, RedisInventoryRepository>();
+        services.AddScoped<IStockReservationCompensationRepository, EfCoreStockReservationCompensationRepository>();
 
         // 领域服务
         services.AddScoped<IStockReservationDomainService, StockReservationDomainService>();
@@ -58,6 +59,12 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient<IProductAntiCorruptionService, ProductAntiCorruptionService>(c => c.BaseAddress = new Uri(productApiUrl));
         services.AddHttpClient<IPromotionAntiCorruptionService, PromotionAntiCorruptionService>(c => c.BaseAddress = new Uri(promotionApiUrl));
         services.AddHttpClient<IPointsAntiCorruptionService, PointsAntiCorruptionService>(c => c.BaseAddress = new Uri(pointsApiUrl));
+
+        // T17: 防腐层降级告警 —— 通过 OpenTelemetry SDK 按名称订阅 Meter，
+        // 暴露 Prometheus 指标 anticorruption_failure_total{service,operation}。
+        // 各 BC 表现层 Program.cs 调用 AddLenoOpenTelemetry 时通过 configureTracing 回调
+        // 追加 .AddMeter(AntiCorruptionMetrics.MeterName) 即可采集；本注册仅文档化订阅方式。
+        // Meter 实例本身为静态单例（见 AntiCorruptionMetrics），无需 DI 注册。
 
         // 物流轨迹查询：通过 HttpClient 调用第三方物流 API
         services.Configure<LogisticsApiOptions>(configuration.GetSection(LogisticsApiOptions.SectionName));
@@ -77,6 +84,11 @@ public static class ServiceCollectionExtensions
 
         // 库存对账后台服务
         services.AddHostedService<StockReconciliationService>();
+
+        // T18: 库存预占回滚补偿后台服务，定期重试 Pending 补偿记录释放库存
+        services.Configure<StockReservationCompensationOptions>(
+            configuration.GetSection("StockReservationCompensation"));
+        services.AddHostedService<StockReservationCompensationBackgroundService>();
 
         return services;
     }

@@ -23,6 +23,9 @@ public sealed class OrderDbContext : BaseDbContext
     /// <summary>库存预占聚合根。</summary>
     public DbSet<StockReservation> StockReservations => Set<StockReservation>();
 
+    /// <summary>库存预占回滚补偿记录聚合根（T18），由后台任务定期重试 Pending 记录。</summary>
+    public DbSet<StockReservationCompensation> StockReservationCompensations => Set<StockReservationCompensation>();
+
     /// <summary>物流公司聚合根。</summary>
     public DbSet<LogisticsCompany> LogisticsCompanies => Set<LogisticsCompany>();
 

@@ -145,6 +145,7 @@ public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionSer
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("促销域计算优惠失败 UserId={UserId} Status={Status}", userId, (int)response.StatusCode);
+                AntiCorruptionMetrics.RecordFailure("promotion", "calculate_discount");
                 throw new OrderDomainException(
                     $"促销域计算优惠失败，状态码 {(int)response.StatusCode}",
                     "ORDER_PROMOTION_CALCULATE_FAILED");
@@ -155,6 +156,7 @@ public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionSer
             if (payload is null || payload.Data is null)
             {
                 _logger.LogWarning("促销域计算优惠返回空数据 UserId={UserId}", userId);
+                AntiCorruptionMetrics.RecordFailure("promotion", "calculate_discount");
                 throw new OrderDomainException(
                     "促销域计算优惠返回空数据",
                     "ORDER_PROMOTION_CALCULATE_FAILED");
@@ -172,7 +174,9 @@ public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionSer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "促销域计算优惠异常 UserId={UserId}", userId);
+            _logger.LogError(ex, "促销域计算优惠异常 UserId={UserId} Service={Service} Operation={Operation}",
+                userId, "promotion", "calculate_discount");
+            AntiCorruptionMetrics.RecordFailure("promotion", "calculate_discount");
             throw new OrderDomainException(
                 $"促销域计算优惠失败：{ex.Message}",
                 ex,
@@ -202,6 +206,7 @@ public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionSer
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("促销域释放优惠券失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
+                AntiCorruptionMetrics.RecordFailure("promotion", "release_coupons");
                 throw new OrderDomainException(
                     $"促销域释放优惠券失败，状态码 {(int)response.StatusCode}",
                     "ORDER_PROMOTION_RELEASE_COUPONS_FAILED");
@@ -217,7 +222,9 @@ public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionSer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "促销域释放优惠券异常 OrderId={OrderId}", orderId);
+            _logger.LogError(ex, "促销域释放优惠券异常 OrderId={OrderId} Service={Service} Operation={Operation}",
+                orderId, "promotion", "release_coupons");
+            AntiCorruptionMetrics.RecordFailure("promotion", "release_coupons");
             throw new OrderDomainException(
                 $"促销域释放优惠券失败：{ex.Message}",
                 ex,
@@ -238,6 +245,7 @@ public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionSer
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("促销域锁定优惠券失败 UserId={UserId} CouponId={CouponId} OrderId={OrderId} Status={Status}", userId, couponId, orderId, (int)response.StatusCode);
+                AntiCorruptionMetrics.RecordFailure("promotion", "lock_coupon");
                 throw new OrderDomainException(
                     $"促销域锁定优惠券失败，状态码 {(int)response.StatusCode}",
                     "ORDER_PROMOTION_LOCK_COUPON_FAILED");
@@ -253,7 +261,9 @@ public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionSer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "促销域锁定优惠券异常 UserId={UserId} CouponId={CouponId} OrderId={OrderId}", userId, couponId, orderId);
+            _logger.LogError(ex, "促销域锁定优惠券异常 UserId={UserId} CouponId={CouponId} OrderId={OrderId} Service={Service} Operation={Operation}",
+                userId, couponId, orderId, "promotion", "lock_coupon");
+            AntiCorruptionMetrics.RecordFailure("promotion", "lock_coupon");
             throw new OrderDomainException(
                 $"促销域锁定优惠券失败：{ex.Message}",
                 ex,
@@ -342,6 +352,7 @@ public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("积分域冻结失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
+                AntiCorruptionMetrics.RecordFailure("points", "freeze");
                 throw new OrderDomainException(
                     $"积分域冻结失败，状态码 {(int)response.StatusCode}",
                     "ORDER_POINTS_FREEZE_FAILED");
@@ -357,7 +368,9 @@ public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "积分域冻结异常 OrderId={OrderId}", orderId);
+            _logger.LogError(ex, "积分域冻结异常 OrderId={OrderId} Service={Service} Operation={Operation}",
+                orderId, "points", "freeze");
+            AntiCorruptionMetrics.RecordFailure("points", "freeze");
             throw new OrderDomainException(
                 $"积分域冻结失败：{ex.Message}",
                 ex,
@@ -378,6 +391,7 @@ public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("积分域释放失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
+                AntiCorruptionMetrics.RecordFailure("points", "release");
                 throw new OrderDomainException(
                     $"积分域释放失败，状态码 {(int)response.StatusCode}",
                     "ORDER_POINTS_RELEASE_FAILED");
@@ -393,7 +407,9 @@ public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "积分域释放异常 OrderId={OrderId}", orderId);
+            _logger.LogError(ex, "积分域释放异常 OrderId={OrderId} Service={Service} Operation={Operation}",
+                orderId, "points", "release");
+            AntiCorruptionMetrics.RecordFailure("points", "release");
             throw new OrderDomainException(
                 $"积分域释放失败：{ex.Message}",
                 ex,
@@ -414,6 +430,7 @@ public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("积分域确认扣减失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
+                AntiCorruptionMetrics.RecordFailure("points", "confirm");
                 throw new OrderDomainException(
                     $"积分域确认扣减失败，状态码 {(int)response.StatusCode}",
                     "ORDER_POINTS_CONFIRM_FAILED");
@@ -429,7 +446,9 @@ public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "积分域确认扣减异常 OrderId={OrderId}", orderId);
+            _logger.LogError(ex, "积分域确认扣减异常 OrderId={OrderId} Service={Service} Operation={Operation}",
+                orderId, "points", "confirm");
+            AntiCorruptionMetrics.RecordFailure("points", "confirm");
             throw new OrderDomainException(
                 $"积分域确认扣减失败：{ex.Message}",
                 ex,

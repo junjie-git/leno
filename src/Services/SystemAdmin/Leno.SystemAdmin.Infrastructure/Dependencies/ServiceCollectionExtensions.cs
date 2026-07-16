@@ -100,6 +100,11 @@ public static class ServiceCollectionExtensions
         // 对账后台作业
         services.AddHostedService<StatisticsReconciliationJob>();
 
+        // T20: 死信积压告警后台服务，定期扫描死信数量，超阈值告警
+        services.Configure<DeadLetterMonitorOptions>(
+            configuration.GetSection("DeadLetterMonitor"));
+        services.AddHostedService<DeadLetterMonitorBackgroundService>();
+
         services.AddScoped<IAuditLogEntryAppService, AuditLogEntryAppService>();
         services.AddScoped<IRateLimitRuleAppService, RateLimitRuleAppService>();
 

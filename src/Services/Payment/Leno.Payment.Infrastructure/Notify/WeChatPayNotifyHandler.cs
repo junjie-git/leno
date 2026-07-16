@@ -179,12 +179,15 @@ public sealed class WeChatPayNotifyHandler
 
     /// <summary>
     /// 标记回调已处理（Redis 幂等），返回 true 表示首次处理。
+    /// T19：Redis 故障时不再 fail-open 放行，向上抛出由 <see cref="HandleAsync"/> 外层 catch 返回 FAIL 让渠道重试，
+    /// 由 <see cref="PaymentOrder"/> 聚合状态机兜底幂等（重复回调到达已 Paid 状态时跳过）。
+    /// <see cref="_redis"/> 为 null（开发环境未配置 Redis）时仍放行，此为配置选择而非故障。
     /// </summary>
     private async Task<bool> MarkCallbackProcessedAsync(string channelTradeNo)
     {
         if (_redis is null)
         {
-            return true; // Redis 不可用时放行
+            return true; // Redis 未配置时放行（开发环境）
         }
 
         try
@@ -195,8 +198,10 @@ public sealed class WeChatPayNotifyHandler
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "微信支付回调幂等检查异常 ChannelTradeNo={ChannelTradeNo}", channelTradeNo);
-            return true; // 降级：Redis 异常时放行
+            // T19: Redis 故障不再 fail-open 放行，向上抛出由外层返回 FAIL 让渠道重试，
+            // 由 PaymentOrder 聚合状态机兜底幂等
+            _logger.LogError(ex, "微信支付回调幂等检查 Redis 故障 ChannelTradeNo={ChannelTradeNo}", channelTradeNo);
+            throw;
         }
     }
 

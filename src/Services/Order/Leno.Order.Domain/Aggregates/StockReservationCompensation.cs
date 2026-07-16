@@ -1,0 +1,153 @@
+using Leno.Order.Domain.Exceptions;
+using Leno.SharedKernel.Abstractions;
+
+namespace Leno.Order.Domain.Aggregates;
+
+/// <summary>
+/// 库存预占回滚补偿记录聚合根（T18）。
+/// 当 <c>StockReservationDomainService.ReserveBatchAsync</c> 内部回滚或
+/// <c>ReleaseBatchAsync</c>（Saga 补偿/单组回滚）调用 <c>IInventoryRepository.ReleaseAsync</c> 失败时，
+/// 将待释放的 SKU 数量写入此补偿表，由后台任务 <c>StockReservationCompensationBackgroundService</c> 定期重试，
+/// 保证库存最终被释放（避免库存被无效占用）。
+/// 不变量：<see cref="Status"/> 仅可由 Pending → Succeeded / MaxRetriesExceeded 单向流转；
+/// <see cref="RetryCount"/> ≤ <see cref="MaxRetries"/>。
+/// </summary>
+public sealed class StockReservationCompensation : AggregateRoot
+{
+    /// <summary>默认最大重试次数。</summary>
+    public const int DefaultMaxRetries = 5;
+
+    /// <summary>关联订单标识（回滚失败时的目标订单）。</summary>
+    public Guid OrderId { get; private set; }
+
+    /// <summary>待释放库存的 SKU 标识。</summary>
+    public Guid SkuId { get; private set; }
+
+    /// <summary>待释放数量，须 &gt; 0。</summary>
+    public int Quantity { get; private set; }
+
+    /// <summary>补偿状态。</summary>
+    public CompensationStatus Status { get; private set; }
+
+    /// <summary>已重试次数。</summary>
+    public int RetryCount { get; private set; }
+
+    /// <summary>最大重试次数，超过即标记 MaxRetriesExceeded 等待人工介入。</summary>
+    public int MaxRetries { get; private set; }
+
+    /// <summary>最近一次尝试时间（UTC）。</summary>
+    public DateTime? LastAttemptedAt { get; private set; }
+
+    /// <summary>最近一次失败原因（截断存储）。</summary>
+    public string? LastErrorMessage { get; private set; }
+
+    /// <summary>EF Core 无参构造。</summary>
+    private StockReservationCompensation() { }
+
+    private StockReservationCompensation(Guid id) : base(id) { }
+
+    /// <summary>
+    /// 工厂方法，创建一条 Pending 补偿记录。
+    /// </summary>
+    /// <param name="id">聚合标识，由调用方生成。</param>
+    /// <param name="orderId">关联订单标识。</param>
+    /// <param name="skuId">待释放 SKU 标识。</param>
+    /// <param name="quantity">待释放数量，须 &gt; 0。</param>
+    /// <param name="maxRetries">最大重试次数，默认 <see cref="DefaultMaxRetries"/>。</param>
+    public static StockReservationCompensation Create(
+        Guid id,
+        Guid orderId,
+        Guid skuId,
+        int quantity,
+        int maxRetries = DefaultMaxRetries)
+    {
+        if (orderId == Guid.Empty)
+        {
+            throw new OrderDomainException("OrderId 不可为空", "STOCK_COMPENSATION_ORDER_EMPTY");
+        }
+
+        if (skuId == Guid.Empty)
+        {
+            throw new OrderDomainException("SkuId 不可为空", "STOCK_COMPENSATION_SKU_EMPTY");
+        }
+
+        if (quantity <= 0)
+        {
+            throw new OrderDomainException("补偿数量须大于 0", "STOCK_COMPENSATION_QTY_INVALID");
+        }
+
+        if (maxRetries <= 0)
+        {
+            maxRetries = DefaultMaxRetries;
+        }
+
+        return new StockReservationCompensation(id == Guid.Empty ? Guid.NewGuid() : id)
+        {
+            OrderId = orderId,
+            SkuId = skuId,
+            Quantity = quantity,
+            Status = CompensationStatus.Pending,
+            RetryCount = 0,
+            MaxRetries = maxRetries,
+            LastAttemptedAt = null,
+            LastErrorMessage = null
+        };
+    }
+
+    /// <summary>
+    /// 记录一次重试失败：递增 <see cref="RetryCount"/>、更新 <see cref="LastAttemptedAt"/> 与 <see cref="LastErrorMessage"/>。
+    /// 达到 <see cref="MaxRetries"/> 时自动流转到 <see cref="CompensationStatus.MaxRetriesExceeded"/>。
+    /// </summary>
+    /// <param name="errorMessage">本次失败原因。</param>
+    public void MarkFailed(string? errorMessage)
+    {
+        if (Status == CompensationStatus.Succeeded)
+        {
+            return;
+        }
+
+        RetryCount++;
+        LastAttemptedAt = DateTime.UtcNow;
+        LastErrorMessage = string.IsNullOrEmpty(errorMessage)
+            ? null
+            : (errorMessage.Length > 500 ? errorMessage[..500] : errorMessage);
+
+        if (RetryCount >= MaxRetries)
+        {
+            Status = CompensationStatus.MaxRetriesExceeded;
+        }
+        else
+        {
+            Status = CompensationStatus.Pending;
+        }
+    }
+
+    /// <summary>
+    /// 标记补偿成功，状态流转到 <see cref="CompensationStatus.Succeeded"/>（终态）。
+    /// </summary>
+    public void MarkSucceeded()
+    {
+        if (Status == CompensationStatus.Succeeded)
+        {
+            return;
+        }
+
+        LastAttemptedAt = DateTime.UtcNow;
+        Status = CompensationStatus.Succeeded;
+    }
+}
+
+/// <summary>
+/// 库存预占回滚补偿状态枚举。
+/// </summary>
+public enum CompensationStatus
+{
+    /// <summary>待重试（初始状态或上次失败但未达最大重试次数）。</summary>
+    Pending = 0,
+
+    /// <summary>已成功释放（终态）。</summary>
+    Succeeded = 1,
+
+    /// <summary>达到最大重试次数仍失败，等待人工介入（终态）。</summary>
+    MaxRetriesExceeded = 2
+}

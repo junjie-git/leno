@@ -101,14 +101,14 @@
 
 ## P1 批次九：健壮性与可观测性
 
-- [ ] Task 17: 防腐层降级告警
-  - [ ] SubTask 17.1: 防腐层远程失败时记录 Prometheus 指标（`anticorruption_failure_total{service,operation}`）与结构化日志
-- [ ] Task 18: 批量库存预占回滚补偿表
-  - [ ] SubTask 18.1: `StockReservationDomainService.ReserveBatchAsync` 回滚失败记入补偿表，后台任务定期重试
-- [ ] Task 19: 支付回调 Redis 故障降级
-  - [ ] SubTask 19.1: `MarkCallbackProcessedAsync` Redis 故障时返回 FAIL 让渠道重试，不再 fail-open 放行
-- [ ] Task 20: 死信积压告警
-  - [ ] SubTask 20.1: 新建 `DeadLetterMonitorBackgroundService`，每 5 分钟扫描死信数量，超阈值（默认 10）触发告警
+- [x] Task 17: 防腐层降级告警
+  - [x] SubTask 17.1: 防腐层远程失败时记录 Prometheus 指标（`anticorruption_failure_total{service,operation}`）与结构化日志 —— `Leno.Order.Infrastructure/Services/AntiCorruptionMetrics.cs` 静态 `Meter("Leno.Order.AntiCorruption")` + `Counter<int> FailureCounter`；`AntiCorruptionServices.cs` 中 `PromotionAntiCorruptionService`/`PointsAntiCorruptionService` 各 catch 块调用 `AntiCorruptionMetrics.RecordFailure(service, operation)`；`ServiceCollectionExtensions.cs` 注册 `AddMeter(AntiCorruptionMetrics.MeterName)`；测试：`AntiCorruptionMetricsTests`（9 例，MeterListener 验证计数）
+- [x] Task 18: 批量库存预占回滚补偿表
+  - [x] SubTask 18.1: `StockReservationDomainService.ReserveBatchAsync` 回滚失败记入补偿表，后台任务定期重试 —— `StockReservationCompensation` 聚合（Pending/Failed/Succeeded/MaxRetriesExceeded 状态机）+ `EfCoreStockReservationCompensationRepository` + `StockReservationCompensationConfiguration`（snake_case 映射）+ `StockReservationDomainService` 注入 `IServiceScopeFactory`，`ReserveBatchAsync`/`ReleaseBatchAsync` 回滚失败时 `RecordCompensationAsync` 写补偿表（独立 scope 不污染 Saga 事务）+ `StockReservationCompensationBackgroundService`（默认 5 分钟间隔、50 条批处理）定期重试；测试：`StockReservationCompensationTests`（13 例覆盖聚合状态流转 + 后台重试成功/失败/空批/混合/持久化失败）
+- [x] Task 19: 支付回调 Redis 故障降级
+  - [x] SubTask 19.1: `MarkCallbackProcessedAsync` Redis 故障时返回 FAIL 让渠道重试，不再 fail-open 放行 —— `AlipayNotifyHandler.MarkCallbackProcessedAsync` 与 `WeChatPayNotifyHandler.MarkCallbackProcessedAsync` catch 块改为 `throw`（向上抛出由 `HandleAsync` 外层 catch 返回 fail），Redis null（开发环境未配置）仍返回 true 放行；测试：`NotifyHandlerRedisFailoverTests`（3 例：Redis 故障返回 fail 不标记 Paid、Redis null 放行标记 Paid、WeChatPay Redis null 不崩溃）
+- [x] Task 20: 死信积压告警
+  - [x] SubTask 20.1: 新建 `DeadLetterMonitorBackgroundService`，每 5 分钟扫描死信数量，超阈值（默认 10）触发告警 —— `DeadLetterMonitorBackgroundService`（`ObservableGauge<int>` 暴露 `dead_letter_count{source_context}` 指标）+ `DeadLetterMonitorOptions`（Interval 5min、AlertThreshold 10、SourceContexts 列表）+ `RunScanCycleAsync` 调 `IDeadLetterQueueManager.CountAsync` 查总数与各 sourceContext，超阈值 `LogWarning`；`SystemAdmin.Infrastructure/Dependencies/ServiceCollectionExtensions.cs` 注册 `AddHostedService` + 配置绑定；测试：`DeadLetterMonitorBackgroundServiceTests`（6 例：低于阈值不告警、超阈值告警、多 SourceContext 扫描、单 Context 超阈值、零死信不记 Info、CountAsync 异常传播）
 - [x] Task 21: 缓存失效健壮性
   - [x] SubTask 21.1: `CacheInvalidationSubscriber` 监听 Redis `ConnectionFailed`/`InternalError` 事件自动重连
   - [x] SubTask 21.2: 缓存失效改双删模式（先删 → 写库 → 延迟 500ms 再删）
