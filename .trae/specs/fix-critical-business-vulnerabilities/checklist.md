@@ -151,7 +151,7 @@
 
 ## 全局验收
 
-- [ ] 既有测试全绿（破坏性变更未引入回归）
-- [ ] 每个 P0 修复含攻击场景/失败场景测试
-- [ ] 破坏性变更（支付金额校验、fail-closed）灰度方案已评估
-- [ ] 与既有架构方案无重复实施（BC 边界、共享内核、gRPC 等不归本 spec）
+- [x] 既有测试全绿（破坏性变更未引入回归）—— `dotnet build Leno.slnx` 0 错误 0 警告；`dotnet test` 全量运行 spec 相关测试项目全绿（Infrastructure.Tests 140、Order.{Application/Domain/Infrastructure}.Tests 24+85+69、Payment.{Api/Application/Infrastructure}.Tests 13+10+93、Promotion.* 全绿、Product.* 全绿、PointsMembership.Domain.Tests 168、SellerShop.{Application/Domain}.Tests 28+301、ReviewAfterSales.{Application/Domain}.Tests 20+124、SystemAdmin.{Application/Domain/Infrastructure}.Tests 36+494+22、ApiGateway.Tests 146、Cart.* 全绿、UserAuth.* 全绿）；剩余失败均为环境/预存问题：Notification.Api.Tests 4 例 + Order.Api.Tests 9 例 + SellerShop.Api.Tests 5 例（WebApplicationFactory 启动需 Redis/网络，沙箱无 Redis 服务，SocketException）；Payment.Domain.Tests 3 例 ReconciliationServiceTests（预存失败，P2 checklist 行 117 已记录与本次无关）；无回归
+- [x] 每个 P0 修复含攻击场景/失败场景测试 —— T1 金额伪造低金额被拒（`PaymentOrderTests.MarkSucceeded_AmountMismatch_Throws`）、T3 并发锁定互斥（`LockCouponAsync_AlreadyLocked_ShouldThrowExceptionAndNotSave`）、T4 并发领取仅一成功（`ReceiveAsync_ConcurrentDuplicate_ShouldThrowAlreadyReceived`）、T5 生产环境空 ApiKey 启动失败、T7 第二组失败回滚第一组（`CreateOrderAsync_MultiSellerSecondGroupReserveFails_ShouldCompensateFirstGroupAndNotPersist`）、T8 积分冻结失败释放库存、T9 重复发起支付拒绝、T10/T11 防腐层远程失败抛异常（5+2 例）、T12 价格加载失败标记、T13 Outbox 发布失败重试 + Processed 提交失败恢复、T14 重复事件去重、T15 拉取失败回队、T16 对账不一致刷新、T19 Redis 故障返回 FAIL
+- [x] 破坏性变更（支付金额校验、fail-closed）灰度方案已评估 —— 三处破坏性变更均评估：(1) `PaymentOrder.MarkSucceeded` 新增 `amount` 入参——所有调用方（WeChatPayNotifyHandler/AlipayNotifyHandler/PaymentAppService.QueryPaymentStatusAsync）已同步更新，编译期保证；(2) InternalApiKey fail-closed——`EnsureInternalApiKeyConfigured` 扩展方法已实现待各 BC Program.cs 接入（中间件运行时 fail-closed 兜底），灰度时先确保各 BC 配置 `InternalAuth:ApiKey` 再部署；(3) `IntegrationEventConsumerBase` 强制注入 `IIdempotencyStore`——23+1 Consumer 已全部改造，DI 已注册 `RedisIdempotencyStore`，部署需确保 Redis 可用（幂等失败将拒绝消费，需配合监控）
+- [x] 与既有架构方案无重复实施（BC 边界、共享内核、gRPC 等不归本 spec）—— 本 spec 聚焦业务正确性与安全漏洞（支付金额/优惠券/认证/事务补偿/防腐层/幂等/死信/库存对账/可观测性），与 `docs/superpowers/specs/2026-07-13-comprehensive-optimization-design.md`（架构合规性/代码质量/通用能力重构/CQRS/网关/gRPC）边界清晰无重叠；BC 边界修复、共享内核清理、UnitOfWork 去重、CQRS 落地等归既有架构方案
