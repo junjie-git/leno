@@ -6,6 +6,7 @@ using Leno.Order.Domain.Exceptions;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
+using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.Infrastructure.Abstractions;
 using MassTransit;
@@ -237,7 +238,7 @@ public class OrderAppServiceTests
     #region PayAsync
 
     [Fact]
-    public async Task PayAsync_Valid_ShouldPublishEvent()
+    public async Task PayAsync_Valid_ShouldInitiatePaymentAndSaveWithOutbox()
     {
         var order = CreateOrder();
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
@@ -245,7 +246,30 @@ public class OrderAppServiceTests
 
         await _sut.PayAsync(OrderId, UserId, new PayOrderDto { PaymentMethod = PaymentMethod.WeChatPay });
 
-        _eventBusMock.Verify(e => e.PublishAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Once);
+        // 聚合标记已置位，领域事件含 PaymentRequestedIntegrationEvent（经 Outbox 同事务发布）
+        order.PaymentInitiated.Should().BeTrue();
+        order.PaymentMethod.Should().Be(PaymentMethod.WeChatPay);
+        order.DomainEvents.Should().Contain(e => e is PaymentRequestedIntegrationEvent);
+
+        // 不再直接调用 _eventBus.PublishAsync；经 Outbox 持久化
+        _eventBusMock.Verify(e => e.PublishAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Never);
+        _orderRepoMock.Verify(r => r.UpdateAsync(order, It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task PayAsync_AlreadyInitiated_ShouldThrowAndNotSave()
+    {
+        var order = CreateOrder();
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        var act = () => _sut.PayAsync(OrderId, UserId, new PayOrderDto { PaymentMethod = PaymentMethod.Alipay });
+
+        await act.Should().ThrowAsync<OrderDomainException>().WithMessage("*已发起*");
+        _eventBusMock.Verify(e => e.PublishAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

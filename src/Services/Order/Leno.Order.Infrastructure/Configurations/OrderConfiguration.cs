@@ -28,6 +28,8 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<OrderAggregate
         builder.Property(o => o.TotalAmount).HasColumnName("total_amount");
         builder.Property(o => o.Status).HasColumnName("status").HasConversion<int>();
         builder.Property(o => o.PaymentMethod).HasColumnName("payment_method").HasConversion<int>();
+        builder.Property(o => o.PaymentInitiated).HasColumnName("payment_initiated");
+        builder.Property(o => o.PaymentInitiatedAt).HasColumnName("payment_initiated_at");
         builder.Property(o => o.ExpireAt).HasColumnName("expire_at");
         builder.Property(o => o.PaidAt).HasColumnName("paid_at");
         builder.Property(o => o.PaymentId).HasColumnName("payment_id");

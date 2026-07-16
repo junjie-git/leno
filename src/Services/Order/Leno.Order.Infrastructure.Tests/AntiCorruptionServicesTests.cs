@@ -225,6 +225,62 @@ public class AntiCorruptionServicesTests
         await act.Should().NotThrowAsync();
     }
 
+    // ---- PromotionAntiCorruptionService.LockCoupon (Task 3) ----
+
+    [Fact]
+    public async Task Promotion_LockCoupon_RemoteFailure_ShouldThrowOrderDomainException()
+    {
+        var service = CreatePromotionService(_ => throw new HttpRequestException("network down"));
+
+        var act = () => service.LockCouponAsync(UserId, Guid.NewGuid(), OrderId, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<OrderDomainException>();
+        ex.Which.ErrorCode.Should().Be("ORDER_PROMOTION_LOCK_COUPON_FAILED");
+    }
+
+    [Fact]
+    public async Task Promotion_LockCoupon_NonSuccessStatusCode_ShouldThrowOrderDomainException()
+    {
+        // 409 Conflict 对应促销域券已被并发订单占用
+        var service = CreatePromotionService(_ => Response(HttpStatusCode.Conflict));
+
+        var act = () => service.LockCouponAsync(UserId, Guid.NewGuid(), OrderId, CancellationToken.None);
+
+        await act.Should().ThrowAsync<OrderDomainException>();
+    }
+
+    [Fact]
+    public async Task Promotion_LockCoupon_Timeout_ShouldThrowOrderDomainException()
+    {
+        var service = CreatePromotionService(_ => throw new TaskCanceledException("timeout"));
+
+        var act = () => service.LockCouponAsync(UserId, Guid.NewGuid(), OrderId, CancellationToken.None);
+
+        await act.Should().ThrowAsync<OrderDomainException>();
+    }
+
+    [Fact]
+    public async Task Promotion_LockCoupon_UserCancellation_ShouldPropagateOperationCanceledException()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        var service = CreatePromotionService(_ => throw new OperationCanceledException(cts.Token));
+
+        var act = () => service.LockCouponAsync(UserId, Guid.NewGuid(), OrderId, cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task Promotion_LockCoupon_Success_ShouldNotThrow()
+    {
+        var service = CreatePromotionService(_ => Response(HttpStatusCode.OK));
+
+        var act = () => service.LockCouponAsync(UserId, Guid.NewGuid(), OrderId, CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+    }
+
     // ---- Helpers ----
 
     private static PointsAntiCorruptionService CreatePointsService(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler)

@@ -253,15 +253,13 @@ public sealed class OrderAppService : IOrderAppService
         {
             throw new OrderDomainException("无权操作此订单", "ORDER_FORBIDDEN", 403);
         }
-        if (order.Status != OrderStatus.PendingPayment)
-        {
-            throw new OrderDomainException($"订单状态 {order.Status} 不可发起支付", "ORDER_PAY_STATUS_INVALID");
-        }
 
-        // 发布支付请求集成事件，由支付域创建支付单并拉起第三方支付
-        var channel = dto.PaymentMethod.ToString();
-        var evt = new PaymentRequestedIntegrationEvent(orderId, userId, order.TotalAmount, "CNY", channel, DateTime.UtcNow);
-        await _eventBus.PublishAsync(evt, ct);
+        // 聚合状态变更：置"已发起支付"标记并产生 PaymentRequestedIntegrationEvent 领域事件，
+        // 重复发起由聚合抛 OrderDomainException；经 Outbox 与状态变更同事务持久化，避免重复发布。
+        order.MarkPaymentInitiated(dto.PaymentMethod);
+
+        await _orderRepository.UpdateAsync(order, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
     /// <inheritdoc />

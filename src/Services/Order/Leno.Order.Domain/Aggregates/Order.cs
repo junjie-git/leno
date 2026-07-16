@@ -57,6 +57,12 @@ public sealed class Order : AggregateRoot
     /// <summary>支付方式，下单未支付时为空。</summary>
     public PaymentMethod? PaymentMethod { get; private set; }
 
+    /// <summary>是否已发起支付请求（防重复发起支付，与状态变更同事务经 Outbox 发布 PaymentRequestedIntegrationEvent）。</summary>
+    public bool PaymentInitiated { get; private set; }
+
+    /// <summary>支付发起时间（UTC），首次发起支付请求时记录。</summary>
+    public DateTime? PaymentInitiatedAt { get; private set; }
+
     /// <summary>支付截止时间（UTC），超时自动取消。</summary>
     public DateTime ExpireAt { get; private set; }
 
@@ -286,6 +292,36 @@ public sealed class Order : AggregateRoot
 
         PointsOffsetAmount = pointsOffsetAmount;
         RecalculateTotal();
+    }
+
+    /// <summary>
+    /// 标记已发起支付请求，校验待支付态且未重复发起，置 <see cref="PaymentInitiated"/> 标记并发布
+    /// <see cref="PaymentRequestedIntegrationEvent"/>（经 Outbox 与状态变更同事务发布）。
+    /// 重复发起抛领域异常，避免重复发布支付请求事件。
+    /// </summary>
+    /// <param name="paymentMethod">支付方式（同时作为支付渠道与 <see cref="PaymentMethod"/> 记录）。</param>
+    public void MarkPaymentInitiated(PaymentMethod paymentMethod)
+    {
+        if (Status != OrderStatus.PendingPayment)
+        {
+            throw new OrderDomainException(
+                $"当前状态 {Status} 不可发起支付，仅 PendingPayment 可发起",
+                "ORDER_PAY_STATUS_INVALID");
+        }
+
+        if (PaymentInitiated)
+        {
+            throw new OrderDomainException(
+                "支付已发起，请勿重复操作",
+                "ORDER_PAYMENT_ALREADY_INITIATED");
+        }
+
+        PaymentMethod = paymentMethod;
+        PaymentInitiated = true;
+        PaymentInitiatedAt = DateTime.UtcNow;
+
+        AddDomainEvent(new PaymentRequestedIntegrationEvent(
+            Id, UserId, TotalAmount, "CNY", paymentMethod.ToString(), PaymentInitiatedAt.Value));
     }
 
     /// <summary>

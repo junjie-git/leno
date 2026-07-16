@@ -34,5 +34,11 @@ public sealed class UserCouponConfiguration : IEntityTypeConfiguration<UserCoupo
         builder.HasIndex(u => u.UserId).HasDatabaseName("ix_user_coupons_user_id");
         builder.HasIndex(u => u.CouponId).HasDatabaseName("ix_user_coupons_coupon_id");
         builder.HasIndex(u => u.LockedOrderId).HasDatabaseName("ix_user_coupons_locked_order_id");
+
+        // 优惠券领取并发安全（Task 4）：同一买家对同一券模板仅可领取一张，
+        // 唯一索引在并发领取时由数据库拒绝第二条插入，应用层捕获冲突返回"已领取"。
+        builder.HasIndex(u => new { u.UserId, u.CouponId })
+            .IsUnique()
+            .HasDatabaseName("ux_user_coupons_user_id_coupon_id");
     }
 }

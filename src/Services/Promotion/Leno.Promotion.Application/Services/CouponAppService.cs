@@ -4,6 +4,7 @@ using Leno.Promotion.Domain.Exceptions;
 using Leno.Promotion.Domain.Repositories;
 using Leno.Promotion.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
+using Microsoft.EntityFrameworkCore;
 using CouponAggregate = Leno.Promotion.Domain.Aggregates.Coupon;
 using UserCouponAggregate = Leno.Promotion.Domain.Aggregates.UserCoupon;
 
@@ -113,7 +114,15 @@ public sealed class CouponAppService : ICouponAppService
         var userCoupon = UserCouponAggregate.Receive(Guid.NewGuid(), userId, couponId, source, expiredAt);
 
         await _userCouponRepository.AddAsync(userCoupon, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        try
+        {
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // 并发领取：另一请求已先插入同一 (UserId, CouponId) 唯一索引记录，由数据库拒绝第二条插入
+            throw new PromotionDomainException("已领取过该优惠券，不可重复领取", "COUPON_ALREADY_RECEIVED");
+        }
 
         return ToDto(userCoupon);
     }
@@ -123,6 +132,19 @@ public sealed class CouponAppService : ICouponAppService
     {
         var userCoupons = await _userCouponRepository.GetByUserAsync(userId, status, ct);
         return userCoupons.Select(ToDto).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task LockCouponAsync(Guid userId, Guid couponId, Guid orderId, CancellationToken ct = default)
+    {
+        var userCoupon = await _userCouponRepository.GetByUserIdAndCouponIdAsync(userId, couponId, ct)
+            ?? throw new PromotionDomainException($"用户 {userId} 未持有优惠券 {couponId}，无法锁定", "USER_COUPON_NOT_FOUND", 404);
+
+        // Lock 内部校验 Unused + 未过期，券已被并发订单占用时抛 USER_COUPON_LOCK_INVALID，由此实现并发互斥
+        userCoupon.Lock(orderId);
+
+        await _userCouponRepository.UpdateAsync(userCoupon, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
     private async Task<CouponAggregate> RequireCouponAsync(Guid couponId, CancellationToken ct)

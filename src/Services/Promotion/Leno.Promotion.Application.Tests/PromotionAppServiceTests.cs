@@ -7,6 +7,7 @@ using Leno.Promotion.Domain.Repositories;
 using Leno.Promotion.Domain.Services;
 using Leno.Promotion.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using SeckillActivity = Leno.Promotion.Domain.Aggregates.SeckillActivity;
 
@@ -87,6 +88,7 @@ public class CouponAppServiceTests
 
     private static readonly Guid CouponId = Guid.NewGuid();
     private static readonly Guid UserId = Guid.NewGuid();
+    private static readonly Guid OrderId = Guid.NewGuid();
 
     public CouponAppServiceTests()
     {
@@ -143,6 +145,68 @@ public class CouponAppServiceTests
         _userCouponRepoMock.Verify(r => r.AddAsync(It.IsAny<UserCoupon>(), It.IsAny<CancellationToken>()), Times.Once);
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task ReceiveAsync_ConcurrentDuplicate_ShouldThrowAlreadyReceived()
+    {
+        // 并发领取：ExistsAsync 检查通过（并发窗口），但 SaveEntitiesAsync 因 (UserId, CouponId) 唯一索引冲突抛 DbUpdateException
+        var coupon = CreateCoupon();
+        _couponRepoMock.Setup(r => r.GetByIdAsync(CouponId, It.IsAny<CancellationToken>())).ReturnsAsync(coupon);
+        _userCouponRepoMock.Setup(r => r.ExistsAsync(UserId, CouponId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DbUpdateException("unique constraint violation"));
+
+        var act = () => _sut.ReceiveAsync(UserId, CouponId, "Manual");
+
+        await act.Should().ThrowAsync<PromotionDomainException>()
+            .WithMessage("*已领取*");
+    }
+
+    [Fact]
+    public async Task LockCouponAsync_Valid_ShouldLockAndSave()
+    {
+        var userCoupon = CreateUserCoupon();
+        _userCouponRepoMock.Setup(r => r.GetByUserIdAndCouponIdAsync(UserId, CouponId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(userCoupon);
+
+        await _sut.LockCouponAsync(UserId, CouponId, OrderId);
+
+        userCoupon.Status.Should().Be(CouponStatus.Locked);
+        userCoupon.LockedOrderId.Should().Be(OrderId);
+        _userCouponRepoMock.Verify(r => r.UpdateAsync(userCoupon, It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task LockCouponAsync_NotFound_ShouldThrowException()
+    {
+        _userCouponRepoMock.Setup(r => r.GetByUserIdAndCouponIdAsync(UserId, CouponId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserCoupon?)null);
+
+        var act = () => _sut.LockCouponAsync(UserId, CouponId, OrderId);
+
+        await act.Should().ThrowAsync<PromotionDomainException>().WithMessage("*未持有*");
+    }
+
+    [Fact]
+    public async Task LockCouponAsync_AlreadyLocked_ShouldThrowExceptionAndNotSave()
+    {
+        // 并发互斥：券已被另一订单锁定，第二个 LockCouponAsync 被聚合根拒绝
+        var userCoupon = CreateUserCoupon();
+        userCoupon.Lock(Guid.NewGuid());
+        _userCouponRepoMock.Setup(r => r.GetByUserIdAndCouponIdAsync(UserId, CouponId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(userCoupon);
+
+        var act = () => _sut.LockCouponAsync(UserId, CouponId, OrderId);
+
+        await act.Should().ThrowAsync<PromotionDomainException>().WithMessage("*锁定*");
+        _userCouponRepoMock.Verify(r => r.UpdateAsync(It.IsAny<UserCoupon>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static UserCoupon CreateUserCoupon()
+        => UserCoupon.Receive(Guid.NewGuid(), UserId, CouponId, "Manual", DateTime.UtcNow.AddDays(10));
 
     private static Coupon CreateCoupon()
     {

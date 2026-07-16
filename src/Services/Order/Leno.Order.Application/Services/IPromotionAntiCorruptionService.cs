@@ -21,6 +21,17 @@ public interface IPromotionAntiCorruptionService
     /// <param name="orderId">关联订单标识。</param>
     /// <param name="ct">取消令牌。</param>
     Task ReleaseCouponsAsync(Guid orderId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 下单时锁定选定优惠券，将 UserCoupon 由 Unused 置为 Locked 并绑定 orderId，
+    /// 防止同一优惠券被并发订单重复使用。远程失败（网络异常、非 2xx、超时）抛
+    /// <see cref="Leno.Order.Domain.Exceptions.OrderDomainException"/>，由应用层回滚/补偿；用户取消透传 <see cref="OperationCanceledException"/>。
+    /// </summary>
+    /// <param name="userId">买家标识。</param>
+    /// <param name="couponId">优惠券模板标识。</param>
+    /// <param name="orderId">关联订单标识。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task LockCouponAsync(Guid userId, Guid couponId, Guid orderId, CancellationToken ct = default);
 }
 
 /// <summary>

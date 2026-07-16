@@ -334,6 +334,66 @@ public class OrderTests
         act.Should().Throw<OrderDomainException>().WithMessage("*状态*");
     }
 
+    #region MarkPaymentInitiated
+
+    [Fact]
+    public void MarkPaymentInitiated_Valid_ShouldSetFlagAndPublishEvent()
+    {
+        var order = CreateOrder();
+
+        order.MarkPaymentInitiated(PaymentMethod.Alipay);
+
+        order.PaymentInitiated.Should().BeTrue();
+        order.PaymentInitiatedAt.Should().NotBeNull();
+        order.PaymentMethod.Should().Be(PaymentMethod.Alipay);
+        // 订单状态保持待支付（不引入中间状态，仅置标记）
+        order.Status.Should().Be(OrderStatus.PendingPayment);
+        // 领域事件含 PaymentRequestedIntegrationEvent，供 Outbox 同事务发布
+        order.DomainEvents.Should().Contain(e => e is PaymentRequestedIntegrationEvent);
+        var evt = order.DomainEvents.OfType<PaymentRequestedIntegrationEvent>().Single();
+        evt.OrderId.Should().Be(order.Id);
+        evt.UserId.Should().Be(order.UserId);
+        evt.Amount.Should().Be(order.TotalAmount);
+        evt.Channel.Should().Be("Alipay");
+    }
+
+    [Fact]
+    public void MarkPaymentInitiated_AlreadyInitiated_ShouldThrowException()
+    {
+        var order = CreateOrder();
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+
+        var act = () => order.MarkPaymentInitiated(PaymentMethod.Alipay);
+
+        act.Should().Throw<OrderDomainException>().WithMessage("*已发起*");
+        // 重复发起不应再次产生 PaymentRequestedIntegrationEvent
+        order.DomainEvents.OfType<PaymentRequestedIntegrationEvent>().Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void MarkPaymentInitiated_NotPendingPayment_ShouldThrowException()
+    {
+        var order = CreateOrder();
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+
+        var act = () => order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+
+        act.Should().Throw<OrderDomainException>().WithMessage("*状态*");
+    }
+
+    [Fact]
+    public void MarkPaymentInitiated_AfterCancel_ShouldThrowException()
+    {
+        var order = CreateOrder();
+        order.Cancel("timeout", "System");
+
+        var act = () => order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+
+        act.Should().Throw<OrderDomainException>().WithMessage("*状态*");
+    }
+
+    #endregion
+
     [Fact]
     public void Ship_NotPaid_ShouldThrowException()
     {

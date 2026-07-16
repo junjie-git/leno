@@ -47,4 +47,18 @@ public interface ICouponAppService
     Task<UserCouponDto> ReceiveAsync(Guid userId, Guid couponId, string source, CancellationToken ct = default);
 
     Task<List<UserCouponDto>> GetMyCouponsAsync(Guid userId, CouponStatus? status, CancellationToken ct = default);
+
+    /// <summary>
+    /// 下单锁定优惠券（内部接口），将买家持有的指定券由 Unused 置为 Locked 并绑定 orderId。
+    /// 券不存在或已被占用（非 Unused）抛 <see cref="PromotionDomainException"/>。
+    /// </summary>
+    Task LockCouponAsync(Guid userId, Guid couponId, Guid orderId, CancellationToken ct = default);
+}
+
+/// <summary>锁定优惠券内部接口入参。</summary>
+public sealed class LockCouponRequestDto
+{
+    public Guid UserId { get; set; }
+    public Guid CouponId { get; set; }
+    public Guid OrderId { get; set; }
 }

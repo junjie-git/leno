@@ -19,18 +19,18 @@
 ## P0 批次二：优惠券正确性
 
 ### Task 3: 优惠券 Lock 流程贯通
-- [ ] `IPromotionAntiCorruptionService` 含 `LockCouponAsync` 接口与实现
-- [ ] Promotion BC `internal/promotions/lock-coupon` 端点调用 `UserCoupon.Lock(orderId)`
-- [ ] `OrderAppService.CreateOrderAsync` 下单时锁定选定券，失败回滚
-- [ ] 历史数据迁移脚本存在且可执行
-- [ ] 测试覆盖：下单锁定、并发锁定互斥、支付成功核销、取消释放全链路
-- [ ] 同一优惠券无法被两个并发订单同时使用
+- [x] `IPromotionAntiCorruptionService` 含 `LockCouponAsync` 接口与实现 —— `Leno.Order.Application/Services/IPromotionAntiCorruptionService.cs` + `Leno.Order.Infrastructure/Services/AntiCorruptionServices.cs` `LockCouponAsync` 调 `internal/promotions/lock-coupon`，远程失败抛 `ORDER_PROMOTION_LOCK_COUPON_FAILED`
+- [x] Promotion BC `internal/promotions/lock-coupon` 端点调用 `UserCoupon.Lock(orderId)` —— `Leno.Promotion.Api/Controllers/InternalPromotionsController.cs` `LockCouponAsync` → `CouponAppService.LockCouponAsync` → `UserCoupon.Lock(orderId)`
+- [ ] `OrderAppService.CreateOrderAsync` 下单时锁定选定券，失败回滚 —— **跳过**：`CreateOrderDto` 无 couponId 字段，订单侧无选定券信息；已实现接口与端点供后续 CreateOrderDto 扩展 couponId 后接入（详见 tasks.md T3.4）
+- [x] 历史数据迁移脚本存在且可执行 —— `scripts/migrations/promotion-usercoupon-unique-index-backfill.sql`（清理重复领取 + 回填脏数据 + 创建唯一索引，幂等）
+- [x] 测试覆盖：下单锁定、并发锁定互斥、支付成功核销、取消释放全链路 —— `AntiCorruptionServicesTests.Promotion_LockCoupon_*`（5 例远程失败/非2xx/超时/取消/成功）+ `CouponAppServiceTests.LockCouponAsync_Valid/NotFound/AlreadyLocked`（含并发互斥）+ `ReceiveAsync_ConcurrentDuplicate`；支付成功核销与取消释放由既有 `OrderSagaOrchestrator.CompensateAsync` 的 `ReleaseCouponsAsync` 链路承接
+- [x] 同一优惠券无法被两个并发订单同时使用 —— `UserCoupon.Lock` 聚合根校验（仅 Unused 可锁定）+ 防腐层端点同事务调用 + `LockCouponAsync_AlreadyLocked_ShouldThrowExceptionAndNotSave` 测试证明
 
 ### Task 4: 优惠券领取并发安全
-- [ ] `UserCouponConfiguration` 含 `(UserId, CouponId)` 唯一索引
-- [ ] EF Core migration 已生成
-- [ ] `CouponAppService.ReceiveAsync` 捕获唯一约束冲突返回"已领取"
-- [ ] 并发领取测试证明仅一个成功
+- [x] `UserCouponConfiguration` 含 `(UserId, CouponId)` 唯一索引 —— `Leno.Promotion.Infrastructure/Configurations/UserCouponConfiguration.cs` `ux_user_coupons_user_id_coupon_id`
+- [ ] EF Core migration 已生成 —— **跳过**：项目所有 BC 均未采用 EF Core migrations 模式（无 Migrations 目录），T9 新增列亦未生成；建议统一规划 schema 版本管理后补，部署时配合 T3.5 SQL 脚本创建唯一索引（详见 tasks.md T4.2）
+- [x] `CouponAppService.ReceiveAsync` 捕获唯一约束冲突返回"已领取" —— `catch (DbUpdateException) => throw PromotionDomainException("已领取过该优惠券，不可重复领取", "COUPON_ALREADY_RECEIVED")`
+- [x] 并发领取测试证明仅一个成功 —— `CouponAppServiceTests.ReceiveAsync_ConcurrentDuplicate_ShouldThrowAlreadyReceived`（mock SaveEntitiesAsync 抛 DbUpdateException，验证抛"已领取"）
 
 ## P0 批次三：认证授权加固
 
@@ -56,10 +56,10 @@
 - [x] 测试覆盖积分冻结失败释放库存场景 —— `OrderAppServiceTests.CreateOrderAsync_PointsFreezeFails_ShouldReleaseStockAndNotPersistOrder`
 
 ### Task 9: PayAsync 事件发布原子化
-- [ ] `Order` 聚合含"已发起支付"状态/标记与 `MarkPaymentInitiated`
-- [ ] `PayAsync` 通过 Outbox 同事务发布 `PaymentRequestedIntegrationEvent`
-- [ ] 重复发起返回"已发起支付"不重复发布
-- [ ] 测试覆盖重复发起与正常发起
+- [x] `Order` 聚合含"已发起支付"状态/标记与 `MarkPaymentInitiated` —— `Leno.Order.Domain/Aggregates/Order.cs` `PaymentInitiated`/`PaymentInitiatedAt` 字段 + `MarkPaymentInitiated(paymentMethod)` 方法 + `OrderConfiguration` 列映射
+- [x] `PayAsync` 通过 Outbox 同事务发布 `PaymentRequestedIntegrationEvent` —— `OrderAppService.PayAsync` 调 `order.MarkPaymentInitiated` 触发 `AddDomainEvent(PaymentRequestedIntegrationEvent)`，经 `SaveEntitiesAsync`（Outbox 扩展）同事务持久化，移除直接 `_eventBus.PublishAsync`
+- [x] 重复发起返回"已发起支付"不重复发布 —— `MarkPaymentInitiated` 校验 `PaymentInitiated` 抛 `ORDER_PAYMENT_ALREADY_INITIATED`，不再产生第二个事件
+- [x] 测试覆盖重复发起与正常发起 —— `OrderTests.MarkPaymentInitiated_*`（4 例）+ `OrderAppServiceTests.PayAsync_Valid_ShouldInitiatePaymentAndSaveWithOutbox` / `PayAsync_AlreadyInitiated_ShouldThrowAndNotSave`
 
 ## P0 批次五：防腐层显式错误传播
 

@@ -24,6 +24,11 @@ public interface IUserCouponRepository : IRepository<UserCouponAggregate>
     Task<bool> ExistsAsync(Guid userId, Guid couponId, CancellationToken ct = default);
 
     /// <summary>
+    /// 按买家与券模板查询用户券（下单锁定时定位待锁定券，配合 (UserId, CouponId) 唯一索引至多返回一张）。
+    /// </summary>
+    Task<UserCouponAggregate?> GetByUserIdAndCouponIdAsync(Guid userId, Guid couponId, CancellationToken ct = default);
+
+    /// <summary>
     /// 按锁定订单查询用户券（订单支付/取消事件消费时定位券）。
     /// </summary>
     Task<UserCouponAggregate?> GetByLockedOrderIdAsync(Guid orderId, CancellationToken ct = default);

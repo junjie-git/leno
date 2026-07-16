@@ -225,6 +225,42 @@ public sealed class PromotionAntiCorruptionService : IPromotionAntiCorruptionSer
         }
     }
 
+    /// <inheritdoc />
+    public async Task LockCouponAsync(Guid userId, Guid couponId, Guid orderId, CancellationToken ct = default)
+    {
+        try
+        {
+            var request = new { userId = userId, couponId = couponId, orderId = orderId };
+            var json = JsonSerializer.Serialize(request, JsonOptions);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var response = await _httpClient.PostAsync("internal/promotions/lock-coupon", content, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("促销域锁定优惠券失败 UserId={UserId} CouponId={CouponId} OrderId={OrderId} Status={Status}", userId, couponId, orderId, (int)response.StatusCode);
+                throw new OrderDomainException(
+                    $"促销域锁定优惠券失败，状态码 {(int)response.StatusCode}",
+                    "ORDER_PROMOTION_LOCK_COUPON_FAILED");
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OrderDomainException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "促销域锁定优惠券异常 UserId={UserId} CouponId={CouponId} OrderId={OrderId}", userId, couponId, orderId);
+            throw new OrderDomainException(
+                $"促销域锁定优惠券失败：{ex.Message}",
+                ex,
+                "ORDER_PROMOTION_LOCK_COUPON_FAILED");
+        }
+    }
+
     private sealed class DiscountResultResponse
     {
         public decimal TotalDiscountAmount { get; set; }

@@ -12,11 +12,16 @@ namespace Leno.Promotion.Api.Controllers;
 public sealed class InternalPromotionsController : ControllerBase
 {
     private readonly IPromotionCalculateAppService _calculateService;
+    private readonly ICouponAppService _couponService;
 
-    public InternalPromotionsController(IPromotionCalculateAppService calculateService)
+    public InternalPromotionsController(
+        IPromotionCalculateAppService calculateService,
+        ICouponAppService couponService)
     {
         ArgumentNullException.ThrowIfNull(calculateService);
+        ArgumentNullException.ThrowIfNull(couponService);
         _calculateService = calculateService;
+        _couponService = couponService;
     }
 
     /// <summary>试算用户当前订单可用的优惠总金额。</summary>
@@ -26,5 +31,17 @@ public sealed class InternalPromotionsController : ControllerBase
     {
         var result = await _calculateService.CalculateDiscountAsync(input, ct);
         return Ok(ApiResponse.Success(result));
+    }
+
+    /// <summary>
+    /// 下单锁定优惠券（Task 3），将买家持有的指定券由 Unused 置为 Locked 并绑定 orderId。
+    /// 券不存在返回 404，券已被并发订单占用（非 Unused）返回业务错误码 USER_COUPON_LOCK_INVALID。
+    /// </summary>
+    [HttpPost("internal/promotions/lock-coupon")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> LockCouponAsync([FromBody] LockCouponRequestDto input, CancellationToken ct)
+    {
+        await _couponService.LockCouponAsync(input.UserId, input.CouponId, input.OrderId, ct);
+        return Ok(ApiResponse.Success());
     }
 }

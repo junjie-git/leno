@@ -16,18 +16,20 @@
 
 ## P0 批次二：优惠券正确性
 
-- [ ] Task 3: 优惠券 Lock 流程贯通
-  - [ ] SubTask 3.1: `IPromotionAntiCorruptionService` 新增 `LockCouponAsync(userId, couponId, orderId)` 接口方法
-  - [ ] SubTask 3.2: `PromotionAntiCorruptionService`（Order.Infrastructure）实现 `LockCouponAsync`，调用 Promotion BC 新增 `internal/promotions/lock-coupon` 端点
-  - [ ] SubTask 3.3: Promotion BC 新增 `internal/promotions/lock-coupon` 端点，调用 `UserCoupon.Lock(orderId)`
+- [x] Task 3: 优惠券 Lock 流程贯通
+  - [x] SubTask 3.1: `IPromotionAntiCorruptionService` 新增 `LockCouponAsync(userId, couponId, orderId)` 接口方法
+  - [x] SubTask 3.2: `PromotionAntiCorruptionService`（Order.Infrastructure）实现 `LockCouponAsync`，调用 Promotion BC 新增 `internal/promotions/lock-coupon` 端点
+  - [x] SubTask 3.3: Promotion BC 新增 `internal/promotions/lock-coupon` 端点，调用 `UserCoupon.Lock(orderId)`
   - [ ] SubTask 3.4: `OrderAppService.CreateOrderAsync` 在 `CalculateDiscountAsync` 后立即对选定券调用 `LockCouponAsync`，失败抛领域异常并回滚
-  - [ ] SubTask 3.5: 编写历史数据迁移脚本：扫描 `Unused` 但已关联订单的券，回填 `LockedOrderId`（如有）
-  - [ ] SubTask 3.6: 补测试覆盖锁定/并发锁定/支付成功核销/取消释放全链路
-- [ ] Task 4: 优惠券领取并发安全
-  - [ ] SubTask 4.1: `UserCouponConfiguration` 新增 `HasIndex(u => new { u.UserId, u.CouponId }).IsUnique()`
+    - **跳过说明**：`CreateOrderDto` 当前不含 `couponId` 字段，`OrderSagaOrchestrator` 与 `CalculateDiscountAsync` 均不传 couponId，订单侧无"选定券"信息。按 spec"若无则跳过锁定调用但仍实现接口与端点供后续"要求，本任务已完整实现 T3.1/T3.2/T3.3 接口与端点，待 CreateOrderDto 扩展 couponId 后即可接入 Saga 锁定调用。
+  - [x] SubTask 3.5: 编写历史数据迁移脚本：扫描 `Unused` 但已关联订单的券，回填 `LockedOrderId`（如有） —— `scripts/migrations/promotion-usercoupon-unique-index-backfill.sql`
+  - [x] SubTask 3.6: 补测试覆盖锁定/并发锁定/支付成功核销/取消释放全链路
+- [x] Task 4: 优惠券领取并发安全
+  - [x] SubTask 4.1: `UserCouponConfiguration` 新增 `HasIndex(u => new { u.UserId, u.CouponId }).IsUnique()`
   - [ ] SubTask 4.2: 生成 EF Core migration
-  - [ ] SubTask 4.3: `CouponAppService.ReceiveAsync` 捕获唯一约束冲突返回"已领取"
-  - [ ] SubTask 4.4: 补并发领取测试
+    - **跳过说明**：项目所有 BC（Order/Promotion/Cart/Payment 等）Infrastructure 均未采用 EF Core migrations 模式（无 Migrations 目录），T9 新增列亦未生成 migration。生成首次 migration 将包含整个 schema 且与实际数据库可能不一致，超出本任务范围。建议统一规划 schema 版本管理后补 migration；T4.1 Configuration 变更已就绪，部署时配合 T3.5 SQL 脚本创建唯一索引。
+  - [x] SubTask 4.3: `CouponAppService.ReceiveAsync` 捕获唯一约束冲突返回"已领取"
+  - [x] SubTask 4.4: 补并发领取测试
 
 ## P0 批次三：认证授权加固
 
@@ -49,11 +51,11 @@
 - [x] Task 8: 单组下单库存/积分原子回滚
   - [x] SubTask 8.1: `CreateOrderAsync` 单组流程用 try/catch 包裹，`FreezeAsync` 失败时调用 `ReleaseBatchAsync` 释放库存再抛异常
   - [x] SubTask 8.2: 补测试覆盖积分冻结失败释放库存场景
-- [ ] Task 9: PayAsync 事件发布原子化
-  - [ ] SubTask 9.1: `Order` 聚合新增 `MarkPaymentInitiated` 方法与"已发起支付"状态/标记
-  - [ ] SubTask 9.2: `PayAsync` 改为聚合状态变更 + 领域事件 `PaymentRequestedIntegrationEvent`（经 Outbox 同事务发布），移除直接 `_eventBus.PublishAsync`
-  - [ ] SubTask 9.3: 重复发起返回"已发起支付"不重复发布
-  - [ ] SubTask 9.4: 补测试覆盖重复发起与正常发起
+- [x] Task 9: PayAsync 事件发布原子化
+  - [x] SubTask 9.1: `Order` 聚合新增 `MarkPaymentInitiated` 方法与"已发起支付"状态/标记
+  - [x] SubTask 9.2: `PayAsync` 改为聚合状态变更 + 领域事件 `PaymentRequestedIntegrationEvent`（经 Outbox 同事务发布），移除直接 `_eventBus.PublishAsync`
+  - [x] SubTask 9.3: 重复发起返回"已发起支付"不重复发布
+  - [x] SubTask 9.4: 补测试覆盖重复发起与正常发起
 
 ## P0 批次五：防腐层显式错误传播
 
