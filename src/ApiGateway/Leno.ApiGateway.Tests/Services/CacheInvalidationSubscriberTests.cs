@@ -349,4 +349,234 @@ public class CacheInvalidationSubscriberTests
 
         throw new InvalidOperationException("无法构造 InternalErrorEventArgs，请检查 StackExchange.Redis 版本");
     }
+
+    // ===== T23: InvalidatePatternAsync — UNLINK + 分批 SCAN 测试 =====
+
+    /// <summary>
+    /// T23：InvalidatePatternAsync 应使用 UNLINK 而非 DEL 删除匹配 key。
+    /// </summary>
+    [Fact]
+    public async Task InvalidatePatternAsync_ShouldUseUnlinkNotDel()
+    {
+        // Arrange
+        var (redisMock, databaseMock, subscriber) = CreateSubscriberWithServer(
+            new[] { (RedisKey)"leno:cache:user:1", (RedisKey)"leno:cache:user:2" });
+
+        // Act
+        await subscriber.InvalidatePatternAsync(databaseMock.Object, "user:*");
+
+        // Assert：使用 UNLINK（ExecuteAsync）而非 DEL（KeyDeleteAsync）
+        databaseMock.Verify(
+            d => d.ExecuteAsync("UNLINK", It.IsAny<ICollection<object>>(), It.IsAny<CommandFlags>()),
+            Times.Once);
+        databaseMock.Verify(
+            d => d.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()),
+            Times.Never);
+
+        subscriber.Dispose();
+    }
+
+    /// <summary>
+    /// T23：多个 key（少于批次大小）应合并为一次 UNLINK 调用。
+    /// </summary>
+    [Fact]
+    public async Task InvalidatePatternAsync_MultipleKeysBelowBatchSize_ShouldUnlinkInSingleCall()
+    {
+        // Arrange：5 个 key，默认批次 100，应合并为一次 UNLINK
+        var keys = Enumerable.Range(1, 5).Select(i => (RedisKey)$"leno:cache:user:{i}").ToArray();
+        var (redisMock, databaseMock, subscriber) = CreateSubscriberWithServer(keys);
+
+        // Act
+        await subscriber.InvalidatePatternAsync(databaseMock.Object, "user:*");
+
+        // Assert：仅一次 UNLINK 调用
+        databaseMock.Verify(
+            d => d.ExecuteAsync("UNLINK", It.IsAny<ICollection<object>>(), It.IsAny<CommandFlags>()),
+            Times.Once);
+
+        subscriber.Dispose();
+    }
+
+    /// <summary>
+    /// T23：多个 key（超过批次大小）应分批 UNLINK。
+    /// 默认批次 100，250 个 key 应分为 3 批（100 + 100 + 50）。
+    /// </summary>
+    [Fact]
+    public async Task InvalidatePatternAsync_MultipleKeysExceedBatchSize_ShouldUnlinkInMultipleBatches()
+    {
+        // Arrange：250 个 key，默认批次 100 → 3 次 UNLINK
+        var keys = Enumerable.Range(1, 250).Select(i => (RedisKey)$"leno:cache:user:{i}").ToArray();
+        var (redisMock, databaseMock, subscriber) = CreateSubscriberWithServer(keys);
+
+        // Act
+        await subscriber.InvalidatePatternAsync(databaseMock.Object, "user:*");
+
+        // Assert：3 次 UNLINK 调用（100 + 100 + 50）
+        databaseMock.Verify(
+            d => d.ExecuteAsync("UNLINK", It.IsAny<ICollection<object>>(), It.IsAny<CommandFlags>()),
+            Times.Exactly(3));
+
+        subscriber.Dispose();
+    }
+
+    /// <summary>
+    /// T23：自定义批次大小覆盖应生效。
+    /// 10 个 key，批次大小 3 → 4 次 UNLINK（3+3+3+1）。
+    /// </summary>
+    [Fact]
+    public async Task InvalidatePatternAsync_CustomBatchSize_ShouldBatchByCustomSize()
+    {
+        // Arrange：10 个 key，自定义批次 3 → 4 次 UNLINK
+        var keys = Enumerable.Range(1, 10).Select(i => (RedisKey)$"leno:cache:user:{i}").ToArray();
+        var (redisMock, databaseMock, subscriber) = CreateSubscriberWithServer(keys);
+        subscriber.PatternInvalidationBatchSizeOverride = 3;
+
+        // Act
+        await subscriber.InvalidatePatternAsync(databaseMock.Object, "user:*");
+
+        // Assert：4 次 UNLINK 调用（3+3+3+1）
+        databaseMock.Verify(
+            d => d.ExecuteAsync("UNLINK", It.IsAny<ICollection<object>>(), It.IsAny<CommandFlags>()),
+            Times.Exactly(4));
+
+        subscriber.Dispose();
+    }
+
+    /// <summary>
+    /// T23：无匹配 key 时不应调用 UNLINK。
+    /// </summary>
+    [Fact]
+    public async Task InvalidatePatternAsync_NoMatchingKeys_ShouldNotCallUnlink()
+    {
+        // Arrange
+        var (redisMock, databaseMock, subscriber) = CreateSubscriberWithServer(Array.Empty<RedisKey>());
+
+        // Act
+        await subscriber.InvalidatePatternAsync(databaseMock.Object, "nonexistent:*");
+
+        // Assert
+        databaseMock.Verify(
+            d => d.ExecuteAsync("UNLINK", It.IsAny<ICollection<object>>(), It.IsAny<CommandFlags>()),
+            Times.Never);
+
+        subscriber.Dispose();
+    }
+
+    /// <summary>
+    /// T23：UNLINK 命令参数应包含匹配的 key（字符串形式）。
+    /// </summary>
+    [Fact]
+    public async Task InvalidatePatternAsync_ShouldPassKeysAsUnlinkArgs()
+    {
+        // Arrange
+        var keys = new[]
+        {
+            (RedisKey)"leno:cache:user:1",
+            (RedisKey)"leno:cache:user:2",
+            (RedisKey)"leno:cache:user:3"
+        };
+        var (redisMock, databaseMock, subscriber) = CreateSubscriberWithServer(keys);
+        List<object>? capturedArgs = null;
+        databaseMock
+            .Setup(d => d.ExecuteAsync("UNLINK", It.IsAny<ICollection<object>>(), It.IsAny<CommandFlags>()))
+            .Callback<string, ICollection<object>, CommandFlags>((_, args, _) => capturedArgs = args.ToList())
+            .ReturnsAsync(RedisResult.Create(3));
+
+        // Act
+        await subscriber.InvalidatePatternAsync(databaseMock.Object, "user:*");
+
+        // Assert：UNLINK 参数包含全部 3 个 key
+        capturedArgs.Should().NotBeNull();
+        capturedArgs!.Count.Should().Be(3);
+        capturedArgs.Should().ContainEquivalentOf("leno:cache:user:1");
+        capturedArgs.Should().ContainEquivalentOf("leno:cache:user:2");
+        capturedArgs.Should().ContainEquivalentOf("leno:cache:user:3");
+
+        subscriber.Dispose();
+    }
+
+    /// <summary>
+    /// T23：Pattern 应拼接 KeyPrefix（leno:cache:）后传给 SCAN。
+    /// 通过验证 SCAN 返回的 key 全部被 UNLINK（说明 SCAN 用了正确 pattern）。
+    /// </summary>
+    [Fact]
+    public async Task InvalidatePatternAsync_ShouldPrependKeyPrefixToPattern()
+    {
+        // Arrange：SCAN 返回带前缀的 key，证明 SCAN 使用了 leno:cache: + pattern
+        var keys = new[] { (RedisKey)"leno:cache:product:*" };
+        var (redisMock, databaseMock, subscriber) = CreateSubscriberWithServer(keys, expectedPattern: "leno:cache:product:*");
+
+        // Act
+        await subscriber.InvalidatePatternAsync(databaseMock.Object, "product:*");
+
+        // Assert：UNLINK 调用一次，包含带前缀的 key
+        databaseMock.Verify(
+            d => d.ExecuteAsync("UNLINK", It.IsAny<ICollection<object>>(), It.IsAny<CommandFlags>()),
+            Times.Once);
+
+        subscriber.Dispose();
+    }
+
+    /// <summary>
+    /// 构造 CacheInvalidationSubscriber + IServer mock，使 KeysAsync 返回指定 key 序列。
+    /// </summary>
+    private static (Mock<IConnectionMultiplexer> redisMock, Mock<IDatabase> databaseMock, CacheInvalidationSubscriber subscriber) CreateSubscriberWithServer(
+        RedisKey[] keys,
+        string? expectedPattern = null)
+    {
+        var redisMock = new Mock<IConnectionMultiplexer>();
+        var databaseMock = new Mock<IDatabase>();
+        var serverMock = new Mock<IServer>();
+
+        redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(databaseMock.Object);
+        redisMock.Setup(r => r.GetServers()).Returns(new[] { serverMock.Object });
+        serverMock.SetupGet(s => s.IsReplica).Returns(false);
+
+        // 如果指定了期望的 pattern，则验证 SCAN 使用了正确的 pattern
+        if (expectedPattern is not null)
+        {
+            serverMock
+                .Setup(s => s.KeysAsync(
+                    It.IsAny<int>(),
+                    It.Is<RedisValue>(p => p == expectedPattern),
+                    It.IsAny<int>(),
+                    It.IsAny<long>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CommandFlags>()))
+                .Returns(CreateKeyAsyncEnumerable(keys));
+        }
+        else
+        {
+            serverMock
+                .Setup(s => s.KeysAsync(
+                    It.IsAny<int>(),
+                    It.IsAny<RedisValue>(),
+                    It.IsAny<int>(),
+                    It.IsAny<long>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CommandFlags>()))
+                .Returns(CreateKeyAsyncEnumerable(keys));
+        }
+
+        databaseMock
+            .Setup(d => d.ExecuteAsync("UNLINK", It.IsAny<ICollection<object>>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(RedisResult.Create(keys.Length));
+
+        var subscriber = new CacheInvalidationSubscriber(
+            redisMock.Object, NullLogger<CacheInvalidationSubscriber>.Instance);
+
+        return (redisMock, databaseMock, subscriber);
+    }
+
+    /// <summary>
+    /// 创建 yield 模式的 IAsyncEnumerable&lt;RedisKey&gt;，模拟 SCAN 迭代。
+    /// </summary>
+    private static async IAsyncEnumerable<RedisKey> CreateKeyAsyncEnumerable(IEnumerable<RedisKey> keys)
+    {
+        foreach (var key in keys)
+        {
+            await Task.Yield();
+            yield return key;
+        }
+    }
 }

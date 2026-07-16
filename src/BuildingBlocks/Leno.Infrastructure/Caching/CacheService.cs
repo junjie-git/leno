@@ -14,6 +14,7 @@ namespace Leno.Infrastructure.Caching;
 public sealed class CacheService : ICacheService
 {
     private readonly IDatabase _database;
+    private readonly IConnectionMultiplexer _redis;
     private readonly IBloomFilter _bloomFilter;
     private readonly ILogger<CacheService> _logger;
     private readonly Random _random;
@@ -55,6 +56,7 @@ public sealed class CacheService : ICacheService
         ILogger<CacheService> logger)
     {
         ArgumentNullException.ThrowIfNull(connectionMultiplexer);
+        _redis = connectionMultiplexer;
         _database = connectionMultiplexer.GetDatabase();
         _bloomFilter = bloomFilter;
         _logger = logger;
@@ -265,6 +267,111 @@ public sealed class CacheService : ICacheService
         }
 
         _logger.LogInformation("布隆过滤器预热完成，共 {Count} 个 key", keyList.Count);
+    }
+
+    // ===== T23: InvalidatePatternAsync — UNLINK + 分批 SCAN =====
+
+    /// <summary>
+    /// T23：Pattern 失效批量 UNLINK 的默认批次大小（每批 100 个 key）。
+    /// </summary>
+    private const int DefaultPatternInvalidationBatchSize = 100;
+
+    /// <summary>
+    /// T23：批次大小覆盖值，测试时可设为较小值以加速验证分批行为。null 时使用默认值 100。
+    /// </summary>
+    internal int? PatternInvalidationBatchSizeOverride { get; set; }
+
+    /// <summary>
+    /// T23：实际使用的批次大小。
+    /// </summary>
+    private int PatternInvalidationBatchSize => PatternInvalidationBatchSizeOverride ?? DefaultPatternInvalidationBatchSize;
+
+    /// <summary>
+    /// 按 glob 模式批量失效缓存（T23 性能优化）。
+    /// <para>
+    /// 实现要点：
+    /// <list type="bullet">
+    /// <item>使用 <c>SCAN</c> 游标迭代匹配 key（<see cref="IServer.KeysAsync"/> 内部使用 SCAN），
+    /// 避免 <c>KEYS</c> 在大 key 空间下阻塞 Redis 主线程。</item>
+    /// <item>使用 <c>UNLINK</c> 异步删除（Redis 4.0+），而非 <c>DEL</c> 同步删除。
+    /// UNLINK 将实际内存释放放到后台线程，不阻塞 Redis 主线程。</item>
+    /// <item>批量 UNLINK：默认每 100 个 key 合并为一次 <c>UNLINK key1 key2 ...</c> 调用，
+    /// 减少网络往返。批次大小可通过 <see cref="PatternInvalidationBatchSizeOverride"/> 覆盖。</item>
+    /// </list>
+    /// </para>
+    /// </summary>
+    /// <param name="pattern">glob 模式（如 <c>user:*</c>）。调用方负责包含必要的 key 前缀。</param>
+    /// <param name="ct">取消令牌。</param>
+    public async Task InvalidatePatternAsync(string pattern, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(pattern);
+
+        // 获取主节点（非副本），SCAN 必须在主节点上执行以保证一致性
+        var servers = _redis.GetServers();
+        var server = servers.FirstOrDefault(s => !s.IsReplica);
+        if (server is null)
+        {
+            _logger.LogWarning("无可用主 Redis 节点，跳过 Pattern 失效: {Pattern}", pattern);
+            return;
+        }
+
+        var batchSize = PatternInvalidationBatchSize;
+        if (batchSize <= 0)
+        {
+            batchSize = DefaultPatternInvalidationBatchSize;
+        }
+
+        var batch = new List<RedisKey>(batchSize);
+        var deleted = 0L;
+
+        // SCAN 游标迭代：StackExchange.Redis 的 KeysAsync 内部使用 SCAN，不会阻塞 Redis
+        await foreach (var key in server.KeysAsync(pattern: pattern).WithCancellation(ct))
+        {
+            batch.Add(key);
+            if (batch.Count >= batchSize)
+            {
+                deleted += await UnlinkBatchAsync(batch);
+                batch.Clear();
+            }
+        }
+
+        // 处理最后一批不足 batchSize 的 key
+        if (batch.Count > 0)
+        {
+            deleted += await UnlinkBatchAsync(batch);
+        }
+
+        _logger.LogInformation(
+            "Pattern 失效完成: 删除 {Count} 个匹配 key, Pattern={Pattern}",
+            deleted, pattern);
+    }
+
+    /// <summary>
+    /// 批量 UNLINK 一组 key。
+    /// <para>
+    /// 使用 <c>UNLINK key1 key2 ...</c> 命令一次性删除多个 key，
+    /// Redis 在后台线程异步释放内存，不阻塞主线程。
+    /// 返回值是 UNLINK 命令返回的实际删除数量。
+    /// </para>
+    /// </summary>
+    private async Task<long> UnlinkBatchAsync(List<RedisKey> keys)
+    {
+        if (keys.Count == 0)
+        {
+            return 0;
+        }
+
+        // 将 RedisKey 转为字符串作为 UNLINK 命令参数
+        // （RedisKey 可隐式转换为 string/byte[]，这里用 ToString() 确保非 null）
+        var args = new List<object>(keys.Count);
+        foreach (var key in keys)
+        {
+            args.Add(key.ToString());
+        }
+
+        var result = await _database.ExecuteAsync("UNLINK", args, CommandFlags.None);
+        // UNLINK 返回整数：实际删除的 key 数量
+        return (long)result;
     }
 
     /// <summary>

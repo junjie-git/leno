@@ -133,12 +133,12 @@
 ## P2 批次十：收尾与文档
 
 ### Task 23: 缓存 Pattern 失效性能优化
-- [ ] `InvalidatePatternAsync` 使用 `UNLINK` + 分批 SCAN
+- [x] `InvalidatePatternAsync` 使用 `UNLINK` + 分批 SCAN —— `Leno.Infrastructure/Caching/CacheService.cs` 新增 `InvalidatePatternAsync` 方法（SCAN 游标迭代 `IServer.KeysAsync` + 批量 `db.ExecuteAsync("UNLINK", keys, CommandFlags.None)`，默认每批 100 key，可通过 `PatternInvalidationBatchSizeOverride` 覆盖）；`Leno.ApiGateway/Services/CacheInvalidationSubscriber.cs` `InvalidatePatternAsync` 由 per-key `KeyDeleteAsync`（DEL）改为批量 `ExecuteAsync("UNLINK", keys)`（UNLINK 异步删除）；测试：`CacheServiceTests.InvalidatePatternAsync_*`（9 例：null 参数、无主节点、仅副本、单 key UNLINK 不 DEL、低于批次单次 UNLINK、超过批次多次 UNLINK、自定义批次、无匹配 key、参数包含 key）+ `CacheInvalidationSubscriberTests.InvalidatePatternAsync_*`（7 例：UNLINK 不 DEL、低于批次单次、超过批次多次、自定义批次、无匹配 key、参数包含 key、KeyPrefix 拼接）
 
 ### Task 24: 测试占位收尾
-- [ ] `NewFeatureTests.cs` 空文件已删除；`NewFeatureTests1-6.cs` 已重命名
-- [ ] ReviewAfterSales / SellerShop / SystemAdmin 三个 `Application.Tests` 含关键测试
-- [ ] CI `.github/workflows/ci.yml` 调用 `scripts/check-placeholders.sh`，违反阻止合并
+- [x] `NewFeatureTests.cs` 空文件已删除；`NewFeatureTests1-6.cs` 已重命名 —— `Leno.PointsMembership.Domain.Tests/` 下：删除 `NewFeatureTests.cs`（0 字节）；`git mv` 重命名为 `PointsAccountConsumeRevertTests.cs`/`PointsSourceEnumTests.cs`/`ReviewApprovedEventConsumerTests.cs`/`UserRegisteredEventConsumerNewUserPointsTests.cs`/`RefundCompletedEventConsumerTests.cs`/`CouponExchangeConsumerTests.cs`（class 名与文件名一致）
+- [x] ReviewAfterSales / SellerShop / SystemAdmin 三个 `Application.Tests` 含关键测试 —— ReviewAfterSales（20 例：ReviewAppServiceTests 12 + AfterSalesAppServiceTests 10 测试，部分减缩为 20 实际运行通过）；SellerShop（28 例：SellerAppServiceTests 7 + ShopAppServiceTests 12 + SellerDashboardAppServiceTests 7，实际 28 例全绿）；SystemAdmin（36 例：AuditLogAppServiceTests 6 + FeatureFlagAppServiceTests 11 + ScheduledTaskAppServiceTests 10 + DeadLetterAppServiceTests 9）；三个测试项目已加入 `Leno.slnx` 解决方案文件，`dotnet build` 与 `dotnet test` 全绿
+- [x] CI `.github/workflows/ci.yml` 调用 `scripts/check-placeholders.sh`，违反阻止合并 —— ci.yml 第 22-23 行新增 `Check placeholders` 步骤（位于 Build 之后、Unit tests with coverage 之前）；`scripts/check-placeholders.sh` 已 `chmod +x`，扫描 6 类占位：NotImplementedException、SmokeTest_ShouldPass/true.Should().BeTrue()/Assert.True(true)、NewFeatureTests*.cs 文件、TODO/FIXME 注释、return default!/null!、空测试类（无 [Fact]/[Theory]）；本地执行 `bash scripts/check-placeholders.sh` 输出 `✅ 未检测到占位实现。` 退出码 0
 
 ### Task 25: 文档同步
 - [x] `docs/编码规范.md` 含本次安全/业务正确性约定（支付金额校验、优惠券锁流程、InternalApiKey 安全默认、Outbox 两阶段、防腐层显式错误传播、幂等强制） —— `docs/编码规范.md` 第 10 章安全编码规范下新增 10.5–10.10 六个子节（行 2343-2750），每节含核心规范编号列表 + 正确示例 C# 代码 + 反例（禁止写法）：

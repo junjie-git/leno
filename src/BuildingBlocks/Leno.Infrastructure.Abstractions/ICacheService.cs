@@ -54,6 +54,22 @@ public interface ICacheService
         CancellationToken ct = default);
 
     /// <summary>
+    /// 按 glob 模式批量失效缓存。使用 SCAN 游标迭代匹配 key（避免 <c>KEYS</c> 阻塞 Redis），
+    /// 默认每 100 个 key 批量 <c>UNLINK</c>（异步删除，不阻塞 Redis 主线程）。
+    /// <para>
+    /// 性能要点：
+    /// <list type="bullet">
+    /// <item>使用 <c>SCAN</c> 而非 <c>KEYS</c>，避免在大 key 空间下阻塞 Redis。</item>
+    /// <item>使用 <c>UNLINK</c> 而非 <c>DEL</c>，Redis 在后台异步释放内存，不阻塞主线程。</item>
+    /// <item>批量 UNLINK（默认每批 100 个 key），减少网络往返。</item>
+    /// </list>
+    /// </para>
+    /// </summary>
+    /// <param name="pattern">glob 模式（如 <c>user:*</c>）。调用方负责包含必要的 key 前缀。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task InvalidatePatternAsync(string pattern, CancellationToken ct = default);
+
+    /// <summary>
     /// 预热布隆过滤器，将一批已知存在的 key 批量添加到过滤器。
     /// 在服务启动时调用。
     /// </summary>

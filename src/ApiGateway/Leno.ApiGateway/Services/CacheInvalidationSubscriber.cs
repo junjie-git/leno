@@ -61,6 +61,11 @@ public sealed class CacheInvalidationSubscriber : IHostedService, IDisposable
     private static readonly TimeSpan DefaultReconnectMaxDelay = TimeSpan.FromSeconds(30);
 
     /// <summary>
+    /// T23：Pattern 失效批量 UNLINK 的默认批次大小（每批 100 个 key）。
+    /// </summary>
+    private const int DefaultPatternInvalidationBatchSize = 100;
+
+    /// <summary>
     /// 双删延迟覆盖值，测试时设为较短时间以加速。null 时使用 <see cref="DefaultDoubleDeleteDelay"/>。
     /// </summary>
     internal TimeSpan? DoubleDeleteDelayOverride { get; set; }
@@ -70,9 +75,15 @@ public sealed class CacheInvalidationSubscriber : IHostedService, IDisposable
     /// </summary>
     internal TimeSpan? ReconnectInitialDelayOverride { get; set; }
 
+    /// <summary>
+    /// T23：批次大小覆盖值，测试时可设为较小值以加速验证分批行为。null 时使用默认值 100。
+    /// </summary>
+    internal int? PatternInvalidationBatchSizeOverride { get; set; }
+
     private TimeSpan DoubleDeleteDelay => DoubleDeleteDelayOverride ?? DefaultDoubleDeleteDelay;
     private TimeSpan ReconnectInitialDelay => ReconnectInitialDelayOverride ?? DefaultReconnectInitialDelay;
     private TimeSpan ReconnectMaxDelay => DefaultReconnectMaxDelay;
+    private int PatternInvalidationBatchSize => PatternInvalidationBatchSizeOverride ?? DefaultPatternInvalidationBatchSize;
 
     public CacheInvalidationSubscriber(
         IConnectionMultiplexer redis,
@@ -253,7 +264,21 @@ public sealed class CacheInvalidationSubscriber : IHostedService, IDisposable
         }
     }
 
-    private async Task InvalidatePatternAsync(IDatabase db, string pattern, bool isSecondDelete = false)
+    /// <summary>
+    /// 按 glob 模式批量失效缓存（T23 性能优化）。
+    /// <para>
+    /// 实现要点：
+    /// <list type="bullet">
+    /// <item>使用 SCAN 游标迭代（<see cref="IServer.KeysAsync"/> 内部使用 SCAN），避免 KEYS 阻塞 Redis。</item>
+    /// <item>使用 UNLINK 异步删除（Redis 4.0+），替代 DEL 同步删除。UNLINK 在后台线程释放内存，不阻塞 Redis 主线程。</item>
+    /// <item>批量 UNLINK：默认每 100 个 key 合并为一次调用，减少网络往返。</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// 第二次删除（<paramref name="isSecondDelete"/>=true）是双删模式第二阶段，延迟后再次扫描删除。
+    /// </para>
+    /// </summary>
+    internal async Task InvalidatePatternAsync(IDatabase db, string pattern, bool isSecondDelete = false)
     {
         var servers = _redis.GetServers();
         var server = servers.FirstOrDefault(s => !s.IsReplica);
@@ -264,17 +289,57 @@ public sealed class CacheInvalidationSubscriber : IHostedService, IDisposable
         }
 
         var fullPattern = KeyPrefix + pattern;
-        var deleted = 0;
+        var batchSize = PatternInvalidationBatchSize;
+        var batch = new List<RedisKey>(batchSize);
+        var deleted = 0L;
 
+        // SCAN 游标迭代：StackExchange.Redis 的 KeysAsync 内部使用 SCAN，不会阻塞 Redis
         await foreach (var key in server.KeysAsync(pattern: fullPattern))
         {
-            await db.KeyDeleteAsync(key);
-            deleted++;
+            batch.Add(key);
+            if (batch.Count >= batchSize)
+            {
+                deleted += await UnlinkBatchAsync(db, batch);
+                batch.Clear();
+            }
+        }
+
+        // 处理最后一批不足 batchSize 的 key
+        if (batch.Count > 0)
+        {
+            deleted += await UnlinkBatchAsync(db, batch);
         }
 
         _logger.LogInformation(
             "Invalidated {Count} cache keys matching pattern {Pattern} (second delete: {IsSecondDelete})",
             deleted, pattern, isSecondDelete);
+    }
+
+    /// <summary>
+    /// 批量 UNLINK 一组 key。
+    /// <para>
+    /// 使用 <c>UNLINK key1 key2 ...</c> 命令一次性删除多个 key，
+    /// Redis 在后台线程异步释放内存，不阻塞主线程。
+    /// 返回值是 UNLINK 命令返回的实际删除数量。
+    /// </para>
+    /// </summary>
+    private static async Task<long> UnlinkBatchAsync(IDatabase db, List<RedisKey> keys)
+    {
+        if (keys.Count == 0)
+        {
+            return 0;
+        }
+
+        // 将 RedisKey 转为字符串作为 UNLINK 命令参数
+        var args = new List<object>(keys.Count);
+        foreach (var key in keys)
+        {
+            args.Add(key.ToString());
+        }
+
+        var result = await db.ExecuteAsync("UNLINK", args, CommandFlags.None);
+        // UNLINK 返回整数：实际删除的 key 数量
+        return (long)result;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
