@@ -141,7 +141,13 @@
 - [ ] CI `.github/workflows/ci.yml` 调用 `scripts/check-placeholders.sh`，违反阻止合并
 
 ### Task 25: 文档同步
-- [ ] `docs/编码规范.md` 含本次安全/业务正确性约定（支付金额校验、优惠券锁流程、InternalApiKey 安全默认、Outbox 两阶段、防腐层显式错误传播、幂等强制）
+- [x] `docs/编码规范.md` 含本次安全/业务正确性约定（支付金额校验、优惠券锁流程、InternalApiKey 安全默认、Outbox 两阶段、防腐层显式错误传播、幂等强制） —— `docs/编码规范.md` 第 10 章安全编码规范下新增 10.5–10.10 六个子节（行 2343-2750），每节含核心规范编号列表 + 正确示例 C# 代码 + 反例（禁止写法）：
+  - 10.5 支付金额强校验（行 2343-2398）：回调/查询在 `MarkSucceeded` 前校验金额一致，不一致返回 FAIL 并告警
+  - 10.6 优惠券锁定流程（行 2400-2453）：`LockCouponAsync` 下单锁定、状态机并发互斥、支付成功核销、取消释放、历史迁移
+  - 10.7 InternalApiKey 安全默认（行 2455-2520）：fail-closed 启动校验、`FixedTimeEquals` 比较、`/internal` 精确前缀匹配
+  - 10.8 Outbox 两阶段标记（行 2522-2592）：`Pending → Publishing → Processed` 三态、发布失败回退、超时扫描恢复
+  - 10.9 防腐层显式错误传播（行 2594-2663）：远程失败抛领域异常、Prometheus 指标、`OperationCanceledException` 传播、CartPriceService 标记 `PriceUnavailable`
+  - 10.10 集成事件消费幂等强制（行 2665-2750）：`IntegrationEventConsumerBase` 幂等方法 abstract、强制注入 `IIdempotencyStore`、三步消费流程
 
 ## 全局验收
 

@@ -125,8 +125,8 @@
   - [ ] SubTask 24.1: 删除 `NewFeatureTests.cs` 空文件；重命名 `NewFeatureTests1-6.cs` 为具名测试文件
   - [ ] SubTask 24.2: 补 ReviewAfterSales / SellerShop / SystemAdmin 三个空 `Application.Tests` 关键测试
   - [ ] SubTask 24.3: CI（`.github/workflows/ci.yml`）集成 `scripts/check-placeholders.sh`，违反即阻止合并
-- [ ] Task 25: 文档同步
-  - [ ] SubTask 25.1: `docs/编码规范.md` 新增本次安全/业务正确性约定（支付金额校验、优惠券锁流程、InternalApiKey 安全默认、Outbox 两阶段、防腐层显式错误传播、幂等强制）
+- [x] Task 25: 文档同步
+  - [x] SubTask 25.1: `docs/编码规范.md` 新增本次安全/业务正确性约定（支付金额校验、优惠券锁流程、InternalApiKey 安全默认、Outbox 两阶段、防腐层显式错误传播、幂等强制） —— 新增 10.5–10.10 六个子节（行 2343-2750），每节含核心规范 + 正确示例 + 反例，覆盖：10.5 支付金额强校验、10.6 优惠券锁定流程、10.7 InternalApiKey 安全默认、10.8 Outbox 两阶段标记、10.9 防腐层显式错误传播、10.10 集成事件消费幂等强制
 
 # Task Dependencies
 
