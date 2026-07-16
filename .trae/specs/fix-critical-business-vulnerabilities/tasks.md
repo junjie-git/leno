@@ -109,13 +109,13 @@
   - [ ] SubTask 19.1: `MarkCallbackProcessedAsync` Redis 故障时返回 FAIL 让渠道重试，不再 fail-open 放行
 - [ ] Task 20: 死信积压告警
   - [ ] SubTask 20.1: 新建 `DeadLetterMonitorBackgroundService`，每 5 分钟扫描死信数量，超阈值（默认 10）触发告警
-- [ ] Task 21: 缓存失效健壮性
-  - [ ] SubTask 21.1: `CacheInvalidationSubscriber` 监听 Redis `ConnectionFailed`/`InternalError` 事件自动重连
-  - [ ] SubTask 21.2: 缓存失效改双删模式（先删 → 写库 → 延迟 500ms 再删）
-- [ ] Task 22: Outbox 性能与可观测性
-  - [ ] SubTask 22.1: `OutboxPublisher` 改 `Parallel.ForEachAsync` 并行处理
-  - [ ] SubTask 22.2: 每次轮询统计 pending 数量，超阈值告警
-  - [ ] SubTask 22.3: 类型解析改用 FullName + 自定义 `IOutboxEventTypeResolver`，兼容 BC 版本升级
+- [x] Task 21: 缓存失效健壮性
+  - [x] SubTask 21.1: `CacheInvalidationSubscriber` 监听 Redis `ConnectionFailed`/`InternalError` 事件自动重连
+  - [x] SubTask 21.2: 缓存失效改双删模式（先删 → 写库 → 延迟 500ms 再删）
+- [x] Task 22: Outbox 性能与可观测性
+  - [x] SubTask 22.1: `OutboxPublisher` 改 `Parallel.ForEachAsync` 并行处理
+  - [x] SubTask 22.2: 每次轮询统计 pending 数量，超阈值告警
+  - [x] SubTask 22.3: 类型解析改用 FullName + 自定义 `IOutboxEventTypeResolver`，兼容 BC 版本升级
 
 ## P2 批次十：收尾与文档
 

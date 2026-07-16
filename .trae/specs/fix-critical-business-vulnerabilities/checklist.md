@@ -122,13 +122,13 @@
 - [ ] `DeadLetterMonitorBackgroundService` 每 5 分钟扫描，超阈值告警
 
 ### Task 21: 缓存失效健壮性
-- [ ] `CacheInvalidationSubscriber` 监听 Redis 断连事件自动重连
-- [ ] 缓存失效采用双删模式
+- [x] `CacheInvalidationSubscriber` 监听 Redis 断连事件自动重连 —— `Leno.ApiGateway/Services/CacheInvalidationSubscriber.cs` `SubscribeToRedisEvents()` 订阅 `ConnectionFailed`/`InternalError` 事件，`OnConnectionFailed`/`OnInternalError` 触发 `ReconnectWithBackoffAsync()`（指数退避 1s→2s→4s→8s→16s→30s 封顶）后台重新订阅通道；`StartAsync`/`StopAsync`/`Dispose` 正确挂载/卸载事件处理器；测试：`CacheInvalidationSubscriberTests.StartAsync_ShouldAttachConnectionFailedEventHandler` / `StartAsync_ShouldAttachInternalErrorEventHandler` / `StopAsync_ShouldDetachConnectionEventHandlers` / `ConnectionFailed_ShouldTriggerResubscribeWithBackoff` / `InternalError_ShouldTriggerResubscribeWithBackoff`
+- [x] 缓存失效采用双删模式 —— `CacheInvalidationSubscriber.OnMessage` 立即删除后调用 `DelayedDeleteAsync`（默认延迟 500ms）二次删除，Pattern 路径同样延迟二次扫描删除；`ICacheService.InvalidateWithDoubleDeleteAsync` 接口 + `CacheService` 实现（先删→执行 writeAction→延迟 500ms→再删，try/finally 保证写库异常也执行二次删除）；测试：`CacheServiceTests.InvalidateWithDoubleDelete_*`（5 例：null 参数、删除-写-删序列、写失败仍二次删、二次删失败不掩盖写异常）+ `CacheInvalidationSubscriberTests` 双删路径
 
 ### Task 22: Outbox 性能与可观测性
-- [ ] `OutboxPublisher` 并行处理（`Parallel.ForEachAsync`）
-- [ ] pending 数量超阈值告警
-- [ ] 类型解析使用 FullName + `IOutboxEventTypeResolver`，兼容版本升级
+- [x] `OutboxPublisher` 并行处理（`Parallel.ForEachAsync`）—— `Leno.Infrastructure/Outbox/OutboxPublisher.cs` `ProcessBatchAsync` 主作用域拉取 pending ID 后用 `Parallel.ForEachAsync`（`MaxDegreeOfParallelism=4`）并行处理，每条消息经 `PublishSingleByIdAsync` 独立作用域+独立 DbContext 保持两阶段标记语义；测试：`OutboxPublisherTests.ProcessBatch_MultipleMessages_ShouldProcessInParallelAndAllSucceed`（5 条全 Processed）+ `ProcessBatch_PartialFailure_ShouldNotAffectOtherMessages`（4 条 3 Processed+1 Pending）
+- [x] pending 数量超阈值告警 —— `OutboxPublisher.AlertIfPendingBacklogAsync` 每次 `ExecuteAsync` 轮询后统计 pending 数量，超阈值（默认 100，`PendingAlertThreshold`）记录结构化告警日志；测试：`OutboxPublisherTests.AlertIfPendingBacklog_ExceedsThreshold_ShouldLogWarning`（阈值 5，6 pending）+ `AlertIfPendingBacklog_BelowThreshold_ShouldNotLogWarning`（阈值 5，3 pending）
+- [x] 类型解析使用 FullName + `IOutboxEventTypeResolver`，兼容版本升级 —— `Leno.Infrastructure/Outbox/IOutboxEventTypeResolver.cs`（接口 + `DefaultOutboxEventTypeResolver` 单例，按 FullName 跨已加载程序集解析，`ConcurrentDictionary` 缓存）；`OutboxMessage.Create` 优先存储 `FullName`；`OutboxPublisher` 构造函数注入可选 `IOutboxEventTypeResolver`（默认 `DefaultOutboxEventTypeResolver.Instance`），`PublishSingleAsync` 用 `_typeResolver.Resolve(message.Type)`；测试：`OutboxEventTypeResolverTests`（7 例：按 FullName/AQN/未知/空值/缓存/旧版本号 AQN/自定义注入）+ `OutboxPublisherTests.ProcessBatch_WithCustomResolver_ShouldUseResolverToResolveType` / `ProcessBatch_WhenResolverReturnsNull_ShouldMarkAsFailed`
 
 ## P2 批次十：收尾与文档
 

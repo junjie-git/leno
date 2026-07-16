@@ -310,4 +310,110 @@ public class CacheServiceTests
 
         result.Should().BeNull();
     }
+
+    // ===== T21.2: 双删模式（InvalidateWithDoubleDeleteAsync）测试 =====
+
+    [Fact]
+    public async Task InvalidateWithDoubleDelete_NullKey_ShouldThrow()
+    {
+        var act = () => _sut.InvalidateWithDoubleDeleteAsync(null!, _ => Task.CompletedTask);
+
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task InvalidateWithDoubleDelete_NullWriteAction_ShouldThrow()
+    {
+        var act = () => _sut.InvalidateWithDoubleDeleteAsync("key", null!);
+
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    /// <summary>
+    /// T21.2：双删模式应按序执行——第一次删除 → 写库 → 延迟 → 第二次删除。
+    /// 使用短延迟覆盖避免测试等待 500ms。
+    /// </summary>
+    [Fact]
+    public async Task InvalidateWithDoubleDelete_ShouldDeleteThenWriteThenDeleteAgain()
+    {
+        // Arrange：使用短延迟覆盖加速测试
+        _sut.DoubleDeleteDelayOverride = TimeSpan.FromMilliseconds(1);
+        _databaseMock.Setup(d => d.KeyDeleteAsync("key", It.IsAny<CommandFlags>())).ReturnsAsync(true);
+
+        var callSequence = new List<string>();
+        _databaseMock
+            .Setup(d => d.KeyDeleteAsync("key", It.IsAny<CommandFlags>()))
+            .Callback(() => callSequence.Add("delete"))
+            .ReturnsAsync(true);
+
+        var writeCalled = false;
+        var writeAction = (CancellationToken _) =>
+        {
+            callSequence.Add("write");
+            writeCalled = true;
+            return Task.CompletedTask;
+        };
+
+        // Act
+        await _sut.InvalidateWithDoubleDeleteAsync("key", writeAction);
+
+        // Assert：调用顺序为 delete → write → delete
+        callSequence.Should().Equal("delete", "write", "delete");
+        writeCalled.Should().BeTrue();
+        _databaseMock.Verify(d => d.KeyDeleteAsync("key", It.IsAny<CommandFlags>()), Times.Exactly(2));
+    }
+
+    /// <summary>
+    /// T21.2：写库失败时，finally 块仍应执行第二次删除，避免脏缓存残留。
+    /// </summary>
+    [Fact]
+    public async Task InvalidateWithDoubleDelete_WriteFails_ShouldStillExecuteSecondDelete()
+    {
+        // Arrange
+        _sut.DoubleDeleteDelayOverride = TimeSpan.FromMilliseconds(1);
+        _databaseMock.Setup(d => d.KeyDeleteAsync("key", It.IsAny<CommandFlags>())).ReturnsAsync(true);
+
+        var writeAction = (CancellationToken _) => Task.FromException(new InvalidOperationException("DB 写入失败"));
+
+        // Act
+        var act = () => _sut.InvalidateWithDoubleDeleteAsync("key", writeAction);
+
+        // Assert：写库异常向上抛出
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        // 第二次删除仍应执行（finally 块）
+        _databaseMock.Verify(d => d.KeyDeleteAsync("key", It.IsAny<CommandFlags>()), Times.Exactly(2));
+    }
+
+    /// <summary>
+    /// T21.2：第二次删除失败不应影响已抛出的写库异常，且不向上抛出。
+    /// </summary>
+    [Fact]
+    public async Task InvalidateWithDoubleDelete_SecondDeleteFails_ShouldNotMaskWriteException()
+    {
+        // Arrange
+        _sut.DoubleDeleteDelayOverride = TimeSpan.FromMilliseconds(1);
+        var deleteCallCount = 0;
+        // 第一次删除成功，第二次删除抛异常
+        _databaseMock
+            .Setup(d => d.KeyDeleteAsync("key", It.IsAny<CommandFlags>()))
+            .ReturnsAsync(() =>
+            {
+                deleteCallCount++;
+                if (deleteCallCount == 2)
+                {
+                    throw new RedisException("第二次删除失败");
+                }
+                return true;
+            });
+
+        var writeAction = (CancellationToken _) => Task.FromException(new InvalidOperationException("DB 写入失败"));
+
+        // Act：应抛出写库异常（而非第二次删除异常，因第二次删除异常在 finally 内被吞）
+        var act = () => _sut.InvalidateWithDoubleDeleteAsync("key", writeAction);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("DB 写入失败");
+        _databaseMock.Verify(d => d.KeyDeleteAsync("key", It.IsAny<CommandFlags>()), Times.Exactly(2));
+    }
 }

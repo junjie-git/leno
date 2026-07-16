@@ -46,10 +46,11 @@ public class OutboxMessage
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
         var eventType = integrationEvent.GetType();
+        // 优先存储 FullName（跨版本更稳定），resolver 兼容历史 AssemblyQualifiedName 数据
         return new OutboxMessage
         {
             Id = Guid.NewGuid(),
-            Type = eventType.AssemblyQualifiedName ?? eventType.FullName ?? eventType.Name,
+            Type = eventType.FullName ?? eventType.AssemblyQualifiedName ?? eventType.Name,
             Payload = JsonSerializer.Serialize(integrationEvent, eventType),
             OccurredAt = integrationEvent.OccurredAt == default ? DateTime.UtcNow : integrationEvent.OccurredAt,
             Status = OutboxMessageStatus.Pending

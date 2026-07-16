@@ -33,6 +33,27 @@ public interface ICacheService
     Task RemoveAsync(string key, CancellationToken ct = default);
 
     /// <summary>
+    /// 双删模式失效缓存：先删 → 执行业务写库 → 延迟 500ms → 再删一次，
+    /// 缩小"先删→写库→并发读回填"脏读窗口。
+    /// <para>
+    /// 调用方应在执行 DB 写入时使用此方法，将写库委托传入：
+    /// <code>
+    /// await cache.InvalidateWithDoubleDeleteAsync(key, async ct =&gt;
+    /// {
+    ///     await repo.UpdateAsync(entity, ct);
+    /// }, ct);
+    /// </code>
+    /// </para>
+    /// </summary>
+    /// <param name="key">缓存键。</param>
+    /// <param name="writeAction">业务写库委托（在第一次删除与第二次删除之间执行）。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task InvalidateWithDoubleDeleteAsync(
+        string key,
+        Func<CancellationToken, Task> writeAction,
+        CancellationToken ct = default);
+
+    /// <summary>
     /// 预热布隆过滤器，将一批已知存在的 key 批量添加到过滤器。
     /// 在服务启动时调用。
     /// </summary>

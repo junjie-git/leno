@@ -193,6 +193,64 @@ public sealed class CacheService : ICacheService
         _logger.LogDebug("缓存移除: {Key}", key);
     }
 
+    /// <summary>
+    /// 双删模式延迟时间：500ms。缩小"先删→写库→并发读回填"脏读窗口。
+    /// 测试可通过 <see cref="DoubleDeleteDelayOverride"/> 覆盖以加速。
+    /// </summary>
+    private static readonly TimeSpan DefaultDoubleDeleteDelay = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>
+    /// 双删延迟覆盖值，测试时设为较短时间以加速。null 时使用 <see cref="DefaultDoubleDeleteDelay"/>。
+    /// </summary>
+    internal TimeSpan? DoubleDeleteDelayOverride { get; set; }
+
+    private TimeSpan DoubleDeleteDelay => DoubleDeleteDelayOverride ?? DefaultDoubleDeleteDelay;
+
+    /// <summary>
+    /// 双删模式失效缓存：先删 → 执行业务写库 → 延迟 500ms → 再删一次。
+    /// <para>
+    /// 调用方应将 DB 写入委托传入，由本方法在两次删除之间执行写库操作，
+    /// 确保即使有并发读在写库提交后立即回填缓存，第二次删除也能清除脏数据。
+    /// </para>
+    /// </summary>
+    public async Task InvalidateWithDoubleDeleteAsync(
+        string key,
+        Func<CancellationToken, Task> writeAction,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(writeAction);
+
+        // 阶段 1：第一次删除缓存
+        await _database.KeyDeleteAsync(key);
+        _logger.LogDebug("缓存双删-第一次删除: {Key}", key);
+
+        try
+        {
+            // 阶段 2：执行业务写库（调用方委托）
+            await writeAction(ct);
+        }
+        finally
+        {
+            // 阶段 3：延迟 500ms 后再次删除，覆盖并发读回填的脏数据
+            // 即使写库抛异常也执行第二次删除，避免脏缓存残留
+            try
+            {
+                await Task.Delay(DoubleDeleteDelay, ct);
+                await _database.KeyDeleteAsync(key);
+                _logger.LogDebug("缓存双删-第二次删除: {Key}", key);
+            }
+            catch (OperationCanceledException)
+            {
+                // 取消时不影响已抛出的写库异常
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "缓存双删-第二次删除失败: {Key}", key);
+            }
+        }
+    }
+
     public async Task PreWarmBloomFilterAsync(IEnumerable<string> keys, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(keys);
