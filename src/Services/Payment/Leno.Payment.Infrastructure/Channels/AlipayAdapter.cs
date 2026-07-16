@@ -76,7 +76,8 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
         {
             IsPaid = result.IsPaid,
             ChannelTradeNo = result.TradeNo,
-            PaidAt = ParseAlipayTime(result.SendPayDate)
+            PaidAt = ParseAlipayTime(result.SendPayDate),
+            Amount = result.TotalAmount
         };
     }
 
@@ -177,6 +178,14 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
             refundAmount = refundFee;
         }
 
+        // 支付宝 total_amount 单位为元，解析为实付金额用于强校验
+        decimal? amount = null;
+        var totalAmountText = GetField(dict, "total_amount");
+        if (isPaid && decimal.TryParse(totalAmountText, CultureInfo.InvariantCulture, out var totalAmount))
+        {
+            amount = totalAmount;
+        }
+
         return new ChannelNotifyResult
         {
             Verified = verified,
@@ -185,7 +194,8 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
             IsPaid = isPaid,
             PaidAt = ParseAlipayTime(GetField(dict, "gmt_payment")),
             IsRefund = isRefund,
-            RefundAmount = refundAmount
+            RefundAmount = refundAmount,
+            Amount = amount
         };
     }
 

@@ -65,8 +65,23 @@ public sealed class PaymentAppService : IPaymentAppService
         // 补偿更新：渠道返回已支付但本地未更新
         if (result.IsPaid && payment.Status != PaymentStatus.Paid)
         {
+            // 支付金额强校验：渠道查询实付金额必须与本地支付单金额一致。
+            // 不一致视为风险事件，记录告警并进入人工对账队列，不调用 MarkSucceeded、不发布事件。
+            if (!result.Amount.HasValue || result.Amount.Value != payment.Amount)
+            {
+                _logger.LogWarning("主动查询补偿金额不一致，进入人工对账队列 PaymentId={PaymentId} 期望金额={Expected} 实付金额={Actual}",
+                    payment.Id, payment.Amount, result.Amount);
+                return new ChannelStatusDto
+                {
+                    PaymentId = payment.Id,
+                    IsPaid = false,
+                    ChannelTradeNo = result.ChannelTradeNo,
+                    PaidAt = result.PaidAt
+                };
+            }
+
             var tradeNo = result.ChannelTradeNo ?? payment.ChannelTradeNo ?? payment.OutTradeNo;
-            payment.MarkSucceeded(tradeNo, result.PaidAt ?? DateTime.UtcNow);
+            payment.MarkSucceeded(tradeNo, result.Amount.Value, result.PaidAt ?? DateTime.UtcNow);
             await _paymentOrderRepository.UpdateAsync(payment, ct);
             await _unitOfWork.SaveEntitiesAsync(ct);
             _logger.LogInformation("主动查询补偿：支付单 {PaymentId} 已标记支付成功", payment.Id);

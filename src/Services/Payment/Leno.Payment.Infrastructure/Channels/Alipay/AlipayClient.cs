@@ -346,6 +346,9 @@ public sealed class AlipayQueryResult
     public string? TradeNo { get; init; }
     public string? SendPayDate { get; init; }
 
+    /// <summary>实付金额（单位元），从 total_amount 解析。</summary>
+    public decimal? TotalAmount { get; init; }
+
     public bool IsPaid =>
         string.Equals(TradeStatus, "TRADE_SUCCESS", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(TradeStatus, "TRADE_FINISHED", StringComparison.OrdinalIgnoreCase);
@@ -355,7 +358,11 @@ public sealed class AlipayQueryResult
         Code = GetField(dict, "code"),
         TradeStatus = GetField(dict, "trade_status"),
         TradeNo = dict.GetValueOrDefault("trade_no"),
-        SendPayDate = dict.GetValueOrDefault("send_pay_date")
+        SendPayDate = dict.GetValueOrDefault("send_pay_date"),
+        TotalAmount = decimal.TryParse(dict.GetValueOrDefault("total_amount"),
+            NumberStyles.Any, CultureInfo.InvariantCulture, out var totalAmount)
+            ? totalAmount
+            : null
     };
 
     private static string GetField(Dictionary<string, string?> dict, string key)

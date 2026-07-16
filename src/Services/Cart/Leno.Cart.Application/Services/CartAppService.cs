@@ -116,6 +116,7 @@ public sealed class CartAppService : ICartAppService
             return new CheckoutPreviewDto();
         }
 
+        // 价格服务失败时直接抛出，由全局异常中间件转换为明确错误响应，阻止 0 元结算
         var priceSnapshots = await _priceService.GetSkuPricesAsync(selectedItems.Select(i => i.SkuId), ct);
         var priceMap = priceSnapshots.ToDictionary(p => p.SkuId);
 
@@ -123,16 +124,22 @@ public sealed class CartAppService : ICartAppService
             .GroupBy(i => i.SellerId)
             .Select(g =>
             {
-                var items = g.Select(i => BuildItemDto(i, priceMap)).ToList();
+                var items = g.Select(i => BuildItemDto(i, priceMap, priceServiceUnavailable: false)).ToList();
                 return new CheckoutGroupDto
                 {
                     SellerId = g.Key,
                     Items = items,
-                    SubtotalAmount = items.Sum(i => i.Subtotal),
+                    SubtotalAmount = items.Where(i => !i.PriceUnavailable).Sum(i => i.Subtotal),
                     Currency = items.FirstOrDefault()?.Currency ?? "CNY"
                 };
             })
             .ToList();
+
+        // 价格未命中（部分 SKU 缺失）同样阻止结算，避免误导性的 0 元结算单
+        if (groups.SelectMany(g => g.Items).Any(i => i.PriceUnavailable))
+        {
+            throw new CartDomainException("部分商品价格加载失败，暂不可结算", "CART_PRICE_UNAVAILABLE", 503);
+        }
 
         return new CheckoutPreviewDto
         {
@@ -210,29 +217,71 @@ public sealed class CartAppService : ICartAppService
     private async Task<CartDto> BuildCartDtoAsync(CartAggregate cart, CancellationToken ct)
     {
         var skuIds = cart.Items.Select(i => i.SkuId).Distinct().ToList();
-        var priceSnapshots = skuIds.Count > 0
-            ? await _priceService.GetSkuPricesAsync(skuIds, ct)
-            : Array.Empty<SkuPriceSnapshot>();
-        var priceMap = priceSnapshots.ToDictionary(p => p.SkuId);
+        Dictionary<Guid, SkuPriceSnapshot> priceMap = new();
+        var priceServiceUnavailable = false;
+
+        if (skuIds.Count > 0)
+        {
+            try
+            {
+                var priceSnapshots = await _priceService.GetSkuPricesAsync(skuIds, ct);
+                priceMap = priceSnapshots.ToDictionary(p => p.SkuId);
+            }
+            catch (CartDomainException ex)
+            {
+                // 购物车"查看"场景不因价格服务故障整体崩溃，降级展示并标记 PriceUnavailable，
+                // 由前端禁止结算；详见 PreviewCheckoutAsync 对结算的硬性拦截。
+                _logger.LogWarning(ex, "购物车价格服务不可用，降级展示 UserId={UserId} ItemCount={ItemCount}",
+                    cart.UserId, skuIds.Count);
+                priceServiceUnavailable = true;
+            }
+        }
 
         var itemDtos = cart.Items
-            .Select(i => BuildItemDto(i, priceMap))
+            .Select(i => BuildItemDto(i, priceMap, priceServiceUnavailable))
             .ToList();
+
+        // 选中项总金额仅累计价格可用项，避免把价格加载失败项以 0 元计入可结算金额
+        var selectedTotalAmount = itemDtos
+            .Where(i => i.IsSelected && !i.PriceUnavailable)
+            .Sum(i => i.Subtotal);
 
         return new CartDto
         {
             Id = cart.Id,
             UserId = cart.UserId,
             Items = itemDtos,
-            SelectedTotalAmount = itemDtos.Where(i => i.IsSelected).Sum(i => i.Subtotal),
+            SelectedTotalAmount = selectedTotalAmount,
             Currency = itemDtos.FirstOrDefault()?.Currency ?? "CNY",
             TotalCount = itemDtos.Sum(i => i.Quantity)
         };
     }
 
-    private static CartItemDto BuildItemDto(CartItem item, Dictionary<Guid, SkuPriceSnapshot> priceMap)
+    private static CartItemDto BuildItemDto(
+        CartItem item,
+        Dictionary<Guid, SkuPriceSnapshot> priceMap,
+        bool priceServiceUnavailable)
     {
-        var hasPrice = priceMap.TryGetValue(item.SkuId, out var snapshot);
+        // 价格服务整体不可用，或单 SKU 未命中快照：标记 PriceUnavailable，避免误导性 0 元可结算
+        if (priceServiceUnavailable || !priceMap.TryGetValue(item.SkuId, out var snapshot))
+        {
+            return new CartItemDto
+            {
+                Id = item.Id,
+                SkuId = item.SkuId,
+                SellerId = item.SellerId,
+                Quantity = item.Quantity,
+                IsSelected = item.IsSelected,
+                SourceCartItemId = item.SourceCartItemId,
+                UnitPrice = 0,
+                Currency = "CNY",
+                Title = "[价格加载失败]",
+                MainImageUrl = string.Empty,
+                Available = false,
+                PriceUnavailable = true
+            };
+        }
+
         return new CartItemDto
         {
             Id = item.Id,
@@ -241,11 +290,12 @@ public sealed class CartAppService : ICartAppService
             Quantity = item.Quantity,
             IsSelected = item.IsSelected,
             SourceCartItemId = item.SourceCartItemId,
-            UnitPrice = hasPrice ? snapshot!.Price : 0,
-            Currency = hasPrice ? snapshot!.Currency : "CNY",
-            Title = hasPrice ? snapshot!.Title : string.Empty,
-            MainImageUrl = hasPrice ? snapshot!.MainImageUrl : string.Empty,
-            Available = hasPrice && snapshot!.Available
+            UnitPrice = snapshot!.Price,
+            Currency = snapshot!.Currency,
+            Title = snapshot!.Title,
+            MainImageUrl = snapshot!.MainImageUrl,
+            Available = snapshot!.Available,
+            PriceUnavailable = false
         };
     }
 }

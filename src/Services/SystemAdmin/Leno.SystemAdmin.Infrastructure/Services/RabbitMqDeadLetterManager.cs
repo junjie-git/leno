@@ -1,8 +1,12 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Leno.Infrastructure.Abstractions;
+using Leno.SharedKernel.Abstractions;
 using Leno.SystemAdmin.Domain.Aggregates;
+using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.Services;
+using Leno.SystemAdmin.Domain.ValueObjects;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -13,10 +17,25 @@ namespace Leno.SystemAdmin.Infrastructure.Services;
 /// 默认连接 RabbitMQ Management API（端口 15672），使用 Basic Auth 认证。
 /// 配置节：<c>RabbitMQ:ManagementApi</c>，包含 Host、Username、Password、VHost。
 /// </summary>
+/// <remarks>
+/// 重投策略（与 <see cref="DeadLetterQueueManager"/> 行为一致）：
+/// 通过注入的 <see cref="IEventBus"/> 将死信记录中的原始 <c>IIntegrationEvent</c> 反序列化后重新发布到 MQ，
+/// 重投成功后更新死信记录状态为 Retried。共用 <see cref="DeadLetterRepublishHelper"/>。
+///
+/// FetchAsync 拉取策略（保证不丢消息）：
+/// 采用 <c>ackmode=ack_requeue_true</c> 拉取（消息不删除、回队），同时入库 DeadLetter 副本（按 OriginalMessageId 去重）。
+/// 这样即使本地入库失败，消息仍保留在 DLQ，下次拉取仍能拿到，确保不丢失。
+/// 代价是消息在 DLQ 中重复存在，需配合独立的 DLQ 清理后台任务（如 Quartz Job）在副本入库成功后从 DLQ 移除原消息；
+/// 该后台清理 Job 不在本任务范围内，由后续任务实现。
+/// "本地处理成功后才从 DLQ 移除" 的语义通过"入库副本成功 → 后台异步清理 DLQ 原消息"实现。
+/// </remarks>
 public sealed class RabbitMqDeadLetterManager : IDeadLetterQueueManager
 {
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
+    private readonly IDeadLetterMessageRepository _repository;
+    private readonly IEventBus _eventBus;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<RabbitMqDeadLetterManager> _logger;
 
     private const string ManagementApiConfigKey = "RabbitMQ:ManagementApi";
@@ -24,13 +43,22 @@ public sealed class RabbitMqDeadLetterManager : IDeadLetterQueueManager
     public RabbitMqDeadLetterManager(
         HttpClient httpClient,
         IConfiguration configuration,
+        IDeadLetterMessageRepository repository,
+        IEventBus eventBus,
+        IUnitOfWork unitOfWork,
         ILogger<RabbitMqDeadLetterManager> logger)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(repository);
+        ArgumentNullException.ThrowIfNull(eventBus);
+        ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(logger);
         _httpClient = httpClient;
         _configuration = configuration;
+        _repository = repository;
+        _eventBus = eventBus;
+        _unitOfWork = unitOfWork;
         _logger = logger;
 
         ConfigureHttpClient();
@@ -39,6 +67,9 @@ public sealed class RabbitMqDeadLetterManager : IDeadLetterQueueManager
     /// <inheritdoc />
     public async Task<List<DeadLetterMessage>> FetchAsync(string? sourceContext, int page, int pageSize, CancellationToken ct = default)
     {
+        // 拉取策略：ack_requeue_true 拉取（消息不删除、回队）+ 入库副本（按 OriginalMessageId 去重）。
+        // 保证不丢消息：入库失败时消息仍在 DLQ，下次拉取仍能拿到。
+        // DLQ 中原消息的清理需由独立后台任务在副本入库成功后执行（本任务不实现）。
         var baseUrl = GetManagementApiBaseUrl();
         var vhost = GetVHost();
         var dlqName = GetDeadLetterQueueName(sourceContext);
@@ -48,7 +79,7 @@ public sealed class RabbitMqDeadLetterManager : IDeadLetterQueueManager
         var requestBody = new
         {
             count = pageSize,
-            ackmode = "ack_requeue_false",
+            ackmode = "ack_requeue_true",
             encoding = "auto",
             truncate = 50000
         };
@@ -56,7 +87,7 @@ public sealed class RabbitMqDeadLetterManager : IDeadLetterQueueManager
         var json = JsonSerializer.Serialize(requestBody);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        _logger.LogDebug("从 RabbitMQ 拉取死信：URL={Url}, Count={Count}", url, pageSize);
+        _logger.LogDebug("从 RabbitMQ 拉取死信（ack_requeue_true，不删除）：URL={Url}, Count={Count}", url, pageSize);
 
         var response = await _httpClient.PostAsync(url, content, ct);
 
@@ -71,7 +102,13 @@ public sealed class RabbitMqDeadLetterManager : IDeadLetterQueueManager
         var responseJson = await response.Content.ReadAsStringAsync(ct);
         var messages = ParseDeadLetterMessages(responseJson, sourceContext);
 
-        // 分页处理
+        // 入库副本：按 OriginalMessageId 去重，避免重复拉取导致重复入库
+        foreach (var message in messages)
+        {
+            await PersistDeadLetterCopyAsync(message, ct);
+        }
+
+        // 分页处理（拉取后内存分页，与原实现保持一致）
         var skip = (page - 1) * pageSize;
         return messages.Skip(skip).Take(pageSize).ToList();
     }
@@ -110,18 +147,54 @@ public sealed class RabbitMqDeadLetterManager : IDeadLetterQueueManager
     /// <inheritdoc />
     public async Task RepublishAsync(Guid messageId, CancellationToken ct = default)
     {
-        // RabbitMQ 死信队列重投需要将消息从 DLQ 重新发布到原队列
-        // 通过 Management API 的 shovel 或直接 publish 实现
-        // 此处为简化实现，记录日志表示操作意图
-        _logger.LogWarning(
-            "RabbitMqDeadLetterManager.RepublishAsync 通过 Management API 重投需要额外配置 shovel 或直接 publish 到原队列。" +
-            "MessageId={MessageId}。生产环境需实现完整的重投流水线。", messageId);
+        // 行为与 DeadLetterQueueManager.RepublishAsync 一致：通过 IEventBus 真正重投原始集成事件。
+        var message = await _repository.GetByIdAsync(messageId, ct);
+        if (message is null)
+        {
+            throw new InvalidOperationException($"死信消息 {messageId} 不存在");
+        }
 
-        // 实际生产环境应：
-        // 1. 从 DLQ 获取消息详情
-        // 2. 解析 x-death 头获取原始 exchange/routing-key
-        // 3. 通过 Management API 的 /api/exchanges/{vhost}/{exchange}/publish 重新发布
-        await Task.CompletedTask;
+        // 幂等：已重投则跳过重复发布
+        if (message.Status == DeadLetterStatus.Retried)
+        {
+            _logger.LogInformation("死信消息 {MessageId} 已重投，跳过重复重投", messageId);
+            return;
+        }
+
+        if (message.Status == DeadLetterStatus.Discarded)
+        {
+            throw new InvalidOperationException($"死信消息 {messageId} 已丢弃，不可重投");
+        }
+
+        // 真正重投：反序列化原始集成事件并通过事件总线重新发布到 MQ
+        await DeadLetterRepublishHelper.RepublishViaEventBusAsync(_eventBus, message, _logger, ct);
+
+        // 重投成功后标记消息状态为 Retried
+        message.Retry("system");
+        await _repository.UpdateAsync(message, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        _logger.LogInformation("死信消息 {MessageId} 已通过事件总线重投", messageId);
+    }
+
+    /// <summary>
+    /// 入库死信副本：按 OriginalMessageId 去重，已存在则跳过。
+    /// 入库失败抛异常，由调用方感知；因 ack_requeue_true 消息已回 DLQ，下次拉取仍能拿到，不丢失。
+    /// </summary>
+    private async Task PersistDeadLetterCopyAsync(DeadLetterMessage message, CancellationToken ct)
+    {
+        var existing = await _repository.GetByOriginalMessageIdAsync(message.OriginalMessageId, ct);
+        if (existing is not null)
+        {
+            _logger.LogDebug("死信消息 OriginalMessageId={OriginalMessageId} 已入库，跳过重复入库", message.OriginalMessageId);
+            return;
+        }
+
+        await _repository.AddAsync(message, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        _logger.LogInformation("死信消息 {MessageId}（OriginalMessageId={OriginalMessageId}）已入库副本",
+            message.MessageId, message.OriginalMessageId);
     }
 
     private void ConfigureHttpClient()
@@ -224,13 +297,32 @@ public sealed class RabbitMqDeadLetterManager : IDeadLetterQueueManager
                     originalTopic = routingKey.GetString() ?? originalTopic;
                 }
 
+                // message_id 缺失时回退到 delivery_tag，确保 OriginalMessageId 非空（实体校验要求）
+                if (string.IsNullOrWhiteSpace(originalMessageId))
+                {
+                    if (item.TryGetProperty("delivery_tag", out var deliveryTag))
+                    {
+                        originalMessageId = deliveryTag.GetRawText();
+                    }
+                    else
+                    {
+                        originalMessageId = messageId.ToString("N");
+                    }
+                }
+
+                // error_reason 缺失时填默认值（实体校验要求非空）
+                if (string.IsNullOrWhiteSpace(errorReason))
+                {
+                    errorReason = "unknown (no x-death header)";
+                }
+
                 var message = DeadLetterMessage.Create(
                     messageId,
                     originalMessageId,
                     sourceContext ?? "rabbitmq",
-                    originalTopic,
+                    string.IsNullOrWhiteSpace(originalTopic) ? "unknown" : originalTopic,
                     payload,
-                    headers,
+                    string.IsNullOrWhiteSpace(headers) ? "{}" : headers,
                     errorReason);
 
                 messages.Add(message);

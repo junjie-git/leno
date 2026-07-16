@@ -4,15 +4,15 @@
 
 ## P0 批次一：支付金额安全
 
-- [ ] Task 1: 支付回调金额强校验
-  - [ ] SubTask 1.1: `ChannelNotifyResult`（及对应 WeChatPay/Alipay 实现）新增 `Amount` 字段，从渠道回调解析实付金额
-  - [ ] SubTask 1.2: `PaymentOrder.MarkSucceeded` 新增 `amount` 入参，内部校验 `amount == Amount` 不一致抛 `PaymentDomainException`
-  - [ ] SubTask 1.3: `WeChatPayNotifyHandler.HandlePaymentNotifyAsync` 与 `AlipayNotifyHandler.HandlePaymentNotifyAsync` 在 `MarkSucceeded` 前校验金额，不一致记录安全告警并返回 FAIL
-  - [ ] SubTask 1.4: 补单元测试覆盖金额一致/不一致/伪造低金额场景
-- [ ] Task 2: 主动查询补偿金额校验
-  - [ ] SubTask 2.1: `IChannelStatusQueryService.QueryPaymentStatusAsync` 返回值新增 `Amount` 字段
-  - [ ] SubTask 2.2: `PaymentAppService.QueryPaymentStatusAsync` 在 `MarkSucceeded` 前校验金额，不一致记录告警并进入人工对账队列
-  - [ ] SubTask 2.3: 补测试覆盖查询返回金额不匹配场景
+- [x] Task 1: 支付回调金额强校验
+  - [x] SubTask 1.1: `ChannelNotifyResult`（及对应 WeChatPay/Alipay 实现）新增 `Amount` 字段，从渠道回调解析实付金额
+  - [x] SubTask 1.2: `PaymentOrder.MarkSucceeded` 新增 `amount` 入参，内部校验 `amount == Amount` 不一致抛 `PaymentDomainException`
+  - [x] SubTask 1.3: `WeChatPayNotifyHandler.HandlePaymentNotifyAsync` 与 `AlipayNotifyHandler.HandlePaymentNotifyAsync` 在 `MarkSucceeded` 前校验金额，不一致记录安全告警并返回 FAIL
+  - [x] SubTask 1.4: 补单元测试覆盖金额一致/不一致/伪造低金额场景
+- [x] Task 2: 主动查询补偿金额校验
+  - [x] SubTask 2.1: `IChannelStatusQueryService.QueryPaymentStatusAsync` 返回值新增 `Amount` 字段
+  - [x] SubTask 2.2: `PaymentAppService.QueryPaymentStatusAsync` 在 `MarkSucceeded` 前校验金额，不一致记录告警并进入人工对账队列
+  - [x] SubTask 2.3: 补测试覆盖查询返回金额不匹配场景
 
 ## P0 批次二：优惠券正确性
 
@@ -31,13 +31,13 @@
 
 ## P0 批次三：认证授权加固
 
-- [ ] Task 5: InternalApiKey fail-closed 与 timing-safe
-  - [ ] SubTask 5.1: `InternalApiKeyMiddleware` 改为生产环境（`!hostEnvironment.IsDevelopment()`）ApiKey 为空时启动抛异常
-  - [ ] SubTask 5.2: ApiKey 比较改用 `CryptographicOperations.FixedTimeEquals`
-  - [ ] SubTask 5.3: 补启动校验测试与 timing-safe 测试
-- [ ] Task 6: internal 路由边界精确匹配
-  - [ ] SubTask 6.1: `InternalApiKeyMiddleware` 路径匹配改为 `path == prefix || path.StartsWith(prefix + "/")`
-  - [ ] SubTask 6.2: 补测试覆盖 `/internalinfo`、`/internal/foo` 等边界
+- [x] Task 5: InternalApiKey fail-closed 与 timing-safe
+  - [x] SubTask 5.1: `InternalApiKeyMiddleware` 改为生产环境（`!hostEnvironment.IsDevelopment()`）ApiKey 为空时启动抛异常
+  - [x] SubTask 5.2: ApiKey 比较改用 `CryptographicOperations.FixedTimeEquals`
+  - [x] SubTask 5.3: 补启动校验测试与 timing-safe 测试
+- [x] Task 6: internal 路由边界精确匹配
+  - [x] SubTask 6.1: `InternalApiKeyMiddleware` 路径匹配改为 `path == prefix || path.StartsWith(prefix + "/")`
+  - [x] SubTask 6.2: 补测试覆盖 `/internalinfo`、`/internal/foo` 等边界
 
 ## P0 批次四：分布式事务与补偿
 
@@ -65,10 +65,10 @@
   - [ ] SubTask 11.1: `PromotionAntiCorruptionService.ReleaseCouponsAsync` 失败抛异常或写"待释放券"补偿表
   - [ ] SubTask 11.2: `CalculateDiscountAsync` 失败返回显式 `TryCalcResult` 或抛异常，应用层不再按 0 优惠兜底
   - [ ] SubTask 11.3: 补测试覆盖释放失败/计算失败场景
-- [ ] Task 12: CartPriceService 失败处理
-  - [ ] SubTask 12.1: `CartPriceService` 失败不再返回空集合掩盖，改为抛异常或返回显式失败标记
-  - [ ] SubTask 12.2: `CartAppService.BuildItemDto` 价格不可用时标记"价格加载失败"并禁用结算，不再展示 0 元
-  - [ ] SubTask 12.3: 补测试覆盖价格加载失败场景
+- [x] Task 12: CartPriceService 失败处理
+  - [x] SubTask 12.1: `CartPriceService` 失败不再返回空集合掩盖，改为抛异常或返回显式失败标记
+  - [x] SubTask 12.2: `CartAppService.BuildItemDto` 价格不可用时标记"价格加载失败"并禁用结算，不再展示 0 元
+  - [x] SubTask 12.3: 补测试覆盖价格加载失败场景
 
 ## P0 批次六：幂等性与 Outbox
 
@@ -85,17 +85,17 @@
 
 ## P0 批次七：死信队列真实实现
 
-- [ ] Task 15: 死信重投与拉取真实实现
-  - [ ] SubTask 15.1: `RabbitMqDeadLetterManager.RepublishAsync` 通过 RabbitMQ Management API 或 `_eventBus.PublishAsync` 真正重投原始事件
-  - [ ] SubTask 15.2: `FetchAsync` 改为 `ack_requeue_true`，本地处理成功后才 ack；合并 `DeadLetterQueueManager` 与 `RabbitMqDeadLetterManager` 行为一致
-  - [ ] SubTask 15.3: 补测试覆盖重投成功、拉取处理失败回队场景
+- [x] Task 15: 死信重投与拉取真实实现
+  - [x] SubTask 15.1: `RabbitMqDeadLetterManager.RepublishAsync` 通过 RabbitMQ Management API 或 `_eventBus.PublishAsync` 真正重投原始事件
+  - [x] SubTask 15.2: `FetchAsync` 改为 `ack_requeue_true`，本地处理成功后才 ack；合并 `DeadLetterQueueManager` 与 `RabbitMqDeadLetterManager` 行为一致
+  - [x] SubTask 15.3: 补测试覆盖重投成功、拉取处理失败回队场景
 
 ## P0 批次八：库存一致性
 
-- [ ] Task 16: Redis-DB 库存对账与秒杀回写
-  - [ ] SubTask 16.1: 新建 `InventoryReconciliationBackgroundService`（Order.Infrastructure），定期比较 Redis 库存与 DB 聚合，不一致告警并以 DB 为准刷新 Redis
-  - [ ] SubTask 16.2: `RedisSeckillStockService.WriteBackToDbAsync` 真实调用 `SeckillActivity.SyncFromRedis` 回写 DB，移除占位日志
-  - [ ] SubTask 16.3: 补测试覆盖对账不一致、秒杀回写场景
+- [x] Task 16: Redis-DB 库存对账与秒杀回写
+  - [x] SubTask 16.1: 新建 `InventoryReconciliationBackgroundService`（Order.Infrastructure），定期比较 Redis 库存与 DB 聚合，不一致告警并以 DB 为准刷新 Redis
+  - [x] SubTask 16.2: `RedisSeckillStockService.WriteBackToDbAsync` 真实调用 `SeckillActivity.SyncFromRedis` 回写 DB，移除占位日志
+  - [x] SubTask 16.3: 补测试覆盖对账不一致、秒杀回写场景
 
 ## P1 批次九：健壮性与可观测性
 

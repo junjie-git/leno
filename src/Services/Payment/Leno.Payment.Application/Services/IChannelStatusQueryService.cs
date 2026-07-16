@@ -30,6 +30,9 @@ public sealed class ChannelStatusResult
     public bool IsPaid { get; init; }
     public string? ChannelTradeNo { get; init; }
     public DateTime? PaidAt { get; init; }
+
+    /// <summary>渠道返回的实付金额（单位元），用于与本地支付单金额强校验。</summary>
+    public decimal? Amount { get; init; }
 }
 
 /// <summary>

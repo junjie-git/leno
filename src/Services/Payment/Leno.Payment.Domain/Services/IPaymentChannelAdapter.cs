@@ -33,6 +33,9 @@ public sealed class ChannelPaymentQueryResult
 
     /// <summary>支付时间（UTC）。</summary>
     public DateTime? PaidAt { get; init; }
+
+    /// <summary>渠道返回的实付金额（单位元），用于与本地支付单金额强校验。</summary>
+    public decimal? Amount { get; init; }
 }
 
 /// <summary>
@@ -84,6 +87,9 @@ public sealed class ChannelNotifyResult
 
     /// <summary>退款金额（仅退款通知有值）。</summary>
     public decimal? RefundAmount { get; init; }
+
+    /// <summary>实付金额（单位元），仅支付通知有值，用于与本地支付单金额强校验。</summary>
+    public decimal? Amount { get; init; }
 }
 
 /// <summary>

@@ -28,7 +28,8 @@ public sealed class ChannelStatusQueryService : IChannelStatusQueryService
         {
             IsPaid = result.IsPaid,
             ChannelTradeNo = result.ChannelTradeNo,
-            PaidAt = result.PaidAt
+            PaidAt = result.PaidAt,
+            Amount = result.Amount
         };
     }
 

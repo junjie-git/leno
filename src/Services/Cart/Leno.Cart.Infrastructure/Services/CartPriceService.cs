@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using Leno.Cart.Domain.Exceptions;
 using Leno.Cart.Domain.Services;
 using Leno.Infrastructure.Auth;
 using Leno.SharedContracts.Responses;
@@ -11,12 +12,16 @@ namespace Leno.Cart.Infrastructure.Services;
 /// <summary>
 /// 购物车价格防腐层实现。
 /// 通过商品域内部 API（POST internal/products/skus/batch）批量查询 SKU 价格与可售状态，
-/// 使用 X-Internal-Key 头部鉴权。调用失败时记录告警并返回空列表（fail-safe），保证购物车预览可用。
+/// 使用 X-Internal-Key 头部鉴权。
+/// 调用失败（非 2xx / 网络异常）时抛出 <see cref="CartDomainException"/>，由应用层决定降级或阻止用例，
+/// 不再静默返回空集合掩盖故障，以避免购物车出现 0 元可结算的误导。
 /// </summary>
 public sealed class CartPriceService : ICartPriceService
 {
     private const string BatchEndpoint = "internal/products/skus/batch";
     private const string InternalKeyHeader = "X-Internal-Key";
+    private const string PriceUnavailableErrorCode = "CART_PRICE_UNAVAILABLE";
+    private const string PriceUnavailableMessage = "商品价格服务暂时不可用";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -61,7 +66,7 @@ public sealed class CartPriceService : ICartPriceService
             {
                 _logger.LogWarning("商品域 SKU 批量查询失败 StatusCode={StatusCode} Count={Count}",
                     (int)response.StatusCode, ids.Count);
-                return Array.Empty<SkuPriceSnapshot>();
+                throw new CartDomainException(PriceUnavailableMessage, PriceUnavailableErrorCode, 503);
             }
 
             var apiResponse = await response.Content
@@ -77,10 +82,14 @@ public sealed class CartPriceService : ICartPriceService
         {
             throw;
         }
+        catch (CartDomainException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "商品域 SKU 批量查询异常 Count={Count}", ids.Count);
-            return Array.Empty<SkuPriceSnapshot>();
+            throw new CartDomainException(PriceUnavailableMessage, PriceUnavailableErrorCode, 503);
         }
     }
 

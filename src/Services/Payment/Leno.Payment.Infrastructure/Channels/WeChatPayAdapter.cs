@@ -73,7 +73,8 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
         {
             IsPaid = result.IsPaid,
             ChannelTradeNo = result.TransactionId,
-            PaidAt = ParseWeChatTime(result.TimeEnd)
+            PaidAt = ParseWeChatTime(result.TimeEnd),
+            Amount = result.Amount
         };
     }
 
@@ -194,6 +195,7 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
         string? channelTradeNo = null;
         DateTime? paidAt = null;
         decimal? refundAmount = null;
+        decimal? amount = null;
 
         if (!string.IsNullOrEmpty(decryptData))
         {
@@ -210,10 +212,20 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
                 var refundStatus = dataRoot.TryGetProperty("refund_status", out var rs) ? rs.GetString() : null;
                 isRefund = !string.IsNullOrEmpty(refundStatus);
 
-                if (isRefund && dataRoot.TryGetProperty("amount", out var amountNode))
+                if (dataRoot.TryGetProperty("amount", out var amountNode))
                 {
-                    var refundAmt = amountNode.TryGetProperty("refund", out var ra) ? ra.GetInt32() : 0;
-                    refundAmount = refundAmt / 100m;
+                    // 微信支付金额单位为分，需 /100 转为元
+                    if (isPaid && amountNode.TryGetProperty("total", out var totalNode)
+                        && totalNode.ValueKind == JsonValueKind.Number)
+                    {
+                        amount = amountNode.GetProperty("total").GetInt32() / 100m;
+                    }
+
+                    if (isRefund)
+                    {
+                        var refundAmt = amountNode.TryGetProperty("refund", out var ra) ? ra.GetInt32() : 0;
+                        refundAmount = refundAmt / 100m;
+                    }
                 }
             }
             catch (JsonException)
@@ -230,7 +242,8 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
             IsPaid = isPaid,
             PaidAt = paidAt,
             IsRefund = isRefund,
-            RefundAmount = refundAmount
+            RefundAmount = refundAmount,
+            Amount = amount
         };
     }
 

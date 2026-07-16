@@ -166,16 +166,19 @@ return 0";
                 continue;
             }
 
-            // 同步 Redis 剩余库存到 DB 基线
-            var diff = activity.AvailableStock - remainingStock;
-            if (diff > 0)
+            // 以 Redis 剩余库存同步 DB 基线（聚合内仅当 Redis < DB 时更新，避免并发回写覆盖）
+            var before = activity.AvailableStock;
+            activity.SyncFromRedis(remainingStock);
+
+            if (activity.AvailableStock != before)
             {
-                // 模拟扣减差异（实际系统中应使用更精确的同步方式）
-                _logger.LogInformation("WriteBackToDb: ActivityId={ActivityId} SkuId={SkuId} DB={DbStock} Redis={RedisStock}",
-                    activityId, skuId, activity.AvailableStock, remainingStock);
+                _logger.LogInformation(
+                    "WriteBackToDb: ActivityId={ActivityId} SkuId={SkuId} DB 库存由 {Before} 同步为 {After}（Redis={Redis}）",
+                    activityId, skuId, before, activity.AvailableStock, remainingStock);
             }
         }
 
+        // 经 UnitOfWork 保存聚合变更与发件箱事件（EF Core 乐观锁由聚合并发标记列保障）
         await _unitOfWork.SaveEntitiesAsync(ct);
         _logger.LogInformation("秒杀活动 {ActivityId} Redis 库存已回写 DB", activityId);
     }

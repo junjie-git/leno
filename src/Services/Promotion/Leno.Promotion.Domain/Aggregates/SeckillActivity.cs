@@ -246,6 +246,25 @@ public sealed class SeckillActivity : AggregateRoot
         }
     }
 
+    /// <summary>
+    /// 以 Redis 剩余库存同步 DB 基线（活动关闭/对账时由 <c>RedisSeckillStockService.WriteBackToDbAsync</c> 调用）。
+    /// 仅当 <paramref name="remainingStock"/> 小于当前 <see cref="AvailableStock"/> 时更新，
+    /// 避免并发回写覆盖（Redis 为高频权威值，DB 基线单调递减；库存回退由 <see cref="RestoreStock"/> 处理）。
+    /// </summary>
+    /// <param name="remainingStock">Redis 中的剩余库存，须 ≥ 0。</param>
+    public void SyncFromRedis(int remainingStock)
+    {
+        if (remainingStock < 0)
+        {
+            throw new PromotionDomainException("Redis 剩余库存不可为负", "SECKILL_SYNC_REDIS_NEGATIVE");
+        }
+
+        if (remainingStock < AvailableStock)
+        {
+            AvailableStock = remainingStock;
+        }
+    }
+
     /// <summary>判断当前时间是否在活动有效区间内。</summary>
     public bool IsWithinActiveWindow(DateTime now)
         => now >= StartTime && now < EndTime;

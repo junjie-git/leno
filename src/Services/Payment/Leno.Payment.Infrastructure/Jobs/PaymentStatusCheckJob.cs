@@ -83,7 +83,16 @@ public sealed class PaymentStatusCheckJob
                 return;
             }
 
-            order.MarkSucceeded(channelTradeNo, result.PaidAt ?? DateTime.UtcNow);
+            // 支付金额强校验：渠道查询实付金额必须与本地支付单金额一致。
+            // 不一致视为风险事件，记录告警并进入人工对账队列，不调用 MarkSucceeded。
+            if (!result.Amount.HasValue || result.Amount.Value != order.Amount)
+            {
+                _logger.LogWarning("支付状态补偿金额不一致，进入人工对账队列 OutTradeNo={OutTradeNo} 期望金额={Expected} 实付金额={Actual}",
+                    order.OutTradeNo, order.Amount, result.Amount);
+                return;
+            }
+
+            order.MarkSucceeded(channelTradeNo, result.Amount.Value, result.PaidAt ?? DateTime.UtcNow);
             await _paymentOrderRepository.UpdateAsync(order, ct);
             await _unitOfWork.SaveEntitiesAsync(ct);
 

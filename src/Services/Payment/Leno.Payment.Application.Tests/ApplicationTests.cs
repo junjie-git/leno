@@ -54,7 +54,7 @@ public class PaymentAppServiceTests
     public async Task QueryPaymentStatusAsync_AlreadyPaid_ShouldReturnWithoutQuerying()
     {
         var payment = CreatePayment();
-        payment.MarkSucceeded("TRADE001", DateTime.UtcNow);
+        payment.MarkSucceeded("TRADE001", 100m, DateTime.UtcNow);
         _repoMock.Setup(r => r.GetByIdAsync(PaymentId, It.IsAny<CancellationToken>())).ReturnsAsync(payment);
 
         var result = await _sut.QueryPaymentStatusAsync(PaymentId);
@@ -69,13 +69,45 @@ public class PaymentAppServiceTests
         var payment = CreatePayment();
         _repoMock.Setup(r => r.GetByIdAsync(PaymentId, It.IsAny<CancellationToken>())).ReturnsAsync(payment);
         _channelStatusMock.Setup(s => s.QueryPaymentStatusAsync(PaymentChannel.WeChatPay, It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ChannelStatusResult { IsPaid = true, ChannelTradeNo = "CH001", PaidAt = DateTime.UtcNow });
+            .ReturnsAsync(new ChannelStatusResult { IsPaid = true, ChannelTradeNo = "CH001", PaidAt = DateTime.UtcNow, Amount = 100m });
 
         var result = await _sut.QueryPaymentStatusAsync(PaymentId);
 
         result.IsPaid.Should().BeTrue();
         payment.Status.Should().Be(PaymentStatus.Paid);
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task QueryPaymentStatusAsync_ChannelPaidWithMismatchedAmount_ShouldNotMarkSucceeded()
+    {
+        // 渠道返回已支付但金额不一致（攻击者构造的低金额支付），不应标记成功，进入人工对账
+        var payment = CreatePayment();
+        _repoMock.Setup(r => r.GetByIdAsync(PaymentId, It.IsAny<CancellationToken>())).ReturnsAsync(payment);
+        _channelStatusMock.Setup(s => s.QueryPaymentStatusAsync(PaymentChannel.WeChatPay, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChannelStatusResult { IsPaid = true, ChannelTradeNo = "CH001", PaidAt = DateTime.UtcNow, Amount = 0.01m });
+
+        var result = await _sut.QueryPaymentStatusAsync(PaymentId);
+
+        result.IsPaid.Should().BeFalse();
+        payment.Status.Should().Be(PaymentStatus.Pending);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task QueryPaymentStatusAsync_ChannelPaidWithoutAmount_ShouldNotMarkSucceeded()
+    {
+        // 渠道返回已支付但未携带金额信息，无法强校验，进入人工对账
+        var payment = CreatePayment();
+        _repoMock.Setup(r => r.GetByIdAsync(PaymentId, It.IsAny<CancellationToken>())).ReturnsAsync(payment);
+        _channelStatusMock.Setup(s => s.QueryPaymentStatusAsync(PaymentChannel.WeChatPay, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChannelStatusResult { IsPaid = true, ChannelTradeNo = "CH001", PaidAt = DateTime.UtcNow, Amount = null });
+
+        var result = await _sut.QueryPaymentStatusAsync(PaymentId);
+
+        result.IsPaid.Should().BeFalse();
+        payment.Status.Should().Be(PaymentStatus.Pending);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

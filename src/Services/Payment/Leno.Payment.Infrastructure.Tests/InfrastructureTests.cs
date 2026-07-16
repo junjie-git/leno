@@ -2,11 +2,14 @@ using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
 using Leno.Payment.Domain.Aggregates;
+using Leno.Payment.Domain.Repositories;
 using Leno.Payment.Domain.Services;
 using Leno.Payment.Domain.ValueObjects;
 using Leno.Payment.Infrastructure.Channels;
 using Leno.Payment.Infrastructure.Channels.Alipay;
 using Leno.Payment.Infrastructure.Channels.WeChatPay;
+using Leno.Payment.Infrastructure.Notify;
+using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -1582,5 +1585,171 @@ public class AlipayChannelTests
         var act = () => _sut.VerifySignatureAsync(null!);
 
         await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+}
+
+public class AlipayNotifyHandlerTests
+{
+    private readonly Mock<IChannelConfigProvider> _configProviderMock = new();
+    private readonly Mock<IPaymentOrderRepository> _orderRepoMock = new();
+    private readonly Mock<IRefundOrderRepository> _refundRepoMock = new();
+    private readonly Mock<IUnitOfWork> _uowMock = new();
+    private readonly AlipayNotifyHandler _sut;
+
+    private static readonly Guid OrderId = Guid.NewGuid();
+    private static readonly Guid UserId = Guid.NewGuid();
+    private const string OutTradeNo = "PAY20260701000001";
+
+    public AlipayNotifyHandlerTests()
+    {
+        var httpClient = new HttpClient();
+        var clientLogger = new Mock<ILogger<AlipayClient>>().Object;
+        var client = new AlipayClient(httpClient, clientLogger);
+        var adapterLogger = new Mock<ILogger<AlipayAdapter>>().Object;
+        var adapter = new AlipayAdapter(client, _configProviderMock.Object, adapterLogger);
+        var handlerLogger = new Mock<ILogger<AlipayNotifyHandler>>().Object;
+        _sut = new AlipayNotifyHandler(
+            adapter, _orderRepoMock.Object, _refundRepoMock.Object, _uowMock.Object, null, handlerLogger);
+    }
+
+    private static (string privateKey, string publicKey) GenerateKeyPair()
+    {
+        using var rsa = RSA.Create(2048);
+        return (rsa.ExportRSAPrivateKeyPem(), rsa.ExportRSAPublicKeyPem());
+    }
+
+    private void SetupConfig(string publicKey)
+    {
+        _configProviderMock
+            .Setup(p => p.GetConfigAsync(PaymentChannel.Alipay, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChannelConfig
+            {
+                AppId = "2021000000000001",
+                MchId = "2088000000000001",
+                ApiKey = publicKey,
+                NotifyUrl = "https://example.com/notify/alipay",
+                RefundNotifyUrl = "https://example.com/notify/alipay/refund"
+            });
+    }
+
+    private static PaymentOrder CreateOrder(decimal amount)
+    {
+        return PaymentOrder.Create(Guid.NewGuid(), OrderId, UserId, amount, "CNY", PaymentChannel.Alipay);
+    }
+
+    private static (string rawBody, Dictionary<string, string> formFields) BuildPaidNotify(
+        string privateKey, string totalAmount, string outTradeNo = OutTradeNo)
+    {
+        var fields = new Dictionary<string, string>
+        {
+            ["app_id"] = "2021000000000001",
+            ["charset"] = "UTF-8",
+            ["out_trade_no"] = outTradeNo,
+            ["trade_no"] = "2026071222001000000000000001",
+            ["trade_status"] = "TRADE_SUCCESS",
+            ["total_amount"] = totalAmount,
+            ["gmt_payment"] = "2026-07-12 10:00:00",
+            ["notify_time"] = "2026-07-12 10:00:00",
+            ["notify_type"] = "trade_status_sync",
+            ["notify_id"] = "notify-001",
+            ["sign_type"] = "RSA2"
+        };
+        fields["sign"] = AlipaySignatureHelper.GenerateSign(fields, privateKey);
+
+        var rawBody = string.Join("&", fields.Select(kv =>
+            $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value)}"));
+        return (rawBody, fields);
+    }
+
+    [Fact]
+    public async Task HandlePaymentNotifyAsync_AmountMatch_ShouldReturnSuccessAndMarkPaid()
+    {
+        var (privateKey, publicKey) = GenerateKeyPair();
+        SetupConfig(publicKey);
+        var order = CreateOrder(100m);
+        _orderRepoMock
+            .Setup(r => r.GetByOutTradeNoAsync(OutTradeNo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        var (rawBody, fields) = BuildPaidNotify(privateKey, "100.00");
+
+        var result = await _sut.HandleAsync(rawBody, fields);
+
+        result.Should().Be("success");
+        order.Status.Should().Be(PaymentStatus.Paid);
+        order.ChannelTradeNo.Should().Be("2026071222001000000000000001");
+        _orderRepoMock.Verify(r => r.UpdateAsync(order, It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandlePaymentNotifyAsync_ForgedLowAmount_ShouldReturnFailAndKeepPending()
+    {
+        // 攻击者构造 0.01 元支付成功回调购买 100 元订单
+        var (privateKey, publicKey) = GenerateKeyPair();
+        SetupConfig(publicKey);
+        var order = CreateOrder(100m);
+        _orderRepoMock
+            .Setup(r => r.GetByOutTradeNoAsync(OutTradeNo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        var (rawBody, fields) = BuildPaidNotify(privateKey, "0.01");
+
+        var result = await _sut.HandleAsync(rawBody, fields);
+
+        result.Should().Be("fail");
+        order.Status.Should().Be(PaymentStatus.Pending);
+        order.PaidAt.Should().BeNull();
+        _orderRepoMock.Verify(r => r.UpdateAsync(It.IsAny<PaymentOrder>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandlePaymentNotifyAsync_AmountMismatch_ShouldReturnFailAndKeepPending()
+    {
+        var (privateKey, publicKey) = GenerateKeyPair();
+        SetupConfig(publicKey);
+        var order = CreateOrder(100m);
+        _orderRepoMock
+            .Setup(r => r.GetByOutTradeNoAsync(OutTradeNo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        var (rawBody, fields) = BuildPaidNotify(privateKey, "99.99");
+
+        var result = await _sut.HandleAsync(rawBody, fields);
+
+        result.Should().Be("fail");
+        order.Status.Should().Be(PaymentStatus.Pending);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandlePaymentNotifyAsync_MissingAmount_ShouldReturnFailAndKeepPending()
+    {
+        var (privateKey, publicKey) = GenerateKeyPair();
+        SetupConfig(publicKey);
+        var order = CreateOrder(100m);
+        _orderRepoMock
+            .Setup(r => r.GetByOutTradeNoAsync(OutTradeNo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        var fields = new Dictionary<string, string>
+        {
+            ["app_id"] = "2021000000000001",
+            ["charset"] = "UTF-8",
+            ["out_trade_no"] = OutTradeNo,
+            ["trade_no"] = "2026071222001000000000000001",
+            ["trade_status"] = "TRADE_SUCCESS",
+            ["gmt_payment"] = "2026-07-12 10:00:00",
+            ["notify_time"] = "2026-07-12 10:00:00",
+            ["notify_type"] = "trade_status_sync",
+            ["notify_id"] = "notify-001",
+            ["sign_type"] = "RSA2"
+        };
+        fields["sign"] = AlipaySignatureHelper.GenerateSign(fields, privateKey);
+        var rawBody = string.Join("&", fields.Select(kv =>
+            $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value)}"));
+
+        var result = await _sut.HandleAsync(rawBody, fields);
+
+        result.Should().Be("fail");
+        order.Status.Should().Be(PaymentStatus.Pending);
     }
 }

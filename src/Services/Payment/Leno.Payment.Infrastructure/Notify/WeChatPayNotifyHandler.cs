@@ -122,7 +122,15 @@ public sealed class WeChatPayNotifyHandler
             return "FAIL";
         }
 
-        order.MarkSucceeded(tradeNo, result.PaidAt ?? DateTime.UtcNow);
+        // 支付金额强校验：渠道回调实付金额必须与本地支付单金额一致，否则记录安全告警并拒绝标记成功
+        if (!result.Amount.HasValue || result.Amount.Value != order.Amount)
+        {
+            _logger.LogWarning("微信支付通知金额不一致，疑似伪造回调 OutTradeNo={OutTradeNo} 期望金额={Expected} 实付金额={Actual}",
+                outTradeNo, order.Amount, result.Amount);
+            return "FAIL";
+        }
+
+        order.MarkSucceeded(tradeNo, result.Amount.Value, result.PaidAt ?? DateTime.UtcNow);
         await _paymentOrderRepository.UpdateAsync(order);
         await _unitOfWork.SaveEntitiesAsync();
 

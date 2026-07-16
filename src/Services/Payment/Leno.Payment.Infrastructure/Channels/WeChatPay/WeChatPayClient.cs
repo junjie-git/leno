@@ -282,15 +282,28 @@ public sealed class WeChatPayQueryOrderResult
     public string? TransactionId { get; init; }
     public string? TimeEnd { get; init; }
 
+    /// <summary>实付金额（单位元），从 amount.total（分）解析。</summary>
+    public decimal? Amount { get; init; }
+
     public bool IsPaid => string.Equals(TradeState, "SUCCESS", StringComparison.OrdinalIgnoreCase);
 
     public static WeChatPayQueryOrderResult From(JsonElement root)
     {
+        decimal? amount = null;
+        if (root.TryGetProperty("amount", out var amountNode)
+            && amountNode.TryGetProperty("total", out var totalNode)
+            && totalNode.ValueKind == JsonValueKind.Number)
+        {
+            // 微信支付金额单位为分，需 /100 转为元
+            amount = totalNode.GetInt32() / 100m;
+        }
+
         return new WeChatPayQueryOrderResult
         {
             TradeState = root.TryGetProperty("trade_state", out var state) ? state.GetString() : null,
             TransactionId = root.TryGetProperty("transaction_id", out var txnId) ? txnId.GetString() : null,
-            TimeEnd = root.TryGetProperty("success_time", out var timeEnd) ? timeEnd.GetString() : null
+            TimeEnd = root.TryGetProperty("success_time", out var timeEnd) ? timeEnd.GetString() : null,
+            Amount = amount
         };
     }
 }

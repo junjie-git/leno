@@ -138,11 +138,12 @@ public sealed class PaymentOrder : AggregateRoot
     }
 
     /// <summary>
-    /// 标记支付成功，校验状态合法（待支付或渠道已下单），置已支付态并发布 <see cref="PaymentSucceededEvent"/>。
+    /// 标记支付成功，校验状态合法（待支付或渠道已下单）且实付金额与本地金额一致，置已支付态并发布 <see cref="PaymentSucceededEvent"/>。
     /// </summary>
     /// <param name="channelTradeNo">第三方交易号。</param>
+    /// <param name="amount">渠道回调/查询解析的实付金额（元），须与 <see cref="Amount"/> 一致。</param>
     /// <param name="paidAt">支付时间（UTC）。</param>
-    public void MarkSucceeded(string channelTradeNo, DateTime paidAt)
+    public void MarkSucceeded(string channelTradeNo, decimal amount, DateTime paidAt)
     {
         if (Status != PaymentStatus.Pending && Status != PaymentStatus.ChannelOrdered)
         {
@@ -154,6 +155,13 @@ public sealed class PaymentOrder : AggregateRoot
         if (string.IsNullOrWhiteSpace(channelTradeNo))
         {
             throw new PaymentDomainException("第三方交易号不可为空", "PAYMENT_CHANNEL_TRADE_NO_EMPTY");
+        }
+
+        if (amount != Amount)
+        {
+            throw new PaymentDomainException(
+                $"支付金额不一致，期望 {Amount} 元，实付 {amount} 元",
+                "PAYMENT_AMOUNT_MISMATCH");
         }
 
         Status = PaymentStatus.Paid;

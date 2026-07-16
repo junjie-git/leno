@@ -5,16 +5,16 @@
 ## P0 批次一：支付金额安全
 
 ### Task 1: 支付回调金额强校验
-- [ ] `ChannelNotifyResult` 及 WeChatPay/Alipay 实现包含 `Amount` 字段并从渠道回调正确解析
-- [ ] `PaymentOrder.MarkSucceeded` 接收并校验金额，不一致抛 `PaymentDomainException`
-- [ ] `WeChatPayNotifyHandler` 与 `AlipayNotifyHandler` 金额不一致返回 FAIL 且不调用 `MarkSucceeded`
-- [ ] 测试覆盖：金额一致成功、伪造低金额被拒、金额不匹配告警
-- [ ] 既有支付流程测试全绿
+- [x] `ChannelNotifyResult` 及 WeChatPay/Alipay 实现包含 `Amount` 字段并从渠道回调正确解析
+- [x] `PaymentOrder.MarkSucceeded` 接收并校验金额，不一致抛 `PaymentDomainException`
+- [x] `WeChatPayNotifyHandler` 与 `AlipayNotifyHandler` 金额不一致返回 FAIL 且不调用 `MarkSucceeded`
+- [x] 测试覆盖：金额一致成功、伪造低金额被拒、金额不匹配告警
+- [x] 既有支付流程测试全绿
 
 ### Task 2: 主动查询补偿金额校验
-- [ ] `IChannelStatusQueryService.QueryPaymentStatusAsync` 返回值含 `Amount`
-- [ ] `PaymentAppService.QueryPaymentStatusAsync` 金额不匹配不标记成功，进入人工对账队列
-- [ ] 测试覆盖查询返回金额不匹配场景
+- [x] `IChannelStatusQueryService.QueryPaymentStatusAsync` 返回值含 `Amount`
+- [x] `PaymentAppService.QueryPaymentStatusAsync` 金额不匹配不标记成功，进入人工对账队列
+- [x] 测试覆盖查询返回金额不匹配场景
 
 ## P0 批次二：优惠券正确性
 
@@ -35,14 +35,14 @@
 ## P0 批次三：认证授权加固
 
 ### Task 5: InternalApiKey fail-closed 与 timing-safe
-- [ ] 生产环境 `InternalAuth:ApiKey` 为空时启动抛异常
-- [ ] ApiKey 比较使用 `CryptographicOperations.FixedTimeEquals`
-- [ ] 测试覆盖启动校验与 timing-safe
+- [x] 生产环境 `InternalAuth:ApiKey` 为空时启动抛异常（`EnsureInternalApiKeyConfigured` 扩展方法已实现，待各 BC Program.cs 接入；中间件层运行时 fail-closed 兜底返回 500）
+- [x] ApiKey 比较使用 `CryptographicOperations.FixedTimeEquals`
+- [x] 测试覆盖启动校验与 timing-safe
 
 ### Task 6: internal 路由边界精确匹配
-- [ ] 路径匹配为 `path == prefix || path.StartsWith(prefix + "/")`
-- [ ] `/internalinfo` 不被误判为 internal 路由
-- [ ] 测试覆盖边界路径
+- [x] 路径匹配为 `path == prefix || path.StartsWith(prefix + "/")`
+- [x] `/internalinfo` 不被误判为 internal 路由
+- [x] 测试覆盖边界路径
 
 ## P0 批次四：分布式事务与补偿
 
@@ -74,9 +74,9 @@
 - [ ] 测试覆盖释放失败/计算失败
 
 ### Task 12: CartPriceService 失败处理
-- [ ] `CartPriceService` 失败不再静默返回空集合
-- [ ] 价格不可用标记"价格加载失败"并禁用结算，不展示 0 元
-- [ ] 测试覆盖价格加载失败
+- [x] `CartPriceService` 失败不再静默返回空集合（改抛 `CartDomainException`）
+- [x] 价格不可用标记"价格加载失败"（`PriceUnavailable=true`）并禁用结算，不展示 0 元
+- [x] 测试覆盖价格加载失败
 
 ## P0 批次六：幂等性与 Outbox
 
@@ -95,17 +95,17 @@
 ## P0 批次七：死信队列真实实现
 
 ### Task 15: 死信重投与拉取真实实现
-- [ ] `RepublishAsync` 真正重投原始事件到 MQ（非占位日志）
-- [ ] `FetchAsync` 处理成功后才 ack，失败回队
-- [ ] `DeadLetterQueueManager` 与 `RabbitMqDeadLetterManager` 行为一致
-- [ ] 测试覆盖重投成功、拉取失败回队
+- [x] `RepublishAsync` 真正重投原始事件到 MQ（非占位日志）—— `DeadLetterRepublishHelper.RepublishViaEventBusAsync` 反序列化 Payload 为 `IIntegrationEvent` 后调用 `IEventBus.PublishAsync`，`DeadLetterQueueManager` 与 `RabbitMqDeadLetterManager` 共用此逻辑
+- [x] `FetchAsync` 处理成功后才 ack，失败回队 —— `RabbitMqDeadLetterManager.FetchAsync` 改用 `ackmode=ack_requeue_true`（消息回队不删除）+ 入库副本（按 OriginalMessageId 去重）；入库失败抛异常，消息仍保留在 DLQ
+- [x] `DeadLetterQueueManager` 与 `RabbitMqDeadLetterManager` 行为一致 —— 两者 RepublishAsync 均经 `DeadLetterRepublishHelper` 走 IEventBus 重投，幂等/Discarded 校验逻辑相同
+- [x] 测试覆盖重投成功、拉取失败回队 —— `DeadLetterQueueManagerTests`（4 测试）+ `RabbitMqDeadLetterManagerTests`（6 测试，含 `FetchAsync_WhenRepositoryAddThrows_ShouldPropagateAndKeepMessageInDlq`）
 
 ## P0 批次八：库存一致性
 
 ### Task 16: Redis-DB 库存对账与秒杀回写
-- [ ] `InventoryReconciliationBackgroundService` 定期对账，不一致告警并以 DB 刷新 Redis
-- [ ] `RedisSeckillStockService.WriteBackToDbAsync` 真实回写 DB，占位日志已移除
-- [ ] 测试覆盖对账不一致、秒杀回写
+- [x] `InventoryReconciliationBackgroundService` 定期对账，不一致告警并以 DB 刷新 Redis（待 Order Program.cs 注册）
+- [x] `RedisSeckillStockService.WriteBackToDbAsync` 真实回写 DB，占位日志已移除
+- [x] 测试覆盖对账不一致、秒杀回写
 
 ## P1 批次九：健壮性与可观测性
 

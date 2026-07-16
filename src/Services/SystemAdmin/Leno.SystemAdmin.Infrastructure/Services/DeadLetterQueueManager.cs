@@ -1,24 +1,37 @@
+using Leno.Infrastructure.Abstractions;
+using Leno.SharedKernel.Abstractions;
 using Leno.SystemAdmin.Domain.Aggregates;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.Services;
+using Leno.SystemAdmin.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.SystemAdmin.Infrastructure.Services;
 
 /// <summary>
 /// 死信队列管理器实现，基于数据库仓储管理死信消息。
-/// FetchAsync 查询仓储，RepublishAsync 标记消息为 Retried。
+/// FetchAsync 查询仓储，RepublishAsync 通过 <see cref="IEventBus"/> 真正重投原始集成事件并标记消息为 Retried。
 /// </summary>
 public sealed class DeadLetterQueueManager : IDeadLetterQueueManager
 {
     private readonly IDeadLetterMessageRepository _repository;
+    private readonly IEventBus _eventBus;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<DeadLetterQueueManager> _logger;
 
-    public DeadLetterQueueManager(IDeadLetterMessageRepository repository, ILogger<DeadLetterQueueManager> logger)
+    public DeadLetterQueueManager(
+        IDeadLetterMessageRepository repository,
+        IEventBus eventBus,
+        IUnitOfWork unitOfWork,
+        ILogger<DeadLetterQueueManager> logger)
     {
         ArgumentNullException.ThrowIfNull(repository);
+        ArgumentNullException.ThrowIfNull(eventBus);
+        ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(logger);
         _repository = repository;
+        _eventBus = eventBus;
+        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
@@ -43,11 +56,26 @@ public sealed class DeadLetterQueueManager : IDeadLetterQueueManager
             throw new InvalidOperationException($"死信消息 {messageId} 不存在");
         }
 
-        // Retry is idempotent - if already retried, it returns without error
-        message.Retry("system"); // System-initiated retry via queue manager
+        // 幂等：已重投则跳过重复发布，避免向 MQ 重复发送事件
+        if (message.Status == DeadLetterStatus.Retried)
+        {
+            _logger.LogInformation("死信消息 {MessageId} 已重投，跳过重复重投", messageId);
+            return;
+        }
 
+        if (message.Status == DeadLetterStatus.Discarded)
+        {
+            throw new InvalidOperationException($"死信消息 {messageId} 已丢弃，不可重投");
+        }
+
+        // 真正重投：反序列化原始集成事件并通过事件总线重新发布到 MQ
+        await DeadLetterRepublishHelper.RepublishViaEventBusAsync(_eventBus, message, _logger, ct);
+
+        // 重投成功后标记消息状态为 Retried 并持久化
+        message.Retry("system");
         await _repository.UpdateAsync(message, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
 
-        _logger.LogInformation("死信消息 {MessageId} 已重投", messageId);
+        _logger.LogInformation("死信消息 {MessageId} 已通过事件总线重投", messageId);
     }
 }

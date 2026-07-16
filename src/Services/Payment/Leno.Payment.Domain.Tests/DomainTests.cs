@@ -104,7 +104,7 @@ public class PaymentOrderTests
         var payment = CreatePayment();
         var paidAt = DateTime.UtcNow;
 
-        payment.MarkSucceeded("TRADE001", paidAt);
+        payment.MarkSucceeded("TRADE001", 100m, paidAt);
 
         payment.Status.Should().Be(PaymentStatus.Paid);
         payment.ChannelTradeNo.Should().Be("TRADE001");
@@ -118,7 +118,7 @@ public class PaymentOrderTests
         payment.MarkChannelOrdered("TRADE001", null, null, null);
         var paidAt = DateTime.UtcNow;
 
-        payment.MarkSucceeded("TRADE001", paidAt);
+        payment.MarkSucceeded("TRADE001", 100m, paidAt);
 
         payment.Status.Should().Be(PaymentStatus.Paid);
     }
@@ -127,9 +127,9 @@ public class PaymentOrderTests
     public void MarkSucceeded_AlreadyPaid_ShouldThrowException()
     {
         var payment = CreatePayment();
-        payment.MarkSucceeded("TRADE001", DateTime.UtcNow);
+        payment.MarkSucceeded("TRADE001", 100m, DateTime.UtcNow);
 
-        var act = () => payment.MarkSucceeded("TRADE002", DateTime.UtcNow);
+        var act = () => payment.MarkSucceeded("TRADE002", 100m, DateTime.UtcNow);
 
         act.Should().Throw<PaymentDomainException>().WithMessage("*状态*");
     }
@@ -139,9 +139,47 @@ public class PaymentOrderTests
     {
         var payment = CreatePayment();
 
-        var act = () => payment.MarkSucceeded("", DateTime.UtcNow);
+        var act = () => payment.MarkSucceeded("", 100m, DateTime.UtcNow);
 
         act.Should().Throw<PaymentDomainException>().WithMessage("*交易号*");
+    }
+
+    [Fact]
+    public void MarkSucceeded_AmountMatch_WithDecimalPrecision_ShouldTransitionToPaid()
+    {
+        // 渠道金额按字符串解析（如 "100.00"），与本地 100m 数值相等应通过
+        var payment = CreatePayment();
+
+        payment.MarkSucceeded("TRADE001", 100.00m, DateTime.UtcNow);
+
+        payment.Status.Should().Be(PaymentStatus.Paid);
+    }
+
+    [Fact]
+    public void MarkSucceeded_AmountMismatch_ShouldThrowException()
+    {
+        var payment = CreatePayment();
+
+        var act = () => payment.MarkSucceeded("TRADE001", 0.01m, DateTime.UtcNow);
+
+        act.Should().Throw<PaymentDomainException>()
+            .Where(ex => ex.ErrorCode == "PAYMENT_AMOUNT_MISMATCH"
+                && ex.Message.Contains("金额")
+                && ex.Message.Contains("0.01"));
+        payment.Status.Should().Be(PaymentStatus.Pending);
+    }
+
+    [Fact]
+    public void MarkSucceeded_LowerAmount_ShouldThrowExceptionAndKeepStatus()
+    {
+        var payment = CreatePayment();
+
+        var act = () => payment.MarkSucceeded("TRADE001", 99.99m, DateTime.UtcNow);
+
+        act.Should().Throw<PaymentDomainException>();
+        payment.Status.Should().Be(PaymentStatus.Pending);
+        payment.ChannelTradeNo.Should().BeNull();
+        payment.PaidAt.Should().BeNull();
     }
 
     [Fact]
@@ -170,7 +208,7 @@ public class PaymentOrderTests
     public void MarkFailed_AlreadyPaid_ShouldThrowException()
     {
         var payment = CreatePayment();
-        payment.MarkSucceeded("TRADE001", DateTime.UtcNow);
+        payment.MarkSucceeded("TRADE001", 100m, DateTime.UtcNow);
 
         var act = () => payment.MarkFailed("reason");
 
@@ -203,7 +241,7 @@ public class PaymentOrderTests
     public void MarkClosed_AlreadyPaid_ShouldThrowException()
     {
         var payment = CreatePayment();
-        payment.MarkSucceeded("TRADE001", DateTime.UtcNow);
+        payment.MarkSucceeded("TRADE001", 100m, DateTime.UtcNow);
 
         var act = () => payment.MarkClosed("原因");
 
