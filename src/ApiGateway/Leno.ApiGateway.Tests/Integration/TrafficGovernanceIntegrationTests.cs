@@ -64,7 +64,9 @@ public class TrafficGovernanceIntegrationTests : IClassFixture<WebApplicationFac
                     ["RateLimit:Routes:seckill:PermitLimit"] = "50",
                     ["RateLimit:Routes:seckill:Window"] = "00:00:01",
                     ["RateLimit:User:PermitLimit"] = "100",
-                    ["RateLimit:User:Window"] = "00:01:00"
+                    ["RateLimit:User:Window"] = "00:01:00",
+                    // Phase 7 F2：本测试聚焦限流/降级/超时，禁用 JWT 验签避免 401
+                    ["Jwt:Enabled"] = "false"
                 });
             });
 

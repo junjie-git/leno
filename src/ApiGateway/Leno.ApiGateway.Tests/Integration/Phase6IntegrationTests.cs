@@ -36,7 +36,9 @@ public class Phase6IntegrationTests : IClassFixture<WebApplicationFactory<Progra
                     ["Redis:Configuration"] = "localhost:6379",
                     ["Gateway:Cache:Enabled"] = "false",
                     ["Gateway:Cors:Enabled"] = "true",
-                    ["Gateway:Cors:AllowedOrigins:0"] = "http://localhost:3000"
+                    ["Gateway:Cors:AllowedOrigins:0"] = "http://localhost:3000",
+                    // Phase 7 F2：本测试聚焦 Phase 6 服务注册与 CORS，禁用 JWT 验签避免 401
+                    ["Jwt:Enabled"] = "false"
                 });
             });
 

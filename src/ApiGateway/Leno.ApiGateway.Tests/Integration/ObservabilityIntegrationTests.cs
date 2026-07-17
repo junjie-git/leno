@@ -34,7 +34,9 @@ public class ObservabilityIntegrationTests : IClassFixture<WebApplicationFactory
                     ["Consul:Token"] = "",
                     ["Consul:PassingOnly"] = "true",
                     // Phase 6 集成后 CacheMiddleware 会访问 Redis，测试环境禁用缓存避免 500
-                    ["Gateway:Cache:Enabled"] = "false"
+                    ["Gateway:Cache:Enabled"] = "false",
+                    // Phase 7 F2：本测试聚焦可观测性端点，禁用 JWT 验签避免 JwtBearer 配置依赖
+                    ["Jwt:Enabled"] = "false"
                 });
             });
 
