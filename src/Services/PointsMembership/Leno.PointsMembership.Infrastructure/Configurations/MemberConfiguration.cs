@@ -1,4 +1,5 @@
 using Leno.PointsMembership.Domain.Aggregates;
+using Leno.PointsMembership.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -29,5 +30,17 @@ public sealed class MemberConfiguration : IEntityTypeConfiguration<Member>
         builder.Property(m => m.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
 
         builder.HasIndex(m => m.UserId).IsUnique().HasDatabaseName("ix_members_user_id");
+
+        // 等级变更历史作为 owned collection 持久化到 member_level_change_histories 表
+        // 由 EF Core 自动生成 shadow FK (member_id) + shadow index 作为复合主键
+        builder.OwnsMany(m => m.LevelChangeHistories, h =>
+        {
+            h.ToTable("member_level_change_histories");
+            h.Property(x => x.OldLevel).HasColumnName("old_level");
+            h.Property(x => x.NewLevel).HasColumnName("new_level");
+            h.Property(x => x.GrowthValue).HasColumnName("growth_value");
+            h.Property(x => x.ChangedAt).HasColumnName("changed_at");
+            h.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(512);
+        });
     }
 }
