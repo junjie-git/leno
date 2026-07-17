@@ -57,6 +57,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITokenVerifier, TotpTokenVerifier>();
         services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
 
+        // JWT 黑名单吊销服务：登出时写入 Redis 黑名单（与网关共用 Redis 实例与 Key 格式）
+        services.AddScoped<IJwtRevocationService, JwtRevocationService>();
+
         services.AddScoped<IUserInternalQueryService, UserInternalQueryService>();
 
         services.AddScoped<IPermissionRepository, EfCorePermissionRepository>();

@@ -1,5 +1,6 @@
 using Leno.ApiGateway.Extensions;
 using Leno.ApiGateway.Middleware;
+using Leno.ApiGateway.Services;
 using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.HealthChecks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -21,6 +22,9 @@ builder.Services.AddConsulDestinationResolver();
 
 // Phase 4：Redis（用于分布式限流计数器）
 builder.Services.AddGatewayRedis(builder.Configuration);
+
+// Phase 7 F2 安全修复：JWT 黑名单服务（依赖 IConnectionMultiplexer，需在 AddGatewayRedis 之后注册）
+builder.Services.AddSingleton<IJwtBlacklistService, JwtBlacklistService>();
 
 // Phase 4：限流策略（global/default/seckill/per-user，Redis 启用时使用 RedisSlidingWindowRateLimiter）
 builder.Services.AddGatewayRateLimiter(builder.Configuration);
@@ -103,19 +107,23 @@ app.MapLenoHealthChecksUI();
 //   1. UseObservability — 访问日志 + 指标中间件 + /metrics 端点
 //   2. UseCors — Phase 6：预检 OPTIONS 在缓存之前处理
 //   3. UseAuthentication — Phase 7：JWT 本地验签，填充 HttpContext.User
-//   4. 白名单路由中间件 — Phase 7：login/register/refresh-token/health/metrics 放行，否则要求已认证
-//   5. UseAuthorization — Phase 7：授权检查（当前无 [Authorize] 端点，由白名单中间件统一拦截）
-//   6. FallbackResponseMiddleware — 503 降级
-//   7. UseResponseCompression — Phase 6：响应压缩
-//   8. CacheMiddleware — Phase 6：命中即短路，未命中透传到 YARP
-//   9. UseRateLimiter — 路由级限流
-//  10. UseRequestTimeouts — 路由级超时
-//  11. MapReverseProxy — YARP 反向代理
+//   4. JwtBlacklistMiddleware — Phase 7 F2：命中黑名单返回 401，递增 gateway_blacklist_hits
+//   5. 白名单路由中间件 — Phase 7：login/register/refresh-token/health/metrics 放行，否则要求已认证
+//   6. UseAuthorization — Phase 7：授权检查（当前无 [Authorize] 端点，由白名单中间件统一拦截）
+//   7. FallbackResponseMiddleware — 503 降级
+//   8. UseResponseCompression — Phase 6：响应压缩
+//   9. CacheMiddleware — Phase 6：命中即短路，未命中透传到 YARP
+//  10. UseRateLimiter — 路由级限流
+//  11. UseRequestTimeouts — 路由级超时
+//  12. MapReverseProxy — YARP 反向代理
 app.UseObservability(builder.Configuration);
 app.UseCors();
 if (jwtEnabled)
 {
     app.UseAuthentication();
+
+    // JWT 黑名单拦截：紧随 UseAuthentication 之后（已填充 User），命中黑名单返回 401 并递增计数器
+    app.UseMiddleware<JwtBlacklistMiddleware>();
 
     // 白名单路由 + 未认证拦截：在 UseAuthentication 之后（已填充 User）、UseAuthorization 之前
     app.Use(async (context, next) =>

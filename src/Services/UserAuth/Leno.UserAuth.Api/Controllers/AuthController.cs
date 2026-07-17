@@ -1,7 +1,10 @@
 using Leno.SharedContracts.Responses;
 using Leno.UserAuth.Application;
+using Leno.UserAuth.Application.Abstractions;
 using Leno.UserAuth.Application.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Leno.UserAuth.Api.Controllers;
 
@@ -14,11 +17,14 @@ namespace Leno.UserAuth.Api.Controllers;
 public sealed class AuthController : ControllerBase
 {
     private readonly IUserAppService _userAppService;
+    private readonly IJwtRevocationService _revocationService;
 
-    public AuthController(IUserAppService userAppService)
+    public AuthController(IUserAppService userAppService, IJwtRevocationService revocationService)
     {
         ArgumentNullException.ThrowIfNull(userAppService);
+        ArgumentNullException.ThrowIfNull(revocationService);
         _userAppService = userAppService;
+        _revocationService = revocationService;
     }
 
     /// <summary>注册账户并签发令牌。</summary>
@@ -46,6 +52,32 @@ public sealed class AuthController : ControllerBase
     {
         var token = await _userAppService.RefreshTokenAsync(dto.RefreshToken, ct);
         return Ok(ApiResponse.Success(token));
+    }
+
+    /// <summary>登出并吊销当前 JWT（写入黑名单，TTL 为 token 剩余有效期）。</summary>
+    [HttpPost("logout")]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> LogoutAsync(CancellationToken ct)
+    {
+        // 从 JWT 提取 jti 与剩余有效期
+        var jti = User.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+        var expClaim = User.FindFirst(JwtRegisteredClaimNames.Exp)?.Value;
+
+        if (string.IsNullOrEmpty(jti) || string.IsNullOrEmpty(expClaim))
+        {
+            return BadRequest(ApiResponse.Fail(400, "Token 缺少必要声明"));
+        }
+
+        var exp = long.Parse(expClaim, System.Globalization.CultureInfo.InvariantCulture);
+        var expiry = DateTimeOffset.FromUnixTimeSeconds(exp);
+        var ttl = expiry - DateTimeOffset.UtcNow;
+        if (ttl > TimeSpan.Zero)
+        {
+            await _revocationService.RevokeAsync(jti, ttl, ct);
+        }
+
+        return Ok(ApiResponse.Success());
     }
 
     /// <summary>
