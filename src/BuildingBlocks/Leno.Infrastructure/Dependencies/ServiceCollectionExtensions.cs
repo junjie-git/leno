@@ -8,6 +8,8 @@ using Leno.Infrastructure.Storage;
 using Leno.SharedKernel.Abstractions;
 using Leno.Infrastructure.Abstractions;
 using MassTransit;
+using Medallion.Threading;
+using Medallion.Threading.Redis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -88,9 +90,12 @@ public static class ServiceCollectionExtensions
     private static void AddRedis(IServiceCollection services, IConfiguration configuration)
     {
         var redisConfig = configuration["Redis:Configuration"] ?? "localhost:6379";
-        services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConfig));
+        var multiplexer = ConnectionMultiplexer.Connect(redisConfig);
+        services.AddSingleton<IConnectionMultiplexer>(_ => multiplexer);
         // 集成事件消费幂等去重存储，基于 Redis SET NX + 24h TTL
         services.AddSingleton<IIdempotencyStore, RedisIdempotencyStore>();
+        // 数据库迁移分布式锁提供者（基于 Redis SET NX EX，DistributedLock.Redis 实现）
+        services.AddSingleton<IDistributedLockProvider>(_ => new RedisDistributedSynchronizationProvider(multiplexer.GetDatabase()));
     }
 
     private static void AddElasticsearch(IServiceCollection services, IConfiguration configuration)
