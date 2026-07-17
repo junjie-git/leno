@@ -127,3 +127,43 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate docker-compose config
         run: docker-compose config > /dev/null
+
+  migration-check:
+    name: EF Core Migrations 同步检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 10.0.0
+      - name: Restore
+        run: dotnet restore Leno.slnx
+      - name: Build
+        run: dotnet build Leno.slnx --no-restore --configuration Release -p:TreatWarningsAsErrors=false
+      - name: Check migrations sync (模型变更必须配套 migration)
+        run: pwsh scripts/check-migrations.ps1
+      - name: Generate idempotent migration SQL scripts
+        run: pwsh scripts/generate-migration-scripts.ps1
+      - name: Upload migration SQL scripts
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-scripts
+          path: scripts/migrations/*.sql
+          retention-days: 14
+      - name: Staging 空库执行迁移验证
+        env:
+          SA_PASSWORD: Leno@Test123!
+        run: |
+          docker run -d --name sqlserver-test \
+            -e ACCEPT_EULA=Y \
+            -e MSSQL_SA_PASSWORD=$SA_PASSWORD \
+            -p 1433:1433 \
+            mcr.microsoft.com/mssql/server:2019-latest
+          sleep 60
+          for f in scripts/migrations/*.sql; do
+            /opt/mssql-tools18/bin/sqlcmd -S localhost,1433 -U sa -P $SA_PASSWORD -C -i "$f"
+          done
+          docker rm -f sqlserver-test
