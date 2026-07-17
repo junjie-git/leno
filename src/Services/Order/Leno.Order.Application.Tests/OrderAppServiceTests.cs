@@ -111,7 +111,7 @@ public class OrderAppServiceTests
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
 
-        await _sut.ShipAsync(OrderId, Guid.NewGuid(), new ShipOrderDto { LogisticsNo = "SF123", LogisticsCompanyCode = "SF" });
+        await _sut.ShipAsync(OrderId, SellerId, new ShipOrderDto { LogisticsNo = "SF123", LogisticsCompanyCode = "SF" });
 
         order.Status.Should().Be(OrderStatus.Shipped);
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);

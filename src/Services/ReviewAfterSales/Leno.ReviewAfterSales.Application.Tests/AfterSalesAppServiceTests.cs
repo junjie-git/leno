@@ -117,7 +117,7 @@ public class AfterSalesAppServiceTests
             .Setup(p => p.GetByOrderIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PaymentInfoResult { PaymentId = PaymentId, Channel = "Alipay" });
 
-        await _sut.ApproveAfterSalesAsync(AfterSalesId, OperatorId, 50m);
+        await _sut.ApproveAfterSalesAsync(AfterSalesId, SellerId, 50m);
 
         afterSales.Status.Should().Be(AfterSalesStatus.Refunding);
         afterSales.ApprovedAmount.Should().Be(50m);
@@ -135,7 +135,7 @@ public class AfterSalesAppServiceTests
             .Setup(r => r.GetByIdAsync(AfterSalesId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(afterSales);
 
-        await _sut.ApproveAfterSalesAsync(AfterSalesId, OperatorId, 100m);
+        await _sut.ApproveAfterSalesAsync(AfterSalesId, SellerId, 100m);
 
         afterSales.Status.Should().Be(AfterSalesStatus.Approved);
         afterSales.ApprovedAmount.Should().Be(100m);

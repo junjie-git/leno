@@ -1,5 +1,6 @@
 using Leno.ReviewAfterSales.Application.DTOs;
 using Leno.ReviewAfterSales.Domain.Aggregates;
+using Leno.ReviewAfterSales.Domain.Exceptions;
 using Leno.ReviewAfterSales.Domain.Repositories;
 using Leno.ReviewAfterSales.Domain.Services;
 using Leno.ReviewAfterSales.Domain.ValueObjects;
@@ -71,6 +72,9 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
         var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
             ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
 
+        // 越权校验：仅归属卖家可审核
+        RequireOwnedAfterSales(afterSales, operatorId);
+
         afterSales.Approve(operatorId, approvedAmount);
 
         // 仅退款类型直接进入退款流程，经发件箱模式发布退款请求集成事件
@@ -113,6 +117,9 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
     {
         var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
             ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        // 越权校验：仅归属卖家可确认退货
+        RequireOwnedAfterSales(afterSales, operatorId);
 
         afterSales.ConfirmReturn();
         afterSales.MarkRefunding();
@@ -223,6 +230,21 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
         var items = await _afterSalesRepository.QueryAsync(orderId, userId, sellerId, status, page, pageSize, ct);
         var total = await _afterSalesRepository.CountAsync(orderId, userId, sellerId, status, ct);
         return new AfterSalesListResultDto { Items = items.ConvertAll(ToDto), Total = total, Page = page, PageSize = pageSize };
+    }
+
+    /// <summary>
+    /// 校验售后单归属卖家。非归属卖家抛领域异常，操作人标识为空抛领域异常。
+    /// </summary>
+    private static void RequireOwnedAfterSales(AfterSalesAggregate afterSales, Guid operatorId)
+    {
+        if (operatorId == Guid.Empty)
+        {
+            throw new ReviewDomainException("操作人标识不可为空", "OPERATOR_EMPTY");
+        }
+        if (afterSales.SellerId != operatorId)
+        {
+            throw new ReviewDomainException("无权操作此售后单", "AFTERSALES_NOT_OWNED");
+        }
     }
 
     private static AfterSalesDto ToDto(AfterSalesAggregate afterSales)

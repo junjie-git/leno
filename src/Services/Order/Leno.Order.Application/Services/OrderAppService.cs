@@ -265,7 +265,7 @@ public sealed class OrderAppService : IOrderAppService
     /// <inheritdoc />
     public async Task ShipAsync(Guid orderId, Guid operatorId, ShipOrderDto dto, CancellationToken ct = default)
     {
-        var order = await RequireOrderAsync(orderId, ct);
+        var order = await RequireOwnedOrderAsync(orderId, operatorId, ct);
         order.Ship(dto.LogisticsNo, dto.LogisticsCompanyCode, DateTime.UtcNow, operatorId);
         await _orderRepository.UpdateAsync(order, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
@@ -465,6 +465,28 @@ public sealed class OrderAppService : IOrderAppService
     private async Task<OrderAggregate> RequireOrderAsync(Guid orderId, CancellationToken ct)
         => await _orderRepository.GetByIdAsync(orderId, ct)
            ?? throw new OrderDomainException($"订单 {orderId} 不存在", "ORDER_NOT_FOUND", 404);
+
+    /// <summary>
+    /// 校验订单归属卖家。会员订阅订单（SellerId 为空）不允许卖家操作。
+    /// </summary>
+    private async Task<OrderAggregate> RequireOwnedOrderAsync(Guid orderId, Guid sellerId, CancellationToken ct)
+    {
+        EnsureNonEmptyUser(sellerId);
+        var order = await RequireOrderAsync(orderId, ct);
+        if (!order.SellerId.HasValue || order.SellerId.Value != sellerId)
+        {
+            throw new OrderDomainException("无权操作此订单", "ORDER_NOT_OWNED");
+        }
+        return order;
+    }
+
+    private static void EnsureNonEmptyUser(Guid userId)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new OrderDomainException("操作人标识不可为空", "OPERATOR_EMPTY");
+        }
+    }
 
     /// <summary>
     /// 由订单明细构建 SKU 与数量映射，供库存释放使用。
