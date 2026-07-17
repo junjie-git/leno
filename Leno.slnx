@@ -113,6 +113,7 @@
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Application/Leno.SellerShop.Application.csproj" />
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Domain.Tests/Leno.SellerShop.Domain.Tests.csproj" />
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Domain/Leno.SellerShop.Domain.csproj" />
+    <Project Path="src/Services/SellerShop/Leno.SellerShop.Infrastructure.Tests/Leno.SellerShop.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/SellerShop/Leno.SellerShop.Infrastructure/Leno.SellerShop.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/ReviewAfterSales/">
@@ -124,6 +125,7 @@
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Application/Leno.ReviewAfterSales.Application.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Domain.Tests/Leno.ReviewAfterSales.Domain.Tests.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Domain/Leno.ReviewAfterSales.Domain.csproj" />
+    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure.Tests/Leno.ReviewAfterSales.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/Leno.ReviewAfterSales.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/Notification/">
@@ -132,6 +134,7 @@
     <Project Path="src/Services/Notification/Leno.Notification.Application/Leno.Notification.Application.csproj" />
     <Project Path="src/Services/Notification/Leno.Notification.Domain.Tests/Leno.Notification.Domain.Tests.csproj" />
     <Project Path="src/Services/Notification/Leno.Notification.Domain/Leno.Notification.Domain.csproj" />
+    <Project Path="src/Services/Notification/Leno.Notification.Infrastructure.Tests/Leno.Notification.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/Notification/Leno.Notification.Infrastructure/Leno.Notification.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/UserAuth/">
