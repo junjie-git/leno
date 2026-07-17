@@ -4,6 +4,7 @@ using Leno.Infrastructure.Configuration;
 using Leno.Infrastructure.Dependencies;
 using Leno.Infrastructure.Logging;
 using Leno.Infrastructure.Middleware;
+using Leno.Infrastructure.Persistence;
 using Leno.Infrastructure.ServiceDiscovery;
 using Leno.Infrastructure.Telemetry;
 using Leno.PointsMembership.Infrastructure;
@@ -115,4 +116,6 @@ app.MapControllers();
 
 app.EnsureInternalApiKeyConfigured();
 
+// 启动时执行 EF Core 迁移（带 Redis 分布式锁，避免多实例并发冲突）
+await app.Services.MigrateWithLockAsync<PointsMembershipDbContext>();
 app.Run();
