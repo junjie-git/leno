@@ -30,6 +30,8 @@
     <TestContainersVersion>4.0.0</TestContainersVersion>
     <CoverletVersion>6.0.2</CoverletVersion>
     <ReportGeneratorVersion>5.3.8</ReportGeneratorVersion>
+    <MassTransitVersion>8.3.6</MassTransitVersion>
+    <EntityFrameworkCoreVersion>10.0.0</EntityFrameworkCoreVersion>
   </PropertyGroup>
 
 </Project>

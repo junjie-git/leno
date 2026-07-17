@@ -11,6 +11,8 @@
     <PackageReference Include="xunit" Version="$(XUnitVersion)" />
     <PackageReference Include="Moq" Version="$(MoqVersion)" />
     <PackageReference Include="FluentAssertions" Version="$(FluentAssertionsVersion)" />
+    <PackageReference Include="MassTransit" Version="$(MassTransitVersion)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EntityFrameworkCoreVersion)" />
     <PackageReference Include="Testcontainers" Version="$(TestContainersVersion)" />
     <PackageReference Include="Testcontainers.MsSql" Version="$(TestContainersVersion)" />
     <PackageReference Include="Testcontainers.Redis" Version="$(TestContainersVersion)" />
