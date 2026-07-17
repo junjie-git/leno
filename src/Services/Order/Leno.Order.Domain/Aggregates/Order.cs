@@ -485,6 +485,32 @@ public sealed class Order : AggregateRoot
     }
 
     /// <summary>
+    /// 运营强制取消已支付订单时追加退款请求事件，由 Outbox 同事务持久化。
+    /// 该方法仅由应用层在 ForceCancel 场景调用，不改变聚合状态（状态已由 ForceCancel 变更）。
+    /// </summary>
+    /// <param name="refundId">退款单标识。</param>
+    /// <param name="paymentId">支付单标识。</param>
+    /// <param name="refundAmount">退款金额。</param>
+    /// <param name="currency">币种。</param>
+    /// <param name="channel">退款渠道。</param>
+    /// <param name="reason">退款原因。</param>
+    public void AddForceCancelRefundRequestedEvent(
+        Guid refundId, Guid paymentId, decimal refundAmount, string currency, string channel, string reason)
+    {
+        if (Status != OrderStatus.Cancelled)
+        {
+            throw new OrderDomainException("仅已取消订单可追加退款事件", "ORDER_REFUND_NOT_CANCELLED");
+        }
+        if (!PaymentId.HasValue)
+        {
+            throw new OrderDomainException("无支付单不可发起退款", "ORDER_REFUND_NO_PAYMENT");
+        }
+        AddDomainEvent(new RefundRequestedIntegrationEvent(
+            refundId, Id, UserId, Id, // 强制取消无售后单，AfterSalesId 复用 OrderId
+            PaymentId.Value, refundAmount, currency, channel, reason));
+    }
+
+    /// <summary>
     /// 重算订单总金额，强制金额不变量：TotalAmount = ItemsAmount - DiscountAmount - PointsOffsetAmount + FreightAmount。
     /// </summary>
     private void RecalculateTotal()

@@ -346,16 +346,14 @@ public sealed class OrderAppService : IOrderAppService
         await _pointsAntiCorruption.ReleaseAsync(orderId, ct);
         await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct);
 
-        // 已支付订单：触发退款流程
+        // 已支付订单：通过聚合事件触发退款（Outbox 同事务持久化，替代直接 IEventBus.PublishAsync）
         if (order.PaymentId.HasValue)
         {
             var refundId = Guid.NewGuid();
             var channel = order.PaymentMethod?.ToString() ?? "WeChatPay";
-            var refundEvent = new RefundRequestedIntegrationEvent(
-                refundId, orderId, order.UserId, orderId, // 使用 OrderId 作为 AfterSalesId（运营强制取消无售后单）
-                order.PaymentId.Value, order.TotalAmount, "CNY", channel,
+            order.AddForceCancelRefundRequestedEvent(
+                refundId, order.PaymentId.Value, order.TotalAmount, "CNY", channel,
                 $"运营强制取消退款：{dto.Reason}");
-            await _eventBus.PublishAsync(refundEvent, ct);
         }
 
         await _orderRepository.UpdateAsync(order, ct);
