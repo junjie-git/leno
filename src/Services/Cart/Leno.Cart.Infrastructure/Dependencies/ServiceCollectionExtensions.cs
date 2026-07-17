@@ -1,5 +1,6 @@
 using FluentValidation;
 using Leno.Cart.Application;
+using Leno.Cart.Application.Abstractions;
 using Leno.Cart.Application.Services;
 using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
@@ -47,6 +48,17 @@ public static class ServiceCollectionExtensions
             var baseAddress = configuration["ServiceUrls:ProductApi"] ?? "http://localhost:5150";
             client.BaseAddress = new Uri(baseAddress);
         });
+
+        // 商品快照防腐层：商品更新事件消费时查询单 SKU 展示快照，复用商品域 BaseAddress
+        services.AddHttpClient<IProductSnapshotAntiCorruption, ProductSnapshotAntiCorruptionService>(client =>
+        {
+            var baseAddress = configuration["ServiceUrls:ProductApi"] ?? "http://localhost:5150";
+            client.BaseAddress = new Uri(baseAddress);
+        });
+
+        // 购物车-SKU 反向索引：基于 Redis Set，商品事件消费时定位受影响购物车
+        services.AddScoped<ICartSkuIndexService, CartSkuIndexService>();
+
         services.AddSingleton<RedisCartCache>();
 
         // 匿名购物车：Redis 仓储 + 应用服务

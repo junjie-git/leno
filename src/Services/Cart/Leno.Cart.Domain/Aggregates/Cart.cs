@@ -1,3 +1,4 @@
+using Leno.Cart.Domain.Events;
 using Leno.Cart.Domain.Exceptions;
 using Leno.SharedKernel.Abstractions;
 
@@ -58,6 +59,7 @@ public sealed class Cart : AggregateRoot
 
     /// <summary>
     /// 添加购物车项，同 SKU 合并数量（校验上限 99），不同 SKU 新增。
+    /// 新增 SKU 时发布 <see cref="SkuAddedToCartEvent"/> 供基础设施层维护反向索引。
     /// </summary>
     /// <param name="skuId">商品 SKU 标识。</param>
     /// <param name="quantity">购买数量。</param>
@@ -85,6 +87,24 @@ public sealed class Cart : AggregateRoot
 
         var item = new CartItem(Guid.NewGuid(), Id, skuId, sellerId, quantity);
         _items.Add(item);
+        AddDomainEvent(new SkuAddedToCartEvent(Id, skuId));
+    }
+
+    /// <summary>
+    /// 添加购物车项并设置展示快照（标题、主图），用于测试与初始化场景。
+    /// 同 SKU 合并数量并刷新展示快照；不同 SKU 新增并设置展示快照。
+    /// 注意：unitPrice 参数接受但不持久化，购物车项价格在查看时由价格防腐层实时查询。
+    /// </summary>
+    /// <param name="skuId">商品 SKU 标识。</param>
+    /// <param name="title">展示标题。</param>
+    /// <param name="mainImageUrl">主图 URL。</param>
+    /// <param name="unitPrice">单价（接受但不持久化，价格在查看时实时查询）。</param>
+    /// <param name="quantity">购买数量。</param>
+    /// <param name="sellerId">所属卖家标识。</param>
+    public void AddItem(Guid skuId, string title, string mainImageUrl, decimal unitPrice, int quantity, Guid sellerId)
+    {
+        AddItem(skuId, quantity, sellerId);
+        FindItem(skuId)?.RefreshDisplaySnapshot(title, mainImageUrl);
     }
 
     /// <summary>
@@ -100,6 +120,7 @@ public sealed class Cart : AggregateRoot
 
     /// <summary>
     /// 移除指定 SKU 的购物车项。SKU 不存在抛出异常。
+    /// 移除后发布 <see cref="SkuRemovedFromCartEvent"/> 供基础设施层维护反向索引。
     /// </summary>
     public void RemoveItem(Guid skuId)
     {
@@ -107,6 +128,7 @@ public sealed class Cart : AggregateRoot
                    ?? throw new CartDomainException($"购物车中不存在 SKU {skuId}", "CART_ITEM_NOT_FOUND", 404);
 
         _items.Remove(item);
+        AddDomainEvent(new SkuRemovedFromCartEvent(Id, skuId));
     }
 
     /// <summary>

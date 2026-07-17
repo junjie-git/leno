@@ -16,6 +16,13 @@ public sealed class ProductPublishedEvent : IntegrationEventBase, IDomainEvent
     /// <summary>卖家（店铺）标识，语义等同卖家与店铺管理域的 ShopId。</summary>
     public Guid SellerId { get; init; }
 
+    /// <summary>
+    /// 受影响的 SKU 标识集合。
+    /// 商品域发布时填充；购物车域消费时据此定位受影响购物车。
+    /// 默认空集合，保持与旧版本发布方兼容。
+    /// </summary>
+    public IReadOnlyList<Guid> SkuIds { get; init; } = Array.Empty<Guid>();
+
     /// <summary>聚合根标识，用于发件箱归类。</summary>
     public Guid AggregateId => ProductId;
 
@@ -43,6 +50,13 @@ public sealed class ProductTakenDownEvent : IntegrationEventBase, IDomainEvent
 
     /// <summary>卖家（店铺）标识，语义等同卖家与店铺管理域的 ShopId。</summary>
     public Guid SellerId { get; init; }
+
+    /// <summary>
+    /// 受影响的 SKU 标识集合。
+    /// 商品域发布时填充；购物车域消费时据此定位受影响购物车。
+    /// 默认空集合，保持与旧版本发布方兼容。
+    /// </summary>
+    public IReadOnlyList<Guid> SkuIds { get; init; } = Array.Empty<Guid>();
 
     /// <summary>聚合根标识，用于发件箱归类。</summary>
     public Guid AggregateId => ProductId;
@@ -119,6 +133,13 @@ public sealed class ProductUpdatedEvent : IntegrationEventBase, IDomainEvent
 
     /// <summary>主图 URL（更新后）。</summary>
     public string MainImageUrl { get; init; } = string.Empty;
+
+    /// <summary>
+    /// 受影响的 SKU 标识集合。
+    /// 商品域发布时填充；购物车域消费时据此定位受影响购物车并刷新展示快照。
+    /// 默认空集合，保持与旧版本发布方兼容。
+    /// </summary>
+    public IReadOnlyList<Guid> SkuIds { get; init; } = Array.Empty<Guid>();
 
     /// <summary>聚合根标识，用于发件箱归类。</summary>
     public Guid AggregateId => ProductId;

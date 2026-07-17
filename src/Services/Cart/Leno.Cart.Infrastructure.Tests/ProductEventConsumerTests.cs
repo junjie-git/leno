@@ -1,5 +1,7 @@
 using System.Reflection;
+using Leno.Cart.Application.Abstractions;
 using Leno.Cart.Domain.Repositories;
+using Leno.Cart.Domain.Services;
 using Leno.Cart.Infrastructure.Consumers;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
@@ -9,6 +11,10 @@ using Moq;
 
 namespace Leno.Cart.Infrastructure.Tests;
 
+/// <summary>
+/// 商品事件消费者冒烟测试：事件未携带 SkuIds（默认空集合）时，消费者应不调用仓储与工作单元。
+/// 覆盖 P0-3 改造后三个消费者的空索引路径，验证不产生副作用。
+/// </summary>
 public class ProductEventConsumerTests
 {
     private static readonly Guid ProductId = Guid.NewGuid();
@@ -17,7 +23,7 @@ public class ProductEventConsumerTests
     [Fact]
     public async Task HandleAsync_ProductTakenDown_ShouldCompleteWithoutError()
     {
-        // Arrange
+        // Arrange：事件未携带 SkuIds，反向索引无命中
         var (consumer, mockUnitOfWork) = CreateTakenDownConsumer();
 
         var integrationEvent = new ProductTakenDownEvent
@@ -30,14 +36,14 @@ public class ProductEventConsumerTests
         // Act
         await InvokeHandleAsync(consumer, integrationEvent);
 
-        // Assert - 商品下架消费者为占位实现，应正常完成不抛异常
+        // Assert：SkuIds 为空，不调用仓储与 UnitOfWork
         mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task HandleAsync_ProductPublished_ShouldCompleteWithoutError()
     {
-        // Arrange
+        // Arrange：事件未携带 SkuIds，反向索引无命中
         var (consumer, mockUnitOfWork) = CreatePublishedConsumer();
 
         var integrationEvent = new ProductPublishedEvent
@@ -50,14 +56,14 @@ public class ProductEventConsumerTests
         // Act
         await InvokeHandleAsync(consumer, integrationEvent);
 
-        // Assert - 商品上架消费者为占位实现，应正常完成不抛异常
+        // Assert：SkuIds 为空，不调用仓储与 UnitOfWork
         mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task HandleAsync_ProductUpdated_ShouldCompleteWithoutError()
     {
-        // Arrange
+        // Arrange：事件未携带 SkuIds，反向索引无命中
         var (consumer, mockUnitOfWork) = CreateUpdatedConsumer();
 
         var integrationEvent = new ProductUpdatedEvent
@@ -72,7 +78,7 @@ public class ProductEventConsumerTests
         // Act
         await InvokeHandleAsync(consumer, integrationEvent);
 
-        // Assert - 商品更新消费者为占位实现，应正常完成不抛异常
+        // Assert：SkuIds 为空，不调用仓储与 UnitOfWork
         mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -80,11 +86,13 @@ public class ProductEventConsumerTests
     {
         var mockCartRepo = new Mock<ICartRepository>();
         var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockIndexService = new Mock<ICartSkuIndexService>();
         var mockLogger = new Mock<ILogger<ProductTakenDownEventConsumer>>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new ProductTakenDownEventConsumer(
-            mockCartRepo.Object, mockUnitOfWork.Object, mockLogger.Object, mockIdempotencyStore.Object);
+            mockCartRepo.Object, mockUnitOfWork.Object, mockIndexService.Object,
+            mockLogger.Object, mockIdempotencyStore.Object);
         return (consumer, mockUnitOfWork);
     }
 
@@ -92,11 +100,13 @@ public class ProductEventConsumerTests
     {
         var mockCartRepo = new Mock<ICartRepository>();
         var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockIndexService = new Mock<ICartSkuIndexService>();
         var mockLogger = new Mock<ILogger<ProductPublishedEventConsumer>>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new ProductPublishedEventConsumer(
-            mockCartRepo.Object, mockUnitOfWork.Object, mockLogger.Object, mockIdempotencyStore.Object);
+            mockCartRepo.Object, mockUnitOfWork.Object, mockIndexService.Object,
+            mockLogger.Object, mockIdempotencyStore.Object);
         return (consumer, mockUnitOfWork);
     }
 
@@ -104,11 +114,14 @@ public class ProductEventConsumerTests
     {
         var mockCartRepo = new Mock<ICartRepository>();
         var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockIndexService = new Mock<ICartSkuIndexService>();
+        var mockSnapshotAc = new Mock<IProductSnapshotAntiCorruption>();
         var mockLogger = new Mock<ILogger<ProductUpdatedEventConsumer>>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new ProductUpdatedEventConsumer(
-            mockCartRepo.Object, mockUnitOfWork.Object, mockLogger.Object, mockIdempotencyStore.Object);
+            mockCartRepo.Object, mockUnitOfWork.Object, mockIndexService.Object,
+            mockSnapshotAc.Object, mockLogger.Object, mockIdempotencyStore.Object);
         return (consumer, mockUnitOfWork);
     }
 
