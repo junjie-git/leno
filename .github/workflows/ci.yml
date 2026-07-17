@@ -25,8 +25,10 @@ jobs:
         run: dotnet test Leno.slnx --configuration Release --no-build --filter "Category!=Integration" --collect:"XPlat Code Coverage" --results-directory ./TestResults
       - name: Generate coverage report
         run: |
-          dotnet tool install -g dotnet-reportgenerator-globaltool
-          reportgenerator -reports:./TestResults/**/coverage.cobertura.xml -targetdir:./CoverageReport -reporttypes:Html
+          dotnet tool install -g dotnet-reportgenerator-globaltool --version 5.4.0 || true
+          reportgenerator -reports:./TestResults/**/coverage.cobertura.xml -targetdir:./CoverageReport -reporttypes:"Html;Cobertura;JsonSummary"
+      - name: Check coverage thresholds
+        run: pwsh scripts/check-coverage.ps1 -CoverageResultsPath ./CoverageReport/
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
