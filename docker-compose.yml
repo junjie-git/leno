@@ -4,14 +4,14 @@ services:
     container_name: leno-sqlserver
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=Leno@SqlServer2019
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
       - MSSQL_PID=Express
     ports:
       - "1433:1433"
     volumes:
       - sqldata:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Leno@SqlServer2019' -Q 'SELECT 1' -C"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${MSSQL_SA_PASSWORD}' -Q 'SELECT 1' -C"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -52,8 +52,8 @@ services:
     image: rabbitmq:3.12-management
     container_name: leno-rabbitmq
     environment:
-      - RABBITMQ_DEFAULT_USER=leno
-      - RABBITMQ_DEFAULT_PASS=Leno@RabbitMQ2026
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -127,8 +127,8 @@ services:
     image: grafana/grafana:11.2.0
     container_name: leno-grafana
     environment:
-      - GF_SECURITY_ADMIN_USER=leno
-      - GF_SECURITY_ADMIN_PASSWORD=Leno@Grafana2026
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro

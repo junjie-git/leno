@@ -24,3 +24,8 @@ Thumbs.db
 .env
 *.pfx
 secrets.json
+appsettings.Production.json
+appsettings.Docker.json
+*.key
+*.pem
+docker-compose.override.yml

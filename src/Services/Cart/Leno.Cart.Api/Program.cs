@@ -2,6 +2,7 @@ using System.Text;
 using Leno.Cart.Infrastructure;
 using Leno.Cart.Infrastructure.Dependencies;
 using Leno.Infrastructure.Auth;
+using Leno.Infrastructure.Configuration;
 using Leno.Infrastructure.Dependencies;
 using Leno.Infrastructure.Logging;
 using Leno.Infrastructure.Middleware;
@@ -69,6 +70,22 @@ builder.Services.AddAuthentication(authMode == "GatewayHeader"
 
 builder.Services.AddAuthorization();
 
+// 启用 Consul KV 配置中心
+builder.AddLenoConsulConfig();
+
+// 启动前校验敏感配置
+if (!builder.Configuration.ValidateSensitiveConfig())
+{
+    var missing = builder.Configuration.GetMissingSensitiveConfigKeys();
+    var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+    logger.LogWarning("敏感配置缺失：{MissingKeys}", string.Join(", ", missing));
+    // 生产环境拒绝启动，开发环境仅警告
+    if (!builder.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException($"敏感配置缺失：{string.Join(", ", missing)}");
+    }
+}
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -92,5 +109,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 });
 
 app.MapControllers();
+
+app.EnsureInternalApiKeyConfigured();
 
 app.Run();

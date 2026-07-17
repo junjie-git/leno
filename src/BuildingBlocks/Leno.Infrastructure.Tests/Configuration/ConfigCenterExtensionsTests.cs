@@ -207,4 +207,73 @@ public class ConfigCenterExtensionsTests
         keys.Should().Contain("OAuth2:WeChat:AppSecret");
         keys.Should().Contain("Jwt:SecretKey");
     }
+
+    [Fact]
+    public void ValidateSensitiveConfig_MissingJwtSecretKey_ShouldReturnFalse()
+    {
+        // Arrange: 缺失 Jwt:SecretKey
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "Payment:Alipay:AppId", "test" },
+                { "Payment:Alipay:PrivateKey", "test" },
+                { "Payment:Alipay:PublicKey", "test" }
+            })
+            .Build();
+
+        // Act
+        var isValid = config.ValidateSensitiveConfig();
+
+        // Assert
+        isValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ValidateSensitiveConfig_AllKeysPresent_ShouldReturnTrue()
+    {
+        // Arrange: 所有敏感配置齐全
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "Jwt:SecretKey", "test-secret-key-32-bytes-long!!" },
+                { "Payment:Alipay:AppId", "test" },
+                { "Payment:Alipay:PrivateKey", "test" },
+                { "Payment:Alipay:PublicKey", "test" },
+                { "Payment:WeChatPay:AppId", "test" },
+                { "Payment:WeChatPay:MchId", "test" },
+                { "Payment:WeChatPay:ApiKey", "test" },
+                { "SMS:ApiKey", "test" },
+                { "SMS:ApiSecret", "test" },
+                { "OAuth2:WeChat:AppId", "test" },
+                { "OAuth2:WeChat:AppSecret", "test" },
+                { "OAuth2:Apple:ClientId", "test" },
+                { "OAuth2:Apple:ClientSecret", "test" }
+            })
+            .Build();
+
+        // Act
+        var isValid = config.ValidateSensitiveConfig();
+
+        // Assert
+        isValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GetMissingSensitiveConfigKeys_PartialConfig_ShouldReturnMissingKeys()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "Jwt:SecretKey", "test" }
+            })
+            .Build();
+
+        // Act
+        var missing = config.GetMissingSensitiveConfigKeys();
+
+        // Assert
+        missing.Should().NotBeEmpty();
+        missing.Should().Contain("Payment:Alipay:AppId");
+    }
 }
