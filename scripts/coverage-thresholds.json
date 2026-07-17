@@ -2,17 +2,17 @@
   "thresholds": [
     {
       "layer": "Domain",
-      "pathPattern": "src/Services/*/Leno.*.Domain/Leno.*.Domain.csproj",
+      "pathPattern": "Leno\\..*\\.Domain(\\.dll)?$",
       "minimumLineCoverage": 80
     },
     {
       "layer": "Application",
-      "pathPattern": "src/Services/*/Leno.*.Application/Leno.*.Application.csproj",
+      "pathPattern": "Leno\\..*\\.Application\\.dll$",
       "minimumLineCoverage": 60
     },
     {
       "layer": "Infrastructure",
-      "pathPattern": "src/Services/*/Leno.*.Infrastructure/Leno.*.Infrastructure.csproj",
+      "pathPattern": "Leno\\..*\\.Infrastructure(\\.dll)?$",
       "minimumLineCoverage": 40
     }
   ],
