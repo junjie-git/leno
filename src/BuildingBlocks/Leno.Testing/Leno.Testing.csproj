@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Leno.SharedKernel\Leno.SharedKernel.csproj" />
+    <ProjectReference Include="..\Leno.Infrastructure\Leno.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
