@@ -46,25 +46,29 @@ builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
 
-// JWT Bearer 鉴权
-var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()
-    ?? throw new InvalidOperationException("Jwt 配置节缺失");
+// 认证配置（支持 JwtBearer 与 GatewayHeader 两种模式，灰度切换）
+var authMode = builder.Configuration["Auth:Mode"] ?? "JwtBearer";
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+builder.Services.AddAuthentication(authMode == "GatewayHeader"
+    ? "GatewayHeader"
+    : JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
     {
+        var jwtOpts = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()
+            ?? throw new InvalidOperationException("Jwt 配置节缺失");
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = jwtOptions.Issuer,
+            ValidIssuer = jwtOpts.Issuer,
             ValidateAudience = true,
-            ValidAudience = jwtOptions.Audience,
+            ValidAudience = jwtOpts.Audience,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOpts.SecretKey)),
             ClockSkew = TimeSpan.FromMinutes(1)
         };
-    });
+    })
+    .AddScheme<GatewayAuthOptions, GatewayAuthHandler>("GatewayHeader", _ => { });
 
 builder.Services.AddAuthorization();
 
