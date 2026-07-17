@@ -26,9 +26,10 @@ public abstract class BaseDbContext : DbContext
 
         // 统一配置乐观锁 shadow property（避免领域层 Entity 携带持久化细节）
         // 所有继承 Entity 的实体自动获得名为 "Version" 的 rowversion shadow property
+        // 跳过 owned type（由 OwnsOne/OwnsMany 持有的实体）以避免 "cannot be configured as non-owned" 异常
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
-            if (typeof(Entity).IsAssignableFrom(entityType.ClrType))
+            if (typeof(Entity).IsAssignableFrom(entityType.ClrType) && !entityType.IsOwned())
             {
                 modelBuilder.Entity(entityType.ClrType)
                     .Property<byte[]>("Version")
@@ -51,6 +52,12 @@ public abstract class BaseDbContext : DbContext
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (!typeof(ISoftDeletable).IsAssignableFrom(entityType.ClrType))
+            {
+                continue;
+            }
+
+            // 跳过 owned type，避免对其重复配置触发 "cannot be configured as non-owned" 异常
+            if (entityType.IsOwned())
             {
                 continue;
             }
