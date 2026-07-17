@@ -75,6 +75,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILogisticsCompanyAppService, LogisticsCompanyAppService>();
         services.AddScoped<IFreightTemplateAppService, FreightTemplateAppService>();
         services.AddScoped<IOrderInternalQueryService, OrderInternalQueryService>();
+        services.AddScoped<SeckillOrderCreationService>();
 
         // 多卖家拆单 Saga 编排器
         services.AddScoped<IOrderSagaOrchestrator, OrderSagaOrchestrator>();
@@ -109,6 +110,7 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<RefundCompletedEventConsumer>();
         configurator.AddConsumer<StockAdjustedEventConsumer>();
         configurator.AddConsumer<OrderReadModelSyncConsumer>();
+        configurator.AddConsumer<SeckillOrderCreatedEventConsumer>();
 
         return configurator;
     }

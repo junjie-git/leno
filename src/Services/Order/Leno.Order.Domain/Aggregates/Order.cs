@@ -1,5 +1,6 @@
 using Leno.Order.Domain.Exceptions;
 using Leno.Order.Domain.ValueObjects;
+using Leno.Promotion.Domain.Events;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
@@ -508,6 +509,18 @@ public sealed class Order : AggregateRoot
         AddDomainEvent(new RefundRequestedIntegrationEvent(
             refundId, Id, UserId, Id, // 强制取消无售后单，AfterSalesId 复用 OrderId
             PaymentId.Value, refundAmount, currency, channel, reason));
+    }
+
+    /// <summary>
+    /// 秒杀订单创建成功后追加确认回执事件，由 Outbox 同事务发布给 Promotion 域。
+    /// </summary>
+    public void MarkSeckillOrderCreated(Guid activityId)
+    {
+        if (OrderType != OrderType.Seckill)
+        {
+            throw new OrderDomainException("仅秒杀订单可追加秒杀确认事件", "ORDER_NOT_SECKILL");
+        }
+        AddDomainEvent(new SeckillOrderConfirmedEvent(activityId, Id));
     }
 
     /// <summary>

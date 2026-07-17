@@ -3,6 +3,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedKernel\Leno.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts\Leno.SharedContracts.csproj" />
+    <!-- 秒杀事件契约（SeckillOrderCreatedEvent/SeckillOrderConfirmedEvent）当前定义在 Promotion.Domain，
+         订单域消费时引用本类型；后续若需跨上下文解耦可迁移至 SharedContracts。 -->
+    <ProjectReference Include="..\..\Promotion\Leno.Promotion.Domain\Leno.Promotion.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
