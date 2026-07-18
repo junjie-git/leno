@@ -70,19 +70,19 @@ public sealed class UserAppService : IUserAppService
 
         if (!await _uniquenessChecker.IsUsernameUniqueAsync(dto.Username, null, ct))
         {
-            throw new UserAuthDomainException("用户名已被注册", "USER_USERNAME_EXISTS", 409);
+            throw new UserAuthDomainException("用户名已被注册", "USER_USERNAME_EXISTS");
         }
 
         if (!string.IsNullOrWhiteSpace(dto.Email)
             && !await _uniquenessChecker.IsEmailUniqueAsync(dto.Email, null, ct))
         {
-            throw new UserAuthDomainException("邮箱已被注册", "USER_EMAIL_EXISTS", 409);
+            throw new UserAuthDomainException("邮箱已被注册", "USER_EMAIL_EXISTS");
         }
 
         if (!string.IsNullOrWhiteSpace(dto.PhoneNumber)
             && !await _uniquenessChecker.IsPhoneUniqueAsync(dto.PhoneNumber, null, ct))
         {
-            throw new UserAuthDomainException("手机号已被注册", "USER_PHONE_EXISTS", 409);
+            throw new UserAuthDomainException("手机号已被注册", "USER_PHONE_EXISTS");
         }
 
         var passwordHash = _passwordHasher.Hash(dto.Password);
@@ -116,7 +116,7 @@ public sealed class UserAppService : IUserAppService
 
         if (user.Status == AccountStatus.Disabled)
         {
-            throw new UserAuthDomainException("账户已被禁用，请联系管理员", "USER_DISABLED", 403);
+            throw new UserAuthDomainException("账户已被禁用，请联系管理员", "USER_DISABLED");
         }
 
         // 锁定超时自动解锁
@@ -128,7 +128,7 @@ public sealed class UserAppService : IUserAppService
         else if (!user.CanLogin())
         {
             throw new UserAuthDomainException(
-                $"账户已锁定，请于 {user.LockedUntil:O} 后重试", "USER_LOCKED", 403);
+                $"账户已锁定，请于 {user.LockedUntil:O} 后重试", "USER_LOCKED");
         }
 
         var passwordOk = user.VerifyPassword(dto.Password, _passwordHasher);
@@ -240,7 +240,7 @@ public sealed class UserAppService : IUserAppService
 
         if (!redisValue.HasValue)
         {
-            throw new UserAuthDomainException("State 已过期或无效", "OAUTH_STATE_EXPIRED", 400);
+            throw new UserAuthDomainException("State 已过期或无效", "OAUTH_STATE_EXPIRED");
         }
 
         // 删除 state，防止重放
@@ -249,7 +249,7 @@ public sealed class UserAppService : IUserAppService
         var parts = redisValue.ToString().Split('|');
         if (parts.Length < 1)
         {
-            throw new UserAuthDomainException("State 数据无效", "OAUTH_STATE_INVALID", 400);
+            throw new UserAuthDomainException("State 数据无效", "OAUTH_STATE_INVALID");
         }
 
         var stateProvider = parts[0];
@@ -270,11 +270,11 @@ public sealed class UserAppService : IUserAppService
             {
                 if (user.Status == AccountStatus.Disabled)
                 {
-                    throw new UserAuthDomainException("账户已被禁用，请联系管理员", "USER_DISABLED", 403);
+                    throw new UserAuthDomainException("账户已被禁用，请联系管理员", "USER_DISABLED");
                 }
 
                 throw new UserAuthDomainException(
-                    $"账户已锁定，请于 {user.LockedUntil:O} 后重试", "USER_LOCKED", 403);
+                    $"账户已锁定，请于 {user.LockedUntil:O} 后重试", "USER_LOCKED");
             }
 
             user.RecordLogin();
@@ -326,7 +326,7 @@ public sealed class UserAppService : IUserAppService
 
             if (retry > 10)
             {
-                throw new UserAuthDomainException("无法生成唯一用户名，请稍后重试", "USER_USERNAME_CONFLICT", 409);
+                throw new UserAuthDomainException("无法生成唯一用户名，请稍后重试", "USER_USERNAME_CONFLICT");
             }
         }
 
@@ -394,12 +394,12 @@ public sealed class UserAppService : IUserAppService
 
         if (!redisValue.HasValue)
         {
-            throw new UserAuthDomainException("临时令牌已过期或无效", "USER_2FA_TEMP_TOKEN_INVALID", 401);
+            throw new UserAuthDomainException("临时令牌已过期或无效", "USER_2FA_TEMP_TOKEN_INVALID");
         }
 
         if (!Guid.TryParse(redisValue.ToString(), out var userId))
         {
-            throw new UserAuthDomainException("临时令牌数据无效", "USER_2FA_TEMP_TOKEN_INVALID", 401);
+            throw new UserAuthDomainException("临时令牌数据无效", "USER_2FA_TEMP_TOKEN_INVALID");
         }
 
         // 删除临时令牌，防止重放
@@ -409,7 +409,7 @@ public sealed class UserAppService : IUserAppService
 
         if (!user.VerifyTwoFactorCode(dto.Code, _tokenVerifier))
         {
-            throw new UserAuthDomainException("验证码无效或已过期", "USER_2FA_CODE_INVALID", 401);
+            throw new UserAuthDomainException("验证码无效或已过期", "USER_2FA_CODE_INVALID");
         }
 
         return await IssueTokensAsync(user, ct);
@@ -470,19 +470,19 @@ public sealed class UserAppService : IUserAppService
 
         if (!redisValue.HasValue)
         {
-            throw new UserAuthDomainException("重置令牌无效或已过期", "USER_RESET_TOKEN_INVALID", 401);
+            throw new UserAuthDomainException("重置令牌无效或已过期", "USER_RESET_TOKEN_INVALID");
         }
 
         if (!Guid.TryParse(redisValue.ToString(), out var userId))
         {
-            throw new UserAuthDomainException("重置令牌数据无效", "USER_RESET_TOKEN_INVALID", 401);
+            throw new UserAuthDomainException("重置令牌数据无效", "USER_RESET_TOKEN_INVALID");
         }
 
         var user = await RequireUserAsync(userId, ct);
 
         if (user.Status == AccountStatus.Disabled)
         {
-            throw new UserAuthDomainException("账户已被禁用", "USER_DISABLED", 403);
+            throw new UserAuthDomainException("账户已被禁用", "USER_DISABLED");
         }
 
         // 重置密码
@@ -553,7 +553,7 @@ public sealed class UserAppService : IUserAppService
         var user = await _userRepository.GetByIdAsync(userId, ct);
         if (user is null)
         {
-            throw new UserAuthDomainException("用户不存在", "USER_NOT_FOUND", 404);
+            throw new UserAuthDomainException("用户不存在", "USER_NOT_FOUND");
         }
 
         return user;
@@ -595,7 +595,7 @@ public sealed class UserAppService : IUserAppService
         if (service is null)
         {
             throw new UserAuthDomainException(
-                $"不支持的 OAuth2 提供方: {provider}", "OAUTH_PROVIDER_NOT_FOUND", 400);
+                $"不支持的 OAuth2 提供方: {provider}", "OAUTH_PROVIDER_NOT_FOUND");
         }
 
         return service;

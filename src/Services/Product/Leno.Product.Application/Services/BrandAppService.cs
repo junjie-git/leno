@@ -104,7 +104,7 @@ public sealed class BrandAppService : IBrandAppService
         var brand = await _brandRepository.GetByIdAsync(brandId, ct);
         if (brand is null)
         {
-            throw new ProductDomainException("品牌不存在", "BRAND_NOT_FOUND", 404);
+            throw new ProductDomainException("品牌不存在", "BRAND_NOT_FOUND");
         }
 
         return brand;

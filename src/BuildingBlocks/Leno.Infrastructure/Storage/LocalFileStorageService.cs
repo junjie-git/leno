@@ -160,8 +160,8 @@ public sealed class LocalFileStorageService : IFileStorageService
 /// </summary>
 internal sealed class FileStorageException : DomainException
 {
-    public FileStorageException(string message)
-        : base(message, "FILE_STORAGE_ERROR", 400)
+    public FileStorageException(string message, string errorCode = "FILE_STORAGE_ERROR")
+        : base(message, errorCode)
     {
     }
 }

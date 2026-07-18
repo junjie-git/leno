@@ -8,12 +8,12 @@ namespace Leno.Product.Application.Exceptions;
 public sealed class ProductValidationException : DomainException
 {
     public ProductValidationException(string message)
-        : base(message, "PRODUCT_VALIDATION_ERROR", 400)
+        : base(message, "PRODUCT_VALIDATION_ERROR")
     {
     }
 
     public ProductValidationException(IEnumerable<string> errors)
-        : base(string.Join(" | ", errors), "PRODUCT_VALIDATION_ERROR", 400)
+        : base(string.Join(" | ", errors), "PRODUCT_VALIDATION_ERROR")
     {
     }
 }

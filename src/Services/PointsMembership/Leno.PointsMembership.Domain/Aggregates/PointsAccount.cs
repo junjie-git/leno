@@ -242,8 +242,7 @@ public sealed class PointsAccount : AggregateRoot
         {
             throw new PointsDomainException(
                 $"订单 {orderId} 的冻结记录不存在",
-                "POINTS_FROZEN_ENTRY_NOT_FOUND",
-                404);
+                "POINTS_FROZEN_ENTRY_NOT_FOUND");
         }
 
         return entry;

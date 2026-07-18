@@ -317,7 +317,7 @@ public class CartAppServiceTests
         _cartRepoMock.Setup(r => r.GetByUserIdAsync(UserId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(cart);
         _priceServiceMock.Setup(p => p.GetSkuPricesAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new CartDomainException("商品价格服务暂时不可用", "CART_PRICE_UNAVAILABLE", 503));
+            .ThrowsAsync(new CartDomainException("商品价格服务暂时不可用", "CART_PRICE_UNAVAILABLE"));
 
         // Act
         var result = await _sut.GetCartAsync(UserId);
@@ -386,7 +386,7 @@ public class CartAppServiceTests
         _cartRepoMock.Setup(r => r.GetByUserIdAsync(UserId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(cart);
         _priceServiceMock.Setup(p => p.GetSkuPricesAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new CartDomainException("商品价格服务暂时不可用", "CART_PRICE_UNAVAILABLE", 503));
+            .ThrowsAsync(new CartDomainException("商品价格服务暂时不可用", "CART_PRICE_UNAVAILABLE"));
 
         // Act
         var result = await _sut.GetCartAsync(UserId);
@@ -406,7 +406,7 @@ public class CartAppServiceTests
         _cartRepoMock.Setup(r => r.GetByUserIdAsync(UserId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(cart);
         _priceServiceMock.Setup(p => p.GetSkuPricesAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new CartDomainException("商品价格服务暂时不可用", "CART_PRICE_UNAVAILABLE", 503));
+            .ThrowsAsync(new CartDomainException("商品价格服务暂时不可用", "CART_PRICE_UNAVAILABLE"));
 
         // Act
         var act = () => _sut.PreviewCheckoutAsync(UserId);

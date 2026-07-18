@@ -145,7 +145,7 @@ public sealed class PromotionActivity : AggregateRoot
         {
             throw new PromotionDomainException(
                 $"门槛金额 {thresholdAmount} 的规则不存在",
-                "PROMOTION_RULE_NOT_FOUND", 404);
+                "PROMOTION_RULE_NOT_FOUND");
         }
 
         Rules.Remove(rule);

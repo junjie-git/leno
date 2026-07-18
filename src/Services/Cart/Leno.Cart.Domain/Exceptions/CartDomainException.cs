@@ -7,8 +7,8 @@ namespace Leno.Cart.Domain.Exceptions;
 /// </summary>
 public sealed class CartDomainException : DomainException
 {
-    public CartDomainException(string message, string errorCode = "CART_ERROR", int httpStatusCode = 400)
-        : base(message, errorCode, httpStatusCode)
+    public CartDomainException(string message, string errorCode = "CART_ERROR")
+        : base(message, errorCode)
     {
     }
 }

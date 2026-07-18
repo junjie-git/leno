@@ -116,7 +116,7 @@ public sealed class DataDictionary : AggregateRoot
         var item = DictionaryItem.Create(itemId, Id, code, label, value, sortOrder);
         if (_items.Any(i => string.Equals(i.Code, item.Code, StringComparison.OrdinalIgnoreCase)))
         {
-            throw new SystemAdminDomainException($"字典项编码已存在: {item.Code}", "DICT_ITEM_CODE_DUPLICATE", 409);
+            throw new SystemAdminDomainException($"字典项编码已存在: {item.Code}", "DICT_ITEM_CODE_DUPLICATE");
         }
 
         _items.Add(item);
@@ -145,7 +145,7 @@ public sealed class DataDictionary : AggregateRoot
     public void UpdateItem(Guid itemId, string label, string value, int sortOrder)
     {
         var item = _items.FirstOrDefault(i => i.Id == itemId)
-                   ?? throw new SystemAdminDomainException("字典项不存在", "DICT_ITEM_NOT_FOUND", 404);
+                   ?? throw new SystemAdminDomainException("字典项不存在", "DICT_ITEM_NOT_FOUND");
 
         item.Update(label, value, sortOrder);
     }

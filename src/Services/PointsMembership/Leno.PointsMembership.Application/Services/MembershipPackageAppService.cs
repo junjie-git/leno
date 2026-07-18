@@ -88,8 +88,7 @@ public sealed class MembershipPackageAppService : IMembershipPackageAppService
         => await _packageRepository.GetByIdAsync(packageId, ct)
            ?? throw new PointsDomainException(
                $"会员套餐 {packageId} 不存在",
-               "PACKAGE_NOT_FOUND",
-               404);
+               "PACKAGE_NOT_FOUND");
 
     private static MembershipPackageDto ToDto(MembershipPackageAggregate package)
         => new()

@@ -34,7 +34,7 @@ public sealed class OAuth2ProviderResolver : IOAuth2ProviderResolver
         if (service is null)
         {
             throw new UserAuthDomainException(
-                $"不支持的 OAuth2 提供方: {provider}", "OAUTH_PROVIDER_NOT_FOUND", 400);
+                $"不支持的 OAuth2 提供方: {provider}", "OAUTH_PROVIDER_NOT_FOUND");
         }
 
         return service;

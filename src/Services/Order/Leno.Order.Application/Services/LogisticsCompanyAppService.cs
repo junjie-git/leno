@@ -64,7 +64,7 @@ public sealed class LogisticsCompanyAppService : ILogisticsCompanyAppService
 
     private async Task<LogisticsCompany> RequireAsync(Guid id, CancellationToken ct)
         => await _repository.GetByIdAsync(id, ct)
-           ?? throw new OrderDomainException($"物流公司 {id} 不存在", "LOGISTICS_NOT_FOUND", 404);
+           ?? throw new OrderDomainException($"物流公司 {id} 不存在", "LOGISTICS_NOT_FOUND");
 
     private static LogisticsCompanyDto ToDto(LogisticsCompany entity)
         => new()

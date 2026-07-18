@@ -15,8 +15,6 @@ public sealed record SpecAttribute
     public string Value { get; init; } = default!;
 
     [JsonConstructor]
-    private SpecAttribute() { }
-
     private SpecAttribute(string name, string value)
     {
         Name = name;

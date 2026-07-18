@@ -121,7 +121,7 @@ public sealed class DeadLetterMessage : AggregateRoot
 
         if (Status == DeadLetterStatus.Discarded)
         {
-            throw new SystemAdminDomainException("已丢弃的死信消息不可重投", "DEAD_LETTER_ALREADY_DISCARDED", 409);
+            throw new SystemAdminDomainException("已丢弃的死信消息不可重投", "DEAD_LETTER_ALREADY_DISCARDED");
         }
 
         Status = DeadLetterStatus.Retried;
@@ -153,12 +153,12 @@ public sealed class DeadLetterMessage : AggregateRoot
 
         if (Status == DeadLetterStatus.Discarded)
         {
-            throw new SystemAdminDomainException("死信消息已丢弃，不可重复丢弃", "DEAD_LETTER_ALREADY_DISCARDED", 409);
+            throw new SystemAdminDomainException("死信消息已丢弃，不可重复丢弃", "DEAD_LETTER_ALREADY_DISCARDED");
         }
 
         if (Status == DeadLetterStatus.Retried)
         {
-            throw new SystemAdminDomainException("已重投的死信消息不可丢弃", "DEAD_LETTER_ALREADY_RETRIED", 409);
+            throw new SystemAdminDomainException("已重投的死信消息不可丢弃", "DEAD_LETTER_ALREADY_RETRIED");
         }
 
         Status = DeadLetterStatus.Discarded;

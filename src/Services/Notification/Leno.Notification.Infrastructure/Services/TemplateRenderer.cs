@@ -143,8 +143,7 @@ public sealed partial class TemplateRenderer : ITemplateRenderer, ITemplateRende
             {
                 throw new NotificationDomainException(
                     $"必填变量 {required} 缺失或为空",
-                    "TEMPLATE_REQUIRED_VARIABLE_MISSING",
-                    400);
+                    "TEMPLATE_REQUIRED_VARIABLE_MISSING");
             }
         }
     }

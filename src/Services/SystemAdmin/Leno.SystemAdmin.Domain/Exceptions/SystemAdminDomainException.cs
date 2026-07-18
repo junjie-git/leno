@@ -17,15 +17,4 @@ public sealed class SystemAdminDomainException : DomainException
         : base(message, errorCode)
     {
     }
-
-    /// <summary>
-    /// 初始化领域异常，指定 HTTP 状态码。
-    /// </summary>
-    /// <param name="message">异常消息。</param>
-    /// <param name="errorCode">业务错误码。</param>
-    /// <param name="httpStatusCode">映射的 HTTP 状态码。</param>
-    public SystemAdminDomainException(string message, string errorCode, int httpStatusCode)
-        : base(message, errorCode, httpStatusCode)
-    {
-    }
 }

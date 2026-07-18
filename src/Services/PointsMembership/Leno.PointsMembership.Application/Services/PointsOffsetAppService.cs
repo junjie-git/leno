@@ -50,8 +50,7 @@ public sealed class PointsOffsetAppService : IPointsOffsetService
         var account = await _accountRepository.GetByUserIdAsync(userId, ct)
             ?? throw new PointsDomainException(
                 $"用户 {userId} 的积分账户不存在",
-                "POINTS_ACCOUNT_NOT_FOUND",
-                404);
+                "POINTS_ACCOUNT_NOT_FOUND");
 
         account.Freeze(pointsToUse, orderId);
         await _unitOfWork.SaveEntitiesAsync(ct);
@@ -63,8 +62,7 @@ public sealed class PointsOffsetAppService : IPointsOffsetService
         var account = await _accountRepository.GetByFrozenOrderIdAsync(orderId, ct)
             ?? throw new PointsDomainException(
                 $"订单 {orderId} 的冻结记录不存在",
-                "POINTS_FROZEN_ENTRY_NOT_FOUND",
-                404);
+                "POINTS_FROZEN_ENTRY_NOT_FOUND");
 
         account.ConfirmDeduct(orderId);
         await _unitOfWork.SaveEntitiesAsync(ct);
@@ -76,8 +74,7 @@ public sealed class PointsOffsetAppService : IPointsOffsetService
         var account = await _accountRepository.GetByFrozenOrderIdAsync(orderId, ct)
             ?? throw new PointsDomainException(
                 $"订单 {orderId} 的冻结记录不存在",
-                "POINTS_FROZEN_ENTRY_NOT_FOUND",
-                404);
+                "POINTS_FROZEN_ENTRY_NOT_FOUND");
 
         account.Release(orderId);
         await _unitOfWork.SaveEntitiesAsync(ct);

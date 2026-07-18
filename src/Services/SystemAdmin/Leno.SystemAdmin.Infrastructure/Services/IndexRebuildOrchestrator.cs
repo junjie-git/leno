@@ -43,8 +43,7 @@ public sealed class IndexRebuildOrchestrator : IIndexRebuildOrchestrator
         {
             throw new SystemAdminDomainException(
                 $"索引 {targetContext}/{indexName} 已有运行中的重建任务（TaskId={existing.TaskId}），不可重复触发",
-                "REBUILD_TASK_CONFLICT",
-                409);
+                "REBUILD_TASK_CONFLICT");
         }
 
         var taskId = Guid.NewGuid();

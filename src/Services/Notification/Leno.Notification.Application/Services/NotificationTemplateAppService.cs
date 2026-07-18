@@ -54,8 +54,7 @@ public sealed class NotificationTemplateAppService : INotificationTemplateAppSer
         {
             throw new NotificationDomainException(
                 $"模板中存在未定义的占位符：{string.Join(", ", undefined)}",
-                "TEMPLATE_UNDEFINED_PLACEHOLDERS",
-                400);
+                "TEMPLATE_UNDEFINED_PLACEHOLDERS");
         }
 
         await _templateRepository.AddAsync(template, ct);
@@ -76,8 +75,7 @@ public sealed class NotificationTemplateAppService : INotificationTemplateAppSer
         {
             throw new NotificationDomainException(
                 "禁用的模板必须先启用才能编辑",
-                "TEMPLATE_DISABLED_CANNOT_EDIT",
-                400);
+                "TEMPLATE_DISABLED_CANNOT_EDIT");
         }
 
         template.Update(dto.Subject, dto.Body, dto.Variables);
@@ -88,8 +86,7 @@ public sealed class NotificationTemplateAppService : INotificationTemplateAppSer
         {
             throw new NotificationDomainException(
                 $"模板中存在未定义的占位符：{string.Join(", ", undefined)}",
-                "TEMPLATE_UNDEFINED_PLACEHOLDERS",
-                400);
+                "TEMPLATE_UNDEFINED_PLACEHOLDERS");
         }
 
         // 校验未使用的变量（Variables 中声明了但模板中无 {{xxx}}）
@@ -98,8 +95,7 @@ public sealed class NotificationTemplateAppService : INotificationTemplateAppSer
         {
             throw new NotificationDomainException(
                 $"模板中存在未使用的变量：{string.Join(", ", unused)}",
-                "TEMPLATE_UNUSED_VARIABLES",
-                400);
+                "TEMPLATE_UNUSED_VARIABLES");
         }
 
         await _templateRepository.UpdateAsync(template, ct);

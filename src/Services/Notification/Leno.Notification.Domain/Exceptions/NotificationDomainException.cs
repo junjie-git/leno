@@ -7,8 +7,8 @@ namespace Leno.Notification.Domain.Exceptions;
 /// </summary>
 public sealed class NotificationDomainException : DomainException
 {
-    public NotificationDomainException(string message, string errorCode = "NOTIFICATION_ERROR", int httpStatusCode = 400)
-        : base(message, errorCode, httpStatusCode)
+    public NotificationDomainException(string message, string errorCode = "NOTIFICATION_ERROR")
+        : base(message, errorCode)
     {
     }
 }

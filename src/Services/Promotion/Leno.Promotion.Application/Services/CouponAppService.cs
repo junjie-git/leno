@@ -138,7 +138,7 @@ public sealed class CouponAppService : ICouponAppService
     public async Task LockCouponAsync(Guid userId, Guid couponId, Guid orderId, CancellationToken ct = default)
     {
         var userCoupon = await _userCouponRepository.GetByUserIdAndCouponIdAsync(userId, couponId, ct)
-            ?? throw new PromotionDomainException($"用户 {userId} 未持有优惠券 {couponId}，无法锁定", "USER_COUPON_NOT_FOUND", 404);
+            ?? throw new PromotionDomainException($"用户 {userId} 未持有优惠券 {couponId}，无法锁定", "USER_COUPON_NOT_FOUND");
 
         // Lock 内部校验 Unused + 未过期，券已被并发订单占用时抛 USER_COUPON_LOCK_INVALID，由此实现并发互斥
         userCoupon.Lock(orderId);
@@ -149,7 +149,7 @@ public sealed class CouponAppService : ICouponAppService
 
     private async Task<CouponAggregate> RequireCouponAsync(Guid couponId, CancellationToken ct)
         => await _couponRepository.GetByIdAsync(couponId, ct)
-           ?? throw new PromotionDomainException($"优惠券 {couponId} 不存在", "COUPON_NOT_FOUND", 404);
+           ?? throw new PromotionDomainException($"优惠券 {couponId} 不存在", "COUPON_NOT_FOUND");
 
     private static CouponDto ToDto(CouponAggregate coupon)
         => new()

@@ -65,7 +65,7 @@ public sealed class AlipayOAuth2Client : IExternalAuthService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Alipay token exchange failed: {StatusCode} {Body}", (int)response.StatusCode, body);
-            throw new UserAuthDomainException("支付宝授权码交换失败", "OAUTH_TOKEN_EXCHANGE_FAILED", 502);
+            throw new UserAuthDomainException("支付宝授权码交换失败", "OAUTH_TOKEN_EXCHANGE_FAILED");
         }
 
         var doc = JsonDocument.Parse(body);
@@ -79,7 +79,7 @@ public sealed class AlipayOAuth2Client : IExternalAuthService
         {
             var msg = responseData.TryGetProperty("msg", out var msgEl) ? msgEl.GetString() : "未知错误";
             _logger.LogError("Alipay token exchange error: {Code} {Msg}", codeEl.GetString(), msg);
-            throw new UserAuthDomainException($"支付宝授权失败: {msg}", "OAUTH_TOKEN_EXCHANGE_FAILED", 502);
+            throw new UserAuthDomainException($"支付宝授权失败: {msg}", "OAUTH_TOKEN_EXCHANGE_FAILED");
         }
 
         var accessToken = responseData.GetProperty("access_token").GetString()
@@ -108,7 +108,7 @@ public sealed class AlipayOAuth2Client : IExternalAuthService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Alipay userinfo failed: {StatusCode} {Body}", (int)response.StatusCode, body);
-            throw new UserAuthDomainException("获取支付宝用户信息失败", "OAUTH_USERINFO_FAILED", 502);
+            throw new UserAuthDomainException("获取支付宝用户信息失败", "OAUTH_USERINFO_FAILED");
         }
 
         var doc = JsonDocument.Parse(body);
@@ -122,7 +122,7 @@ public sealed class AlipayOAuth2Client : IExternalAuthService
         {
             var msg = responseData.TryGetProperty("sub_msg", out var msgEl) ? msgEl.GetString() : "未知错误";
             _logger.LogError("Alipay userinfo error: {Code} {Msg}", codeEl.GetString(), msg);
-            throw new UserAuthDomainException($"获取支付宝用户信息失败: {msg}", "OAUTH_USERINFO_FAILED", 502);
+            throw new UserAuthDomainException($"获取支付宝用户信息失败: {msg}", "OAUTH_USERINFO_FAILED");
         }
 
         var userId = alipayUserId ?? (responseData.TryGetProperty("user_id", out var uid) ? uid.GetString() : null);
@@ -145,7 +145,7 @@ public sealed class AlipayOAuth2Client : IExternalAuthService
         var appId = _configuration["OAuth2:Alipay:AppId"];
         if (string.IsNullOrWhiteSpace(appId))
         {
-            throw new UserAuthDomainException("支付宝 OAuth2 AppId 未配置", "OAUTH_CONFIG_MISSING", 500);
+            throw new UserAuthDomainException("支付宝 OAuth2 AppId 未配置", "OAUTH_CONFIG_MISSING");
         }
         return appId;
     }

@@ -54,7 +54,7 @@ public sealed class AddressAppService : IAddressAppService
         if (activeCount >= MaxAddressesPerUser)
         {
             throw new UserAuthDomainException(
-                $"每用户最多 {MaxAddressesPerUser} 条地址", "ADDRESS_LIMIT_EXCEEDED", 409);
+                $"每用户最多 {MaxAddressesPerUser} 条地址", "ADDRESS_LIMIT_EXCEEDED");
         }
 
         // 首条地址自动置默认（INV-06、AC-27）
@@ -171,7 +171,7 @@ public sealed class AddressAppService : IAddressAppService
         var user = await _userRepository.GetByIdAsync(userId, ct);
         if (user is null)
         {
-            throw new UserAuthDomainException("用户不存在", "USER_NOT_FOUND", 404);
+            throw new UserAuthDomainException("用户不存在", "USER_NOT_FOUND");
         }
 
         user.SetDefaultAddress(addressId);
@@ -183,12 +183,12 @@ public sealed class AddressAppService : IAddressAppService
         var address = await _addressRepository.GetByIdAsync(addressId, ct);
         if (address is null)
         {
-            throw new UserAuthDomainException("地址不存在", "ADDRESS_NOT_FOUND", 404);
+            throw new UserAuthDomainException("地址不存在", "ADDRESS_NOT_FOUND");
         }
 
         if (address.UserId != userId)
         {
-            throw new UserAuthDomainException("无权操作他人地址", "ADDRESS_FORBIDDEN", 403);
+            throw new UserAuthDomainException("无权操作他人地址", "ADDRESS_FORBIDDEN");
         }
 
         return address;

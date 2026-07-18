@@ -244,8 +244,7 @@ public sealed class Order : AggregateRoot
             {
                 throw new OrderDomainException(
                     $"订单明细中不存在 SKU {skuId}",
-                    "ORDER_DISCOUNT_SKU_NOT_FOUND",
-                    404);
+                    "ORDER_DISCOUNT_SKU_NOT_FOUND");
             }
 
             if (allocation < 0 || allocation > item.Subtotal)

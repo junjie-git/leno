@@ -98,7 +98,7 @@ public sealed class SellerProfile : AggregateRoot
     {
         if (Status == SellerStatus.Approved)
         {
-            throw new SellerShopDomainException("已通过的卖家档案不可直接修改，须重新提交审核", "SELLER_APPROVED", 409);
+            throw new SellerShopDomainException("已通过的卖家档案不可直接修改，须重新提交审核", "SELLER_APPROVED");
         }
 
         ValidateRealName(realName);
@@ -120,7 +120,7 @@ public sealed class SellerProfile : AggregateRoot
         if (Status != SellerStatus.Draft && Status != SellerStatus.Rejected)
         {
             throw new SellerShopDomainException(
-                $"当前状态为 {Status}，不可提交审核", "SELLER_INVALID_TRANSITION", 409);
+                $"当前状态为 {Status}，不可提交审核", "SELLER_INVALID_TRANSITION");
         }
 
         if (string.IsNullOrWhiteSpace(BusinessLicenseNo) && string.IsNullOrWhiteSpace(IdCard))
@@ -140,7 +140,7 @@ public sealed class SellerProfile : AggregateRoot
         if (Status != SellerStatus.PendingReview)
         {
             throw new SellerShopDomainException(
-                $"当前状态为 {Status}，不可审核通过", "SELLER_INVALID_TRANSITION", 409);
+                $"当前状态为 {Status}，不可审核通过", "SELLER_INVALID_TRANSITION");
         }
 
         if (reviewedBy == Guid.Empty)
@@ -161,7 +161,7 @@ public sealed class SellerProfile : AggregateRoot
         if (Status != SellerStatus.PendingReview)
         {
             throw new SellerShopDomainException(
-                $"当前状态为 {Status}，不可驳回", "SELLER_INVALID_TRANSITION", 409);
+                $"当前状态为 {Status}，不可驳回", "SELLER_INVALID_TRANSITION");
         }
 
         if (reviewedBy == Guid.Empty)

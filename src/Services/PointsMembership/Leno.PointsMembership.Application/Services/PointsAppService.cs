@@ -102,8 +102,7 @@ public sealed class PointsAppService : IPointsAppService
         => await _accountRepository.GetByUserIdAsync(userId, ct)
            ?? throw new PointsDomainException(
                $"用户 {userId} 的积分账户不存在",
-               "POINTS_ACCOUNT_NOT_FOUND",
-               404);
+               "POINTS_ACCOUNT_NOT_FOUND");
 
     private static PointsAccountDto ToDto(PointsAccountAggregate account)
         => new()

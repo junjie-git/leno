@@ -61,7 +61,7 @@ public sealed class SPUAppService : ISPUAppService
         // 校验标题同店铺唯一
         if (!await _uniquenessChecker.IsTitleUniqueInShopAsync(dto.Title, shopId, ct: ct))
         {
-            throw new ProductDomainException("Product title already exists in this shop", "SPU_TITLE_DUPLICATE", 409);
+            throw new ProductDomainException("Product title already exists in this shop", "SPU_TITLE_DUPLICATE");
         }
 
         var images = MapImages(dto.Images);
@@ -93,7 +93,7 @@ public sealed class SPUAppService : ISPUAppService
         // 校验标题同店铺唯一（排除当前商品）
         if (!await _uniquenessChecker.IsTitleUniqueInShopAsync(dto.Title, spu.ShopId, spuId, ct))
         {
-            throw new ProductDomainException("Product title already exists in this shop", "SPU_TITLE_DUPLICATE", 409);
+            throw new ProductDomainException("Product title already exists in this shop", "SPU_TITLE_DUPLICATE");
         }
 
         spu.UpdateInfo(
@@ -119,7 +119,7 @@ public sealed class SPUAppService : ISPUAppService
         // 校验 SKU 编码全局唯一（排除当前商品下的 SKU）
         if (!await _uniquenessChecker.IsSkuCodeUniqueAsync(dto.SkuCode, spuId, ct))
         {
-            throw new ProductDomainException("SKU code already in use", "SPU_SKU_CODE_GLOBAL_DUPLICATE", 409);
+            throw new ProductDomainException("SKU code already in use", "SPU_SKU_CODE_GLOBAL_DUPLICATE");
         }
 
         var specs = SkuSpec.Create(dto.SpecAttributes.Select(a => Leno.SharedKernel.ValueObjects.SpecAttribute.Create(a.Name, a.Value)));
@@ -275,7 +275,7 @@ public sealed class SPUAppService : ISPUAppService
         var spu = await _spuRepository.GetByIdAsync(spuId, ct);
         if (spu is null)
         {
-            throw new ProductDomainException("商品不存在", "SPU_NOT_FOUND", 404);
+            throw new ProductDomainException("商品不存在", "SPU_NOT_FOUND");
         }
 
         return spu;
@@ -287,7 +287,7 @@ public sealed class SPUAppService : ISPUAppService
         var spu = await RequireSpuAsync(spuId, ct);
         if (spu.SellerId != sellerId)
         {
-            throw new ProductDomainException("无权操作他人商品", "SPU_NOT_OWNED", 403);
+            throw new ProductDomainException("无权操作他人商品", "SPU_NOT_OWNED");
         }
 
         return spu;

@@ -54,7 +54,7 @@ public sealed class ShopAppService : IShopAppService
         var existing = await _shopRepository.GetBySellerIdAsync(userId, ct);
         if (existing is not null)
         {
-            throw new SellerShopDomainException("该账号已提交入驻申请", "SHOP_ALREADY_EXISTS", 409);
+            throw new SellerShopDomainException("该账号已提交入驻申请", "SHOP_ALREADY_EXISTS");
         }
 
         var shop = Shop.Create(
@@ -162,7 +162,7 @@ public sealed class ShopAppService : IShopAppService
         var shop = await _shopRepository.GetBySellerIdAsync(sellerId, ct);
         if (shop is null)
         {
-            throw new SellerShopDomainException("店铺不存在", "SHOP_NOT_FOUND", 404);
+            throw new SellerShopDomainException("店铺不存在", "SHOP_NOT_FOUND");
         }
 
         return ToShopDto(shop);
@@ -243,7 +243,7 @@ public sealed class ShopAppService : IShopAppService
         var shop = await _shopRepository.GetByIdAsync(shopId, ct);
         if (shop is null)
         {
-            throw new SellerShopDomainException("店铺不存在", "SHOP_NOT_FOUND", 404);
+            throw new SellerShopDomainException("店铺不存在", "SHOP_NOT_FOUND");
         }
 
         return shop;

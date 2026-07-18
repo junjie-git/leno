@@ -38,6 +38,7 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        RegisterSpecialErrorCodes();
         AddOptions(services, configuration);
         AddFileStorage(services, configuration);
         AddAuth(services);
@@ -168,5 +169,37 @@ public static class ServiceCollectionExtensions
     {
         HealthChecksUIExtensions.AddLenoHealthChecks(services, configuration);
         return services;
+    }
+
+    /// <summary>
+    /// 注册不遵循后缀约定的特殊 ErrorCode 到 HTTP 状态码映射。
+    /// 这些 ErrorCode 的实际 HTTP 语义与后缀约定不符（如 USER_DISABLED→403 而非 400）。
+    /// </summary>
+    private static void RegisterSpecialErrorCodes()
+    {
+        ErrorCodeMapping.RegisterAll(
+            // 409 Conflict（状态冲突，但 ErrorCode 后缀不匹配 _ALREADY_/_EXISTS_/_CONFLICT）
+            ("USER_DISABLE_SELF", 409),
+            ("USER_NOT_SUSPENDED", 409),
+            ("USER_REVOKE_ADMIN_SELF", 409),
+            ("USER_LAST_ROLE", 409),
+            ("EXTERNAL_LOGIN_LAST", 409),
+            ("CART_VARIETY_LIMIT", 409),
+            ("SELLER_APPROVED", 409),
+            ("SHOP_CLOSED", 409),
+            ("ADDRESS_ALREADY_DELETED", 409),
+            ("ADDRESS_NOT_ACTIVE", 409),
+            ("USER_USERNAME_CONFLICT", 409),
+            // 400 Bad Request（CART_ANONYMOUS_ID_REQUIRED 匹配 _REQUIRED→401，但业务语义是参数缺失→400）
+            ("CART_ANONYMOUS_ID_REQUIRED", 400),
+            // 403 Forbidden（USER_DISABLED 是禁用而非校验失败）
+            ("USER_DISABLED", 403),
+            // 500 Internal Server Error（USER_2FA_SECRET_MISSING 已匹配 _MISSING，但显式注册以防后缀变更）
+            ("USER_2FA_SECRET_MISSING", 500),
+            // 401 Unauthorized（_INVALID 默认 400，需显式 401）
+            ("USER_OLD_PASSWORD_INVALID", 401),
+            ("USER_2FA_CODE_INVALID", 401),
+            ("USER_2FA_TEMP_TOKEN_INVALID", 401),
+            ("USER_RESET_TOKEN_INVALID", 401));
     }
 }

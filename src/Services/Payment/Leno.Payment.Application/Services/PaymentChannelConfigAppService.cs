@@ -49,7 +49,7 @@ public sealed class PaymentChannelConfigAppService : IPaymentChannelConfigAppSer
     public async Task<PaymentChannelConfigDto> UpdateAsync(Guid id, UpdatePaymentChannelConfigDto dto, CancellationToken ct = default)
     {
         var config = await _repository.GetByIdAsync(id, ct)
-            ?? throw new PaymentDomainException($"配置项不存在 ConfigId={id}", "CHANNEL_CONFIG_NOT_FOUND", 404);
+            ?? throw new PaymentDomainException($"配置项不存在 ConfigId={id}", "CHANNEL_CONFIG_NOT_FOUND");
 
         config.UpdateConfigValue(dto.ConfigValue);
         if (dto.Description is not null)
@@ -69,7 +69,7 @@ public sealed class PaymentChannelConfigAppService : IPaymentChannelConfigAppSer
     public async Task EnableAsync(Guid id, CancellationToken ct = default)
     {
         var config = await _repository.GetByIdAsync(id, ct)
-            ?? throw new PaymentDomainException($"配置项不存在 ConfigId={id}", "CHANNEL_CONFIG_NOT_FOUND", 404);
+            ?? throw new PaymentDomainException($"配置项不存在 ConfigId={id}", "CHANNEL_CONFIG_NOT_FOUND");
 
         config.Enable();
 
@@ -83,7 +83,7 @@ public sealed class PaymentChannelConfigAppService : IPaymentChannelConfigAppSer
     public async Task DisableAsync(Guid id, CancellationToken ct = default)
     {
         var config = await _repository.GetByIdAsync(id, ct)
-            ?? throw new PaymentDomainException($"配置项不存在 ConfigId={id}", "CHANNEL_CONFIG_NOT_FOUND", 404);
+            ?? throw new PaymentDomainException($"配置项不存在 ConfigId={id}", "CHANNEL_CONFIG_NOT_FOUND");
 
         config.Disable();
 

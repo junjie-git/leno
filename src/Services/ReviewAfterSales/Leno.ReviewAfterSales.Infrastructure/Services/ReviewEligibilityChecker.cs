@@ -49,12 +49,12 @@ public sealed class ReviewEligibilityChecker : IReviewEligibilityChecker
         var order = await GetOrderStatusAsync(orderId, ct);
         if (order is null)
         {
-            throw new ReviewDomainException("订单不存在", "REVIEW_ORDER_NOT_FOUND", 404);
+            throw new ReviewDomainException("订单不存在", "REVIEW_ORDER_NOT_FOUND");
         }
 
         if (order.UserId != userId)
         {
-            throw new ReviewDomainException("无权操作此订单", "REVIEW_FORBIDDEN", 403);
+            throw new ReviewDomainException("无权操作此订单", "REVIEW_FORBIDDEN");
         }
 
         if (order.Status != OrderStatusCompleted)

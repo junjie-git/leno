@@ -35,7 +35,7 @@ public sealed class SellerDashboardAppService : ISellerDashboardAppService
         var shop = await _shopRepository.GetBySellerIdAsync(sellerId, ct);
         if (shop is null)
         {
-            throw new SellerShopDomainException("店铺不存在", "SHOP_NOT_FOUND", 404);
+            throw new SellerShopDomainException("店铺不存在", "SHOP_NOT_FOUND");
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -109,7 +109,7 @@ public sealed class SellerDashboardAppService : ISellerDashboardAppService
     {
         if (fromDate > toDate)
         {
-            throw new SellerShopDomainException("起始日期不可晚于结束日期", "METRICS_INVALID_RANGE", 400);
+            throw new SellerShopDomainException("起始日期不可晚于结束日期", "METRICS_INVALID_RANGE");
         }
     }
 }

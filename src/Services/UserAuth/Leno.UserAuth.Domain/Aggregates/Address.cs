@@ -139,7 +139,7 @@ public sealed partial class Address : AggregateRoot
     {
         if (Status == AddressStatus.Deleted)
         {
-            throw new UserAuthDomainException("地址已删除", "ADDRESS_ALREADY_DELETED", 409);
+            throw new UserAuthDomainException("地址已删除", "ADDRESS_ALREADY_DELETED");
         }
 
         Status = AddressStatus.Deleted;
@@ -150,7 +150,7 @@ public sealed partial class Address : AggregateRoot
     {
         if (Status != AddressStatus.Active)
         {
-            throw new UserAuthDomainException("仅 Active 状态的地址可修改", "ADDRESS_NOT_ACTIVE", 409);
+            throw new UserAuthDomainException("仅 Active 状态的地址可修改", "ADDRESS_NOT_ACTIVE");
         }
     }
 

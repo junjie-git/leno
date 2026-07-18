@@ -50,7 +50,7 @@ public sealed class AccountAppService : IAccountAppService
         var user = await _userRepository.GetByIdAsync(userId, ct);
         if (user is null)
         {
-            throw new UserAuthDomainException("用户不存在", "USER_NOT_FOUND", 404);
+            throw new UserAuthDomainException("用户不存在", "USER_NOT_FOUND");
         }
 
         // 通过 OAuth2 提供方交换授权码，获取第三方用户信息
@@ -63,7 +63,7 @@ public sealed class AccountAppService : IAccountAppService
         if (existingUser is not null && existingUser.Id != userId)
         {
             throw new UserAuthDomainException(
-                $"该 {externalInfo.Provider} 账户已被其他用户绑定", "EXTERNAL_LOGIN_ALREADY_BOUND", 409);
+                $"该 {externalInfo.Provider} 账户已被其他用户绑定", "EXTERNAL_LOGIN_ALREADY_BOUND");
         }
 
         user.LinkExternalLogin(
@@ -87,7 +87,7 @@ public sealed class AccountAppService : IAccountAppService
         var user = await _userRepository.GetByIdAsync(userId, ct);
         if (user is null)
         {
-            throw new UserAuthDomainException("用户不存在", "USER_NOT_FOUND", 404);
+            throw new UserAuthDomainException("用户不存在", "USER_NOT_FOUND");
         }
 
         user.UnlinkExternalLogin(provider);

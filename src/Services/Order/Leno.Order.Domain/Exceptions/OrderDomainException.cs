@@ -7,16 +7,16 @@ namespace Leno.Order.Domain.Exceptions;
 /// </summary>
 public sealed class OrderDomainException : DomainException
 {
-    public OrderDomainException(string message, string errorCode = "ORDER_ERROR", int httpStatusCode = 400)
-        : base(message, errorCode, httpStatusCode)
+    public OrderDomainException(string message, string errorCode = "ORDER_ERROR")
+        : base(message, errorCode)
     {
     }
 
     /// <summary>
     /// 包装远程/底层异常，保留原始堆栈用于排障，错误码与 HTTP 状态码由调用方指定。
     /// </summary>
-    public OrderDomainException(string message, Exception innerException, string errorCode = "ORDER_ERROR", int httpStatusCode = 400)
-        : base(message, innerException, errorCode, httpStatusCode)
+    public OrderDomainException(string message, Exception innerException, string errorCode = "ORDER_ERROR")
+        : base(message, innerException, errorCode)
     {
     }
 }

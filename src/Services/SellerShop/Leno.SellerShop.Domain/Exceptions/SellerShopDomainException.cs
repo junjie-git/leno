@@ -8,13 +8,13 @@ namespace Leno.SellerShop.Domain.Exceptions;
 /// </summary>
 public sealed class SellerShopDomainException : DomainException
 {
-    public SellerShopDomainException(string message, string errorCode = "SELLER_SHOP_DOMAIN_ERROR", int httpStatusCode = 400)
-        : base(message, errorCode, httpStatusCode)
+    public SellerShopDomainException(string message, string errorCode = "SELLER_SHOP_DOMAIN_ERROR")
+        : base(message, errorCode)
     {
     }
 
-    public SellerShopDomainException(string message, Exception innerException, string errorCode = "SELLER_SHOP_DOMAIN_ERROR", int httpStatusCode = 400)
-        : base(message, innerException, errorCode, httpStatusCode)
+    public SellerShopDomainException(string message, Exception innerException, string errorCode = "SELLER_SHOP_DOMAIN_ERROR")
+        : base(message, innerException, errorCode)
     {
     }
 }

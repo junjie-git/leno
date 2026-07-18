@@ -8,12 +8,12 @@ namespace Leno.UserAuth.Application.Exceptions;
 public sealed class UserAuthValidationException : DomainException
 {
     public UserAuthValidationException(string message)
-        : base(message, "USER_AUTH_VALIDATION_ERROR", 400)
+        : base(message, "USER_AUTH_VALIDATION_ERROR")
     {
     }
 
     public UserAuthValidationException(IEnumerable<string> errors)
-        : base(string.Join(" | ", errors), "USER_AUTH_VALIDATION_ERROR", 400)
+        : base(string.Join(" | ", errors), "USER_AUTH_VALIDATION_ERROR")
     {
     }
 }

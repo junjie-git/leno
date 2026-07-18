@@ -51,12 +51,12 @@ public sealed class AfterSalesEligibilityChecker : IAfterSalesEligibilityChecker
         var order = await GetOrderStatusAsync(orderId, ct);
         if (order is null)
         {
-            throw new ReviewDomainException("订单不存在", "AFTERSALES_ORDER_NOT_FOUND", 404);
+            throw new ReviewDomainException("订单不存在", "AFTERSALES_ORDER_NOT_FOUND");
         }
 
         if (order.UserId != userId)
         {
-            throw new ReviewDomainException("无权操作此订单", "AFTERSALES_FORBIDDEN", 403);
+            throw new ReviewDomainException("无权操作此订单", "AFTERSALES_FORBIDDEN");
         }
 
         if (order.Status != OrderStatusShipped && order.Status != OrderStatusCompleted)

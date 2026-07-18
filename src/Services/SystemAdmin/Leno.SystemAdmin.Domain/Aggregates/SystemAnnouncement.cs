@@ -94,12 +94,12 @@ public sealed class SystemAnnouncement : AggregateRoot
     {
         if (Status == AnnouncementStatus.Published)
         {
-            throw new SystemAdminDomainException("公告已发布，不可重复发布", "ANNOUNCEMENT_ALREADY_PUBLISHED", 409);
+            throw new SystemAdminDomainException("公告已发布，不可重复发布", "ANNOUNCEMENT_ALREADY_PUBLISHED");
         }
 
         if (Status == AnnouncementStatus.Expired)
         {
-            throw new SystemAdminDomainException("公告已过期，不可发布", "ANNOUNCEMENT_EXPIRED", 409);
+            throw new SystemAdminDomainException("公告已过期，不可发布", "ANNOUNCEMENT_EXPIRED");
         }
 
         Status = AnnouncementStatus.Published;
@@ -115,7 +115,7 @@ public sealed class SystemAnnouncement : AggregateRoot
     {
         if (Status != AnnouncementStatus.Published)
         {
-            throw new SystemAdminDomainException("仅已发布公告可撤回", "ANNOUNCEMENT_NOT_PUBLISHED", 409);
+            throw new SystemAdminDomainException("仅已发布公告可撤回", "ANNOUNCEMENT_NOT_PUBLISHED");
         }
 
         Status = AnnouncementStatus.Draft;
@@ -140,7 +140,7 @@ public sealed class SystemAnnouncement : AggregateRoot
     {
         if (Status != AnnouncementStatus.Draft)
         {
-            throw new SystemAdminDomainException($"当前状态为 {Status}，仅草稿态可更新", "ANNOUNCEMENT_NOT_DRAFT", 409);
+            throw new SystemAdminDomainException($"当前状态为 {Status}，仅草稿态可更新", "ANNOUNCEMENT_NOT_DRAFT");
         }
 
         ValidateTitle(title);

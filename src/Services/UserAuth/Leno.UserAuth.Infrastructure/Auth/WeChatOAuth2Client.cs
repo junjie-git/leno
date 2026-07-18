@@ -67,7 +67,7 @@ public sealed class WeChatOAuth2Client : IExternalAuthService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("WeChat token exchange failed: {StatusCode} {Body}", (int)response.StatusCode, body);
-            throw new UserAuthDomainException("微信授权码交换失败", "OAUTH_TOKEN_EXCHANGE_FAILED", 502);
+            throw new UserAuthDomainException("微信授权码交换失败", "OAUTH_TOKEN_EXCHANGE_FAILED");
         }
 
         var doc = JsonDocument.Parse(body);
@@ -77,7 +77,7 @@ public sealed class WeChatOAuth2Client : IExternalAuthService
         {
             var errMsg = doc.RootElement.TryGetProperty("errmsg", out var msg) ? msg.GetString() : "未知错误";
             _logger.LogError("WeChat token exchange error: {ErrCode} {ErrMsg}", errCode.GetInt32(), errMsg);
-            throw new UserAuthDomainException($"微信授权失败: {errMsg}", "OAUTH_TOKEN_EXCHANGE_FAILED", 502);
+            throw new UserAuthDomainException($"微信授权失败: {errMsg}", "OAUTH_TOKEN_EXCHANGE_FAILED");
         }
 
         var accessToken = doc.RootElement.GetProperty("access_token").GetString()
@@ -106,7 +106,7 @@ public sealed class WeChatOAuth2Client : IExternalAuthService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("WeChat userinfo failed: {StatusCode} {Body}", (int)response.StatusCode, body);
-            throw new UserAuthDomainException("获取微信用户信息失败", "OAUTH_USERINFO_FAILED", 502);
+            throw new UserAuthDomainException("获取微信用户信息失败", "OAUTH_USERINFO_FAILED");
         }
 
         var doc = JsonDocument.Parse(body);
@@ -115,7 +115,7 @@ public sealed class WeChatOAuth2Client : IExternalAuthService
         {
             var errMsg = doc.RootElement.TryGetProperty("errmsg", out var msg) ? msg.GetString() : "未知错误";
             _logger.LogError("WeChat userinfo error: {ErrCode} {ErrMsg}", errCode.GetInt32(), errMsg);
-            throw new UserAuthDomainException($"获取微信用户信息失败: {errMsg}", "OAUTH_USERINFO_FAILED", 502);
+            throw new UserAuthDomainException($"获取微信用户信息失败: {errMsg}", "OAUTH_USERINFO_FAILED");
         }
 
         var unionId = doc.RootElement.TryGetProperty("unionid", out var uId) ? uId.GetString() : openId;
@@ -133,7 +133,7 @@ public sealed class WeChatOAuth2Client : IExternalAuthService
         var appId = _configuration["OAuth2:WeChat:AppId"];
         if (string.IsNullOrWhiteSpace(appId))
         {
-            throw new UserAuthDomainException("微信 OAuth2 AppId 未配置", "OAUTH_CONFIG_MISSING", 500);
+            throw new UserAuthDomainException("微信 OAuth2 AppId 未配置", "OAUTH_CONFIG_MISSING");
         }
         return appId;
     }
@@ -143,7 +143,7 @@ public sealed class WeChatOAuth2Client : IExternalAuthService
         var appSecret = _configuration["OAuth2:WeChat:AppSecret"];
         if (string.IsNullOrWhiteSpace(appSecret))
         {
-            throw new UserAuthDomainException("微信 OAuth2 AppSecret 未配置", "OAUTH_CONFIG_MISSING", 500);
+            throw new UserAuthDomainException("微信 OAuth2 AppSecret 未配置", "OAUTH_CONFIG_MISSING");
         }
         return appSecret;
     }

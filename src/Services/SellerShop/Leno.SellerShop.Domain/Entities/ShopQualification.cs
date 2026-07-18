@@ -123,7 +123,7 @@ public sealed class ShopQualification : Entity
         if (Status != QualificationStatus.Pending)
         {
             throw new SellerShopDomainException(
-                $"当前资质状态为 {Status}，不可审核通过", "QUALIFICATION_INVALID_TRANSITION", 409);
+                $"当前资质状态为 {Status}，不可审核通过", "QUALIFICATION_INVALID_TRANSITION");
         }
 
         if (reviewedBy == Guid.Empty)
@@ -146,7 +146,7 @@ public sealed class ShopQualification : Entity
         if (Status != QualificationStatus.Pending)
         {
             throw new SellerShopDomainException(
-                $"当前资质状态为 {Status}，不可驳回", "QUALIFICATION_INVALID_TRANSITION", 409);
+                $"当前资质状态为 {Status}，不可驳回", "QUALIFICATION_INVALID_TRANSITION");
         }
 
         if (reviewedBy == Guid.Empty)
@@ -178,7 +178,7 @@ public sealed class ShopQualification : Entity
         if (Status != QualificationStatus.Approved)
         {
             throw new SellerShopDomainException(
-                $"当前资质状态为 {Status}，不可标记过期", "QUALIFICATION_INVALID_TRANSITION", 409);
+                $"当前资质状态为 {Status}，不可标记过期", "QUALIFICATION_INVALID_TRANSITION");
         }
 
         Status = QualificationStatus.Expired;

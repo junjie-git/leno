@@ -96,7 +96,7 @@ public sealed partial class User : AggregateRoot
         // 至少提供邮箱、手机号或密码哈希之一，否则无登录方式
         if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(phoneNumber) && string.IsNullOrWhiteSpace(passwordHash))
         {
-            throw new UserAuthDomainException("必须提供邮箱、手机号或密码之一", "USER_NO_LOGIN_METHOD", 400);
+            throw new UserAuthDomainException("必须提供邮箱、手机号或密码之一", "USER_NO_LOGIN_METHOD");
         }
 
         var user = new User(id)
@@ -150,19 +150,19 @@ public sealed partial class User : AggregateRoot
 
         if (string.IsNullOrEmpty(PasswordHash))
         {
-            throw new UserAuthDomainException("当前账户未设置密码，无法修改", "USER_NO_PASSWORD", 409);
+            throw new UserAuthDomainException("当前账户未设置密码，无法修改", "USER_NO_PASSWORD");
         }
 
         if (!hasher.Verify(oldPlainPassword, PasswordHash))
         {
-            throw new UserAuthDomainException("旧密码不正确", "USER_OLD_PASSWORD_INVALID", 401);
+            throw new UserAuthDomainException("旧密码不正确", "USER_OLD_PASSWORD_INVALID");
         }
 
         ValidatePasswordStrength(newPlainPassword);
 
         if (hasher.Verify(newPlainPassword, PasswordHash))
         {
-            throw new UserAuthDomainException("新密码不可与旧密码相同", "USER_PASSWORD_SAME", 400);
+            throw new UserAuthDomainException("新密码不可与旧密码相同", "USER_PASSWORD_SAME");
         }
 
         PasswordHash = hasher.Hash(newPlainPassword);
@@ -183,7 +183,7 @@ public sealed partial class User : AggregateRoot
     {
         if (Status == AccountStatus.Disabled)
         {
-            throw new UserAuthDomainException("已禁用的账户不可锁定", "USER_DISABLED", 409);
+            throw new UserAuthDomainException("已禁用的账户不可锁定", "USER_DISABLED");
         }
 
         Status = AccountStatus.Locked;
@@ -198,7 +198,7 @@ public sealed partial class User : AggregateRoot
     {
         if (Status != AccountStatus.Locked)
         {
-            throw new UserAuthDomainException("仅锁定状态的账户可解锁", "USER_NOT_LOCKED", 409);
+            throw new UserAuthDomainException("仅锁定状态的账户可解锁", "USER_NOT_LOCKED");
         }
 
         Status = AccountStatus.Active;
@@ -214,7 +214,7 @@ public sealed partial class User : AggregateRoot
     {
         if (operatorId.HasValue && operatorId.Value == Id)
         {
-            throw new UserAuthDomainException("禁止禁用自身账户", "USER_DISABLE_SELF", 409);
+            throw new UserAuthDomainException("禁止禁用自身账户", "USER_DISABLE_SELF");
         }
 
         Status = AccountStatus.Disabled;
@@ -228,7 +228,7 @@ public sealed partial class User : AggregateRoot
     {
         if (Status != AccountStatus.Disabled)
         {
-            throw new UserAuthDomainException("仅禁用状态的账户可恢复", "USER_NOT_DISABLED", 409);
+            throw new UserAuthDomainException("仅禁用状态的账户可恢复", "USER_NOT_DISABLED");
         }
 
         Status = AccountStatus.Active;
@@ -258,7 +258,7 @@ public sealed partial class User : AggregateRoot
     {
         if (operatorId.HasValue && operatorId.Value == Id && role == RoleType.Admin)
         {
-            throw new UserAuthDomainException("禁止撤销自身管理员角色", "USER_REVOKE_ADMIN_SELF", 409);
+            throw new UserAuthDomainException("禁止撤销自身管理员角色", "USER_REVOKE_ADMIN_SELF");
         }
 
         var existing = _roles.FirstOrDefault(r => r.Value == role);
@@ -269,7 +269,7 @@ public sealed partial class User : AggregateRoot
 
         if (_roles.Count <= 1)
         {
-            throw new UserAuthDomainException("至少保留一个角色", "USER_LAST_ROLE", 409);
+            throw new UserAuthDomainException("至少保留一个角色", "USER_LAST_ROLE");
         }
 
         _roles.Remove(existing);
@@ -325,7 +325,7 @@ public sealed partial class User : AggregateRoot
         if (_externalLogins.Any(el => el.Provider == normalizedProvider))
         {
             throw new UserAuthDomainException(
-                $"已绑定 {provider} 登录，不可重复绑定", "EXTERNAL_LOGIN_ALREADY_LINKED", 409);
+                $"已绑定 {provider} 登录，不可重复绑定", "EXTERNAL_LOGIN_ALREADY_LINKED");
         }
 
         _externalLogins.Add(new ExternalLogin(normalizedProvider, providerUserId.Trim(), email, name, avatarUrl));
@@ -355,7 +355,7 @@ public sealed partial class User : AggregateRoot
         // 仅 OAuth 用户（无密码、无手机号）须至少保留一个外部登录
         if (string.IsNullOrEmpty(PasswordHash) && string.IsNullOrEmpty(PhoneNumber) && _externalLogins.Count <= 1)
         {
-            throw new UserAuthDomainException("至少保留一个外部登录绑定", "EXTERNAL_LOGIN_LAST", 409);
+            throw new UserAuthDomainException("至少保留一个外部登录绑定", "EXTERNAL_LOGIN_LAST");
         }
 
         _externalLogins.Remove(existing);
@@ -452,7 +452,7 @@ public sealed partial class User : AggregateRoot
 
         if (TwoFactorEnabled)
         {
-            throw new UserAuthDomainException("双因子认证已启用，请先禁用后再重新设置", "USER_2FA_ALREADY_ENABLED", 409);
+            throw new UserAuthDomainException("双因子认证已启用，请先禁用后再重新设置", "USER_2FA_ALREADY_ENABLED");
         }
 
         TwoFactorSecret = tokenVerifier.GenerateSecret();
@@ -473,12 +473,12 @@ public sealed partial class User : AggregateRoot
 
         if (TwoFactorEnabled)
         {
-            throw new UserAuthDomainException("双因子认证已确认，无需重复确认", "USER_2FA_ALREADY_CONFIRMED", 409);
+            throw new UserAuthDomainException("双因子认证已确认，无需重复确认", "USER_2FA_ALREADY_CONFIRMED");
         }
 
         if (string.IsNullOrWhiteSpace(TwoFactorSecret))
         {
-            throw new UserAuthDomainException("请先启用双因子认证", "USER_2FA_NOT_INITIATED", 400);
+            throw new UserAuthDomainException("请先启用双因子认证", "USER_2FA_NOT_INITIATED");
         }
 
         if (string.IsNullOrWhiteSpace(totpCode))
@@ -488,7 +488,7 @@ public sealed partial class User : AggregateRoot
 
         if (!tokenVerifier.Verify(TwoFactorSecret, totpCode.Trim()))
         {
-            throw new UserAuthDomainException("验证码无效或已过期", "USER_2FA_CODE_INVALID", 401);
+            throw new UserAuthDomainException("验证码无效或已过期", "USER_2FA_CODE_INVALID");
         }
 
         TwoFactorEnabled = true;
@@ -502,7 +502,7 @@ public sealed partial class User : AggregateRoot
     {
         if (!TwoFactorEnabled)
         {
-            throw new UserAuthDomainException("双因子认证未启用", "USER_2FA_NOT_ENABLED", 409);
+            throw new UserAuthDomainException("双因子认证未启用", "USER_2FA_NOT_ENABLED");
         }
 
         TwoFactorEnabled = false;
@@ -521,12 +521,12 @@ public sealed partial class User : AggregateRoot
 
         if (!TwoFactorEnabled)
         {
-            throw new UserAuthDomainException("双因子认证未启用", "USER_2FA_NOT_ENABLED", 409);
+            throw new UserAuthDomainException("双因子认证未启用", "USER_2FA_NOT_ENABLED");
         }
 
         if (string.IsNullOrWhiteSpace(TwoFactorSecret))
         {
-            throw new UserAuthDomainException("双因子认证密钥缺失", "USER_2FA_SECRET_MISSING", 500);
+            throw new UserAuthDomainException("双因子认证密钥缺失", "USER_2FA_SECRET_MISSING");
         }
 
         if (string.IsNullOrWhiteSpace(totpCode))

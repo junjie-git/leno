@@ -60,7 +60,7 @@ public sealed class PermissionAppService : IPermissionAppService
         var existing = await _permissionRepository.GetByNameAsync(dto.Name, ct);
         if (existing is not null)
         {
-            throw new UserAuthDomainException("角色名称已存在", "ROLE_NAME_EXISTS", 409);
+            throw new UserAuthDomainException("角色名称已存在", "ROLE_NAME_EXISTS");
         }
 
         var role = Role.Create(Guid.NewGuid(), dto.Name, dto.Description);
@@ -84,7 +84,7 @@ public sealed class PermissionAppService : IPermissionAppService
         var existing = await _permissionRepository.GetByNameAsync(dto.Name, ct);
         if (existing is not null && existing.Id != roleId)
         {
-            throw new UserAuthDomainException("角色名称已存在", "ROLE_NAME_EXISTS", 409);
+            throw new UserAuthDomainException("角色名称已存在", "ROLE_NAME_EXISTS");
         }
 
         role.Update(dto.Name, dto.Description);
@@ -101,14 +101,14 @@ public sealed class PermissionAppService : IPermissionAppService
 
         if (role.IsBuiltIn)
         {
-            throw new UserAuthDomainException("内置角色不可删除", "ROLE_BUILTIN_DELETE", 409);
+            throw new UserAuthDomainException("内置角色不可删除", "ROLE_BUILTIN_DELETE");
         }
 
         // 检查是否有用户引用
         var hasReferences = await _permissionRepository.HasUserReferencesAsync(roleId, ct);
         if (hasReferences)
         {
-            throw new UserAuthDomainException("角色存在用户引用，不可删除", "ROLE_HAS_USER_REFERENCES", 409);
+            throw new UserAuthDomainException("角色存在用户引用，不可删除", "ROLE_HAS_USER_REFERENCES");
         }
 
         await _permissionRepository.RemoveAsync(role, ct);
@@ -141,7 +141,7 @@ public sealed class PermissionAppService : IPermissionAppService
         var role = await _permissionRepository.GetByIdAsync(roleId, ct);
         if (role is null)
         {
-            throw new UserAuthDomainException("角色不存在", "ROLE_NOT_FOUND", 404);
+            throw new UserAuthDomainException("角色不存在", "ROLE_NOT_FOUND");
         }
 
         return role;

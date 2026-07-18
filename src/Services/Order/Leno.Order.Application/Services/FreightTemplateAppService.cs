@@ -75,7 +75,7 @@ public sealed class FreightTemplateAppService : IFreightTemplateAppService
 
     private async Task<FreightTemplate> RequireAsync(Guid id, CancellationToken ct)
         => await _repository.GetByIdAsync(id, ct)
-           ?? throw new OrderDomainException($"运费模板 {id} 不存在", "FREIGHT_NOT_FOUND", 404);
+           ?? throw new OrderDomainException($"运费模板 {id} 不存在", "FREIGHT_NOT_FOUND");
 
     private static FreightRegionRule ToRule(FreightRegionRuleDto dto)
         => FreightRegionRule.Create(

@@ -41,7 +41,7 @@ public sealed class CategoryAppService : ICategoryAppService
             var parent = await _categoryRepository.GetByIdAsync(dto.ParentId.Value, ct);
             if (parent is null)
             {
-                throw new ProductDomainException("父分类不存在", "CATEGORY_PARENT_NOT_FOUND", 404);
+                throw new ProductDomainException("父分类不存在", "CATEGORY_PARENT_NOT_FOUND");
             }
 
             parentLevel = parent.Level;
@@ -49,7 +49,7 @@ public sealed class CategoryAppService : ICategoryAppService
 
         if (await _categoryRepository.ExistsByNameAsync(dto.Name, dto.ParentId, ct))
         {
-            throw new ProductDomainException("同级分类名称已存在", "CATEGORY_NAME_DUPLICATE", 409);
+            throw new ProductDomainException("同级分类名称已存在", "CATEGORY_NAME_DUPLICATE");
         }
 
         var category = Category.Create(Guid.NewGuid(), dto.Name, dto.ParentId, parentLevel, dto.SortOrder);
@@ -115,7 +115,7 @@ public sealed class CategoryAppService : ICategoryAppService
         var category = await _categoryRepository.GetByIdAsync(categoryId, ct);
         if (category is null)
         {
-            throw new ProductDomainException("分类不存在", "CATEGORY_NOT_FOUND", 404);
+            throw new ProductDomainException("分类不存在", "CATEGORY_NOT_FOUND");
         }
 
         return category;

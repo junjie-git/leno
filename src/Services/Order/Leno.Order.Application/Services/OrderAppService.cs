@@ -78,7 +78,7 @@ public sealed class OrderAppService : IOrderAppService
         foreach (var ci in dto.Items)
         {
             var info = await _productAntiCorruption.GetSkuInfoAsync(ci.SkuId, ct)
-                ?? throw new OrderDomainException($"SKU {ci.SkuId} 不存在或已下架", "ORDER_SKU_NOT_FOUND", 404);
+                ?? throw new OrderDomainException($"SKU {ci.SkuId} 不存在或已下架", "ORDER_SKU_NOT_FOUND");
             if (!info.IsOnSale)
             {
                 throw new OrderDomainException($"SKU {ci.SkuId} 已下架", "ORDER_SKU_OFF_SHELF");
@@ -177,7 +177,7 @@ public sealed class OrderAppService : IOrderAppService
         foreach (var ci in dto.Items)
         {
             var info = await _productAntiCorruption.GetSkuInfoAsync(ci.SkuId, ct)
-                ?? throw new OrderDomainException($"SKU {ci.SkuId} 不存在或已下架", "ORDER_SKU_NOT_FOUND", 404);
+                ?? throw new OrderDomainException($"SKU {ci.SkuId} 不存在或已下架", "ORDER_SKU_NOT_FOUND");
             var subtotal = info.UnitPrice * ci.Quantity;
             details.Add(new PreviewItemDetail
             {
@@ -251,7 +251,7 @@ public sealed class OrderAppService : IOrderAppService
         var order = await RequireOrderAsync(orderId, ct);
         if (order.UserId != userId)
         {
-            throw new OrderDomainException("无权操作此订单", "ORDER_FORBIDDEN", 403);
+            throw new OrderDomainException("无权操作此订单", "ORDER_FORBIDDEN");
         }
 
         // 聚合状态变更：置"已发起支付"标记并产生 PaymentRequestedIntegrationEvent 领域事件，
@@ -277,7 +277,7 @@ public sealed class OrderAppService : IOrderAppService
         var order = await RequireOrderAsync(orderId, ct);
         if (order.UserId != userId)
         {
-            throw new OrderDomainException("无权操作此订单", "ORDER_FORBIDDEN", 403);
+            throw new OrderDomainException("无权操作此订单", "ORDER_FORBIDDEN");
         }
         order.ConfirmReceipt();
         await _orderRepository.UpdateAsync(order, ct);
@@ -298,7 +298,7 @@ public sealed class OrderAppService : IOrderAppService
         var order = await RequireOrderAsync(orderId, ct);
         if (order.UserId != userId)
         {
-            throw new OrderDomainException("无权操作此订单", "ORDER_FORBIDDEN", 403);
+            throw new OrderDomainException("无权操作此订单", "ORDER_FORBIDDEN");
         }
         order.Cancel(dto.Reason, "Buyer");
 
@@ -464,7 +464,7 @@ public sealed class OrderAppService : IOrderAppService
     /// </summary>
     private async Task<OrderAggregate> RequireOrderAsync(Guid orderId, CancellationToken ct)
         => await _orderRepository.GetByIdAsync(orderId, ct)
-           ?? throw new OrderDomainException($"订单 {orderId} 不存在", "ORDER_NOT_FOUND", 404);
+           ?? throw new OrderDomainException($"订单 {orderId} 不存在", "ORDER_NOT_FOUND");
 
     /// <summary>
     /// 校验订单归属卖家。会员订阅订单（SellerId 为空）不允许卖家操作。

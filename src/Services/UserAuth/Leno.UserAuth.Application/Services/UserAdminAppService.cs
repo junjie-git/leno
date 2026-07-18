@@ -121,7 +121,7 @@ public sealed class UserAdminAppService : IUserAdminAppService
         }
         else
         {
-            throw new UserAuthDomainException("仅锁定或禁用状态的账户可恢复", "USER_NOT_SUSPENDED", 409);
+            throw new UserAuthDomainException("仅锁定或禁用状态的账户可恢复", "USER_NOT_SUSPENDED");
         }
 
         var after = Snapshot(user);
@@ -155,7 +155,7 @@ public sealed class UserAdminAppService : IUserAdminAppService
         var user = await _userRepository.GetByIdAsync(userId, ct);
         if (user is null)
         {
-            throw new UserAuthDomainException("用户不存在", "USER_NOT_FOUND", 404);
+            throw new UserAuthDomainException("用户不存在", "USER_NOT_FOUND");
         }
 
         return user;

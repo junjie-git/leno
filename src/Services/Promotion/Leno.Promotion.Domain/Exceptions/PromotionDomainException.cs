@@ -7,8 +7,8 @@ namespace Leno.Promotion.Domain.Exceptions;
 /// </summary>
 public sealed class PromotionDomainException : DomainException
 {
-    public PromotionDomainException(string message, string errorCode = "PROMOTION_ERROR", int httpStatusCode = 400)
-        : base(message, errorCode, httpStatusCode)
+    public PromotionDomainException(string message, string errorCode = "PROMOTION_ERROR")
+        : base(message, errorCode)
     {
     }
 }

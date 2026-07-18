@@ -10,7 +10,7 @@ namespace Leno.Infrastructure.Middleware;
 
 /// <summary>
 /// 全局异常中间件，将领域异常、参数异常、未授权异常统一转换为 <see cref="ApiResponse"/> 标准响应。
-/// DomainException 按 <see cref="DomainException.HttpStatusCode"/>（400/409 等）映射，
+/// DomainException 通过 <see cref="ErrorCodeMapping"/> 按 ErrorCode 映射 HTTP 状态码（默认 400），
 /// 未授权异常映射 401，其他异常映射 500。
 /// </summary>
 public sealed class GlobalExceptionMiddleware
@@ -82,9 +82,9 @@ public sealed class GlobalExceptionMiddleware
         switch (exception)
         {
             case DomainException domainEx:
-                return (domainEx.HttpStatusCode == 0
-                    ? StatusCodes.Status400BadRequest
-                    : domainEx.HttpStatusCode, domainEx.Message, LogLevel.Warning);
+                // 由 ErrorCodeMapping 按 ErrorCode 映射 HTTP 状态码（默认 400）
+                var statusCode = ErrorCodeMapping.GetStatusCode(domainEx.ErrorCode);
+                return (statusCode, domainEx.Message, LogLevel.Warning);
 
             case UnauthorizedAccessException:
                 return (StatusCodes.Status401Unauthorized, "未授权", LogLevel.Warning);

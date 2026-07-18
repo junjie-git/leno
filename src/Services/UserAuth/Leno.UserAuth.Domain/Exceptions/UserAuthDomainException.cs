@@ -8,13 +8,13 @@ namespace Leno.UserAuth.Domain.Exceptions;
 /// </summary>
 public sealed class UserAuthDomainException : DomainException
 {
-    public UserAuthDomainException(string message, string errorCode = "USER_AUTH_DOMAIN_ERROR", int httpStatusCode = 400)
-        : base(message, errorCode, httpStatusCode)
+    public UserAuthDomainException(string message, string errorCode = "USER_AUTH_DOMAIN_ERROR")
+        : base(message, errorCode)
     {
     }
 
-    public UserAuthDomainException(string message, Exception innerException, string errorCode = "USER_AUTH_DOMAIN_ERROR", int httpStatusCode = 400)
-        : base(message, innerException, errorCode, httpStatusCode)
+    public UserAuthDomainException(string message, Exception innerException, string errorCode = "USER_AUTH_DOMAIN_ERROR")
+        : base(message, innerException, errorCode)
     {
     }
 }

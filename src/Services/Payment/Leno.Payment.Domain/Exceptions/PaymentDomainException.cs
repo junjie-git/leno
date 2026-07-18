@@ -7,8 +7,8 @@ namespace Leno.Payment.Domain.Exceptions;
 /// </summary>
 public sealed class PaymentDomainException : DomainException
 {
-    public PaymentDomainException(string message, string errorCode = "PAYMENT_ERROR", int httpStatusCode = 400)
-        : base(message, errorCode, httpStatusCode)
+    public PaymentDomainException(string message, string errorCode = "PAYMENT_ERROR")
+        : base(message, errorCode)
     {
     }
 }

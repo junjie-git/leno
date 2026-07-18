@@ -145,7 +145,7 @@ public sealed class SPU : AggregateRoot
     {
         if (Status != ProductStatus.Draft)
         {
-            throw new ProductDomainException($"当前状态为 {Status}，不可提交审核", "SPU_INVALID_TRANSITION", 409);
+            throw new ProductDomainException($"当前状态为 {Status}，不可提交审核", "SPU_INVALID_TRANSITION");
         }
 
         EnsureHasSkus();
@@ -163,7 +163,7 @@ public sealed class SPU : AggregateRoot
     {
         if (Status != ProductStatus.PendingReview)
         {
-            throw new ProductDomainException($"当前状态为 {Status}，不可审核通过", "SPU_INVALID_TRANSITION", 409);
+            throw new ProductDomainException($"当前状态为 {Status}，不可审核通过", "SPU_INVALID_TRANSITION");
         }
 
         if (reviewedBy == Guid.Empty)
@@ -198,7 +198,7 @@ public sealed class SPU : AggregateRoot
     {
         if (Status != ProductStatus.PendingReview)
         {
-            throw new ProductDomainException($"当前状态为 {Status}，不可驳回", "SPU_INVALID_TRANSITION", 409);
+            throw new ProductDomainException($"当前状态为 {Status}，不可驳回", "SPU_INVALID_TRANSITION");
         }
 
         if (reviewedBy == Guid.Empty)
@@ -228,7 +228,7 @@ public sealed class SPU : AggregateRoot
     {
         if (Status != ProductStatus.OnSale)
         {
-            throw new ProductDomainException($"当前状态为 {Status}，不可下架", "SPU_INVALID_TRANSITION", 409);
+            throw new ProductDomainException($"当前状态为 {Status}，不可下架", "SPU_INVALID_TRANSITION");
         }
 
         ValidateReason(reason);
@@ -247,7 +247,7 @@ public sealed class SPU : AggregateRoot
     {
         if (Status != ProductStatus.TakenDown)
         {
-            throw new ProductDomainException($"当前状态为 {Status}，不可重新上架", "SPU_INVALID_TRANSITION", 409);
+            throw new ProductDomainException($"当前状态为 {Status}，不可重新上架", "SPU_INVALID_TRANSITION");
         }
 
         EnsureHasSkus();
@@ -307,17 +307,17 @@ public sealed class SPU : AggregateRoot
 
         if (_skus.Count >= MaxSkuCount)
         {
-            throw new ProductDomainException($"SKU 数量不可超过 {MaxSkuCount}", "SPU_SKU_LIMIT", 409);
+            throw new ProductDomainException($"SKU 数量不可超过 {MaxSkuCount}", "SPU_SKU_LIMIT");
         }
 
         if (_skus.Any(s => string.Equals(s.SkuCode, sku.SkuCode, StringComparison.OrdinalIgnoreCase)))
         {
-            throw new ProductDomainException($"SKU 编码已存在: {sku.SkuCode}", "SPU_SKU_CODE_DUPLICATE", 409);
+            throw new ProductDomainException($"SKU 编码已存在: {sku.SkuCode}", "SPU_SKU_CODE_DUPLICATE");
         }
 
         if (_skus.Any(s => s.SpecAttributes.Equals(sku.SpecAttributes)))
         {
-            throw new ProductDomainException("SKU 规格组合已存在", "SPU_SKU_SPEC_DUPLICATE", 409);
+            throw new ProductDomainException("SKU 规格组合已存在", "SPU_SKU_SPEC_DUPLICATE");
         }
 
         _skus.Add(sku);
@@ -331,7 +331,7 @@ public sealed class SPU : AggregateRoot
         var sku = _skus.FirstOrDefault(s => s.Id == skuId);
         if (sku is null)
         {
-            throw new ProductDomainException("SKU 不存在", "SPU_SKU_NOT_FOUND", 404);
+            throw new ProductDomainException("SKU 不存在", "SPU_SKU_NOT_FOUND");
         }
 
         return sku;
@@ -460,7 +460,7 @@ public sealed class SPU : AggregateRoot
     {
         if (Status is ProductStatus.TakenDown or ProductStatus.Rejected or ProductStatus.ShopSuspended)
         {
-            throw new ProductDomainException("已下架/已驳回/店铺暂停商品不可直接编辑，请先重新上架", "SPU_OFF_SHELF", 409);
+            throw new ProductDomainException("已下架/已驳回/店铺暂停商品不可直接编辑，请先重新上架", "SPU_OFF_SHELF");
         }
     }
 

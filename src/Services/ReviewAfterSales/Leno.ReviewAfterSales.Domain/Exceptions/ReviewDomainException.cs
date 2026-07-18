@@ -7,8 +7,8 @@ namespace Leno.ReviewAfterSales.Domain.Exceptions;
 /// </summary>
 public sealed class ReviewDomainException : DomainException
 {
-    public ReviewDomainException(string message, string errorCode = "REVIEW_ERROR", int httpStatusCode = 400)
-        : base(message, errorCode, httpStatusCode)
+    public ReviewDomainException(string message, string errorCode = "REVIEW_ERROR")
+        : base(message, errorCode)
     {
     }
 }

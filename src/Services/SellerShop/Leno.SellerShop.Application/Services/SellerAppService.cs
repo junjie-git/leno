@@ -107,7 +107,7 @@ public sealed class SellerAppService : ISellerAppService
         var profile = await _profileRepository.GetByUserIdAsync(userId, ct);
         if (profile is null)
         {
-            throw new SellerShopDomainException("卖家档案不存在", "SELLER_NOT_FOUND", 404);
+            throw new SellerShopDomainException("卖家档案不存在", "SELLER_NOT_FOUND");
         }
 
         return profile;
@@ -118,7 +118,7 @@ public sealed class SellerAppService : ISellerAppService
         var profile = await _profileRepository.GetByIdAsync(profileId, ct);
         if (profile is null)
         {
-            throw new SellerShopDomainException("卖家档案不存在", "SELLER_NOT_FOUND", 404);
+            throw new SellerShopDomainException("卖家档案不存在", "SELLER_NOT_FOUND");
         }
 
         return profile;

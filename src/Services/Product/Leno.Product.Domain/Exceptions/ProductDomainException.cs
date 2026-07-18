@@ -8,13 +8,13 @@ namespace Leno.Product.Domain.Exceptions;
 /// </summary>
 public sealed class ProductDomainException : DomainException
 {
-    public ProductDomainException(string message, string errorCode = "PRODUCT_DOMAIN_ERROR", int httpStatusCode = 400)
-        : base(message, errorCode, httpStatusCode)
+    public ProductDomainException(string message, string errorCode = "PRODUCT_DOMAIN_ERROR")
+        : base(message, errorCode)
     {
     }
 
-    public ProductDomainException(string message, Exception innerException, string errorCode = "PRODUCT_DOMAIN_ERROR", int httpStatusCode = 400)
-        : base(message, innerException, errorCode, httpStatusCode)
+    public ProductDomainException(string message, Exception innerException, string errorCode = "PRODUCT_DOMAIN_ERROR")
+        : base(message, innerException, errorCode)
     {
     }
 }

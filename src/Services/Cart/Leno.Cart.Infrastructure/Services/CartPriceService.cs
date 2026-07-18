@@ -66,7 +66,7 @@ public sealed class CartPriceService : ICartPriceService
             {
                 _logger.LogWarning("商品域 SKU 批量查询失败 StatusCode={StatusCode} Count={Count}",
                     (int)response.StatusCode, ids.Count);
-                throw new CartDomainException(PriceUnavailableMessage, PriceUnavailableErrorCode, 503);
+                throw new CartDomainException(PriceUnavailableMessage, PriceUnavailableErrorCode);
             }
 
             var apiResponse = await response.Content
@@ -89,7 +89,7 @@ public sealed class CartPriceService : ICartPriceService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "商品域 SKU 批量查询异常 Count={Count}", ids.Count);
-            throw new CartDomainException(PriceUnavailableMessage, PriceUnavailableErrorCode, 503);
+            throw new CartDomainException(PriceUnavailableMessage, PriceUnavailableErrorCode);
         }
     }
 

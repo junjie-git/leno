@@ -113,7 +113,7 @@ public sealed class Cart : AggregateRoot
     public void UpdateItemQuantity(Guid skuId, int quantity)
     {
         var item = FindItem(skuId)
-                   ?? throw new CartDomainException($"购物车中不存在 SKU {skuId}", "CART_ITEM_NOT_FOUND", 404);
+                   ?? throw new CartDomainException($"购物车中不存在 SKU {skuId}", "CART_ITEM_NOT_FOUND");
 
         item.SetQuantity(quantity);
     }
@@ -125,7 +125,7 @@ public sealed class Cart : AggregateRoot
     public void RemoveItem(Guid skuId)
     {
         var item = FindItem(skuId)
-                   ?? throw new CartDomainException($"购物车中不存在 SKU {skuId}", "CART_ITEM_NOT_FOUND", 404);
+                   ?? throw new CartDomainException($"购物车中不存在 SKU {skuId}", "CART_ITEM_NOT_FOUND");
 
         _items.Remove(item);
         AddDomainEvent(new SkuRemovedFromCartEvent(Id, skuId));
@@ -238,7 +238,7 @@ public sealed class Cart : AggregateRoot
             var existing = FindItem(item.SkuId);
             if (existing is null && _items.Count >= maxVariety)
             {
-                throw new CartDomainException($"购物车品类数量已达上限 {maxVariety}", "CART_VARIETY_LIMIT", 409);
+                throw new CartDomainException($"购物车品类数量已达上限 {maxVariety}", "CART_VARIETY_LIMIT");
             }
 
             AddItem(item.SkuId, item.Quantity, item.SellerId);

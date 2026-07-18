@@ -7,8 +7,8 @@ namespace Leno.PointsMembership.Domain.Exceptions;
 /// </summary>
 public sealed class PointsDomainException : DomainException
 {
-    public PointsDomainException(string message, string errorCode = "POINTS_ERROR", int httpStatusCode = 400)
-        : base(message, errorCode, httpStatusCode)
+    public PointsDomainException(string message, string errorCode = "POINTS_ERROR")
+        : base(message, errorCode)
     {
     }
 }

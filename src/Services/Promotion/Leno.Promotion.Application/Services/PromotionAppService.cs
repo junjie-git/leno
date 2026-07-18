@@ -99,7 +99,7 @@ public sealed class PromotionAppService : IPromotionAppService
 
     private async Task<PromotionActivityAggregate> RequireActivityAsync(Guid activityId, CancellationToken ct)
         => await _repository.GetByIdAsync(activityId, ct)
-           ?? throw new PromotionDomainException($"活动 {activityId} 不存在", "PROMOTION_NOT_FOUND", 404);
+           ?? throw new PromotionDomainException($"活动 {activityId} 不存在", "PROMOTION_NOT_FOUND");
 
     private static PromotionActivityDto ToDto(PromotionActivityAggregate activity)
         => new()

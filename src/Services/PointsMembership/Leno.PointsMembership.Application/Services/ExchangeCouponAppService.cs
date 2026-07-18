@@ -41,8 +41,7 @@ public sealed class ExchangeCouponAppService : IExchangeCouponAppService
         var account = await _accountRepository.GetByUserIdAsync(input.UserId, ct)
             ?? throw new PointsDomainException(
                 $"用户 {input.UserId} 的积分账户不存在",
-                "POINTS_ACCOUNT_NOT_FOUND",
-                404);
+                "POINTS_ACCOUNT_NOT_FOUND");
 
         if (account.Balance < input.PointsRequired)
         {

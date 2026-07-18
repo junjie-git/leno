@@ -45,7 +45,7 @@ public sealed class InventoryAppService : IInventoryAppService
         var spu = await _spuRepository.GetBySkuIdAsync(skuId, ct);
         if (spu is null)
         {
-            throw new ProductDomainException("SKU 不存在", "SPU_SKU_NOT_FOUND", 404);
+            throw new ProductDomainException("SKU 不存在", "SPU_SKU_NOT_FOUND");
         }
 
         var baseline = await _stockBaselineRepository.GetBySkuIdAsync(skuId, ct);

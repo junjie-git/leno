@@ -333,7 +333,6 @@ public class ShopTests
         var act = () => shop.Approve(ValidReviewerId);
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("SHOP_INVALID_TRANSITION");
-        ex.HttpStatusCode.Should().Be(409);
     }
 
     [Fact]
@@ -401,7 +400,6 @@ public class ShopTests
         var act = () => shop.Reject(ValidReviewerId, ValidReason);
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("SHOP_INVALID_TRANSITION");
-        ex.HttpStatusCode.Should().Be(409);
     }
 
     [Fact]
@@ -512,7 +510,6 @@ public class ShopTests
         var act = () => shop.Suspend(ValidReason);
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("SHOP_INVALID_TRANSITION");
-        ex.HttpStatusCode.Should().Be(409);
     }
 
     [Fact]
@@ -592,7 +589,6 @@ public class ShopTests
         var act = () => shop.Resume();
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("SHOP_INVALID_TRANSITION");
-        ex.HttpStatusCode.Should().Be(409);
     }
 
     [Fact]
@@ -682,7 +678,6 @@ public class ShopTests
         var act = () => shop.Close(ValidReason);
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("SHOP_ALREADY_CLOSED");
-        ex.HttpStatusCode.Should().Be(409);
     }
 
     [Fact]
@@ -762,7 +757,6 @@ public class ShopTests
         var act = () => shop.UpdateInfo("New Name", null, null);
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("SHOP_CLOSED");
-        ex.HttpStatusCode.Should().Be(409);
     }
 
     [Fact]
@@ -1124,7 +1118,6 @@ public class ShopTests
 
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("QUALIFICATION_NOT_FOUND");
-        ex.HttpStatusCode.Should().Be(404);
     }
 
     [Fact]

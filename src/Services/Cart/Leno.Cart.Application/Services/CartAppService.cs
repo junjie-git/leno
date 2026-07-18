@@ -132,7 +132,7 @@ public sealed class CartAppService : ICartAppService
         // 价格未命中（部分 SKU 缺失）同样阻止结算，避免误导性的 0 元结算单
         if (groups.SelectMany(g => g.Items).Any(i => i.PriceUnavailable))
         {
-            throw new CartDomainException("部分商品价格加载失败，暂不可结算", "CART_PRICE_UNAVAILABLE", 503);
+            throw new CartDomainException("部分商品价格加载失败，暂不可结算", "CART_PRICE_UNAVAILABLE");
         }
 
         return new CheckoutPreviewDto
@@ -149,12 +149,12 @@ public sealed class CartAppService : ICartAppService
     {
         if (userId == Guid.Empty)
         {
-            throw new CartDomainException("UserId 不可为空", "CART_USER_REQUIRED", 401);
+            throw new CartDomainException("UserId 不可为空", "CART_USER_REQUIRED");
         }
 
         if (string.IsNullOrWhiteSpace(anonymousId))
         {
-            throw new CartDomainException("匿名会话标识不可为空", "CART_ANONYMOUS_ID_REQUIRED", 400);
+            throw new CartDomainException("匿名会话标识不可为空", "CART_ANONYMOUS_ID_REQUIRED");
         }
 
         // 加载匿名购物车
@@ -188,7 +188,7 @@ public sealed class CartAppService : ICartAppService
     {
         if (userId == Guid.Empty)
         {
-            throw new CartDomainException("UserId 不可为空", "CART_USER_REQUIRED", 401);
+            throw new CartDomainException("UserId 不可为空", "CART_USER_REQUIRED");
         }
 
         var cart = await _cartRepository.GetByUserIdAsync(userId, ct);
@@ -204,7 +204,7 @@ public sealed class CartAppService : ICartAppService
     private async Task<CartAggregate> RequireCartAsync(Guid userId, CancellationToken ct)
     {
         var cart = await _cartRepository.GetByUserIdAsync(userId, ct)
-                   ?? throw new CartDomainException("购物车不存在", "CART_NOT_FOUND", 404);
+                   ?? throw new CartDomainException("购物车不存在", "CART_NOT_FOUND");
         return cart;
     }
 

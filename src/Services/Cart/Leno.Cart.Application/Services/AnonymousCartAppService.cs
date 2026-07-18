@@ -149,7 +149,7 @@ public sealed class AnonymousCartAppService : IAnonymousCartAppService
     private async Task<CartAggregate> RequireCartAsync(string sessionId, CancellationToken ct)
     {
         var cart = await _cartRepository.GetAsync(sessionId, ct)
-                   ?? throw new CartDomainException("匿名购物车不存在", "CART_NOT_FOUND", 404);
+                   ?? throw new CartDomainException("匿名购物车不存在", "CART_NOT_FOUND");
         return cart;
     }
 

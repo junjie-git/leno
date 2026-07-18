@@ -139,7 +139,7 @@ public sealed class Shop : AggregateRoot
         if (Status != ShopStatus.PendingReview)
         {
             throw new SellerShopDomainException(
-                $"当前状态为 {Status}，不可审核通过", "SHOP_INVALID_TRANSITION", 409);
+                $"当前状态为 {Status}，不可审核通过", "SHOP_INVALID_TRANSITION");
         }
 
         if (reviewedBy == Guid.Empty)
@@ -164,7 +164,7 @@ public sealed class Shop : AggregateRoot
         if (Status != ShopStatus.PendingReview)
         {
             throw new SellerShopDomainException(
-                $"当前状态为 {Status}，不可驳回", "SHOP_INVALID_TRANSITION", 409);
+                $"当前状态为 {Status}，不可驳回", "SHOP_INVALID_TRANSITION");
         }
 
         if (reviewedBy == Guid.Empty)
@@ -189,7 +189,7 @@ public sealed class Shop : AggregateRoot
         if (Status != ShopStatus.Active)
         {
             throw new SellerShopDomainException(
-                $"当前状态为 {Status}，不可暂停", "SHOP_INVALID_TRANSITION", 409);
+                $"当前状态为 {Status}，不可暂停", "SHOP_INVALID_TRANSITION");
         }
 
         ValidateReason(reason);
@@ -208,7 +208,7 @@ public sealed class Shop : AggregateRoot
         if (Status != ShopStatus.Suspended)
         {
             throw new SellerShopDomainException(
-                $"当前状态为 {Status}，不可恢复", "SHOP_INVALID_TRANSITION", 409);
+                $"当前状态为 {Status}，不可恢复", "SHOP_INVALID_TRANSITION");
         }
 
         Status = ShopStatus.Active;
@@ -226,7 +226,7 @@ public sealed class Shop : AggregateRoot
     {
         if (Status == ShopStatus.Closed)
         {
-            throw new SellerShopDomainException("店铺已关闭，不可重复关闭", "SHOP_ALREADY_CLOSED", 409);
+            throw new SellerShopDomainException("店铺已关闭，不可重复关闭", "SHOP_ALREADY_CLOSED");
         }
 
         ValidateReason(reason);
@@ -334,7 +334,7 @@ public sealed class Shop : AggregateRoot
     public void ApproveQualification(Guid qualificationId, Guid reviewedBy)
     {
         var qualification = GetQualification(qualificationId)
-            ?? throw new SellerShopDomainException("资质不存在", "QUALIFICATION_NOT_FOUND", 404);
+            ?? throw new SellerShopDomainException("资质不存在", "QUALIFICATION_NOT_FOUND");
 
         qualification.Approve(reviewedBy);
     }
@@ -348,7 +348,7 @@ public sealed class Shop : AggregateRoot
     public void RejectQualification(Guid qualificationId, Guid reviewedBy, string reason)
     {
         var qualification = GetQualification(qualificationId)
-            ?? throw new SellerShopDomainException("资质不存在", "QUALIFICATION_NOT_FOUND", 404);
+            ?? throw new SellerShopDomainException("资质不存在", "QUALIFICATION_NOT_FOUND");
 
         qualification.Reject(reviewedBy, reason);
     }
@@ -357,7 +357,7 @@ public sealed class Shop : AggregateRoot
     {
         if (Status == ShopStatus.Closed)
         {
-            throw new SellerShopDomainException("已关闭的店铺不可修改信息", "SHOP_CLOSED", 409);
+            throw new SellerShopDomainException("已关闭的店铺不可修改信息", "SHOP_CLOSED");
         }
     }
 

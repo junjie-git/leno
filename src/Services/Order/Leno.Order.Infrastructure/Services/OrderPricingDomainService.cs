@@ -23,7 +23,7 @@ public sealed class OrderPricingDomainService : IOrderPricingDomainService
         foreach (var (skuId, expectedPrice) in skuPrices)
         {
             var skuInfo = await _productAntiCorruption.GetSkuInfoAsync(skuId, ct)
-                ?? throw new OrderDomainException($"SKU {skuId} 不存在或已下架", "ORDER_SKU_NOT_FOUND", 404);
+                ?? throw new OrderDomainException($"SKU {skuId} 不存在或已下架", "ORDER_SKU_NOT_FOUND");
 
             if (skuInfo.UnitPrice != expectedPrice)
             {

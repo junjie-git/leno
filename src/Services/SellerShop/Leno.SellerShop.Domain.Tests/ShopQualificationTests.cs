@@ -271,7 +271,6 @@ public class ShopQualificationTests
         var act = () => qualification.Approve(ValidReviewerId);
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("QUALIFICATION_INVALID_TRANSITION");
-        ex.HttpStatusCode.Should().Be(409);
     }
 
     [Fact]
@@ -318,7 +317,6 @@ public class ShopQualificationTests
         var act = () => qualification.Reject(ValidReviewerId, ValidReason);
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("QUALIFICATION_INVALID_TRANSITION");
-        ex.HttpStatusCode.Should().Be(409);
     }
 
     [Fact]
@@ -596,7 +594,6 @@ public class ShopQualificationTests
         var act = () => shop.ApproveQualification(Guid.NewGuid(), ValidReviewerId);
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("QUALIFICATION_NOT_FOUND");
-        ex.HttpStatusCode.Should().Be(404);
     }
 
     // ==================== Shop.RejectQualification ====================

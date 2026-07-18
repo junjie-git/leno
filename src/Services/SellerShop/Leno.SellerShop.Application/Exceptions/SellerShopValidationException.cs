@@ -8,12 +8,12 @@ namespace Leno.SellerShop.Application.Exceptions;
 public sealed class SellerShopValidationException : DomainException
 {
     public SellerShopValidationException(string message)
-        : base(message, "SELLER_SHOP_VALIDATION_ERROR", 400)
+        : base(message, "SELLER_SHOP_VALIDATION_ERROR")
     {
     }
 
     public SellerShopValidationException(IEnumerable<string> errors)
-        : base(string.Join(" | ", errors), "SELLER_SHOP_VALIDATION_ERROR", 400)
+        : base(string.Join(" | ", errors), "SELLER_SHOP_VALIDATION_ERROR")
     {
     }
 }

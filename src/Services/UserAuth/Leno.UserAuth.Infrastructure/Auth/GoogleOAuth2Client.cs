@@ -75,7 +75,7 @@ public sealed class GoogleOAuth2Client : IExternalAuthService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Google token exchange failed: {StatusCode} {Body}", (int)response.StatusCode, body);
-            throw new UserAuthDomainException("Google 授权码交换失败", "OAUTH_TOKEN_EXCHANGE_FAILED", 502);
+            throw new UserAuthDomainException("Google 授权码交换失败", "OAUTH_TOKEN_EXCHANGE_FAILED");
         }
 
         var tokenDoc = JsonDocument.Parse(body);
@@ -96,7 +96,7 @@ public sealed class GoogleOAuth2Client : IExternalAuthService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Google userinfo failed: {StatusCode} {Body}", (int)response.StatusCode, body);
-            throw new UserAuthDomainException("获取 Google 用户信息失败", "OAUTH_USERINFO_FAILED", 502);
+            throw new UserAuthDomainException("获取 Google 用户信息失败", "OAUTH_USERINFO_FAILED");
         }
 
         var doc = JsonDocument.Parse(body);
@@ -127,7 +127,7 @@ public sealed class GoogleOAuth2Client : IExternalAuthService
         var clientId = _configuration["OAuth2:Google:ClientId"];
         if (string.IsNullOrWhiteSpace(clientId))
         {
-            throw new UserAuthDomainException("Google OAuth2 ClientId 未配置", "OAUTH_CONFIG_MISSING", 500);
+            throw new UserAuthDomainException("Google OAuth2 ClientId 未配置", "OAUTH_CONFIG_MISSING");
         }
         return clientId;
     }
@@ -137,7 +137,7 @@ public sealed class GoogleOAuth2Client : IExternalAuthService
         var clientSecret = _configuration["OAuth2:Google:ClientSecret"];
         if (string.IsNullOrWhiteSpace(clientSecret))
         {
-            throw new UserAuthDomainException("Google OAuth2 ClientSecret 未配置", "OAUTH_CONFIG_MISSING", 500);
+            throw new UserAuthDomainException("Google OAuth2 ClientSecret 未配置", "OAUTH_CONFIG_MISSING");
         }
         return clientSecret;
     }

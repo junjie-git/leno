@@ -32,8 +32,7 @@ public sealed class MemberAppService : IMemberAppService
         var member = await _memberRepository.GetByUserIdAsync(userId, ct)
             ?? throw new PointsDomainException(
                 $"用户 {userId} 的会员档案不存在",
-                "MEMBER_NOT_FOUND",
-                404);
+                "MEMBER_NOT_FOUND");
 
         return ToDto(member);
     }
@@ -86,8 +85,7 @@ public sealed class MemberAppService : IMemberAppService
         => await _levelRepository.GetByIdAsync(levelId, ct)
            ?? throw new PointsDomainException(
                $"会员等级 {levelId} 不存在",
-               "LEVEL_NOT_FOUND",
-               404);
+               "LEVEL_NOT_FOUND");
 
     private static MemberDto ToDto(MemberAggregate member)
         => new()

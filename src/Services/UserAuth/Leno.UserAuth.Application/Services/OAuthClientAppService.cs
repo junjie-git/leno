@@ -95,7 +95,7 @@ public sealed class OAuthClientAppService : IOAuthClientAppService
         if (client is null)
         {
             throw new UserAuthDomainException(
-                $"OAuth2 提供方 {provider} 未配置", "OAUTH_CLIENT_NOT_FOUND", 404);
+                $"OAuth2 提供方 {provider} 未配置", "OAUTH_CLIENT_NOT_FOUND");
         }
 
         return client;

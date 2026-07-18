@@ -74,7 +74,7 @@ public sealed class TaskAppService : ITaskAppService
     public async Task<TaskCompleteResultDto> CompleteTaskAsync(Guid userId, Guid taskId, CancellationToken ct = default)
     {
         var task = await _taskRepository.GetByIdAsync(taskId, ct)
-            ?? throw new PointsDomainException($"任务 {taskId} 不存在", "TASK_NOT_FOUND", 404);
+            ?? throw new PointsDomainException($"任务 {taskId} 不存在", "TASK_NOT_FOUND");
 
         if (!task.IsEnabled)
         {
@@ -114,8 +114,7 @@ public sealed class TaskAppService : ITaskAppService
         var account = await _accountRepository.GetByUserIdAsync(userId, ct)
             ?? throw new PointsDomainException(
                 $"用户 {userId} 的积分账户不存在",
-                "POINTS_ACCOUNT_NOT_FOUND",
-                404);
+                "POINTS_ACCOUNT_NOT_FOUND");
 
         account.Earn(PointsSource.Task, task.RewardPoints, $"完成任务：{task.Name}");
 

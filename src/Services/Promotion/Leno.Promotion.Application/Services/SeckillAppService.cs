@@ -195,7 +195,7 @@ public sealed class SeckillAppService : ISeckillAppService
 
     private async Task<SeckillActivityAggregate> RequireActivityAsync(Guid activityId, CancellationToken ct)
         => await _repository.GetByIdAsync(activityId, ct)
-           ?? throw new PromotionDomainException($"秒杀活动 {activityId} 不存在", "SECKILL_NOT_FOUND", 404);
+           ?? throw new PromotionDomainException($"秒杀活动 {activityId} 不存在", "SECKILL_NOT_FOUND");
 
     /// <summary>
     /// 转换为 DTO 并填充 Redis 实时库存。Active 态读取 Redis，非 Active 态实时库存同 DB 基线。

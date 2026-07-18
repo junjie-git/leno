@@ -239,7 +239,6 @@ public class SellerProfileTests
         var act = () => profile.Update("New Name", null, null, null);
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("SELLER_APPROVED");
-        ex.HttpStatusCode.Should().Be(409);
     }
 
     [Fact]
@@ -347,7 +346,6 @@ public class SellerProfileTests
         var act = () => profile.SubmitForVerification();
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("SELLER_INVALID_TRANSITION");
-        ex.HttpStatusCode.Should().Be(409);
     }
 
     [Fact]
@@ -403,7 +401,6 @@ public class SellerProfileTests
         var act = () => profile.Approve(ValidReviewerId);
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("SELLER_INVALID_TRANSITION");
-        ex.HttpStatusCode.Should().Be(409);
     }
 
     [Fact]
@@ -458,7 +455,6 @@ public class SellerProfileTests
         var act = () => profile.Reject(ValidReviewerId, ValidReason);
         var ex = act.Should().Throw<SellerShopDomainException>().Which;
         ex.ErrorCode.Should().Be("SELLER_INVALID_TRANSITION");
-        ex.HttpStatusCode.Should().Be(409);
     }
 
     [Fact]
