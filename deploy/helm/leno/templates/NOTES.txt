@@ -1,0 +1,24 @@
+Leno 电商平台已部署！
+
+1. 验证服务状态：
+  kubectl get pods -l app.kubernetes.io/part-of=leno
+
+2. 获取 API 网关地址：
+  export GATEWAY_URL=$(kubectl get svc {{ include "leno.serviceName" (dict "name" "api-gateway" "context" .) }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+  echo "API 网关地址: http://$GATEWAY_URL"
+
+3. 查看 Prometheus 指标：
+  kubectl port-forward svc/prometheus 9090:9090
+  # 访问 http://localhost:9090/targets
+
+4. 查看 Grafana 仪表板：
+  kubectl port-forward svc/grafana 3000:3000
+  # 访问 http://localhost:3000
+
+5. 查看各服务 Deployment / Service：
+  kubectl get deploy,svc -l app.kubernetes.io/part-of=leno
+
+6. 查看迁移 Job 状态：
+  kubectl get jobs -l app.kubernetes.io/part-of=leno
+
+更多文档见 docs/spec/10-模块化部署架构.md

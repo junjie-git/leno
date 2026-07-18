@@ -29,6 +29,11 @@ jobs:
           reportgenerator -reports:./TestResults/**/coverage.cobertura.xml -targetdir:./CoverageReport -reporttypes:"Html;Cobertura;JsonSummary"
       - name: Check coverage thresholds
         run: pwsh scripts/check-coverage.ps1 -CoverageResultsPath ./CoverageReport/
+      - name: Check coverage thresholds by layer (M5.5)
+        run: |
+          chmod +x scripts/check-coverage-threshold.sh
+          bash scripts/check-coverage-threshold.sh ./TestResults
+        continue-on-error: true  # M5.5 阶段 1：先 warning（true），阶段 2：阻断（false）
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
@@ -207,3 +212,43 @@ jobs:
         working-directory: src/BuildingBlocks/Leno.SharedContracts
         run: buf breaking --against "https://github.com/${{ github.repository }}.git#branch=main,subdir=src/BuildingBlocks/Leno.SharedContracts"
         if: github.event_name == 'pull_request'
+
+  staging-integration-tests:
+    name: Staging 集成测试 (docker-compose)
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Start infrastructure (docker-compose)
+        run: docker compose up -d sqlserver redis rabbitmq elasticsearch consul jaeger prometheus grafana alertmanager
+
+      - name: Wait for infrastructure ready
+        run: |
+          for i in {1..60}; do
+            if docker compose ps | grep -q "healthy"; then break; fi
+            sleep 5
+          done
+
+      - name: Apply EF migrations
+        run: |
+          # 逐 BC 执行 dotnet ef database update
+          for bc in UserAuth Product Cart Order Promotion ReviewAfterSales PointsMembership Payment Notification SellerShop SystemAdmin; do
+            dotnet ef database update \
+              --project src/Services/$bc/Leno.$bc.Infrastructure \
+              --startup-project src/Services/$bc/Leno.$bc.Api
+          done
+
+      - name: Run integration tests (Category=Integration)
+        run: dotnet test Leno.slnx --configuration Release --filter "Category=Integration" --verbosity normal
+        env:
+          ASPNETCORE_ENVIRONMENT: Staging
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v

@@ -14,6 +14,13 @@ public sealed class AntiCorruptionOptions
 
     /// <summary>Polly 策略配置（M4.1）。</summary>
     public PollyOptions Polly { get; init; } = new();
+
+    /// <summary>
+    /// 防腐层调用方配置目标 BC 的 InternalApiKey（M5.2）。
+    /// 键为目标 BC 名（如 <c>Product</c>），值用于注入 <c>X-Internal-Key</c> 请求头。
+    /// 实际值通过 Consul KV 注入（<c>leno/security/internal-key/{bc}</c>），appsettings 仅保留占位符。
+    /// </summary>
+    public Dictionary<string, string> TargetInternalApiKeys { get; init; } = new();
 }
 
 /// <summary>

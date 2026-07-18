@@ -1,5 +1,4 @@
 using Leno.Infrastructure.AntiCorruption;
-using Leno.Infrastructure.Auth;
 using Leno.Order.Application.Services;
 using Leno.SharedContracts.Responses;
 using Microsoft.Extensions.Logging;
@@ -12,26 +11,31 @@ namespace Leno.Order.Infrastructure.Services;
 /// <summary>
 /// 积分域防腐层服务，通过 HTTP 调用积分域内部 API 试算/冻结/释放/确认积分扣减。
 /// 继承 <see cref="AntiCorruptionBase"/>，所有远程失败（网络异常、非 2xx、超时）统一抛 <see cref="AntiCorruptionException"/>，不再静默返回 0；用户取消透传 <see cref="OperationCanceledException"/>。
+/// M5.2：通过 <see cref="AntiCorruptionOptions.TargetInternalApiKeys"/> 读取目标 BC（PointsMembership）的 InternalApiKey，
+/// 注入 <c>X-Internal-Key</c> 请求头，替代旧的共用 InternalAuth:ApiKey。
 /// </summary>
 public sealed class PointsAntiCorruptionService : AntiCorruptionBase, IPointsAntiCorruptionService
 {
     private const string InternalKeyName = "X-Internal-Key";
+    private const string TargetBc = "PointsMembership";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly HttpClient _httpClient;
     private readonly ILogger<PointsAntiCorruptionService> _logger;
+    private readonly string _targetInternalKey;
 
     protected override string ServiceName => "points";
 
     public PointsAntiCorruptionService(
         HttpClient httpClient,
-        IOptions<InternalApiKeyOptions> options,
+        IOptions<AntiCorruptionOptions> options,
         ILogger<PointsAntiCorruptionService> logger)
     {
         _httpClient = httpClient;
         _logger = logger;
-        ApplyInternalKey(httpClient, options);
+        _targetInternalKey = ResolveTargetInternalKey(options);
+        _httpClient.DefaultRequestHeaders.Add(InternalKeyName, _targetInternalKey);
     }
 
     /// <inheritdoc />
@@ -93,13 +97,16 @@ public sealed class PointsAntiCorruptionService : AntiCorruptionBase, IPointsAnt
             EnsureSuccessStatusCode(response, "confirm_deduction");
         }, ct);
 
-    private static void ApplyInternalKey(HttpClient httpClient, IOptions<InternalApiKeyOptions> options)
+    private static string ResolveTargetInternalKey(IOptions<AntiCorruptionOptions> options)
     {
-        var apiKey = options.Value.ApiKey;
-        if (!string.IsNullOrEmpty(apiKey))
+        ArgumentNullException.ThrowIfNull(options);
+        if (!options.Value.TargetInternalApiKeys.TryGetValue(TargetBc, out var key) || string.IsNullOrWhiteSpace(key))
         {
-            httpClient.DefaultRequestHeaders.Add(InternalKeyName, apiKey);
+            throw new InvalidOperationException(
+                $"AntiCorruption:TargetInternalApiKeys:{TargetBc} 配置缺失，请通过 Consul KV 配置 leno/security/internal-key/{TargetBc}");
         }
+
+        return key;
     }
 
     private sealed class TrialOffsetResponse

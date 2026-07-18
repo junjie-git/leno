@@ -1,0 +1,63 @@
+{{- range $name, $service := .Values.services }}
+{{- if $service.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "leno.serviceName" (dict "name" $name "context" $) }}
+  labels:
+    {{- include "leno.labels" (dict "name" $name "context" $) | nindent 4 }}
+spec:
+  replicas: {{ $service.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "leno.selectorLabels" (dict "name" $name "context" $) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "leno.selectorLabels" (dict "name" $name "context" $) | nindent 8 }}
+    spec:
+      {{- with $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $name }}
+          image: {{ include "leno.image" (dict "service" $service "context" $) }}
+          imagePullPolicy: {{ $service.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: {{ $service.httpPort | default $service.service.port }}
+              protocol: TCP
+            {{- if $service.grpcPort }}
+            - name: grpc
+              containerPort: {{ $service.grpcPort }}
+              protocol: TCP
+            {{- end }}
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ $.Values.global.environment | default "Production" }}
+            - name: Service__Name
+              value: {{ $name | quote }}
+            - name: OpenTelemetry__OtlpEndpoint
+              value: {{ $.Values.global.jaeger.otlpEndpoint | quote }}
+            - name: Consul__Address
+              value: {{ $.Values.global.consul.address | quote }}
+            - name: ConnectionStrings__Default
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.externalDependencies.sqlserver.connectionstringSecret }}
+                  key: {{ $name }}
+            - name: Security__Jwt__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: leno-security-jwt
+                  key: secret-key
+          readinessProbe:
+            {{- toYaml $service.readinessProbe | nindent 12 }}
+          livenessProbe:
+            {{- toYaml $service.livenessProbe | nindent 12 }}
+          resources:
+            {{- toYaml $service.resources | nindent 12 }}
+{{- end }}
+{{- end }}

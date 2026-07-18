@@ -1,0 +1,25 @@
+{{- range $name, $service := .Values.services }}
+{{- if and $service.enabled $service.hpa $service.hpa.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "leno.serviceName" (dict "name" $name "context" $) }}
+  labels:
+    {{- include "leno.labels" (dict "name" $name "context" $) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "leno.serviceName" (dict "name" $name "context" $) }}
+  minReplicas: {{ $service.hpa.minReplicas | default 1 }}
+  maxReplicas: {{ $service.hpa.maxReplicas | default 5 }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $service.hpa.targetCPUUtilizationPercentage | default 70 }}
+{{- end }}
+{{- end }}

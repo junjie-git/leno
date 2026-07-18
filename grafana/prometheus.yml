@@ -9,3 +9,81 @@ scrape_configs:
       - targets: ['api-gateway:8080']
         labels:
           service: api-gateway
+
+  # M5.1 新增：11 个业务服务（服务名与 docker-compose.yml 一致，内部端口均为 8080）
+  - job_name: leno-userauth
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['user-auth-api:8080']
+        labels:
+          service: userauth
+
+  - job_name: leno-product
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['product-api:8080']
+        labels:
+          service: product
+
+  - job_name: leno-cart
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['cart-api:8080']
+        labels:
+          service: cart
+
+  - job_name: leno-order
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['order-api:8080']
+        labels:
+          service: order
+
+  - job_name: leno-promotion
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['promotion-api:8080']
+        labels:
+          service: promotion
+
+  - job_name: leno-reviewaftersales
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['review-aftersales-api:8080']
+        labels:
+          service: reviewaftersales
+
+  - job_name: leno-pointsmembership
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['points-api:8080']
+        labels:
+          service: pointsmembership
+
+  - job_name: leno-payment
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['payment-api:8080']
+        labels:
+          service: payment
+
+  - job_name: leno-notification
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['notification-api:8080']
+        labels:
+          service: notification
+
+  - job_name: leno-sellershop
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['seller-shop-api:8080']
+        labels:
+          service: sellershop
+
+  - job_name: leno-systemadmin
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['system-admin-api:8080']
+        labels:
+          service: systemadmin

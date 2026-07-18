@@ -3,7 +3,6 @@ using System.Text.Json;
 using Leno.Cart.Domain.Exceptions;
 using Leno.Cart.Domain.Services;
 using Leno.Infrastructure.AntiCorruption;
-using Leno.Infrastructure.Auth;
 using Leno.SharedContracts.Responses;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,30 +15,33 @@ namespace Leno.Cart.Infrastructure.Services;
 /// 使用 X-Internal-Key 头部鉴权。
 /// 继承 <see cref="AntiCorruptionBase"/>，调用失败（非 2xx / 网络异常）统一抛 <see cref="AntiCorruptionException"/>，
 /// 由应用层决定降级或阻止用例，不再静默返回空集合掩盖故障，以避免购物车出现 0 元可结算的误导。
+/// M5.2：通过 <see cref="AntiCorruptionOptions.TargetInternalApiKeys"/> 读取目标 BC（Product）的 InternalApiKey，
+/// 注入 <c>X-Internal-Key</c> 请求头，替代旧的共用 InternalAuth:ApiKey。
 /// </summary>
 public sealed class CartPriceService : AntiCorruptionBase, ICartPriceService
 {
     private const string BatchEndpoint = "internal/v1/products/skus/batch";
     private const string InternalKeyHeader = "X-Internal-Key";
+    private const string TargetBc = "Product";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly HttpClient _httpClient;
-    private readonly InternalApiKeyOptions _internalKeyOptions;
     private readonly ILogger<CartPriceService> _logger;
+    private readonly string _targetInternalKey;
 
     protected override string ServiceName => "product";
 
     public CartPriceService(
         HttpClient httpClient,
-        IOptions<InternalApiKeyOptions> internalKeyOptions,
+        IOptions<AntiCorruptionOptions> options,
         ILogger<CartPriceService> logger)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
-        ArgumentNullException.ThrowIfNull(internalKeyOptions);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
         _httpClient = httpClient;
-        _internalKeyOptions = internalKeyOptions.Value;
+        _targetInternalKey = ResolveTargetInternalKey(options);
         _logger = logger;
     }
 
@@ -59,7 +61,7 @@ public sealed class CartPriceService : AntiCorruptionBase, ICartPriceService
             {
                 Content = JsonContent.Create(ids, options: JsonOptions)
             };
-            request.Headers.TryAddWithoutValidation(InternalKeyHeader, _internalKeyOptions.ApiKey);
+            request.Headers.TryAddWithoutValidation(InternalKeyHeader, _targetInternalKey);
 
             using var response = await _httpClient.SendAsync(request, token);
             EnsureSuccessStatusCode(response, "get_sku_prices");
@@ -91,6 +93,18 @@ public sealed class CartPriceService : AntiCorruptionBase, ICartPriceService
         MainImageUrl = dto.MainImageUrl,
         SellerId = dto.SellerId
     };
+
+    private static string ResolveTargetInternalKey(IOptions<AntiCorruptionOptions> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (!options.Value.TargetInternalApiKeys.TryGetValue(TargetBc, out var key) || string.IsNullOrWhiteSpace(key))
+        {
+            throw new InvalidOperationException(
+                $"AntiCorruption:TargetInternalApiKeys:{TargetBc} 配置缺失，请通过 Consul KV 配置 leno/security/internal-key/{TargetBc}");
+        }
+
+        return key;
+    }
 
     /// <summary>商品域 SKU 概要信息反序列化 DTO（避免直接依赖商品域 Application 层）。</summary>
     private sealed class SkuInfoResponse

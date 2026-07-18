@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
@@ -37,13 +38,15 @@ public static class OpenTelemetryExtensions
     }
 
     /// <summary>
-    /// 配置 OpenTelemetry Tracing，包括自动埋点与自定义 ActivitySource。
+    /// 配置 OpenTelemetry Tracing 与 Metrics，包括自动埋点与自定义 ActivitySource/Meter。
     /// </summary>
     /// <param name="builder">宿主导入器。</param>
     /// <param name="configureTracing">可选回调，用于添加额外的 TracerProvider 配置。</param>
+    /// <param name="configureMetrics">可选回调，用于添加额外的 MeterProvider 配置（M5.1 新增）。</param>
     public static IHostApplicationBuilder AddLenoOpenTelemetry(
         this IHostApplicationBuilder builder,
-        Action<TracerProviderBuilder>? configureTracing = null)
+        Action<TracerProviderBuilder>? configureTracing = null,
+        Action<MeterProviderBuilder>? configureMetrics = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -77,6 +80,19 @@ public static class OpenTelemetryExtensions
                     });
 
                 configureTracing?.Invoke(tracing);
+            })
+            .WithMetrics(metrics =>
+            {
+                metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddMeter("Leno.AntiCorruption")
+                    .AddMeter("Leno.SystemAdmin.DeadLetter")
+                    .AddMeter("Leno.Order.AntiCorruption")
+                    .AddMeter("Leno.Outbox")  // M5.3 新增：Outbox 积压与发布计数指标
+                    .AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
+
+                configureMetrics?.Invoke(metrics);
             });
 
         // 注册 Serilog OpenTelemetry TraceId 富化器

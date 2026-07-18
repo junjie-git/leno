@@ -1,0 +1,30 @@
+{{- range $name, $service := .Values.services }}
+{{- if and $service.enabled $service.ingress $service.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "leno.serviceName" (dict "name" $name "context" $) }}
+  labels:
+    {{- include "leno.labels" (dict "name" $name "context" $) | nindent 4 }}
+spec:
+  {{- if $service.ingress.className }}
+  ingressClassName: {{ $service.ingress.className }}
+  {{- end }}
+  rules:
+    {{- range $service.ingress.hosts }}
+    - host: {{ .host }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ include "leno.serviceName" (dict "name" $name "context" $) }}
+                port:
+                  number: {{ $service.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

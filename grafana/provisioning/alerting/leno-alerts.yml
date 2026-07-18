@@ -1,0 +1,44 @@
+apiVersion: 1
+groups:
+  - name: leno-business-alerts
+    interval: 30s
+    rules:
+      - alert: OutboxBacklogHigh
+        expr: outbox_pending_count > 100
+        for: 5m
+        labels:
+          severity: critical
+          service: outbox
+        annotations:
+          summary: "Outbox 积压过高 ({{ $value }} > 100)"
+          description: "Outbox 待发布消息数持续 5 分钟超过 100，可能存在 RabbitMQ 故障或消费方处理过慢"
+
+      - alert: DeadLetterQueueHigh
+        expr: dead_letter_count > 50
+        for: 5m
+        labels:
+          severity: critical
+          service: systemadmin
+        annotations:
+          summary: "死信队列积压过高 ({{ $value }} > 50)"
+          description: "SystemAdmin 死信队列持续 5 分钟超过 50 条，需人工介入处理"
+
+      - alert: AntiCorruptionFailureRateHigh
+        expr: rate(anticorruption_failure_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: anticorruption
+        annotations:
+          summary: "防腐层失败率过高 ({{ $value | humanizePercentage }})"
+          description: "防腐层调用失败率持续 5 分钟超过 0.1/s，可能存在下游服务故障"
+
+      - alert: ServiceDown
+        expr: up{job=~"leno-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "服务不可达 ({{ $labels.job }})"
+          description: "Prometheus 抓取失败持续 1 分钟，服务可能已宕机"

@@ -1,0 +1,75 @@
+# 预发环境：2 副本，启用 HPA，资源适中
+global:
+  environment: Staging
+
+services:
+  api-gateway:
+    replicaCount: 2
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 5, targetCPUUtilizationPercentage: 70 }
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+
+  userauth:
+    replicaCount: 2
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 5, targetCPUUtilizationPercentage: 70 }
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  product:
+    replicaCount: 2
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 5, targetCPUUtilizationPercentage: 70 }
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  cart:
+    replicaCount: 2
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 5, targetCPUUtilizationPercentage: 70 }
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  order:
+    replicaCount: 2
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 5, targetCPUUtilizationPercentage: 70 }
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  promotion:
+    replicaCount: 2
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 5, targetCPUUtilizationPercentage: 70 }
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  reviewaftersales:
+    replicaCount: 2
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 5, targetCPUUtilizationPercentage: 70 }
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  pointsmembership:
+    replicaCount: 2
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 5, targetCPUUtilizationPercentage: 70 }
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  payment:
+    replicaCount: 2
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 5, targetCPUUtilizationPercentage: 70 }
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  notification:
+    replicaCount: 2
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 5, targetCPUUtilizationPercentage: 70 }
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  sellershop:
+    replicaCount: 2
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 5, targetCPUUtilizationPercentage: 70 }
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  systemadmin:
+    replicaCount: 2
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 5, targetCPUUtilizationPercentage: 70 }
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    migration: { enabled: true, runOnInit: true }

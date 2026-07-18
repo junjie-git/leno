@@ -1,0 +1,12 @@
+apiVersion: v2
+name: leno
+description: Leno 电商平台 Helm chart（umbrella chart，含 11 个 BC + API 网关）
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ecommerce
+  - ddd
+  - microservices
+maintainers:
+  - name: Leno Team

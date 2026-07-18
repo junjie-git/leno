@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Leno.Infrastructure.AntiCorruption;
-using Leno.Infrastructure.Auth;
 using Leno.ReviewAfterSales.Domain.Exceptions;
 using Leno.ReviewAfterSales.Domain.Repositories;
 using Leno.ReviewAfterSales.Domain.Services;
@@ -14,34 +13,37 @@ namespace Leno.ReviewAfterSales.Infrastructure.Services;
 /// 评价资格校验器防腐层实现，通过 HTTP 调用订单域内部接口
 /// <c>GET internal/v1/orders/{orderId}/status</c> 校验订单已完成、订单行未重复评价、在评价期限内且申请人为订单买家。
 /// 继承 <see cref="AntiCorruptionBase"/>，远程失败统一抛 <see cref="AntiCorruptionException"/>；业务校验失败抛 <see cref="ReviewDomainException"/>。
+/// M5.2：通过 <see cref="AntiCorruptionOptions.TargetInternalApiKeys"/> 读取目标 BC（Order）的 InternalApiKey，
+/// 注入 <c>X-Internal-Key</c> 请求头，替代旧的共用 InternalAuth:ApiKey。
 /// </summary>
 public sealed class ReviewEligibilityChecker : AntiCorruptionBase, IReviewEligibilityChecker
 {
     private const string InternalKeyName = "X-Internal-Key";
+    private const string TargetBc = "Order";
     private const int ReviewWindowDays = 30;
     private const int OrderStatusCompleted = 3;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly HttpClient _httpClient;
-    private readonly InternalApiKeyOptions _authOptions;
     private readonly IReviewRepository _reviewRepository;
     private readonly ILogger<ReviewEligibilityChecker> _logger;
+    private readonly string _targetInternalKey;
 
     protected override string ServiceName => "order";
 
     public ReviewEligibilityChecker(
         HttpClient httpClient,
-        IOptions<InternalApiKeyOptions> authOptions,
+        IOptions<AntiCorruptionOptions> options,
         IReviewRepository reviewRepository,
         ILogger<ReviewEligibilityChecker> logger)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
-        ArgumentNullException.ThrowIfNull(authOptions);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(reviewRepository);
         ArgumentNullException.ThrowIfNull(logger);
         _httpClient = httpClient;
-        _authOptions = authOptions.Value;
+        _targetInternalKey = ResolveTargetInternalKey(options);
         _reviewRepository = reviewRepository;
         _logger = logger;
     }
@@ -91,12 +93,20 @@ public sealed class ReviewEligibilityChecker : AntiCorruptionBase, IReviewEligib
     private HttpRequestMessage CreateRequest(string relativeUri)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, relativeUri);
-        if (!string.IsNullOrEmpty(_authOptions.ApiKey))
+        request.Headers.TryAddWithoutValidation(InternalKeyName, _targetInternalKey);
+        return request;
+    }
+
+    private static string ResolveTargetInternalKey(IOptions<AntiCorruptionOptions> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (!options.Value.TargetInternalApiKeys.TryGetValue(TargetBc, out var key) || string.IsNullOrWhiteSpace(key))
         {
-            request.Headers.TryAddWithoutValidation(InternalKeyName, _authOptions.ApiKey);
+            throw new InvalidOperationException(
+                $"AntiCorruption:TargetInternalApiKeys:{TargetBc} 配置缺失，请通过 Consul KV 配置 leno/security/internal-key/{TargetBc}");
         }
 
-        return request;
+        return key;
     }
 
     private sealed class OrderStatusResponse

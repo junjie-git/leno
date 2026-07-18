@@ -1,0 +1,18 @@
+{{/*
+非敏感配置占位：Consul/Jaeger/Prometheus 抓取等通过 env 注入即可
+本 configmap 仅记录部署元数据与抓取注解配置，便于 Prometheus 自动发现
+*/}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "leno.fullname" . }}-runtime
+  labels:
+    {{- include "leno.labels" (dict "name" "runtime" "context" .) | nindent 4 }}
+data:
+  environment: {{ .Values.global.environment | default "Production" | quote }}
+  consul.address: {{ .Values.global.consul.address | quote }}
+  jaeger.otlpEndpoint: {{ .Values.global.jaeger.otlpEndpoint | quote }}
+  prometheus.scrape: "true"
+  prometheus.port: {{ .Values.services.api-gateway.service.port | quote }}
+  prometheus.path: "/metrics"

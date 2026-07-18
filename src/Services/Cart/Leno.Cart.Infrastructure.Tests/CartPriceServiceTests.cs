@@ -4,7 +4,6 @@ using System.Text;
 using System.Text.Json;
 using Leno.Cart.Infrastructure.Services;
 using Leno.Infrastructure.AntiCorruption;
-using Leno.Infrastructure.Auth;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -133,7 +132,10 @@ public class CartPriceServiceTests
     private static CartPriceService CreateSut(HttpMessageHandler handler)
     {
         var client = new HttpClient(handler) { BaseAddress = new Uri("http://test-product-api/") };
-        var options = Options.Create(new InternalApiKeyOptions { ApiKey = "test-internal-key" });
+        var options = Options.Create(new AntiCorruptionOptions
+        {
+            TargetInternalApiKeys = new() { ["Product"] = "test-internal-key" }
+        });
         var logger = new Mock<ILogger<CartPriceService>>();
         return new CartPriceService(client, options, logger.Object);
     }

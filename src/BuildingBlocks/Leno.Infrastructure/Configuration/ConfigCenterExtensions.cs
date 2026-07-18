@@ -98,6 +98,8 @@ public static class ConfigCenterExtensions
     /// 添加 Consul KV 作为远程配置源。
     /// Consul 中的配置优先级高于 appsettings.json，支持热重载（通过 <see cref="Microsoft.Extensions.Options.IOptionsSnapshot{TOptions}"/>）。
     /// 敏感参数（支付密钥、短信 API 密钥、OAuth2 密钥）应从 Consul 获取。
+    /// M5.2：生产环境 Consul 不可达时降级为 warning，使用本地 appsettings 兜底；
+    /// 开发环境仍抛异常（fail-closed），避免本地配置覆盖生产配置的安全风险。
     /// </summary>
     /// <param name="builder">宿主导入器。</param>
     /// <param name="consulKeyPrefix">Consul KV 键前缀，默认为 "leno/config"。</param>
@@ -110,40 +112,48 @@ public static class ConfigCenterExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(consulKeyPrefix);
 
-        var consulUrl = builder.Configuration["Consul:Url"] ?? "http://localhost:8500";
-        var consulToken = builder.Configuration["Consul:Token"] ?? string.Empty;
+        try
+        {
+            var consulUrl = builder.Configuration["Consul:Url"] ?? "http://localhost:8500";
+            var consulToken = builder.Configuration["Consul:Token"] ?? string.Empty;
 
-        builder.Configuration.AddConsul(
-            consulKeyPrefix,
-            options =>
-            {
-                options.ConsulConfigurationOptions = cco =>
+            builder.Configuration.AddConsul(
+                consulKeyPrefix,
+                options =>
                 {
-                    cco.Address = new Uri(consulUrl);
-                    if (!string.IsNullOrEmpty(consulToken))
+                    options.ConsulConfigurationOptions = cco =>
                     {
-                        cco.Token = consulToken;
-                    }
-                };
+                        cco.Address = new Uri(consulUrl);
+                        if (!string.IsNullOrEmpty(consulToken))
+                        {
+                            cco.Token = consulToken;
+                        }
+                    };
 
-                // 启用可选配置：Consul 不可用时仍可启动（回退到 appsettings.json）
-                options.Optional = true;
+                    // 启用可选配置：Consul 不可用时仍可启动（回退到 appsettings.json）
+                    options.Optional = true;
 
-                // 启用热重载：Consul 中的变更实时反映到 IOptionsSnapshot
-                options.ReloadOnChange = true;
+                    // 启用热重载：Consul 中的变更实时反映到 IOptionsSnapshot
+                    options.ReloadOnChange = true;
 
-                // 轮询间隔 30 秒
-                options.PollWaitTime = TimeSpan.FromSeconds(30);
+                    // 轮询间隔 30 秒
+                    options.PollWaitTime = TimeSpan.FromSeconds(30);
 
-                // 转换键名：Consul 中的 "Payment:Alipay:AppId" 映射到 .NET 配置的 "Payment:Alipay:AppId"
-                options.OnLoadException = loadExceptionContext =>
-                {
-                    // Consul 加载失败时忽略，回退到本地配置
-                    loadExceptionContext.Ignore = true;
-                };
+                    // 转换键名：Consul 中的 "Payment:Alipay:AppId" 映射到 .NET 配置的 "Payment:Alipay:AppId"
+                    options.OnLoadException = loadExceptionContext =>
+                    {
+                        // Consul 加载失败时忽略，回退到本地配置
+                        loadExceptionContext.Ignore = true;
+                    };
 
-                configureConsul?.Invoke(options);
-            });
+                    configureConsul?.Invoke(options);
+                });
+        }
+        catch (Exception ex) when (builder.Environment.IsProduction())
+        {
+            // M5.2：生产环境 Consul 不可达时降级为 warning，使用本地 appsettings 兜底
+            Console.WriteLine($"[WARN] Consul KV 配置中心不可达，使用本地配置兜底：{ex.Message}");
+        }
 
         return builder;
     }
@@ -151,6 +161,9 @@ public static class ConfigCenterExtensions
     /// <summary>
     /// 验证所有敏感配置键是否已从 Consul 正确加载。
     /// 在应用启动后调用，确保关键密钥不缺失。
+    /// M5.2：新增 InternalApiKey 各 BC 独立校验——若 <c>Service:Name</c> 已配置，
+    /// 优先校验 <c>Security:InternalApiKey:{BcName}</c>；缺失时降级为 Shared key（兼容期 warning），
+    /// 二者皆缺则视为校验失败。Service:Name 未配置时跳过 BC 独立校验（兼容期）。
     /// </summary>
     public static bool ValidateSensitiveConfig(this IConfiguration configuration)
     {
@@ -159,6 +172,43 @@ public static class ConfigCenterExtensions
         var missing = SensitiveConfigKeys
             .Where(key => string.IsNullOrWhiteSpace(configuration[key]))
             .ToList();
+
+        // M5.2: InternalApiKey 各 BC 独立校验
+        var bcName = configuration["Service:Name"];
+        if (string.IsNullOrWhiteSpace(bcName))
+        {
+            // Service:Name 未配置时不阻断（兼容期）
+            Console.WriteLine("[WARN] Service:Name 配置缺失，跳过 InternalApiKey 独立校验");
+        }
+        else
+        {
+            var internalKey = configuration[$"Security:InternalApiKey:{bcName}"];
+            if (string.IsNullOrWhiteSpace(internalKey))
+            {
+                // F2.4 兼容期：若 BC 仍用共用 key，降级为 warning
+                var sharedKey = configuration["Security:InternalApiKey:Shared"];
+                if (string.IsNullOrWhiteSpace(sharedKey))
+                {
+                    missing.Add($"Security:InternalApiKey:{bcName}");
+                    Console.WriteLine(
+                        $"[ERROR] 敏感配置缺失：Security:InternalApiKey:{bcName} 与 Security:InternalApiKey:Shared 均为空，"
+                        + $"请通过 Consul KV 配置 leno/security/internal-key/{bcName}");
+                }
+                else
+                {
+                    Console.WriteLine(
+                        $"[WARN] BC {bcName} 仍在使用 Shared InternalApiKey，请尽快迁移到独立 key（M5.2）");
+                }
+            }
+            else if (internalKey.Length < 44)
+            {
+                // 校验独立 key 长度（至少 32 字节 base64 编码 = 44 字符）
+                missing.Add($"Security:InternalApiKey:{bcName}(长度不足)");
+                Console.WriteLine(
+                    $"[ERROR] Security:InternalApiKey:{bcName} 长度不足，至少 32 字节（base64 编码 44 字符），"
+                    + $"当前 {internalKey.Length} 字符");
+            }
+        }
 
         return missing.Count == 0;
     }

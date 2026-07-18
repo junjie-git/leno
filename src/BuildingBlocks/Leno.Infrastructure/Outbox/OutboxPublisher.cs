@@ -295,6 +295,8 @@ public class OutboxPublisher<TDbContext> : BackgroundService
         try
         {
             await context.SaveChangesAsync(stoppingToken);
+            // M5.3：记录成功发布计数（按 BC 维度，使用 DbContext 类型名作为标签）
+            OutboxMetrics.RecordPublished(typeof(TDbContext).Name);
             _logger.LogInformation("发件箱消息已发布 Id={MessageId} Type={Type}", message.Id, eventType.Name);
         }
         catch (Exception ex)
@@ -311,6 +313,7 @@ public class OutboxPublisher<TDbContext> : BackgroundService
     /// <summary>
     /// 统计当前 pending 消息数量，超阈值记录结构化告警日志。
     /// 阈值默认 100，可由业务上下文覆盖（后续通过 <c>Outbox:PendingAlertThreshold</c> 配置）。
+    /// 同时更新 Prometheus gauge <c>outbox_pending_count</c>（M5.3）。
     /// </summary>
     internal async Task AlertIfPendingBacklogAsync(CancellationToken stoppingToken)
     {
@@ -319,6 +322,9 @@ public class OutboxPublisher<TDbContext> : BackgroundService
 
         var pendingCount = await context.Set<OutboxMessage>()
             .CountAsync(m => m.Status == OutboxMessageStatus.Pending, stoppingToken);
+
+        // M5.3：暴露 outbox_pending_count 指标供 Prometheus 抓取
+        OutboxMetrics.SetPendingCount(pendingCount);
 
         if (pendingCount > PendingAlertThreshold)
         {

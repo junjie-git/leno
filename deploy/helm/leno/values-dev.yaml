@@ -1,0 +1,76 @@
+# 开发环境：单副本，无 HPA，资源限制低
+global:
+  environment: Development
+
+services:
+  api-gateway:
+    replicaCount: 1
+    hpa: { enabled: false }
+    resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { cpu: 500m, memory: 256Mi } }
+    ingress: { enabled: false }
+
+  userauth:
+    replicaCount: 1
+    hpa: { enabled: false }
+    resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { cpu: 500m, memory: 256Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  product:
+    replicaCount: 1
+    hpa: { enabled: false }
+    resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { cpu: 500m, memory: 256Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  cart:
+    replicaCount: 1
+    hpa: { enabled: false }
+    resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { cpu: 500m, memory: 256Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  order:
+    replicaCount: 1
+    hpa: { enabled: false }
+    resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { cpu: 500m, memory: 256Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  promotion:
+    replicaCount: 1
+    hpa: { enabled: false }
+    resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { cpu: 500m, memory: 256Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  reviewaftersales:
+    replicaCount: 1
+    hpa: { enabled: false }
+    resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { cpu: 500m, memory: 256Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  pointsmembership:
+    replicaCount: 1
+    hpa: { enabled: false }
+    resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { cpu: 500m, memory: 256Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  payment:
+    replicaCount: 1
+    hpa: { enabled: false }
+    resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { cpu: 500m, memory: 256Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  notification:
+    replicaCount: 1
+    hpa: { enabled: false }
+    resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { cpu: 500m, memory: 256Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  sellershop:
+    replicaCount: 1
+    hpa: { enabled: false }
+    resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { cpu: 500m, memory: 256Mi } }
+    migration: { enabled: true, runOnInit: true }
+
+  systemadmin:
+    replicaCount: 1
+    hpa: { enabled: false }
+    resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { cpu: 500m, memory: 256Mi } }
+    migration: { enabled: true, runOnInit: true }

@@ -1,5 +1,4 @@
 using Leno.Infrastructure.AntiCorruption;
-using Leno.Infrastructure.Auth;
 using Leno.Order.Application.Services;
 using Leno.SharedContracts.Responses;
 using Microsoft.Extensions.Logging;
@@ -12,26 +11,31 @@ namespace Leno.Order.Infrastructure.Services;
 /// <summary>
 /// 促销域防腐层服务，通过 HTTP 调用促销域内部 API 计算订单可享优惠总金额、锁定/释放优惠券。
 /// 继承 <see cref="AntiCorruptionBase"/>，远程失败统一抛 <see cref="AntiCorruptionException"/>，由应用层处理；用户取消透传 <see cref="OperationCanceledException"/>。
+/// M5.2：通过 <see cref="AntiCorruptionOptions.TargetInternalApiKeys"/> 读取目标 BC（Promotion）的 InternalApiKey，
+/// 注入 <c>X-Internal-Key</c> 请求头，替代旧的共用 InternalAuth:ApiKey。
 /// </summary>
 public sealed class PromotionAntiCorruptionService : AntiCorruptionBase, IPromotionAntiCorruptionService
 {
     private const string InternalKeyName = "X-Internal-Key";
+    private const string TargetBc = "Promotion";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly HttpClient _httpClient;
     private readonly ILogger<PromotionAntiCorruptionService> _logger;
+    private readonly string _targetInternalKey;
 
     protected override string ServiceName => "promotion";
 
     public PromotionAntiCorruptionService(
         HttpClient httpClient,
-        IOptions<InternalApiKeyOptions> options,
+        IOptions<AntiCorruptionOptions> options,
         ILogger<PromotionAntiCorruptionService> logger)
     {
         _httpClient = httpClient;
         _logger = logger;
-        ApplyInternalKey(httpClient, options);
+        _targetInternalKey = ResolveTargetInternalKey(options);
+        _httpClient.DefaultRequestHeaders.Add(InternalKeyName, _targetInternalKey);
     }
 
     /// <inheritdoc />
@@ -88,13 +92,16 @@ public sealed class PromotionAntiCorruptionService : AntiCorruptionBase, IPromot
             EnsureSuccessStatusCode(response, "lock_coupon");
         }, ct);
 
-    private static void ApplyInternalKey(HttpClient httpClient, IOptions<InternalApiKeyOptions> options)
+    private static string ResolveTargetInternalKey(IOptions<AntiCorruptionOptions> options)
     {
-        var apiKey = options.Value.ApiKey;
-        if (!string.IsNullOrEmpty(apiKey))
+        ArgumentNullException.ThrowIfNull(options);
+        if (!options.Value.TargetInternalApiKeys.TryGetValue(TargetBc, out var key) || string.IsNullOrWhiteSpace(key))
         {
-            httpClient.DefaultRequestHeaders.Add(InternalKeyName, apiKey);
+            throw new InvalidOperationException(
+                $"AntiCorruption:TargetInternalApiKeys:{TargetBc} 配置缺失，请通过 Consul KV 配置 leno/security/internal-key/{TargetBc}");
         }
+
+        return key;
     }
 
     private sealed class DiscountResultResponse

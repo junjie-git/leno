@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using Prometheus;
 using Serilog;
 
 namespace Leno.Infrastructure.Dependencies;
@@ -148,7 +149,7 @@ public static class WebApplicationExtensions
 
     /// <summary>
     /// 一站式配置 Leno BC 的中间件管线：开发环境 OpenAPI + 全局异常 + 内部 API Key 中间件 +
-    /// 认证 + 授权 + 启动时校验内部 API Key + 健康检查端点 + 控制器路由映射。
+    /// 认证 + 授权 + 启动时校验内部 API Key + Prometheus /metrics 端点 + 健康检查端点 + 控制器路由映射。
     /// </summary>
     /// <remarks>
     /// 不包含 <c>MigrateWithLockAsync&lt;TDbContext&gt;</c>（各 BC 因 TDbContext 类型不同需自行调用）；
@@ -181,10 +182,13 @@ public static class WebApplicationExtensions
         // 6. 启动时校验内部 API Key 配置（非开发环境缺失则抛异常阻止启动）
         app.EnsureInternalApiKeyConfigured();
 
-        // 7. 健康检查端点（/health/live、/health/ready、/health）
+        // 7. 暴露 Prometheus /metrics 端点（M5.1：供 Prometheus 抓取）
+        app.UseMetricServer("/metrics");
+
+        // 8. 健康检查端点（/health/live、/health/ready、/health）
         app.MapLenoHealthChecks();
 
-        // 8. 控制器路由映射
+        // 9. 控制器路由映射
         app.MapControllers();
 
         return app;

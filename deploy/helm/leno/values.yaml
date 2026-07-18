@@ -1,0 +1,272 @@
+# 全局配置
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+  environment: Production
+  nameOverride: ""
+  consul:
+    address: "http://consul:8500"
+  rabbitmq:
+    host: "rabbitmq"
+    port: 5672
+  redis:
+    host: "redis"
+    port: 6379
+  elasticsearch:
+    host: "elasticsearch"
+    port: 9200
+  sqlserver:
+    host: "sqlserver"
+    port: 1433
+    database: "leno"
+  jaeger:
+    otlpEndpoint: "http://jaeger:4317"
+
+# 12 个服务（11 个 BC + 1 个 API 网关）
+services:
+  # ===== API 网关 =====
+  api-gateway:
+    enabled: true
+    image:
+      repository: leno/api-gateway
+      tag: "1.0.0"
+      pullPolicy: IfNotPresent
+    replicaCount: 2
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 512Mi
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+    service:
+      type: ClusterIP
+      port: 8080
+    httpPort: 8080
+    ingress:
+      enabled: true
+      className: nginx
+      hosts:
+        - host: api.leno.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    migration:
+      enabled: false
+      runOnInit: false
+    readinessProbe:
+      httpGet:
+        path: /health/ready
+        port: 8080
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    livenessProbe:
+      httpGet:
+        path: /health/live
+        port: 8080
+      initialDelaySeconds: 30
+      periodSeconds: 30
+
+  # ===== userauth BC =====
+  userauth:
+    enabled: true
+    image: { repository: leno/userauth-api, tag: "1.0.0", pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5151 }
+    httpPort: 5151
+    grpcPort: 5251
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5151 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5151 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== product BC =====
+  product:
+    enabled: true
+    image: { repository: leno/product-api, tag: "1.0.0", pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5152 }
+    httpPort: 5152
+    grpcPort: 5252
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5152 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5152 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== cart BC =====
+  cart:
+    enabled: true
+    image: { repository: leno/cart-api, tag: "1.0.0", pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5153 }
+    httpPort: 5153
+    grpcPort: 5253
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5153 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5153 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== order BC =====
+  order:
+    enabled: true
+    image: { repository: leno/order-api, tag: "1.0.0", pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5154 }
+    httpPort: 5154
+    grpcPort: 5254
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5154 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5154 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== promotion BC =====
+  promotion:
+    enabled: true
+    image: { repository: leno/promotion-api, tag: "1.0.0", pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5155 }
+    httpPort: 5155
+    grpcPort: 5255
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5155 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5155 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== reviewaftersales BC =====
+  reviewaftersales:
+    enabled: true
+    image: { repository: leno/reviewaftersales-api, tag: "1.0.0", pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5156 }
+    httpPort: 5156
+    grpcPort: 5256
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5156 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5156 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== pointsmembership BC =====
+  pointsmembership:
+    enabled: true
+    image: { repository: leno/pointsmembership-api, tag: "1.0.0", pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5157 }
+    httpPort: 5157
+    grpcPort: 5257
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5157 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5157 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== payment BC =====
+  payment:
+    enabled: true
+    image: { repository: leno/payment-api, tag: "1.0.0", pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5158 }
+    httpPort: 5158
+    grpcPort: 5258
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5158 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5158 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== notification BC =====
+  notification:
+    enabled: true
+    image: { repository: leno/notification-api, tag: "1.0.0", pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5159 }
+    httpPort: 5159
+    grpcPort: 5259
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5159 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5159 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== sellershop BC =====
+  sellershop:
+    enabled: true
+    image: { repository: leno/sellershop-api, tag: "1.0.0", pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5160 }
+    httpPort: 5160
+    grpcPort: 5260
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5160 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5160 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== systemadmin BC =====
+  systemadmin:
+    enabled: true
+    image: { repository: leno/systemadmin-api, tag: "1.0.0", pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5161 }
+    httpPort: 5161
+    grpcPort: 5261
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5161 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5161 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+# 外部依赖（SQL Server/Redis/RabbitMQ/ES/Consul/Jaeger/Prometheus/Grafana/Alertmanager）
+# 本 chart 不部署基础设施，假设已存在或通过 Bitnami/Prometheus Community chart 部署
+externalDependencies:
+  sqlserver:
+    enabled: true
+    connectionstringSecret: "leno-db-connectionstrings"
+  rabbitmq:
+    enabled: true
+    connectionstringSecret: "leno-mq-rabbitmq"
+  redis:
+    enabled: true
+    connectionstringSecret: "leno-redis-connection"
+  elasticsearch:
+    enabled: true
+    connectionstringSecret: "leno-es-connection"
+  consul:
+    enabled: true
+    addressSecret: "leno-consul-address"
+
+# 敏感配置通过 K8s Secret 引用（External Secrets Operator 对接 Vault/Consul）
+externalSecrets:
+  enabled: false
+  backend: consul  # 或 vault
+  refreshInterval: 1h
+
+# Prometheus 抓取配置（service monitor 占位，实际通过 Prometheus Community chart 注入）
+prometheus:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s

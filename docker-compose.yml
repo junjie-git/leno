@@ -123,6 +123,21 @@ services:
     networks:
       - leno-net
 
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: leno-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - leno-net
+    restart: unless-stopped
+
   grafana:
     image: grafana/grafana:11.2.0
     container_name: leno-grafana
@@ -133,6 +148,7 @@ services:
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/leno-gateway-dashboard.json:/var/lib/grafana/dashboards/leno-gateway-dashboard.json:ro
+      - ./grafana/leno-business-services-dashboard.json:/var/lib/grafana/dashboards/leno-business-services-dashboard.json:ro
       - grafanadata:/var/lib/grafana
     ports:
       - "3000:3000"
@@ -532,6 +548,7 @@ volumes:
   esdata:
   prometheusdata:
   grafanadata:
+  alertmanager-data:
 
 networks:
   leno-net:

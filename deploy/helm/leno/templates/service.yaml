@@ -1,0 +1,26 @@
+{{- range $name, $service := .Values.services }}
+{{- if $service.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "leno.serviceName" (dict "name" $name "context" $) }}
+  labels:
+    {{- include "leno.labels" (dict "name" $name "context" $) | nindent 4 }}
+spec:
+  type: {{ $service.service.type | default "ClusterIP" }}
+  selector:
+    {{- include "leno.selectorLabels" (dict "name" $name "context" $) | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ $service.service.port }}
+      targetPort: {{ $service.httpPort | default $service.service.port }}
+      protocol: TCP
+    {{- if $service.grpcPort }}
+    - name: grpc
+      port: {{ $service.grpcPort }}
+      targetPort: {{ $service.grpcPort }}
+      protocol: TCP
+    {{- end }}
+{{- end }}
+{{- end }}

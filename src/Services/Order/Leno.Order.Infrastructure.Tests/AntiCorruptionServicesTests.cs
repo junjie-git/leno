@@ -1,5 +1,4 @@
 using Leno.Infrastructure.AntiCorruption;
-using Leno.Infrastructure.Auth;
 using Leno.Order.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -286,7 +285,10 @@ public class AntiCorruptionServicesTests
     private static PointsAntiCorruptionService CreatePointsService(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler)
     {
         var http = new HttpClient(new FakeHandler(handler)) { BaseAddress = new Uri("http://test/") };
-        var options = Options.Create(new InternalApiKeyOptions());
+        var options = Options.Create(new AntiCorruptionOptions
+        {
+            TargetInternalApiKeys = new() { ["PointsMembership"] = "test-internal-key" }
+        });
         var logger = new Mock<ILogger<PointsAntiCorruptionService>>().Object;
         return new PointsAntiCorruptionService(http, options, logger);
     }
@@ -294,7 +296,10 @@ public class AntiCorruptionServicesTests
     private static PromotionAntiCorruptionService CreatePromotionService(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler)
     {
         var http = new HttpClient(new FakeHandler(handler)) { BaseAddress = new Uri("http://test/") };
-        var options = Options.Create(new InternalApiKeyOptions());
+        var options = Options.Create(new AntiCorruptionOptions
+        {
+            TargetInternalApiKeys = new() { ["Promotion"] = "test-internal-key" }
+        });
         var logger = new Mock<ILogger<PromotionAntiCorruptionService>>().Object;
         return new PromotionAntiCorruptionService(http, options, logger);
     }
