@@ -25,6 +25,7 @@ public sealed class SellerDashboardAppService : ISellerDashboardAppService
     }
 
     /// <inheritdoc />
+    [Obsolete("请使用 IQueryHandler<ShopDashboardQuery, ShopDashboardResult>，将在 2026-08-01 移除")]
     public async Task<SellerDashboardDto> GetDashboardAsync(Guid sellerId, CancellationToken ct = default)
     {
         if (sellerId == Guid.Empty)

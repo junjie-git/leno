@@ -1,5 +1,6 @@
 using FluentValidation;
 using Leno.Infrastructure.AntiCorruption;
+using Leno.Infrastructure.Cqrs;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.Order.Application;
@@ -93,6 +94,9 @@ public static class ServiceCollectionExtensions
 
         // FluentValidation 校验器
         services.AddValidatorsFromAssembly(typeof(IOrderAppService).Assembly);
+
+        // CQRS 读侧：扫描 Application 程序集注册所有 IQueryHandler<TQuery, TResult>
+        services.AddQueryHandlers(typeof(IOrderAppService).Assembly);
 
         // 库存对账后台服务
         services.AddHostedService<StockReconciliationService>();

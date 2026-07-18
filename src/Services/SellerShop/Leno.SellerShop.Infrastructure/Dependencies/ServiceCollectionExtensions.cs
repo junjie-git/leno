@@ -1,13 +1,16 @@
 using FluentValidation;
+using Leno.Infrastructure.Cqrs;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.SellerShop.Application;
+using Leno.SellerShop.Application.Queries;
 using Leno.SellerShop.Application.Services;
 using Leno.SellerShop.Domain.Repositories;
 using Leno.SellerShop.Domain.Services;
 using Leno.SellerShop.Infrastructure.BackgroundServices;
 using Leno.SellerShop.Infrastructure.Consumers;
 using Leno.SellerShop.Infrastructure.EventBus;
+using Leno.SellerShop.Infrastructure.ReadModels;
 using Leno.SellerShop.Infrastructure.Repositories;
 using Leno.SellerShop.Infrastructure.Services;
 using Leno.SharedKernel.Abstractions;
@@ -59,7 +62,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISellerAppService, SellerAppService>();
         services.AddScoped<ISellerDashboardAppService, SellerDashboardAppService>();
 
+        // ES 读模型同步：店铺工作台读模型构建器（被 3 个 ShopDashboard 同步消费者共用）
+        services.AddScoped<IShopDashboardReadModelBuilder, ShopDashboardReadModelBuilder>();
+
+        // CQRS 读侧：ES 读模型访问器（Application 端口，Infrastructure 实现）
+        services.AddScoped<IShopDashboardReadModelAccessor, ShopDashboardReadModelAccessor>();
+
         services.AddValidatorsFromAssembly(typeof(IShopAppService).Assembly);
+
+        // CQRS 读侧：扫描 Application 程序集注册所有 IQueryHandler<TQuery, TResult>
+        services.AddQueryHandlers(typeof(ShopDashboardQueryHandler).Assembly);
 
         services.AddHostedService<QualificationExpiryReminder>();
 
@@ -79,6 +91,11 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<OrderCreatedEventConsumer>();
         configurator.AddConsumer<OrderPaidEventConsumer>();
         configurator.AddConsumer<OrderCancelledEventConsumer>();
+
+        // ES 读模型同步：订单创建/订单完成/评价提交 3 个事件触发店铺工作台读模型重建（共用同一 builder）
+        configurator.AddConsumer<OrderCreatedShopDashboardSyncConsumer>();
+        configurator.AddConsumer<OrderCompletedShopDashboardSyncConsumer>();
+        configurator.AddConsumer<ReviewSubmittedShopDashboardSyncConsumer>();
         return configurator;
     }
 }

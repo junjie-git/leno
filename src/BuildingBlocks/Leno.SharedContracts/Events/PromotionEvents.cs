@@ -156,3 +156,100 @@ public sealed class SeckillStockSoldOutIntegrationEvent : IntegrationEventBase
         SoldOutAt = soldOutAt;
     }
 }
+
+/// <summary>
+/// 秒杀活动发布集成事件，秒杀活动激活上线时由促销域发布。
+/// 消费方：促销域读模型同步（索引到 ES leno_seckill_activities）。
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class SeckillActivityPublishedEvent : IntegrationEventBase
+{
+    /// <summary>秒杀活动标识。</summary>
+    public Guid ActivityId { get; init; }
+
+    /// <summary>关联商品 SPU 标识。</summary>
+    public Guid SpuId { get; init; }
+
+    /// <summary>关联商品 SKU 标识。</summary>
+    public Guid SkuId { get; init; }
+
+    /// <summary>秒杀价。</summary>
+    public decimal SeckillPrice { get; init; }
+
+    /// <summary>原价（用于展示划线价）。</summary>
+    public decimal OriginalPrice { get; init; }
+
+    /// <summary>总库存。</summary>
+    public int TotalStock { get; init; }
+
+    /// <summary>活动开始时间（UTC）。</summary>
+    public DateTime StartTime { get; init; }
+
+    /// <summary>活动结束时间（UTC）。</summary>
+    public DateTime EndTime { get; init; }
+
+    /// <summary>活动状态名称（Active 等）。</summary>
+    public string Status { get; init; } = string.Empty;
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => ActivityId;
+
+    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
+    public SeckillActivityPublishedEvent() : base()
+    {
+    }
+
+    public SeckillActivityPublishedEvent(
+        Guid activityId,
+        Guid spuId,
+        Guid skuId,
+        decimal seckillPrice,
+        decimal originalPrice,
+        int totalStock,
+        DateTime startTime,
+        DateTime endTime,
+        string status) : base()
+    {
+        ActivityId = activityId;
+        SpuId = spuId;
+        SkuId = skuId;
+        SeckillPrice = seckillPrice;
+        OriginalPrice = originalPrice;
+        TotalStock = totalStock;
+        StartTime = startTime;
+        EndTime = endTime;
+        Status = status ?? string.Empty;
+    }
+}
+
+/// <summary>
+/// 秒杀活动结束集成事件，秒杀活动结束（库存售罄/到期/手动关闭）时由促销域发布。
+/// 消费方：促销域读模型同步（从 ES leno_seckill_activities 删除文档）。
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class SeckillActivityEndedEvent : IntegrationEventBase
+{
+    /// <summary>秒杀活动标识。</summary>
+    public Guid ActivityId { get; init; }
+
+    /// <summary>结束时间（UTC）。</summary>
+    public DateTime EndedAt { get; init; }
+
+    /// <summary>结束原因（SoldOut/Expired/Closed）。</summary>
+    public string Reason { get; init; } = string.Empty;
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => ActivityId;
+
+    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
+    public SeckillActivityEndedEvent() : base()
+    {
+    }
+
+    public SeckillActivityEndedEvent(Guid activityId, DateTime endedAt, string reason) : base()
+    {
+        ActivityId = activityId;
+        EndedAt = endedAt;
+        Reason = reason ?? string.Empty;
+    }
+}

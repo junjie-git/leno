@@ -28,9 +28,11 @@ public interface ISPUAppService
     Task RepublishAsync(Guid sellerId, Guid spuId, CancellationToken ct = default);
 
     /// <summary>查询商品详情（含 SKU）。</summary>
+    [Obsolete("请使用 IQueryHandler<ProductDetailQuery, ProductDetailResult?>，将在 2026-08-01 移除")]
     Task<ProductDto> GetByIdAsync(Guid spuId, CancellationToken ct = default);
 
     /// <summary>分页查询商品列表。</summary>
+    [Obsolete("请使用 IQueryHandler<ProductSearchQuery, ProductSearchResult>，将在 2026-08-01 移除")]
     Task<PageResult<ProductDto>> QueryProductsAsync(ProductQueryDto query, CancellationToken ct = default);
 
     /// <summary>运营审核通过上架。</summary>

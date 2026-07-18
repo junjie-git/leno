@@ -49,6 +49,7 @@ public interface IOrderAppService
     /// 查询订单物流轨迹。
     /// </summary>
     /// <param name="orderId">订单标识。</param>
+    [Obsolete("请使用 IQueryHandler<LogisticsTraceQuery, LogisticsTraceResult>，将在 2026-08-01 移除")]
     Task<LogisticsTrackingDto> GetLogisticsTraceAsync(Guid orderId, CancellationToken ct = default);
 
     /// <summary>
@@ -78,6 +79,7 @@ public interface IOrderAppService
     /// 按标识查询订单。
     /// </summary>
     /// <param name="orderId">订单标识。</param>
+    [Obsolete("请使用 IQueryHandler<OrderDetailQuery, OrderDetailResult>，将在 2026-08-01 移除")]
     Task<OrderDto> GetByIdAsync(Guid orderId, CancellationToken ct = default);
 
     /// <summary>
@@ -88,5 +90,6 @@ public interface IOrderAppService
     /// <param name="status">订单状态过滤，为空不过滤。</param>
     /// <param name="page">页码（从 1 起）。</param>
     /// <param name="pageSize">每页大小。</param>
+    [Obsolete("请使用 IQueryHandler<OrderListQuery, OrderListResult>，将在 2026-08-01 移除")]
     Task<OrderListResultDto> QueryAsync(Guid? userId, Guid? sellerId, OrderStatus? status, int page, int pageSize, CancellationToken ct = default);
 }

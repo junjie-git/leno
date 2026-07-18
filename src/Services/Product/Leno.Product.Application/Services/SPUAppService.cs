@@ -163,6 +163,7 @@ public sealed class SPUAppService : ISPUAppService
     }
 
     /// <inheritdoc />
+    [Obsolete("请使用 IQueryHandler<ProductDetailQuery, ProductDetailResult?>，将在 2026-08-01 移除")]
     public async Task<ProductDto> GetByIdAsync(Guid spuId, CancellationToken ct = default)
     {
         var spu = await RequireSpuAsync(spuId, ct);
@@ -170,6 +171,7 @@ public sealed class SPUAppService : ISPUAppService
     }
 
     /// <inheritdoc />
+    [Obsolete("请使用 IQueryHandler<ProductSearchQuery, ProductSearchResult>，将在 2026-08-01 移除")]
     public async Task<PageResult<ProductDto>> QueryProductsAsync(ProductQueryDto query, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);

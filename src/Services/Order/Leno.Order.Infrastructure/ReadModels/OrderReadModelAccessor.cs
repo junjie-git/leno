@@ -1,0 +1,165 @@
+using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.QueryDsl;
+using Leno.Infrastructure.ReadModel;
+using Leno.Order.Application.Queries;
+
+namespace Leno.Order.Infrastructure.ReadModels;
+
+/// <summary>
+/// 订单读模型访问器实现，基于 <see cref="IEsReadModelRepository{T}"/> 查询 ES 读模型。
+/// 实现 Application 层定义的 <see cref="IOrderReadModelAccessor"/> 端口，保持分层洁癖。
+/// 索引名 <c>orders</c> 与 <see cref="OrderReadModelSyncConsumer"/> 同步侧保持一致。
+/// </summary>
+public sealed class OrderReadModelAccessor : IOrderReadModelAccessor
+{
+    /// <summary>订单读模型索引名，与 <c>OrderReadModelSyncConsumer</c> 一致。</summary>
+    public const string OrderIndexName = "orders";
+
+    private readonly IEsReadModelRepository<OrderReadModel> _repository;
+
+    public OrderReadModelAccessor(IEsReadModelRepository<OrderReadModel> repository)
+    {
+        ArgumentNullException.ThrowIfNull(repository);
+        _repository = repository;
+    }
+
+    /// <inheritdoc />
+    public async Task<OrderDetailResult?> GetDetailAsync(Guid orderId, CancellationToken ct = default)
+    {
+        if (orderId == Guid.Empty)
+        {
+            return null;
+        }
+
+        var model = await _repository.GetByIdAsync(orderId.ToString(), OrderIndexName, ct);
+        return model is null ? null : ToDetailResult(model);
+    }
+
+    /// <inheritdoc />
+    public async Task<OrderListResult> ListAsync(OrderListQuery query, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var safePageIndex = query.PageIndex < 0 ? 0 : query.PageIndex;
+        var safePageSize = query.PageSize is <= 0 or > 100 ? 20 : query.PageSize;
+        var from = safePageIndex * safePageSize;
+
+        var (items, total) = await _repository.SearchAsync(
+            OrderIndexName,
+            _ => BuildQuery(query),
+            from,
+            safePageSize,
+            ct);
+
+        var summaries = items.Select(ToSummaryDto).ToList();
+
+        return new OrderListResult
+        {
+            Items = summaries,
+            TotalCount = (int)total,
+            PageIndex = safePageIndex,
+            PageSize = safePageSize
+        };
+    }
+
+    private static Query BuildQuery(OrderListQuery query)
+    {
+        var filters = new List<Query>();
+
+        if (query.UserId.HasValue)
+        {
+            filters.Add(new TermQuery(Infer.Field<OrderReadModel>(f => f.UserId))
+            {
+                Value = query.UserId.Value.ToString()
+            });
+        }
+
+        if (query.SellerId.HasValue)
+        {
+            filters.Add(new TermQuery(Infer.Field<OrderReadModel>(f => f.SellerId))
+            {
+                Value = query.SellerId.Value.ToString()
+            });
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            filters.Add(new TermQuery(Infer.Field<OrderReadModel>(f => f.Status))
+            {
+                Value = query.Status
+            });
+        }
+
+        if (query.StartDate.HasValue || query.EndDate.HasValue)
+        {
+            var range = new DateRangeQuery(Infer.Field<OrderReadModel>(f => f.CreatedAt));
+            if (query.StartDate.HasValue)
+            {
+                range.Gte = query.StartDate.Value;
+            }
+
+            if (query.EndDate.HasValue)
+            {
+                range.Lte = query.EndDate.Value;
+            }
+
+            filters.Add(range);
+        }
+
+        if (filters.Count == 0)
+        {
+            return new MatchAllQuery();
+        }
+
+        return new BoolQuery { Filter = filters };
+    }
+
+    private static OrderDetailResult ToDetailResult(OrderReadModel model)
+        => new()
+        {
+            OrderId = Guid.TryParse(model.OrderId, out var oid) ? oid : Guid.Empty,
+            OrderNo = model.OrderNo,
+            UserId = Guid.TryParse(model.UserId, out var uid) ? uid : Guid.Empty,
+            SellerId = Guid.TryParse(model.SellerId, out var sid) ? sid : null,
+            OrderType = model.OrderType,
+            ItemsAmount = model.ItemsAmount,
+            DiscountAmount = model.DiscountAmount,
+            PointsOffsetAmount = model.PointsOffsetAmount,
+            FreightAmount = model.FreightAmount,
+            TotalAmount = model.TotalAmount,
+            Currency = "CNY",
+            Status = model.Status,
+            CreatedAt = model.CreatedAt,
+            PaidAt = model.PaidAt,
+            ShippedAt = model.ShippedAt,
+            CompletedAt = model.CompletedAt,
+            CancelledAt = model.CancelledAt,
+            Items = model.Items.Select(ToItemDto).ToList()
+        };
+
+    private static OrderSummaryDto ToSummaryDto(OrderReadModel model)
+        => new()
+        {
+            OrderId = Guid.TryParse(model.OrderId, out var oid) ? oid : Guid.Empty,
+            OrderNo = model.OrderNo,
+            UserId = Guid.TryParse(model.UserId, out var uid) ? uid : Guid.Empty,
+            SellerId = Guid.TryParse(model.SellerId, out var sid) ? sid : null,
+            TotalAmount = model.TotalAmount,
+            Currency = "CNY",
+            Status = model.Status,
+            CreatedAt = model.CreatedAt,
+            PaidAt = model.PaidAt,
+            ShippedAt = model.ShippedAt
+        };
+
+    private static OrderItemDto ToItemDto(OrderReadModel.OrderItemReadModel item)
+        => new()
+        {
+            SkuId = Guid.TryParse(item.SkuId, out var skuId) ? skuId : Guid.Empty,
+            ProductName = item.ProductName,
+            SkuName = item.SkuName,
+            UnitPrice = item.UnitPrice,
+            Quantity = item.Quantity,
+            Subtotal = item.Subtotal
+        };
+}

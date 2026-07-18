@@ -380,6 +380,7 @@ public sealed class OrderAppService : IOrderAppService
     }
 
     /// <inheritdoc />
+    [Obsolete("请使用 IQueryHandler<OrderDetailQuery, OrderDetailResult>，将在 2026-08-01 移除")]
     public async Task<OrderDto> GetByIdAsync(Guid orderId, CancellationToken ct = default)
     {
         var order = await RequireOrderAsync(orderId, ct);
@@ -387,6 +388,7 @@ public sealed class OrderAppService : IOrderAppService
     }
 
     /// <inheritdoc />
+    [Obsolete("请使用 IQueryHandler<OrderListQuery, OrderListResult>，将在 2026-08-01 移除")]
     public async Task<OrderListResultDto> QueryAsync(Guid? userId, Guid? sellerId, OrderStatus? status, int page, int pageSize, CancellationToken ct = default)
     {
         var orders = await _orderRepository.QueryAsync(userId, sellerId, status, null, null, page, pageSize, ct);
@@ -402,6 +404,7 @@ public sealed class OrderAppService : IOrderAppService
     }
 
     /// <inheritdoc />
+    [Obsolete("请使用 IQueryHandler<LogisticsTraceQuery, LogisticsTraceResult>，将在 2026-08-01 移除")]
     public async Task<LogisticsTrackingDto> GetLogisticsTraceAsync(Guid orderId, CancellationToken ct = default)
     {
         var order = await RequireOrderAsync(orderId, ct);

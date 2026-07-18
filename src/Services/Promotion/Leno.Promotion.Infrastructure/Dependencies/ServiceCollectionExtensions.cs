@@ -6,6 +6,7 @@ using Leno.Promotion.Application.Services;
 using Leno.Promotion.Domain.Repositories;
 using Leno.Promotion.Domain.Services;
 using Leno.Promotion.Infrastructure.EventBus;
+using Leno.Promotion.Infrastructure.ReadModels;
 using Leno.Promotion.Infrastructure.Repositories;
 using Leno.Promotion.Infrastructure.Services;
 using Leno.SharedKernel.Abstractions;
@@ -78,6 +79,12 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<Consumers.SeckillOrderCreationFailedEventConsumer>();
         configurator.AddConsumer<Consumers.SeckillOrderConfirmedEventConsumer>();
         configurator.AddConsumer<Consumers.PointsExchangeConsumer>();
+
+        // ES 读模型同步：秒杀活动发布索引/结束删除，优惠券创建索引/停用删除
+        configurator.AddConsumer<SeckillActivityPublishedReadModelSyncConsumer>();
+        configurator.AddConsumer<SeckillActivityEndedReadModelSyncConsumer>();
+        configurator.AddConsumer<CouponCreatedReadModelSyncConsumer>();
+        configurator.AddConsumer<CouponDisabledReadModelSyncConsumer>();
 
         return configurator;
     }

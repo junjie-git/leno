@@ -9,6 +9,7 @@ namespace Leno.SellerShop.Application;
 public interface ISellerDashboardAppService
 {
     /// <summary>查询卖家工作台概览（店铺信息 + 当日运营指标）。</summary>
+    [Obsolete("请使用 IQueryHandler<ShopDashboardQuery, ShopDashboardResult>，将在 2026-08-01 移除")]
     Task<SellerDashboardDto> GetDashboardAsync(Guid sellerId, CancellationToken ct = default);
 
     /// <summary>查询指定店铺与日期范围的销售趋势（按日序列，用于图表）。</summary>

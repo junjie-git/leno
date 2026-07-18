@@ -1,7 +1,6 @@
 using Leno.Infrastructure.ReadModel;
 using Leno.Product.Domain.Repositories;
 using Leno.SharedContracts.Events;
-using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.Product.Infrastructure.ReadModels;
@@ -66,41 +65,27 @@ public sealed class ProductPublishedReadModelSyncConsumer : ReadModelSyncConsume
 /// <summary>
 /// 商品下架读模型同步消费者：消费 <see cref="ProductTakenDownEvent"/>，
 /// 从 Elasticsearch 删除对应读模型文档，保证买家端不再检索到下架商品。
-/// 删除失败抛出异常以触发重试；文档不存在视为成功（幂等）。
+/// 删除失败抛出异常以触发 MassTransit 重试与死信队列；文档不存在视为成功（幂等）。
 /// </summary>
-public sealed class ProductTakenDownReadModelSyncConsumer : IConsumer<ProductTakenDownEvent>
+public sealed class ProductTakenDownReadModelSyncConsumer
+    : ReadModelSyncConsumerBase<ProductTakenDownEvent, ProductReadModel>
 {
-    private readonly IEsReadModelRepository<ProductReadModel> _repository;
-    private readonly ILogger<ProductTakenDownReadModelSyncConsumer> _logger;
-
     public ProductTakenDownReadModelSyncConsumer(
         IEsReadModelRepository<ProductReadModel> repository,
         ILogger<ProductTakenDownReadModelSyncConsumer> logger)
+        : base(repository, logger)
     {
-        ArgumentNullException.ThrowIfNull(repository);
-        ArgumentNullException.ThrowIfNull(logger);
-        _repository = repository;
-        _logger = logger;
     }
 
     /// <inheritdoc />
-    public async Task Consume(ConsumeContext<ProductTakenDownEvent> context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        var evt = context.Message;
+    /// <remarks>下架事件仅触发删除，不索引读模型。</remarks>
+    protected override Task<(string Id, string IndexName, ProductReadModel? ReadModel)> BuildReadModelAsync(
+        ProductTakenDownEvent integrationEvent, CancellationToken ct)
+        => Task.FromResult<(string, string, ProductReadModel?)>((string.Empty, string.Empty, null));
 
-        var success = await _repository.DeleteByIdAsync(
-            evt.ProductId.ToString(),
-            ProductSearchService.ProductIndexName,
-            context.CancellationToken);
-
-        if (!success)
-        {
-            _logger.LogWarning("ES 读模型删除失败 ProductId={ProductId}", evt.ProductId);
-        }
-        else
-        {
-            _logger.LogInformation("读模型已删除 ProductId={ProductId}", evt.ProductId);
-        }
-    }
+    /// <inheritdoc />
+    protected override Task<(string Id, string IndexName)?> BuildDeleteActionAsync(
+        ProductTakenDownEvent integrationEvent, CancellationToken ct)
+        => Task.FromResult<(string, string)?>(
+            (integrationEvent.ProductId.ToString(), ProductSearchService.ProductIndexName));
 }

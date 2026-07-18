@@ -6,8 +6,10 @@ namespace Leno.Infrastructure.ReadModel;
 
 /// <summary>
 /// 读模型同步消费者基类，消费集成事件并将读模型索引到 Elasticsearch。
-/// 子类实现 <see cref="BuildReadModelAsync"/> 将事件转换为读模型文档与索引信息。
-/// 索引失败抛出异常以触发 MassTransit 重试与死信队列。
+/// 子类实现 <see cref="BuildReadModelAsync"/> 将事件转换为读模型文档与索引信息；
+/// 重写 <see cref="BuildDeleteActionAsync"/> 声明本事件触发删除（默认返回 null，仅索引场景无需重写）。
+/// 删除分支优先于索引分支：同一事件通常不会同时触发索引与删除。
+/// 索引或删除失败均抛出异常以触发 MassTransit 重试与死信队列。
 /// </summary>
 /// <typeparam name="TEvent">触发同步的集成事件类型。</typeparam>
 /// <typeparam name="TReadModel">ES 读模型文档类型。</typeparam>
@@ -34,6 +36,26 @@ public abstract class ReadModelSyncConsumerBase<TEvent, TReadModel> : IConsumer<
 
         try
         {
+            // 删除分支（优先于索引分支：同一事件通常不会同时触发索引与删除）
+            var deleteAction = await BuildDeleteActionAsync(evt, context.CancellationToken);
+            if (deleteAction is { } delete
+                && !string.IsNullOrEmpty(delete.Id)
+                && !string.IsNullOrEmpty(delete.IndexName))
+            {
+                var deleteSuccess = await Repository.DeleteByIdAsync(
+                    delete.Id, delete.IndexName, context.CancellationToken);
+                if (!deleteSuccess)
+                {
+                    throw new InvalidOperationException(
+                        $"ES 读模型删除失败 Id={delete.Id} Index={delete.IndexName}");
+                }
+
+                Logger.LogInformation("读模型已删除 EventId={EventId} Index={Index} Id={Id}",
+                    evt.EventId, delete.IndexName, delete.Id);
+                return;
+            }
+
+            // 索引分支（既有逻辑保持不变）
             var (id, indexName, readModel) = await BuildReadModelAsync(evt, context.CancellationToken);
             if (readModel is null || string.IsNullOrEmpty(id) || string.IsNullOrEmpty(indexName))
             {
@@ -63,4 +85,13 @@ public abstract class ReadModelSyncConsumerBase<TEvent, TReadModel> : IConsumer<
     /// </summary>
     protected abstract Task<(string Id, string IndexName, TReadModel? ReadModel)> BuildReadModelAsync(
         TEvent integrationEvent, CancellationToken ct);
+
+    /// <summary>
+    /// 派生类重写以声明本事件需删除读模型。返回 (Id, IndexName) 触发 <see cref="IEsReadModelRepository{T}"/>.DeleteByIdAsync；
+    /// 返回 null 表示本事件不触发删除（仅由 <see cref="BuildReadModelAsync"/> 决定是否索引）。
+    /// 默认实现返回 null（向后兼容：仅索引场景无需重写）。
+    /// </summary>
+    protected virtual Task<(string Id, string IndexName)?> BuildDeleteActionAsync(
+        TEvent integrationEvent, CancellationToken ct)
+        => Task.FromResult<(string Id, string IndexName)?>(null);
 }

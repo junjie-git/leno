@@ -6,6 +6,7 @@ using Leno.PointsMembership.Application.Services;
 using Leno.PointsMembership.Domain.Repositories;
 using Leno.PointsMembership.Domain.Services;
 using Leno.PointsMembership.Infrastructure.EventBus;
+using Leno.PointsMembership.Infrastructure.ReadModels;
 using Leno.PointsMembership.Infrastructure.Repositories;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
@@ -87,6 +88,12 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<Consumers.RefundCompletedEventConsumer>();
         configurator.AddConsumer<Consumers.CouponExchangeSucceededEventConsumer>();
         configurator.AddConsumer<Consumers.CouponExchangeFailedEventConsumer>();
+
+        // ES 读模型同步：积分账户创建索引/余额变更重建，会员档案创建索引/等级升级重建
+        configurator.AddConsumer<PointsAccountCreatedReadModelSyncConsumer>();
+        configurator.AddConsumer<PointsAdjustedReadModelSyncConsumer>();
+        configurator.AddConsumer<MemberRegisteredReadModelSyncConsumer>();
+        configurator.AddConsumer<MemberLevelUpgradedReadModelSyncConsumer>();
 
         return configurator;
     }

@@ -1,7 +1,9 @@
 using FluentValidation;
+using Leno.Infrastructure.Cqrs;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.Product.Application;
+using Leno.Product.Application.Queries;
 using Leno.Product.Application.Services;
 using Leno.Product.Domain.Repositories;
 using Leno.Product.Domain.Services;
@@ -55,6 +57,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProductSearchService, ProductSearchService>();
         services.AddScoped<IProductUniquenessChecker, ProductUniquenessChecker>();
 
+        // CQRS 读侧：ES 读模型访问器（Application 端口，Infrastructure 实现）
+        services.AddScoped<IProductReadModelAccessor, ProductReadModelAccessor>();
+
         services.AddScoped<ISPUAppService, SPUAppService>();
         services.AddScoped<ICategoryAppService, CategoryAppService>();
         services.AddScoped<IBrandAppService, BrandAppService>();
@@ -62,6 +67,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProductInternalQueryService, ProductInternalQueryService>();
 
         services.AddValidatorsFromAssembly(typeof(ISPUAppService).Assembly);
+
+        // CQRS 读侧：扫描 Application 程序集注册所有 IQueryHandler<TQuery, TResult>
+        services.AddQueryHandlers(typeof(ISPUAppService).Assembly);
 
         return services;
     }
