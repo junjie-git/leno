@@ -1,3 +1,4 @@
+using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Outbox;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.EntityFrameworkCore;
@@ -11,11 +12,14 @@ namespace Leno.Notification.Infrastructure;
 public sealed class UnitOfWork : IUnitOfWork
 {
     private readonly NotificationDbContext _context;
+    private readonly IIntegrationEventMapper _mapper;
 
-    public UnitOfWork(NotificationDbContext context)
+    public UnitOfWork(NotificationDbContext context, IIntegrationEventMapper mapper)
     {
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(mapper);
         _context = context;
+        _mapper = mapper;
     }
 
     /// <inheritdoc />
@@ -25,7 +29,7 @@ public sealed class UnitOfWork : IUnitOfWork
     /// <inheritdoc />
     public async Task<bool> SaveEntitiesAsync(CancellationToken ct = default)
     {
-        await _context.SaveChangesWithOutboxAsync(ct);
+        await _context.SaveChangesWithOutboxAsync(_mapper, ct);
         return true;
     }
 

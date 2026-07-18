@@ -42,6 +42,8 @@ public static class ServiceCollectionExtensions
         AddFileStorage(services, configuration);
         AddAuth(services);
         AddRedis(services, configuration);
+        // 默认注册空翻译器，各 BC 在 AddXxxInfrastructure 中覆盖为具体实现
+        services.AddSingleton<IIntegrationEventMapper, NullIntegrationEventMapper>();
         AddElasticsearch(services, configuration);
         AddEventBus(services, configuration, configureConsumers);
         AddHealthChecks(services);
