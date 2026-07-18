@@ -1,6 +1,7 @@
 using Leno.SharedContracts.Events;
 using Leno.SellerShop.Domain.Aggregates;
 using Leno.SellerShop.Domain.Entities;
+using Leno.SellerShop.Domain.Events;
 using Leno.SellerShop.Domain.Exceptions;
 using Leno.SellerShop.Domain.ValueObjects;
 
@@ -294,8 +295,8 @@ public class ShopTests
         var shop = Shop.Create(ValidShopId, ValidUserId, ValidName, ValidPhone);
 
         shop.DomainEvents.Should().ContainSingle()
-            .Which.Should().BeOfType<SellerRegisteredEvent>()
-            .Which.Should().Match<SellerRegisteredEvent>(e =>
+            .Which.Should().BeOfType<SellerRegisteredDomainEvent>()
+            .Which.Should().Match<SellerRegisteredDomainEvent>(e =>
                 e.ShopId == ValidShopId &&
                 e.SellerId == ValidUserId &&
                 e.UserId == ValidUserId &&
@@ -316,8 +317,8 @@ public class ShopTests
         shop.ReviewedBy.Should().Be(ValidReviewerId);
         shop.StatusReason.Should().BeNull();
         shop.DomainEvents.Should().ContainSingle()
-            .Which.Should().BeOfType<ShopApprovedEvent>()
-            .Which.Should().Match<ShopApprovedEvent>(e =>
+            .Which.Should().BeOfType<ShopApprovedDomainEvent>()
+            .Which.Should().Match<ShopApprovedDomainEvent>(e =>
                 e.ShopId == ValidShopId &&
                 e.SellerId == ValidUserId &&
                 e.ShopName == ValidName);
@@ -497,8 +498,8 @@ public class ShopTests
         shop.Status.Should().Be(ShopStatus.Suspended);
         shop.StatusReason.Should().Be(ValidReason);
         shop.DomainEvents.Should().ContainSingle()
-            .Which.Should().BeOfType<ShopSuspendedEvent>()
-            .Which.Should().Match<ShopSuspendedEvent>(e =>
+            .Which.Should().BeOfType<ShopSuspendedDomainEvent>()
+            .Which.Should().Match<ShopSuspendedDomainEvent>(e =>
                 e.ShopId == ValidShopId &&
                 e.SellerId == ValidUserId);
     }
@@ -577,8 +578,8 @@ public class ShopTests
         shop.Status.Should().Be(ShopStatus.Active);
         shop.StatusReason.Should().BeNull();
         shop.DomainEvents.Should().ContainSingle()
-            .Which.Should().BeOfType<ShopResumedEvent>()
-            .Which.Should().Match<ShopResumedEvent>(e =>
+            .Which.Should().BeOfType<ShopResumedDomainEvent>()
+            .Which.Should().Match<ShopResumedDomainEvent>(e =>
                 e.ShopId == ValidShopId &&
                 e.SellerId == ValidUserId);
     }
@@ -637,8 +638,8 @@ public class ShopTests
         shop.Status.Should().Be(ShopStatus.Closed);
         shop.StatusReason.Should().Be(ValidReason);
         shop.DomainEvents.Should().ContainSingle()
-            .Which.Should().BeOfType<ShopClosedEvent>()
-            .Which.Should().Match<ShopClosedEvent>(e =>
+            .Which.Should().BeOfType<ShopClosedDomainEvent>()
+            .Which.Should().Match<ShopClosedDomainEvent>(e =>
                 e.ShopId == ValidShopId &&
                 e.SellerId == ValidUserId);
     }

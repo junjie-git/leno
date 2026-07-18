@@ -1,9 +1,11 @@
 using FluentValidation;
+using Leno.Infrastructure.EventBus;
 using Leno.Order.Application;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
 using Leno.Order.Infrastructure.Consumers;
+using Leno.Order.Infrastructure.EventBus;
 using Leno.Order.Infrastructure.ReadModels;
 using Leno.Order.Infrastructure.Repositories;
 using Leno.Order.Infrastructure.Services;
@@ -38,6 +40,9 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // 领域事件 → 集成事件翻译器（Outbox 同事务发布时由 UnitOfWork 调用）
+        services.AddSingleton<IIntegrationEventMapper, OrderIntegrationEventMapper>();
 
         services.AddScoped<IOrderRepository, EfCoreOrderRepository>();
         services.AddScoped<ILogisticsCompanyRepository, EfCoreLogisticsCompanyRepository>();

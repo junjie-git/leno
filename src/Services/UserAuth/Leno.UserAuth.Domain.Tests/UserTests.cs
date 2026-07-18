@@ -300,7 +300,7 @@ public class UserTests
         user.ExternalLogins.First().Provider.Should().Be("google");
         user.ExternalLogins.First().ProviderUserId.Should().Be("google-123");
         user.DomainEvents.Should().HaveCount(1);
-        user.DomainEvents.Should().Contain(e => e is UserRegisteredEvent);
+        user.DomainEvents.Should().Contain(e => e is UserRegisteredDomainEvent);
     }
 
     [Fact]

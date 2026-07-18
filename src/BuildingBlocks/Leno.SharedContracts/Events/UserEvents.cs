@@ -1,14 +1,11 @@
-using Leno.SharedKernel.Abstractions;
-
 namespace Leno.SharedContracts.Events;
 
 /// <summary>
 /// 用户注册成功集成事件，用户域发布。
 /// 消费方：积分与会员域（创建积分账户与会员档案、发放新人积分）、消息通知域（欢迎通知）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class UserRegisteredEvent : IntegrationEventBase, IDomainEvent
+public sealed class UserRegisteredEvent : IntegrationEventBase
 {
     /// <summary>注册用户标识。</summary>
     public Guid UserId { get; init; }

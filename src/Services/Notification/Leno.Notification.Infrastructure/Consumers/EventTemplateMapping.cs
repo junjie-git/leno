@@ -17,10 +17,10 @@ public static class EventTemplateMapping
         ["PaymentFailedEvent"] = "payment_failed",
         ["AfterSalesApprovedEvent"] = "after_sales_approved",
         ["RefundCompletedEvent"] = "refund_completed",
-        ["SeckillOrderCreatedEvent"] = "seckill_order_created",
-        ["PointsEarnedEvent"] = "points_earned",
-        ["MemberLevelUpgradedEvent"] = "member_level_upgraded",
-        ["MembershipActivatedEvent"] = "membership_activated",
+        ["SeckillOrderCreatedIntegrationEvent"] = "seckill_order_created",
+        ["PointsEarnedIntegrationEvent"] = "points_earned",
+        ["MemberLevelChangedIntegrationEvent"] = "member_level_upgraded",
+        ["PaidMemberSubscribedIntegrationEvent"] = "membership_activated",
     };
 
     /// <summary>

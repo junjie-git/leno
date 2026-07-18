@@ -1,8 +1,8 @@
 using System.Globalization;
 using Leno.Product.Domain.Aggregates;
+using Leno.Product.Domain.Events;
 using Leno.Product.Domain.Exceptions;
 using Leno.Product.Domain.ValueObjects;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.ValueObjects;
 
 namespace Leno.Product.Domain.Tests;
@@ -629,7 +629,7 @@ public class SPUTests
 
         spu.UpdateStock(skuId, 50, "operator-1");
 
-        spu.DomainEvents.Should().Contain(e => e.GetType().Name == nameof(StockAdjustedEvent));
+        spu.DomainEvents.Should().Contain(e => e.GetType().Name == nameof(StockAdjustedDomainEvent));
     }
 
     [Fact]

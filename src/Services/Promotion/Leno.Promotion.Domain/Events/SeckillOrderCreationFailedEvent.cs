@@ -1,14 +1,14 @@
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.Promotion.Domain.Events;
 
 /// <summary>
-/// 秒杀订单创建失败集成事件，订单域消费 SeckillOrderCreatedEvent 后若创建订单失败则发布此事件。
-/// 消费方：促销域（回退 Redis 库存 + 回退 DB 基线）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便订单域经发件箱模式在同一事务内持久化。
+/// 秒杀订单创建失败领域事件。
+/// 实际发布方为订单域（经 <c>SeckillOrderCreationFailedIntegrationEvent</c> 集成事件），促销域消费后回退库存。
+/// 此处保留为 <see cref="DomainEventBase"/> 子类供促销域内部聚合（如未来扩展）收集使用，
+/// 当前无聚合收集，mapper 翻译规则为防御性注册。
 /// </summary>
-public sealed class SeckillOrderCreationFailedEvent : IntegrationEventBase, IDomainEvent
+public sealed class SeckillOrderCreationFailedEvent : DomainEventBase
 {
     /// <summary>秒杀活动标识。</summary>
     public Guid ActivityId { get; init; }
@@ -28,21 +28,13 @@ public sealed class SeckillOrderCreationFailedEvent : IntegrationEventBase, IDom
     /// <summary>下单数量。</summary>
     public int Quantity { get; init; }
 
-    /// <summary>聚合根标识，用于发件箱归类。</summary>
-    public Guid AggregateId => OrderId;
-
-    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
-    public SeckillOrderCreationFailedEvent() : base()
-    {
-    }
-
     public SeckillOrderCreationFailedEvent(
         Guid activityId,
         Guid skuId,
         Guid userId,
         Guid orderId,
         int quantity,
-        string reason) : base()
+        string reason) : base(orderId)
     {
         ActivityId = activityId;
         SkuId = skuId;

@@ -1,7 +1,6 @@
 using Leno.Product.Domain.Events;
 using Leno.Product.Domain.Exceptions;
 using Leno.Product.Domain.ValueObjects;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.SharedKernel.ValueObjects;
 
@@ -163,7 +162,7 @@ public sealed class SPU : AggregateRoot
     }
 
     /// <summary>
-    /// 审核通过上架，仅待审核态可调用，流转至已上架，附加跨域 <see cref="ProductPublishedEvent"/> 与本地 <see cref="ProductReviewedEvent"/>。
+    /// 审核通过上架，仅待审核态可调用，流转至已上架，附加跨域 <see cref="ProductPublishedDomainEvent"/> 与本地 <see cref="ProductReviewedEvent"/>。
     /// 同时追加审核历史记录。
     /// </summary>
     /// <param name="reviewedBy">审核人标识。</param>
@@ -191,8 +190,8 @@ public sealed class SPU : AggregateRoot
             reviewedBy.ToString(),
             operatorName ?? reviewedBy.ToString()));
 
-        // ProductPublishedEvent.SellerId 语义等同卖家与店铺管理域的 ShopId，故传 ShopId。
-        AddDomainEvent(new ProductPublishedEvent(Id, ShopId));
+        // ProductPublishedDomainEvent.SellerId 语义等同卖家与店铺管理域的 ShopId，故传 ShopId。
+        AddDomainEvent(new ProductPublishedDomainEvent(Id, ShopId));
         AddDomainEvent(new ProductReviewedEvent(Id, ProductStatus.OnSale, reviewedBy));
     }
 
@@ -230,7 +229,7 @@ public sealed class SPU : AggregateRoot
     }
 
     /// <summary>
-    /// 下架，仅已上架态可调用，流转至已下架，附加跨域 <see cref="ProductTakenDownEvent"/>。
+    /// 下架，仅已上架态可调用，流转至已下架，附加跨域 <see cref="ProductTakenDownDomainEvent"/>。
     /// </summary>
     /// <param name="reason">下架原因。</param>
     public void TakeDown(string reason)
@@ -245,8 +244,8 @@ public sealed class SPU : AggregateRoot
         Status = ProductStatus.TakenDown;
         SuspendedByShop = false;
 
-        // ProductTakenDownEvent.SellerId 语义等同卖家与店铺管理域的 ShopId，故传 ShopId。
-        AddDomainEvent(new ProductTakenDownEvent(Id, ShopId));
+        // ProductTakenDownDomainEvent.SellerId 语义等同卖家与店铺管理域的 ShopId，故传 ShopId。
+        AddDomainEvent(new ProductTakenDownDomainEvent(Id, ShopId));
     }
 
     /// <summary>
@@ -375,7 +374,7 @@ public sealed class SPU : AggregateRoot
     }
 
     /// <summary>
-    /// 店铺关闭事件驱动下架，已上架态流转至已下架并附加 <see cref="ProductTakenDownEvent"/>。
+    /// 店铺关闭事件驱动下架，已上架态流转至已下架并附加 <see cref="ProductTakenDownDomainEvent"/>。
     /// </summary>
     public void TakeDownForShopClosure(string reason)
     {
@@ -389,7 +388,7 @@ public sealed class SPU : AggregateRoot
         Status = ProductStatus.TakenDown;
         SuspendedByShop = false;
 
-        AddDomainEvent(new ProductTakenDownEvent(Id, ShopId));
+        AddDomainEvent(new ProductTakenDownDomainEvent(Id, ShopId));
     }
 
     #region Review Score
@@ -503,7 +502,7 @@ public sealed class SPU : AggregateRoot
     #region Stock Operations
 
     /// <summary>
-    /// 调整指定 SKU 的库存（delta 方式），校验结果 ≥ 0，记录操作日志并发布 <see cref="StockAdjustedEvent"/>。
+    /// 调整指定 SKU 的库存（delta 方式），校验结果 ≥ 0，记录操作日志并发布 <see cref="StockAdjustedDomainEvent"/>。
     /// </summary>
     /// <param name="skuId">SKU 标识。</param>
     /// <param name="delta">库存变动量（正数补货，负数扣减）。</param>
@@ -531,7 +530,7 @@ public sealed class SPU : AggregateRoot
             delta,
             newStock));
 
-        AddDomainEvent(new StockAdjustedEvent(skuId, Id, newStock, delta, DateTime.UtcNow));
+        AddDomainEvent(new StockAdjustedDomainEvent(Id, skuId, Id, newStock, delta, DateTime.UtcNow));
     }
 
     /// <summary>

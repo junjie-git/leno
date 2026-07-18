@@ -1,7 +1,7 @@
 using System.Globalization;
 using Leno.Notification.Domain.Services;
 using Leno.Notification.Domain.ValueObjects;
-using Leno.Promotion.Domain.Events;
+using Leno.SharedContracts.Events;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
@@ -10,7 +10,7 @@ namespace Leno.Notification.Infrastructure.Consumers;
 /// <summary>
 /// 促销事件消费者，消费秒杀成功事件发送通知。
 /// </summary>
-public sealed class PromotionEventConsumer : IConsumer<SeckillOrderCreatedEvent>
+public sealed class PromotionEventConsumer : IConsumer<SeckillOrderCreatedIntegrationEvent>
 {
     private readonly INotificationService _notificationService;
     private readonly ILogger<PromotionEventConsumer> _logger;
@@ -24,7 +24,7 @@ public sealed class PromotionEventConsumer : IConsumer<SeckillOrderCreatedEvent>
     }
 
     /// <inheritdoc />
-    public async Task Consume(ConsumeContext<SeckillOrderCreatedEvent> context)
+    public async Task Consume(ConsumeContext<SeckillOrderCreatedIntegrationEvent> context)
     {
         ArgumentNullException.ThrowIfNull(context);
         var evt = context.Message;
@@ -32,7 +32,7 @@ public sealed class PromotionEventConsumer : IConsumer<SeckillOrderCreatedEvent>
 
         var request = new NotificationRequest
         {
-            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(SeckillOrderCreatedEvent))!,
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(SeckillOrderCreatedIntegrationEvent))!,
             UserId = evt.UserId,
             IdempotencyKey = evt.EventId.ToString(),
             Variables = new Dictionary<string, string>

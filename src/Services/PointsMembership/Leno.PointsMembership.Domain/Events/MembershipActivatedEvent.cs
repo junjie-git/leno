@@ -1,14 +1,12 @@
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.PointsMembership.Domain.Events;
 
 /// <summary>
-/// 会员权益激活集成事件，会员订阅订单支付成功激活 UserMembership 时发布。
-/// 消费方：消息通知域（会员开通通知）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便经发件箱模式在同一事务内持久化。
+/// 会员权益激活领域事件，会员订阅订单支付成功激活 UserMembership 时发布。
+/// 经发件箱模式在同一事务内持久化，由 IntegrationEventMapper 翻译为 PaidMemberSubscribedIntegrationEvent 对外发布。
 /// </summary>
-public sealed class MembershipActivatedEvent : IntegrationEventBase, IDomainEvent
+public sealed class MembershipActivatedEvent : DomainEventBase
 {
     public Guid UserId { get; init; }
 
@@ -18,14 +16,8 @@ public sealed class MembershipActivatedEvent : IntegrationEventBase, IDomainEven
 
     public DateTime EndTime { get; init; }
 
-    public Guid AggregateId => UserId;
-
-    public MembershipActivatedEvent() : base()
-    {
-    }
-
     public MembershipActivatedEvent(Guid userId, Guid packageId, int level, DateTime endTime)
-        : base()
+        : base(userId)
     {
         UserId = userId;
         PackageId = packageId;

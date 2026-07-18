@@ -3,6 +3,7 @@ using Leno.SystemAdmin.Domain.Aggregates;
 using Leno.SystemAdmin.Domain.Events;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.ValueObjects;
+using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -76,7 +77,7 @@ public sealed class AnnouncementAppService : IAnnouncementAppService
         await _repository.UpdateAsync(entity, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
 
-        await _eventBus.PublishAsync(new AnnouncementPublishedEvent(entity.AnnouncementId, entity.Title, (int)entity.Type), ct);
+        await _eventBus.PublishAsync(new AnnouncementPublishedIntegrationEvent(entity.AnnouncementId, entity.Title, (int)entity.Type), ct);
 
         _logger.LogInformation("公告已发布：{AnnouncementId}", announcementId);
     }

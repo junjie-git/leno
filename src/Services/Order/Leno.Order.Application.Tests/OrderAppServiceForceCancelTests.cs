@@ -1,6 +1,7 @@
 using Leno.Order.Application.DTOs;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Aggregates;
+using Leno.Order.Domain.Events;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
@@ -16,7 +17,7 @@ namespace Leno.Order.Application.Tests;
 /// <summary>
 /// ForceCancel 改走 Outbox 同事务发布退款事件的单元测试。
 /// 验证 OrderAppService.ForceCancelAsync 不再直接调用 IEventBus.PublishAsync 发布
-/// RefundRequestedIntegrationEvent，而是通过聚合 AddDomainEvent + SaveEntitiesAsync 走 Outbox。
+/// RefundRequestedDomainEvent，而是通过聚合 AddDomainEvent + SaveEntitiesAsync 走 Outbox。
 /// </summary>
 public class OrderAppServiceForceCancelTests
 {
@@ -68,7 +69,7 @@ public class OrderAppServiceForceCancelTests
         _eventBusMock.Verify(b => b.PublishAsync(It.IsAny<RefundRequestedIntegrationEvent>(), It.IsAny<CancellationToken>()), Times.Never);
 
         // Assert: 退款事件作为领域事件挂在聚合上（由 Outbox 在 SaveEntitiesAsync 时持久化）
-        order.DomainEvents.OfType<RefundRequestedIntegrationEvent>().Should().HaveCount(1);
+        order.DomainEvents.OfType<RefundRequestedDomainEvent>().Should().HaveCount(1);
 
         // Assert: SaveEntitiesAsync 调用一次（Outbox 在此时同事务持久化）
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
@@ -86,7 +87,7 @@ public class OrderAppServiceForceCancelTests
         await _sut.ForceCancelAsync(OrderId, OperatorId, new ForceCancelOrderDto { Reason = "测试取消" }, CancellationToken.None);
 
         // Assert: 待支付订单无需退款
-        order.DomainEvents.OfType<RefundRequestedIntegrationEvent>().Should().BeEmpty();
+        order.DomainEvents.OfType<RefundRequestedDomainEvent>().Should().BeEmpty();
         _eventBusMock.Verify(b => b.PublishAsync(It.IsAny<RefundRequestedIntegrationEvent>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 

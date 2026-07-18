@@ -3,9 +3,7 @@ using Leno.Cart.Domain.Aggregates;
 using Leno.Cart.Domain.Exceptions;
 using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
-using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 using CartAggregate = Leno.Cart.Domain.Aggregates.Cart;
 
@@ -21,7 +19,6 @@ public sealed class CartAppService : ICartAppService
     private readonly ICartPriceService _priceService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAnonymousCartRepository _anonymousCartRepository;
-    private readonly IEventBus _eventBus;
     private readonly ILogger<CartAppService> _logger;
 
     public CartAppService(
@@ -29,20 +26,17 @@ public sealed class CartAppService : ICartAppService
         ICartPriceService priceService,
         IUnitOfWork unitOfWork,
         IAnonymousCartRepository anonymousCartRepository,
-        IEventBus eventBus,
         ILogger<CartAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(cartRepository);
         ArgumentNullException.ThrowIfNull(priceService);
         ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(anonymousCartRepository);
-        ArgumentNullException.ThrowIfNull(eventBus);
         ArgumentNullException.ThrowIfNull(logger);
         _cartRepository = cartRepository;
         _priceService = priceService;
         _unitOfWork = unitOfWork;
         _anonymousCartRepository = anonymousCartRepository;
-        _eventBus = eventBus;
         _logger = logger;
     }
 
@@ -178,14 +172,14 @@ public sealed class CartAppService : ICartAppService
         // 执行合并
         var mergedCount = userCart.MergeFrom(anonymousCart);
 
-        // 保存用户购物车
+        // 收集合并领域事件，由 UnitOfWork 的发件箱经 IIntegrationEventMapper 翻译为 CartMergedEvent 集成事件对外发布
+        userCart.RecordMergedEvent(anonymousId, mergedCount);
+
+        // 保存用户购物车（含发件箱事件落库）
         await _unitOfWork.SaveEntitiesAsync(ct);
 
         // 删除匿名购物车
         await _anonymousCartRepository.RemoveAsync(anonymousId, ct);
-
-        // 发布合并事件
-        await _eventBus.PublishAsync(new CartMergedEvent(userId, anonymousId, mergedCount), ct);
 
         return await BuildCartDtoAsync(userCart, ct);
     }

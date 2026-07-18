@@ -333,7 +333,7 @@ public class SeckillOrderCreationFailedEventConsumerTests
             _activityRepoMock.Object, _stockServiceMock.Object, _preOccupationRepoMock.Object,
             _unitOfWorkMock.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
 
-        var evt = new SeckillOrderCreationFailedEvent(activityId, skuId, Guid.NewGuid(), orderId, 5, "fail");
+        var evt = new SeckillOrderCreationFailedIntegrationEvent(activityId, skuId, Guid.NewGuid(), orderId, 5, "fail");
         await consumer.Consume(CreateConsumeContext(evt));
 
         _stockServiceMock.Verify(s => s.RestoreAsync(activityId, skuId, 5, It.IsAny<CancellationToken>()), Times.Once);

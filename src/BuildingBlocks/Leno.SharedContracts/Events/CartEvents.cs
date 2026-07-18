@@ -1,5 +1,3 @@
-using Leno.SharedKernel.Abstractions;
-
 namespace Leno.SharedContracts.Events;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace Leno.SharedContracts.Events;
 /// 消费方：数据分析域（用户行为追踪）、消息通知域（可选）。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class CartMergedEvent : IntegrationEventBase, IDomainEvent
+public sealed class CartMergedEvent : IntegrationEventBase
 {
     /// <summary>买家账号标识（用户域 UserId）。</summary>
     public Guid UserId { get; init; }

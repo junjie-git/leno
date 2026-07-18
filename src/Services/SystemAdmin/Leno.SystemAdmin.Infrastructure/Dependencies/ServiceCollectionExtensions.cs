@@ -1,4 +1,5 @@
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.EventBus;
 using Leno.SystemAdmin.Application;
 using Leno.SystemAdmin.Application.Abstractions;
 using Leno.SystemAdmin.Application.Services;
@@ -6,6 +7,7 @@ using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.Services;
 using Leno.SystemAdmin.Infrastructure.Cache;
 using Leno.SystemAdmin.Infrastructure.Consumers;
+using Leno.SystemAdmin.Infrastructure.EventBus;
 using Leno.SystemAdmin.Infrastructure.Jobs;
 using Leno.SystemAdmin.Infrastructure.Repositories;
 using Leno.SystemAdmin.Infrastructure.Services;
@@ -43,6 +45,9 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // 注册 SystemAdmin BC 领域事件到集成事件翻译器
+        services.AddSingleton<IIntegrationEventMapper, SystemAdminIntegrationEventMapper>();
 
         services.AddScoped<IOperatorRepository, EfCoreOperatorRepository>();
         services.AddScoped<ISystemConfigRepository, EfCoreSystemConfigRepository>();

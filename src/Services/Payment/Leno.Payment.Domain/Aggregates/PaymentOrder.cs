@@ -1,6 +1,6 @@
+using Leno.Payment.Domain.Events;
 using Leno.Payment.Domain.Exceptions;
 using Leno.Payment.Domain.ValueObjects;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.Payment.Domain.Aggregates;
@@ -138,7 +138,7 @@ public sealed class PaymentOrder : AggregateRoot
     }
 
     /// <summary>
-    /// 标记支付成功，校验状态合法（待支付或渠道已下单）且实付金额与本地金额一致，置已支付态并发布 <see cref="PaymentSucceededEvent"/>。
+    /// 标记支付成功，校验状态合法（待支付或渠道已下单）且实付金额与本地金额一致，置已支付态并发布 <see cref="PaymentSucceededDomainEvent"/>。
     /// </summary>
     /// <param name="channelTradeNo">第三方交易号。</param>
     /// <param name="amount">渠道回调/查询解析的实付金额（元），须与 <see cref="Amount"/> 一致。</param>
@@ -167,11 +167,11 @@ public sealed class PaymentOrder : AggregateRoot
         Status = PaymentStatus.Paid;
         ChannelTradeNo = channelTradeNo;
         PaidAt = paidAt;
-        AddDomainEvent(new PaymentSucceededEvent(OrderId, Id, UserId, Channel.ToString(), channelTradeNo, Amount, Currency, paidAt));
+        AddDomainEvent(new PaymentSucceededDomainEvent(OrderId, Id, UserId, Channel.ToString(), channelTradeNo, Amount, Currency, paidAt));
     }
 
     /// <summary>
-    /// 标记支付失败，校验状态合法（待支付或渠道已下单，不可为已支付/已关闭），置失败态并发布 <see cref="PaymentFailedEvent"/>。
+    /// 标记支付失败，校验状态合法（待支付或渠道已下单，不可为已支付/已关闭），置失败态并发布 <see cref="PaymentFailedDomainEvent"/>。
     /// </summary>
     /// <param name="reason">失败原因。</param>
     public void MarkFailed(string reason)
@@ -185,11 +185,11 @@ public sealed class PaymentOrder : AggregateRoot
 
         Status = PaymentStatus.Failed;
         FailReason = reason;
-        AddDomainEvent(new PaymentFailedEvent(OrderId, UserId, reason, DateTime.UtcNow));
+        AddDomainEvent(new PaymentFailedDomainEvent(OrderId, UserId, reason, DateTime.UtcNow));
     }
 
     /// <summary>
-    /// 标记关闭，校验状态合法（待支付、渠道已下单或已失败，不可为已支付），置已关闭态并发布 <see cref="PaymentClosedEvent"/>。
+    /// 标记关闭，校验状态合法（待支付、渠道已下单或已失败，不可为已支付），置已关闭态并发布 <see cref="PaymentClosedDomainEvent"/>。
     /// </summary>
     /// <param name="reason">关闭原因。</param>
     public void MarkClosed(string reason)
@@ -205,6 +205,6 @@ public sealed class PaymentOrder : AggregateRoot
 
         Status = PaymentStatus.Closed;
         FailReason = reason;
-        AddDomainEvent(new PaymentClosedEvent(Id, OrderId, reason, DateTime.UtcNow));
+        AddDomainEvent(new PaymentClosedDomainEvent(Id, OrderId, reason, DateTime.UtcNow));
     }
 }

@@ -1,9 +1,11 @@
 using FluentValidation;
+using Leno.Infrastructure.EventBus;
 using Leno.Product.Application;
 using Leno.Product.Application.Services;
 using Leno.Product.Domain.Repositories;
 using Leno.Product.Domain.Services;
 using Leno.Product.Infrastructure.Consumers;
+using Leno.Product.Infrastructure.EventBus;
 using Leno.Product.Infrastructure.ReadModels;
 using Leno.Product.Infrastructure.Repositories;
 using Leno.Product.Infrastructure.Services;
@@ -38,6 +40,9 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // 注册 Product BC 领域事件到集成事件翻译器
+        services.AddSingleton<IIntegrationEventMapper, ProductIntegrationEventMapper>();
 
         services.AddScoped<ISPURepository, EfCoreSPURepository>();
         services.AddScoped<ICategoryRepository, EfCoreCategoryRepository>();

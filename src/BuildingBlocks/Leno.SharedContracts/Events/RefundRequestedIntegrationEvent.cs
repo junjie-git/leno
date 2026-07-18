@@ -1,9 +1,8 @@
 using Leno.SharedContracts.Events;
-using Leno.SharedKernel.Abstractions;
 
 namespace Leno.SharedContracts.Events;
 
-public sealed class RefundRequestedIntegrationEvent : IntegrationEventBase, IDomainEvent
+public sealed class RefundRequestedIntegrationEvent : IntegrationEventBase
 {
     public Guid RefundId { get; init; }
     public Guid OrderId { get; init; }

@@ -257,6 +257,24 @@ public sealed class Cart : AggregateRoot
     }
 
     /// <summary>
+    /// 记录匿名购物车合并完成的领域事件。
+    /// 由应用层在调用 <see cref="MergeFrom"/> 后调用，聚合收集 <see cref="CartMergedDomainEvent"/>，
+    /// 经 UnitOfWork 的发件箱与 <c>IIntegrationEventMapper</c> 翻译为
+    /// <see cref="Leno.SharedContracts.Events.CartMergedEvent"/> 集成事件对外发布。
+    /// </summary>
+    /// <param name="anonymousId">匿名会话标识（合并前匿名购物车的 SessionId）。</param>
+    /// <param name="mergedItemCount">合并的购物车项数量。</param>
+    public void RecordMergedEvent(string anonymousId, int mergedItemCount)
+    {
+        if (string.IsNullOrWhiteSpace(anonymousId))
+        {
+            throw new ArgumentException("AnonymousId 不可为空", nameof(anonymousId));
+        }
+
+        AddDomainEvent(new CartMergedDomainEvent(Id, UserId, anonymousId, mergedItemCount));
+    }
+
+    /// <summary>
     /// 标记指定 SKU 的购物车项为无效（商品下架时调用），同时自动取消选中。
     /// 幂等：已标记无效的项重复标记无副作用。
     /// </summary>

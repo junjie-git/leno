@@ -1,7 +1,6 @@
 using Leno.Promotion.Domain.Events;
 using Leno.Promotion.Domain.Exceptions;
 using Leno.Promotion.Domain.ValueObjects;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.Promotion.Domain.Aggregates;
@@ -104,7 +103,7 @@ public sealed class UserCoupon : AggregateRoot
         UsedAt = null;
     }    public void RecordExchangeSucceeded(Guid exchangeId)
     {
-        AddDomainEvent(new CouponExchangeSucceededEvent(exchangeId, UserId, Id));
+        AddDomainEvent(new CouponExchangeSucceededDomainEvent(exchangeId, UserId, Id));
     }
 
 

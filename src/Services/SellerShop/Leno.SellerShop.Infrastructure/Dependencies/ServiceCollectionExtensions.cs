@@ -1,10 +1,12 @@
 using FluentValidation;
+using Leno.Infrastructure.EventBus;
 using Leno.SellerShop.Application;
 using Leno.SellerShop.Application.Services;
 using Leno.SellerShop.Domain.Repositories;
 using Leno.SellerShop.Domain.Services;
 using Leno.SellerShop.Infrastructure.BackgroundServices;
 using Leno.SellerShop.Infrastructure.Consumers;
+using Leno.SellerShop.Infrastructure.EventBus;
 using Leno.SellerShop.Infrastructure.Repositories;
 using Leno.SellerShop.Infrastructure.Services;
 using Leno.SharedKernel.Abstractions;
@@ -41,6 +43,9 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // 注册 SellerShop BC 领域事件到集成事件翻译器
+        services.AddSingleton<IIntegrationEventMapper, SellerShopIntegrationEventMapper>();
 
         services.AddScoped<IShopRepository, EfCoreShopRepository>();
         services.AddScoped<ISellerProfileRepository, EfCoreSellerProfileRepository>();

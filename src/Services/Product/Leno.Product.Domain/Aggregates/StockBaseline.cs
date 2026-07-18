@@ -1,5 +1,5 @@
+using Leno.Product.Domain.Events;
 using Leno.Product.Domain.Exceptions;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.Product.Domain.Aggregates;
@@ -7,7 +7,7 @@ namespace Leno.Product.Domain.Aggregates;
 /// <summary>
 /// SKU 库存基线聚合根，权威持有 SKU 的可用、预占与扣减库存。
 /// 高频预占由订单域在 Redis 完成，本聚合通过消费订单域库存事件同步基线（最终一致）。
-/// 卖家补货/盘点修正直接操作本聚合并发布 <see cref="StockAdjustedEvent"/>。
+/// 卖家补货/盘点修正直接操作本聚合并发布 <see cref="StockAdjustedDomainEvent"/>。
 /// </summary>
 public sealed class StockBaseline : AggregateRoot
 {
@@ -61,7 +61,7 @@ public sealed class StockBaseline : AggregateRoot
     }
 
     /// <summary>
-    /// 补货，可用库存上调并发布 <see cref="StockAdjustedEvent"/> 通知订单域同步。
+    /// 补货，可用库存上调并发布 <see cref="StockAdjustedDomainEvent"/> 通知订单域同步。
     /// </summary>
     /// <param name="qty">补货数量，须 > 0。</param>
     public void Replenish(int qty)
@@ -73,7 +73,7 @@ public sealed class StockBaseline : AggregateRoot
 
         AvailableQty += qty;
 
-        AddDomainEvent(new StockAdjustedEvent(SkuId, Guid.Empty, AvailableQty, qty, DateTime.UtcNow));
+        AddDomainEvent(new StockAdjustedDomainEvent(Id, SkuId, Guid.Empty, AvailableQty, qty, DateTime.UtcNow));
     }
 
     /// <summary>

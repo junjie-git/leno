@@ -1,8 +1,10 @@
 using FluentValidation;
+using Leno.Infrastructure.EventBus;
 using Leno.PointsMembership.Application;
 using Leno.PointsMembership.Application.Services;
 using Leno.PointsMembership.Domain.Repositories;
 using Leno.PointsMembership.Domain.Services;
+using Leno.PointsMembership.Infrastructure.EventBus;
 using Leno.PointsMembership.Infrastructure.Repositories;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
@@ -35,6 +37,9 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // 注册 PointsMembership BC 领域事件到集成事件翻译器
+        services.AddSingleton<IIntegrationEventMapper, PointsMembershipIntegrationEventMapper>();
 
         services.AddScoped<IPointsAccountRepository, EfCorePointsAccountRepository>();
         services.AddScoped<ICheckInRecordRepository, EfCoreCheckInRecordRepository>();

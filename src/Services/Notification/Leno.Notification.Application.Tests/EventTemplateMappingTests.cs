@@ -5,9 +5,9 @@ namespace Leno.Notification.Application.Tests;
 public class EventTemplateMappingTests
 {
     [Fact]
-    public void Mappings_ShouldHaveAll12Entries()
+    public void Mappings_ShouldHaveAll13Entries()
     {
-        EventTemplateMapping.Mappings.Count.Should().Be(12);
+        EventTemplateMapping.Mappings.Count.Should().Be(13);
     }
 
     [Theory]
@@ -15,14 +15,15 @@ public class EventTemplateMappingTests
     [InlineData("OrderCreatedEvent", "order_created")]
     [InlineData("OrderShippedEvent", "order_shipped")]
     [InlineData("OrderCompletedEvent", "order_completed")]
+    [InlineData("OrderCancelledEvent", "order_cancelled")]
     [InlineData("PaymentSucceededEvent", "payment_succeeded")]
     [InlineData("PaymentFailedEvent", "payment_failed")]
     [InlineData("AfterSalesApprovedEvent", "after_sales_approved")]
     [InlineData("RefundCompletedEvent", "refund_completed")]
-    [InlineData("SeckillOrderCreatedEvent", "seckill_order_created")]
-    [InlineData("PointsEarnedEvent", "points_earned")]
-    [InlineData("MemberLevelUpgradedEvent", "member_level_upgraded")]
-    [InlineData("MembershipActivatedEvent", "membership_activated")]
+    [InlineData("SeckillOrderCreatedIntegrationEvent", "seckill_order_created")]
+    [InlineData("PointsEarnedIntegrationEvent", "points_earned")]
+    [InlineData("MemberLevelChangedIntegrationEvent", "member_level_upgraded")]
+    [InlineData("PaidMemberSubscribedIntegrationEvent", "membership_activated")]
     public void GetTemplateCode_ShouldReturnCorrectCode(string eventType, string expectedTemplateCode)
     {
         var result = EventTemplateMapping.GetTemplateCode(eventType);

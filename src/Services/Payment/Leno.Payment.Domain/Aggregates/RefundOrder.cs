@@ -1,6 +1,6 @@
+using Leno.Payment.Domain.Events;
 using Leno.Payment.Domain.Exceptions;
 using Leno.Payment.Domain.ValueObjects;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.Payment.Domain.Aggregates;
@@ -130,7 +130,7 @@ public sealed class RefundOrder : AggregateRoot
     }
 
     /// <summary>
-    /// 标记退款成功，校验退款中态，置成功态并发布 <see cref="RefundCompletedEvent"/>（被订单域消费释放预占库存）。
+    /// 标记退款成功，校验退款中态，置成功态并发布 <see cref="RefundCompletedDomainEvent"/>（被订单域消费释放预占库存）。
     /// </summary>
     /// <param name="channelRefundNo">第三方退款单号。</param>
     /// <param name="refundedAt">退款到账时间（UTC）。</param>
@@ -151,11 +151,11 @@ public sealed class RefundOrder : AggregateRoot
         Status = RefundStatus.Succeeded;
         ChannelRefundNo = channelRefundNo;
         RefundedAt = refundedAt;
-        AddDomainEvent(new RefundCompletedEvent(OrderId, UserId, Id, RefundAmount, Currency, refundedAt));
+        AddDomainEvent(new RefundCompletedDomainEvent(OrderId, UserId, Id, AfterSalesId, RefundAmount, Currency, refundedAt));
     }
 
     /// <summary>
-    /// 标记退款失败，校验退款中态，置失败态并发布 <see cref="RefundFailedEvent"/>。
+    /// 标记退款失败，校验退款中态，置失败态并发布 <see cref="RefundFailedDomainEvent"/>。
     /// </summary>
     /// <param name="reason">失败原因。</param>
     public void MarkFailed(string reason)
@@ -169,6 +169,6 @@ public sealed class RefundOrder : AggregateRoot
 
         Status = RefundStatus.Failed;
         FailReason = reason;
-        AddDomainEvent(new RefundFailedEvent(Id, OrderId, AfterSalesId, reason, DateTime.UtcNow));
+        AddDomainEvent(new RefundFailedDomainEvent(Id, OrderId, AfterSalesId, reason, DateTime.UtcNow));
     }
 }

@@ -1,4 +1,5 @@
 using FluentValidation;
+using Leno.Infrastructure.EventBus;
 using Leno.SharedKernel.Abstractions;
 using Leno.UserAuth.Application;
 using Leno.UserAuth.Application.Abstractions;
@@ -7,6 +8,7 @@ using Leno.UserAuth.Domain.Repositories;
 using Leno.UserAuth.Domain.Services;
 using Leno.UserAuth.Infrastructure.Audit;
 using Leno.UserAuth.Infrastructure.Auth;
+using Leno.UserAuth.Infrastructure.EventBus;
 using Leno.UserAuth.Infrastructure.Repositories;
 using Leno.UserAuth.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +46,9 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // 注册 UserAuth BC 领域事件到集成事件翻译器
+        services.AddSingleton<IIntegrationEventMapper, UserAuthIntegrationEventMapper>();
 
         services.AddScoped<IUserRepository, EfCoreUserRepository>();
         services.AddScoped<IAddressRepository, EfCoreAddressRepository>();

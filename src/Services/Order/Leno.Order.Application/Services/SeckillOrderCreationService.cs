@@ -2,7 +2,7 @@ using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
-using Leno.Promotion.Domain.Events;
+using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
@@ -10,7 +10,7 @@ using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
 namespace Leno.Order.Application.Services;
 
 /// <summary>
-/// 秒杀订单创建服务，消费 SeckillOrderCreatedEvent 后创建 OrderType.Seckill 订单。
+/// 秒杀订单创建服务，消费 SeckillOrderCreatedIntegrationEvent 后创建 OrderType.Seckill 订单。
 /// 复用秒杀事件携带的 OrderId（已由 Promotion 域预占），不重新生成。
 /// </summary>
 public sealed class SeckillOrderCreationService
@@ -35,7 +35,7 @@ public sealed class SeckillOrderCreationService
         _logger = logger;
     }
 
-    public async Task CreateSeckillOrderAsync(SeckillOrderCreatedEvent evt, CancellationToken ct = default)
+    public async Task CreateSeckillOrderAsync(SeckillOrderCreatedIntegrationEvent evt, CancellationToken ct = default)
     {
         try
         {
@@ -84,11 +84,11 @@ public sealed class SeckillOrderCreationService
         }
     }
 
-    private async Task PublishFailedEventAsync(SeckillOrderCreatedEvent evt, string reason, CancellationToken ct)
+    private async Task PublishFailedEventAsync(SeckillOrderCreatedIntegrationEvent evt, string reason, CancellationToken ct)
     {
         // 失败回执通过 IEventBus 发布（无聚合可挂领域事件）
         // 注：此处使用 IEventBus 是合理的，因为失败路径无聚合状态变更需要同事务
-        // 实际实现时注入 IEventBus 后发布 SeckillOrderCreationFailedEvent
+        // 实际实现时注入 IEventBus 后发布 SeckillOrderCreationFailedIntegrationEvent
         _logger.LogWarning("秒杀订单创建失败，发布失败回执 OrderId={OrderId} Reason={Reason}", evt.OrderId, reason);
         await Task.CompletedTask; // 占位，实际注入 IEventBus 后调用 PublishAsync
     }

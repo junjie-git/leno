@@ -1,14 +1,12 @@
 using Leno.SharedContracts.Events;
-using Leno.SharedKernel.Abstractions;
 
 namespace Leno.SharedContracts.Events;
 
 /// <summary>
 /// 商品发布集成事件，商品域发布，卖家域消费维护店铺商品数 +1。
-/// 同时实现 <see cref="IDomainEvent"/> 以便商品域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class ProductPublishedEvent : IntegrationEventBase, IDomainEvent
+public sealed class ProductPublishedEvent : IntegrationEventBase
 {
     /// <summary>商品标识。</summary>
     public Guid ProductId { get; init; }
@@ -40,10 +38,9 @@ public sealed class ProductPublishedEvent : IntegrationEventBase, IDomainEvent
 
 /// <summary>
 /// 商品下架集成事件，商品域发布，卖家域消费维护店铺商品数 -1。
-/// 同时实现 <see cref="IDomainEvent"/> 以便商品域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class ProductTakenDownEvent : IntegrationEventBase, IDomainEvent
+public sealed class ProductTakenDownEvent : IntegrationEventBase
 {
     /// <summary>商品标识。</summary>
     public Guid ProductId { get; init; }
@@ -76,10 +73,9 @@ public sealed class ProductTakenDownEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 库存调整集成事件，商品域发布。
 /// 消费方：订单域（同步库存基线）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便商品域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class StockAdjustedEvent : IntegrationEventBase, IDomainEvent
+public sealed class StockAdjustedEvent : IntegrationEventBase
 {
     /// <summary>SKU 标识。</summary>
     public Guid SkuId { get; init; }
@@ -117,10 +113,9 @@ public sealed class StockAdjustedEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 商品更新集成事件，商品域在商品信息变更时发布。
 /// 消费方：购物车域（刷新展示快照）、搜索域（同步 ES 读模型）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便商品域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class ProductUpdatedEvent : IntegrationEventBase, IDomainEvent
+public sealed class ProductUpdatedEvent : IntegrationEventBase
 {
     /// <summary>商品标识。</summary>
     public Guid ProductId { get; init; }

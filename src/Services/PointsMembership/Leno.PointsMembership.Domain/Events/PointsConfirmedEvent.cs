@@ -1,13 +1,12 @@
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.PointsMembership.Domain.Events;
 
 /// <summary>
-/// 积分确认扣减集成事件，支付成功确认冻结积分时发布。
-/// 同时实现 <see cref="IDomainEvent"/> 以便经发件箱模式在同一事务内持久化。
+/// 积分确认扣减领域事件，支付成功确认冻结积分时发布。
+/// 上下文内部领域事件，当前无跨上下文消费方，不翻译为集成事件。
 /// </summary>
-public sealed class PointsConfirmedEvent : IntegrationEventBase, IDomainEvent
+public sealed class PointsConfirmedEvent : DomainEventBase
 {
     public Guid AccountId { get; init; }
 
@@ -17,14 +16,8 @@ public sealed class PointsConfirmedEvent : IntegrationEventBase, IDomainEvent
 
     public Guid OrderId { get; init; }
 
-    public Guid AggregateId => AccountId;
-
-    public PointsConfirmedEvent() : base()
-    {
-    }
-
     public PointsConfirmedEvent(Guid accountId, Guid userId, int amount, Guid orderId)
-        : base()
+        : base(accountId)
     {
         AccountId = accountId;
         UserId = userId;

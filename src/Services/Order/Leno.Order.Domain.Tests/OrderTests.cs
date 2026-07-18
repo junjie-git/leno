@@ -1,5 +1,5 @@
-using Leno.SharedContracts.Events;
 using Leno.Order.Domain.Aggregates;
+using Leno.Order.Domain.Events;
 using Leno.Order.Domain.Exceptions;
 using Leno.Order.Domain.ValueObjects;
 using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
@@ -348,9 +348,9 @@ public class OrderTests
         order.PaymentMethod.Should().Be(PaymentMethod.Alipay);
         // 订单状态保持待支付（不引入中间状态，仅置标记）
         order.Status.Should().Be(OrderStatus.PendingPayment);
-        // 领域事件含 PaymentRequestedIntegrationEvent，供 Outbox 同事务发布
-        order.DomainEvents.Should().Contain(e => e is PaymentRequestedIntegrationEvent);
-        var evt = order.DomainEvents.OfType<PaymentRequestedIntegrationEvent>().Single();
+        // 领域事件含 PaymentRequestedDomainEvent，供 Outbox 同事务发布
+        order.DomainEvents.Should().Contain(e => e is PaymentRequestedDomainEvent);
+        var evt = order.DomainEvents.OfType<PaymentRequestedDomainEvent>().Single();
         evt.OrderId.Should().Be(order.Id);
         evt.UserId.Should().Be(order.UserId);
         evt.Amount.Should().Be(order.TotalAmount);
@@ -366,8 +366,8 @@ public class OrderTests
         var act = () => order.MarkPaymentInitiated(PaymentMethod.Alipay);
 
         act.Should().Throw<OrderDomainException>().WithMessage("*已发起*");
-        // 重复发起不应再次产生 PaymentRequestedIntegrationEvent
-        order.DomainEvents.OfType<PaymentRequestedIntegrationEvent>().Should().HaveCount(1);
+        // 重复发起不应再次产生 PaymentRequestedDomainEvent
+        order.DomainEvents.OfType<PaymentRequestedDomainEvent>().Should().HaveCount(1);
     }
 
     [Fact]
@@ -536,8 +536,8 @@ public class OrderTests
 
         order.ForceCancel("Fraudulent", "Admin-001");
 
-        order.DomainEvents.Should().Contain(e => e is OrderCancelledEvent);
-        var evt = order.DomainEvents.OfType<OrderCancelledEvent>().Last();
+        order.DomainEvents.Should().Contain(e => e is OrderCancelledDomainEvent);
+        var evt = order.DomainEvents.OfType<OrderCancelledDomainEvent>().Last();
         evt.CancelledBy.Should().Be("Admin-001");
         evt.CancelReason.Should().Be("Fraudulent");
     }
@@ -626,7 +626,7 @@ public class OrderTests
         order.CloseAfterSalesWindow();
 
         order.Status.Should().Be(OrderStatus.Closed);
-        order.DomainEvents.Should().Contain(e => e is OrderAfterSalesWindowClosedEvent);
+        order.DomainEvents.Should().Contain(e => e is OrderAfterSalesWindowClosedDomainEvent);
     }
 
     [Fact]
@@ -671,7 +671,7 @@ public class OrderTests
         order.Status.Should().Be(OrderStatus.Completed);
         order.CompletedAt.Should().NotBeNull();
         order.AfterSalesWindowEndsAt.Should().Be(order.CompletedAt!.Value);
-        order.DomainEvents.Should().Contain(e => e is OrderCompletedEvent);
+        order.DomainEvents.Should().Contain(e => e is OrderCompletedDomainEvent);
     }
 
     [Fact]

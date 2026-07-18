@@ -1,5 +1,4 @@
 using Leno.SharedContracts.Events;
-using Leno.SharedKernel.Abstractions;
 
 namespace Leno.SharedContracts.Events;
 
@@ -7,10 +6,9 @@ namespace Leno.SharedContracts.Events;
 /// 售后申请提交集成事件，评价与售后域在售后单创建时发布。
 /// 消费方：卖家/运营处理队列、消息通知域。
 /// Type 为 int 而非枚举，因共享契约层不可引用领域层枚举；发布方按 (int)AfterSalesType 转换。
-/// 同时实现 <see cref="IDomainEvent"/> 以便售后域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class AfterSalesSubmittedEvent : IntegrationEventBase, IDomainEvent
+public sealed class AfterSalesSubmittedEvent : IntegrationEventBase
 {
     /// <summary>售后单标识。</summary>
     public Guid AfterSalesId { get; init; }
@@ -69,10 +67,9 @@ public sealed class AfterSalesSubmittedEvent : IntegrationEventBase, IDomainEven
 /// 售后审核同意集成事件，评价与售后域在售后单审核通过时发布。
 /// 消费方：消息通知域（通知买家退货/退款）。
 /// Type 为 int 而非枚举，因共享契约层不可引用领域层枚举。
-/// 同时实现 <see cref="IDomainEvent"/> 以便售后域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class AfterSalesApprovedEvent : IntegrationEventBase, IDomainEvent
+public sealed class AfterSalesApprovedEvent : IntegrationEventBase
 {
     /// <summary>售后单标识。</summary>
     public Guid AfterSalesId { get; init; }
@@ -125,9 +122,8 @@ public sealed class AfterSalesApprovedEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 售后驳回集成事件，评价与售后域在售后单被驳回时发布。
 /// 消费方：消息通知域（通知买家驳回原因）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便售后域经发件箱模式在同一事务内持久化。
 /// </summary>
-public sealed class AfterSalesRejectedEvent : IntegrationEventBase, IDomainEvent
+public sealed class AfterSalesRejectedEvent : IntegrationEventBase
 {
     /// <summary>售后单标识。</summary>
     public Guid AfterSalesId { get; init; }
@@ -160,9 +156,8 @@ public sealed class AfterSalesRejectedEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 买家退货集成事件，评价与售后域在买家寄回商品后发布。
 /// 消费方：消息通知域（通知卖家确认收货）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便售后域经发件箱模式在同一事务内持久化。
 /// </summary>
-public sealed class AfterSalesReturnedEvent : IntegrationEventBase, IDomainEvent
+public sealed class AfterSalesReturnedEvent : IntegrationEventBase
 {
     /// <summary>售后单标识。</summary>
     public Guid AfterSalesId { get; init; }
@@ -195,9 +190,8 @@ public sealed class AfterSalesReturnedEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 卖家确认收货集成事件，评价与售后域在卖家确认收到退货后发布。
 /// 消费方：消息通知域（通知买家退货已确认）、支付域（准备退款）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便售后域经发件箱模式在同一事务内持久化。
 /// </summary>
-public sealed class AfterSalesReturnConfirmedEvent : IntegrationEventBase, IDomainEvent
+public sealed class AfterSalesReturnConfirmedEvent : IntegrationEventBase
 {
     /// <summary>售后单标识。</summary>
     public Guid AfterSalesId { get; init; }

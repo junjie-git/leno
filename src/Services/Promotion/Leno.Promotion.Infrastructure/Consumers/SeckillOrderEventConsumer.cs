@@ -1,7 +1,7 @@
 using Leno.Infrastructure.EventBus;
-using Leno.Promotion.Domain.Events;
 using Leno.Promotion.Domain.Repositories;
 using Leno.Promotion.Domain.Services;
+using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 using Leno.Infrastructure.Abstractions;
@@ -11,8 +11,9 @@ namespace Leno.Promotion.Infrastructure.Consumers;
 /// <summary>
 /// 秒杀订单创建失败事件消费者，回退 Redis 库存与 DB 基线。
 /// 通过 EventId 幂等去重（Redis 24h）。
+/// 消费订单域发布的 SeckillOrderCreationFailedIntegrationEvent 集成事件。
 /// </summary>
-public sealed class SeckillOrderCreationFailedEventConsumer : IntegrationEventConsumerBase<SeckillOrderCreationFailedEvent>
+public sealed class SeckillOrderCreationFailedEventConsumer : IntegrationEventConsumerBase<SeckillOrderCreationFailedIntegrationEvent>
 {
     private readonly ISeckillActivityRepository _activityRepository;
     private readonly ISeckillStockService _stockService;
@@ -39,7 +40,7 @@ public sealed class SeckillOrderCreationFailedEventConsumer : IntegrationEventCo
     }
 
     /// <inheritdoc />
-    protected override async Task HandleAsync(SeckillOrderCreationFailedEvent integrationEvent, CancellationToken ct)
+    protected override async Task HandleAsync(SeckillOrderCreationFailedIntegrationEvent integrationEvent, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
@@ -71,8 +72,9 @@ public sealed class SeckillOrderCreationFailedEventConsumer : IntegrationEventCo
 /// <summary>
 /// 秒杀订单确认事件消费者，标记预占记录为已履约。
 /// 通过 EventId 幂等去重（Redis 24h）。
+/// 消费订单域发布的 SeckillOrderConfirmedIntegrationEvent 集成事件。
 /// </summary>
-public sealed class SeckillOrderConfirmedEventConsumer : IntegrationEventConsumerBase<SeckillOrderConfirmedEvent>
+public sealed class SeckillOrderConfirmedEventConsumer : IntegrationEventConsumerBase<SeckillOrderConfirmedIntegrationEvent>
 {
     private readonly ISeckillPreOccupationRecordRepository _preOccupationRecordRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -91,7 +93,7 @@ public sealed class SeckillOrderConfirmedEventConsumer : IntegrationEventConsume
     }
 
     /// <inheritdoc />
-    protected override async Task HandleAsync(SeckillOrderConfirmedEvent integrationEvent, CancellationToken ct)
+    protected override async Task HandleAsync(SeckillOrderConfirmedIntegrationEvent integrationEvent, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 

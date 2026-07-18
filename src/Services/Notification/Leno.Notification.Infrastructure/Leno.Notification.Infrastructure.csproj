@@ -5,8 +5,6 @@
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedKernel\Leno.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts\Leno.SharedContracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.Infrastructure\Leno.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\Promotion\Leno.Promotion.Domain\Leno.Promotion.Domain.csproj" />
-    <ProjectReference Include="..\..\PointsMembership\Leno.PointsMembership.Domain\Leno.PointsMembership.Domain.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MailKit" Version="4.17.0" />

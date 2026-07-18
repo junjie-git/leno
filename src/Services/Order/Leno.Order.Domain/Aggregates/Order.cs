@@ -1,7 +1,6 @@
+using Leno.Order.Domain.Events;
 using Leno.Order.Domain.Exceptions;
 using Leno.Order.Domain.ValueObjects;
-using Leno.Promotion.Domain.Events;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.Order.Domain.Aggregates;
@@ -205,7 +204,7 @@ public sealed class Order : AggregateRoot
             .Select(i => i.SourceCartItemId!.Value)
             .ToList();
 
-        order.AddDomainEvent(new OrderCreatedEvent(orderId, userId, sellerId, order.TotalAmount, "CNY", DateTime.UtcNow, sourceCartItemIds));
+        order.AddDomainEvent(new OrderCreatedDomainEvent(orderId, userId, sellerId, order.TotalAmount, "CNY", DateTime.UtcNow, sourceCartItemIds));
 
         return order;
     }
@@ -321,7 +320,7 @@ public sealed class Order : AggregateRoot
         PaymentInitiated = true;
         PaymentInitiatedAt = DateTime.UtcNow;
 
-        AddDomainEvent(new PaymentRequestedIntegrationEvent(
+        AddDomainEvent(new PaymentRequestedDomainEvent(
             Id, UserId, TotalAmount, "CNY", paymentMethod.ToString(), PaymentInitiatedAt.Value));
     }
 
@@ -345,7 +344,7 @@ public sealed class Order : AggregateRoot
         PaymentId = paymentId;
         PaidAt = paidAt;
         TradeNo = tradeNo;
-        AddDomainEvent(new OrderPaidEvent(Id, UserId, SellerId ?? Guid.Empty, paymentId, channel, paidAt, tradeNo, TotalAmount, "CNY"));
+        AddDomainEvent(new OrderPaidDomainEvent(Id, UserId, SellerId ?? Guid.Empty, paymentId, channel, paidAt, tradeNo, TotalAmount, "CNY"));
     }
 
     /// <summary>
@@ -378,7 +377,7 @@ public sealed class Order : AggregateRoot
         LogisticsNo = logisticsNo;
         LogisticsCompanyCode = logisticsCompanyCode;
         ShippedAt = shippedAt;
-        AddDomainEvent(new OrderShippedEvent(Id, UserId, SellerId ?? Guid.Empty, logisticsNo, shippedAt));
+        AddDomainEvent(new OrderShippedDomainEvent(Id, UserId, SellerId ?? Guid.Empty, logisticsNo, shippedAt));
     }
 
     /// <summary>
@@ -396,7 +395,7 @@ public sealed class Order : AggregateRoot
         Status = OrderStatus.Completed;
         CompletedAt = DateTime.UtcNow;
         AfterSalesWindowEndsAt = CompletedAt.Value.AddDays(7);
-        AddDomainEvent(new OrderCompletedEvent(Id, UserId, SellerId ?? Guid.Empty, TotalAmount, "CNY", CompletedAt.Value));
+        AddDomainEvent(new OrderCompletedDomainEvent(Id, UserId, SellerId ?? Guid.Empty, TotalAmount, "CNY", CompletedAt.Value));
     }
 
     /// <summary>
@@ -419,7 +418,7 @@ public sealed class Order : AggregateRoot
         Status = OrderStatus.Completed;
         CompletedAt = DateTime.UtcNow;
         AfterSalesWindowEndsAt = CompletedAt.Value;
-        AddDomainEvent(new OrderCompletedEvent(Id, UserId, SellerId ?? Guid.Empty, TotalAmount, "CNY", CompletedAt.Value));
+        AddDomainEvent(new OrderCompletedDomainEvent(Id, UserId, SellerId ?? Guid.Empty, TotalAmount, "CNY", CompletedAt.Value));
     }
 
     /// <summary>
@@ -442,7 +441,7 @@ public sealed class Order : AggregateRoot
         }
 
         Status = OrderStatus.Closed;
-        AddDomainEvent(new OrderAfterSalesWindowClosedEvent(Id, UserId, TotalAmount, AfterSalesWindowEndsAt!.Value));
+        AddDomainEvent(new OrderAfterSalesWindowClosedDomainEvent(Id, UserId, TotalAmount, AfterSalesWindowEndsAt!.Value));
     }
 
     /// <summary>
@@ -462,7 +461,7 @@ public sealed class Order : AggregateRoot
         Status = OrderStatus.Cancelled;
         CancelReason = reason;
         CancelledAt = DateTime.UtcNow;
-        AddDomainEvent(new OrderCancelledEvent(Id, SellerId ?? Guid.Empty, reason, CancelledAt.Value, cancelledBy, (int)Math.Round(PointsOffsetAmount * 100)));
+        AddDomainEvent(new OrderCancelledDomainEvent(Id, SellerId ?? Guid.Empty, reason, CancelledAt.Value, cancelledBy, (int)Math.Round(PointsOffsetAmount * 100)));
     }
 
     /// <summary>
@@ -482,7 +481,7 @@ public sealed class Order : AggregateRoot
         Status = OrderStatus.Cancelled;
         CancelReason = reason;
         CancelledAt = DateTime.UtcNow;
-        AddDomainEvent(new OrderCancelledEvent(Id, SellerId ?? Guid.Empty, reason, CancelledAt.Value, operatorId, (int)Math.Round(PointsOffsetAmount * 100)));
+        AddDomainEvent(new OrderCancelledDomainEvent(Id, SellerId ?? Guid.Empty, reason, CancelledAt.Value, operatorId, (int)Math.Round(PointsOffsetAmount * 100)));
     }
 
     /// <summary>
@@ -506,7 +505,7 @@ public sealed class Order : AggregateRoot
         {
             throw new OrderDomainException("无支付单不可发起退款", "ORDER_REFUND_NO_PAYMENT");
         }
-        AddDomainEvent(new RefundRequestedIntegrationEvent(
+        AddDomainEvent(new RefundRequestedDomainEvent(
             refundId, Id, UserId, Id, // 强制取消无售后单，AfterSalesId 复用 OrderId
             PaymentId.Value, refundAmount, currency, channel, reason));
     }
@@ -520,7 +519,7 @@ public sealed class Order : AggregateRoot
         {
             throw new OrderDomainException("仅秒杀订单可追加秒杀确认事件", "ORDER_NOT_SECKILL");
         }
-        AddDomainEvent(new SeckillOrderConfirmedEvent(activityId, Id));
+        AddDomainEvent(new SeckillOrderConfirmedDomainEvent(activityId, Id));
     }
 
     /// <summary>

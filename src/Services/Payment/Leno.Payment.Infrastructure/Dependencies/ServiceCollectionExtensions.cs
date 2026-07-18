@@ -1,3 +1,4 @@
+using Leno.Infrastructure.EventBus;
 using Leno.Payment.Application;
 using Leno.Payment.Application.Services;
 using Leno.Payment.Domain.Repositories;
@@ -7,6 +8,7 @@ using Leno.Payment.Infrastructure.Channels.Alipay;
 using Leno.Payment.Infrastructure.Channels.WeChatPay;
 using Leno.Payment.Infrastructure.Config;
 using Leno.Payment.Infrastructure.Consumers;
+using Leno.Payment.Infrastructure.EventBus;
 using Leno.Payment.Infrastructure.Jobs;
 using Leno.Payment.Infrastructure.Notify;
 using Leno.Payment.Infrastructure.Repositories;
@@ -42,6 +44,9 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // 注册 Payment BC 领域事件到集成事件翻译器
+        services.AddSingleton<IIntegrationEventMapper, PaymentIntegrationEventMapper>();
 
         services.AddScoped<IPaymentOrderRepository, EfCorePaymentOrderRepository>();
         services.AddScoped<IRefundOrderRepository, EfCoreRefundOrderRepository>();

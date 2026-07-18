@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.UserAuth.Domain.Events;
 using Leno.UserAuth.Domain.Exceptions;
@@ -71,7 +70,7 @@ public sealed partial class User : AggregateRoot
     private User(Guid id) : base(id) { }
 
     /// <summary>
-    /// 工厂方法，创建处于 Active 状态的账户，初始角色为 Buyer，附加 <see cref="UserRegisteredEvent"/>。
+    /// 工厂方法，创建处于 Active 状态的账户，初始角色为 Buyer，附加 <see cref="UserRegisteredDomainEvent"/>。
     /// 密码哈希由应用层在调用前生成。
     /// </summary>
     public static User Create(
@@ -113,13 +112,12 @@ public sealed partial class User : AggregateRoot
         };
         user._roles.Add(new UserRole(RoleType.Buyer));
 
-        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Username, user.Email, user.PhoneNumber));
-
+        user.AddDomainEvent(new UserRegisteredDomainEvent(user.Id, user.Username, user.Email, user.PhoneNumber));
         return user;
     }
 
     /// <summary>
-    /// 校验密码，失败时累加 <see cref="FailedLoginCount"/>，达阈值调用 <see cref="Lock"/>。
+    /// 工厂方法，创建 OAuth2 用户。校验密码，失败时累加 <see cref="FailedLoginCount"/>，达阈值调用 <see cref="Lock"/>。
     /// </summary>
     public bool VerifyPassword(string plainPassword, IPasswordHasher hasher)
     {
@@ -367,7 +365,7 @@ public sealed partial class User : AggregateRoot
 
     /// <summary>
     /// 从外部登录信息创建 OAuth 用户（无密码、无手机号）。
-    /// 用户名从邮箱前缀生成，初始角色为 Buyer，附加 <see cref="UserRegisteredEvent"/>。
+    /// 用户名从邮箱前缀生成，初始角色为 Buyer，附加 <see cref="UserRegisteredDomainEvent"/>。
     /// </summary>
     public static User CreateFromExternal(Guid id, ExternalLoginInfo info)
     {
@@ -401,7 +399,7 @@ public sealed partial class User : AggregateRoot
         user._roles.Add(new UserRole(RoleType.Buyer));
         user._externalLogins.Add(new ExternalLogin(info.Provider, info.ProviderUserId, info.Email, info.Name, info.AvatarUrl));
 
-        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Username, user.Email, user.PhoneNumber));
+        user.AddDomainEvent(new UserRegisteredDomainEvent(user.Id, user.Username, user.Email, user.PhoneNumber));
 
         return user;
     }

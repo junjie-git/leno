@@ -3,6 +3,7 @@ using Leno.SystemAdmin.Domain.Aggregates;
 using Leno.SystemAdmin.Domain.Events;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.ValueObjects;
+using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -49,7 +50,7 @@ public sealed class SystemConfigAppService : ISystemConfigAppService
         await _repository.AddAsync(entity, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
 
-        await _eventBus.PublishAsync(new ConfigChangedEvent(entity.ConfigId, entity.Key, entity.Value), ct);
+        await _eventBus.PublishAsync(new ConfigChangedIntegrationEvent(entity.ConfigId, entity.Key, entity.Value), ct);
 
         _logger.LogInformation("系统配置已创建：{ConfigId}（Key={ConfigKey}）", configId, entity.Key);
         return ToDto(entity);
@@ -66,7 +67,7 @@ public sealed class SystemConfigAppService : ISystemConfigAppService
         await _repository.UpdateAsync(entity, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
 
-        await _eventBus.PublishAsync(new ConfigChangedEvent(entity.ConfigId, entity.Key, entity.Value), ct);
+        await _eventBus.PublishAsync(new ConfigChangedIntegrationEvent(entity.ConfigId, entity.Key, entity.Value), ct);
 
         _logger.LogInformation("系统配置已更新：{ConfigId}（Key={ConfigKey}）", configId, entity.Key);
         return ToDto(entity);

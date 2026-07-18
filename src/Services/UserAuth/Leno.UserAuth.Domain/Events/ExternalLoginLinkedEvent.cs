@@ -1,13 +1,12 @@
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.UserAuth.Domain.Events;
 
 /// <summary>
-/// 外部登录绑定成功集成事件。
+/// 外部登录绑定成功领域事件。
 /// 消费方：审计域。
 /// </summary>
-public sealed class ExternalLoginLinkedEvent : IntegrationEventBase, IDomainEvent
+public sealed class ExternalLoginLinkedEvent : DomainEventBase
 {
     /// <summary>用户标识。</summary>
     public Guid UserId { get; init; }
@@ -21,16 +20,8 @@ public sealed class ExternalLoginLinkedEvent : IntegrationEventBase, IDomainEven
     /// <summary>绑定时间（UTC）。</summary>
     public DateTime LinkedAt { get; init; }
 
-    /// <summary>聚合根标识。</summary>
-    public Guid AggregateId => UserId;
-
-    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
-    public ExternalLoginLinkedEvent() : base()
-    {
-    }
-
     public ExternalLoginLinkedEvent(Guid userId, string provider, string providerUserId)
-        : base()
+        : base(userId)
     {
         UserId = userId;
         Provider = provider;

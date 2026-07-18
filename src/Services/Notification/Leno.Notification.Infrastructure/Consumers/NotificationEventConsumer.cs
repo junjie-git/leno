@@ -1,8 +1,6 @@
 using System.Globalization;
 using Leno.Notification.Domain.Services;
 using Leno.Notification.Domain.ValueObjects;
-using Leno.PointsMembership.Domain.Events;
-using Leno.Promotion.Domain.Events;
 using Leno.SharedContracts.Events;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -21,10 +19,10 @@ public sealed class NotificationEventConsumer :
     IConsumer<PaymentFailedEvent>,
     IConsumer<AfterSalesApprovedEvent>,
     IConsumer<RefundCompletedEvent>,
-    IConsumer<SeckillOrderCreatedEvent>,
-    IConsumer<PointsEarnedEvent>,
-    IConsumer<MemberLevelUpgradedEvent>,
-    IConsumer<MembershipActivatedEvent>,
+    IConsumer<SeckillOrderCreatedIntegrationEvent>,
+    IConsumer<PointsEarnedIntegrationEvent>,
+    IConsumer<MemberLevelChangedIntegrationEvent>,
+    IConsumer<PaidMemberSubscribedIntegrationEvent>,
     IConsumer<UserRegisteredEvent>
 {
     private readonly INotificationService _notificationService;
@@ -97,8 +95,8 @@ public sealed class NotificationEventConsumer :
             ["currency"] = evt.Currency
         });
 
-    public Task Consume(ConsumeContext<SeckillOrderCreatedEvent> context) =>
-        HandleAsync(context.Message, nameof(SeckillOrderCreatedEvent), evt => evt.UserId, evt => new Dictionary<string, string>
+    public Task Consume(ConsumeContext<SeckillOrderCreatedIntegrationEvent> context) =>
+        HandleAsync(context.Message, nameof(SeckillOrderCreatedIntegrationEvent), evt => evt.UserId, evt => new Dictionary<string, string>
         {
             ["orderId"] = evt.OrderId.ToString(),
             ["spuId"] = evt.SpuId.ToString(),
@@ -108,22 +106,22 @@ public sealed class NotificationEventConsumer :
             ["currency"] = evt.Currency
         });
 
-    public Task Consume(ConsumeContext<PointsEarnedEvent> context) =>
-        HandleAsync(context.Message, nameof(PointsEarnedEvent), evt => evt.UserId, evt => new Dictionary<string, string>
+    public Task Consume(ConsumeContext<PointsEarnedIntegrationEvent> context) =>
+        HandleAsync(context.Message, nameof(PointsEarnedIntegrationEvent), evt => evt.UserId, evt => new Dictionary<string, string>
         {
             ["amount"] = evt.Amount.ToString(CultureInfo.InvariantCulture),
             ["source"] = evt.Source
         });
 
-    public Task Consume(ConsumeContext<MemberLevelUpgradedEvent> context) =>
-        HandleAsync(context.Message, nameof(MemberLevelUpgradedEvent), evt => evt.UserId, evt => new Dictionary<string, string>
+    public Task Consume(ConsumeContext<MemberLevelChangedIntegrationEvent> context) =>
+        HandleAsync(context.Message, nameof(MemberLevelChangedIntegrationEvent), evt => evt.UserId, evt => new Dictionary<string, string>
         {
             ["oldLevel"] = evt.OldLevel.ToString(CultureInfo.InvariantCulture),
             ["newLevel"] = evt.NewLevel.ToString(CultureInfo.InvariantCulture)
         });
 
-    public Task Consume(ConsumeContext<MembershipActivatedEvent> context) =>
-        HandleAsync(context.Message, nameof(MembershipActivatedEvent), evt => evt.UserId, evt => new Dictionary<string, string>
+    public Task Consume(ConsumeContext<PaidMemberSubscribedIntegrationEvent> context) =>
+        HandleAsync(context.Message, nameof(PaidMemberSubscribedIntegrationEvent), evt => evt.UserId, evt => new Dictionary<string, string>
         {
             ["level"] = evt.Level.ToString(CultureInfo.InvariantCulture),
             ["endTime"] = evt.EndTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),

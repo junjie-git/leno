@@ -1,15 +1,13 @@
 using Leno.SharedContracts.Events;
-using Leno.SharedKernel.Abstractions;
 
 namespace Leno.SharedContracts.Events;
 
 /// <summary>
 /// 评价提交集成事件，评价与售后域在评价提交时发布。
 /// 消费方：商品域（回写商品评分摘要 score、reviewCount、好评率）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便评价域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class ReviewSubmittedEvent : IntegrationEventBase, IDomainEvent
+public sealed class ReviewSubmittedEvent : IntegrationEventBase
 {
     /// <summary>评价标识。</summary>
     public Guid ReviewId { get; init; }
@@ -59,10 +57,9 @@ public sealed class ReviewSubmittedEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 评价审核通过集成事件，评价与售后域在运营审核通过评价时发布。
 /// 消费方：积分域（驱动积分发放）、商品域（重算评分摘要）、消息通知域。
-/// 同时实现 <see cref="IDomainEvent"/> 以便评价域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class ReviewApprovedEvent : IntegrationEventBase, IDomainEvent
+public sealed class ReviewApprovedEvent : IntegrationEventBase
 {
     /// <summary>评价标识。</summary>
     public Guid ReviewId { get; init; }
@@ -96,10 +93,9 @@ public sealed class ReviewApprovedEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 评价隐藏集成事件，评价与售后域在运营隐藏违规评价时发布。
 /// 消费方：商品域（重算评分摘要，隐藏后从统计中移除）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便评价域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class ReviewHiddenEvent : IntegrationEventBase, IDomainEvent
+public sealed class ReviewHiddenEvent : IntegrationEventBase
 {
     /// <summary>评价标识。</summary>
     public Guid ReviewId { get; init; }
@@ -130,10 +126,9 @@ public sealed class ReviewHiddenEvent : IntegrationEventBase, IDomainEvent
 /// 评价审核结果集成事件，评价与售后域在运营审核（通过/隐藏）后发布。
 /// 消费方：商品域（重算评分摘要）、消息通知域。
 /// Status 为 int 而非枚举，因共享契约层不可引用领域层枚举；发布方按 (int)ReviewStatus 转换。
-/// 同时实现 <see cref="IDomainEvent"/> 以便评价域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class ReviewModeratedEvent : IntegrationEventBase, IDomainEvent
+public sealed class ReviewModeratedEvent : IntegrationEventBase
 {
     /// <summary>评价标识。</summary>
     public Guid ReviewId { get; init; }

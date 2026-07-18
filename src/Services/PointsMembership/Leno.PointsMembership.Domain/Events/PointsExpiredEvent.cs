@@ -1,14 +1,12 @@
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.PointsMembership.Domain.Events;
 
 /// <summary>
-/// 积分过期集成事件，积分账户中过期积分被清理时发布。
-/// 消费方：消息通知域（积分过期通知）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便经发件箱模式在同一事务内持久化。
+/// 积分过期领域事件，积分账户中过期积分被清理时发布。
+/// 上下文内部领域事件，当前无跨上下文消费方，不翻译为集成事件。
 /// </summary>
-public sealed class PointsExpiredEvent : IntegrationEventBase, IDomainEvent
+public sealed class PointsExpiredEvent : DomainEventBase
 {
     /// <summary>所属用户标识。</summary>
     public Guid UserId { get; init; }
@@ -19,16 +17,8 @@ public sealed class PointsExpiredEvent : IntegrationEventBase, IDomainEvent
     /// <summary>过期时间（UTC）。</summary>
     public DateTime ExpiredAt { get; init; }
 
-    /// <summary>聚合根标识，用于发件箱归类。</summary>
-    public Guid AggregateId => UserId;
-
-    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
-    public PointsExpiredEvent() : base()
-    {
-    }
-
     public PointsExpiredEvent(Guid userId, int points, DateTime expiredAt)
-        : base()
+        : base(userId)
     {
         UserId = userId;
         Points = points;

@@ -1,5 +1,5 @@
 using Leno.Infrastructure.Outbox;
-using Leno.SellerShop.Domain.Events;
+using Leno.SharedContracts.Events;
 using Leno.SellerShop.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,7 +10,7 @@ namespace Leno.SellerShop.Infrastructure.BackgroundServices;
 
 /// <summary>
 /// 资质到期提醒后台服务，每日扫描即将到期的已通过资质（30/7/1 天），
-/// 发布 <see cref="QualificationExpiringEvent"/> 集成事件经发件箱供通知域消费。
+/// 发布 <see cref="QualificationExpiringIntegrationEvent"/> 集成事件经发件箱供通知域消费。
 /// </summary>
 public sealed class QualificationExpiryReminder : BackgroundService
 {
@@ -83,7 +83,7 @@ public sealed class QualificationExpiryReminder : BackgroundService
                     continue;
                 }
 
-                var domainEvent = new QualificationExpiringEvent(
+                var integrationEvent = new QualificationExpiringIntegrationEvent(
                     qualification.Id,
                     qualification.ShopId,
                     shop.SellerId,
@@ -92,7 +92,7 @@ public sealed class QualificationExpiryReminder : BackgroundService
                     qualification.ValidTo,
                     days);
 
-                var outboxMessage = OutboxMessage.Create(domainEvent);
+                var outboxMessage = OutboxMessage.Create(integrationEvent);
                 dbContext.OutboxMessages.Add(outboxMessage);
 
                 _logger.LogInformation(

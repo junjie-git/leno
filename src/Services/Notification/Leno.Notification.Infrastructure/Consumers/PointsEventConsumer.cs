@@ -1,19 +1,19 @@
 using System.Globalization;
 using Leno.Notification.Domain.Services;
 using Leno.Notification.Domain.ValueObjects;
-using Leno.PointsMembership.Domain.Events;
+using Leno.SharedContracts.Events;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.Notification.Infrastructure.Consumers;
 
 /// <summary>
-/// 积分与会员事件消费者，消费积分到账、会员升级、会员激活事件发送通知。
+/// 积分与会员事件消费者，消费积分到账、会员等级变更、会员订阅激活事件发送通知。
 /// </summary>
 public sealed class PointsEventConsumer :
-    IConsumer<PointsEarnedEvent>,
-    IConsumer<MemberLevelUpgradedEvent>,
-    IConsumer<MembershipActivatedEvent>
+    IConsumer<PointsEarnedIntegrationEvent>,
+    IConsumer<MemberLevelChangedIntegrationEvent>,
+    IConsumer<PaidMemberSubscribedIntegrationEvent>
 {
     private readonly INotificationService _notificationService;
     private readonly ILogger<PointsEventConsumer> _logger;
@@ -27,7 +27,7 @@ public sealed class PointsEventConsumer :
     }
 
     /// <inheritdoc />
-    public async Task Consume(ConsumeContext<PointsEarnedEvent> context)
+    public async Task Consume(ConsumeContext<PointsEarnedIntegrationEvent> context)
     {
         ArgumentNullException.ThrowIfNull(context);
         var evt = context.Message;
@@ -35,7 +35,7 @@ public sealed class PointsEventConsumer :
 
         var request = new NotificationRequest
         {
-            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(PointsEarnedEvent))!,
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(PointsEarnedIntegrationEvent))!,
             UserId = evt.UserId,
             IdempotencyKey = evt.EventId.ToString(),
             Variables = new Dictionary<string, string>
@@ -49,15 +49,15 @@ public sealed class PointsEventConsumer :
     }
 
     /// <inheritdoc />
-    public async Task Consume(ConsumeContext<MemberLevelUpgradedEvent> context)
+    public async Task Consume(ConsumeContext<MemberLevelChangedIntegrationEvent> context)
     {
         ArgumentNullException.ThrowIfNull(context);
         var evt = context.Message;
-        _logger.LogInformation("消费会员升级事件 EventId={EventId} UserId={UserId} OldLevel={OldLevel} NewLevel={NewLevel}", evt.EventId, evt.UserId, evt.OldLevel, evt.NewLevel);
+        _logger.LogInformation("消费会员等级变更事件 EventId={EventId} UserId={UserId} OldLevel={OldLevel} NewLevel={NewLevel}", evt.EventId, evt.UserId, evt.OldLevel, evt.NewLevel);
 
         var request = new NotificationRequest
         {
-            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(MemberLevelUpgradedEvent))!,
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(MemberLevelChangedIntegrationEvent))!,
             UserId = evt.UserId,
             IdempotencyKey = evt.EventId.ToString(),
             Variables = new Dictionary<string, string>
@@ -71,15 +71,15 @@ public sealed class PointsEventConsumer :
     }
 
     /// <inheritdoc />
-    public async Task Consume(ConsumeContext<MembershipActivatedEvent> context)
+    public async Task Consume(ConsumeContext<PaidMemberSubscribedIntegrationEvent> context)
     {
         ArgumentNullException.ThrowIfNull(context);
         var evt = context.Message;
-        _logger.LogInformation("消费会员激活事件 EventId={EventId} UserId={UserId} Level={Level}", evt.EventId, evt.UserId, evt.Level);
+        _logger.LogInformation("消费付费会员订阅事件 EventId={EventId} UserId={UserId} Level={Level}", evt.EventId, evt.UserId, evt.Level);
 
         var request = new NotificationRequest
         {
-            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(MembershipActivatedEvent))!,
+            TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(PaidMemberSubscribedIntegrationEvent))!,
             UserId = evt.UserId,
             IdempotencyKey = evt.EventId.ToString(),
             Variables = new Dictionary<string, string>

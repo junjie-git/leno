@@ -6,8 +6,10 @@ using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
 using Leno.Cart.Infrastructure.Caching;
 using Leno.Cart.Infrastructure.Consumers;
+using Leno.Cart.Infrastructure.EventBus;
 using Leno.Cart.Infrastructure.Repositories;
 using Leno.Cart.Infrastructure.Services;
+using Leno.Infrastructure.EventBus;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -39,6 +41,9 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // 注册 Cart BC 领域事件到集成事件翻译器
+        services.AddSingleton<IIntegrationEventMapper, CartIntegrationEventMapper>();
 
         services.AddScoped<ICartRepository, EfCoreCartRepository>();
 

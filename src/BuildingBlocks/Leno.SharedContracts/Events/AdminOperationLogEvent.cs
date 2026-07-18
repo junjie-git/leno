@@ -1,12 +1,11 @@
 using Leno.SharedContracts.Events;
-using Leno.SharedKernel.Abstractions;
 
 namespace Leno.SharedContracts.Events;
 
 /// <summary>
 /// 运营操作日志事件，由各业务域在运营操作后发布，供系统管理域消费并持久化操作日志。
 /// </summary>
-public sealed class AdminOperationLogEvent : IntegrationEventBase, IDomainEvent
+public sealed class AdminOperationLogEvent : IntegrationEventBase
 {
     /// <summary>操作人员标识。</summary>
     public Guid OperatorId { get; init; }

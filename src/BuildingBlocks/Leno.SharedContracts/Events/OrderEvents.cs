@@ -1,15 +1,13 @@
 using Leno.SharedContracts.Events;
-using Leno.SharedKernel.Abstractions;
 
 namespace Leno.SharedContracts.Events;
 
 /// <summary>
 /// 订单创建集成事件，订单域发布。
 /// 消费方：购物车域（清空已结算项）、促销域（锁定优惠券）、积分与会员域（冻结积分）、消息通知域（下单成功通知）、MQ 延迟消息（30 分钟超时取消）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便订单域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class OrderCreatedEvent : IntegrationEventBase, IDomainEvent
+public sealed class OrderCreatedEvent : IntegrationEventBase
 {
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
@@ -63,7 +61,7 @@ public sealed class OrderCreatedEvent : IntegrationEventBase, IDomainEvent
 /// 订单完成集成事件，订单域发布，卖家域消费维护店铺销量与销售额。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class OrderCompletedEvent : IntegrationEventBase, IDomainEvent
+public sealed class OrderCompletedEvent : IntegrationEventBase
 {
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
@@ -107,10 +105,9 @@ public sealed class OrderCompletedEvent : IntegrationEventBase, IDomainEvent
 /// 订单支付成功集成事件，订单域消费 <c>PaymentSucceededIntegrationEvent</c> 后发布。
 /// 消费方：促销域（核销优惠券）、积分与会员域（正式扣减冻结抵现积分/开通会员）、
 /// 卖家域（通知发货）、消息通知域（支付成功通知）、库存（确认真实扣减）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便订单域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class OrderPaidEvent : IntegrationEventBase, IDomainEvent
+public sealed class OrderPaidEvent : IntegrationEventBase
 {
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
@@ -174,10 +171,9 @@ public sealed class OrderPaidEvent : IntegrationEventBase, IDomainEvent
 /// 订单取消集成事件，订单域在待支付态取消时发布（买家主动取消或支付超时自动取消）。
 /// 消费方：促销域（退还锁定优惠券）、积分与会员域（释放冻结抵现积分）、
 /// 库存（释放预占）、消息通知域（取消通知）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便订单域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class OrderCancelledEvent : IntegrationEventBase, IDomainEvent
+public sealed class OrderCancelledEvent : IntegrationEventBase
 {
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
@@ -225,10 +221,9 @@ public sealed class OrderCancelledEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 订单发货集成事件，订单域在卖家发货时发布。
 /// 消费方：消息通知域（发货通知）、卖家域（待发货数 -1）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便订单域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class OrderShippedEvent : IntegrationEventBase, IDomainEvent
+public sealed class OrderShippedEvent : IntegrationEventBase
 {
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
@@ -267,10 +262,9 @@ public sealed class OrderShippedEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 订单售后窗口关闭集成事件，订单域在售后窗口结束时发布。
 /// 消费方：积分与会员域（确认发放购物积分）、卖家域（结算货款）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便订单域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class OrderAfterSalesWindowClosedEvent : IntegrationEventBase, IDomainEvent
+public sealed class OrderAfterSalesWindowClosedEvent : IntegrationEventBase
 {
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
@@ -305,10 +299,9 @@ public sealed class OrderAfterSalesWindowClosedEvent : IntegrationEventBase, IDo
 /// <summary>
 /// 支付请求集成事件，订单域在待支付订单发起支付时发布。
 /// 消费方：支付域（创建支付单并拉起第三方支付）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便订单域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class PaymentRequestedIntegrationEvent : IntegrationEventBase, IDomainEvent
+public sealed class PaymentRequestedIntegrationEvent : IntegrationEventBase
 {
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }

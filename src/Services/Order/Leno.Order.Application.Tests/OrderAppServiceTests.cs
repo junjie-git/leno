@@ -2,6 +2,7 @@ using Leno.Order.Application.DTOs;
 using Leno.Order.Application.Messages;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Aggregates;
+using Leno.Order.Domain.Events;
 using Leno.Order.Domain.Exceptions;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
@@ -246,10 +247,10 @@ public class OrderAppServiceTests
 
         await _sut.PayAsync(OrderId, UserId, new PayOrderDto { PaymentMethod = PaymentMethod.WeChatPay });
 
-        // 聚合标记已置位，领域事件含 PaymentRequestedIntegrationEvent（经 Outbox 同事务发布）
+        // 聚合标记已置位，领域事件含 PaymentRequestedDomainEvent（经 Outbox 同事务发布）
         order.PaymentInitiated.Should().BeTrue();
         order.PaymentMethod.Should().Be(PaymentMethod.WeChatPay);
-        order.DomainEvents.Should().Contain(e => e is PaymentRequestedIntegrationEvent);
+        order.DomainEvents.Should().Contain(e => e is PaymentRequestedDomainEvent);
 
         // 不再直接调用 _eventBus.PublishAsync；经 Outbox 持久化
         _eventBusMock.Verify(e => e.PublishAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Never);

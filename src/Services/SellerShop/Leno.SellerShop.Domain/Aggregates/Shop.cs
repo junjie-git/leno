@@ -1,6 +1,6 @@
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.SellerShop.Domain.Entities;
+using Leno.SellerShop.Domain.Events;
 using Leno.SellerShop.Domain.Exceptions;
 using Leno.SellerShop.Domain.ValueObjects;
 
@@ -70,7 +70,7 @@ public sealed class Shop : AggregateRoot
     private Shop(Guid id) : base(id) { }
 
     /// <summary>
-    /// 工厂方法，卖家提交入驻申请时创建店铺，置状态为待审核，附加 <see cref="SellerRegisteredEvent"/>。
+    /// 工厂方法，卖家提交入驻申请时创建店铺，置状态为待审核，附加 <see cref="SellerRegisteredDomainEvent"/>。
     /// </summary>
     /// <param name="shopId">店铺标识，由应用层生成。</param>
     /// <param name="userId">卖家账号标识（用户域 UserId）。</param>
@@ -125,13 +125,13 @@ public sealed class Shop : AggregateRoot
         };
 
         // 卖家入驻申请提交：sellerId 与 userId 均引用用户域 UserId（卖家即用户）。
-        shop.AddDomainEvent(new SellerRegisteredEvent(shop.Id, userId, userId, shop.ShopName));
+        shop.AddDomainEvent(new SellerRegisteredDomainEvent(shop.Id, userId, userId, shop.ShopName));
 
         return shop;
     }
 
     /// <summary>
-    /// 审核通过，仅待审核态可调用，流转至营业中，附加 <see cref="ShopApprovedEvent"/>。
+    /// 审核通过，仅待审核态可调用，流转至营业中，附加 <see cref="ShopApprovedDomainEvent"/>。
     /// </summary>
     /// <param name="reviewedBy">审核人标识。</param>
     public void Approve(Guid reviewedBy)
@@ -151,7 +151,7 @@ public sealed class Shop : AggregateRoot
         ReviewedBy = reviewedBy;
         StatusReason = null;
 
-        AddDomainEvent(new ShopApprovedEvent(Id, SellerId, ShopName));
+        AddDomainEvent(new ShopApprovedDomainEvent(Id, SellerId, ShopName));
     }
 
     /// <summary>
@@ -180,7 +180,7 @@ public sealed class Shop : AggregateRoot
     }
 
     /// <summary>
-    /// 暂停店铺，仅营业中态可调用，流转至暂停，附加 <see cref="ShopSuspendedEvent"/>。
+    /// 暂停店铺，仅营业中态可调用，流转至暂停，附加 <see cref="ShopSuspendedDomainEvent"/>。
     /// 暂停后店铺商品不可售新单，既有订单正常履约。
     /// </summary>
     /// <param name="reason">暂停原因。</param>
@@ -197,11 +197,11 @@ public sealed class Shop : AggregateRoot
         Status = ShopStatus.Suspended;
         StatusReason = reason.Trim();
 
-        AddDomainEvent(new ShopSuspendedEvent(Id, SellerId));
+        AddDomainEvent(new ShopSuspendedDomainEvent(Id, SellerId));
     }
 
     /// <summary>
-    /// 恢复店铺，仅暂停态可调用，流转至营业中，附加 <see cref="ShopResumedEvent"/>。
+    /// 恢复店铺，仅暂停态可调用，流转至营业中，附加 <see cref="ShopResumedDomainEvent"/>。
     /// </summary>
     public void Resume()
     {
@@ -214,11 +214,11 @@ public sealed class Shop : AggregateRoot
         Status = ShopStatus.Active;
         StatusReason = null;
 
-        AddDomainEvent(new ShopResumedEvent(Id, SellerId));
+        AddDomainEvent(new ShopResumedDomainEvent(Id, SellerId));
     }
 
     /// <summary>
-    /// 关闭店铺，任意非关闭态可调用，流转至已关闭（终态），附加 <see cref="ShopClosedEvent"/>。
+    /// 关闭店铺，任意非关闭态可调用，流转至已关闭（终态），附加 <see cref="ShopClosedDomainEvent"/>。
     /// 关闭后店铺不可恢复经营，商品全部下架。
     /// </summary>
     /// <param name="reason">关闭原因。</param>
@@ -234,7 +234,7 @@ public sealed class Shop : AggregateRoot
         Status = ShopStatus.Closed;
         StatusReason = reason.Trim();
 
-        AddDomainEvent(new ShopClosedEvent(Id, SellerId));
+        AddDomainEvent(new ShopClosedDomainEvent(Id, SellerId));
     }
 
     /// <summary>

@@ -7,7 +7,7 @@ using Leno.Order.Infrastructure;
 using Leno.Order.Infrastructure.Consumers;
 using Leno.Order.Infrastructure.Repositories;
 using Leno.Order.Infrastructure.Services;
-using Leno.Promotion.Domain.Events;
+using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.Testing.Fixtures;
 using MassTransit;
@@ -19,7 +19,7 @@ using Xunit;
 namespace Leno.Order.Infrastructure.Tests.Integration;
 
 /// <summary>
-/// 秒杀下单全流程集成测试：覆盖 Promotion 发布 SeckillOrderCreatedEvent → Order BC 消费 → 创建订单。
+/// 秒杀下单全流程集成测试：覆盖 Promotion 发布 SeckillOrderCreatedIntegrationEvent → Order BC 消费 → 创建订单。
 /// 依赖 Plan 1 F1.1 已补建 SeckillOrderCreatedEventConsumer。
 /// </summary>
 public class SeckillOrderFlowIntegrationTests : CrossBcIntegrationTestBase<OrderDbContext>
@@ -73,14 +73,14 @@ public class SeckillOrderFlowIntegrationTests : CrossBcIntegrationTestBase<Order
         var seckillPrice = 99.9m;
         var quantity = 1;
 
-        // Act：发布 SeckillOrderCreatedEvent 到 TestHarness
-        await TestHarness.Bus.Publish(new SeckillOrderCreatedEvent(
+        // Act：发布 SeckillOrderCreatedIntegrationEvent 到 TestHarness
+        await TestHarness.Bus.Publish(new SeckillOrderCreatedIntegrationEvent(
             activityId, spuId, skuId, userId, expectedOrderId, seckillPrice, quantity));
 
         // Assert：消费者收到事件
         using var consumedCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var consumed = await TestHarness.Consumed.Any<SeckillOrderCreatedEvent>(consumedCts.Token);
-        consumed.Should().BeTrue("SeckillOrderCreatedEventConsumer 应消费 SeckillOrderCreatedEvent");
+        var consumed = await TestHarness.Consumed.Any<SeckillOrderCreatedIntegrationEvent>(consumedCts.Token);
+        consumed.Should().BeTrue("SeckillOrderCreatedEventConsumer 应消费 SeckillOrderCreatedIntegrationEvent");
 
         // Assert：订单已创建
         await using var scope = ServiceProvider.CreateAsyncScope();

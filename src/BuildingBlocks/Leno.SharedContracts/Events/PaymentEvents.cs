@@ -1,5 +1,4 @@
 using Leno.SharedContracts.Events;
-using Leno.SharedKernel.Abstractions;
 
 namespace Leno.SharedContracts.Events;
 
@@ -7,10 +6,9 @@ namespace Leno.SharedContracts.Events;
 /// 支付成功集成事件，支付域在第三方支付成功回调后发布。
 /// 消费方：订单域（标记已支付）、促销域（核销优惠券）、积分与会员域（正式扣减冻结积分/开通会员）、
 /// 卖家域（通知发货）、库存（确认真实扣减）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便支付域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class PaymentSucceededEvent : IntegrationEventBase, IDomainEvent
+public sealed class PaymentSucceededEvent : IntegrationEventBase
 {
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
@@ -68,10 +66,9 @@ public sealed class PaymentSucceededEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 支付失败集成事件，支付域在支付失败时发布。
 /// 消费方：订单域（记录失败原因，订单保持待支付可重试）、消息通知域（支付失败通知）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便支付域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class PaymentFailedEvent : IntegrationEventBase, IDomainEvent
+public sealed class PaymentFailedEvent : IntegrationEventBase
 {
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
@@ -105,10 +102,9 @@ public sealed class PaymentFailedEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 退款完成集成事件，支付域在退款到账后发布。
 /// 消费方：订单域（更新订单退款状态）、卖家域（扣减结算货款）、消息通知域（退款到账通知）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便支付域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class RefundCompletedEvent : IntegrationEventBase, IDomainEvent
+public sealed class RefundCompletedEvent : IntegrationEventBase
 {
     /// <summary>订单标识。</summary>
     public Guid OrderId { get; init; }
@@ -169,10 +165,9 @@ public sealed class RefundCompletedEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 支付单关闭集成事件，支付域在关闭支付单（超时/主动关闭）时发布。
 /// 消费方：订单域（取消订单释放预占资源）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便支付域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class PaymentClosedEvent : IntegrationEventBase, IDomainEvent
+public sealed class PaymentClosedEvent : IntegrationEventBase
 {
     /// <summary>支付单标识。</summary>
     public Guid PaymentId { get; init; }
@@ -206,10 +201,9 @@ public sealed class PaymentClosedEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 退款失败集成事件，支付域在退款失败时发布。
 /// 消费方：售后域（更新售后单退款状态，可重试）、消息通知域（退款失败通知）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便支付域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class RefundFailedEvent : IntegrationEventBase, IDomainEvent
+public sealed class RefundFailedEvent : IntegrationEventBase
 {
     /// <summary>退款单标识。</summary>
     public Guid RefundId { get; init; }
@@ -247,10 +241,9 @@ public sealed class RefundFailedEvent : IntegrationEventBase, IDomainEvent
 /// <summary>
 /// 支付渠道配置变更集成事件，支付域在渠道配置（值、启用/禁用）变更时发布。
 /// 消费方：渠道适配器（刷新缓存配置）、运维监控（配置变更通知）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便支付域经发件箱模式在同一事务内持久化。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class PaymentChannelConfigChangedEvent : IntegrationEventBase, IDomainEvent
+public sealed class PaymentChannelConfigChangedEvent : IntegrationEventBase
 {
     /// <summary>配置标识。</summary>
     public Guid ConfigId { get; init; }

@@ -1,8 +1,10 @@
 using FluentValidation;
+using Leno.Infrastructure.EventBus;
 using Leno.Promotion.Application;
 using Leno.Promotion.Application.Services;
 using Leno.Promotion.Domain.Repositories;
 using Leno.Promotion.Domain.Services;
+using Leno.Promotion.Infrastructure.EventBus;
 using Leno.Promotion.Infrastructure.Repositories;
 using Leno.Promotion.Infrastructure.Services;
 using Leno.SharedKernel.Abstractions;
@@ -36,6 +38,9 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // 注册 Promotion BC 领域事件到集成事件翻译器
+        services.AddSingleton<IIntegrationEventMapper, PromotionIntegrationEventMapper>();
 
         services.AddScoped<IPromotionActivityRepository, EfCorePromotionActivityRepository>();
         services.AddScoped<ICouponRepository, EfCoreCouponRepository>();

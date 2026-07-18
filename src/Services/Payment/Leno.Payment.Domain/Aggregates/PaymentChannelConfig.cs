@@ -1,6 +1,6 @@
+using Leno.Payment.Domain.Events;
 using Leno.Payment.Domain.Exceptions;
 using Leno.Payment.Domain.ValueObjects;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.Payment.Domain.Aggregates;
@@ -99,7 +99,7 @@ public sealed class PaymentChannelConfig : AggregateRoot
     }
 
     /// <summary>
-    /// 启用当前配置项，并发布 <see cref="PaymentChannelConfigChangedEvent"/>。
+    /// 启用当前配置项，并发布 <see cref="PaymentChannelConfigChangedDomainEvent"/>。
     /// </summary>
     public void Enable()
     {
@@ -109,11 +109,11 @@ public sealed class PaymentChannelConfig : AggregateRoot
         }
 
         Enabled = true;
-        AddDomainEvent(new PaymentChannelConfigChangedEvent(Id, Channel.ToString(), ConfigName, "Enabled"));
+        AddDomainEvent(new PaymentChannelConfigChangedDomainEvent(Id, Channel.ToString(), ConfigName, "Enabled"));
     }
 
     /// <summary>
-    /// 禁用当前配置项，并发布 <see cref="PaymentChannelConfigChangedEvent"/>。
+    /// 禁用当前配置项，并发布 <see cref="PaymentChannelConfigChangedDomainEvent"/>。
     /// </summary>
     public void Disable()
     {
@@ -123,11 +123,11 @@ public sealed class PaymentChannelConfig : AggregateRoot
         }
 
         Enabled = false;
-        AddDomainEvent(new PaymentChannelConfigChangedEvent(Id, Channel.ToString(), ConfigName, "Disabled"));
+        AddDomainEvent(new PaymentChannelConfigChangedDomainEvent(Id, Channel.ToString(), ConfigName, "Disabled"));
     }
 
     /// <summary>
-    /// 更新配置项值（加密后），并发布 <see cref="PaymentChannelConfigChangedEvent"/>。
+    /// 更新配置项值（加密后），并发布 <see cref="PaymentChannelConfigChangedDomainEvent"/>。
     /// </summary>
     /// <param name="newValue">新的配置项值，不可为空。</param>
     public void UpdateConfigValue(string newValue)
@@ -144,6 +144,6 @@ public sealed class PaymentChannelConfig : AggregateRoot
         }
 
         ConfigValue = newValue;
-        AddDomainEvent(new PaymentChannelConfigChangedEvent(Id, Channel.ToString(), ConfigName, "Updated"));
+        AddDomainEvent(new PaymentChannelConfigChangedDomainEvent(Id, Channel.ToString(), ConfigName, "Updated"));
     }
 }

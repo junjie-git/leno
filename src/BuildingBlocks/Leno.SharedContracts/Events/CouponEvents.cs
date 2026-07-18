@@ -1,13 +1,10 @@
-using Leno.SharedKernel.Abstractions;
-
 namespace Leno.SharedContracts.Events;
 
 /// <summary>
 /// 积分兑换优惠券请求集成事件，积分域在兑换请求时发布。
 /// 消费方：促销/优惠券域（创建优惠券）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便经发件箱模式在同一事务内持久化。
 /// </summary>
-public sealed class PointsExchangeCouponRequestedEvent : IntegrationEventBase, IDomainEvent
+public sealed class PointsExchangeCouponRequestedEvent : IntegrationEventBase
 {
     /// <summary>兑换请求标识。</summary>
     public Guid ExchangeId { get; init; }
@@ -41,9 +38,8 @@ public sealed class PointsExchangeCouponRequestedEvent : IntegrationEventBase, I
 /// <summary>
 /// 优惠券兑换成功集成事件，促销/优惠券域在优惠券创建成功后发布。
 /// 消费方：积分域（正式扣减积分）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便经发件箱模式在同一事务内持久化。
 /// </summary>
-public sealed class CouponExchangeSucceededEvent : IntegrationEventBase, IDomainEvent
+public sealed class CouponExchangeSucceededEvent : IntegrationEventBase
 {
     /// <summary>兑换请求标识。</summary>
     public Guid ExchangeId { get; init; }
@@ -73,9 +69,8 @@ public sealed class CouponExchangeSucceededEvent : IntegrationEventBase, IDomain
 /// <summary>
 /// 优惠券兑换失败集成事件，促销/优惠券域在兑换失败时发布。
 /// 消费方：积分域（释放冻结积分）。
-/// 同时实现 <see cref="IDomainEvent"/> 以便经发件箱模式在同一事务内持久化。
 /// </summary>
-public sealed class CouponExchangeFailedEvent : IntegrationEventBase, IDomainEvent
+public sealed class CouponExchangeFailedEvent : IntegrationEventBase
 {
     /// <summary>兑换请求标识。</summary>
     public Guid ExchangeId { get; init; }

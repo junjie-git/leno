@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Leno.SellerShop.Domain\Leno.SellerShop.Domain.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts\Leno.SharedContracts.csproj" />
   </ItemGroup>
 
 </Project>
