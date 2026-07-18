@@ -19,6 +19,8 @@ public sealed class InternalOrdersController : ControllerBase
         _queryService = queryService;
     }
 
+    [HttpGet("internal/v1/orders/{orderId:guid}/status")]
+    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
     [HttpGet("internal/orders/{orderId:guid}/status")]
     [ProducesResponseType(typeof(ApiResponse<OrderStatusResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]

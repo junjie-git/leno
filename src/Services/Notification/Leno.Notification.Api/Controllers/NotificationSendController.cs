@@ -24,6 +24,8 @@ public sealed class NotificationSendController : ControllerBase
     /// <summary>
     /// 发送通知（内部服务间调用）。
     /// </summary>
+    [HttpPost("internal/v1/notifications/send")]
+    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
     [HttpPost("internal/notifications/send")]
     [ProducesResponseType(typeof(ApiResponse<SendNotificationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<SendNotificationResponse>), StatusCodes.Status400BadRequest)]

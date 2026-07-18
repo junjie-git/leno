@@ -20,6 +20,8 @@ public sealed class InternalPaymentsController : ControllerBase
     }
 
     /// <summary>按订单标识查询支付单概要信息（内部接口）。</summary>
+    [HttpGet("internal/v1/payments/{orderId:guid}/info")]
+    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
     [HttpGet("internal/payments/{orderId:guid}/info")]
     [ProducesResponseType(typeof(ApiResponse<PaymentInfoResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]

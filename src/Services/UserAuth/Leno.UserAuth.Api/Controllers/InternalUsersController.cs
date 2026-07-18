@@ -19,6 +19,8 @@ public sealed class InternalUsersController : ControllerBase
         _queryService = queryService;
     }
 
+    [HttpGet("internal/v1/users/{userId:guid}/contacts")]
+    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
     [HttpGet("internal/users/{userId:guid}/contacts")]
     [ProducesResponseType(typeof(ApiResponse<UserContactsDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
