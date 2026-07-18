@@ -1,4 +1,5 @@
 using System.Text;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.HealthChecks;
 using Leno.Infrastructure.Logging;
@@ -58,6 +59,23 @@ public static class WebApplicationExtensions
 
         // 1. 共享内核基础设施：JWT 生成器、当前用户上下文、事件总线、Redis、ES、健康检查
         services.AddLenoInfrastructure(configuration, configureConsumers);
+
+        // 1.1 防腐层 HttpClient Polly 策略（重试/熔断/超时，由各 BC AddHttpClient 链式追加）
+        services.AddLenoAntiCorruptionPolly(configuration);
+
+        // 1.2 防腐层 gRPC 灰度开关（M4.3）：默认 false 走 HTTP，true 走 gRPC
+        // 各 BC 在 configureInfrastructure 委托中按 UseGrpc 注册具体 gRPC 客户端/服务
+        services.Configure<AntiCorruptionOptions>(configuration.GetSection("AntiCorruption"));
+        var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
+        if (antiCorruptionOptions.UseGrpc)
+        {
+            // gRPC 模式：各 BC 在 configureInfrastructure 委托中注册具体 gRPC 客户端
+            // 此处仅注册公共 gRPC 服务端基础设施，具体客户端注册由各 BC 委托完成
+            services.AddGrpc(opts =>
+            {
+                opts.EnableDetailedErrors = false;
+            });
+        }
 
         // 2. 内部服务间 API Key 鉴权（保护 internal/ 前缀路由）
         services.AddInternalApiKeyAuth(configuration);

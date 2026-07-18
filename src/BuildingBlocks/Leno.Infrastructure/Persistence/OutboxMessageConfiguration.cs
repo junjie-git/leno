@@ -25,6 +25,11 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         builder.Property(o => o.Error).HasColumnName("error");
         builder.Property(o => o.Status).HasColumnName("status").HasConversion<int>();
 
+        builder.Property(o => o.SchemaVersion)
+            .HasColumnName("schema_version")
+            .HasDefaultValue(1)
+            .IsRequired();
+
         builder.HasIndex(o => o.Status).HasDatabaseName("ix_outbox_messages_status");
     }
 }

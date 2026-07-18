@@ -78,7 +78,7 @@ public class OutboxPublisherTests
 
         var eventBusMock = new Mock<IEventBus>();
         eventBusMock
-            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<CancellationToken>()))
+            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<IReadOnlyDictionary<string, string?>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var (publisher, services) = CreateSut(context, eventBusMock);
@@ -92,7 +92,7 @@ public class OutboxPublisherTests
         stored.ProcessedAt.Should().NotBeNull();
         stored.PublishingStartedAt.Should().BeNull();
         eventBusMock.Verify(
-            b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<CancellationToken>()),
+            b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<IReadOnlyDictionary<string, string?>>(), It.IsAny<CancellationToken>()),
             Times.Once);
 
         await services.DisposeAsync();
@@ -110,7 +110,7 @@ public class OutboxPublisherTests
 
         var eventBusMock = new Mock<IEventBus>();
         eventBusMock
-            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<CancellationToken>()))
+            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<IReadOnlyDictionary<string, string?>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("MQ 不可用"));
 
         var (publisher, services) = CreateSut(context, eventBusMock);
@@ -212,7 +212,7 @@ public class OutboxPublisherTests
         var eventBusMock = new Mock<IEventBus>();
         var callCount = 0;
         eventBusMock
-            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<CancellationToken>()))
+            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<IReadOnlyDictionary<string, string?>>(), It.IsAny<CancellationToken>()))
             .Returns(() =>
             {
                 callCount++;
@@ -238,7 +238,7 @@ public class OutboxPublisherTests
         afterSecond.RetryCount.Should().Be(1); // 成功路径不递增重试计数
 
         eventBusMock.Verify(
-            b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<CancellationToken>()),
+            b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<IReadOnlyDictionary<string, string?>>(), It.IsAny<CancellationToken>()),
             Times.Exactly(2));
 
         await services.DisposeAsync();
@@ -259,7 +259,7 @@ public class OutboxPublisherTests
 
         var eventBusMock = new Mock<IEventBus>();
         eventBusMock
-            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<CancellationToken>()))
+            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<IReadOnlyDictionary<string, string?>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("永久故障"));
 
         var (publisher, services) = CreateSut(context, eventBusMock);
@@ -311,7 +311,7 @@ public class OutboxPublisherTests
 
         var eventBusMock = new Mock<IEventBus>();
         eventBusMock
-            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<CancellationToken>()))
+            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<IReadOnlyDictionary<string, string?>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var logger = sp.GetRequiredService<ILogger<OutboxPublisher<TestOutboxDbContext>>>();
@@ -332,7 +332,7 @@ public class OutboxPublisherTests
         });
 
         eventBusMock.Verify(
-            b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<CancellationToken>()),
+            b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<IReadOnlyDictionary<string, string?>>(), It.IsAny<CancellationToken>()),
             Times.Exactly(5));
 
         await sp.DisposeAsync();
@@ -372,7 +372,7 @@ public class OutboxPublisherTests
         var publishCallCount = 0;
         var eventBusMock = new Mock<IEventBus>();
         eventBusMock
-            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<CancellationToken>()))
+            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<IReadOnlyDictionary<string, string?>>(), It.IsAny<CancellationToken>()))
             .Returns(() =>
             {
                 var current = Interlocked.Increment(ref publishCallCount);
@@ -494,7 +494,7 @@ public class OutboxPublisherTests
 
         var eventBusMock = new Mock<IEventBus>();
         eventBusMock
-            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<CancellationToken>()))
+            .Setup(b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<IReadOnlyDictionary<string, string?>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         // 自定义 resolver：将 "CustomTypeMarker" 映射到 TestIntegrationEvent
@@ -515,7 +515,7 @@ public class OutboxPublisherTests
         var stored = await context.OutboxMessages.SingleAsync();
         stored.Status.Should().Be(OutboxMessageStatus.Processed);
         eventBusMock.Verify(
-            b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<CancellationToken>()),
+            b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<IReadOnlyDictionary<string, string?>>(), It.IsAny<CancellationToken>()),
             Times.Once);
 
         await sp.DisposeAsync();
@@ -554,7 +554,7 @@ public class OutboxPublisherTests
         stored.RetryCount.Should().Be(1);
         stored.Error.Should().Contain("事件类型无法解析");
         eventBusMock.Verify(
-            b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<CancellationToken>()),
+            b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<IReadOnlyDictionary<string, string?>>(), It.IsAny<CancellationToken>()),
             Times.Never);
 
         await services.DisposeAsync();

@@ -1,0 +1,24 @@
+syntax = "proto3";
+package leno.payment.v1;
+option csharp_namespace = "Leno.SharedContracts.Grpc.Payment.V1";
+
+service PaymentInternalService {
+  rpc GetPaymentInfo(GetPaymentInfoRequest) returns (PaymentInfo);
+  rpc GetRefundStatus(GetRefundStatusRequest) returns (RefundStatus);
+}
+
+message GetPaymentInfoRequest { string order_id = 1; }
+message PaymentInfo {
+  string payment_id = 1;
+  string order_id = 2;
+  int64 amount_cents = 3;
+  string status = 4;
+  string paid_at = 5;
+}
+message GetRefundStatusRequest { string refund_id = 1; }
+message RefundStatus {
+  string refund_id = 1;
+  string order_id = 2;
+  int64 amount_cents = 3;
+  string status = 4;
+}

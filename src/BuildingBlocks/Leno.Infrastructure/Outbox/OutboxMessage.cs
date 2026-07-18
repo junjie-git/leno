@@ -40,6 +40,9 @@ public class OutboxMessage
 
     public OutboxMessageStatus Status { get; private set; }
 
+    /// <summary>事件模式版本号（M4.2），从 IntegrationEventBase.SchemaVersion 复制；非 IntegrationEventBase 派生事件默认 1。</summary>
+    public int SchemaVersion { get; private set; }
+
     private OutboxMessage() { }
 
     public static OutboxMessage Create(IIntegrationEvent integrationEvent)
@@ -53,7 +56,8 @@ public class OutboxMessage
             Type = eventType.FullName ?? eventType.AssemblyQualifiedName ?? eventType.Name,
             Payload = JsonSerializer.Serialize(integrationEvent, eventType),
             OccurredAt = integrationEvent.OccurredAt == default ? DateTime.UtcNow : integrationEvent.OccurredAt,
-            Status = OutboxMessageStatus.Pending
+            Status = OutboxMessageStatus.Pending,
+            SchemaVersion = integrationEvent is IntegrationEventBase baseEvt ? baseEvt.SchemaVersion : 1
         };
     }
 

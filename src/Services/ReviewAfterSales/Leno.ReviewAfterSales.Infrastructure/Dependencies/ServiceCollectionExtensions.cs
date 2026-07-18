@@ -1,5 +1,6 @@
 using AppServices = Leno.ReviewAfterSales.Application.Services;
 using InfraServices = Leno.ReviewAfterSales.Infrastructure.Services;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.ReviewAfterSales.Application;
@@ -49,9 +50,12 @@ public static class ServiceCollectionExtensions
         var paymentApiUrl = configuration["ServiceUrls:PaymentApi"] ?? "http://localhost:5155";
         var orderApiUrl = configuration["ServiceUrls:OrderApi"] ?? "http://localhost:5154";
 
-        services.AddHttpClient<IPaymentInfoQueryService, InfraServices.PaymentInfoQueryService>(c => c.BaseAddress = new Uri(paymentApiUrl));
-        services.AddHttpClient<IAfterSalesEligibilityChecker, InfraServices.AfterSalesEligibilityChecker>(c => c.BaseAddress = new Uri(orderApiUrl));
-        services.AddHttpClient<IReviewEligibilityChecker, InfraServices.ReviewEligibilityChecker>(c => c.BaseAddress = new Uri(orderApiUrl));
+        services.AddHttpClient<IPaymentInfoQueryService, InfraServices.PaymentInfoQueryService>(c => c.BaseAddress = new Uri(paymentApiUrl))
+            .AddAntiCorruptionPolicies();
+        services.AddHttpClient<IAfterSalesEligibilityChecker, InfraServices.AfterSalesEligibilityChecker>(c => c.BaseAddress = new Uri(orderApiUrl))
+            .AddAntiCorruptionPolicies();
+        services.AddHttpClient<IReviewEligibilityChecker, InfraServices.ReviewEligibilityChecker>(c => c.BaseAddress = new Uri(orderApiUrl))
+            .AddAntiCorruptionPolicies();
 
         // 应用服务
         services.AddScoped<IReviewAppService, AppServices.ReviewAppService>();

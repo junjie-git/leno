@@ -1,0 +1,30 @@
+syntax = "proto3";
+package leno.cart.v1;
+option csharp_namespace = "Leno.SharedContracts.Grpc.Cart.V1";
+
+service CartInternalService {
+  rpc GetCartSnapshot(GetCartSnapshotRequest) returns (CartSnapshot);
+  rpc GetCheckoutPreview(GetCheckoutPreviewRequest) returns (CheckoutPreview);
+}
+
+message GetCartSnapshotRequest { string user_id = 1; }
+message CartSnapshot {
+  string cart_id = 1;
+  repeated CartItem items = 2;
+  int64 total_cents = 3;
+}
+message CartItem {
+  int64 sku_id = 1;
+  int32 quantity = 2;
+  int64 unit_price_cents = 3;
+}
+message GetCheckoutPreviewRequest {
+  string user_id = 1;
+  repeated CartItem items = 2;
+}
+message CheckoutPreview {
+  int64 subtotal_cents = 1;
+  int64 discount_cents = 2;
+  int64 shipping_cents = 3;
+  int64 total_cents = 4;
+}

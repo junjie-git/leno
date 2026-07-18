@@ -1,0 +1,30 @@
+syntax = "proto3";
+package leno.seller.v1;
+option csharp_namespace = "Leno.SharedContracts.Grpc.Seller.V1";
+
+service SellerInternalService {
+  rpc GetSellerInfo(GetSellerInfoRequest) returns (SellerInfo);
+  rpc GetShopInfo(GetShopInfoRequest) returns (ShopInfo);
+  rpc ValidateSellerOwnership(ValidateSellerOwnershipRequest) returns (ValidateSellerOwnershipResponse);
+}
+
+message GetSellerInfoRequest { string seller_id = 1; }
+message SellerInfo {
+  string seller_id = 1;
+  string name = 2;
+  string status = 3;
+  int64 shop_id = 4;
+}
+message GetShopInfoRequest { int64 shop_id = 1; }
+message ShopInfo {
+  int64 shop_id = 1;
+  string name = 2;
+  string status = 3;
+  string seller_id = 4;
+}
+message ValidateSellerOwnershipRequest {
+  string seller_id = 1;
+  string resource_type = 2;
+  string resource_id = 3;
+}
+message ValidateSellerOwnershipResponse { bool is_valid = 1; }

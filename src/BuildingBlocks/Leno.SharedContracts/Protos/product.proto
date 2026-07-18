@@ -1,0 +1,39 @@
+syntax = "proto3";
+package leno.product.v1;
+option csharp_namespace = "Leno.SharedContracts.Grpc.Product.V1";
+
+service ProductInternalService {
+  rpc GetSkuInfo(GetSkuInfoRequest) returns (SkuInfo);
+  rpc BatchGetSkuInfo(BatchGetSkuInfoRequest) returns (BatchGetSkuInfoResponse);
+  rpc GetSkuStock(GetSkuStockRequest) returns (SkuStock);
+  rpc GetProductDetail(GetProductDetailRequest) returns (ProductDetail);
+}
+
+message GetSkuInfoRequest { int64 sku_id = 1; }
+message SkuInfo {
+  int64 sku_id = 1;
+  int64 spu_id = 2;
+  string title = 3;
+  string main_image = 4;
+  int64 price_cents = 5;
+  string currency = 6;
+  bool salable = 7;
+  int64 seller_id = 8;
+  int32 stock = 9;
+}
+message BatchGetSkuInfoRequest { repeated int64 sku_ids = 1; }
+message BatchGetSkuInfoResponse { repeated SkuInfo skus = 1; }
+message GetSkuStockRequest { int64 sku_id = 1; }
+message SkuStock {
+  int64 sku_id = 1;
+  int32 available = 2;
+  int32 reserved = 3;
+}
+message GetProductDetailRequest { int64 spu_id = 1; }
+message ProductDetail {
+  int64 spu_id = 1;
+  string title = 2;
+  string description = 3;
+  int64 seller_id = 4;
+  repeated SkuInfo skus = 5;
+}

@@ -1,4 +1,5 @@
 using FluentValidation;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.Order.Application;
@@ -62,9 +63,12 @@ public static class ServiceCollectionExtensions
         var promotionApiUrl = configuration["ServiceUrls:PromotionApi"] ?? "http://localhost:5152";
         var pointsApiUrl = configuration["ServiceUrls:PointsMembershipApi"] ?? "http://localhost:5153";
 
-        services.AddHttpClient<IProductAntiCorruptionService, ProductAntiCorruptionService>(c => c.BaseAddress = new Uri(productApiUrl));
-        services.AddHttpClient<IPromotionAntiCorruptionService, PromotionAntiCorruptionService>(c => c.BaseAddress = new Uri(promotionApiUrl));
-        services.AddHttpClient<IPointsAntiCorruptionService, PointsAntiCorruptionService>(c => c.BaseAddress = new Uri(pointsApiUrl));
+        services.AddHttpClient<IProductAntiCorruptionService, ProductAntiCorruptionService>(c => c.BaseAddress = new Uri(productApiUrl))
+            .AddAntiCorruptionPolicies();
+        services.AddHttpClient<IPromotionAntiCorruptionService, PromotionAntiCorruptionService>(c => c.BaseAddress = new Uri(promotionApiUrl))
+            .AddAntiCorruptionPolicies();
+        services.AddHttpClient<IPointsAntiCorruptionService, PointsAntiCorruptionService>(c => c.BaseAddress = new Uri(pointsApiUrl))
+            .AddAntiCorruptionPolicies();
 
         // T17: 防腐层降级告警 —— 通过 OpenTelemetry SDK 按名称订阅 Meter，
         // 暴露 Prometheus 指标 anticorruption_failure_total{service,operation}。
@@ -74,7 +78,8 @@ public static class ServiceCollectionExtensions
 
         // 物流轨迹查询：通过 HttpClient 调用第三方物流 API
         services.Configure<LogisticsApiOptions>(configuration.GetSection(LogisticsApiOptions.SectionName));
-        services.AddHttpClient<Domain.Services.ILogisticsTrackingService, LogisticsTrackingService>();
+        services.AddHttpClient<Domain.Services.ILogisticsTrackingService, LogisticsTrackingService>()
+            .AddAntiCorruptionPolicies();
 
         // 应用服务
         services.AddScoped<IOrderAppService, OrderAppService>();

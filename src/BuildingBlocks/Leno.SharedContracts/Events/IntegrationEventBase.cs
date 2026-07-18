@@ -14,10 +14,11 @@ public abstract class IntegrationEventBase : IIntegrationEvent
     public string IdempotencyKey { get; init; }
 
     /// <summary>
-    /// 事件 schema 版本，用于 M4.2 契约治理与版本兼容。
-    /// 默认 "1.0"，破坏性变更递增主版本号。
+    /// 事件模式版本号（M4.2）。
+    /// 默认 1，事件字段变更时递增；消费者可按 SchemaVersion 路由不同 handler。
+    /// Outbox 持久化此字段，跨 BC 消费方据此判断是否需升级反序列化逻辑。
     /// </summary>
-    public string SchemaVersion { get; init; } = "1.0";
+    public int SchemaVersion { get; init; } = 1;
 
     protected IntegrationEventBase()
     {
@@ -26,10 +27,11 @@ public abstract class IntegrationEventBase : IIntegrationEvent
         IdempotencyKey = EventId.ToString();
     }
 
-    protected IntegrationEventBase(Guid? eventId, DateTime? occurredAt, string? idempotencyKey)
+    protected IntegrationEventBase(Guid? eventId, DateTime? occurredAt, string? idempotencyKey, int schemaVersion = 1)
     {
         EventId = eventId ?? Guid.NewGuid();
         OccurredAt = occurredAt ?? DateTime.UtcNow;
         IdempotencyKey = string.IsNullOrWhiteSpace(idempotencyKey) ? EventId.ToString() : idempotencyKey!;
+        SchemaVersion = schemaVersion < 1 ? 1 : schemaVersion;
     }
 }

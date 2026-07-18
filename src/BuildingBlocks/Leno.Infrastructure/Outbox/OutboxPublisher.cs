@@ -265,10 +265,14 @@ public class OutboxPublisher<TDbContext> : BackgroundService
             throw;
         }
 
-        // 阶段 2：发布到 MQ
+        // 阶段 2：发布到 MQ（M4.2 起 Outbox 在消息头携带 schema-version，供消费方按版本路由 handler）
         try
         {
-            await _eventBus.PublishAsync(integrationEvent, stoppingToken);
+            var headers = new Dictionary<string, string?>
+            {
+                ["schema-version"] = message.SchemaVersion.ToString()
+            };
+            await _eventBus.PublishAsync(integrationEvent, headers, stoppingToken);
         }
         catch (Exception ex)
         {

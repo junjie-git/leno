@@ -39,6 +39,7 @@
     <Project Path="src/BuildingBlocks/Leno.Infrastructure.Abstractions/Leno.Infrastructure.Abstractions.csproj" />
     <Project Path="src/BuildingBlocks/Leno.Infrastructure.Tests/Leno.Infrastructure.Tests.csproj" />
     <Project Path="src/BuildingBlocks/Leno.Infrastructure/Leno.Infrastructure.csproj" />
+    <Project Path="src/BuildingBlocks/Leno.SharedContracts.Grpc/Leno.SharedContracts.Grpc.csproj" />
     <Project Path="src/BuildingBlocks/Leno.SharedContracts/Leno.SharedContracts.csproj" />
     <Project Path="src/BuildingBlocks/Leno.SharedKernel/Leno.SharedKernel.csproj" />
     <Project Path="src/BuildingBlocks/Leno.Testing/Leno.Testing.csproj" />

@@ -9,6 +9,7 @@ using Leno.Cart.Infrastructure.Consumers;
 using Leno.Cart.Infrastructure.EventBus;
 using Leno.Cart.Infrastructure.Repositories;
 using Leno.Cart.Infrastructure.Services;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.SharedKernel.Abstractions;
@@ -53,7 +54,8 @@ public static class ServiceCollectionExtensions
         {
             var baseAddress = configuration["ServiceUrls:ProductApi"] ?? "http://localhost:5150";
             client.BaseAddress = new Uri(baseAddress);
-        });
+        })
+            .AddAntiCorruptionPolicies();
 
         // 商品快照防腐层：商品更新事件消费时查询单 SKU 展示快照，复用商品域 BaseAddress
         services.AddHttpClient<IProductSnapshotAntiCorruption, ProductSnapshotAntiCorruptionService>(client =>

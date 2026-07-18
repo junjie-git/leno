@@ -191,3 +191,19 @@ jobs:
             /opt/mssql-tools18/bin/sqlcmd -S localhost,1433 -U sa -P $SA_PASSWORD -C -i "$f"
           done
           docker rm -f sqlserver-test
+
+  proto-lint-breaking:
+    name: Proto Lint & Breaking (buf)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: bufbuild/buf-setup-action@v1
+      - name: buf lint
+        working-directory: src/BuildingBlocks/Leno.SharedContracts
+        run: buf lint
+      - name: buf breaking (against main)
+        working-directory: src/BuildingBlocks/Leno.SharedContracts
+        run: buf breaking --against "https://github.com/${{ github.repository }}.git#branch=main,subdir=src/BuildingBlocks/Leno.SharedContracts"
+        if: github.event_name == 'pull_request'

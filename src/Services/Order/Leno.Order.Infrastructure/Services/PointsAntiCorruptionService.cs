@@ -1,6 +1,6 @@
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.Auth;
 using Leno.Order.Application.Services;
-using Leno.Order.Domain.Exceptions;
 using Leno.SharedContracts.Responses;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,9 +11,9 @@ namespace Leno.Order.Infrastructure.Services;
 
 /// <summary>
 /// 积分域防腐层服务，通过 HTTP 调用积分域内部 API 试算/冻结/释放/确认积分扣减。
-/// TryOffsetAsync 返回实际可抵金额（失败返回 0，预览降级）；Freeze/ConfirmDeduction/Release 远程失败（网络异常、非 2xx、超时）抛 <see cref="OrderDomainException"/>，用户取消透传 <see cref="OperationCanceledException"/>。
+/// 继承 <see cref="AntiCorruptionBase"/>，所有远程失败（网络异常、非 2xx、超时）统一抛 <see cref="AntiCorruptionException"/>，不再静默返回 0；用户取消透传 <see cref="OperationCanceledException"/>。
 /// </summary>
-public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
+public sealed class PointsAntiCorruptionService : AntiCorruptionBase, IPointsAntiCorruptionService
 {
     private const string InternalKeyName = "X-Internal-Key";
 
@@ -21,6 +21,8 @@ public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
 
     private readonly HttpClient _httpClient;
     private readonly ILogger<PointsAntiCorruptionService> _logger;
+
+    protected override string ServiceName => "points";
 
     public PointsAntiCorruptionService(
         HttpClient httpClient,
@@ -33,158 +35,63 @@ public sealed class PointsAntiCorruptionService : IPointsAntiCorruptionService
     }
 
     /// <inheritdoc />
-    public async Task<decimal> TryOffsetAsync(Guid userId, int pointsToUse, CancellationToken ct = default)
-    {
-        try
+    public Task<decimal> TryOffsetAsync(Guid userId, int pointsToUse, CancellationToken ct = default)
+        => ExecuteAsync("try_offset", async token =>
         {
             var request = new { userId = userId, pointsToUse = pointsToUse };
             var json = JsonSerializer.Serialize(request, JsonOptions);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            using var response = await _httpClient.PostAsync("internal/points/trial-offset", content, ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("积分域试算抵现失败 UserId={UserId} Status={Status}", userId, (int)response.StatusCode);
-                return 0m;
-            }
+            using var response = await _httpClient.PostAsync("internal/v1/points/trial-offset", content, token);
+            EnsureSuccessStatusCode(response, "try_offset");
 
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
-            var payload = await JsonSerializer.DeserializeAsync<ApiResponse<TrialOffsetResponse>>(stream, JsonOptions, ct);
+            await using var stream = await response.Content.ReadAsStreamAsync(token);
+            var payload = await JsonSerializer.DeserializeAsync<ApiResponse<TrialOffsetResponse>>(stream, JsonOptions, token);
             if (payload is null || payload.Data is null)
             {
-                _logger.LogWarning("积分域试算抵现返回空数据 UserId={UserId}", userId);
-                return 0m;
+                throw new AntiCorruptionException(
+                    $"积分域试算抵现返回空数据（userId={userId}）",
+                    "POINTS_REMOTE_FAILED");
             }
 
             return payload.Data.OffsetAmount;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "积分域试算抵现异常 UserId={UserId}", userId);
-            return 0m;
-        }
-    }
+        }, ct);
 
     /// <inheritdoc />
-    public async Task FreezeAsync(Guid userId, Guid orderId, int pointsToUse, CancellationToken ct = default)
-    {
-        try
+    public Task FreezeAsync(Guid userId, Guid orderId, int pointsToUse, CancellationToken ct = default)
+        => ExecuteAsync("freeze", async token =>
         {
             var request = new { userId = userId, orderId = orderId, pointsToUse = pointsToUse };
             var json = JsonSerializer.Serialize(request, JsonOptions);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            using var response = await _httpClient.PostAsync("internal/points/freeze", content, ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("积分域冻结失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
-                AntiCorruptionMetrics.RecordFailure("points", "freeze");
-                throw new OrderDomainException(
-                    $"积分域冻结失败，状态码 {(int)response.StatusCode}",
-                    "ORDER_POINTS_FREEZE_FAILED");
-            }
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (OrderDomainException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "积分域冻结异常 OrderId={OrderId} Service={Service} Operation={Operation}",
-                orderId, "points", "freeze");
-            AntiCorruptionMetrics.RecordFailure("points", "freeze");
-            throw new OrderDomainException(
-                $"积分域冻结失败：{ex.Message}",
-                ex,
-                "ORDER_POINTS_FREEZE_FAILED");
-        }
-    }
+            using var response = await _httpClient.PostAsync("internal/v1/points/freeze", content, token);
+            EnsureSuccessStatusCode(response, "freeze");
+        }, ct);
 
     /// <inheritdoc />
-    public async Task ReleaseAsync(Guid orderId, CancellationToken ct = default)
-    {
-        try
+    public Task ReleaseAsync(Guid orderId, CancellationToken ct = default)
+        => ExecuteAsync("release", async token =>
         {
             var request = new { orderId = orderId };
             var json = JsonSerializer.Serialize(request, JsonOptions);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            using var response = await _httpClient.PostAsync("internal/points/release", content, ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("积分域释放失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
-                AntiCorruptionMetrics.RecordFailure("points", "release");
-                throw new OrderDomainException(
-                    $"积分域释放失败，状态码 {(int)response.StatusCode}",
-                    "ORDER_POINTS_RELEASE_FAILED");
-            }
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (OrderDomainException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "积分域释放异常 OrderId={OrderId} Service={Service} Operation={Operation}",
-                orderId, "points", "release");
-            AntiCorruptionMetrics.RecordFailure("points", "release");
-            throw new OrderDomainException(
-                $"积分域释放失败：{ex.Message}",
-                ex,
-                "ORDER_POINTS_RELEASE_FAILED");
-        }
-    }
+            using var response = await _httpClient.PostAsync("internal/v1/points/release", content, token);
+            EnsureSuccessStatusCode(response, "release");
+        }, ct);
 
     /// <inheritdoc />
-    public async Task ConfirmDeductionAsync(Guid orderId, CancellationToken ct = default)
-    {
-        try
+    public Task ConfirmDeductionAsync(Guid orderId, CancellationToken ct = default)
+        => ExecuteAsync("confirm_deduction", async token =>
         {
             var request = new { orderId = orderId };
             var json = JsonSerializer.Serialize(request, JsonOptions);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            using var response = await _httpClient.PostAsync("internal/points/confirm", content, ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("积分域确认扣减失败 OrderId={OrderId} Status={Status}", orderId, (int)response.StatusCode);
-                AntiCorruptionMetrics.RecordFailure("points", "confirm");
-                throw new OrderDomainException(
-                    $"积分域确认扣减失败，状态码 {(int)response.StatusCode}",
-                    "ORDER_POINTS_CONFIRM_FAILED");
-            }
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (OrderDomainException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "积分域确认扣减异常 OrderId={OrderId} Service={Service} Operation={Operation}",
-                orderId, "points", "confirm");
-            AntiCorruptionMetrics.RecordFailure("points", "confirm");
-            throw new OrderDomainException(
-                $"积分域确认扣减失败：{ex.Message}",
-                ex,
-                "ORDER_POINTS_CONFIRM_FAILED");
-        }
-    }
+            using var response = await _httpClient.PostAsync("internal/v1/points/confirm", content, token);
+            EnsureSuccessStatusCode(response, "confirm_deduction");
+        }, ct);
 
     private static void ApplyInternalKey(HttpClient httpClient, IOptions<InternalApiKeyOptions> options)
     {

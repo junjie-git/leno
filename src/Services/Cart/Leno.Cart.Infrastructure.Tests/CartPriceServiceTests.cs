@@ -2,8 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using Leno.Cart.Domain.Exceptions;
 using Leno.Cart.Infrastructure.Services;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.Auth;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,7 +13,7 @@ namespace Leno.Cart.Infrastructure.Tests;
 
 /// <summary>
 /// CartPriceService 远程失败处理测试。
-/// 验证 HTTP 调用失败/异常时抛出 <see cref="CartDomainException"/>，
+/// 验证 HTTP 调用失败/异常时抛出 <see cref="AntiCorruptionException"/>，
 /// 不再静默返回空集合掩盖故障。
 /// </summary>
 public class CartPriceServiceTests
@@ -22,7 +22,7 @@ public class CartPriceServiceTests
     private static readonly Guid SellerId = Guid.NewGuid();
 
     [Fact]
-    public async Task GetSkuPricesAsync_WhenHttpReturnsNonSuccess_ShouldThrowCartDomainException()
+    public async Task GetSkuPricesAsync_WhenHttpReturnsNonSuccess_ShouldThrowAntiCorruptionException()
     {
         // Arrange：商品域返回 500
         var handler = new StubHttpMessageHandler(HttpStatusCode.InternalServerError);
@@ -32,12 +32,11 @@ public class CartPriceServiceTests
         var act = () => sut.GetSkuPricesAsync(new[] { SkuId }, CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<CartDomainException>()
-            .WithMessage("*商品价格服务暂时不可用*");
+        await act.Should().ThrowAsync<AntiCorruptionException>();
     }
 
     [Fact]
-    public async Task GetSkuPricesAsync_WhenHttpRequestThrows_ShouldThrowCartDomainException()
+    public async Task GetSkuPricesAsync_WhenHttpRequestThrows_ShouldThrowAntiCorruptionException()
     {
         // Arrange：网络异常
         var handler = new StubHttpMessageHandler(throwException: new HttpRequestException("网络不可达"));
@@ -47,22 +46,21 @@ public class CartPriceServiceTests
         var act = () => sut.GetSkuPricesAsync(new[] { SkuId }, CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<CartDomainException>()
-            .WithMessage("*商品价格服务暂时不可用*");
+        await act.Should().ThrowAsync<AntiCorruptionException>();
     }
 
     [Fact]
-    public async Task GetSkuPricesAsync_WhenCancellationTokenCancelled_ShouldPropagateOperationCanceledException()
+    public async Task GetSkuPricesAsync_WhenHttpRequestTimesOut_ShouldThrowAntiCorruptionException()
     {
-        // Arrange：取消令牌应直接传播，不转换为 CartDomainException
-        var handler = new StubHttpMessageHandler(throwException: new TaskCanceledException("请求已取消"));
+        // Arrange：HttpClient 超时表现为 TaskCanceledException（无 CancellationToken 取消请求）
+        var handler = new StubHttpMessageHandler(throwException: new TaskCanceledException("请求超时"));
         var sut = CreateSut(handler);
 
         // Act
         var act = () => sut.GetSkuPricesAsync(new[] { SkuId }, CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<OperationCanceledException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
     }
 
     [Fact]

@@ -1,0 +1,33 @@
+syntax = "proto3";
+package leno.user.v1;
+option csharp_namespace = "Leno.SharedContracts.Grpc.User.V1";
+
+service UserInternalService {
+  rpc GetUserContacts(GetUserContactsRequest) returns (UserContacts);
+  rpc GetUserInfo(GetUserInfoRequest) returns (UserInfo);
+  rpc GetUserAddresses(GetUserAddressesRequest) returns (UserAddresses);
+}
+
+message GetUserContactsRequest { string user_id = 1; }
+message UserContacts {
+  string email = 1;
+  string phone = 2;
+  string nickname = 3;
+}
+message GetUserInfoRequest { string user_id = 1; }
+message UserInfo {
+  string user_id = 1;
+  string username = 2;
+  string email = 3;
+  string phone = 4;
+  string status = 5;
+}
+message GetUserAddressesRequest { string user_id = 1; }
+message UserAddresses { repeated Address addresses = 1; }
+message Address {
+  string address_id = 1;
+  string recipient = 2;
+  string phone = 3;
+  string detail = 4;
+  bool is_default = 5;
+}

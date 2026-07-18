@@ -1,0 +1,26 @@
+syntax = "proto3";
+package leno.notification.v1;
+option csharp_namespace = "Leno.SharedContracts.Grpc.Notification.V1";
+
+service NotificationInternalService {
+  rpc GetNotificationPreference(GetNotificationPreferenceRequest) returns (NotificationPreference);
+  rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
+}
+
+message GetNotificationPreferenceRequest { string user_id = 1; }
+message NotificationPreference {
+  string user_id = 1;
+  bool email_enabled = 2;
+  bool sms_enabled = 3;
+  bool push_enabled = 4;
+}
+message SendNotificationRequest {
+  string user_id = 1;
+  string channel = 2;
+  string template_code = 3;
+  string payload = 4;
+}
+message SendNotificationResponse {
+  bool success = 1;
+  string message_id = 2;
+}

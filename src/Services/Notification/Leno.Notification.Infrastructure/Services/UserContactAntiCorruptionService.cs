@@ -1,3 +1,4 @@
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.Auth;
 using Leno.Notification.Domain.Services;
 using Leno.SharedContracts.Responses;
@@ -9,13 +10,16 @@ namespace Leno.Notification.Infrastructure.Services;
 
 /// <summary>
 /// 用户联系方式防腐层，通过 HTTP 调用用户域内部端点获取手机号与邮箱。
+/// 继承 <see cref="AntiCorruptionBase"/>，远程失败统一抛 <see cref="AntiCorruptionException"/>，不再返回 null。
 /// </summary>
-public sealed class UserContactAntiCorruptionService : IUserContactService
+public sealed class UserContactAntiCorruptionService : AntiCorruptionBase, IUserContactService
 {
     private readonly HttpClient _httpClient;
     private readonly InternalApiKeyOptions _internalKeyOptions;
     private readonly ILogger<UserContactAntiCorruptionService> _logger;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    protected override string ServiceName => "user_contact";
 
     public UserContactAntiCorruptionService(
         HttpClient httpClient,
@@ -31,41 +35,31 @@ public sealed class UserContactAntiCorruptionService : IUserContactService
     }
 
     /// <inheritdoc />
-    public async Task<UserContactInfo?> GetContactsAsync(Guid userId, CancellationToken ct = default)
-    {
-        try
+    public Task<UserContactInfo?> GetContactsAsync(Guid userId, CancellationToken ct = default)
+        => ExecuteAsync("get_contacts", async token =>
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, $"internal/users/{userId}/contacts");
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"internal/v1/users/{userId}/contacts");
             request.Headers.Add("X-Internal-Key", _internalKeyOptions.ApiKey);
 
-            using var response = await _httpClient.SendAsync(request, ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("查询用户联系方式失败 UserId={UserId} Status={Status}", userId, response.StatusCode);
-                return null;
-            }
+            using var response = await _httpClient.SendAsync(request, token);
+            EnsureSuccessStatusCode(response, "get_contacts");
 
-            var json = await response.Content.ReadAsStringAsync(ct);
+            var json = await response.Content.ReadAsStringAsync(token);
             var apiResponse = JsonSerializer.Deserialize<ApiResponse<UserContactsDto>>(json, JsonOptions);
             if (apiResponse is null || apiResponse.Code != 200 || apiResponse.Data is null)
             {
-                _logger.LogWarning("用户联系方式响应为空或失败 UserId={UserId}", userId);
-                return null;
+                throw new AntiCorruptionException(
+                    $"用户域返回空联系方式（userId={userId}）",
+                    "USER_CONTACT_REMOTE_FAILED");
             }
 
-            return new UserContactInfo
+            return (UserContactInfo?)new UserContactInfo
             {
                 UserId = apiResponse.Data.UserId,
                 Email = apiResponse.Data.Email,
                 PhoneNumber = apiResponse.Data.PhoneNumber
             };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "查询用户联系方式异常 UserId={UserId}", userId);
-            return null;
-        }
-    }
+        }, ct);
 }
 
 /// <summary>用户联系方式（未脱敏），与用户域内部端点返回结构对应。</summary>

@@ -1,4 +1,5 @@
 using AppServices = Leno.Notification.Application.Services;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.Persistence;
 using Leno.Notification.Application;
 using Leno.Notification.Domain.Repositories;
@@ -47,15 +48,18 @@ public static class ServiceCollectionExtensions
 
         // 用户联系方式防腐层（通过 HTTP 调用用户域内部端点获取手机号/邮箱）
         var userAuthApiUrl = configuration["ServiceUrls:UserAuthApi"] ?? "http://localhost:5173";
-        services.AddHttpClient<IUserContactService, UserContactAntiCorruptionService>(c => c.BaseAddress = new Uri(userAuthApiUrl));
+        services.AddHttpClient<IUserContactService, UserContactAntiCorruptionService>(c => c.BaseAddress = new Uri(userAuthApiUrl))
+            .AddAntiCorruptionPolicies();
 
         // 通知渠道配置
         services.Configure<EmailChannelOptions>(configuration.GetSection("Notification:Email"));
         services.Configure<SmsChannelOptions>(configuration.GetSection("Notification:Sms"));
 
         // 通知渠道实现
-        services.AddHttpClient<AliyunSmsChannel>();
-        services.AddHttpClient<TencentSmsChannel>();
+        services.AddHttpClient<AliyunSmsChannel>()
+            .AddAntiCorruptionPolicies();
+        services.AddHttpClient<TencentSmsChannel>()
+            .AddAntiCorruptionPolicies();
         services.AddScoped<INotificationChannel, InAppChannel>();
         services.AddScoped<INotificationChannel, SmtpEmailChannel>();
         services.AddScoped<INotificationChannel, AliyunSmsChannel>();

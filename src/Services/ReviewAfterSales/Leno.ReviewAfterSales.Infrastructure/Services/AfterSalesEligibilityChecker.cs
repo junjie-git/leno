@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.Auth;
 using Leno.ReviewAfterSales.Domain.Exceptions;
 using Leno.ReviewAfterSales.Domain.Repositories;
@@ -12,10 +13,10 @@ namespace Leno.ReviewAfterSales.Infrastructure.Services;
 
 /// <summary>
 /// 售后资格校验器防腐层实现，通过 HTTP 调用订单域内部接口
-/// <c>GET internal/orders/{orderId}/status</c> 校验售后期限内、同订单行无进行中同类型售后单且申请人为订单买家。
-/// 校验失败抛出 <see cref="ReviewDomainException"/>。
+/// <c>GET internal/v1/orders/{orderId}/status</c> 校验售后期限内、同订单行无进行中同类型售后单且申请人为订单买家。
+/// 继承 <see cref="AntiCorruptionBase"/>，远程失败统一抛 <see cref="AntiCorruptionException"/>；业务校验失败抛 <see cref="ReviewDomainException"/>。
 /// </summary>
-public sealed class AfterSalesEligibilityChecker : IAfterSalesEligibilityChecker
+public sealed class AfterSalesEligibilityChecker : AntiCorruptionBase, IAfterSalesEligibilityChecker
 {
     private const string InternalKeyName = "X-Internal-Key";
     private const int AfterSalesWindowDays = 15;
@@ -28,6 +29,8 @@ public sealed class AfterSalesEligibilityChecker : IAfterSalesEligibilityChecker
     private readonly InternalApiKeyOptions _authOptions;
     private readonly IAfterSalesRepository _afterSalesRepository;
     private readonly ILogger<AfterSalesEligibilityChecker> _logger;
+
+    protected override string ServiceName => "order";
 
     public AfterSalesEligibilityChecker(
         HttpClient httpClient,
@@ -49,10 +52,6 @@ public sealed class AfterSalesEligibilityChecker : IAfterSalesEligibilityChecker
     public async Task EnsureEligibleAsync(Guid orderId, Guid? orderLineId, Guid userId, AfterSalesType type, CancellationToken ct = default)
     {
         var order = await GetOrderStatusAsync(orderId, ct);
-        if (order is null)
-        {
-            throw new ReviewDomainException("订单不存在", "AFTERSALES_ORDER_NOT_FOUND");
-        }
 
         if (order.UserId != userId)
         {
@@ -81,21 +80,19 @@ public sealed class AfterSalesEligibilityChecker : IAfterSalesEligibilityChecker
         }
     }
 
-    private async Task<OrderStatusResponse?> GetOrderStatusAsync(Guid orderId, CancellationToken ct)
-    {
-        using var request = CreateRequest($"internal/orders/{orderId}/status");
-        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-
-        if (!response.IsSuccessStatusCode)
+    private Task<OrderStatusResponse> GetOrderStatusAsync(Guid orderId, CancellationToken ct)
+        => ExecuteAsync("get_order_status", async token =>
         {
-            _logger.LogWarning("订单状态查询失败 OrderId={OrderId} Status={Status}", orderId, response.StatusCode);
-            return null;
-        }
+            using var request = CreateRequest($"internal/v1/orders/{orderId}/status");
+            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+            EnsureSuccessStatusCode(response, "get_order_status");
 
-        await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        var apiResponse = await JsonSerializer.DeserializeAsync<ApiResponse<OrderStatusResponse>>(stream, JsonOptions, ct);
-        return apiResponse?.Data;
-    }
+            await using var stream = await response.Content.ReadAsStreamAsync(token);
+            var apiResponse = await JsonSerializer.DeserializeAsync<ApiResponse<OrderStatusResponse>>(stream, JsonOptions, token);
+            return apiResponse?.Data ?? throw new AntiCorruptionException(
+                $"订单域返回空订单状态（orderId={orderId}）",
+                "ORDER_REMOTE_FAILED");
+        }, ct);
 
     private HttpRequestMessage CreateRequest(string relativeUri)
     {

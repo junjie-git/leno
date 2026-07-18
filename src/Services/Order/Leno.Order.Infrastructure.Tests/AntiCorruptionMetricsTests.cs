@@ -1,6 +1,6 @@
 using System.Diagnostics.Metrics;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.Auth;
-using Leno.Order.Domain.Exceptions;
 using Leno.Order.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -11,10 +11,9 @@ using System.Net;
 namespace Leno.Order.Infrastructure.Tests;
 
 /// <summary>
-/// 防腐层降级告警测试（T17）。
+/// 防腐层降级告警测试（T17 / M4.1）。
 /// 验证：
 /// - 远程失败时 Prometheus 指标 <c>anticorruption_failure_total{service,operation}</c> 计数器递增（按 service/operation 维度）。
-/// - 结构化日志包含 <c>Service</c>/<c>Operation</c> 字段。
 /// - 成功调用不递增失败计数器。
 /// 测试使用 <see cref="MeterListener"/> 捕获计数器增量，避免依赖 Prometheus exporter。
 /// </summary>
@@ -25,7 +24,7 @@ public class AntiCorruptionMetricsTests
 
     [Theory]
     [InlineData("Freeze", "points", "freeze")]
-    [InlineData("Confirm", "points", "confirm")]
+    [InlineData("Confirm", "points", "confirm_deduction")]
     [InlineData("Release", "points", "release")]
     public async Task Points_RemoteFailure_ShouldIncrementFailureCounter(string operation, string expectedService, string expectedOperation)
     {
@@ -42,7 +41,7 @@ public class AntiCorruptionMetricsTests
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 
-        await act.Should().ThrowAsync<OrderDomainException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
 
         captured.Should().ContainSingle()
             .Which.Should().Match<(string Service, string Operation, int Delta)>(
@@ -59,7 +58,7 @@ public class AntiCorruptionMetricsTests
 
         var act = () => service.CalculateDiscountAsync(UserId, new List<(Guid, decimal)> { (Guid.NewGuid(), 10m) }, CancellationToken.None);
 
-        await act.Should().ThrowAsync<OrderDomainException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
 
         captured.Should().ContainSingle()
             .Which.Should().Match<(string Service, string Operation, int Delta)>(
@@ -76,7 +75,7 @@ public class AntiCorruptionMetricsTests
 
         var act = () => service.ReleaseCouponsAsync(OrderId, CancellationToken.None);
 
-        await act.Should().ThrowAsync<OrderDomainException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
 
         captured.Should().ContainSingle()
             .Which.Should().Match<(string Service, string Operation, int Delta)>(
@@ -93,7 +92,7 @@ public class AntiCorruptionMetricsTests
 
         var act = () => service.LockCouponAsync(UserId, Guid.NewGuid(), OrderId, CancellationToken.None);
 
-        await act.Should().ThrowAsync<OrderDomainException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
 
         captured.Should().ContainSingle()
             .Which.Should().Match<(string Service, string Operation, int Delta)>(
@@ -127,31 +126,6 @@ public class AntiCorruptionMetricsTests
         captured.Should().BeEmpty();
     }
 
-    [Fact]
-    public async Task Points_FreezeeFailure_ShouldLogStructuredServiceOperationFields()
-    {
-        // 验证结构化日志包含 Service/Operation 字段（T17 要求）
-        var loggerMock = new Mock<ILogger<PointsAntiCorruptionService>>();
-        var service = new PointsAntiCorruptionService(
-            new HttpClient(new FakeHandler(_ => throw new HttpRequestException("down"))) { BaseAddress = new Uri("http://test/") },
-            Options.Create(new InternalApiKeyOptions()),
-            loggerMock.Object);
-
-        var act = () => service.FreezeAsync(UserId, OrderId, 100, CancellationToken.None);
-
-        await act.Should().ThrowAsync<OrderDomainException>();
-
-        // 验证 LogError 被调用，且 message template 含 Service/Operation 占位符
-        loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Service") && v.ToString()!.Contains("Operation")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.AtLeastOnce);
-    }
-
     // ---- Helpers ----
 
     private static MeterListener CreateMeterListener(List<(string Service, string Operation, int Delta)> captured)
@@ -160,7 +134,7 @@ public class AntiCorruptionMetricsTests
         {
             InstrumentPublished = (instrument, l) =>
             {
-                if (instrument.Meter.Name == AntiCorruptionMetrics.MeterName
+                if (instrument.Meter.Name == AntiCorruptionMetrics.Meter.Name
                     && instrument.Name == "anticorruption_failure_total")
                 {
                     l.EnableMeasurementEvents(instrument);

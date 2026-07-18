@@ -1,5 +1,5 @@
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.Auth;
-using Leno.Order.Domain.Exceptions;
 using Leno.Order.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -10,7 +10,7 @@ namespace Leno.Order.Infrastructure.Tests;
 
 /// <summary>
 /// 防腐层显式异常测试：覆盖积分域（T10）与促销域（T11）远程失败、非 2xx、超时场景。
-/// 远程失败须抛 <see cref="OrderDomainException"/>，用户取消（CancellationToken）须透传 <see cref="OperationCanceledException"/>。
+/// 远程失败须抛 <see cref="AntiCorruptionException"/>，用户取消（CancellationToken）须透传 <see cref="OperationCanceledException"/>。
 /// </summary>
 public class AntiCorruptionServicesTests
 {
@@ -23,7 +23,7 @@ public class AntiCorruptionServicesTests
     [InlineData("Freeze")]
     [InlineData("Confirm")]
     [InlineData("Release")]
-    public async Task Points_RemoteFailure_ShouldThrowOrderDomainException(string operation)
+    public async Task Points_RemoteFailure_ShouldThrowAntiCorruptionException(string operation)
     {
         var service = CreatePointsService(_ => throw new HttpRequestException("connection refused"));
 
@@ -35,15 +35,15 @@ public class AntiCorruptionServicesTests
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 
-        var ex = await act.Should().ThrowAsync<OrderDomainException>();
-        ex.Which.ErrorCode.Should().NotBe("ORDER_ERROR");
+        var ex = await act.Should().ThrowAsync<AntiCorruptionException>();
+        ex.Which.ErrorCode.Should().NotBe("ANTICORRUPTION_ERROR");
     }
 
     [Theory]
     [InlineData("Freeze")]
     [InlineData("Confirm")]
     [InlineData("Release")]
-    public async Task Points_NonSuccessStatusCode_ShouldThrowOrderDomainException(string operation)
+    public async Task Points_NonSuccessStatusCode_ShouldThrowAntiCorruptionException(string operation)
     {
         var service = CreatePointsService(_ => Response(HttpStatusCode.InternalServerError));
 
@@ -55,14 +55,14 @@ public class AntiCorruptionServicesTests
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 
-        await act.Should().ThrowAsync<OrderDomainException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
     }
 
     [Theory]
     [InlineData("Freeze")]
     [InlineData("Confirm")]
     [InlineData("Release")]
-    public async Task Points_Timeout_ShouldThrowOrderDomainException(string operation)
+    public async Task Points_Timeout_ShouldThrowAntiCorruptionException(string operation)
     {
         // HttpClient 超时表现为 TaskCanceledException（无 CancellationToken 取消请求）
         var service = CreatePointsService(_ => throw new TaskCanceledException("timeout"));
@@ -75,7 +75,7 @@ public class AntiCorruptionServicesTests
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 
-        await act.Should().ThrowAsync<OrderDomainException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
     }
 
     [Theory]
@@ -121,34 +121,34 @@ public class AntiCorruptionServicesTests
     // ---- PromotionAntiCorruptionService (T11) ----
 
     [Fact]
-    public async Task Promotion_CalculateDiscount_RemoteFailure_ShouldThrowOrderDomainException()
+    public async Task Promotion_CalculateDiscount_RemoteFailure_ShouldThrowAntiCorruptionException()
     {
         var service = CreatePromotionService(_ => throw new HttpRequestException("network down"));
 
         var act = () => service.CalculateDiscountAsync(UserId, new List<(Guid, decimal)> { (Guid.NewGuid(), 10m) }, CancellationToken.None);
 
-        var ex = await act.Should().ThrowAsync<OrderDomainException>();
-        ex.Which.ErrorCode.Should().NotBe("ORDER_ERROR");
+        var ex = await act.Should().ThrowAsync<AntiCorruptionException>();
+        ex.Which.ErrorCode.Should().NotBe("ANTICORRUPTION_ERROR");
     }
 
     [Fact]
-    public async Task Promotion_CalculateDiscount_NonSuccessStatusCode_ShouldThrowOrderDomainException()
+    public async Task Promotion_CalculateDiscount_NonSuccessStatusCode_ShouldThrowAntiCorruptionException()
     {
         var service = CreatePromotionService(_ => Response(HttpStatusCode.BadRequest));
 
         var act = () => service.CalculateDiscountAsync(UserId, new List<(Guid, decimal)> { (Guid.NewGuid(), 10m) }, CancellationToken.None);
 
-        await act.Should().ThrowAsync<OrderDomainException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
     }
 
     [Fact]
-    public async Task Promotion_CalculateDiscount_Timeout_ShouldThrowOrderDomainException()
+    public async Task Promotion_CalculateDiscount_Timeout_ShouldThrowAntiCorruptionException()
     {
         var service = CreatePromotionService(_ => throw new TaskCanceledException("timeout"));
 
         var act = () => service.CalculateDiscountAsync(UserId, new List<(Guid, decimal)> { (Guid.NewGuid(), 10m) }, CancellationToken.None);
 
-        await act.Should().ThrowAsync<OrderDomainException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
     }
 
     [Fact]
@@ -164,33 +164,33 @@ public class AntiCorruptionServicesTests
     }
 
     [Fact]
-    public async Task Promotion_ReleaseCoupons_RemoteFailure_ShouldThrowOrderDomainException()
+    public async Task Promotion_ReleaseCoupons_RemoteFailure_ShouldThrowAntiCorruptionException()
     {
         var service = CreatePromotionService(_ => throw new HttpRequestException("network down"));
 
         var act = () => service.ReleaseCouponsAsync(OrderId, CancellationToken.None);
 
-        await act.Should().ThrowAsync<OrderDomainException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
     }
 
     [Fact]
-    public async Task Promotion_ReleaseCoupons_NonSuccessStatusCode_ShouldThrowOrderDomainException()
+    public async Task Promotion_ReleaseCoupons_NonSuccessStatusCode_ShouldThrowAntiCorruptionException()
     {
         var service = CreatePromotionService(_ => Response(HttpStatusCode.InternalServerError));
 
         var act = () => service.ReleaseCouponsAsync(OrderId, CancellationToken.None);
 
-        await act.Should().ThrowAsync<OrderDomainException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
     }
 
     [Fact]
-    public async Task Promotion_ReleaseCoupons_Timeout_ShouldThrowOrderDomainException()
+    public async Task Promotion_ReleaseCoupons_Timeout_ShouldThrowAntiCorruptionException()
     {
         var service = CreatePromotionService(_ => throw new TaskCanceledException("timeout"));
 
         var act = () => service.ReleaseCouponsAsync(OrderId, CancellationToken.None);
 
-        await act.Should().ThrowAsync<OrderDomainException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
     }
 
     [Fact]
@@ -228,35 +228,35 @@ public class AntiCorruptionServicesTests
     // ---- PromotionAntiCorruptionService.LockCoupon (Task 3) ----
 
     [Fact]
-    public async Task Promotion_LockCoupon_RemoteFailure_ShouldThrowOrderDomainException()
+    public async Task Promotion_LockCoupon_RemoteFailure_ShouldThrowAntiCorruptionException()
     {
         var service = CreatePromotionService(_ => throw new HttpRequestException("network down"));
 
         var act = () => service.LockCouponAsync(UserId, Guid.NewGuid(), OrderId, CancellationToken.None);
 
-        var ex = await act.Should().ThrowAsync<OrderDomainException>();
-        ex.Which.ErrorCode.Should().Be("ORDER_PROMOTION_LOCK_COUPON_FAILED");
+        var ex = await act.Should().ThrowAsync<AntiCorruptionException>();
+        ex.Which.ErrorCode.Should().Be("PROMOTION_UNAVAILABLE");
     }
 
     [Fact]
-    public async Task Promotion_LockCoupon_NonSuccessStatusCode_ShouldThrowOrderDomainException()
+    public async Task Promotion_LockCoupon_NonSuccessStatusCode_ShouldThrowAntiCorruptionException()
     {
         // 409 Conflict 对应促销域券已被并发订单占用
         var service = CreatePromotionService(_ => Response(HttpStatusCode.Conflict));
 
         var act = () => service.LockCouponAsync(UserId, Guid.NewGuid(), OrderId, CancellationToken.None);
 
-        await act.Should().ThrowAsync<OrderDomainException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
     }
 
     [Fact]
-    public async Task Promotion_LockCoupon_Timeout_ShouldThrowOrderDomainException()
+    public async Task Promotion_LockCoupon_Timeout_ShouldThrowAntiCorruptionException()
     {
         var service = CreatePromotionService(_ => throw new TaskCanceledException("timeout"));
 
         var act = () => service.LockCouponAsync(UserId, Guid.NewGuid(), OrderId, CancellationToken.None);
 
-        await act.Should().ThrowAsync<OrderDomainException>();
+        await act.Should().ThrowAsync<AntiCorruptionException>();
     }
 
     [Fact]

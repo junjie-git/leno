@@ -1,0 +1,42 @@
+syntax = "proto3";
+package leno.promotion.v1;
+option csharp_namespace = "Leno.SharedContracts.Grpc.Promotion.V1";
+
+service PromotionInternalService {
+  rpc CalculateDiscount(CalculateDiscountRequest) returns (CalculateDiscountResponse);
+  rpc LockCoupon(LockCouponRequest) returns (LockCouponResponse);
+  rpc ReleaseCoupons(ReleaseCouponsRequest) returns (ReleaseCouponsResponse);
+  rpc GetCouponInfo(GetCouponInfoRequest) returns (CouponInfo);
+}
+
+message CalculateDiscountRequest {
+  string user_id = 1;
+  repeated OrderItem items = 2;
+}
+message OrderItem {
+  int64 sku_id = 1;
+  int64 subtotal_cents = 2;
+}
+message CalculateDiscountResponse {
+  int64 discount_cents = 1;
+  repeated AppliedCoupon coupons = 2;
+}
+message AppliedCoupon {
+  string coupon_id = 1;
+  int64 discount_cents = 2;
+}
+message LockCouponRequest {
+  string user_id = 1;
+  string coupon_id = 2;
+  string order_id = 3;
+}
+message LockCouponResponse { bool success = 1; }
+message ReleaseCouponsRequest { string order_id = 1; }
+message ReleaseCouponsResponse { bool success = 1; }
+message GetCouponInfoRequest { string coupon_id = 1; }
+message CouponInfo {
+  string coupon_id = 1;
+  string title = 2;
+  int64 discount_cents = 3;
+  string status = 4;
+}

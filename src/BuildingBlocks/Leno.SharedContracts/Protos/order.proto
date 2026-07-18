@@ -1,0 +1,45 @@
+syntax = "proto3";
+package leno.order.v1;
+option csharp_namespace = "Leno.SharedContracts.Grpc.Order.V1";
+
+service OrderInternalService {
+  rpc GetOrderStatus(GetOrderStatusRequest) returns (OrderStatus);
+  rpc GetOrderDetail(GetOrderDetailRequest) returns (OrderDetail);
+  rpc GetSellerOrders(GetSellerOrdersRequest) returns (SellerOrders);
+}
+
+message GetOrderStatusRequest { string order_id = 1; }
+message OrderStatus {
+  string order_id = 1;
+  string status = 2;
+  string payment_status = 3;
+  string shipping_status = 4;
+}
+message GetOrderDetailRequest { string order_id = 1; }
+message OrderDetail {
+  string order_id = 1;
+  string user_id = 2;
+  int64 total_cents = 3;
+  string status = 4;
+  repeated OrderItem items = 5;
+}
+message OrderItem {
+  int64 sku_id = 1;
+  int32 quantity = 2;
+  int64 unit_price_cents = 3;
+}
+message GetSellerOrdersRequest {
+  string seller_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+message SellerOrders {
+  repeated OrderSummary orders = 1;
+  int32 total = 2;
+}
+message OrderSummary {
+  string order_id = 1;
+  string status = 2;
+  int64 total_cents = 3;
+  string created_at = 4;
+}

@@ -1,0 +1,10 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    CSHARP_FILE_SCOPED_NAMESPACE: true
+plugins:
+  - remote: buf.build/grpc/csharp
+    out: ../Leno.SharedContracts.Grpc/Generated
+  - remote: buf.build/protocolbuffers/csharp
+    out: ../Leno.SharedContracts.Grpc/Generated
