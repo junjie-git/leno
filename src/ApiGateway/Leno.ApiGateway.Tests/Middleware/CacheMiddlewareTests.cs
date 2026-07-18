@@ -81,11 +81,12 @@ public class CacheMiddlewareTests
 
         var key = CacheMiddleware.GenerateCacheKey(httpContext);
 
-        key.Should().Be("GET:/api/products/123?page=1&size=20:42");
+        // 仅设置 Sub claim，role/shopId 退化为默认值 guest/none
+        key.Should().Be("GET:/api/products/123?page=1&size=20:42:guest:none");
     }
 
     [Fact]
-    public void GenerateCacheKey_WithAnonymousUser_HasEmptyUserIdSegment()
+    public void GenerateCacheKey_WithAnonymousUser_UsesDefaults()
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Method = "GET";
@@ -95,7 +96,7 @@ public class CacheMiddlewareTests
 
         var key = CacheMiddleware.GenerateCacheKey(httpContext);
 
-        key.Should().Be("GET:/api/categories:");
+        key.Should().Be("GET:/api/categories:anonymous:guest:none");
     }
 
     [Fact]
@@ -112,6 +113,106 @@ public class CacheMiddlewareTests
         ctx2.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim("Sub", "2") }, "Test"));
 
         CacheMiddleware.GenerateCacheKey(ctx1).Should().NotBe(CacheMiddleware.GenerateCacheKey(ctx2));
+    }
+
+    [Fact]
+    public void GenerateCacheKey_IncludesRole()
+    {
+        var ctx1 = new DefaultHttpContext();
+        ctx1.Request.Method = "GET";
+        ctx1.Request.Path = "/api/products/1";
+        ctx1.User = new ClaimsPrincipal(
+            new ClaimsIdentity(new[]
+            {
+                new Claim("Sub", "42"),
+                new Claim("Role", "customer")
+            }, "Test"));
+
+        var ctx2 = new DefaultHttpContext();
+        ctx2.Request.Method = "GET";
+        ctx2.Request.Path = "/api/products/1";
+        ctx2.User = new ClaimsPrincipal(
+            new ClaimsIdentity(new[]
+            {
+                new Claim("Sub", "42"),
+                new Claim("Role", "admin")
+            }, "Test"));
+
+        var key1 = CacheMiddleware.GenerateCacheKey(ctx1);
+        var key2 = CacheMiddleware.GenerateCacheKey(ctx2);
+
+        key1.Should().Be("GET:/api/products/1:42:customer:none");
+        key2.Should().Be("GET:/api/products/1:42:admin:none");
+        key1.Should().NotBe(key2);
+    }
+
+    [Fact]
+    public void GenerateCacheKey_IncludesShopId()
+    {
+        var ctx1 = new DefaultHttpContext();
+        ctx1.Request.Method = "GET";
+        ctx1.Request.Path = "/api/bff/seller/orders";
+        ctx1.User = new ClaimsPrincipal(
+            new ClaimsIdentity(new[]
+            {
+                new Claim("Sub", "42"),
+                new Claim("Role", "seller"),
+                new Claim("shop_id", "shop-a")
+            }, "Test"));
+
+        var ctx2 = new DefaultHttpContext();
+        ctx2.Request.Method = "GET";
+        ctx2.Request.Path = "/api/bff/seller/orders";
+        ctx2.User = new ClaimsPrincipal(
+            new ClaimsIdentity(new[]
+            {
+                new Claim("Sub", "42"),
+                new Claim("Role", "seller"),
+                new Claim("shop_id", "shop-b")
+            }, "Test"));
+
+        var key1 = CacheMiddleware.GenerateCacheKey(ctx1);
+        var key2 = CacheMiddleware.GenerateCacheKey(ctx2);
+
+        key1.Should().Be("GET:/api/bff/seller/orders:42:seller:shop-a");
+        key2.Should().Be("GET:/api/bff/seller/orders:42:seller:shop-b");
+        key1.Should().NotBe(key2);
+    }
+
+    [Fact]
+    public void GenerateCacheKey_DifferentUsersGenerateDifferentKeys()
+    {
+        // 综合验证：相同 path/query 但 userId/role/shopId 全部不同 → Key 不同
+        var ctx1 = new DefaultHttpContext();
+        ctx1.Request.Method = "GET";
+        ctx1.Request.Path = "/api/bff/seller/dashboard";
+        ctx1.Request.QueryString = new QueryString("?range=30d");
+        ctx1.User = new ClaimsPrincipal(
+            new ClaimsIdentity(new[]
+            {
+                new Claim("Sub", "user-1"),
+                new Claim("Role", "seller"),
+                new Claim("shop_id", "shop-1")
+            }, "Test"));
+
+        var ctx2 = new DefaultHttpContext();
+        ctx2.Request.Method = "GET";
+        ctx2.Request.Path = "/api/bff/seller/dashboard";
+        ctx2.Request.QueryString = new QueryString("?range=30d");
+        ctx2.User = new ClaimsPrincipal(
+            new ClaimsIdentity(new[]
+            {
+                new Claim("Sub", "user-2"),
+                new Claim("Role", "admin"),
+                new Claim("shop_id", "shop-2")
+            }, "Test"));
+
+        var key1 = CacheMiddleware.GenerateCacheKey(ctx1);
+        var key2 = CacheMiddleware.GenerateCacheKey(ctx2);
+
+        key1.Should().Be("GET:/api/bff/seller/dashboard?range=30d:user-1:seller:shop-1");
+        key2.Should().Be("GET:/api/bff/seller/dashboard?range=30d:user-2:admin:shop-2");
+        key1.Should().NotBe(key2);
     }
 }
 

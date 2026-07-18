@@ -1,5 +1,15 @@
 # API 网关增强设计
 
+> **⚠️ SUPERSEDED**: 本 spec 已被 [2026-07-17-comprehensive-optimization-v2-design.md](./2026-07-17-comprehensive-optimization-v2-design.md) §10 接管。
+>
+> 本文档保留作为历史参考，不再代表当前架构决策。当前实施请以 V2 spec 为准。
+>
+> **接管关系**：
+> - 网关增强 spec 的缓存、限流、熔断、JWT 鉴权等内容已整合到 V2 spec §10 网关增强
+> - 既有实现保留，新增功能按 V2 spec 实施
+>
+> **接管日期**: 2026-07-17
+
 > 日期: 2026-07-14
 > 状态: Draft
 > 范围: 独立新方案（不依赖已有全面优化方案主线 7）

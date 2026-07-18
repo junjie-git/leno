@@ -1,4 +1,5 @@
 using Consul;
+using Leno.ApiGateway.Bff;
 using Leno.ApiGateway.Middleware;
 using Leno.ApiGateway.Options;
 using Leno.ApiGateway.Services;
@@ -267,6 +268,32 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddSingleton<ProtocolTranslatorRegistry>();
+        return services;
+    }
+
+    /// <summary>
+    /// 注册 BFF 聚合转发相关服务：
+    /// <list type="bullet">
+    ///   <item>命名 HttpClient <c>"BffForwarder"</c>（3 秒超时，与 <see cref="BffForwarderService"/> 内部 CTS 超时一致）</item>
+    ///   <item><see cref="IBffForwarderService"/> 作用域服务</item>
+    ///   <item>调用 <see cref="MvcServiceCollectionExtensions.AddControllers(IServiceCollection)"/> 启用 BFF 控制器发现</item>
+    /// </list>
+    /// </summary>
+    public static IServiceCollection AddBffForwarding(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.AddHttpClient(BffForwarderService.HttpClientName, client =>
+        {
+            client.Timeout = BffForwarderService.DefaultTimeout;
+        });
+
+        services.AddScoped<IBffForwarderService, BffForwarderService>();
+
+        // BFF 控制器位于 Leno.ApiGateway.Bff.Controllers 命名空间，
+        // AddControllers 会扫描程序集自动发现 [ApiController] 装饰的控制器
+        services.AddControllers();
+
         return services;
     }
 }

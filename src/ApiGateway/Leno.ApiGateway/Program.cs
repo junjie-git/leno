@@ -72,6 +72,9 @@ builder.Services.AddAuthorization();
 // Phase 6：协议转换预留注册表（当前无实现）
 builder.Services.AddProtocolTranslators();
 
+// Plan 10 (M6) Task 10：BFF 聚合转发（4 个 /api/bff/* 端点，3 秒超时，部分失败返回 partial）
+builder.Services.AddBffForwarding();
+
 // Phase 6：响应压缩
 builder.Services.AddResponseCompression(options =>
 {
@@ -161,6 +164,11 @@ app.UseRequestTimeouts();
 
 // YARP 反向代理端点
 app.MapReverseProxy();
+
+// Plan 10 (M6) Task 10：BFF 聚合端点（/api/bff/*）
+// 注册顺序在 MapReverseProxy 之后：ASP.NET Core 端点路由按 URL 模式与 Order 匹配，
+// BFF 路由前缀 /api/bff/ 不在 YARP ReverseProxy:Routes 配置内，互不冲突
+app.MapControllers();
 
 app.Run();
 

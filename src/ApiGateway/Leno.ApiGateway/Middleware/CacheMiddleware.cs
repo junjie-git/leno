@@ -10,7 +10,7 @@ namespace Leno.ApiGateway.Middleware;
 /// 响应缓存中间件。位于 JWT 验签之后、YARP 代理之前。
 /// <para>
 /// 缓存条件：仅 GET/HEAD 方法，响应状态码 200 且无 <c>Cache-Control: no-store</c>。
-/// 缓存 Key：<c>method:path:querystring:userId</c>（按用户隔离）。
+/// 缓存 Key：<c>method:path:querystring:userId:role:shopId</c>（按用户、角色、店铺隔离，避免越权命中）。
 /// 命中缓存时直接返回缓存的响应体与 Header，不转发到后端。
 /// 缓存存储于 Redis，TTL 由 <see cref="CacheOptions.GetTtlForPath"/> 决定。
 /// </para>
@@ -116,8 +116,11 @@ public sealed class CacheMiddleware
     }
 
     /// <summary>
-    /// 生成缓存 Key：<c>method:path:querystring:userId</c>。
-    /// userId 从 Claims 的 <c>Sub</c> 读取，匿名用户为空字符串。
+    /// 生成缓存 Key：<c>method:path:querystring:userId:role:shopId</c>。
+    /// userId/role/shopId 分别从 Claims 的 <c>Sub</c>、<c>Role</c>、<c>shop_id</c> 读取，
+    /// 与 <see cref="Leno.ApiGateway.Transforms.UserContextTransformProvider"/> 保持一致。
+    /// 匿名用户使用占位值 <c>anonymous</c>/<c>guest</c>/<c>none</c>，
+    /// 确保不同身份维度的请求不会命中同一缓存条目（防越权）。
     /// </summary>
     internal static string GenerateCacheKey(HttpContext context)
     {
@@ -126,9 +129,12 @@ public sealed class CacheMiddleware
         var method = context.Request.Method;
         var path = context.Request.Path.Value ?? "/";
         var query = context.Request.QueryString.Value ?? string.Empty;
-        var userId = context.User.FindFirst("Sub")?.Value ?? string.Empty;
 
-        return $"{method}:{path}{query}:{userId}";
+        var userId = context.User.FindFirst("Sub")?.Value ?? "anonymous";
+        var role = context.User.FindFirst("Role")?.Value ?? "guest";
+        var shopId = context.User.FindFirst("shop_id")?.Value ?? "none";
+
+        return $"{method}:{path}{query}:{userId}:{role}:{shopId}";
     }
 
     private static string SerializeResponse(

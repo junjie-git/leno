@@ -1,5 +1,15 @@
 # Leno 电商平台全面优化方案设计
 
+> **⚠️ SUPERSEDED**: 本 spec 已被 [2026-07-17-comprehensive-optimization-v2-design.md](./2026-07-17-comprehensive-optimization-v2-design.md) 接管。
+>
+> 本文档保留作为历史参考，不再代表当前架构决策。当前实施请以 V2 spec 为准。
+>
+> **接管关系**：
+> - V1 spec 的快轨 4 个 Wave（F1-F4）已由 V2 spec §5-§8 接管并实施完成
+> - V1 spec 的慢轨 6 个里程碑（M1-M6）已由 V2 spec §9-§14 接管，部分已实施完成
+>
+> **接管日期**: 2026-07-17
+
 **文档版本**：V1.0
 **创建日期**：2026-07-13
 **适用范围**：Leno 电商平台全部 11 个限界上下文（BC1-BC11）及共享内核

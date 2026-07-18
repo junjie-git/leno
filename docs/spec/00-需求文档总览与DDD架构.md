@@ -1,11 +1,12 @@
 # 电商平台需求文档总览与 DDD 架构
 
-**文档版本**：V2.4
-**技术栈基准**：.NET 10、EF Core、DDD、CQRS、RESTful API、消息队列、事件总线
-**集成组件**：Swagger、Redis、Elasticsearch、JWT、OAuth2、微信支付、支付宝、邮件（SMTP）、短信
+**文档版本**：V2.5
+**技术栈基准**：.NET 10、EF Core、DDD、CQRS、RESTful API、消息队列、事件总线、gRPC、Consul KV、Helm
+**集成组件**：Swagger、Redis、Elasticsearch、JWT、OAuth2、微信支付、支付宝、邮件（SMTP）、短信、Consul、Prometheus、Grafana、Alertmanager
 **创建日期**：2026-07-09
+**最近更新**：2026-07-19（V2.5 同步 M1–M6 架构决策）
 
-本文档是电商平台需求文档集的入口与纲领。它定义系统范围、用户角色、DDD 战略设计（限界上下文、上下文映射、共享内核、统一语言）以及各层架构规范，并为各限界上下文的需求文档建立索引。本版新增积分与会员体系、支付集成、消息通知集成三个限界上下文，并引入按角色模块独立部署的架构约束。各上下文的详细功能点、聚合设计、领域事件、API 与验收标准见独立文档。
+本文档是电商平台需求文档集的入口与纲领。它定义系统范围、用户角色、DDD 战略设计（限界上下文、上下文映射、共享内核、统一语言）以及各层架构规范，并为各限界上下文的需求文档建立索引。V2.4 引入积分与会员体系、支付集成、消息通知集成三个限界上下文与按角色模块独立部署的架构约束；V2.5 同步 M1–M6 阶段已落地的架构决策：事件契约分离（M1）、Internal API 版本治理（M4.2）、gRPC 决策（M4.3）、Consul KV 配置中心（M5.2）、Helm Chart 部署（M5.4）、可观测性增强（M5.1 + M5.3）、CQRS Query Handler 与网关 BFF 聚合层（M6）。各上下文的详细功能点、聚合设计、领域事件、API 与验收标准见独立文档。
 
 ## 1 项目背景与目标
 
@@ -150,9 +151,28 @@ graph LR
 
 领域事件在聚合方法中产生、在当前上下文内消费，用于解耦聚合内部逻辑。集成事件跨上下文传递，经事件总线发布订阅。为保证本地事务与事件发布原子性，采用发件箱模式：聚合保存与事件记录在同一事务写入，后台进程轮询发件箱表并发布到消息队列，消费失败进入死信队列并重试。积分发放、支付结果、通知发送等跨域副作用一律走集成事件，主交易链路不等待其完成。
 
+#### 4.6.1 事件契约分离（M1 落地）
+
+历史版本中存在大量"双身份事件"——同一事件类型同时承担领域事件与集成事件两种角色，导致事件结构耦合、跨上下文契约难以独立演进。M1 完成事件契约分离改造：
+
+- **集成事件统一基类**：所有集成事件继承 `IntegrationEventBase`，携带 `EventId`（事件唯一标识）、`OccurredAt`（发生时间）、`IdempotencyKey`（幂等键）、`SchemaVersion`（事件 schema 版本）四个标准字段，由基类统一提供，派生类只关心业务字段。
+- **物理位置**：集成事件统一存放于 `Leno.SharedContracts/Events/` 目录，按 BC 分文件组织（如 `OrderEvents.cs`、`PromotionEvents.cs`、`PointsMembershipEvents.cs` 等），便于跨 BC 协商与契约扫描。
+- **职责隔离**：集成事件不实现 `IDomainEvent`，域事件不实现 `IIntegrationEvent`。跨上下文发布的事件必须经翻译器（`IIntegrationEventMapper<TDomainEvent>`）由领域事件翻译为集成事件后发布到消息总线，禁止领域事件直接发布到总线。
+- **双发期 1 周**：分离期间同时发布旧双身份事件与新分离事件，消费端按批次迁移，1 周后下线旧双身份事件。
+
 ### 4.7 CQRS 与最终一致性
 
 Command 侧使用 EF Core 写库（SQL Server/PostgreSQL），保证 ACID；Query 侧直接查询 Elasticsearch 读库，可辅以 Redis 缓存。写库变更通过事件总线同步到读库。库存预占等强一致操作在 Command 侧以 Redis Lua 脚本原子完成；订单超时取消、积分清零、会员等级刷新等延迟与定时任务由 MQ 延迟消息或调度器驱动。
+
+#### 4.7.1 CQRS Query Handler 与 BFF 聚合层（M6 落地）
+
+M6 在既有 CQRS 基础设施上完成读侧职责分离与网关聚合层落地：
+
+- **ES 读模型同步基类扩展**：`ReadModelSyncConsumerBase<TEvent, TReadModel>` 新增 `BuildDeleteActionAsync` 虚方法（默认返回 null，向后兼容），支持"事件触发删除读模型"场景。删除失败抛 `InvalidOperationException` 触发 MassTransit 重试与死信队列，与索引分支错误处理策略保持一致。
+- **3 BC 新建读模型与同步 Consumer**：Promotion、PointsMembership、SellerShop 三个 BC 新建 5 个 ES 读模型（SeckillActivity/Coupon/PointsAccount/Member/ShopDashboard）与 11 个同步 Consumer，订阅各自 BC 与跨 BC 集成事件，增量聚合到 ES 索引供前台快速检索。
+- **IQueryHandler 接口 + DI 注册**：新建 `IQueryHandler<TQuery, TResult>` 通用接口与 `AddQueryHandler<TQuery, TResult, THandler>` DI 扩展方法，**不引入 MediatR**，通过 DI 容器解析即可。QueryHandler 位于 Application 层，走 ES 读模型或只读仓储，禁止调用 `SaveChangesAsync` 与发布领域事件。
+- **3 BC 新建 Query + Handler**：Product（ProductSearchQuery/ProductDetailQuery）、Order（OrderListQuery/OrderDetailQuery/LogisticsTraceQuery）、SellerShop（ShopDashboardQuery）共 6 个 Query + Handler。双发期 2 周：QueryHandler 与既有 AppService 查询方法并存，AppService 查询方法标记 `[Obsolete]`，2 周后 Controller 切换到 QueryHandler 并移除 Obsolete 方法。
+- **网关 BFF 聚合层**：网关新建 `Bff/` 目录与 4 个聚合端点（`/api/bff/order-detail`、`/api/bff/product-detail`、`/api/bff/cart-checkout-preview`、`/api/bff/seller-dashboard`）。使用 `Parallel.ForEachAsync` 并行调用下游 BC，单次调用超时 3 秒，部分下游失败时返回 `partial: true` + 错误明细，避免单点故障导致整端点不可用。
 
 ### 4.8 外部能力配置驱动
 
@@ -256,6 +276,15 @@ public record FileUploadResult(string Url, long Size, string ContentType);
 
 JWT 有效期 2 小时，Refresh Token 有效期 7 天，OAuth2 以 state 参数防 CSRF。用户密码采用 bcrypt 哈希，敏感日志脱敏，支付回调验签。API 层通过 EF Core 参数化防 SQL 注入、XSS 过滤、基于 Redis 滑动窗口的请求频率限制。支付渠道密钥、短信/邮件 API Key 等敏感参数存于配置中心或环境变量，不落代码仓库，日志中脱敏输出。
 
+#### 6.2.1 Consul KV 配置中心与 InternalApiKey 分治（M5.2 落地）
+
+M5.2 将敏感配置统一收敛到 Consul KV 配置中心，并完成 InternalApiKey 分 BC 独立治理：
+
+- **11 BC 独立 InternalApiKey**：废除全平台共用单一 InternalApiKey 的做法，11 个限界上下文各自持有独立 InternalApiKey，Consul KV 路径约定 `leno/security/internal-key/{bc}`（如 `leno/security/internal-key/order`、`leno/security/internal-key/product`）。任一 BC 密钥泄露不影响其余 BC。
+- **调用方配置**：调用方在 `AntiCorruption:TargetInternalApiKeys` 字典中按 BC 名配置目标 BC 的 InternalApiKey，防腐层 HttpClient 在请求时注入 `X-Internal-Key` 头部，密钥本身不进入防腐层代码或日志。
+- **启动期 fail-closed**：应用启动时执行 `ValidateSensitiveConfig` 校验所有必需的敏感配置项（数据库连接串、Redis 密码、JWT 签名密钥、InternalApiKey 等），缺失时 fail-closed 阻止启动。生产环境若 Consul 不可达降级为 warning 日志并继续启动（依赖本地缓存配置），但InternalApiKey 缺失仍 fail-closed。
+- **配置热更新**：Consul KV 变更通过 watch 机制推送到各 BC，无需重启即可生效（InternalApiKey 轮换、数据库连接串切换等）。
+
 ### 6.3 可扩展性与维护
 
 领域层聚合、值对象、领域事件独立演进；应用层命令查询处理器职责单一；基础设施层按持久化、消息、缓存、支付、通知分目录；接口层 REST API。Command 写库与 Query 读库物理分离，可独立扩缩容。事件总线 `IEventBus` 接口支持发布订阅，保证跨聚合解耦。支付与通知渠道通过适配器接口实现可替换，新增渠道不影响既有代码。
@@ -267,6 +296,19 @@ JWT 有效期 2 小时，Refresh Token 有效期 7 天，OAuth2 以 state 参数
 ### 6.5 可观测性
 
 结构化日志（Serilog）记录请求响应与事件处理耗时；`/health` 端点按模块分别检测 DB、Redis、ES、MQ、支付渠道、通知渠道状态；可选 OpenTelemetry 链路追踪跨模块串联；Prometheus + Grafana 采集各模块请求数、延迟、MQ 队列长度、支付成功率、通知送达率，错误率超 1% 触发告警。
+
+#### 6.5.1 可观测性增强（M5.1 + M5.3 落地）
+
+M5.1 与 M5.3 在既有可观测性基础上完成 metrics 全覆盖与告警闭环：
+
+- **11 BC 暴露 Prometheus `/metrics` 端点**：所有限界上下文统一通过 `AddLenoObservability` 注册 Prometheus metrics 中间件，暴露 `/metrics` 端点供 Prometheus 抓取。关键指标包括 HTTP 请求计数/延迟分布、EF Core 查询耗时、MQ 队列长度、Redis 命中率、防腐层调用成功率等。
+- **Outbox 指标**：`OutboxMetrics` 暴露 `outbox_pending_count`（Gauge，待发布事件数）与 `outbox_published_total`（Counter，累计已发布事件数）两个核心指标，用于监控发件箱积压与吞吐。积压超阈值即触发告警。
+- **Alertmanager 告警闭环**：部署 Alertmanager 容器与 4 条核心告警规则：
+  - **Outbox 积压告警**：`outbox_pending_count > 1000` 持续 5 分钟（事件发布器异常或下游消费阻塞）
+  - **死信队列告警**：死信队列消息数 > 0 持续 1 分钟（消费失败需人工介入）
+  - **防腐层失败率告警**：5 分钟内防腐层调用失败率 > 5%（下游 BC 不可达或契约不一致）
+  - **服务宕机告警**：任一 BC `/health` 端点连续 3 次探测失败（实例宕机或网络分区）
+- **告警通知**：Alertmanager 通过邮件/钉钉/飞书 webhook 推送告警，含告警名称、实例、阈值、当前值、Runbook 链接。
 
 ## 7 技术架构组件映射
 
@@ -284,9 +326,11 @@ JWT 有效期 2 小时，Refresh Token 有效期 7 天，OAuth2 以 state 参数
 | 支付渠道 | 微信支付 SDK + 支付宝 SDK，`IPaymentChannel` 适配，参数配置化 |
 | 邮件 | SMTP 客户端（MailKit），`IEmailChannel` 适配，参数配置化 |
 | 短信 | 短信服务商 SDK（阿里云/腾讯云），`ISmsChannel` 适配，参数配置化 |
-| 配置中心 | 环境变量 + `appsettings.json`，生产环境可选 Consul/Apollo |
-| 容器化 | Docker + docker-compose，模块独立镜像，可选 K8s |
+| 配置中心 | 环境变量 + `appsettings.json` + Consul KV（M5.2 落地，生产环境默认 Consul，敏感配置路径约定 `leno/security/{key}`） |
+| 容器化 | Docker + docker-compose（开发环境）+ Helm Chart（M5.4 落地，生产环境 K8s） |
+| 内部服务通信 | REST（`/internal/v1/` 前缀，M4.2 落地）+ gRPC（`leno.{bc}.v1` package，M4.3 落地，灰度开关 `AntiCorruption:UseGrpc`） |
 | 文件存储 | `IFileStorageService` 抽象，默认 `LocalFileStorageService`（本地磁盘），可切换 `ObjectStorageService`（MinIO/阿里云 OSS），由 `FileStorage:Provider` 配置决定 |
+| 可观测性 | Serilog 结构化日志 + Prometheus `/metrics`（M5.1 落地）+ Grafana 仪表盘 + Alertmanager 告警闭环（M5.3 落地，4 条核心告警规则） |
 
 ## 8 API 设计规范
 
@@ -294,11 +338,44 @@ JWT 有效期 2 小时，Refresh Token 有效期 7 天，OAuth2 以 state 参数
 
 通用约束：列表查询默认分页（page 从 1 开始，pageSize 默认 20、最大 100）；写操作返回创建或更新后的资源；幂等键通过 `Idempotency-Key` 头支持重复请求安全，支付回调与通知发送强制要求幂等键；时间字段统一 ISO 8601 UTC。各角色端 API 经独立网关暴露，跨端调用的内部服务走服务间直连或事件总线。
 
+### 8.1 Internal API 版本治理（M4.2 落地）
+
+BC 间同步调用走 Internal API，与面向终端用户的公开 API 隔离治理：
+
+- **路由前缀**：11 条 internal 路由统一加 `/v1/` 版本前缀（如 `/internal/v1/products/skus/{skuId}`、`/internal/v1/orders/{orderId}/status`）。当前版本 v1，未来 v2 上线时保留 v1 双发期 ≥ 4 周。
+- **双路由期**：新旧路由并存 1 周（旧无前缀路由 + 新 `/v1/` 路由），调用方按批次切换，1 周后下线旧路由。详细路由清单见 `docs/contracts/internal-api-contracts.md`。
+- **gRPC 契约**：11 个 .proto 文件位于 `Leno.SharedContracts/Protos/`，package 命名 `leno.{bc}.v1`，服务名 `{BC}InternalService`，方法名采用动词前缀（如 `GetProductById`、`ValidateSellerOwnership`）。buf CLI 强制校验风格与向后兼容。
+- **SchemaVersion 持久化**：`IntegrationEventBase.SchemaVersion` 字段持久化到 Outbox 表 `schema_version` 列，消费端按版本号兼容处理事件结构演进。
+- **鉴权**：所有 internal 端点由 `InternalApiKeyMiddleware` 校验 `X-Internal-Key` 请求头，不经过 JWT 鉴权。11 BC 各自独立 InternalApiKey（M5.2 落地，详见 6.2.1 节）。
+
+### 8.2 gRPC 决策（M4.3 落地）
+
+M4.3 在 REST Internal API 之外补充 gRPC 通道，用于高频、强类型、低延迟的 BC 间同步调用：
+
+- **服务端**：11 个 BC.Api 新增 `GrpcServices/` 目录，承载 `{BC}InternalService` gRPC 服务实现。gRPC 端口分配为 HTTP 端口 +100（如 UserAuth 5251、Product 5252、...、SystemAdmin 5261）。
+- **客户端**：防腐层新建 `GrpcAntiCorruptionClientBase` 基类，封装 gRPC 调用 + Polly 策略链（重试 3 次指数退避 1s/2s/4s + 熔断 50%/30s + Timeout 10s），通过 `AddAntiCorruptionPolicies()` 链式注入。调用方按 BC 选择目标 InternalApiKey 注入 gRPC metadata。
+- **灰度开关**：`AntiCorruption:UseGrpc` 配置项控制 REST/gRPC 切换，默认 `false`（走 REST）。按 3 批次灰度迁移：
+  1. 高频防腐层（Order → Product/Promotion/PointsMembership）
+  2. Cart/SellerShop 防腐层
+  3. ReviewAfterSales/Notification/SystemAdmin 防腐层
+- **错误映射**：gRPC 状态码统一映射为 `DomainException`：`Unavailable`/`DeadlineExceeded` → `{SERVICE}_UNAVAILABLE`（HTTP 503）；`Internal` → `{SERVICE}_REMOTE_FAILED`（HTTP 502）；`InvalidArgument` → `{SERVICE}_INVALID_ARGUMENT`（HTTP 400）。
+- **与 REST 并存**：gRPC 不替换 REST Internal API，两者并行提供。REST 作为兼容与调试通道，gRPC 作为性能优化通道，由灰度开关切换。
+
 ## 9 部署与运维
 
 环境配置基于 `appsettings.json` + 环境变量 + 配置中心，支持开发/测试/生产多环境。数据库迁移通过 EF Core Migrations 脚本化执行，各上下文迁移独立。消息队列启动时声明 Exchange、Queue、Binding 与死信 Exchange。ES 索引启动时检查存在性，缺失则创建并配置中文分词器。监控告警基于 Prometheus + Grafana。
 
 模块按角色与限界上下文独立打包部署，单一模块可独立发布与回滚，详见 `10-模块化部署架构.md`。支付渠道与通知渠道参数通过配置中心热更新，无需重启即可切换服务商。
+
+### 9.1 Helm Chart 部署（M5.4 落地）
+
+M5.4 完成 Kubernetes 生产部署的 Helm Chart 标准化：
+
+- **Umbrella Chart 结构**：`deploy/helm/leno/` 为 umbrella chart，含 12 个子服务完整定义（11 个 BC + 1 个 API 网关）。各服务独立 `values.yaml` 子配置，支持按环境（dev/staging/prod）覆盖。
+- **HPA + 探针**：每个服务配置 HorizontalPodAutoscaler（CPU/内存阈值触发扩缩容）+ readiness probe（就绪后接流量）+ liveness probe（异常自动重启）。Probe 端点复用 `/health`，readiness 另含 DB/Redis/MQ 依赖检测。
+- **Init Container 迁移 Job**：数据库迁移通过 Init Container 在应用启动前执行 EF Core Migrations，确保 schema 就绪后再启动业务容器。迁移 Job 与业务容器共享镜像，仅启动命令不同。
+- **与 docker-compose 并存**：开发环境沿用 `docker-compose.yml`（轻量、快速启动），生产环境使用 Helm Chart（K8s 调度、HPA、滚动发布、ConfigMap/Secret 管理）。两者**二选一**，不强制统一。
+- **配置注入**：非敏感配置通过 Helm `values.yaml` + ConfigMap 注入，敏感配置（InternalApiKey、数据库连接串、JWT 签名密钥等）通过 Secret 注入，Secret 内容由 Consul KV 同步生成（详见 6.2.1 节）。
 
 ## 10 文档索引
 
@@ -317,3 +394,4 @@ JWT 有效期 2 小时，Refresh Token 有效期 7 天，OAuth2 以 state 参数
 | `10-模块化部署架构.md` | 角色模块独立部署、网关路由、故障隔离方案 |
 | `11-卖家与店铺管理域.md` | 卖家入驻审核、店铺信息与资质、店铺状态管理功能点 |
 | `12-系统管理域.md` | 数据看板、死信队列管理、索引重建、审计日志、限流配置、健康监控功能点 |
+| `../contracts/internal-api-contracts.md` | 11 条 Internal API 路由清单（M4.2 落地）、鉴权约定、版本治理、错误响应 |
