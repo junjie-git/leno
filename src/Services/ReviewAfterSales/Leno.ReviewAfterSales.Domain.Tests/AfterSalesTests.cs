@@ -1,7 +1,7 @@
 using Leno.ReviewAfterSales.Domain.Aggregates;
+using Leno.ReviewAfterSales.Domain.Events;
 using Leno.ReviewAfterSales.Domain.Exceptions;
 using Leno.ReviewAfterSales.Domain.ValueObjects;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.ReviewAfterSales.Domain.Tests;
@@ -48,7 +48,7 @@ public class AfterSalesTests
     }
 
     [Fact]
-    public void Create_ShouldRaiseAfterSalesSubmittedEvent()
+    public void Create_ShouldRaiseAfterSalesSubmittedDomainEvent()
     {
         var afterSales = AfterSales.Create(
             ValidAfterSalesId, ValidOrderId, Guid.NewGuid(),
@@ -57,7 +57,7 @@ public class AfterSalesTests
             new List<string>(), 100m, "CNY");
 
         afterSales.DomainEvents.Should().HaveCount(1);
-        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesSubmittedEvent>().Subject;
+        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesSubmittedDomainEvent>().Subject;
         evt.AfterSalesId.Should().Be(ValidAfterSalesId);
         evt.UserId.Should().Be(ValidUserId);
         evt.RequestedAmount.Should().Be(100m);
@@ -245,7 +245,7 @@ public class AfterSalesTests
     }
 
     [Fact]
-    public void Approve_WhenPending_ShouldRaiseAfterSalesApprovedEvent()
+    public void Approve_WhenPending_ShouldRaiseAfterSalesApprovedDomainEvent()
     {
         var afterSales = CreatePendingReturnRefund();
         afterSales.ClearDomainEvents();
@@ -253,7 +253,7 @@ public class AfterSalesTests
         afterSales.Approve(ValidOperatorId, 80m);
 
         afterSales.DomainEvents.Should().HaveCount(1);
-        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesApprovedEvent>().Subject;
+        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesApprovedDomainEvent>().Subject;
         evt.AfterSalesId.Should().Be(ValidAfterSalesId);
         evt.ApprovedAmount.Should().Be(80m);
     }
@@ -339,7 +339,7 @@ public class AfterSalesTests
     }
 
     [Fact]
-    public void Reject_WhenPending_ShouldRaiseAfterSalesRejectedEvent()
+    public void Reject_WhenPending_ShouldRaiseAfterSalesRejectedDomainEvent()
     {
         var afterSales = CreatePendingReturnRefund();
         afterSales.ClearDomainEvents();
@@ -347,7 +347,7 @@ public class AfterSalesTests
         afterSales.Reject(ValidOperatorId, "不符合售后条件");
 
         afterSales.DomainEvents.Should().HaveCount(1);
-        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesRejectedEvent>().Subject;
+        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesRejectedDomainEvent>().Subject;
         evt.AfterSalesId.Should().Be(ValidAfterSalesId);
         evt.RejectReason.Should().Be("不符合售后条件");
     }
@@ -404,7 +404,7 @@ public class AfterSalesTests
     }
 
     [Fact]
-    public void ReturnGoods_WhenApproved_ShouldRaiseAfterSalesReturnedEvent()
+    public void ReturnGoods_WhenApproved_ShouldRaiseAfterSalesReturnedDomainEvent()
     {
         var afterSales = CreateApprovedReturnRefund();
         afterSales.ClearDomainEvents();
@@ -412,7 +412,7 @@ public class AfterSalesTests
         afterSales.ReturnGoods("SF1234567890");
 
         afterSales.DomainEvents.Should().HaveCount(1);
-        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesReturnedEvent>().Subject;
+        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesReturnedDomainEvent>().Subject;
         evt.AfterSalesId.Should().Be(ValidAfterSalesId);
         evt.TrackingNo.Should().Be("SF1234567890");
         evt.SellerId.Should().Be(ValidSellerId);
@@ -489,7 +489,7 @@ public class AfterSalesTests
     }
 
     [Fact]
-    public void ConfirmReturn_WhenReturnGoods_ShouldRaiseAfterSalesReturnConfirmedEvent()
+    public void ConfirmReturn_WhenReturnGoods_ShouldRaiseAfterSalesReturnConfirmedDomainEvent()
     {
         var afterSales = CreateReturnedReturnRefund();
         afterSales.ClearDomainEvents();
@@ -497,7 +497,7 @@ public class AfterSalesTests
         afterSales.ConfirmReturn();
 
         afterSales.DomainEvents.Should().HaveCount(1);
-        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesReturnConfirmedEvent>().Subject;
+        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesReturnConfirmedDomainEvent>().Subject;
         evt.AfterSalesId.Should().Be(ValidAfterSalesId);
         evt.UserId.Should().Be(ValidUserId);
     }
@@ -613,7 +613,7 @@ public class AfterSalesTests
     }
 
     [Fact]
-    public void MarkRefundCompleted_WhenRefunding_ShouldRaiseRefundCompletedEvent()
+    public void MarkRefundCompleted_WhenRefunding_ShouldRaiseAfterSalesRefundCompletedDomainEvent()
     {
         var afterSales = CreateRefundingReturnRefund();
         afterSales.ClearDomainEvents();
@@ -622,7 +622,7 @@ public class AfterSalesTests
         afterSales.MarkRefundCompleted(refundId, 80m, "CH123");
 
         afterSales.DomainEvents.Should().HaveCount(1);
-        var evt = afterSales.DomainEvents.Single().Should().BeOfType<RefundCompletedEvent>().Subject;
+        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesRefundCompletedDomainEvent>().Subject;
         evt.RefundId.Should().Be(refundId);
         evt.RefundAmount.Should().Be(80m);
     }
@@ -691,7 +691,7 @@ public class AfterSalesTests
         afterSales.AddRefundRequestedEvent(refundId, paymentId, 80m, "Alipay", "质量问题");
 
         afterSales.DomainEvents.Should().HaveCount(1);
-        var evt = afterSales.DomainEvents.Single().Should().BeOfType<RefundRequestedIntegrationEvent>().Subject;
+        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesRefundRequestedDomainEvent>().Subject;
         evt.RefundId.Should().Be(refundId);
         evt.PaymentId.Should().Be(paymentId);
         evt.RefundAmount.Should().Be(80m);
@@ -711,7 +711,7 @@ public class AfterSalesTests
         afterSales.AddRefundRequestedEvent(refundId, paymentId, 50m, "WeChat", "七天无理由");
 
         afterSales.DomainEvents.Should().HaveCount(1);
-        var evt = afterSales.DomainEvents.Single().Should().BeOfType<RefundRequestedIntegrationEvent>().Subject;
+        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesRefundRequestedDomainEvent>().Subject;
         evt.RefundAmount.Should().Be(50m);
         evt.RefundReason.Should().Be("七天无理由");
     }
@@ -775,7 +775,7 @@ public class AfterSalesTests
         afterSales.AddRefundRequestedEvent(Guid.NewGuid(), Guid.NewGuid(), 80m, "Alipay", "");
 
         afterSales.DomainEvents.Should().HaveCount(1);
-        var evt = afterSales.DomainEvents.Single().Should().BeOfType<RefundRequestedIntegrationEvent>().Subject;
+        var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesRefundRequestedDomainEvent>().Subject;
         evt.RefundReason.Should().Be("");
     }
 
@@ -863,10 +863,10 @@ public class AfterSalesTests
         afterSales.MarkRefundCompleted(Guid.NewGuid(), 80m, "CH123");
 
         afterSales.DomainEvents.Should().HaveCount(4);
-        afterSales.DomainEvents.OfType<AfterSalesApprovedEvent>().Should().HaveCount(1);
-        afterSales.DomainEvents.OfType<AfterSalesReturnedEvent>().Should().HaveCount(1);
-        afterSales.DomainEvents.OfType<AfterSalesReturnConfirmedEvent>().Should().HaveCount(1);
-        afterSales.DomainEvents.OfType<RefundCompletedEvent>().Should().HaveCount(1);
+        afterSales.DomainEvents.OfType<AfterSalesApprovedDomainEvent>().Should().HaveCount(1);
+        afterSales.DomainEvents.OfType<AfterSalesReturnedDomainEvent>().Should().HaveCount(1);
+        afterSales.DomainEvents.OfType<AfterSalesReturnConfirmedDomainEvent>().Should().HaveCount(1);
+        afterSales.DomainEvents.OfType<AfterSalesRefundCompletedDomainEvent>().Should().HaveCount(1);
     }
 
     #endregion

@@ -1,6 +1,6 @@
+using Leno.ReviewAfterSales.Domain.Events;
 using Leno.ReviewAfterSales.Domain.Exceptions;
 using Leno.ReviewAfterSales.Domain.ValueObjects;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.ReviewAfterSales.Domain.Aggregates;
@@ -100,7 +100,7 @@ public sealed class AfterSales : AggregateRoot
     private AfterSales(Guid id) : base(id) { }
 
     /// <summary>
-    /// 工厂方法，校验入参合法、申请金额 &gt; 0，置待审核态并发布 <see cref="AfterSalesSubmittedEvent"/>。
+    /// 工厂方法，校验入参合法、申请金额 &gt; 0，置待审核态并发布 <see cref="AfterSalesSubmittedDomainEvent"/>。
     /// </summary>
     /// <param name="afterSalesId">售后单标识，由应用层生成。</param>
     /// <param name="orderId">订单标识。</param>
@@ -193,14 +193,14 @@ public sealed class AfterSales : AggregateRoot
             Images = imageList
         };
 
-        afterSales.AddDomainEvent(new AfterSalesSubmittedEvent(
+        afterSales.AddDomainEvent(new AfterSalesSubmittedDomainEvent(
             afterSalesId, orderId, orderLineId, userId, sellerId, (int)type, requestedAmount, currency));
 
         return afterSales;
     }
 
     /// <summary>
-    /// 审核同意，校验待审核态与同意金额 ≤ 申请金额，置已同意态并发布 <see cref="AfterSalesApprovedEvent"/>。
+    /// 审核同意，校验待审核态与同意金额 ≤ 申请金额，置已同意态并发布 <see cref="AfterSalesApprovedDomainEvent"/>。
     /// </summary>
     /// <param name="operatorId">审核人标识（卖家或运营）。</param>
     /// <param name="approvedAmount">审核同意金额，须 ≤ <see cref="RequestedAmount"/>。</param>
@@ -229,12 +229,12 @@ public sealed class AfterSales : AggregateRoot
         ApprovedAmount = approvedAmount;
         ApprovedAt = DateTime.UtcNow;
         ApproverId = operatorId;
-        AddDomainEvent(new AfterSalesApprovedEvent(
+        AddDomainEvent(new AfterSalesApprovedDomainEvent(
             Id, OrderId, UserId, SellerId, approvedAmount, Currency, (int)Type));
     }
 
     /// <summary>
-    /// 审核驳回，校验待审核态，置已驳回态并记录驳回原因，发布 <see cref="AfterSalesRejectedEvent"/>。
+    /// 审核驳回，校验待审核态，置已驳回态并记录驳回原因，发布 <see cref="AfterSalesRejectedDomainEvent"/>。
     /// </summary>
     /// <param name="operatorId">审核人标识。</param>
     /// <param name="reason">驳回原因，1-200 字。</param>
@@ -266,11 +266,11 @@ public sealed class AfterSales : AggregateRoot
         RejectReason = reason;
         ApproverId = operatorId;
         ApprovedAt = DateTime.UtcNow;
-        AddDomainEvent(new AfterSalesRejectedEvent(Id, OrderId, UserId, reason));
+        AddDomainEvent(new AfterSalesRejectedDomainEvent(Id, OrderId, UserId, reason));
     }
 
     /// <summary>
-    /// 买家退货，仅退货退款类型在已同意态可调用，置已退货态并发布 <see cref="AfterSalesReturnedEvent"/>。
+    /// 买家退货，仅退货退款类型在已同意态可调用，置已退货态并发布 <see cref="AfterSalesReturnedDomainEvent"/>。
     /// </summary>
     /// <param name="trackingNo">退货物流单号，不可为空。</param>
     public void ReturnGoods(string trackingNo)
@@ -302,11 +302,11 @@ public sealed class AfterSales : AggregateRoot
         Status = AfterSalesStatus.ReturnGoods;
         ReturnedAt = DateTime.UtcNow;
         TrackingNo = trackingNo;
-        AddDomainEvent(new AfterSalesReturnedEvent(Id, OrderId, SellerId, trackingNo));
+        AddDomainEvent(new AfterSalesReturnedDomainEvent(Id, OrderId, SellerId, trackingNo));
     }
 
     /// <summary>
-    /// 卖家确认收货，校验已退货态，置已确认收货态并发布 <see cref="AfterSalesReturnConfirmedEvent"/>。
+    /// 卖家确认收货，校验已退货态，置已确认收货态并发布 <see cref="AfterSalesReturnConfirmedDomainEvent"/>。
     /// </summary>
     public void ConfirmReturn()
     {
@@ -319,7 +319,7 @@ public sealed class AfterSales : AggregateRoot
 
         Status = AfterSalesStatus.ConfirmReturn;
         ReturnConfirmedAt = DateTime.UtcNow;
-        AddDomainEvent(new AfterSalesReturnConfirmedEvent(
+        AddDomainEvent(new AfterSalesReturnConfirmedDomainEvent(
             Id, OrderId, UserId, ApprovedAmount ?? RequestedAmount));
     }
 
@@ -346,7 +346,7 @@ public sealed class AfterSales : AggregateRoot
 	    }
 
     /// <summary>
-    /// 标记退款完成，校验退款中态与退款金额 ≤ 审核同意金额，置已完成态并发布 <see cref="RefundCompletedEvent"/>。
+    /// 标记退款完成，校验退款中态与退款金额 ≤ 审核同意金额，置已完成态并发布 <see cref="AfterSalesRefundCompletedDomainEvent"/>。
     /// 实际退款由支付集成域执行，本方法仅记录退款事实并通知下游（订单域回滚销量、促销域退还优惠券等）。
     /// </summary>
     /// <param name="refundId">退款单标识。</param>
@@ -378,7 +378,7 @@ public sealed class AfterSales : AggregateRoot
         RefundedAmount = amount;
         RefundedAt = DateTime.UtcNow;
         ChannelRefundNo = channelRefundNo;
-        AddDomainEvent(new RefundCompletedEvent(OrderId, UserId, refundId, Id, amount, Currency, RefundedAt.Value));
+        AddDomainEvent(new AfterSalesRefundCompletedDomainEvent(OrderId, UserId, refundId, Id, amount, Currency, RefundedAt.Value));
     }
 
     /// <summary>
@@ -432,7 +432,7 @@ public sealed class AfterSales : AggregateRoot
             throw new ReviewDomainException("退款金额须大于 0", "AFTERSALES_REFUND_AMOUNT_INVALID");
         }
 
-        AddDomainEvent(new RefundRequestedIntegrationEvent(
+        AddDomainEvent(new AfterSalesRefundRequestedDomainEvent(
             refundId, OrderId, UserId, Id,
             paymentId, refundAmount, Currency, channel, refundReason));
     }

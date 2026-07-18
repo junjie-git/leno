@@ -1,6 +1,6 @@
+using Leno.ReviewAfterSales.Domain.Events;
 using Leno.ReviewAfterSales.Domain.Exceptions;
 using Leno.ReviewAfterSales.Domain.ValueObjects;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.ReviewAfterSales.Domain.Aggregates;
@@ -70,7 +70,7 @@ public sealed class Review : AggregateRoot
     private Review(Guid id) : base(id) { }
 
     /// <summary>
-    /// 工厂方法，校验评分 1-5、图片不超过 9 张、内容非空，置待审核态并发布 <see cref="ReviewSubmittedEvent"/>。
+    /// 工厂方法，校验评分 1-5、图片不超过 9 张、内容非空，置待审核态并发布 <see cref="ReviewSubmittedDomainEvent"/>。
     /// </summary>
     /// <param name="reviewId">评价标识，由应用层生成。</param>
     /// <param name="orderId">订单标识。</param>
@@ -161,7 +161,7 @@ public sealed class Review : AggregateRoot
             Images = imageList
         };
 
-        review.AddDomainEvent(new ReviewSubmittedEvent(reviewId, userId, spuId, rating, newScore, reviewCount));
+        review.AddDomainEvent(new ReviewSubmittedDomainEvent(reviewId, userId, spuId, rating, newScore, reviewCount));
 
         return review;
     }
@@ -194,8 +194,8 @@ public sealed class Review : AggregateRoot
     }
 
     /// <summary>
-	    /// 运营审核通过，校验待审核态，置已通过态并发布 <see cref="ReviewApprovedEvent"/>。
-	    /// ReviewApprovedEvent 驱动积分域发放评价积分。
+	    /// 运营审核通过，校验待审核态，置已通过态并发布 <see cref="ReviewApprovedDomainEvent"/>。
+	    /// ReviewApprovedDomainEvent 驱动积分域发放评价积分。
 	    /// </summary>
 	    /// <param name="auditorId">审核人标识。</param>
 	    public void Approve(Guid auditorId)
@@ -215,12 +215,12 @@ public sealed class Review : AggregateRoot
 	        Status = ReviewStatus.Approved;
 	        AuditedAt = DateTime.UtcNow;
 	        AuditorId = auditorId;
-	        AddDomainEvent(new ReviewApprovedEvent(Id, UserId, SpuId, Rating));
+	        AddDomainEvent(new ReviewApprovedDomainEvent(Id, UserId, SpuId, Rating));
 	    }
 
     /// <summary>
-	    /// 运营隐藏违规评价，校验已通过态，置已隐藏态并发布 <see cref="ReviewHiddenEvent"/>。
-	    /// ReviewHiddenEvent 驱动商品域从评分统计中移除该评价。
+	    /// 运营隐藏违规评价，校验已通过态，置已隐藏态并发布 <see cref="ReviewHiddenDomainEvent"/>。
+	    /// ReviewHiddenDomainEvent 驱动商品域从评分统计中移除该评价。
 	    /// 隐藏后买家侧不可见但聚合记录保留供审计，已隐藏为终态不可逆。
 	    /// </summary>
 	    /// <param name="operatorId">操作人标识。</param>
@@ -253,6 +253,6 @@ public sealed class Review : AggregateRoot
 	        HiddenAt = DateTime.UtcNow;
 	        HiddenBy = operatorId;
 	        HideReason = reason;
-	        AddDomainEvent(new ReviewHiddenEvent(Id, SpuId, Rating));
+	        AddDomainEvent(new ReviewHiddenDomainEvent(Id, SpuId, Rating));
 	    }
 }

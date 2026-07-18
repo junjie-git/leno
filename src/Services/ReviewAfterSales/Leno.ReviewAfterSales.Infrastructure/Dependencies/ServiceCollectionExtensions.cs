@@ -1,10 +1,12 @@
 using AppServices = Leno.ReviewAfterSales.Application.Services;
 using InfraServices = Leno.ReviewAfterSales.Infrastructure.Services;
+using Leno.Infrastructure.EventBus;
 using Leno.ReviewAfterSales.Application;
 using Leno.ReviewAfterSales.Application.Services;
 using Leno.ReviewAfterSales.Domain.Repositories;
 using Leno.ReviewAfterSales.Domain.Services;
 using Leno.ReviewAfterSales.Infrastructure.Consumers;
+using Leno.ReviewAfterSales.Infrastructure.EventBus;
 using Leno.ReviewAfterSales.Infrastructure.ReadModels;
 using Leno.ReviewAfterSales.Infrastructure.Repositories;
 using Leno.SharedKernel.Abstractions;
@@ -35,6 +37,9 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // 注册 ReviewAfterSales BC 领域事件到集成事件翻译器
+        services.AddSingleton<IIntegrationEventMapper, ReviewAfterSalesIntegrationEventMapper>();
 
         services.AddScoped<IReviewRepository, EfCoreReviewRepository>();
         services.AddScoped<IAfterSalesRepository, EfCoreAfterSalesRepository>();

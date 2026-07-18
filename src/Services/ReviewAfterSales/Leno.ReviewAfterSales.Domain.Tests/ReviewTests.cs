@@ -1,7 +1,7 @@
 using Leno.ReviewAfterSales.Domain.Aggregates;
+using Leno.ReviewAfterSales.Domain.Events;
 using Leno.ReviewAfterSales.Domain.Exceptions;
 using Leno.ReviewAfterSales.Domain.ValueObjects;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.ReviewAfterSales.Domain.Tests;
@@ -51,7 +51,7 @@ public class ReviewTests
     }
 
     [Fact]
-    public void Create_ValidParameters_ShouldRaiseReviewSubmittedEvent()
+    public void Create_ValidParameters_ShouldRaiseReviewSubmittedDomainEvent()
     {
         // Act
         var review = Review.Create(
@@ -61,7 +61,7 @@ public class ReviewTests
 
         // Assert
         review.DomainEvents.Should().HaveCount(1);
-        var domainEvent = review.DomainEvents.Single().Should().BeOfType<ReviewSubmittedEvent>().Subject;
+        var domainEvent = review.DomainEvents.Single().Should().BeOfType<ReviewSubmittedDomainEvent>().Subject;
         domainEvent.ReviewId.Should().Be(ValidReviewId);
         domainEvent.UserId.Should().Be(ValidUserId);
         domainEvent.SpuId.Should().Be(ValidSpuId);
@@ -69,7 +69,7 @@ public class ReviewTests
     }
 
     [Fact]
-    public void Create_WithScoreParameters_ShouldRaiseReviewSubmittedEventWithScoreData()
+    public void Create_WithScoreParameters_ShouldRaiseReviewSubmittedDomainEventWithScoreData()
     {
         // Act
         var review = Review.Create(
@@ -80,7 +80,7 @@ public class ReviewTests
 
         // Assert
         review.DomainEvents.Should().HaveCount(1);
-        var domainEvent = review.DomainEvents.Single().Should().BeOfType<ReviewSubmittedEvent>().Subject;
+        var domainEvent = review.DomainEvents.Single().Should().BeOfType<ReviewSubmittedDomainEvent>().Subject;
         domainEvent.Rating.Should().Be(5);
         domainEvent.NewScore.Should().Be(4.5);
         domainEvent.ReviewCount.Should().Be(10);
@@ -96,7 +96,7 @@ public class ReviewTests
             3, "Decent product.", new List<string>());
 
         // Assert
-        var domainEvent = review.DomainEvents.OfType<ReviewSubmittedEvent>().Single();
+        var domainEvent = review.DomainEvents.OfType<ReviewSubmittedDomainEvent>().Single();
         domainEvent.NewScore.Should().Be(0);
         domainEvent.ReviewCount.Should().Be(0);
     }
@@ -506,7 +506,7 @@ public class ReviewTests
     }
 
     [Fact]
-    public void Approve_WhenPending_ShouldRaiseReviewApprovedEvent()
+    public void Approve_WhenPending_ShouldRaiseReviewApprovedDomainEvent()
     {
         // Arrange
         var review = CreatePendingReview();
@@ -517,7 +517,7 @@ public class ReviewTests
 
         // Assert
         review.DomainEvents.Should().HaveCount(1);
-        var domainEvent = review.DomainEvents.Single().Should().BeOfType<ReviewApprovedEvent>().Subject;
+        var domainEvent = review.DomainEvents.Single().Should().BeOfType<ReviewApprovedDomainEvent>().Subject;
         domainEvent.ReviewId.Should().Be(review.Id);
         domainEvent.UserId.Should().Be(ValidUserId);
         domainEvent.SpuId.Should().Be(ValidSpuId);
@@ -591,7 +591,7 @@ public class ReviewTests
     }
 
     [Fact]
-    public void Hide_WhenApproved_ShouldRaiseReviewHiddenEvent()
+    public void Hide_WhenApproved_ShouldRaiseReviewHiddenDomainEvent()
     {
         // Arrange
         var review = CreateApprovedReview();
@@ -602,7 +602,7 @@ public class ReviewTests
 
         // Assert
         review.DomainEvents.Should().HaveCount(1);
-        var domainEvent = review.DomainEvents.Single().Should().BeOfType<ReviewHiddenEvent>().Subject;
+        var domainEvent = review.DomainEvents.Single().Should().BeOfType<ReviewHiddenDomainEvent>().Subject;
         domainEvent.ReviewId.Should().Be(review.Id);
         domainEvent.SpuId.Should().Be(ValidSpuId);
         domainEvent.Rating.Should().Be(4);
@@ -772,8 +772,8 @@ public class ReviewTests
 
         // Assert
         review.DomainEvents.Should().HaveCount(2);
-        review.DomainEvents.OfType<ReviewApprovedEvent>().Should().HaveCount(1);
-        review.DomainEvents.OfType<ReviewHiddenEvent>().Should().HaveCount(1);
+        review.DomainEvents.OfType<ReviewApprovedDomainEvent>().Should().HaveCount(1);
+        review.DomainEvents.OfType<ReviewHiddenDomainEvent>().Should().HaveCount(1);
     }
 
     [Fact]
