@@ -7,6 +7,7 @@ using Leno.Order.Infrastructure;
 using Leno.Order.Infrastructure.Consumers;
 using Leno.Order.Infrastructure.Repositories;
 using Leno.Order.Infrastructure.Services;
+using Leno.Infrastructure.Persistence;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.Testing.Fixtures;
@@ -31,7 +32,7 @@ public class SeckillOrderFlowIntegrationTests : CrossBcIntegrationTestBase<Order
     protected override void ConfigureServices(IServiceCollection services, string sqlConnectionString, string rabbitMqConnectionString)
     {
         services.AddDbContext<OrderDbContext>(options => options.UseSqlServer(sqlConnectionString));
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<OrderDbContext>>();
         services.AddScoped<IOrderRepository, EfCoreOrderRepository>();
         services.AddScoped<IOrderNumberGenerator, OrderNumberGenerator>();
 

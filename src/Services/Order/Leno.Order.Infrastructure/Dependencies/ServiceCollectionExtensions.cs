@@ -1,5 +1,6 @@
 using FluentValidation;
 using Leno.Infrastructure.EventBus;
+using Leno.Infrastructure.Persistence;
 using Leno.Order.Application;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
@@ -39,7 +40,7 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(connectionString);
         });
 
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<OrderDbContext>>();
 
         // 领域事件 → 集成事件翻译器（Outbox 同事务发布时由 UnitOfWork 调用）
         services.AddSingleton<IIntegrationEventMapper, OrderIntegrationEventMapper>();

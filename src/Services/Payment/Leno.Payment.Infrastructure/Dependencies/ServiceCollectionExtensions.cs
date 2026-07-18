@@ -1,4 +1,5 @@
 using Leno.Infrastructure.EventBus;
+using Leno.Infrastructure.Persistence;
 using Leno.Payment.Application;
 using Leno.Payment.Application.Services;
 using Leno.Payment.Domain.Repositories;
@@ -43,7 +44,7 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(connectionString);
         });
 
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<PaymentDbContext>>();
 
         // 注册 Payment BC 领域事件到集成事件翻译器
         services.AddSingleton<IIntegrationEventMapper, PaymentIntegrationEventMapper>();

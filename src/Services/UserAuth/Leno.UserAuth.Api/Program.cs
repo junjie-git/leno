@@ -1,76 +1,24 @@
-using System.Text;
-using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.Configuration;
 using Leno.Infrastructure.Dependencies;
-using Leno.Infrastructure.Logging;
-using Leno.Infrastructure.Middleware;
 using Leno.Infrastructure.Persistence;
 using Leno.Infrastructure.ServiceDiscovery;
 using Leno.Infrastructure.Telemetry;
 using Leno.UserAuth.Infrastructure;
 using Leno.UserAuth.Infrastructure.Audit;
 using Leno.UserAuth.Infrastructure.Dependencies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.IdentityModel.Tokens;
-using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Serilog 结构化日志（JSON 输出 + Application/Environment/TraceId 富化）
-builder.Host.UseSerilog((context, _, configuration) =>
-{
-    var appName = context.Configuration["Application:Name"] ?? "leno-user-auth-api";
-    SerilogConfig.ConfigureDefaults(
-        configuration, appName, context.HostingEnvironment.EnvironmentName)
-        .ReadFrom.Configuration(context.Configuration.GetSection("Serilog"));
-});
-
-// OpenTelemetry 分布式追踪（ASP.NET Core / HttpClient / EF Core / MassTransit 自动埋点 + OTLP 导出）
+// Serilog 结构化日志 + OpenTelemetry 分布式追踪 + Consul 服务自注册
+builder.Host.UseLenoSerilog(builder.Configuration, "leno-user-auth-api");
 builder.AddLenoOpenTelemetry();
-
-// 共享内核基础设施：JWT 生成器、当前用户上下文、事件总线、Redis、ES、健康检查
-builder.Services.AddLenoInfrastructure(builder.Configuration);
-builder.Services.AddInternalApiKeyAuth(builder.Configuration);
-
-// 用户与认证授权域基础设施：DbContext、工作单元、仓储、领域服务实现、审计拦截器、FluentValidation 校验器
-builder.Services.AddUserAuthInfrastructure(builder.Configuration);
-
-// Consul 服务自注册（启动时注册，关闭时注销，健康检查路径 /health/live）
 builder.AddConsulServiceRegistration("leno-user-auth-api");
 
-builder.Services.AddHealthChecks()
-    .AddDbContextCheck<UserAuthDbContext>(tags: ["ready"]);
-
-builder.Services.AddControllers();
-
-builder.Services.AddOpenApi();
-
-// 认证配置（支持 JwtBearer 与 GatewayHeader 两种模式，灰度切换）
-var authMode = builder.Configuration["Auth:Mode"] ?? "JwtBearer";
-
-builder.Services.AddAuthentication(authMode == "GatewayHeader"
-    ? "GatewayHeader"
-    : JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-    {
-        var jwtOpts = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()
-            ?? throw new InvalidOperationException("Jwt 配置节缺失");
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = jwtOpts.Issuer,
-            ValidateAudience = true,
-            ValidAudience = jwtOpts.Audience,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOpts.SecretKey)),
-            ClockSkew = TimeSpan.FromMinutes(1)
-        };
-    })
-    .AddScheme<GatewayAuthOptions, GatewayAuthHandler>("GatewayHeader", _ => { });
-
-builder.Services.AddAuthorization();
+// 一站式注册：共享内核基础设施 + 鉴权 + 健康检查 + Controllers + OpenAPI + 用户认证授权域基础设施（无集成事件消费者）
+builder.Services.AddLenoApi<UserAuthDbContext>(
+    builder.Configuration,
+    "leno-user-auth-api",
+    configureInfrastructure: s => s.AddUserAuthInfrastructure(builder.Configuration));
 
 // 启用 Consul KV 配置中心
 builder.AddLenoConsulConfig();
@@ -90,31 +38,10 @@ if (!builder.Configuration.ValidateSensitiveConfig())
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
-app.UseMiddleware<GlobalExceptionMiddleware>();
-app.UseMiddleware<InternalApiKeyMiddleware>();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
+// 一站式中间件管线：OpenAPI + 全局异常 + 内部 API Key + 鉴权 + 健康检查端点 + Controllers
+app.UseLenoPipeline();
+// 用户认证授权域专属：审计日志中间件（在管线之后，捕获控制器执行上下文）
 app.UseMiddleware<AuditLogMiddleware>();
-
-app.MapHealthChecks("/health/live", new HealthCheckOptions
-{
-    Predicate = check => !check.Tags.Contains("ready")
-});
-app.MapHealthChecks("/health/ready", new HealthCheckOptions
-{
-    Predicate = check => check.Tags.Contains("ready")
-});
-
-app.MapControllers();
-
-app.EnsureInternalApiKeyConfigured();
 
 // 启动时执行 EF Core 迁移（带 Redis 分布式锁，避免多实例并发冲突）
 await app.Services.MigrateWithLockAsync<UserAuthDbContext>();

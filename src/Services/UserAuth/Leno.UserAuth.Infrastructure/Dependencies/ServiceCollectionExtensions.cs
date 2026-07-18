@@ -1,5 +1,6 @@
 using FluentValidation;
 using Leno.Infrastructure.EventBus;
+using Leno.Infrastructure.Persistence;
 using Leno.SharedKernel.Abstractions;
 using Leno.UserAuth.Application;
 using Leno.UserAuth.Application.Abstractions;
@@ -45,7 +46,7 @@ public static class ServiceCollectionExtensions
             options.AddInterceptors(sp.GetRequiredService<AuditLogInterceptor>());
         });
 
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<UserAuthDbContext>>();
 
         // 注册 UserAuth BC 领域事件到集成事件翻译器
         services.AddSingleton<IIntegrationEventMapper, UserAuthIntegrationEventMapper>();

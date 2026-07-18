@@ -1,5 +1,6 @@
 using FluentValidation;
 using Leno.Infrastructure.EventBus;
+using Leno.Infrastructure.Persistence;
 using Leno.Product.Application;
 using Leno.Product.Application.Services;
 using Leno.Product.Domain.Repositories;
@@ -39,7 +40,7 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(connectionString);
         });
 
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<ProductDbContext>>();
 
         // 注册 Product BC 领域事件到集成事件翻译器
         services.AddSingleton<IIntegrationEventMapper, ProductIntegrationEventMapper>();

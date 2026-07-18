@@ -9,6 +9,7 @@ using Leno.ReviewAfterSales.Infrastructure;
 using Leno.ReviewAfterSales.Infrastructure.Repositories;
 using Leno.SharedKernel.Abstractions;
 using Leno.Infrastructure.Abstractions;
+using Leno.Infrastructure.Persistence;
 using Leno.Testing.Fixtures;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -32,7 +33,7 @@ public class SellerOwnershipIntegrationTests : CrossBcIntegrationTestBase<Review
     protected override void ConfigureServices(IServiceCollection services, string sqlConnectionString, string rabbitMqConnectionString)
     {
         services.AddDbContext<ReviewAfterSalesDbContext>(options => options.UseSqlServer(sqlConnectionString));
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<ReviewAfterSalesDbContext>>();
         services.AddScoped<IAfterSalesRepository, EfCoreAfterSalesRepository>();
 
         // 防腐层 Mock：Approve 路径在越权校验之前不会调用，仅为构造函数注入

@@ -20,7 +20,4 @@ public sealed class ReviewAfterSalesDbContext : BaseDbContext
 
     /// <summary>售后单聚合根。</summary>
     public DbSet<AfterSales> AfterSales => Set<AfterSales>();
-
-    /// <summary>发件箱消息表，与聚合变更同事务写入。</summary>
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 }

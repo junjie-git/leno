@@ -29,7 +29,4 @@ public class PromotionDbContext : BaseDbContext
 
     /// <summary>秒杀预占记录表，跟踪 Redis 预扣后的履约状态。</summary>
     public DbSet<SeckillPreOccupationRecord> SeckillPreOccupationRecords => Set<SeckillPreOccupationRecord>();
-
-    /// <summary>发件箱消息表，与聚合变更同事务写入。</summary>
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 }

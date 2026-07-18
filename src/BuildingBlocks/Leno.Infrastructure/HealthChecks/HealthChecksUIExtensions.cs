@@ -70,6 +70,27 @@ public static class HealthChecksUIExtensions
     }
 
     /// <summary>
+    /// 注册 Leno 全部健康检查（self + Redis + ES + SqlServer + RabbitMQ + DbContext）。
+    /// 各 BC 调用 AddLenoApi&lt;TDbContext&gt; 时自动使用此重载。
+    /// </summary>
+    public static IHealthChecksBuilder AddLenoHealthChecks<TDbContext>(
+        this IServiceCollection services,
+        IConfiguration configuration)
+        where TDbContext : Microsoft.EntityFrameworkCore.DbContext
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        // 先调用非泛型版本注册 self/Redis/ES/SqlServer/RabbitMQ
+        var builder = services.AddLenoHealthChecks(configuration);
+
+        // 追加 DbContext 探活
+        builder.AddDbContextCheck<TDbContext>(tags: ReadyTags);
+
+        return builder;
+    }
+
+    /// <summary>
     /// 映射健康检查端点：/health/live（存活探针）、/health/ready（就绪探针）。
     /// 在 app 构建后调用 <c>app.MapLenoHealthChecks()</c>。
     /// </summary>

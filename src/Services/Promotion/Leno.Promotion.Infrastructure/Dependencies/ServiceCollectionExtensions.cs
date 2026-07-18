@@ -1,5 +1,6 @@
 using FluentValidation;
 using Leno.Infrastructure.EventBus;
+using Leno.Infrastructure.Persistence;
 using Leno.Promotion.Application;
 using Leno.Promotion.Application.Services;
 using Leno.Promotion.Domain.Repositories;
@@ -37,7 +38,7 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(connectionString);
         });
 
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<PromotionDbContext>>();
 
         // 注册 Promotion BC 领域事件到集成事件翻译器
         services.AddSingleton<IIntegrationEventMapper, PromotionIntegrationEventMapper>();

@@ -1,10 +1,9 @@
 namespace Leno.PointsMembership.Domain.Services;
 
 /// <summary>
-/// 积分抵扣防腐层接口，供订单域调用以试算、冻结、确认扣减与释放积分。
-/// 实现位于应用/基础设施层，订单域不直接依赖积分域领域模型，避免上下文耦合。
+/// 积分抵扣应用服务接口（订单域通过防腐层 IPointsAntiCorruptionService 间接调用）。
 /// </summary>
-public interface IPointsOffsetService
+public interface IPointsOffsetAppService
 {
     /// <summary>
     /// 试算积分可抵扣金额（如 100 积分 = 1 元），不修改账户状态。

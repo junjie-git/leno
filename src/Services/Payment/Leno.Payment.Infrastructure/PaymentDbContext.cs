@@ -21,9 +21,6 @@ public sealed class PaymentDbContext : BaseDbContext
     /// <summary>退款单聚合根。</summary>
     public DbSet<RefundOrder> RefundOrders => Set<RefundOrder>();
 
-    /// <summary>发件箱消息表，与聚合变更同事务写入。</summary>
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
-
     /// <summary>对账差异聚合根。</summary>
     public DbSet<ReconciliationDiff> ReconciliationDiffs => Set<ReconciliationDiff>();
 

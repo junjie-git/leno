@@ -22,7 +22,4 @@ public sealed class NotificationDbContext : BaseDbContext
 
     /// <summary>通知偏好聚合根。</summary>
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
-
-    /// <summary>发件箱消息表。</summary>
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 }

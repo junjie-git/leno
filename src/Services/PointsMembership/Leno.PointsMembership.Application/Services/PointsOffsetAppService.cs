@@ -10,7 +10,7 @@ namespace Leno.PointsMembership.Application.Services;
 /// 通过积分账户仓储操作聚合根，经工作单元在同事务内保存变更与发件箱事件。
 /// 抵扣换算：100 积分 = 1 元。
 /// </summary>
-public sealed class PointsOffsetAppService : IPointsOffsetService
+public sealed class PointsOffsetAppService : IPointsOffsetAppService
 {
     private const int PointsPerYuan = 100;
 

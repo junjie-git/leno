@@ -1,5 +1,6 @@
 using Leno.SharedKernel.Abstractions;
 using Leno.Infrastructure.EventBus;
+using Leno.Infrastructure.Persistence;
 using Leno.SystemAdmin.Application;
 using Leno.SystemAdmin.Application.Abstractions;
 using Leno.SystemAdmin.Application.Services;
@@ -44,7 +45,7 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(connectionString);
         });
 
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<SystemAdminDbContext>>();
 
         // 注册 SystemAdmin BC 领域事件到集成事件翻译器
         services.AddSingleton<IIntegrationEventMapper, SystemAdminIntegrationEventMapper>();

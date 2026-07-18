@@ -2,10 +2,11 @@ using Leno.Infrastructure.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Leno.SystemAdmin.Infrastructure.Configurations;
+namespace Leno.Infrastructure.Persistence;
 
 /// <summary>
 /// OutboxMessage 发件箱消息的 EF Core 映射配置（snake_case）。
+/// 由 BaseDbContext.OnModelCreating 统一应用，各 BC 无需重复声明。
 /// </summary>
 public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage>
 {

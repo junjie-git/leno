@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Leno.Infrastructure.Abstractions;
 using Leno.Infrastructure.Outbox;
+using Leno.Infrastructure.Persistence;
 using Leno.Order.Application.DTOs;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Aggregates;
@@ -35,7 +36,7 @@ public class ForceCancelRefundIntegrationTests : CrossBcIntegrationTestBase<Orde
     protected override void ConfigureServices(IServiceCollection services, string sqlConnectionString, string rabbitMqConnectionString)
     {
         services.AddDbContext<OrderDbContext>(options => options.UseSqlServer(sqlConnectionString));
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<OrderDbContext>>();
         services.AddScoped<IOrderRepository, EfCoreOrderRepository>();
 
         // 防腐层 Mock：ForceCancel 调用 ReleaseBatch/ReleaseCoupons/Release 等无返回值方法，Mock.Of 返回 Task.CompletedTask

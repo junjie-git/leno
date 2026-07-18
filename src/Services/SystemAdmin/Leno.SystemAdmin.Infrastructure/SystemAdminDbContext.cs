@@ -55,7 +55,4 @@ public sealed class SystemAdminDbContext : BaseDbContext
 
     /// <summary>限流规则聚合根。</summary>
     public DbSet<RateLimitRule> RateLimitRules => Set<RateLimitRule>();
-
-    /// <summary>发件箱消息表。</summary>
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 }

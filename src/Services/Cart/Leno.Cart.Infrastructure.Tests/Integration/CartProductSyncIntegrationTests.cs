@@ -10,6 +10,7 @@ using Leno.Cart.Infrastructure.Services;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.Infrastructure.Abstractions;
+using Leno.Infrastructure.Persistence;
 using Leno.Testing.Fixtures;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -34,7 +35,7 @@ public class CartProductSyncIntegrationTests : CrossBcIntegrationTestBase<CartDb
     protected override void ConfigureServices(IServiceCollection services, string sqlConnectionString, string rabbitMqConnectionString)
     {
         services.AddDbContext<CartDbContext>(options => options.UseSqlServer(sqlConnectionString));
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<CartDbContext>>();
         services.AddScoped<ICartRepository, EfCoreCartRepository>();
 
         // 反向索引：使用真实 Redis 实现（CrossBcIntegrationTestBase 已注册 IConnectionMultiplexer）

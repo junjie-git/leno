@@ -31,7 +31,4 @@ public sealed class OrderDbContext : BaseDbContext
 
     /// <summary>运费模板聚合根。</summary>
     public DbSet<FreightTemplate> FreightTemplates => Set<FreightTemplate>();
-
-    /// <summary>发件箱消息表，与聚合变更同事务写入。</summary>
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 }

@@ -1,4 +1,5 @@
 using AppServices = Leno.Notification.Application.Services;
+using Leno.Infrastructure.Persistence;
 using Leno.Notification.Application;
 using Leno.Notification.Domain.Repositories;
 using Leno.Notification.Domain.Services;
@@ -34,7 +35,7 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(connectionString);
         });
 
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<NotificationDbContext>>();
 
         services.AddScoped<INotificationRecordRepository, EfCoreNotificationRecordRepository>();
         services.AddScoped<INotificationTemplateRepository, EfCoreNotificationTemplateRepository>();

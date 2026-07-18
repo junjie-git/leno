@@ -30,7 +30,4 @@ public sealed class ProductDbContext : BaseDbContext
 
     /// <summary>价格历史聚合根（从 SPU 拆分）。</summary>
     public DbSet<PriceHistory> PriceHistories => Set<PriceHistory>();
-
-    /// <summary>发件箱消息表，与聚合变更同事务写入。</summary>
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 }

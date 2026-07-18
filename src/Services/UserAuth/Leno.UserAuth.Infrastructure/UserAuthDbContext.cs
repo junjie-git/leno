@@ -29,7 +29,4 @@ public sealed class UserAuthDbContext : BaseDbContext
 
     /// <summary>OAuth2 客户端配置聚合根。</summary>
     public DbSet<OAuthClient> OAuthClients => Set<OAuthClient>();
-
-    /// <summary>发件箱消息表，与聚合变更同事务写入。</summary>
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 }

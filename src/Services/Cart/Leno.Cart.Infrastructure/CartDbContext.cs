@@ -18,7 +18,4 @@ public sealed class CartDbContext : BaseDbContext
 
     /// <summary>购物车聚合根。</summary>
     public DbSet<CartAggregate> Carts => Set<CartAggregate>();
-
-    /// <summary>发件箱消息表，与聚合变更同事务写入。</summary>
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 }

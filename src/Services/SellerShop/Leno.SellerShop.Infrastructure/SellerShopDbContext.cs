@@ -30,7 +30,4 @@ public sealed class SellerShopDbContext : BaseDbContext
 
     /// <summary>店铺资质实体。</summary>
     public DbSet<ShopQualification> ShopQualifications => Set<ShopQualification>();
-
-    /// <summary>发件箱消息表，与聚合变更同事务写入。</summary>
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 }

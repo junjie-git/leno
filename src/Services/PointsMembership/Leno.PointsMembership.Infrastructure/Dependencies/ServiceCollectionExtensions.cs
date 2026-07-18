@@ -1,5 +1,6 @@
 using FluentValidation;
 using Leno.Infrastructure.EventBus;
+using Leno.Infrastructure.Persistence;
 using Leno.PointsMembership.Application;
 using Leno.PointsMembership.Application.Services;
 using Leno.PointsMembership.Domain.Repositories;
@@ -36,7 +37,7 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(connectionString);
         });
 
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<PointsMembershipDbContext>>();
 
         // 注册 PointsMembership BC 领域事件到集成事件翻译器
         services.AddSingleton<IIntegrationEventMapper, PointsMembershipIntegrationEventMapper>();
@@ -52,7 +53,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserTaskRepository, EfCoreUserTaskRepository>();
 
         // 积分抵扣防腐层实现位于应用层
-        services.AddScoped<IPointsOffsetService, PointsOffsetAppService>();
+        services.AddScoped<IPointsOffsetAppService, PointsOffsetAppService>();
 
         // 应用服务
         services.AddScoped<IPointsAppService, PointsAppService>();

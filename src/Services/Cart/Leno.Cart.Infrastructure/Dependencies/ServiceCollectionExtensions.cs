@@ -10,6 +10,7 @@ using Leno.Cart.Infrastructure.EventBus;
 using Leno.Cart.Infrastructure.Repositories;
 using Leno.Cart.Infrastructure.Services;
 using Leno.Infrastructure.EventBus;
+using Leno.Infrastructure.Persistence;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -40,7 +41,7 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(connectionString);
         });
 
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<CartDbContext>>();
 
         // 注册 Cart BC 领域事件到集成事件翻译器
         services.AddSingleton<IIntegrationEventMapper, CartIntegrationEventMapper>();

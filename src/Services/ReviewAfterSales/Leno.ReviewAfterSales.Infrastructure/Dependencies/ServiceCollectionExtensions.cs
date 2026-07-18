@@ -1,6 +1,7 @@
 using AppServices = Leno.ReviewAfterSales.Application.Services;
 using InfraServices = Leno.ReviewAfterSales.Infrastructure.Services;
 using Leno.Infrastructure.EventBus;
+using Leno.Infrastructure.Persistence;
 using Leno.ReviewAfterSales.Application;
 using Leno.ReviewAfterSales.Application.Services;
 using Leno.ReviewAfterSales.Domain.Repositories;
@@ -36,7 +37,7 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(connectionString);
         });
 
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<ReviewAfterSalesDbContext>>();
 
         // 注册 ReviewAfterSales BC 领域事件到集成事件翻译器
         services.AddSingleton<IIntegrationEventMapper, ReviewAfterSalesIntegrationEventMapper>();

@@ -47,7 +47,4 @@ public sealed class PointsMembershipDbContext : BaseDbContext
 
     /// <summary>用户任务实体。</summary>
     public DbSet<UserTask> UserTasks => Set<UserTask>();
-
-    /// <summary>发件箱消息表，与聚合变更同事务写入。</summary>
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 }

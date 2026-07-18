@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Leno.Infrastructure.Outbox;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,11 @@ namespace Leno.Infrastructure.Persistence;
 /// </summary>
 public abstract class BaseDbContext : DbContext
 {
+    /// <summary>
+    /// 发件箱消息集合，由基类统一暴露，各 BC 无需重复声明。
+    /// </summary>
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
     protected BaseDbContext(DbContextOptions options) : base(options)
     {
     }
@@ -21,6 +27,9 @@ public abstract class BaseDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
+
+        // 基类统一应用 OutboxMessage 配置（先于子 assembly 配置，确保子类如存在同类型配置可覆盖）
+        modelBuilder.ApplyConfiguration(new OutboxMessageConfiguration());
 
         modelBuilder.ApplyConfigurationsFromAssembly(GetType().Assembly);
 
