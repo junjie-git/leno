@@ -16,6 +16,7 @@ namespace Leno.Product.Application.Tests;
 public class SPUAppServiceTests
 {
     private readonly Mock<ISPURepository> _spuRepoMock = new();
+    private readonly Mock<IPriceHistoryRepository> _priceHistoryRepoMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly Mock<IProductUniquenessChecker> _uniquenessCheckerMock = new();
     private readonly Mock<IValidator<CreateProductDto>> _createValidatorMock = new();
@@ -32,6 +33,7 @@ public class SPUAppServiceTests
     {
         _sut = new SPUAppService(
             _spuRepoMock.Object,
+            _priceHistoryRepoMock.Object,
             _uowMock.Object,
             _uniquenessCheckerMock.Object,
             _createValidatorMock.Object,

@@ -19,6 +19,7 @@ namespace Leno.Product.Application.Services;
 public sealed class SPUAppService : ISPUAppService
 {
     private readonly ISPURepository _spuRepository;
+    private readonly IPriceHistoryRepository _priceHistoryRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IProductUniquenessChecker _uniquenessChecker;
     private readonly IValidator<CreateProductDto> _createValidator;
@@ -28,6 +29,7 @@ public sealed class SPUAppService : ISPUAppService
 
     public SPUAppService(
         ISPURepository spuRepository,
+        IPriceHistoryRepository priceHistoryRepository,
         IUnitOfWork unitOfWork,
         IProductUniquenessChecker uniquenessChecker,
         IValidator<CreateProductDto> createValidator,
@@ -36,6 +38,7 @@ public sealed class SPUAppService : ISPUAppService
         IValidator<ActionReasonDto> actionReasonValidator)
     {
         _spuRepository = spuRepository;
+        _priceHistoryRepository = priceHistoryRepository;
         _unitOfWork = unitOfWork;
         _uniquenessChecker = uniquenessChecker;
         _createValidator = createValidator;
@@ -226,7 +229,12 @@ public sealed class SPUAppService : ISPUAppService
 
         var spu = await RequireSpuAsync(spuId, ct);
         var price = Leno.SharedKernel.ValueObjects.Money.Create(dto.Price, dto.Currency);
-        spu.AdjustPrice(skuId, price, changedBy);
+        var oldPrice = spu.AdjustPrice(skuId, price, changedBy);
+
+        // 创建独立的 PriceHistory 聚合记录价格变更（从 SPU 拆分）
+        var history = PriceHistory.Create(spuId, skuId, oldPrice, dto.Price, reason: null, dto.Currency);
+        await _priceHistoryRepository.AddAsync(history, ct);
+
         await _spuRepository.UpdateAsync(spu, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
@@ -234,18 +242,17 @@ public sealed class SPUAppService : ISPUAppService
     /// <inheritdoc />
     public async Task<IReadOnlyList<PriceChangeRecordDto>> GetPriceHistoryAsync(Guid spuId, Guid? skuId = null, CancellationToken ct = default)
     {
-        var spu = await RequireSpuAsync(spuId, ct);
+        // 验证 SPU 存在（保持原有契约：不存在的 SPU 抛 404）
+        await RequireSpuAsync(spuId, ct);
+
+        var histories = await _priceHistoryRepository.GetBySpuIdAsync(spuId, ct);
 
         if (skuId.HasValue)
         {
-            return spu.GetPriceHistory(skuId.Value)
-                .Select(ToPriceChangeRecordDto)
-                .ToList();
+            histories = histories.Where(h => h.SkuId == skuId.Value).ToList();
         }
 
-        return spu.GetPriceHistory(skuId ?? Guid.Empty)
-            .Select(ToPriceChangeRecordDto)
-            .ToList();
+        return histories.Select(ToPriceChangeRecordDto).ToList();
     }
 
     /// <inheritdoc />
@@ -354,13 +361,13 @@ public sealed class SPUAppService : ISPUAppService
             UpdatedAt = spu.UpdatedAt
         };
 
-    private static PriceChangeRecordDto ToPriceChangeRecordDto(PriceChangeRecord record)
+    private static PriceChangeRecordDto ToPriceChangeRecordDto(PriceHistory history)
         => new()
         {
-            SkuId = record.SkuId,
-            OldPrice = record.OldPrice,
-            NewPrice = record.NewPrice,
-            ChangedAt = record.ChangedAt,
-            ChangedBy = record.ChangedBy
+            SkuId = history.SkuId.ToString(),
+            OldPrice = history.OldPrice,
+            NewPrice = history.NewPrice,
+            ChangedAt = history.ChangedAt,
+            ChangedBy = string.Empty
         };
 }

@@ -45,4 +45,13 @@ public sealed class ProductReadModel
 
     /// <summary>索引时间（UTC）。</summary>
     public DateTime IndexedAt { get; init; }
+
+    /// <summary>当前加权平均评分（基于所有可见评价计算），由评价评分消费者增量维护。</summary>
+    public double Score { get; set; }
+
+    /// <summary>可见评价总数，由评价评分消费者增量维护。</summary>
+    public int ReviewCount { get; set; }
+
+    /// <summary>评分最近一次更新时间（UTC），用于排查评分同步延迟。</summary>
+    public DateTime ScoreUpdatedAt { get; set; }
 }

@@ -457,7 +457,7 @@ public class SPUTests
     #region Price Change History
 
     [Fact]
-    public void AdjustPrice_ValidSku_ShouldUpdatePriceAndRecordHistory()
+    public void AdjustPrice_ValidSku_ShouldUpdatePriceAndReturnOldPrice()
     {
         var spu = CreateDraftSpu();
         var skuId = Guid.NewGuid();
@@ -465,14 +465,10 @@ public class SPUTests
             Money.Create(99.99m, "CNY"), 100, SkuSpec.Create([SpecAttribute.Create("Color", "Red")]));
         spu.AddSku(sku);
 
-        spu.AdjustPrice(skuId, Money.Create(79.99m, "CNY"), "seller-1");
+        var oldPrice = spu.AdjustPrice(skuId, Money.Create(79.99m, "CNY"), "seller-1");
 
         sku.Price.Amount.Should().Be(79.99m);
-        var history = spu.GetPriceHistory(skuId);
-        history.Should().HaveCount(1);
-        history[0].OldPrice.Should().Be(99.99m);
-        history[0].NewPrice.Should().Be(79.99m);
-        history[0].ChangedBy.Should().Be("seller-1");
+        oldPrice.Should().Be(99.99m);
     }
 
     [Fact]
@@ -513,39 +509,12 @@ public class SPUTests
         act.Should().Throw<ProductDomainException>().WithMessage("*下架*");
     }
 
-    [Fact]
-    public void GetPriceHistory_MultipleChanges_ShouldReturnAllForSku()
-    {
-        var spu = CreateDraftSpu();
-        var skuId = Guid.NewGuid();
-        var sku = SKU.Create(skuId, spu.Id, "SKU-001",
-            Money.Create(100m, "CNY"), 100, SkuSpec.Create([SpecAttribute.Create("Color", "Red")]));
-        spu.AddSku(sku);
-
-        spu.AdjustPrice(skuId, Money.Create(90m, "CNY"), "seller-1");
-        spu.AdjustPrice(skuId, Money.Create(80m, "CNY"), "seller-2");
-
-        var history = spu.GetPriceHistory(skuId);
-        history.Should().HaveCount(2);
-        history[0].NewPrice.Should().Be(90m);
-        history[1].NewPrice.Should().Be(80m);
-    }
-
-    [Fact]
-    public void GetPriceHistory_NonExistentSku_ShouldReturnEmpty()
-    {
-        var spu = CreateDraftSpu();
-
-        var history = spu.GetPriceHistory(Guid.NewGuid());
-        history.Should().BeEmpty();
-    }
-
     #endregion
 
     #region Stock Operations
 
     [Fact]
-    public void UpdateStock_PositiveDelta_ShouldIncreaseStockAndRecordOperation()
+    public void UpdateStock_PositiveDelta_ShouldIncreaseStock()
     {
         var spu = CreateDraftSpu();
         var skuId = Guid.NewGuid();
@@ -556,15 +525,10 @@ public class SPUTests
         spu.UpdateStock(skuId, 50, "operator-1");
 
         sku.StockQty.Should().Be(150);
-        var history = spu.GetStockOperationHistory(skuId);
-        history.Should().HaveCount(1);
-        history[0].Delta.Should().Be(50);
-        history[0].NewStock.Should().Be(150);
-        history[0].Operator.Should().Be("operator-1");
     }
 
     [Fact]
-    public void UpdateStock_NegativeDelta_ShouldDecreaseStockAndRecordOperation()
+    public void UpdateStock_NegativeDelta_ShouldDecreaseStock()
     {
         var spu = CreateDraftSpu();
         var skuId = Guid.NewGuid();
@@ -575,9 +539,6 @@ public class SPUTests
         spu.UpdateStock(skuId, -30, "operator-1");
 
         sku.StockQty.Should().Be(70);
-        var history = spu.GetStockOperationHistory(skuId);
-        history[0].Delta.Should().Be(-30);
-        history[0].NewStock.Should().Be(70);
     }
 
     [Fact]
@@ -630,214 +591,6 @@ public class SPUTests
         spu.UpdateStock(skuId, 50, "operator-1");
 
         spu.DomainEvents.Should().Contain(e => e.GetType().Name == nameof(StockAdjustedDomainEvent));
-    }
-
-    [Fact]
-    public void GetStockOperationHistory_MultipleOperations_ShouldReturnAllForSku()
-    {
-        var spu = CreateDraftSpu();
-        var skuId = Guid.NewGuid();
-        var sku = SKU.Create(skuId, spu.Id, "SKU-001",
-            Money.Create(99.99m, "CNY"), 100, SkuSpec.Create([SpecAttribute.Create("Color", "Red")]));
-        spu.AddSku(sku);
-
-        spu.UpdateStock(skuId, 50, "operator-1");
-        spu.UpdateStock(skuId, -20, "operator-2");
-
-        var history = spu.GetStockOperationHistory(skuId);
-        history.Should().HaveCount(2);
-        history[0].Delta.Should().Be(50);
-        history[1].Delta.Should().Be(-20);
-    }
-
-    #endregion
-
-    #region Review Score
-
-    [Fact]
-    public void UpdateReviewScore_FirstReview_ShouldSetScoreAndCount()
-    {
-        // Arrange
-        var spu = CreateDraftSpu();
-        spu.Score.Should().Be(0);
-        spu.ReviewCount.Should().Be(0);
-
-        // Act
-        spu.UpdateReviewScore(5);
-
-        // Assert
-        spu.Score.Should().Be(5.0);
-        spu.ReviewCount.Should().Be(1);
-    }
-
-    [Fact]
-    public void UpdateReviewScore_MultipleReviews_ShouldCalculateWeightedAverage()
-    {
-        // Arrange
-        var spu = CreateDraftSpu();
-        spu.UpdateReviewScore(5);
-        spu.UpdateReviewScore(3);
-
-        // Act
-        spu.UpdateReviewScore(4);
-
-        // Assert
-        spu.Score.Should().Be(4.0); // (5+3+4)/3 = 4.0
-        spu.ReviewCount.Should().Be(3);
-    }
-
-    [Fact]
-    public void UpdateReviewScore_MixedRatings_ShouldCalculateCorrectly()
-    {
-        // Arrange
-        var spu = CreateDraftSpu();
-        spu.UpdateReviewScore(1);
-        spu.UpdateReviewScore(5);
-
-        // Assert
-        spu.Score.Should().Be(3.0); // (1+5)/2 = 3.0
-        spu.ReviewCount.Should().Be(2);
-    }
-
-    [Fact]
-    public void UpdateReviewScore_RatingZero_ShouldThrowException()
-    {
-        // Arrange
-        var spu = CreateDraftSpu();
-
-        // Act
-        var act = () => spu.UpdateReviewScore(0);
-
-        // Assert
-        act.Should().Throw<ProductDomainException>()
-            .Where(e => e.ErrorCode == "SPU_RATING_INVALID");
-    }
-
-    [Fact]
-    public void UpdateReviewScore_RatingGreaterThanFive_ShouldThrowException()
-    {
-        // Arrange
-        var spu = CreateDraftSpu();
-
-        // Act
-        var act = () => spu.UpdateReviewScore(6);
-
-        // Assert
-        act.Should().Throw<ProductDomainException>()
-            .Where(e => e.ErrorCode == "SPU_RATING_INVALID");
-    }
-
-    [Fact]
-    public void UpdateReviewScore_RatingNegative_ShouldThrowException()
-    {
-        // Arrange
-        var spu = CreateDraftSpu();
-
-        // Act
-        var act = () => spu.UpdateReviewScore(-1);
-
-        // Assert
-        act.Should().Throw<ProductDomainException>()
-            .Where(e => e.ErrorCode == "SPU_RATING_INVALID");
-    }
-
-    [Fact]
-    public void RemoveReviewScore_WhenMultipleReviews_ShouldRecalculateCorrectly()
-    {
-        // Arrange
-        var spu = CreateDraftSpu();
-        spu.UpdateReviewScore(5);
-        spu.UpdateReviewScore(3);
-        spu.UpdateReviewScore(4);
-        // Score = 4.0, ReviewCount = 3
-
-        // Act: remove rating 3 (the hidden review)
-        spu.RemoveReviewScore(3);
-
-        // Assert
-        spu.Score.Should().Be(4.5); // (5+4)/2 = 4.5
-        spu.ReviewCount.Should().Be(2);
-    }
-
-    [Fact]
-    public void RemoveReviewScore_WhenSingleReview_ShouldResetToZero()
-    {
-        // Arrange
-        var spu = CreateDraftSpu();
-        spu.UpdateReviewScore(4);
-        spu.Score.Should().Be(4.0);
-        spu.ReviewCount.Should().Be(1);
-
-        // Act
-        spu.RemoveReviewScore(4);
-
-        // Assert
-        spu.Score.Should().Be(0);
-        spu.ReviewCount.Should().Be(0);
-    }
-
-    [Fact]
-    public void RemoveReviewScore_WhenNoReviews_ShouldNotThrow()
-    {
-        // Arrange
-        var spu = CreateDraftSpu();
-        spu.Score.Should().Be(0);
-        spu.ReviewCount.Should().Be(0);
-
-        // Act
-        var act = () => spu.RemoveReviewScore(3);
-
-        // Assert
-        act.Should().NotThrow();
-        spu.Score.Should().Be(0);
-        spu.ReviewCount.Should().Be(0);
-    }
-
-    [Fact]
-    public void RemoveReviewScore_RatingInvalid_ShouldThrowException()
-    {
-        // Arrange
-        var spu = CreateDraftSpu();
-        spu.UpdateReviewScore(4);
-
-        // Act
-        var act = () => spu.RemoveReviewScore(0);
-
-        // Assert
-        act.Should().Throw<ProductDomainException>()
-            .Where(e => e.ErrorCode == "SPU_RATING_INVALID");
-    }
-
-    [Fact]
-    public void UpdateAndRemoveReviewScore_FullCycle_ShouldBeCorrect()
-    {
-        // Arrange
-        var spu = CreateDraftSpu();
-
-        // Add reviews
-        spu.UpdateReviewScore(5);
-        spu.UpdateReviewScore(4);
-        spu.UpdateReviewScore(3);
-        spu.UpdateReviewScore(2);
-        spu.UpdateReviewScore(1);
-
-        spu.Score.Should().Be(3.0); // (5+4+3+2+1)/5 = 3.0
-        spu.ReviewCount.Should().Be(5);
-
-        // Hide the 1-star review
-        spu.RemoveReviewScore(1);
-        spu.Score.Should().Be(3.5); // (5+4+3+2)/4 = 3.5
-        spu.ReviewCount.Should().Be(4);
-
-        // Hide the 5-star review
-        spu.RemoveReviewScore(5);
-        spu.Score.Should().Be(3.0); // (4+3+2)/3 = 3.0
-        spu.ReviewCount.Should().Be(3);
-
-        // Add new review
-        spu.UpdateReviewScore(5);
-        spu.Score.Should().Be(3.5); // (4+3+2+5)/4 = 3.5
-        spu.ReviewCount.Should().Be(4);
     }
 
     #endregion

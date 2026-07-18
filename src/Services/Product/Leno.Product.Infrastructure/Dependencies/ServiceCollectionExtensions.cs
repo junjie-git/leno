@@ -48,6 +48,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICategoryRepository, EfCoreCategoryRepository>();
         services.AddScoped<IBrandRepository, EfCoreBrandRepository>();
         services.AddScoped<IStockBaselineRepository, EfCoreStockBaselineRepository>();
+        services.AddScoped<IPriceHistoryRepository, EfCorePriceHistoryRepository>();
 
         services.AddScoped<IProductQueryService, EfCoreProductQueryService>();
         services.AddScoped<IProductSearchService, ProductSearchService>();
@@ -78,9 +79,9 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<ShopResumedEventConsumer>();
         configurator.AddConsumer<ShopClosedEventConsumer>();
 
-        // 评价评分回写商品域
-        configurator.AddConsumer<ReviewSubmittedEventConsumer>();
-        configurator.AddConsumer<ReviewHiddenEventConsumer>();
+        // 评价评分增量同步到 ES 读模型（不再回写 SPU 聚合）
+        configurator.AddConsumer<SpuReviewSubmittedSummaryConsumer>();
+        configurator.AddConsumer<SpuReviewHiddenSummaryConsumer>();
 
         // ES 读模型同步
         configurator.AddConsumer<ProductPublishedReadModelSyncConsumer>();
