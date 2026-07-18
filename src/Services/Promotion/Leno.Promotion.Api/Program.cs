@@ -27,20 +27,20 @@ builder.Services.AddLenoApi<PromotionDbContext>(
 // 启用 Consul KV 配置中心
 builder.AddLenoConsulConfig();
 
+var app = builder.Build();
+
 // 启动前校验敏感配置
-if (!builder.Configuration.ValidateSensitiveConfig())
+if (!app.Configuration.ValidateSensitiveConfig())
 {
-    var missing = builder.Configuration.GetMissingSensitiveConfigKeys();
-    var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+    var missing = app.Configuration.GetMissingSensitiveConfigKeys();
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
     logger.LogWarning("敏感配置缺失：{MissingKeys}", string.Join(", ", missing));
     // 生产环境拒绝启动，开发环境仅警告
-    if (!builder.Environment.IsDevelopment())
+    if (!app.Environment.IsDevelopment())
     {
         throw new InvalidOperationException($"敏感配置缺失：{string.Join(", ", missing)}");
     }
 }
-
-var app = builder.Build();
 
 // 一站式中间件管线：OpenAPI + 全局异常 + 内部 API Key + 鉴权 + 健康检查端点 + Controllers
 app.UseLenoPipeline();
