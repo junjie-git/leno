@@ -6,6 +6,7 @@ service OrderInternalService {
   rpc GetOrderStatus(GetOrderStatusRequest) returns (OrderStatus);
   rpc GetOrderDetail(GetOrderDetailRequest) returns (OrderDetail);
   rpc GetSellerOrders(GetSellerOrdersRequest) returns (SellerOrders);
+  rpc GetOrderSellerId(GetOrderSellerIdRequest) returns (GetOrderSellerIdResponse);
 }
 
 message GetOrderStatusRequest { string order_id = 1; }
@@ -54,4 +55,13 @@ message OrderSummary {
   string status = 2;
   int64 total_cents = 3;
   string created_at = 4;
+}
+message GetOrderSellerIdRequest {
+  int64 order_id = 1 [deprecated = true];
+  string order_id_str = 2;
+}
+
+message GetOrderSellerIdResponse {
+  int64 seller_id = 1 [deprecated = true];
+  string seller_id_str = 2;
 }

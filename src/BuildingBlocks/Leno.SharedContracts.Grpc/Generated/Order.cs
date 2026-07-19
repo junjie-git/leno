@@ -24,36 +24,50 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     static OrderReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChJQcm90b3Mvb3JkZXIucHJvdG8SDWxlbm8ub3JkZXIudjEiKQoVR2V0T3Jk",
-            "ZXJTdGF0dXNSZXF1ZXN0EhAKCG9yZGVyX2lkGAEgASgJItECCgtPcmRlclN0",
-            "YXR1cxIQCghvcmRlcl9pZBgBIAEoCRIOCgZzdGF0dXMYAiABKAkSFgoOcGF5",
-            "bWVudF9zdGF0dXMYAyABKAkSFwoPc2hpcHBpbmdfc3RhdHVzGAQgASgJEhQK",
-            "B3VzZXJfaWQYBSABKAlIAIgBARIZCgxjb21wbGV0ZWRfYXQYBiABKANIAYgB",
-            "ARIXCgpjcmVhdGVkX2F0GAcgASgDSAKIAQESGQoMY2FuY2VsbGVkX2F0GAgg",
-            "ASgDSAOIAQESFgoJc2VsbGVyX2lkGAkgASgJSASIAQESJwoFaXRlbXMYCiAD",
-            "KAsyGC5sZW5vLm9yZGVyLnYxLk9yZGVySXRlbUIKCghfdXNlcl9pZEIPCg1f",
-            "Y29tcGxldGVkX2F0Qg0KC19jcmVhdGVkX2F0Qg8KDV9jYW5jZWxsZWRfYXRC",
-            "DAoKX3NlbGxlcl9pZCIpChVHZXRPcmRlckRldGFpbFJlcXVlc3QSEAoIb3Jk",
-            "ZXJfaWQYASABKAkifgoLT3JkZXJEZXRhaWwSEAoIb3JkZXJfaWQYASABKAkS",
-            "DwoHdXNlcl9pZBgCIAEoCRITCgt0b3RhbF9jZW50cxgDIAEoAxIOCgZzdGF0",
-            "dXMYBCABKAkSJwoFaXRlbXMYBSADKAsyGC5sZW5vLm9yZGVyLnYxLk9yZGVy",
-            "SXRlbSK1AQoJT3JkZXJJdGVtEhIKBnNrdV9pZBgBIAEoA0ICGAESEAoIcXVh",
-            "bnRpdHkYAiABKAUSGAoQdW5pdF9wcmljZV9jZW50cxgDIAEoAxIVCghza3Vf",
-            "bmFtZRgEIAEoCUgAiAEBEhwKD3N1Yl90b3RhbF9jZW50cxgFIAEoA0gBiAEB",
-            "EhIKCnNrdV9pZF9zdHIYBiABKAlCCwoJX3NrdV9uYW1lQhIKEF9zdWJfdG90",
-            "YWxfY2VudHMiTAoWR2V0U2VsbGVyT3JkZXJzUmVxdWVzdBIRCglzZWxsZXJf",
-            "aWQYASABKAkSDAoEcGFnZRgCIAEoBRIRCglwYWdlX3NpemUYAyABKAUiSgoM",
-            "U2VsbGVyT3JkZXJzEisKBm9yZGVycxgBIAMoCzIbLmxlbm8ub3JkZXIudjEu",
-            "T3JkZXJTdW1tYXJ5Eg0KBXRvdGFsGAIgASgFIlkKDE9yZGVyU3VtbWFyeRIQ",
-            "CghvcmRlcl9pZBgBIAEoCRIOCgZzdGF0dXMYAiABKAkSEwoLdG90YWxfY2Vu",
-            "dHMYAyABKAMSEgoKY3JlYXRlZF9hdBgEIAEoCTKVAgoUT3JkZXJJbnRlcm5h",
-            "bFNlcnZpY2USUgoOR2V0T3JkZXJTdGF0dXMSJC5sZW5vLm9yZGVyLnYxLkdl",
-            "dE9yZGVyU3RhdHVzUmVxdWVzdBoaLmxlbm8ub3JkZXIudjEuT3JkZXJTdGF0",
-            "dXMSUgoOR2V0T3JkZXJEZXRhaWwSJC5sZW5vLm9yZGVyLnYxLkdldE9yZGVy",
-            "RGV0YWlsUmVxdWVzdBoaLmxlbm8ub3JkZXIudjEuT3JkZXJEZXRhaWwSVQoP",
-            "R2V0U2VsbGVyT3JkZXJzEiUubGVuby5vcmRlci52MS5HZXRTZWxsZXJPcmRl",
-            "cnNSZXF1ZXN0GhsubGVuby5vcmRlci52MS5TZWxsZXJPcmRlcnNCJaoCIkxl",
-            "bm8uU2hhcmVkQ29udHJhY3RzLkdycGMuT3JkZXIuVjFiBnByb3RvMw=="));
+            "ChJQcm90b3Mvb3JkZXIucHJvdG8SDWxlbm8ub3JkZXIudjEiMgoVR2V0T3Jk",
+            "ZXJTdGF0dXNSZXF1ZXN0EhkKCG9yZGVyX2lkGAEgASgJUgdvcmRlcklkIr8D",
+            "CgtPcmRlclN0YXR1cxIZCghvcmRlcl9pZBgBIAEoCVIHb3JkZXJJZBIWCgZz",
+            "dGF0dXMYAiABKAlSBnN0YXR1cxIlCg5wYXltZW50X3N0YXR1cxgDIAEoCVIN",
+            "cGF5bWVudFN0YXR1cxInCg9zaGlwcGluZ19zdGF0dXMYBCABKAlSDnNoaXBw",
+            "aW5nU3RhdHVzEhwKB3VzZXJfaWQYBSABKAlIAFIGdXNlcklkiAEBEiYKDGNv",
+            "bXBsZXRlZF9hdBgGIAEoA0gBUgtjb21wbGV0ZWRBdIgBARIiCgpjcmVhdGVk",
+            "X2F0GAcgASgDSAJSCWNyZWF0ZWRBdIgBARImCgxjYW5jZWxsZWRfYXQYCCAB",
+            "KANIA1ILY2FuY2VsbGVkQXSIAQESIAoJc2VsbGVyX2lkGAkgASgJSARSCHNl",
+            "bGxlcklkiAEBEi4KBWl0ZW1zGAogAygLMhgubGVuby5vcmRlci52MS5PcmRl",
+            "ckl0ZW1SBWl0ZW1zQgoKCF91c2VyX2lkQg8KDV9jb21wbGV0ZWRfYXRCDQoL",
+            "X2NyZWF0ZWRfYXRCDwoNX2NhbmNlbGxlZF9hdEIMCgpfc2VsbGVyX2lkIjIK",
+            "FUdldE9yZGVyRGV0YWlsUmVxdWVzdBIZCghvcmRlcl9pZBgBIAEoCVIHb3Jk",
+            "ZXJJZCKqAQoLT3JkZXJEZXRhaWwSGQoIb3JkZXJfaWQYASABKAlSB29yZGVy",
+            "SWQSFwoHdXNlcl9pZBgCIAEoCVIGdXNlcklkEh8KC3RvdGFsX2NlbnRzGAMg",
+            "ASgDUgp0b3RhbENlbnRzEhYKBnN0YXR1cxgEIAEoCVIGc3RhdHVzEi4KBWl0",
+            "ZW1zGAUgAygLMhgubGVuby5vcmRlci52MS5PcmRlckl0ZW1SBWl0ZW1zIvgB",
+            "CglPcmRlckl0ZW0SGQoGc2t1X2lkGAEgASgDQgIYAVIFc2t1SWQSGgoIcXVh",
+            "bnRpdHkYAiABKAVSCHF1YW50aXR5EigKEHVuaXRfcHJpY2VfY2VudHMYAyAB",
+            "KANSDnVuaXRQcmljZUNlbnRzEh4KCHNrdV9uYW1lGAQgASgJSABSB3NrdU5h",
+            "bWWIAQESKwoPc3ViX3RvdGFsX2NlbnRzGAUgASgDSAFSDXN1YlRvdGFsQ2Vu",
+            "dHOIAQESHAoKc2t1X2lkX3N0chgGIAEoCVIIc2t1SWRTdHJCCwoJX3NrdV9u",
+            "YW1lQhIKEF9zdWJfdG90YWxfY2VudHMiZgoWR2V0U2VsbGVyT3JkZXJzUmVx",
+            "dWVzdBIbCglzZWxsZXJfaWQYASABKAlSCHNlbGxlcklkEhIKBHBhZ2UYAiAB",
+            "KAVSBHBhZ2USGwoJcGFnZV9zaXplGAMgASgFUghwYWdlU2l6ZSJZCgxTZWxs",
+            "ZXJPcmRlcnMSMwoGb3JkZXJzGAEgAygLMhsubGVuby5vcmRlci52MS5PcmRl",
+            "clN1bW1hcnlSBm9yZGVycxIUCgV0b3RhbBgCIAEoBVIFdG90YWwigQEKDE9y",
+            "ZGVyU3VtbWFyeRIZCghvcmRlcl9pZBgBIAEoCVIHb3JkZXJJZBIWCgZzdGF0",
+            "dXMYAiABKAlSBnN0YXR1cxIfCgt0b3RhbF9jZW50cxgDIAEoA1IKdG90YWxD",
+            "ZW50cxIdCgpjcmVhdGVkX2F0GAQgASgJUgljcmVhdGVkQXQiWgoXR2V0T3Jk",
+            "ZXJTZWxsZXJJZFJlcXVlc3QSHQoIb3JkZXJfaWQYASABKANCAhgBUgdvcmRl",
+            "cklkEiAKDG9yZGVyX2lkX3N0chgCIAEoCVIKb3JkZXJJZFN0ciJfChhHZXRP",
+            "cmRlclNlbGxlcklkUmVzcG9uc2USHwoJc2VsbGVyX2lkGAEgASgDQgIYAVII",
+            "c2VsbGVySWQSIgoNc2VsbGVyX2lkX3N0chgCIAEoCVILc2VsbGVySWRTdHIy",
+            "+gIKFE9yZGVySW50ZXJuYWxTZXJ2aWNlElIKDkdldE9yZGVyU3RhdHVzEiQu",
+            "bGVuby5vcmRlci52MS5HZXRPcmRlclN0YXR1c1JlcXVlc3QaGi5sZW5vLm9y",
+            "ZGVyLnYxLk9yZGVyU3RhdHVzElIKDkdldE9yZGVyRGV0YWlsEiQubGVuby5v",
+            "cmRlci52MS5HZXRPcmRlckRldGFpbFJlcXVlc3QaGi5sZW5vLm9yZGVyLnYx",
+            "Lk9yZGVyRGV0YWlsElUKD0dldFNlbGxlck9yZGVycxIlLmxlbm8ub3JkZXIu",
+            "djEuR2V0U2VsbGVyT3JkZXJzUmVxdWVzdBobLmxlbm8ub3JkZXIudjEuU2Vs",
+            "bGVyT3JkZXJzEmMKEEdldE9yZGVyU2VsbGVySWQSJi5sZW5vLm9yZGVyLnYx",
+            "LkdldE9yZGVyU2VsbGVySWRSZXF1ZXN0GicubGVuby5vcmRlci52MS5HZXRP",
+            "cmRlclNlbGxlcklkUmVzcG9uc2VCJaoCIkxlbm8uU2hhcmVkQ29udHJhY3Rz",
+            "LkdycGMuT3JkZXIuVjFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -64,7 +78,9 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.OrderItem), global::Leno.SharedContracts.Grpc.Order.V1.OrderItem.Parser, new[]{ "SkuId", "Quantity", "UnitPriceCents", "SkuName", "SubTotalCents", "SkuIdStr" }, new[]{ "SkuName", "SubTotalCents" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.GetSellerOrdersRequest), global::Leno.SharedContracts.Grpc.Order.V1.GetSellerOrdersRequest.Parser, new[]{ "SellerId", "Page", "PageSize" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.SellerOrders), global::Leno.SharedContracts.Grpc.Order.V1.SellerOrders.Parser, new[]{ "Orders", "Total" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.OrderSummary), global::Leno.SharedContracts.Grpc.Order.V1.OrderSummary.Parser, new[]{ "OrderId", "Status", "TotalCents", "CreatedAt" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.OrderSummary), global::Leno.SharedContracts.Grpc.Order.V1.OrderSummary.Parser, new[]{ "OrderId", "Status", "TotalCents", "CreatedAt" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest), global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest.Parser, new[]{ "OrderId", "OrderIdStr" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse), global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse.Parser, new[]{ "SellerId", "SellerIdStr" }, null, null, null, null)
           }));
     }
     #endregion
@@ -227,7 +243,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -246,7 +266,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -745,7 +769,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -800,7 +828,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1007,7 +1039,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1026,7 +1062,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1302,7 +1342,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1337,7 +1381,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1707,7 +1755,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1746,7 +1798,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1995,7 +2051,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2022,7 +2082,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2219,7 +2283,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2242,7 +2310,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2504,7 +2576,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2535,7 +2611,11 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2553,6 +2633,478 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
           }
           case 34: {
             CreatedAt = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class GetOrderSellerIdRequest : pb::IMessage<GetOrderSellerIdRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<GetOrderSellerIdRequest> _parser = new pb::MessageParser<GetOrderSellerIdRequest>(() => new GetOrderSellerIdRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<GetOrderSellerIdRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Leno.SharedContracts.Grpc.Order.V1.OrderReflection.Descriptor.MessageTypes[8]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GetOrderSellerIdRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GetOrderSellerIdRequest(GetOrderSellerIdRequest other) : this() {
+      orderId_ = other.orderId_;
+      orderIdStr_ = other.orderIdStr_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GetOrderSellerIdRequest Clone() {
+      return new GetOrderSellerIdRequest(this);
+    }
+
+    /// <summary>Field number for the "order_id" field.</summary>
+    public const int OrderIdFieldNumber = 1;
+    private long orderId_;
+    [global::System.ObsoleteAttribute]
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public long OrderId {
+      get { return orderId_; }
+      set {
+        orderId_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "order_id_str" field.</summary>
+    public const int OrderIdStrFieldNumber = 2;
+    private string orderIdStr_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string OrderIdStr {
+      get { return orderIdStr_; }
+      set {
+        orderIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as GetOrderSellerIdRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(GetOrderSellerIdRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (OrderId != other.OrderId) return false;
+      if (OrderIdStr != other.OrderIdStr) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (OrderId != 0L) hash ^= OrderId.GetHashCode();
+      if (OrderIdStr.Length != 0) hash ^= OrderIdStr.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (OrderId != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(OrderId);
+      }
+      if (OrderIdStr.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(OrderIdStr);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (OrderId != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(OrderId);
+      }
+      if (OrderIdStr.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(OrderIdStr);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (OrderId != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(OrderId);
+      }
+      if (OrderIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(OrderIdStr);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(GetOrderSellerIdRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.OrderId != 0L) {
+        OrderId = other.OrderId;
+      }
+      if (other.OrderIdStr.Length != 0) {
+        OrderIdStr = other.OrderIdStr;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            OrderId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            OrderIdStr = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            OrderId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            OrderIdStr = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class GetOrderSellerIdResponse : pb::IMessage<GetOrderSellerIdResponse>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<GetOrderSellerIdResponse> _parser = new pb::MessageParser<GetOrderSellerIdResponse>(() => new GetOrderSellerIdResponse());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<GetOrderSellerIdResponse> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Leno.SharedContracts.Grpc.Order.V1.OrderReflection.Descriptor.MessageTypes[9]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GetOrderSellerIdResponse() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GetOrderSellerIdResponse(GetOrderSellerIdResponse other) : this() {
+      sellerId_ = other.sellerId_;
+      sellerIdStr_ = other.sellerIdStr_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public GetOrderSellerIdResponse Clone() {
+      return new GetOrderSellerIdResponse(this);
+    }
+
+    /// <summary>Field number for the "seller_id" field.</summary>
+    public const int SellerIdFieldNumber = 1;
+    private long sellerId_;
+    [global::System.ObsoleteAttribute]
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public long SellerId {
+      get { return sellerId_; }
+      set {
+        sellerId_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "seller_id_str" field.</summary>
+    public const int SellerIdStrFieldNumber = 2;
+    private string sellerIdStr_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SellerIdStr {
+      get { return sellerIdStr_; }
+      set {
+        sellerIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as GetOrderSellerIdResponse);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(GetOrderSellerIdResponse other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (SellerId != other.SellerId) return false;
+      if (SellerIdStr != other.SellerIdStr) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (SellerId != 0L) hash ^= SellerId.GetHashCode();
+      if (SellerIdStr.Length != 0) hash ^= SellerIdStr.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (SellerId != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(SellerId);
+      }
+      if (SellerIdStr.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(SellerIdStr);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (SellerId != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(SellerId);
+      }
+      if (SellerIdStr.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(SellerIdStr);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (SellerId != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(SellerId);
+      }
+      if (SellerIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SellerIdStr);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(GetOrderSellerIdResponse other) {
+      if (other == null) {
+        return;
+      }
+      if (other.SellerId != 0L) {
+        SellerId = other.SellerId;
+      }
+      if (other.SellerIdStr.Length != 0) {
+        SellerIdStr = other.SellerIdStr;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            SellerId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            SellerIdStr = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            SellerId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            SellerIdStr = input.ReadString();
             break;
           }
         }

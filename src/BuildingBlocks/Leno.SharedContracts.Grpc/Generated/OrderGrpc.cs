@@ -57,6 +57,10 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Order.V1.GetSellerOrdersRequest> __Marshaller_leno_order_v1_GetSellerOrdersRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Order.V1.GetSellerOrdersRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Order.V1.SellerOrders> __Marshaller_leno_order_v1_SellerOrders = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Order.V1.SellerOrders.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest> __Marshaller_leno_order_v1_GetOrderSellerIdRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse> __Marshaller_leno_order_v1_GetOrderSellerIdResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderStatusRequest, global::Leno.SharedContracts.Grpc.Order.V1.OrderStatus> __Method_GetOrderStatus = new grpc::Method<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderStatusRequest, global::Leno.SharedContracts.Grpc.Order.V1.OrderStatus>(
@@ -82,6 +86,14 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
         __Marshaller_leno_order_v1_GetSellerOrdersRequest,
         __Marshaller_leno_order_v1_SellerOrders);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest, global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse> __Method_GetOrderSellerId = new grpc::Method<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest, global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "GetOrderSellerId",
+        __Marshaller_leno_order_v1_GetOrderSellerIdRequest,
+        __Marshaller_leno_order_v1_GetOrderSellerIdResponse);
+
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
     {
@@ -106,6 +118,12 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::Leno.SharedContracts.Grpc.Order.V1.SellerOrders> GetSellerOrders(global::Leno.SharedContracts.Grpc.Order.V1.GetSellerOrdersRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse> GetOrderSellerId(global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -199,6 +217,26 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_GetSellerOrders, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse GetOrderSellerId(global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetOrderSellerId(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse GetOrderSellerId(global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_GetOrderSellerId, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse> GetOrderSellerIdAsync(global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetOrderSellerIdAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse> GetOrderSellerIdAsync(global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_GetOrderSellerId, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override OrderInternalServiceClient NewInstance(ClientBaseConfiguration configuration)
@@ -215,7 +253,8 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_GetOrderStatus, serviceImpl.GetOrderStatus)
           .AddMethod(__Method_GetOrderDetail, serviceImpl.GetOrderDetail)
-          .AddMethod(__Method_GetSellerOrders, serviceImpl.GetSellerOrders).Build();
+          .AddMethod(__Method_GetSellerOrders, serviceImpl.GetSellerOrders)
+          .AddMethod(__Method_GetOrderSellerId, serviceImpl.GetOrderSellerId).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -228,6 +267,7 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
       serviceBinder.AddMethod(__Method_GetOrderStatus, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderStatusRequest, global::Leno.SharedContracts.Grpc.Order.V1.OrderStatus>(serviceImpl.GetOrderStatus));
       serviceBinder.AddMethod(__Method_GetOrderDetail, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderDetailRequest, global::Leno.SharedContracts.Grpc.Order.V1.OrderDetail>(serviceImpl.GetOrderDetail));
       serviceBinder.AddMethod(__Method_GetSellerOrders, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Order.V1.GetSellerOrdersRequest, global::Leno.SharedContracts.Grpc.Order.V1.SellerOrders>(serviceImpl.GetSellerOrders));
+      serviceBinder.AddMethod(__Method_GetOrderSellerId, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest, global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse>(serviceImpl.GetOrderSellerId));
     }
 
   }
