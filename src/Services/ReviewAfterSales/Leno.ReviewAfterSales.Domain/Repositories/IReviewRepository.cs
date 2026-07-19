@@ -36,4 +36,20 @@ public interface IReviewRepository : IRepository<ReviewAggregate>
     /// 条件查询评价总数（配合 <see cref="QueryAsync"/> 分页）。
     /// </summary>
     Task<int> CountAsync(Guid? spuId, Guid? userId, ReviewStatus? status, CancellationToken ct = default);
+
+    /// <summary>
+    /// 按 SPU 标识查询全部评价（不分页，跨 BC 内部查询用）。
+    /// 可选审核状态过滤；为空返回所有状态评价。
+    /// </summary>
+    /// <param name="spuId">商品 SPU 标识。</param>
+    /// <param name="status">审核状态过滤，为空不过滤。</param>
+    Task<List<ReviewAggregate>> GetBySpuIdAsync(Guid spuId, ReviewStatus? status = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// 按订单标识查询全部评价（不分页，跨 BC 内部查询用）。
+    /// 可选审核状态过滤；为空返回所有状态评价。
+    /// </summary>
+    /// <param name="orderId">订单标识。</param>
+    /// <param name="status">审核状态过滤，为空不过滤。</param>
+    Task<List<ReviewAggregate>> GetByOrderIdAsync(Guid orderId, ReviewStatus? status = null, CancellationToken ct = default);
 }

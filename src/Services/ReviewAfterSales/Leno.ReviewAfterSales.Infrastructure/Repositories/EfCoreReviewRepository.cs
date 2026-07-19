@@ -61,6 +61,34 @@ public sealed class EfCoreReviewRepository : IReviewRepository
     }
 
     /// <inheritdoc />
+    public async Task<List<Review>> GetBySpuIdAsync(
+        Guid spuId,
+        ReviewStatus? status = null,
+        CancellationToken ct = default)
+    {
+        var query = _context.Reviews.AsQueryable().Where(r => r.SpuId == spuId);
+        if (status.HasValue)
+        {
+            query = query.Where(r => r.Status == status.Value);
+        }
+        return await query.OrderByDescending(r => r.CreatedAt).ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<Review>> GetByOrderIdAsync(
+        Guid orderId,
+        ReviewStatus? status = null,
+        CancellationToken ct = default)
+    {
+        var query = _context.Reviews.AsQueryable().Where(r => r.OrderId == orderId);
+        if (status.HasValue)
+        {
+            query = query.Where(r => r.Status == status.Value);
+        }
+        return await query.OrderByDescending(r => r.CreatedAt).ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
     public async Task AddAsync(Review aggregate, CancellationToken ct = default)
         => await _context.Reviews.AddAsync(aggregate, ct);
 

@@ -4,6 +4,7 @@ using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.ReviewAfterSales.Application;
+using Leno.ReviewAfterSales.Application.InternalQueryServices;
 using Leno.ReviewAfterSales.Application.Services;
 using Leno.ReviewAfterSales.Domain.Repositories;
 using Leno.ReviewAfterSales.Domain.Services;
@@ -150,6 +151,9 @@ public static class ServiceCollectionExtensions
         // 应用服务
         services.AddScoped<IReviewAppService, AppServices.ReviewAppService>();
         services.AddScoped<IAfterSalesAppService, AppServices.AfterSalesAppService>();
+
+        // M4 双轨方案：注册跨 BC 内部查询服务（供 ReviewGrpcService 复用）
+        services.AddScoped<IReviewInternalQueryService, ReviewInternalQueryService>();
 
         return services;
     }

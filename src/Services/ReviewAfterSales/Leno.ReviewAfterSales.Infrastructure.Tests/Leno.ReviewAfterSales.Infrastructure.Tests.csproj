@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Leno.ReviewAfterSales.Infrastructure\Leno.ReviewAfterSales.Infrastructure.csproj" />
+    <ProjectReference Include="..\Leno.ReviewAfterSales.Api\Leno.ReviewAfterSales.Api.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.Testing\Leno.Testing.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts.Grpc\Leno.SharedContracts.Grpc.csproj" />
   </ItemGroup>
