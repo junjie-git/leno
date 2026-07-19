@@ -14,6 +14,10 @@ message PaymentInfo {
   int64 amount_cents = 3;
   string status = 4;
   string paid_at = 5;
+  // M4 双轨方案新增字段
+  optional string channel = 6;
+  optional string transaction_id = 7;
+  optional int64 refunded_amount_cents = 8;
 }
 message GetRefundStatusRequest { string refund_id = 1; }
 message RefundStatus {

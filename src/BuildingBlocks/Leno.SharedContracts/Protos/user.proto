@@ -13,6 +13,11 @@ message UserContacts {
   string email = 1;
   string phone = 2;
   string nickname = 3;
+  // M4 双轨方案新增字段
+  optional string user_id = 4;
+  optional bool email_verified = 5;
+  optional bool phone_verified = 6;
+  optional string preferred_language = 7;
 }
 message GetUserInfoRequest { string user_id = 1; }
 message UserInfo {

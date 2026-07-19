@@ -20,6 +20,10 @@ message SkuInfo {
   bool salable = 7;
   int64 seller_id = 8;
   int32 stock = 9;
+  // M4 双轨方案新增字段
+  optional string status = 10;
+  optional string shop_id = 11;
+  optional int64 updated_at = 12;
 }
 message BatchGetSkuInfoRequest { repeated int64 sku_ids = 1; }
 message BatchGetSkuInfoResponse { repeated SkuInfo skus = 1; }
