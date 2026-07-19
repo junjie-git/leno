@@ -53,6 +53,12 @@ public interface ICouponAppService
     /// 券不存在或已被占用（非 Unused）抛 <see cref="PromotionDomainException"/>。
     /// </summary>
     Task LockCouponAsync(Guid userId, Guid couponId, Guid orderId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 订单取消/释放优惠券（内部接口），将 orderId 关联的全部 Locked 用户券释放回 Unused（已过期则置为 Expired）。
+    /// 无任何锁定券时幂等返回，不抛异常。
+    /// </summary>
+    Task ReleaseCouponsAsync(Guid orderId, CancellationToken ct = default);
 }
 
 /// <summary>锁定优惠券内部接口入参。</summary>

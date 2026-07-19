@@ -51,6 +51,13 @@ public sealed class EfCoreUserCouponRepository : IUserCouponRepository
         => await _context.UserCoupons.FirstOrDefaultAsync(u => u.LockedOrderId == orderId, ct);
 
     /// <inheritdoc />
+    public async Task<List<UserCouponAggregate>> GetAllByLockedOrderIdAsync(Guid orderId, CancellationToken ct = default)
+        => await _context.UserCoupons
+            .Where(u => u.LockedOrderId == orderId)
+            .OrderByDescending(u => u.ReceivedAt)
+            .ToListAsync(ct);
+
+    /// <inheritdoc />
     public async Task<UserCouponAggregate?> GetByUsedOrderIdAsync(Guid orderId, CancellationToken ct = default)
         => await _context.UserCoupons.FirstOrDefaultAsync(u => u.UsedOrderId == orderId, ct);
 

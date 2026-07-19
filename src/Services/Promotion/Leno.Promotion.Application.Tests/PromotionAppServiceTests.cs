@@ -79,7 +79,7 @@ public class PromotionAppServiceTests
     }
 }
 
-public class CouponAppServiceTests
+public partial class CouponAppServiceTests
 {
     private readonly Mock<ICouponRepository> _couponRepoMock = new();
     private readonly Mock<IUserCouponRepository> _userCouponRepoMock = new();

@@ -17,15 +17,18 @@ public sealed class PromotionGrpcService : PromotionInternalService.PromotionInt
 {
     private readonly IPromotionCalculateAppService _calculateService;
     private readonly ICouponRepository _couponRepository;
+    private readonly ICouponAppService _couponAppService;
     private readonly ILogger<PromotionGrpcService> _logger;
 
     public PromotionGrpcService(
         IPromotionCalculateAppService calculateService,
         ICouponRepository couponRepository,
+        ICouponAppService couponAppService,
         ILogger<PromotionGrpcService> logger)
     {
         _calculateService = calculateService;
         _couponRepository = couponRepository;
+        _couponAppService = couponAppService;
         _logger = logger;
     }
 
@@ -55,16 +58,38 @@ public sealed class PromotionGrpcService : PromotionInternalService.PromotionInt
         };
     }
 
-    public override Task<LockCouponResponse> LockCoupon(LockCouponRequest request, ServerCallContext context)
+    public override async Task<LockCouponResponse> LockCoupon(
+        LockCouponRequest request, ServerCallContext context)
     {
-        // POC 阶段未实现券锁定逻辑（需 UserCoupon 仓储），返回 success=true 占位
-        return Task.FromResult(new LockCouponResponse { Success = true });
+        if (!Guid.TryParse(request.UserId, out var userId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid user_id: {request.UserId}"));
+        }
+        if (!Guid.TryParse(request.CouponId, out var couponId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid coupon_id: {request.CouponId}"));
+        }
+        if (!Guid.TryParse(request.OrderId, out var orderId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid order_id: {request.OrderId}"));
+        }
+
+        await _couponAppService.LockCouponAsync(userId, couponId, orderId, context.CancellationToken)
+            .ConfigureAwait(false);
+        return new LockCouponResponse { Success = true };
     }
 
-    public override Task<ReleaseCouponsResponse> ReleaseCoupons(ReleaseCouponsRequest request, ServerCallContext context)
+    public override async Task<ReleaseCouponsResponse> ReleaseCoupons(
+        ReleaseCouponsRequest request, ServerCallContext context)
     {
-        // POC 阶段未实现券释放逻辑（需 UserCoupon 仓储），返回 success=true 占位
-        return Task.FromResult(new ReleaseCouponsResponse { Success = true });
+        if (!Guid.TryParse(request.OrderId, out var orderId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid order_id: {request.OrderId}"));
+        }
+
+        await _couponAppService.ReleaseCouponsAsync(orderId, context.CancellationToken)
+            .ConfigureAwait(false);
+        return new ReleaseCouponsResponse { Success = true };
     }
 
     public override async Task<CouponInfo> GetCouponInfo(GetCouponInfoRequest request, ServerCallContext context)

@@ -147,6 +147,23 @@ public sealed class CouponAppService : ICouponAppService
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
+    /// <inheritdoc />
+    public async Task ReleaseCouponsAsync(Guid orderId, CancellationToken ct = default)
+    {
+        var lockedCoupons = await _userCouponRepository.GetAllByLockedOrderIdAsync(orderId, ct)
+            .ConfigureAwait(false);
+        if (lockedCoupons is null || lockedCoupons.Count == 0)
+        {
+            return; // 无锁定券，幂等返回
+        }
+        foreach (var coupon in lockedCoupons)
+        {
+            // Release 领域方法：Locked → Unused（已过期则 → Expired），状态机校验由聚合根负责
+            coupon.Release();
+        }
+        await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
+    }
+
     private async Task<CouponAggregate> RequireCouponAsync(Guid couponId, CancellationToken ct)
         => await _couponRepository.GetByIdAsync(couponId, ct)
            ?? throw new PromotionDomainException($"优惠券 {couponId} 不存在", "COUPON_NOT_FOUND");
