@@ -69,4 +69,17 @@ public sealed class PointsInternalAppService : IPointsInternalAppService
         await _unitOfWork.SaveEntitiesAsync(ct);
         _logger.LogInformation("积分释放成功 OrderId={OrderId}", input.OrderId);
     }
+
+    /// <inheritdoc />
+    public async Task ConfirmAsync(ConfirmPointsDto input, CancellationToken ct = default)
+    {
+        var account = await _accountRepository.GetByFrozenOrderIdAsync(input.OrderId, ct)
+            ?? throw new PointsDomainException(
+                $"订单 {input.OrderId} 的冻结记录不存在",
+                "POINTS_FROZEN_ENTRY_NOT_FOUND");
+
+        account.ConfirmDeduct(input.OrderId);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+        _logger.LogInformation("积分确认扣减成功 OrderId={OrderId}", input.OrderId);
+    }
 }

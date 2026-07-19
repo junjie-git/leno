@@ -73,10 +73,18 @@ public sealed class PointsGrpcService : PointsInternalService.PointsInternalServ
         return new ReleaseResponse { Success = true };
     }
 
-    public override Task<ConfirmResponse> Confirm(ConfirmRequest request, ServerCallContext context)
+    public override async Task<ConfirmResponse> Confirm(ConfirmRequest request, ServerCallContext context)
     {
-        // POC 阶段未实现确认扣减（需领域服务编排），抛 Unimplemented
-        throw new RpcException(new Status(StatusCode.Unimplemented, "Confirm not implemented in POC"));
+        if (!Guid.TryParse(request.OrderId, out var orderId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid order_id: {request.OrderId}"));
+        }
+
+        var input = new ConfirmPointsDto(orderId);
+        await _internalAppService.ConfirmAsync(input, context.CancellationToken)
+            .ConfigureAwait(false);
+
+        return new ConfirmResponse { Success = true };
     }
 
     public override async Task<PointsBalance> GetPointsBalance(

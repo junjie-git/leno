@@ -22,6 +22,13 @@ public interface IPointsInternalAppService
     /// </summary>
     /// <param name="input">释放参数。</param>
     Task ReleaseAsync(ReleasePointsDto input, CancellationToken ct = default);
+
+    /// <summary>
+    /// 确认扣减冻结积分（支付成功核销），按订单反查冻结记录并扣减冻结余额、累加累计消耗。
+    /// 与 <see cref="ReleaseAsync"/> 共用 <c>GetByFrozenOrderIdAsync</c> 反查路径。
+    /// </summary>
+    /// <param name="input">确认扣减参数。</param>
+    Task ConfirmAsync(ConfirmPointsDto input, CancellationToken ct = default);
 }
 
 /// <summary>
