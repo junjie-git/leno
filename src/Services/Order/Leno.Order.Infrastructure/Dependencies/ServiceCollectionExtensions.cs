@@ -13,7 +13,9 @@ using Leno.Order.Infrastructure.ReadModels;
 using Leno.Order.Infrastructure.Repositories;
 using Leno.Order.Infrastructure.Services;
 using Leno.Order.Infrastructure.Services.Grpc;
+using Leno.SharedContracts.Grpc.Points.V1;
 using Leno.SharedContracts.Grpc.Product.V1;
+using Leno.SharedContracts.Grpc.Promotion.V1;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -71,9 +73,9 @@ public static class ServiceCollectionExtensions
         // HttpClient 防腐层实现（保留作为降级备份）
         services.AddHttpClient<ProductAntiCorruptionService>(c => c.BaseAddress = new Uri(productApiUrl))
             .AddAntiCorruptionPolicies();
-        services.AddHttpClient<IPromotionAntiCorruptionService, PromotionAntiCorruptionService>(c => c.BaseAddress = new Uri(promotionApiUrl))
+        services.AddHttpClient<PromotionAntiCorruptionService>(c => c.BaseAddress = new Uri(promotionApiUrl))
             .AddAntiCorruptionPolicies();
-        services.AddHttpClient<IPointsAntiCorruptionService, PointsAntiCorruptionService>(c => c.BaseAddress = new Uri(pointsApiUrl))
+        services.AddHttpClient<PointsAntiCorruptionService>(c => c.BaseAddress = new Uri(pointsApiUrl))
             .AddAntiCorruptionPolicies();
 
         // M4 双轨方案：gRPC 客户端 + 熔断器 + Dispatcher（仅当 UseGrpc=true 时生效）
@@ -113,12 +115,86 @@ public static class ServiceCollectionExtensions
             services.AddScoped<ProductAntiCorruptionDispatcherAdapter>();
             services.AddScoped<IProductAntiCorruptionService>(sp =>
                 sp.GetRequiredService<ProductAntiCorruptionDispatcherAdapter>());
+
+            // Promotion 双轨
+            var promotionGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Promotion")
+                ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:Promotion 配置缺失");
+
+            services.AddGrpcClient<PromotionInternalService.PromotionInternalServiceClient>(options =>
+            {
+                options.Address = new Uri(promotionGrpcEndpoint);
+            });
+            services.AddScoped<GrpcPromotionAntiCorruptionClient>();
+
+            services.AddKeyedSingleton<CircuitBreakerState>("promotion", (sp, _) =>
+            {
+                var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
+                var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
+                return new CircuitBreakerState(
+                    "promotion",
+                    cbOpts.FailureThreshold,
+                    cbOpts.SuccessThreshold,
+                    TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
+            });
+
+            services.AddScoped<AntiCorruptionDispatcher<IPromotionAntiCorruptionService>>(sp =>
+            {
+                var httpImpl = sp.GetRequiredService<PromotionAntiCorruptionService>();
+                var grpcImpl = sp.GetService<GrpcPromotionAntiCorruptionClient>();
+                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IPromotionAntiCorruptionService>>>();
+                var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("promotion");
+                return new AntiCorruptionDispatcher<IPromotionAntiCorruptionService>(
+                    httpImpl, grpcImpl, options, logger, "promotion", cb);
+            });
+            services.AddScoped<PromotionAntiCorruptionDispatcherAdapter>();
+            services.AddScoped<IPromotionAntiCorruptionService>(sp =>
+                sp.GetRequiredService<PromotionAntiCorruptionDispatcherAdapter>());
+
+            // Points 双轨
+            var pointsGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("PointsMembership")
+                ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:PointsMembership 配置缺失");
+
+            services.AddGrpcClient<PointsInternalService.PointsInternalServiceClient>(options =>
+            {
+                options.Address = new Uri(pointsGrpcEndpoint);
+            });
+            services.AddScoped<GrpcPointsAntiCorruptionClient>();
+
+            services.AddKeyedSingleton<CircuitBreakerState>("points", (sp, _) =>
+            {
+                var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
+                var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
+                return new CircuitBreakerState(
+                    "points",
+                    cbOpts.FailureThreshold,
+                    cbOpts.SuccessThreshold,
+                    TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
+            });
+
+            services.AddScoped<AntiCorruptionDispatcher<IPointsAntiCorruptionService>>(sp =>
+            {
+                var httpImpl = sp.GetRequiredService<PointsAntiCorruptionService>();
+                var grpcImpl = sp.GetService<GrpcPointsAntiCorruptionClient>();
+                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IPointsAntiCorruptionService>>>();
+                var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("points");
+                return new AntiCorruptionDispatcher<IPointsAntiCorruptionService>(
+                    httpImpl, grpcImpl, options, logger, "points", cb);
+            });
+            services.AddScoped<PointsAntiCorruptionDispatcherAdapter>();
+            services.AddScoped<IPointsAntiCorruptionService>(sp =>
+                sp.GetRequiredService<PointsAntiCorruptionDispatcherAdapter>());
         }
         else
         {
             // UseGrpc=false：直接注册 HttpClient 实现（兼容期）
             services.AddScoped<IProductAntiCorruptionService>(sp =>
                 sp.GetRequiredService<ProductAntiCorruptionService>());
+            services.AddScoped<IPromotionAntiCorruptionService>(sp =>
+                sp.GetRequiredService<PromotionAntiCorruptionService>());
+            services.AddScoped<IPointsAntiCorruptionService>(sp =>
+                sp.GetRequiredService<PointsAntiCorruptionService>());
         }
 
         // T17: 防腐层降级告警 —— 通过 OpenTelemetry SDK 按名称订阅 Meter，
