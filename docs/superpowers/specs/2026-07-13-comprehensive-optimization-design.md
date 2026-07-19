@@ -1,3 +1,17 @@
+---
+status: superseded
+superseded_by: docs/superpowers/specs/2026-07-17-comprehensive-optimization-v2-design.md
+superseded_date: 2026-07-19
+superseded_reason: |
+  V1 整体设计已被 V2 全面取代。V2 在以下方面有重大调整：
+  - 重新规划快轨 F1-F4 + 慢轨 M1-M6 优先级
+  - 引入 Subagent-Driven 实施模式
+  - M4 改为 gRPC 双轨方案（保留 HttpClient fallback）
+  - 新增 M5 可观测性 + M6 CQRS/BFF/文档
+  V1 中未实施的部分（如 F1.4 越权校验集中化）仍可作为后续任务参考，
+  但实施时需遵循 V2 的架构约束。
+---
+
 # Leno 电商平台全面优化方案设计
 
 > **⚠️ SUPERSEDED**: 本 spec 已被 [2026-07-17-comprehensive-optimization-v2-design.md](./2026-07-17-comprehensive-optimization-v2-design.md) 接管。

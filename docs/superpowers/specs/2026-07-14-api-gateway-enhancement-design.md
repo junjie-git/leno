@@ -1,3 +1,20 @@
+---
+status: partially_superseded
+partially_superseded_by:
+  - docs/superpowers/specs/2026-07-19-m4-grpc-dual-track-design.md
+  - docs/superpowers/specs/2026-07-17-comprehensive-optimization-v2-design.md
+partially_superseded_date: 2026-07-19
+partially_superseded_reason: |
+  本 spec 中 gRPC 服务端实现 + 双轨通信部分已被以下 spec 取代：
+  - 2026-07-19-m4-grpc-dual-track-design.md（gRPC 双轨方案）
+  - 2026-07-17-comprehensive-optimization-v2-design.md（整体架构）
+  以下章节仍有效：
+  - CORS 配置
+  - 限流策略
+  - JWT 黑名单
+  - API 网关聚合模式
+---
+
 # API 网关增强设计
 
 > **⚠️ SUPERSEDED**: 本 spec 已被 [2026-07-17-comprehensive-optimization-v2-design.md](./2026-07-17-comprehensive-optimization-v2-design.md) §10 接管。

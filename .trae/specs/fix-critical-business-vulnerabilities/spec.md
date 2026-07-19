@@ -1,3 +1,17 @@
+---
+status: partially_superseded
+partially_superseded_by:
+  - docs/superpowers/specs/2026-07-17-comprehensive-optimization-v2-design.md
+partially_superseded_date: 2026-07-19
+partially_superseded_reason: |
+  本 spec 中鉴权集中化部分已被 V2 spec 的 F1.4 后续任务取代。
+  以下章节仍有效：
+  - 输入校验
+  - SQL 注入防护
+  - XSS 防护
+  - CSRF 防护
+---
+
 # 关键业务与安全漏洞修复 Spec
 
 **Change-ID**：`fix-critical-business-vulnerabilities`
