@@ -1,6 +1,7 @@
 using System.Text;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.Auth;
+using Leno.Infrastructure.Configuration;
 using Leno.Infrastructure.HealthChecks;
 using Leno.Infrastructure.Logging;
 using Leno.Infrastructure.Middleware;
@@ -123,6 +124,13 @@ public static class WebApplicationExtensions
 
         // 8. 授权
         services.AddAuthorization();
+
+        // 9. Consul KV 配置热更新后台服务（M4 双轨方案：监听 leno/anticorruption/use-grpc/{bc} KV）
+        // 仅当 AntiCorruption:EnableConsulConfigWatcher=true（默认 true）时注册
+        if (configuration.GetValue<bool>("AntiCorruption:EnableConsulConfigWatcher", true))
+        {
+            services.AddHostedService<ConsulConfigWatcher>();
+        }
 
         return services;
     }
