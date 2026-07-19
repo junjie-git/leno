@@ -12,11 +12,15 @@ using Leno.Order.Infrastructure.EventBus;
 using Leno.Order.Infrastructure.ReadModels;
 using Leno.Order.Infrastructure.Repositories;
 using Leno.Order.Infrastructure.Services;
+using Leno.Order.Infrastructure.Services.Grpc;
+using Leno.SharedContracts.Grpc.Product.V1;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Leno.Order.Infrastructure.Dependencies;
 
@@ -64,12 +68,58 @@ public static class ServiceCollectionExtensions
         var promotionApiUrl = configuration["ServiceUrls:PromotionApi"] ?? "http://localhost:5152";
         var pointsApiUrl = configuration["ServiceUrls:PointsMembershipApi"] ?? "http://localhost:5153";
 
-        services.AddHttpClient<IProductAntiCorruptionService, ProductAntiCorruptionService>(c => c.BaseAddress = new Uri(productApiUrl))
+        // HttpClient 防腐层实现（保留作为降级备份）
+        services.AddHttpClient<ProductAntiCorruptionService>(c => c.BaseAddress = new Uri(productApiUrl))
             .AddAntiCorruptionPolicies();
         services.AddHttpClient<IPromotionAntiCorruptionService, PromotionAntiCorruptionService>(c => c.BaseAddress = new Uri(promotionApiUrl))
             .AddAntiCorruptionPolicies();
         services.AddHttpClient<IPointsAntiCorruptionService, PointsAntiCorruptionService>(c => c.BaseAddress = new Uri(pointsApiUrl))
             .AddAntiCorruptionPolicies();
+
+        // M4 双轨方案：gRPC 客户端 + 熔断器 + Dispatcher（仅当 UseGrpc=true 时生效）
+        var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
+        if (antiCorruptionOptions.UseGrpc)
+        {
+            var productGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Product")
+                ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:Product 配置缺失");
+
+            services.AddGrpcClient<ProductInternalService.ProductInternalServiceClient>(options =>
+            {
+                options.Address = new Uri(productGrpcEndpoint);
+            });
+            services.AddScoped<GrpcProductAntiCorruptionClient>();
+
+            services.AddKeyedSingleton<CircuitBreakerState>("product", (sp, _) =>
+            {
+                var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
+                var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
+                return new CircuitBreakerState(
+                    "product",
+                    cbOpts.FailureThreshold,
+                    cbOpts.SuccessThreshold,
+                    TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
+            });
+
+            services.AddScoped<AntiCorruptionDispatcher<IProductAntiCorruptionService>>(sp =>
+            {
+                var httpImpl = sp.GetRequiredService<ProductAntiCorruptionService>();
+                var grpcImpl = sp.GetService<GrpcProductAntiCorruptionClient>();
+                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IProductAntiCorruptionService>>>();
+                var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("product");
+                return new AntiCorruptionDispatcher<IProductAntiCorruptionService>(
+                    httpImpl, grpcImpl, options, logger, "product", cb);
+            });
+            services.AddScoped<ProductAntiCorruptionDispatcherAdapter>();
+            services.AddScoped<IProductAntiCorruptionService>(sp =>
+                sp.GetRequiredService<ProductAntiCorruptionDispatcherAdapter>());
+        }
+        else
+        {
+            // UseGrpc=false：直接注册 HttpClient 实现（兼容期）
+            services.AddScoped<IProductAntiCorruptionService>(sp =>
+                sp.GetRequiredService<ProductAntiCorruptionService>());
+        }
 
         // T17: 防腐层降级告警 —— 通过 OpenTelemetry SDK 按名称订阅 Meter，
         // 暴露 Prometheus 指标 anticorruption_failure_total{service,operation}。
