@@ -63,11 +63,16 @@ public sealed class ProductInternalQueryService : IProductInternalQueryService
         => new()
         {
             SkuId = sku.Id,
+            SpuId = spu.Id,
             Price = sku.Price.Amount,
             Currency = sku.Price.Currency,
             Available = sku.Status == SkuStatus.Active && sku.StockQty > 0,
+            Stock = sku.StockQty,
+            Status = sku.Status.ToString().ToLowerInvariant(),
             Title = spu.Title,
             MainImageUrl = spu.MainImageUrl,
-            SellerId = spu.SellerId
+            SellerId = spu.SellerId,
+            ShopId = spu.ShopId,
+            UpdatedAt = spu.UpdatedAt
         };
 }
