@@ -39,10 +39,11 @@ public sealed class GrpcProductSnapshotAntiCorruptionClient
     public Task<SkuSnapshotDto> GetSkuSnapshotAsync(Guid skuId, CancellationToken ct = default)
         => ExecuteAsync("get_sku_snapshot", async token =>
     {
-        // 注：proto 中 sku_id 为 int64，POC 阶段使用 GetHashCode 简化
+        // M4 Guid→string 迁移：请求同时填充 int64（向后兼容）+ string
         var request = new GetSkuInfoRequest
         {
-            SkuId = (long)skuId.GetHashCode()
+            SkuId = (long)skuId.GetHashCode(),
+            SkuIdStr = skuId.ToString()
         };
 
         var metadata = BuildMetadata();

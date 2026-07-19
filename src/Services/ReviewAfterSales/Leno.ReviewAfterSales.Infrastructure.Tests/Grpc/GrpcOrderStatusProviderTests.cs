@@ -29,6 +29,7 @@ public class GrpcOrderStatusProviderTests
         var clientMock = new Mock<OrderInternalService.OrderInternalServiceClient>();
         var orderId = Guid.NewGuid();
         var userId = Guid.NewGuid();
+        var itemSkuId = Guid.NewGuid();
         var response = new OrderStatus
         {
             OrderId = orderId.ToString(),
@@ -37,6 +38,13 @@ public class GrpcOrderStatusProviderTests
             CompletedAt = DateTimeOffset.UtcNow.AddDays(-5).ToUnixTimeSeconds(),
             CreatedAt = DateTimeOffset.UtcNow.AddDays(-30).ToUnixTimeSeconds()
         };
+        response.Items.Add(new Leno.SharedContracts.Grpc.Order.V1.OrderItem
+        {
+            SkuId = (long)itemSkuId.GetHashCode(),
+            SkuIdStr = itemSkuId.ToString(),
+            Quantity = 2,
+            UnitPriceCents = 9999
+        });
 
         clientMock.Setup(c => c.GetOrderStatusAsync(
                 It.IsAny<GetOrderStatusRequest>(),
@@ -59,6 +67,54 @@ public class GrpcOrderStatusProviderTests
         result!.OrderId.Should().Be(orderId);
         result.UserId.Should().Be(userId);
         result.Status.Should().Be(3);
+        // 验证 OrderItem 优先读 string 字段
+        result.Items.Should().HaveCount(1);
+        result.Items[0].SkuId.Should().Be(itemSkuId);
+        result.Items[0].Quantity.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetOrderStatus_NewServer_OnlyString_ReturnsCorrectGuid()
+    {
+        // 新服务端仅填充 string 字段，int64 字段为默认值 0
+        var clientMock = new Mock<OrderInternalService.OrderInternalServiceClient>();
+        var orderId = Guid.NewGuid();
+        var itemSkuId = Guid.NewGuid();
+        var response = new OrderStatus
+        {
+            OrderId = orderId.ToString(),
+            Status = "2"
+        };
+        response.Items.Add(new Leno.SharedContracts.Grpc.Order.V1.OrderItem
+        {
+            SkuId = 0,  // 新服务端不填充 int64
+            SkuIdStr = itemSkuId.ToString(),
+            Quantity = 1,
+            UnitPriceCents = 5000
+        });
+
+        clientMock.Setup(c => c.GetOrderStatusAsync(
+                It.IsAny<GetOrderStatusRequest>(),
+                It.IsAny<Metadata>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(new AsyncUnaryCall<OrderStatus>(
+                Task.FromResult(response),
+                Task.FromResult(new Metadata()),
+                () => Status.DefaultSuccess,
+                () => new Metadata(),
+                () => { }));
+
+        var client = new GrpcOrderStatusProvider(clientMock.Object, CreateOptionsMonitor(),
+            NullLogger<GrpcOrderStatusProvider>.Instance);
+
+        var result = await client.GetOrderStatusAsync(orderId);
+
+        result.Should().NotBeNull();
+        result!.OrderId.Should().Be(orderId);
+        result.Items.Should().HaveCount(1);
+        result.Items[0].SkuId.Should().Be(itemSkuId);
+        result.Items[0].Quantity.Should().Be(1);
     }
 
     [Fact]

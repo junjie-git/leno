@@ -48,21 +48,30 @@ public sealed class GrpcCartPriceService
                 return (IReadOnlyList<SkuPriceSnapshotDomain>)Array.Empty<SkuPriceSnapshotDomain>();
             }
 
-            // 注：proto 中 sku_id 为 int64，POC 阶段使用 GetHashCode 简化
-            // 生产化阶段需将 .proto 改为 string sku_id 承载 Guid.ToString()（Task 27）
+            // M4 Guid→string 迁移：请求同时填充 int64（向后兼容）+ string
             var request = new BatchGetSkuInfoRequest();
             request.SkuIds.AddRange(ids.Select(id => (long)id.GetHashCode()));
+            request.SkuIdsStr.AddRange(ids.Select(id => id.ToString()));
 
             var metadata = BuildMetadata();
             var response = await _client.BatchGetSkuInfoAsync(request, metadata, cancellationToken: token)
                 .ConfigureAwait(false);
 
-            // 建立 int64 → Guid 映射，POC 简化：用原 Guid 的 GetHashCode 还原
-            var skuMap = ids.ToDictionary(id => (long)id.GetHashCode(), id => id);
+            // 响应映射：优先用 SkuIdStr 建立 Guid 映射，回退到 int64 GetHashCode 映射（向后兼容旧服务端）
+            var skuMapByStr = ids.ToDictionary(id => id.ToString(), id => id);
+            var skuMapByHash = ids.ToDictionary(id => (long)id.GetHashCode(), id => id);
             var result = new List<SkuPriceSnapshotDomain>(response.Skus.Count);
             foreach (var proto in response.Skus)
             {
-                if (!skuMap.TryGetValue(proto.SkuId, out var guid))
+                Guid guid;
+                if (!string.IsNullOrEmpty(proto.SkuIdStr))
+                {
+                    if (!skuMapByStr.TryGetValue(proto.SkuIdStr, out guid))
+                    {
+                        continue;
+                    }
+                }
+                else if (!skuMapByHash.TryGetValue(proto.SkuId, out guid))
                 {
                     continue;
                 }
@@ -90,7 +99,7 @@ public sealed class GrpcCartPriceService
         Available = proto.Salable,
         Title = proto.Title ?? string.Empty,
         MainImageUrl = proto.MainImage ?? string.Empty,
-        // POC 简化：int64→Guid 不可逆，留空；生产化阶段需将 .proto 改为 string（Task 27）
-        SellerId = Guid.Empty
+        // 修复：优先读 string 字段，回退到 Guid.Empty（POC 阶段 int64→Guid 不可逆）
+        SellerId = !string.IsNullOrEmpty(proto.SellerIdStr) ? Guid.Parse(proto.SellerIdStr) : Guid.Empty
     };
 }

@@ -44,9 +44,9 @@ public sealed class GrpcPromotionAntiCorruptionClient
             };
             request.Items.AddRange(items.Select(i => new OrderItem
             {
-                // 注：proto 中 sku_id 为 int64，DTO 中为 Guid。
-                // POC 阶段使用 GetHashCode() 简化映射，生产实施前需评估改为 string 承载（见 spec §4.1 决策）。
+                // M4 Guid→string 迁移：同时填充 int64（向后兼容）+ string
                 SkuId = (long)i.SkuId.GetHashCode(),
+                SkuIdStr = i.SkuId.ToString(),
                 SubtotalCents = (long)(i.Subtotal * 100)
             }));
             var metadata = BuildMetadata();

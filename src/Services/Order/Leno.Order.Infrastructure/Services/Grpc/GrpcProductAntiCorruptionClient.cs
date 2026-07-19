@@ -40,7 +40,12 @@ public sealed class GrpcProductAntiCorruptionClient
     public Task<SkuInfoDto?> GetSkuInfoAsync(Guid skuId, CancellationToken ct = default)
         => ExecuteAsync("get_sku_info", async token =>
         {
-            var request = new GetSkuInfoRequest { SkuId = skuId.GetHashCode() };
+            // 请求构造同时填充 int64（向后兼容）+ string（M4 Guid→string 迁移）
+            var request = new GetSkuInfoRequest
+            {
+                SkuId = (long)skuId.GetHashCode(),
+                SkuIdStr = skuId.ToString()
+            };
             var metadata = BuildMetadata();
             var response = await _client.GetSkuInfoAsync(request, metadata, cancellationToken: token)
                 .ConfigureAwait(false);
@@ -60,11 +65,11 @@ public sealed class GrpcProductAntiCorruptionClient
 
     private static SkuInfoDto? MapToDto(SkuInfoProto proto) => new()
     {
-        // 注：proto 中 sku_id 为 int64（GetHashCode 映射），DTO 中为 Guid
-        // POC 阶段映射简化，生产实施前需评估改为 string 承载（见 spec §4.1 决策）
-        SkuId = Guid.Empty,
-        SpuId = Guid.Empty,
-        SellerId = Guid.Empty,
+        // M4 Guid→string 迁移：优先读 string 字段，为空回退到 Guid.Empty
+        // （POC 阶段 int64→Guid 不可逆，回退时无法还原原 Guid）
+        SkuId = !string.IsNullOrEmpty(proto.SkuIdStr) ? Guid.Parse(proto.SkuIdStr) : Guid.Empty,
+        SpuId = !string.IsNullOrEmpty(proto.SpuIdStr) ? Guid.Parse(proto.SpuIdStr) : Guid.Empty,
+        SellerId = !string.IsNullOrEmpty(proto.SellerIdStr) ? Guid.Parse(proto.SellerIdStr) : Guid.Empty,
         ProductName = proto.Title,
         SkuName = proto.Title,
         MainImage = string.IsNullOrEmpty(proto.MainImage) ? null : proto.MainImage,

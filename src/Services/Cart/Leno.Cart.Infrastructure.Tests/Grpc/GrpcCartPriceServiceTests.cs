@@ -29,6 +29,7 @@ public class GrpcCartPriceServiceTests
     {
         var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
         var skuId = Guid.NewGuid();
+        var sellerId = Guid.NewGuid();
         var batchResponse = new BatchGetSkuInfoResponse();
         batchResponse.Skus.Add(new SkuInfo
         {
@@ -38,7 +39,10 @@ public class GrpcCartPriceServiceTests
             Currency = "CNY",
             Salable = true,
             Stock = 100,
-            MainImage = "http://img"
+            MainImage = "http://img",
+            // M4 Guid→string 迁移：服务端填充 string 字段（修复 SellerId 映射验证）
+            SkuIdStr = skuId.ToString(),
+            SellerIdStr = sellerId.ToString()
         });
 
         clientMock.Setup(c => c.BatchGetSkuInfoAsync(
@@ -61,9 +65,57 @@ public class GrpcCartPriceServiceTests
         result.Should().NotBeNull();
         result.Should().HaveCount(1);
         result[0].SkuId.Should().Be(skuId);
+        // 验证 SellerId 修复：之前是 Guid.Empty 占位，现在正确解析 string
+        result[0].SellerId.Should().Be(sellerId);
         result[0].Title.Should().Be("Test SKU");
         result[0].Price.Should().Be(99.99m);
         result[0].Available.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetSkuPrices_NewServer_OnlyString_ReturnsCorrectGuid()
+    {
+        // 新服务端仅填充 string 字段，int64 字段为默认值 0
+        var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
+        var skuId = Guid.NewGuid();
+        var sellerId = Guid.NewGuid();
+        var batchResponse = new BatchGetSkuInfoResponse();
+        batchResponse.Skus.Add(new SkuInfo
+        {
+            SkuId = 0,  // 新服务端不填充 int64
+            Title = "New Server SKU",
+            PriceCents = 5000,
+            Currency = "CNY",
+            Salable = true,
+            Stock = 50,
+            MainImage = "http://img2",
+            SkuIdStr = skuId.ToString(),
+            SellerIdStr = sellerId.ToString()
+        });
+
+        clientMock.Setup(c => c.BatchGetSkuInfoAsync(
+                It.IsAny<BatchGetSkuInfoRequest>(),
+                It.IsAny<Metadata>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(new AsyncUnaryCall<BatchGetSkuInfoResponse>(
+                Task.FromResult(batchResponse),
+                Task.FromResult(new Metadata()),
+                () => Status.DefaultSuccess,
+                () => new Metadata(),
+                () => { }));
+
+        var client = new GrpcCartPriceService(clientMock.Object, CreateOptionsMonitor(),
+            NullLogger<GrpcCartPriceService>.Instance);
+
+        var result = await client.GetSkuPricesAsync(new[] { skuId });
+
+        result.Should().NotBeNull();
+        result.Should().HaveCount(1);
+        result[0].SkuId.Should().Be(skuId);
+        result[0].SellerId.Should().Be(sellerId);
+        result[0].Title.Should().Be("New Server SKU");
+        result[0].Price.Should().Be(50m);
     }
 
     [Fact]
