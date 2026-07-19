@@ -213,6 +213,38 @@ jobs:
         run: buf breaking --against "https://github.com/${{ github.repository }}.git#branch=main,subdir=src/BuildingBlocks/Leno.SharedContracts"
         if: github.event_name == 'pull_request'
 
+  generate-grpc-contracts:
+    name: Verify gRPC C# Contracts (buf generate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Buf CLI
+        uses: bufbuild/buf-setup-action@v1
+
+      - name: Generate C# code
+        working-directory: src/BuildingBlocks/Leno.SharedContracts
+        run: buf generate
+
+      - name: Check for uncommitted generated files
+        run: |
+          cd src/BuildingBlocks/Leno.SharedContracts.Grpc
+          if [ -n "$(git status --porcelain Generated/)" ]; then
+            echo "::error::Generated/ files are out of date. Run 'buf generate' locally and commit changes."
+            git diff --stat Generated/
+            exit 1
+          fi
+
+      - name: Verify Grpc project compiles
+        run: dotnet build src/BuildingBlocks/Leno.SharedContracts.Grpc/Leno.SharedContracts.Grpc.csproj --configuration Release
+
   staging-integration-tests:
     name: Staging 集成测试 (docker-compose)
     runs-on: ubuntu-latest
