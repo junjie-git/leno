@@ -44,6 +44,43 @@ public sealed class OrderGrpcService : OrderInternalService.OrderInternalService
         return MapToProto(dto);
     }
 
+    /// <summary>
+    /// 查询订单卖家标识，供卖家与店铺管理域跨域归属校验调用。
+    /// 双轨方案：优先读 <c>order_id_str</c>（Guid.ToString()），回退到 <c>order_id</c>（int64 X16 十六进制反序列化）。
+    /// 订单不存在或为会员订阅订单（SellerId 为 null）时抛 <see cref="StatusCode.NotFound"/>。
+    /// </summary>
+    public override async Task<GetOrderSellerIdResponse> GetOrderSellerId(
+        GetOrderSellerIdRequest request,
+        ServerCallContext context)
+    {
+        Guid orderId;
+        if (!string.IsNullOrEmpty(request.OrderIdStr))
+        {
+            if (!Guid.TryParse(request.OrderIdStr, out orderId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid order_id_str: {request.OrderIdStr}"));
+            }
+        }
+        else
+        {
+            // 旧客户端回退：int64 → Guid（X16 十六进制反序列化）
+            orderId = new Guid(Convert.FromHexString(request.OrderId.ToString("X16")));
+        }
+
+        var sellerId = await _queryService.GetOrderSellerIdAsync(orderId, context.CancellationToken)
+            .ConfigureAwait(false);
+        if (sellerId is null)
+        {
+            throw new RpcException(new Status(StatusCode.NotFound, $"Order {orderId} not found or has no seller"));
+        }
+
+        return new GetOrderSellerIdResponse
+        {
+            SellerId = (long)sellerId.GetHashCode(), // 保留 POC 简化映射（双轨向后兼容）
+            SellerIdStr = sellerId.ToString()
+        };
+    }
+
     private static OrderStatus MapToProto(OrderStatusResultDto dto)
     {
         var proto = new OrderStatus

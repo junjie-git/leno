@@ -30,6 +30,13 @@ public sealed class OrderInternalQueryService : IOrderInternalQueryService
         return ToResultDto(order);
     }
 
+    /// <inheritdoc />
+    public async Task<Guid?> GetOrderSellerIdAsync(Guid orderId, CancellationToken ct = default)
+    {
+        var order = await _orderRepository.GetByIdAsync(orderId, ct).ConfigureAwait(false);
+        return order?.SellerId;
+    }
+
     private static OrderStatusResultDto ToResultDto(OrderAggregate order)
     {
         var items = new List<OrderItemStatusDto>(order.Items.Count);

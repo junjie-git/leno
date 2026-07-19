@@ -6,6 +6,15 @@ namespace Leno.Order.Application;
 public interface IOrderInternalQueryService
 {
     Task<OrderStatusResultDto?> GetOrderStatusAsync(Guid orderId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 查询订单的卖家（店铺）标识，供卖家与店铺管理域跨域归属校验使用。
+    /// 会员订阅订单的 SellerId 为 null（无卖家语义）。
+    /// </summary>
+    /// <param name="orderId">订单标识。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>卖家标识；订单不存在或为会员订阅订单（SellerId 为 null）时返回 null。</returns>
+    Task<Guid?> GetOrderSellerIdAsync(Guid orderId, CancellationToken ct = default);
 }
 
 /// <summary>订单状态概要，供跨域资格校验使用。</summary>
