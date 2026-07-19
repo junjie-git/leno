@@ -1,3 +1,4 @@
+using Leno.Infrastructure.Abstractions;
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
@@ -19,6 +20,7 @@ public sealed class SeckillOrderCreationService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderNumberGenerator _orderNumberGenerator;
     private readonly IProductAntiCorruptionService _productAntiCorruption;
+    private readonly IEventBus _eventBus;
     private readonly ILogger<SeckillOrderCreationService> _logger;
 
     public SeckillOrderCreationService(
@@ -26,12 +28,14 @@ public sealed class SeckillOrderCreationService
         IUnitOfWork unitOfWork,
         IOrderNumberGenerator orderNumberGenerator,
         IProductAntiCorruptionService productAntiCorruption,
+        IEventBus eventBus,
         ILogger<SeckillOrderCreationService> logger)
     {
         _orderRepository = orderRepository;
         _unitOfWork = unitOfWork;
         _orderNumberGenerator = orderNumberGenerator;
         _productAntiCorruption = productAntiCorruption;
+        _eventBus = eventBus;
         _logger = logger;
     }
 
@@ -86,10 +90,17 @@ public sealed class SeckillOrderCreationService
 
     private async Task PublishFailedEventAsync(SeckillOrderCreatedIntegrationEvent evt, string reason, CancellationToken ct)
     {
-        // 失败回执通过 IEventBus 发布（无聚合可挂领域事件）
-        // 注：此处使用 IEventBus 是合理的，因为失败路径无聚合状态变更需要同事务
-        // 实际实现时注入 IEventBus 后发布 SeckillOrderCreationFailedIntegrationEvent
-        _logger.LogWarning("秒杀订单创建失败，发布失败回执 OrderId={OrderId} Reason={Reason}", evt.OrderId, reason);
-        await Task.CompletedTask; // 占位，实际注入 IEventBus 后调用 PublishAsync
+        var failedEvent = new SeckillOrderCreationFailedIntegrationEvent(
+            evt.ActivityId, evt.SkuId, evt.UserId, evt.OrderId, evt.Quantity, reason);
+        try
+        {
+            await _eventBus.PublishAsync(failedEvent, ct).ConfigureAwait(false);
+            _logger.LogWarning("秒杀订单创建失败回执已发布 OrderId={OrderId} Reason={Reason}", evt.OrderId, reason);
+        }
+        catch (Exception ex)
+        {
+            // 失败回执发布失败仅记日志，不重抛（避免吞掉原始创建异常）
+            _logger.LogError(ex, "秒杀失败回执发布失败 OrderId={OrderId}", evt.OrderId);
+        }
     }
 }

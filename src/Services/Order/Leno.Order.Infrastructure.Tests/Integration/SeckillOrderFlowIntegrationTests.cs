@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Leno.Infrastructure.Abstractions;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
@@ -52,6 +53,9 @@ public class SeckillOrderFlowIntegrationTests : CrossBcIntegrationTestBase<Order
                 IsOnSale = true
             });
         services.AddScoped(_ => productAcMock.Object);
+
+        // IEventBus Mock：成功路径不发布失败回执，仅满足 SeckillOrderCreationService 构造函数注入
+        services.AddScoped(_ => Mock.Of<IEventBus>());
 
         services.AddScoped<SeckillOrderCreationService>();
         services.AddScoped<SeckillOrderCreatedEventConsumer>();
