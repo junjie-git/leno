@@ -9,14 +9,18 @@ using Leno.Cart.Infrastructure.Consumers;
 using Leno.Cart.Infrastructure.EventBus;
 using Leno.Cart.Infrastructure.Repositories;
 using Leno.Cart.Infrastructure.Services;
+using Leno.Cart.Infrastructure.Services.Grpc;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
+using Leno.SharedContracts.Grpc.Product.V1;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Leno.Cart.Infrastructure.Dependencies;
 
@@ -49,13 +53,58 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ICartRepository, EfCoreCartRepository>();
 
-        // 价格防腐层：通过 typed HttpClient 调用商品域内部 API，BaseAddress 来自 ServiceUrls:ProductApi
-        services.AddHttpClient<ICartPriceService, CartPriceService>(client =>
+        // 价格防腐层 HttpClient 实现（保留作为降级备份）：BaseAddress 来自 ServiceUrls:ProductApi
+        services.AddHttpClient<CartPriceService>(client =>
         {
             var baseAddress = configuration["ServiceUrls:ProductApi"] ?? "http://localhost:5150";
             client.BaseAddress = new Uri(baseAddress);
         })
             .AddAntiCorruptionPolicies();
+
+        // M4 双轨方案：gRPC 客户端 + 熔断器 + Dispatcher（仅当 UseGrpc=true 时生效）
+        var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
+        if (antiCorruptionOptions.UseGrpc)
+        {
+            var productGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Product")
+                ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:Product 配置缺失");
+
+            services.AddGrpcClient<ProductInternalService.ProductInternalServiceClient>(options =>
+            {
+                options.Address = new Uri(productGrpcEndpoint);
+            });
+            services.AddScoped<GrpcCartPriceService>();
+
+            services.AddKeyedSingleton<CircuitBreakerState>("product", (sp, _) =>
+            {
+                var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
+                var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
+                return new CircuitBreakerState(
+                    "product",
+                    cbOpts.FailureThreshold,
+                    cbOpts.SuccessThreshold,
+                    TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
+            });
+
+            services.AddScoped<AntiCorruptionDispatcher<ICartPriceService>>(sp =>
+            {
+                var httpImpl = sp.GetRequiredService<CartPriceService>();
+                var grpcImpl = sp.GetService<GrpcCartPriceService>();
+                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<ICartPriceService>>>();
+                var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("product");
+                return new AntiCorruptionDispatcher<ICartPriceService>(
+                    httpImpl, grpcImpl, options, logger, "product", cb);
+            });
+            services.AddScoped<CartPriceDispatcherAdapter>();
+            services.AddScoped<ICartPriceService>(sp =>
+                sp.GetRequiredService<CartPriceDispatcherAdapter>());
+        }
+        else
+        {
+            // UseGrpc=false：直接注册 HttpClient 实现（兼容期）
+            services.AddScoped<ICartPriceService>(sp =>
+                sp.GetRequiredService<CartPriceService>());
+        }
 
         // 商品快照防腐层：商品更新事件消费时查询单 SKU 展示快照，复用商品域 BaseAddress
         services.AddHttpClient<IProductSnapshotAntiCorruption, ProductSnapshotAntiCorruptionService>(client =>
