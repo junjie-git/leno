@@ -29,11 +29,11 @@ M4 gRPC 双轨方案（`2026-07-19-m4-grpc-dual-track-implementation.md`）已�
 - 工作流 A：必做技术债务修复（开发环境可完成）
 - 工作流 B：3 个 BC gRPC 服务端补全（spec §4.7 完整覆盖）
 - 工作流 C：既有 spec supersede 标注 + ADR 关键决策记录
+- 工作流 D：Guid→string 迁移（生产化，采用新增 string 字段策略保持 .proto 向后兼容）
 
 ### 1.3 非目标
 
 - **不实施运维观察期**：4 周稳定运行观察需运维团队执行，已记录在 `docs/runbooks/m4-grpc-poc-verification.md` 第 7 节，本 spec 不涉及。
-- **不实施 Guid→string 迁移**：违反 `.proto` 只能新增字段的硬约束，保留 POC 阶段 `GetHashCode` 简化代码（见 ADR-0006）。
 - **不实施 Task 11 下线 HttpClient**：HttpClient 永久保留作为 fallback（硬约束）。
 - **不实施 F1.4 越权校验集中化**：`SellerGrpcService.ValidateSellerOwnership` 抛 `Unimplemented`，F1.4 是独立任务。
 - **不实施集成测试 + E2E 测试**：本 spec 仅覆盖单元测试，集成/E2E 测试待运维观察期阶段补充。
@@ -46,7 +46,7 @@ M4 gRPC 双轨方案（`2026-07-19-m4-grpc-dual-track-implementation.md`）已�
 
 ### 2.1 工作流划分
 
-本次实施分 3 个工作流，共 9 个 Task，按依赖链顺序执行：
+本次实施分 4 个工作流，共 11 个 Task，按依赖链顺序执行：
 
 #### 工作流 A：必做技术债务
 
@@ -68,7 +68,15 @@ M4 gRPC 双轨方案（`2026-07-19-m4-grpc-dual-track-implementation.md`）已�
 | Task | 内容 | 影响范围 |
 |---|---|---|
 | **Task C1** | 既有 3 份 spec supersede 标注 | 3 个 spec 文档头部 |
-| **Task C2** | ADR 关键决策记录 | `docs/decisions/` 新建 6 个 ADR 文件 |
+| **Task C2** | ADR 关键决策记录 | `docs/decisions/` 新建 7 个 ADR 文件 |
+
+#### 工作流 D：Guid→string 迁移（生产化）
+
+| Task | 内容 | 影响范围 |
+|---|---|---|
+| **Task D1** | 6 个 .proto 文件新增 string 字段 + buf generate | product/order/promotion/cart/seller/review.proto |
+| **Task D2** | 9 个 GrpcService 更新 DTO→proto 映射（双写 int64 + string） | 9 个 BC.Api GrpcServices |
+| **Task D3** | 7 个 GrpcClient 更新 proto→DTO 映射（优先读 string） | 7 个防腐层 gRPC 客户端 |
 
 ### 2.2 执行顺序与依赖
 
@@ -76,15 +84,19 @@ M4 gRPC 双轨方案（`2026-07-19-m4-grpc-dual-track-implementation.md`）已�
 A1 ConsulConfigWatcher 注册 ──┐
                               ├──> B1 Cart GrpcService ──┐
 A2 ProductSnapshot 双轨化 ────┘                          │
-                                                         ├──> C1 spec supersede ──> C2 ADR
-                              B2 SellerShop GrpcService ─┤
-                              B3 ReviewAfterSales ───────┘
+                                                         ├──> C1 spec supersede ──> C2 ADR ──┐
+                              B2 SellerShop GrpcService ─┤                                   │
+                              B3 ReviewAfterSales ───────┘                                   ├──> D1 .proto ──> D2 GrpcService ──> D3 GrpcClient
+                                                                                              │
+                                                                                              （D1 依赖 B1/B2/B3 完成后的 .proto 状态）
 ```
 
 - **A1 + A2 可并行**：互不依赖
 - **A2 → B1 串行**：A2 与 B1 都在 Cart BC，DI 注册文件 `Cart.Infrastructure/Dependencies/ServiceCollectionExtensions.cs` 两者都会修改。A2 先做避免 merge 冲突。
 - **B1/B2/B3 串行执行**（建议按 B1→B2→B3 顺序便于 review）：3 个 BC 独立，可并行但建议串行
 - **C1 + C2 串行**：C1 先标注 supersede 关系，C2 基于 C1 + 实际实施记录 ADR
+- **D1 → D2 → D3 严格串行**：D1 修改 .proto + 生成 C# 代码，D2 依赖 D1 生成的新字段，D3 依赖 D2 的服务端双写
+- **D1 依赖 B1/B2/B3 完成**：Task B 新建的 3 个 .proto（cart/seller/review）需先存在，D1 才能统一迁移
 
 ### 2.3 关键设计原则
 
@@ -640,7 +652,8 @@ partially_superseded_reason: |
 | **ADR-0003** | AntiCorruptionDispatcher 适配器模式（不实现 TService） | Task 15 实施发现 |
 | **ADR-0004** | IOrderStatusProvider 重构（分离远程查询与业务规则） | Task 23 实施发现 |
 | **ADR-0005** | .proto 向后兼容约束（只能新增字段） | 项目硬约束 |
-| **ADR-0006** | Guid→int64 POC 简化（GetHashCode）与生产化迁移路径 | Task 27 跳过决策 |
+| **ADR-0006** | Guid→int64 POC 简化（GetHashCode）的历史决策与修正 | Task 27 POC 阶段决策 |
+| **ADR-0007** | Guid→string 迁移采用新增 string 字段策略 | 工作流 D 决策 |
 
 ### 10.3 ADR-0001 示例（gRPC 双轨方案）
 
@@ -718,12 +731,231 @@ Dispatcher 仅实现 IDisposable，不实现 TService 接口。
 ### 10.5 执行步骤
 
 1. 新建 `docs/decisions/README.md`（ADR 索引 + 格式说明）
-2. 逐个编写 6 个 ADR 文件
+2. 逐个编写 7 个 ADR 文件（含 ADR-0007 Guid→string 迁移决策）
 3. 每个 ADR 基于实际实施结果（commit 历史 + spec），而非假设
 
-## 11. 验收标准
+## 11. Task D1: 6 个 .proto 文件新增 string 字段
 
-### 11.1 工作流 A 验收
+### 11.1 迁移策略
+
+采用**新增 string 字段 + 标记 int64 字段 deprecated**策略，符合项目硬约束（.proto 只能新增字段，不能修改/删除）。
+
+- 对每个 `int64 xxx_id` 字段，新增 `string xxx_id_str = N;`（N 为新字段号）
+- 在原 `int64 xxx_id` 字段添加 `[deprecated = true]` 选项，表达迁移意图
+- 保留 int64 字段（永久向后兼容，旧客户端仍可读取）
+- buf breaking 校验通过（仅新增字段 + 添加 deprecated 选项，不触发 breaking）
+
+### 11.2 待迁移 .proto 清单
+
+经代码探查，6 个 .proto 文件含 int64 ID 字段：
+
+| .proto 文件 | 待迁移 int64 字段 | 新增 string 字段 |
+|---|---|---|
+| `product.proto` | `GetSkuInfoRequest.sku_id`、`SkuInfo.sku_id/spu_id/seller_id`、`BatchGetSkuInfoRequest.sku_ids`、`GetSkuStockRequest.sku_id`、`SkuStock.sku_id`、`GetProductDetailRequest.spu_id`、`ProductDetail.spu_id/seller_id` | 对应 `sku_id_str/spu_id_str/seller_id_str/sku_ids_str` |
+| `order.proto` | `OrderItem.sku_id` | `sku_id_str` |
+| `promotion.proto` | `OrderItem.sku_id` | `sku_id_str` |
+| `cart.proto` | `CartItem.sku_id` | `sku_id_str` |
+| `seller.proto` | `GetShopInfoRequest.shop_id`、`ShopInfo.shop_id` | `shop_id_str` |
+| `review.proto` | `GetProductRatingRequest.spu_id`、`ProductRating.spu_id`、`ReviewSummary.spu_id` | `spu_id_str` |
+
+**无需迁移的 .proto**：`payment.proto`、`user.proto`、`points.proto`（已全部使用 string）
+
+### 11.3 .proto 修改示例（product.proto）
+
+```protobuf
+syntax = "proto3";
+package leno.product.v1;
+option csharp_namespace = "Leno.SharedContracts.Grpc.Product.V1";
+
+service ProductInternalService {
+  rpc GetSkuInfo(GetSkuInfoRequest) returns (SkuInfo);
+  rpc BatchGetSkuInfo(BatchGetSkuInfoRequest) returns (BatchGetSkuInfoResponse);
+  rpc GetSkuStock(GetSkuStockRequest) returns (SkuStock);
+  rpc GetProductDetail(GetProductDetailRequest) returns (ProductDetail);
+}
+
+message GetSkuInfoRequest {
+  int64 sku_id = 1 [deprecated = true];
+  string sku_id_str = 13;  // Guid→string 迁移新增字段
+}
+message SkuInfo {
+  int64 sku_id = 1 [deprecated = true];
+  int64 spu_id = 2 [deprecated = true];
+  string title = 3;
+  string main_image = 4;
+  int64 price_cents = 5;
+  string currency = 6;
+  bool salable = 7;
+  int64 seller_id = 8 [deprecated = true];
+  int32 stock = 9;
+  optional string status = 10;
+  optional string shop_id = 11;
+  optional int64 updated_at = 12;
+  // Guid→string 迁移新增字段
+  string sku_id_str = 13;
+  string spu_id_str = 14;
+  string seller_id_str = 15;
+}
+message BatchGetSkuInfoRequest {
+  repeated int64 sku_ids = 1 [deprecated = true];
+  repeated string sku_ids_str = 2;  // Guid→string 迁移新增字段
+}
+// ... 其余 message 同理
+```
+
+### 11.4 字段编号约定
+
+- 新增 string 字段编号紧接既有最大字段号 +1（如 product.proto SkuInfo 既有最大 12，新增 13/14/15）
+- 重复字段（repeated）使用新字段号
+
+### 11.5 执行步骤
+
+1. 修改 6 个 .proto 文件，新增 string 字段 + 标记 int64 deprecated
+2. 运行 `buf generate` 重新生成 C# 代码
+3. 运行 `buf breaking` 校验（应通过，仅新增字段）
+4. 编译 `Leno.SharedContracts.Grpc` 项目验证生成代码正确
+
+### 11.6 验证
+
+- `buf breaking` 校验通过
+- `dotnet build Leno.SharedContracts.Grpc` 成功
+- 新增 string 字段在生成代码中可访问
+
+## 12. Task D2: 9 个 GrpcService 更新 DTO→proto 映射
+
+### 12.1 映射策略
+
+采用**双写**策略：GrpcService 同时填充 int64 字段（GetHashCode，向后兼容）和 string 字段（Guid.ToString()，新客户端优先读）。
+
+### 12.2 GrpcService 修改清单
+
+| GrpcService | 文件 | 修改内容 |
+|---|---|---|
+| `ProductGrpcService` | `Product.Api/GrpcServices/ProductGrpcService.cs` | MapToProto 双写 sku_id/spu_id/seller_id |
+| `PromotionGrpcService` | `Promotion.Api/GrpcServices/PromotionGrpcService.cs` | MapToProto 双写 sku_id（OrderItem） |
+| `PointsGrpcService` | `PointsMembership.Api/GrpcServices/PointsGrpcService.cs` | 无 int64 ID 字段，无需修改 |
+| `UserAuthGrpcService` | `UserAuth.Api/GrpcServices/UserAuthGrpcService.cs` | 无 int64 ID 字段，无需修改 |
+| `OrderGrpcService` | `Order.Api/GrpcServices/OrderGrpcService.cs` | MapToProto 双写 sku_id（OrderItem） |
+| `PaymentGrpcService` | `Payment.Api/GrpcServices/PaymentGrpcService.cs` | 无 int64 ID 字段，无需修改 |
+| `CartGrpcService` | `Cart.Api/GrpcServices/CartGrpcService.cs`（Task B1 新建） | MapToProto 双写 sku_id（CartItem） |
+| `SellerGrpcService` | `SellerShop.Api/GrpcServices/SellerGrpcService.cs`（Task B2 新建） | MapToProto 双写 shop_id |
+| `ReviewGrpcService` | `ReviewAfterSales.Api/GrpcServices/ReviewGrpcService.cs`（Task B3 新建） | MapToProto 双写 spu_id |
+
+实际需修改 6 个 GrpcService（Points/UserAuth/Payment 无 int64 ID 字段）。
+
+### 12.3 代码示例（ProductGrpcService.MapToProto）
+
+```csharp
+private static SkuInfo MapToProto(SkuInfoResultDto dto) => new()
+{
+    // 既有 int64 字段（向后兼容，标记 deprecated）
+    SkuId = (long)dto.SkuId.GetHashCode(),
+    SpuId = (long)dto.SpuId.GetHashCode(),
+    SellerId = (long)dto.SellerId.GetHashCode(),
+    // ... 其他字段不变
+    Title = dto.Title,
+    MainImage = dto.MainImageUrl,
+    PriceCents = (long)(dto.Price * 100),
+    // ... 新增 string 字段（Guid→string 迁移）
+    SkuIdStr = dto.SkuId.ToString(),
+    SpuIdStr = dto.SpuId.ToString(),
+    SellerIdStr = dto.SellerId.ToString(),
+};
+```
+
+### 12.4 请求参数解析更新
+
+既有 GrpcService 中 `Guid.Parse` 或 `GetHashCode` 反向解析需更新为优先读 string 字段：
+
+```csharp
+public override async Task<SkuInfo> GetSkuInfo(GetSkuInfoRequest request, ServerCallContext context)
+{
+    // 优先读 string 字段，回退到 int64（向后兼容旧客户端）
+    Guid skuId;
+    if (!string.IsNullOrEmpty(request.SkuIdStr))
+    {
+        skuId = Guid.Parse(request.SkuIdStr);
+    }
+    else
+    {
+        // 旧客户端回退（GetHashCode 无法反向解析，仅用于 POC 阶段兼容）
+        skuId = new Guid(Convert.FromHexString(request.SkuId.ToString("X16")));
+    }
+    // ...
+}
+```
+
+### 12.5 验证
+
+- 6 个 GrpcService 单元测试更新：验证 string 字段正确填充
+- 既有 3 个测试场景（Success/Unavailable/NotFound）通过
+- 新增 1 个测试场景：旧客户端（仅 int64）仍可工作（向后兼容验证）
+
+## 13. Task D3: 7 个 GrpcClient 更新 proto→DTO 映射
+
+### 13.1 映射策略
+
+采用**优先读 string**策略：GrpcClient 优先读取 string 字段，为空时回退到 int64（GetHashCode 反向不安全，仅用于 POC 阶段兼容）。
+
+### 13.2 GrpcClient 修改清单
+
+| GrpcClient | 文件 | 修改内容 |
+|---|---|---|
+| `GrpcProductAntiCorruptionClient` | `Order.Infrastructure/Services/Grpc/` | MapToDto 优先读 sku_id_str/spu_id_str/seller_id_str |
+| `GrpcPromotionAntiCorruptionClient` | `Order.Infrastructure/Services/Grpc/` | MapToDto 优先读 sku_id_str（OrderItem） |
+| `GrpcPointsAntiCorruptionClient` | `Order.Infrastructure/Services/Grpc/` | 无 int64 ID 字段，无需修改 |
+| `GrpcUserContactAntiCorruptionClient` | `Notification.Infrastructure/Services/Grpc/` | 无 int64 ID 字段，无需修改 |
+| `GrpcCartPriceService` | `Cart.Infrastructure/Services/Grpc/` | MapToDto 优先读 sku_id_str/spu_id_str/seller_id_str |
+| `GrpcProductSnapshotAntiCorruptionClient` | `Cart.Infrastructure/Services/Grpc/`（Task A2 新建） | MapToDto 优先读 sku_id_str/spu_id_str/seller_id_str |
+| `GrpcOrderStatusProvider` | `ReviewAfterSales.Infrastructure/Services/Grpc/` | MapToDto 优先读 sku_id_str（OrderItem） |
+| `GrpcPaymentInfoQueryService` | `ReviewAfterSales.Infrastructure/Services/Grpc/` | 无 int64 ID 字段，无需修改 |
+
+实际需修改 5 个 GrpcClient（Points/UserContact/Payment 无 int64 ID 字段）。
+
+### 13.3 代码示例（GrpcProductAntiCorruptionClient.MapToDto）
+
+```csharp
+private static SkuInfo MapToDto(SkuInfo proto) => new()
+{
+    // 优先读 string 字段，回退到 int64（向后兼容）
+    SkuId = !string.IsNullOrEmpty(proto.SkuIdStr)
+        ? Guid.Parse(proto.SkuIdStr)
+        : new Guid(Convert.FromHexString(proto.SkuId.ToString("X16"))),
+    SpuId = !string.IsNullOrEmpty(proto.SpuIdStr)
+        ? Guid.Parse(proto.SpuIdStr)
+        : new Guid(Convert.FromHexString(proto.SpuId.ToString("X16"))),
+    SellerId = !string.IsNullOrEmpty(proto.SellerIdStr)
+        ? Guid.Parse(proto.SellerIdStr)
+        : new Guid(Convert.FromHexString(proto.SellerId.ToString("X16"))),
+    // ... 其他字段不变
+};
+```
+
+### 13.4 请求构造更新
+
+既有 GrpcClient 中构造请求时需同时填充 int64 和 string 字段：
+
+```csharp
+public async Task<SkuInfo?> GetSkuInfoAsync(Guid skuId, CancellationToken ct)
+{
+    var request = new GetSkuInfoRequest
+    {
+        SkuId = (long)skuId.GetHashCode(),       // 既有 int64（向后兼容）
+        SkuIdStr = skuId.ToString(),             // 新增 string
+    };
+    // ...
+}
+```
+
+### 13.5 验证
+
+- 5 个 GrpcClient 单元测试更新：验证优先读 string 字段
+- 既有 3 个测试场景（Success/Unavailable/NotFound）通过
+- 新增 1 个测试场景：服务端仅返回 string 字段时正确解析（新服务端兼容）
+
+## 14. 验收标准
+
+### 14.1 工作流 A 验收
 
 - [ ] `ConsulConfigWatcher` 在所有 BC 启动时注册（日志输出 `ConsulConfigWatcher 启动`）
 - [ ] Consul KV 修改 UseGrpc 后 1-2 秒内日志输出热更新
@@ -733,7 +965,7 @@ Dispatcher 仅实现 IDisposable，不实现 TService 接口。
 - [ ] Cart `ProductSnapshotDispatcherAdapter` 实现
 - [ ] Cart DI 注册支持 UseGrpc 切换
 
-### 11.2 工作流 B 验收
+### 14.2 工作流 B 验收
 
 - [ ] Cart.Api/CartGrpcService 实现 + 3 个单元测试通过
 - [ ] SellerShop.Api/SellerGrpcService 实现（GetSellerInfo + GetShopInfo）+ 3 个单元测试通过
@@ -742,20 +974,30 @@ Dispatcher 仅实现 IDisposable，不实现 TService 接口。
 - [ ] 3 个 BC.Api 的 `.csproj` 引用 `Grpc.AspNetCore 2.65.0` + `Leno.SharedContracts.Grpc`
 - [ ] 9 个 BC.Api GrpcService 完整覆盖 spec §4.7 清单
 
-### 11.3 工作流 C 验收
+### 14.3 工作流 C 验收
 
 - [ ] 3 份旧 spec 顶部有 frontmatter supersede 声明，原内容不变
 - [ ] `docs/decisions/README.md` 含 ADR 索引 + 格式说明
-- [ ] `docs/decisions/` 含 6 个 ADR 文件
+- [ ] `docs/decisions/` 含 7 个 ADR 文件（含 ADR-0007 Guid→string 迁移决策）
 - [ ] 每个 ADR 基于实际实施结果，引用 commit 或 spec 章节
 
-### 11.4 整体验收
+### 14.4 工作流 D 验收
 
-- [ ] 所有单元测试通过（既有 48 个 + 新增 12 个 = 60 个）
+- [ ] 6 个 .proto 文件新增 string 字段 + int64 字段标记 `[deprecated = true]`
+- [ ] `buf breaking` 校验通过
+- [ ] `buf generate` 重新生成 C# 代码，`Leno.SharedContracts.Grpc` 编译通过
+- [ ] 6 个 GrpcService 更新 DTO→proto 映射（双写 int64 + string）
+- [ ] 5 个 GrpcClient 更新 proto→DTO 映射（优先读 string）
+- [ ] 既有单元测试全部通过（Success/Unavailable/NotFound）
+- [ ] 新增向后兼容单元测试通过（旧客户端 int64 + 新服务端 string）
+
+### 14.5 整体验收
+
+- [ ] 所有单元测试通过（既有 48 个 + 新增 12 个 + D2/D3 新增 11 个 = 71 个）
 - [ ] 所有 commit 推送到远程仓库（中文 commit message）
 - [ ] 无回归（既有功能不受影响）
 
-## 12. 风险与缓解
+## 15. 风险与缓解
 
 | 风险 | 概率 | 影响 | 缓解 |
 |---|---|---|---|
@@ -764,8 +1006,10 @@ Dispatcher 仅实现 IDisposable，不实现 TService 接口。
 | 3 个 BC 既有应用服务不满足 GrpcService 需求（如 ReviewAfterSales 无聚合评分查询） | 已知 | 中 | `IReviewInternalQueryService` 直接访问仓储聚合查询 |
 | `seller_id` 语义歧义（用户域 ID vs 卖家档案 ID） | 中 | 中 | 实施时探查 `SellerProfileDto` 字段，与既有调用方约定一致 |
 | ADR 内容与实际实施不符 | 低 | 低 | 每个 ADR 引用 commit hash + spec 章节，便于追溯 |
+| Guid→string 迁移后 int64 字段误用（GetHashCode 碰撞） | 中 | 中 | GrpcClient 优先读 string，int64 仅向后兼容；D2/D3 新增向后兼容测试 |
+| `buf breaking` 误报新增字段为 breaking | 低 | 低 | 新增字段 + deprecated 选项符合 proto3 向后兼容规则 |
 
-## 13. 相关文档
+## 16. 相关文档
 
 - M4 gRPC 双轨设计 spec：`docs/superpowers/specs/2026-07-19-m4-grpc-dual-track-design.md`
 - M4 gRPC 双轨实施计划：`docs/superpowers/plans/2026-07-19-m4-grpc-dual-track-implementation.md`
