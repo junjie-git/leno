@@ -24,32 +24,31 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     static ReviewReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChNQcm90b3MvcmV2aWV3LnByb3RvEg5sZW5vLnJldmlldy52MSIwChdHZXRQ",
-            "cm9kdWN0UmF0aW5nUmVxdWVzdBIVCgZzcHVfaWQYASABKANSBXNwdUlkIpUB",
-            "Cg1Qcm9kdWN0UmF0aW5nEhUKBnNwdV9pZBgBIAEoA1IFc3B1SWQSJQoOYXZl",
-            "cmFnZV9yYXRpbmcYAiABKAFSDWF2ZXJhZ2VSYXRpbmcSHwoLdG90YWxfY291",
-            "bnQYAyABKAVSCnRvdGFsQ291bnQSJQoOcG9zaXRpdmVfY291bnQYBCABKAVS",
-            "DXBvc2l0aXZlQ291bnQiMwoWR2V0T3JkZXJSZXZpZXdzUmVxdWVzdBIZCghv",
-            "cmRlcl9pZBgBIAEoCVIHb3JkZXJJZCJHCgxPcmRlclJldmlld3MSNwoHcmV2",
-            "aWV3cxgBIAMoCzIdLmxlbm8ucmV2aWV3LnYxLlJldmlld1N1bW1hcnlSB3Jl",
-            "dmlld3MilAEKDVJldmlld1N1bW1hcnkSGwoJcmV2aWV3X2lkGAEgASgJUghy",
-            "ZXZpZXdJZBIVCgZzcHVfaWQYAiABKANSBXNwdUlkEhYKBnJhdGluZxgDIAEo",
-            "BVIGcmF0aW5nEhgKB2NvbnRlbnQYBCABKAlSB2NvbnRlbnQSHQoKY3JlYXRl",
-            "ZF9hdBgFIAEoCVIJY3JlYXRlZEF0MswBChVSZXZpZXdJbnRlcm5hbFNlcnZp",
-            "Y2USWgoQR2V0UHJvZHVjdFJhdGluZxInLmxlbm8ucmV2aWV3LnYxLkdldFBy",
-            "b2R1Y3RSYXRpbmdSZXF1ZXN0Gh0ubGVuby5yZXZpZXcudjEuUHJvZHVjdFJh",
-            "dGluZxJXCg9HZXRPcmRlclJldmlld3MSJi5sZW5vLnJldmlldy52MS5HZXRP",
-            "cmRlclJldmlld3NSZXF1ZXN0GhwubGVuby5yZXZpZXcudjEuT3JkZXJSZXZp",
-            "ZXdzQiaqAiNMZW5vLlNoYXJlZENvbnRyYWN0cy5HcnBjLlJldmlldy5WMWIG",
-            "cHJvdG8z"));
+            "ChNQcm90b3MvcmV2aWV3LnByb3RvEg5sZW5vLnJldmlldy52MSJBChdHZXRQ",
+            "cm9kdWN0UmF0aW5nUmVxdWVzdBISCgZzcHVfaWQYASABKANCAhgBEhIKCnNw",
+            "dV9pZF9zdHIYAiABKAkifAoNUHJvZHVjdFJhdGluZxISCgZzcHVfaWQYASAB",
+            "KANCAhgBEhYKDmF2ZXJhZ2VfcmF0aW5nGAIgASgBEhMKC3RvdGFsX2NvdW50",
+            "GAMgASgFEhYKDnBvc2l0aXZlX2NvdW50GAQgASgFEhIKCnNwdV9pZF9zdHIY",
+            "BSABKAkiKgoWR2V0T3JkZXJSZXZpZXdzUmVxdWVzdBIQCghvcmRlcl9pZBgB",
+            "IAEoCSI+CgxPcmRlclJldmlld3MSLgoHcmV2aWV3cxgBIAMoCzIdLmxlbm8u",
+            "cmV2aWV3LnYxLlJldmlld1N1bW1hcnkifwoNUmV2aWV3U3VtbWFyeRIRCgly",
+            "ZXZpZXdfaWQYASABKAkSEgoGc3B1X2lkGAIgASgDQgIYARIOCgZyYXRpbmcY",
+            "AyABKAUSDwoHY29udGVudBgEIAEoCRISCgpjcmVhdGVkX2F0GAUgASgJEhIK",
+            "CnNwdV9pZF9zdHIYBiABKAkyzAEKFVJldmlld0ludGVybmFsU2VydmljZRJa",
+            "ChBHZXRQcm9kdWN0UmF0aW5nEicubGVuby5yZXZpZXcudjEuR2V0UHJvZHVj",
+            "dFJhdGluZ1JlcXVlc3QaHS5sZW5vLnJldmlldy52MS5Qcm9kdWN0UmF0aW5n",
+            "ElcKD0dldE9yZGVyUmV2aWV3cxImLmxlbm8ucmV2aWV3LnYxLkdldE9yZGVy",
+            "UmV2aWV3c1JlcXVlc3QaHC5sZW5vLnJldmlldy52MS5PcmRlclJldmlld3NC",
+            "JqoCI0xlbm8uU2hhcmVkQ29udHJhY3RzLkdycGMuUmV2aWV3LlYxYgZwcm90",
+            "bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.GetProductRatingRequest), global::Leno.SharedContracts.Grpc.Review.V1.GetProductRatingRequest.Parser, new[]{ "SpuId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.ProductRating), global::Leno.SharedContracts.Grpc.Review.V1.ProductRating.Parser, new[]{ "SpuId", "AverageRating", "TotalCount", "PositiveCount" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.GetProductRatingRequest), global::Leno.SharedContracts.Grpc.Review.V1.GetProductRatingRequest.Parser, new[]{ "SpuId", "SpuIdStr" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.ProductRating), global::Leno.SharedContracts.Grpc.Review.V1.ProductRating.Parser, new[]{ "SpuId", "AverageRating", "TotalCount", "PositiveCount", "SpuIdStr" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.GetOrderReviewsRequest), global::Leno.SharedContracts.Grpc.Review.V1.GetOrderReviewsRequest.Parser, new[]{ "OrderId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.OrderReviews), global::Leno.SharedContracts.Grpc.Review.V1.OrderReviews.Parser, new[]{ "Reviews" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.ReviewSummary), global::Leno.SharedContracts.Grpc.Review.V1.ReviewSummary.Parser, new[]{ "ReviewId", "SpuId", "Rating", "Content", "CreatedAt" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.ReviewSummary), global::Leno.SharedContracts.Grpc.Review.V1.ReviewSummary.Parser, new[]{ "ReviewId", "SpuId", "Rating", "Content", "CreatedAt", "SpuIdStr" }, null, null, null, null)
           }));
     }
     #endregion
@@ -92,6 +91,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetProductRatingRequest(GetProductRatingRequest other) : this() {
       spuId_ = other.spuId_;
+      spuIdStr_ = other.spuIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -104,12 +104,25 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     /// <summary>Field number for the "spu_id" field.</summary>
     public const int SpuIdFieldNumber = 1;
     private long spuId_;
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long SpuId {
       get { return spuId_; }
       set {
         spuId_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "spu_id_str" field.</summary>
+    public const int SpuIdStrFieldNumber = 2;
+    private string spuIdStr_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SpuIdStr {
+      get { return spuIdStr_; }
+      set {
+        spuIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
@@ -129,6 +142,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
         return true;
       }
       if (SpuId != other.SpuId) return false;
+      if (SpuIdStr != other.SpuIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -137,6 +151,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     public override int GetHashCode() {
       int hash = 1;
       if (SpuId != 0L) hash ^= SpuId.GetHashCode();
+      if (SpuIdStr.Length != 0) hash ^= SpuIdStr.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -159,6 +174,10 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
         output.WriteRawTag(8);
         output.WriteInt64(SpuId);
       }
+      if (SpuIdStr.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(SpuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -173,6 +192,10 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
         output.WriteRawTag(8);
         output.WriteInt64(SpuId);
       }
+      if (SpuIdStr.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(SpuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -185,6 +208,9 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       int size = 0;
       if (SpuId != 0L) {
         size += 1 + pb::CodedOutputStream.ComputeInt64Size(SpuId);
+      }
+      if (SpuIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SpuIdStr);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -201,6 +227,9 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       if (other.SpuId != 0L) {
         SpuId = other.SpuId;
       }
+      if (other.SpuIdStr.Length != 0) {
+        SpuIdStr = other.SpuIdStr;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -212,16 +241,16 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 8: {
             SpuId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            SpuIdStr = input.ReadString();
             break;
           }
         }
@@ -235,16 +264,16 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 8: {
             SpuId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            SpuIdStr = input.ReadString();
             break;
           }
         }
@@ -293,6 +322,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       averageRating_ = other.averageRating_;
       totalCount_ = other.totalCount_;
       positiveCount_ = other.positiveCount_;
+      spuIdStr_ = other.spuIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -305,6 +335,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     /// <summary>Field number for the "spu_id" field.</summary>
     public const int SpuIdFieldNumber = 1;
     private long spuId_;
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long SpuId {
@@ -350,6 +381,21 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       }
     }
 
+    /// <summary>Field number for the "spu_id_str" field.</summary>
+    public const int SpuIdStrFieldNumber = 5;
+    private string spuIdStr_ = "";
+    /// <summary>
+    /// Guid→string 迁移新增 string ID 字段
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SpuIdStr {
+      get { return spuIdStr_; }
+      set {
+        spuIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -369,6 +415,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       if (!pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.Equals(AverageRating, other.AverageRating)) return false;
       if (TotalCount != other.TotalCount) return false;
       if (PositiveCount != other.PositiveCount) return false;
+      if (SpuIdStr != other.SpuIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -380,6 +427,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       if (AverageRating != 0D) hash ^= pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.GetHashCode(AverageRating);
       if (TotalCount != 0) hash ^= TotalCount.GetHashCode();
       if (PositiveCount != 0) hash ^= PositiveCount.GetHashCode();
+      if (SpuIdStr.Length != 0) hash ^= SpuIdStr.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -414,6 +462,10 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
         output.WriteRawTag(32);
         output.WriteInt32(PositiveCount);
       }
+      if (SpuIdStr.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(SpuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -440,6 +492,10 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
         output.WriteRawTag(32);
         output.WriteInt32(PositiveCount);
       }
+      if (SpuIdStr.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(SpuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -461,6 +517,9 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       }
       if (PositiveCount != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(PositiveCount);
+      }
+      if (SpuIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SpuIdStr);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -486,6 +545,9 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       if (other.PositiveCount != 0) {
         PositiveCount = other.PositiveCount;
       }
+      if (other.SpuIdStr.Length != 0) {
+        SpuIdStr = other.SpuIdStr;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -497,11 +559,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -521,6 +579,10 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
             PositiveCount = input.ReadInt32();
             break;
           }
+          case 42: {
+            SpuIdStr = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -532,11 +594,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -554,6 +612,10 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
           }
           case 32: {
             PositiveCount = input.ReadInt32();
+            break;
+          }
+          case 42: {
+            SpuIdStr = input.ReadString();
             break;
           }
         }
@@ -719,11 +781,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -742,11 +800,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -906,11 +960,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -929,11 +979,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -988,6 +1034,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       rating_ = other.rating_;
       content_ = other.content_;
       createdAt_ = other.createdAt_;
+      spuIdStr_ = other.spuIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1012,6 +1059,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     /// <summary>Field number for the "spu_id" field.</summary>
     public const int SpuIdFieldNumber = 2;
     private long spuId_;
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long SpuId {
@@ -1057,6 +1105,21 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       }
     }
 
+    /// <summary>Field number for the "spu_id_str" field.</summary>
+    public const int SpuIdStrFieldNumber = 6;
+    private string spuIdStr_ = "";
+    /// <summary>
+    /// Guid→string 迁移新增 string ID 字段
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SpuIdStr {
+      get { return spuIdStr_; }
+      set {
+        spuIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1077,6 +1140,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       if (Rating != other.Rating) return false;
       if (Content != other.Content) return false;
       if (CreatedAt != other.CreatedAt) return false;
+      if (SpuIdStr != other.SpuIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1089,6 +1153,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       if (Rating != 0) hash ^= Rating.GetHashCode();
       if (Content.Length != 0) hash ^= Content.GetHashCode();
       if (CreatedAt.Length != 0) hash ^= CreatedAt.GetHashCode();
+      if (SpuIdStr.Length != 0) hash ^= SpuIdStr.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1127,6 +1192,10 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
         output.WriteRawTag(42);
         output.WriteString(CreatedAt);
       }
+      if (SpuIdStr.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(SpuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1157,6 +1226,10 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
         output.WriteRawTag(42);
         output.WriteString(CreatedAt);
       }
+      if (SpuIdStr.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(SpuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1181,6 +1254,9 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       }
       if (CreatedAt.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(CreatedAt);
+      }
+      if (SpuIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SpuIdStr);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1209,6 +1285,9 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       if (other.CreatedAt.Length != 0) {
         CreatedAt = other.CreatedAt;
       }
+      if (other.SpuIdStr.Length != 0) {
+        SpuIdStr = other.SpuIdStr;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -1220,11 +1299,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1248,6 +1323,10 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
             CreatedAt = input.ReadString();
             break;
           }
+          case 50: {
+            SpuIdStr = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -1259,11 +1338,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1285,6 +1360,10 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
           }
           case 42: {
             CreatedAt = input.ReadString();
+            break;
+          }
+          case 50: {
+            SpuIdStr = input.ReadString();
             break;
           }
         }

@@ -27,9 +27,20 @@ public sealed class ReviewGrpcService : ReviewInternalService.ReviewInternalServ
     public override async Task<ProductRating> GetProductRating(
         GetProductRatingRequest request, ServerCallContext context)
     {
-        // proto spu_id 是 int64，业务侧用 Guid。
-        // POC 简化：将 int64 嵌入 Guid 前 4 字节，其余补零（生产化改为 proto 字段改 string）。
-        var spuId = new Guid((int)request.SpuId, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        // 优先读 string 字段（Guid.ToString()），回退到 int64（向后兼容旧客户端）
+        Guid spuId;
+        if (!string.IsNullOrEmpty(request.SpuIdStr))
+        {
+            if (!Guid.TryParse(request.SpuIdStr, out spuId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid spu_id_str: {request.SpuIdStr}"));
+            }
+        }
+        else
+        {
+            // 旧客户端回退：将 int64 嵌入 Guid 前 4 字节，其余补零
+            spuId = new Guid((int)request.SpuId, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        }
 
         var dto = await _queryService.GetProductRatingAsync(spuId, context.CancellationToken)
             .ConfigureAwait(false);
@@ -63,11 +74,13 @@ public sealed class ReviewGrpcService : ReviewInternalService.ReviewInternalServ
 
     private static ProductRating MapToProto(ProductRatingDto dto) => new()
     {
-        // POC 简化：Guid→int64 不可逆映射，生产化改为 proto 字段改 string
+        // 既有 int64 字段（向后兼容，标记 deprecated）
         SpuId = (long)dto.SpuId.GetHashCode(),
         AverageRating = dto.AverageRating,
         TotalCount = dto.TotalCount,
-        PositiveCount = dto.PositiveCount
+        PositiveCount = dto.PositiveCount,
+        // 新增 string 字段（Guid→string 迁移，新客户端优先读）
+        SpuIdStr = dto.SpuId.ToString()
     };
 
     private static OrderReviews MapToProto(OrderReviewsDto dto)
@@ -78,8 +91,9 @@ public sealed class ReviewGrpcService : ReviewInternalService.ReviewInternalServ
             proto.Reviews.Add(new ReviewSummary
             {
                 ReviewId = r.ReviewId.ToString(),
-                // POC 简化：Guid→int64 不可逆映射，生产化改为 proto 字段改 string
+                // 双写：既有 int64 字段（GetHashCode，向后兼容）+ 新增 string 字段（Guid.ToString()）
                 SpuId = (long)r.SpuId.GetHashCode(),
+                SpuIdStr = r.SpuId.ToString(),
                 Rating = r.Rating,
                 Content = r.Content,
                 CreatedAt = r.CreatedAt.ToString("O")  // ISO 8601

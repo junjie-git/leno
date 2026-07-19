@@ -71,9 +71,11 @@ public sealed class CartGrpcService : CartInternalService.CartInternalServiceBas
         };
         foreach (var item in dto.Items)
         {
+            // 双写：既有 int64 字段（GetHashCode，向后兼容）+ 新增 string 字段（Guid.ToString()）
             proto.Items.Add(new CartItem
             {
-                SkuId = (long)item.SkuId.GetHashCode(),  // POC 简化：Guid→int64 映射，生产化改为 string
+                SkuId = (long)item.SkuId.GetHashCode(),
+                SkuIdStr = item.SkuId.ToString(),
                 Quantity = item.Quantity,
                 UnitPriceCents = item.UnitPriceCents
             });

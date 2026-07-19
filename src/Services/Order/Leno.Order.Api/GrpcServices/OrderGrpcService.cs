@@ -64,11 +64,11 @@ public sealed class OrderGrpcService : OrderInternalService.OrderInternalService
 
         foreach (var item in dto.Items)
         {
-            // 注：proto OrderItem 用 sku_id (int64)，POC 简化用 GetHashCode
-            // 生产化阶段需将 .proto 改为 string sku_id 承载 Guid.ToString()
+            // 双写：既有 int64 字段（GetHashCode，向后兼容）+ 新增 string 字段（Guid.ToString()）
             proto.Items.Add(new OrderItem
             {
                 SkuId = (long)item.SkuId.GetHashCode(),
+                SkuIdStr = item.SkuId.ToString(),
                 Quantity = item.Quantity
                 // sku_name/sub_total_cents 当前 DTO 未提供，留默认值
             });

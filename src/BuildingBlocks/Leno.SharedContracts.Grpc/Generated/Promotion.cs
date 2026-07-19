@@ -24,41 +24,38 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     static PromotionReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChZQcm90b3MvcHJvbW90aW9uLnByb3RvEhFsZW5vLnByb21vdGlvbi52MSJn",
-            "ChhDYWxjdWxhdGVEaXNjb3VudFJlcXVlc3QSFwoHdXNlcl9pZBgBIAEoCVIG",
-            "dXNlcklkEjIKBWl0ZW1zGAIgAygLMhwubGVuby5wcm9tb3Rpb24udjEuT3Jk",
-            "ZXJJdGVtUgVpdGVtcyJJCglPcmRlckl0ZW0SFQoGc2t1X2lkGAEgASgDUgVz",
-            "a3VJZBIlCg5zdWJ0b3RhbF9jZW50cxgCIAEoA1INc3VidG90YWxDZW50cyJ+",
-            "ChlDYWxjdWxhdGVEaXNjb3VudFJlc3BvbnNlEiUKDmRpc2NvdW50X2NlbnRz",
-            "GAEgASgDUg1kaXNjb3VudENlbnRzEjoKB2NvdXBvbnMYAiADKAsyIC5sZW5v",
-            "LnByb21vdGlvbi52MS5BcHBsaWVkQ291cG9uUgdjb3Vwb25zIlMKDUFwcGxp",
-            "ZWRDb3Vwb24SGwoJY291cG9uX2lkGAEgASgJUghjb3Vwb25JZBIlCg5kaXNj",
-            "b3VudF9jZW50cxgCIAEoA1INZGlzY291bnRDZW50cyJkChFMb2NrQ291cG9u",
-            "UmVxdWVzdBIXCgd1c2VyX2lkGAEgASgJUgZ1c2VySWQSGwoJY291cG9uX2lk",
-            "GAIgASgJUghjb3Vwb25JZBIZCghvcmRlcl9pZBgDIAEoCVIHb3JkZXJJZCIu",
-            "ChJMb2NrQ291cG9uUmVzcG9uc2USGAoHc3VjY2VzcxgBIAEoCFIHc3VjY2Vz",
-            "cyIyChVSZWxlYXNlQ291cG9uc1JlcXVlc3QSGQoIb3JkZXJfaWQYASABKAlS",
-            "B29yZGVySWQiMgoWUmVsZWFzZUNvdXBvbnNSZXNwb25zZRIYCgdzdWNjZXNz",
-            "GAEgASgIUgdzdWNjZXNzIjMKFEdldENvdXBvbkluZm9SZXF1ZXN0EhsKCWNv",
-            "dXBvbl9pZBgBIAEoCVIIY291cG9uSWQifgoKQ291cG9uSW5mbxIbCgljb3Vw",
-            "b25faWQYASABKAlSCGNvdXBvbklkEhQKBXRpdGxlGAIgASgJUgV0aXRsZRIl",
-            "Cg5kaXNjb3VudF9jZW50cxgDIAEoA1INZGlzY291bnRDZW50cxIWCgZzdGF0",
-            "dXMYBCABKAlSBnN0YXR1czKlAwoYUHJvbW90aW9uSW50ZXJuYWxTZXJ2aWNl",
-            "Em4KEUNhbGN1bGF0ZURpc2NvdW50EisubGVuby5wcm9tb3Rpb24udjEuQ2Fs",
-            "Y3VsYXRlRGlzY291bnRSZXF1ZXN0GiwubGVuby5wcm9tb3Rpb24udjEuQ2Fs",
-            "Y3VsYXRlRGlzY291bnRSZXNwb25zZRJZCgpMb2NrQ291cG9uEiQubGVuby5w",
-            "cm9tb3Rpb24udjEuTG9ja0NvdXBvblJlcXVlc3QaJS5sZW5vLnByb21vdGlv",
-            "bi52MS5Mb2NrQ291cG9uUmVzcG9uc2USZQoOUmVsZWFzZUNvdXBvbnMSKC5s",
-            "ZW5vLnByb21vdGlvbi52MS5SZWxlYXNlQ291cG9uc1JlcXVlc3QaKS5sZW5v",
-            "LnByb21vdGlvbi52MS5SZWxlYXNlQ291cG9uc1Jlc3BvbnNlElcKDUdldENv",
-            "dXBvbkluZm8SJy5sZW5vLnByb21vdGlvbi52MS5HZXRDb3Vwb25JbmZvUmVx",
-            "dWVzdBodLmxlbm8ucHJvbW90aW9uLnYxLkNvdXBvbkluZm9CKaoCJkxlbm8u",
-            "U2hhcmVkQ29udHJhY3RzLkdycGMuUHJvbW90aW9uLlYxYgZwcm90bzM="));
+            "ChZQcm90b3MvcHJvbW90aW9uLnByb3RvEhFsZW5vLnByb21vdGlvbi52MSJY",
+            "ChhDYWxjdWxhdGVEaXNjb3VudFJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIr",
+            "CgVpdGVtcxgCIAMoCzIcLmxlbm8ucHJvbW90aW9uLnYxLk9yZGVySXRlbSJL",
+            "CglPcmRlckl0ZW0SEgoGc2t1X2lkGAEgASgDQgIYARIWCg5zdWJ0b3RhbF9j",
+            "ZW50cxgCIAEoAxISCgpza3VfaWRfc3RyGAMgASgJImYKGUNhbGN1bGF0ZURp",
+            "c2NvdW50UmVzcG9uc2USFgoOZGlzY291bnRfY2VudHMYASABKAMSMQoHY291",
+            "cG9ucxgCIAMoCzIgLmxlbm8ucHJvbW90aW9uLnYxLkFwcGxpZWRDb3Vwb24i",
+            "OgoNQXBwbGllZENvdXBvbhIRCgljb3Vwb25faWQYASABKAkSFgoOZGlzY291",
+            "bnRfY2VudHMYAiABKAMiSQoRTG9ja0NvdXBvblJlcXVlc3QSDwoHdXNlcl9p",
+            "ZBgBIAEoCRIRCgljb3Vwb25faWQYAiABKAkSEAoIb3JkZXJfaWQYAyABKAki",
+            "JQoSTG9ja0NvdXBvblJlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgiKQoVUmVs",
+            "ZWFzZUNvdXBvbnNSZXF1ZXN0EhAKCG9yZGVyX2lkGAEgASgJIikKFlJlbGVh",
+            "c2VDb3Vwb25zUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCCIpChRHZXRDb3Vw",
+            "b25JbmZvUmVxdWVzdBIRCgljb3Vwb25faWQYASABKAkiVgoKQ291cG9uSW5m",
+            "bxIRCgljb3Vwb25faWQYASABKAkSDQoFdGl0bGUYAiABKAkSFgoOZGlzY291",
+            "bnRfY2VudHMYAyABKAMSDgoGc3RhdHVzGAQgASgJMqUDChhQcm9tb3Rpb25J",
+            "bnRlcm5hbFNlcnZpY2USbgoRQ2FsY3VsYXRlRGlzY291bnQSKy5sZW5vLnBy",
+            "b21vdGlvbi52MS5DYWxjdWxhdGVEaXNjb3VudFJlcXVlc3QaLC5sZW5vLnBy",
+            "b21vdGlvbi52MS5DYWxjdWxhdGVEaXNjb3VudFJlc3BvbnNlElkKCkxvY2tD",
+            "b3Vwb24SJC5sZW5vLnByb21vdGlvbi52MS5Mb2NrQ291cG9uUmVxdWVzdBol",
+            "Lmxlbm8ucHJvbW90aW9uLnYxLkxvY2tDb3Vwb25SZXNwb25zZRJlCg5SZWxl",
+            "YXNlQ291cG9ucxIoLmxlbm8ucHJvbW90aW9uLnYxLlJlbGVhc2VDb3Vwb25z",
+            "UmVxdWVzdBopLmxlbm8ucHJvbW90aW9uLnYxLlJlbGVhc2VDb3Vwb25zUmVz",
+            "cG9uc2USVwoNR2V0Q291cG9uSW5mbxInLmxlbm8ucHJvbW90aW9uLnYxLkdl",
+            "dENvdXBvbkluZm9SZXF1ZXN0Gh0ubGVuby5wcm9tb3Rpb24udjEuQ291cG9u",
+            "SW5mb0IpqgImTGVuby5TaGFyZWRDb250cmFjdHMuR3JwYy5Qcm9tb3Rpb24u",
+            "VjFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Promotion.V1.CalculateDiscountRequest), global::Leno.SharedContracts.Grpc.Promotion.V1.CalculateDiscountRequest.Parser, new[]{ "UserId", "Items" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Promotion.V1.OrderItem), global::Leno.SharedContracts.Grpc.Promotion.V1.OrderItem.Parser, new[]{ "SkuId", "SubtotalCents" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Promotion.V1.OrderItem), global::Leno.SharedContracts.Grpc.Promotion.V1.OrderItem.Parser, new[]{ "SkuId", "SubtotalCents", "SkuIdStr" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Promotion.V1.CalculateDiscountResponse), global::Leno.SharedContracts.Grpc.Promotion.V1.CalculateDiscountResponse.Parser, new[]{ "DiscountCents", "Coupons" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Promotion.V1.AppliedCoupon), global::Leno.SharedContracts.Grpc.Promotion.V1.AppliedCoupon.Parser, new[]{ "CouponId", "DiscountCents" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Promotion.V1.LockCouponRequest), global::Leno.SharedContracts.Grpc.Promotion.V1.LockCouponRequest.Parser, new[]{ "UserId", "CouponId", "OrderId" }, null, null, null, null),
@@ -247,11 +244,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -274,11 +267,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -334,6 +323,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     public OrderItem(OrderItem other) : this() {
       skuId_ = other.skuId_;
       subtotalCents_ = other.subtotalCents_;
+      skuIdStr_ = other.skuIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -346,6 +336,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     /// <summary>Field number for the "sku_id" field.</summary>
     public const int SkuIdFieldNumber = 1;
     private long skuId_;
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long SkuId {
@@ -367,6 +358,21 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
       }
     }
 
+    /// <summary>Field number for the "sku_id_str" field.</summary>
+    public const int SkuIdStrFieldNumber = 3;
+    private string skuIdStr_ = "";
+    /// <summary>
+    /// Guid→string 迁移新增 string ID 字段
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SkuIdStr {
+      get { return skuIdStr_; }
+      set {
+        skuIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -384,6 +390,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
       }
       if (SkuId != other.SkuId) return false;
       if (SubtotalCents != other.SubtotalCents) return false;
+      if (SkuIdStr != other.SkuIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -393,6 +400,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
       int hash = 1;
       if (SkuId != 0L) hash ^= SkuId.GetHashCode();
       if (SubtotalCents != 0L) hash ^= SubtotalCents.GetHashCode();
+      if (SkuIdStr.Length != 0) hash ^= SkuIdStr.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -419,6 +427,10 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
         output.WriteRawTag(16);
         output.WriteInt64(SubtotalCents);
       }
+      if (SkuIdStr.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(SkuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -437,6 +449,10 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
         output.WriteRawTag(16);
         output.WriteInt64(SubtotalCents);
       }
+      if (SkuIdStr.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(SkuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -452,6 +468,9 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
       }
       if (SubtotalCents != 0L) {
         size += 1 + pb::CodedOutputStream.ComputeInt64Size(SubtotalCents);
+      }
+      if (SkuIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SkuIdStr);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -471,6 +490,9 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
       if (other.SubtotalCents != 0L) {
         SubtotalCents = other.SubtotalCents;
       }
+      if (other.SkuIdStr.Length != 0) {
+        SkuIdStr = other.SkuIdStr;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -482,11 +504,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -496,6 +514,10 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
           }
           case 16: {
             SubtotalCents = input.ReadInt64();
+            break;
+          }
+          case 26: {
+            SkuIdStr = input.ReadString();
             break;
           }
         }
@@ -509,11 +531,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -523,6 +541,10 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
           }
           case 16: {
             SubtotalCents = input.ReadInt64();
+            break;
+          }
+          case 26: {
+            SkuIdStr = input.ReadString();
             break;
           }
         }
@@ -706,11 +728,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -733,11 +751,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -941,11 +955,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -968,11 +978,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1205,11 +1211,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1236,11 +1238,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1419,11 +1417,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1442,11 +1436,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1617,11 +1607,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1640,11 +1626,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1815,11 +1797,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1838,11 +1816,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2013,11 +1987,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2036,11 +2006,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2298,11 +2264,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2333,11 +2295,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;

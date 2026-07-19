@@ -40,6 +40,8 @@ public class CartGrpcServiceTests
         result.Items.Should().HaveCount(1);
         result.Items[0].Quantity.Should().Be(2);
         result.Items[0].UnitPriceCents.Should().Be(9999);
+        // 验证 Guid→string 迁移双写字段（新客户端优先读 string）
+        result.Items[0].SkuIdStr.Should().Be(skuId.ToString());
     }
 
     [Fact]

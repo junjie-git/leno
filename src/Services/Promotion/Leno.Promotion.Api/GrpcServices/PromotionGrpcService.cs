@@ -32,14 +32,16 @@ public sealed class PromotionGrpcService : PromotionInternalService.PromotionInt
     public override async Task<CalculateDiscountResponse> CalculateDiscount(
         CalculateDiscountRequest request, ServerCallContext context)
     {
-        // POC 简化：proto 中 sku_id 为 int64，无法承载 Guid，使用 Guid.Empty 占位
-        // 生产化阶段需将 .proto 改为 string sku_id 承载 Guid.ToString()
+        // OrderItem.sku_id 优先读 string（Guid.ToString()），回退到 int64（向后兼容旧客户端）
+        // 注：int64→Guid 反向不可靠（GetHashCode 单向），回退时仅用 Guid.Empty 占位
         var input = new CalculateDiscountDto
         {
             UserId = new Guid(request.UserId),
             Items = request.Items.Select(i => new DiscountItemInput
             {
-                SkuId = Guid.Empty,
+                SkuId = !string.IsNullOrEmpty(i.SkuIdStr)
+                    ? Guid.Parse(i.SkuIdStr)
+                    : Guid.Empty,
                 Subtotal = i.SubtotalCents / 100m
             }).ToList()
         };

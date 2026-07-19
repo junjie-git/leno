@@ -48,6 +48,8 @@ public class ReviewGrpcServiceTests
         review.Rating.Should().Be(5);
         review.Content.Should().Be("非常好");
         review.CreatedAt.Should().Be(createdAt.ToString("O"));
+        // 验证 Guid→string 迁移双写字段（新客户端优先读 string）
+        review.SpuIdStr.Should().Be(spuId.ToString());
     }
 
     [Fact]
@@ -104,6 +106,79 @@ public class ReviewGrpcServiceTests
         result.AverageRating.Should().Be(4.5);
         result.TotalCount.Should().Be(10);
         result.PositiveCount.Should().Be(8);
+        // 验证 Guid→string 迁移双写字段（新客户端优先读 string）
+        result.SpuIdStr.Should().Be(spuId.ToString());
+    }
+
+    [Fact]
+    public async Task GetProductRating_NewClient_UsesStringId_ParsesGuid()
+    {
+        // 新客户端：仅传 SpuIdStr（Guid.ToString()），不传 SpuId（int64）
+        var queryMock = new Mock<IReviewInternalQueryService>();
+        var spuId = Guid.NewGuid();
+
+        queryMock.Setup(q => q.GetProductRatingAsync(spuId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductRatingDto
+            {
+                SpuId = spuId,
+                AverageRating = 4.8,
+                TotalCount = 20,
+                PositiveCount = 18
+            });
+
+        var svc = new ReviewGrpcService(queryMock.Object, NullLogger<ReviewGrpcService>.Instance);
+
+        var result = await svc.GetProductRating(
+            new GetProductRatingRequest { SpuIdStr = spuId.ToString() },
+            new TestServerCallContext());
+
+        result.SpuIdStr.Should().Be(spuId.ToString());
+        result.AverageRating.Should().Be(4.8);
+        // 验证 queryService 收到的 Guid 与 SpuIdStr 解析结果一致
+        queryMock.Verify(q => q.GetProductRatingAsync(spuId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetProductRating_LegacyClient_OnlyInt64_StillWorks()
+    {
+        // 旧客户端：仅传 SpuId（int64），不传 SpuIdStr
+        // ReviewGrpcService 既有 int64→Guid 转换方式：new Guid((int)spuId, 0, 0, 0, ...)（确定性可断言）
+        var queryMock = new Mock<IReviewInternalQueryService>();
+        var spuId = new Guid(42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+        queryMock.Setup(q => q.GetProductRatingAsync(spuId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductRatingDto
+            {
+                SpuId = spuId,
+                AverageRating = 4.5,
+                TotalCount = 10,
+                PositiveCount = 8
+            });
+
+        var svc = new ReviewGrpcService(queryMock.Object, NullLogger<ReviewGrpcService>.Instance);
+
+        var result = await svc.GetProductRating(
+            new GetProductRatingRequest { SpuId = 42L },
+            new TestServerCallContext());
+
+        // 验证旧客户端仅传 int64 仍可正确解析（确定性转换：int64 42 → new Guid(42, 0, ...)）
+        result.AverageRating.Should().Be(4.5);
+        result.SpuIdStr.Should().Be(spuId.ToString());
+        queryMock.Verify(q => q.GetProductRatingAsync(spuId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetProductRating_InvalidStringId_ThrowsInvalidArgument()
+    {
+        // 新客户端传了无效 SpuIdStr，应返回 InvalidArgument
+        var queryMock = new Mock<IReviewInternalQueryService>(MockBehavior.Strict);
+        var svc = new ReviewGrpcService(queryMock.Object, NullLogger<ReviewGrpcService>.Instance);
+
+        var act = async () => await svc.GetProductRating(
+            new GetProductRatingRequest { SpuIdStr = "not-a-guid" },
+            new TestServerCallContext());
+
+        (await act.Should().ThrowAsync<RpcException>()).Which.Status.StatusCode.Should().Be(StatusCode.InvalidArgument);
     }
 
     [Fact]

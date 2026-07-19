@@ -24,48 +24,49 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     static ProductReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChRQcm90b3MvcHJvZHVjdC5wcm90bxIPbGVuby5wcm9kdWN0LnYxIioKEUdl",
-            "dFNrdUluZm9SZXF1ZXN0EhUKBnNrdV9pZBgBIAEoA1IFc2t1SWQi+wIKB1Nr",
-            "dUluZm8SFQoGc2t1X2lkGAEgASgDUgVza3VJZBIVCgZzcHVfaWQYAiABKANS",
-            "BXNwdUlkEhQKBXRpdGxlGAMgASgJUgV0aXRsZRIdCgptYWluX2ltYWdlGAQg",
-            "ASgJUgltYWluSW1hZ2USHwoLcHJpY2VfY2VudHMYBSABKANSCnByaWNlQ2Vu",
-            "dHMSGgoIY3VycmVuY3kYBiABKAlSCGN1cnJlbmN5EhgKB3NhbGFibGUYByAB",
-            "KAhSB3NhbGFibGUSGwoJc2VsbGVyX2lkGAggASgDUghzZWxsZXJJZBIUCgVz",
-            "dG9jaxgJIAEoBVIFc3RvY2sSGwoGc3RhdHVzGAogASgJSABSBnN0YXR1c4gB",
-            "ARIcCgdzaG9wX2lkGAsgASgJSAFSBnNob3BJZIgBARIiCgp1cGRhdGVkX2F0",
-            "GAwgASgDSAJSCXVwZGF0ZWRBdIgBAUIJCgdfc3RhdHVzQgoKCF9zaG9wX2lk",
-            "Qg0KC191cGRhdGVkX2F0IjEKFkJhdGNoR2V0U2t1SW5mb1JlcXVlc3QSFwoH",
-            "c2t1X2lkcxgBIAMoA1IGc2t1SWRzIkcKF0JhdGNoR2V0U2t1SW5mb1Jlc3Bv",
-            "bnNlEiwKBHNrdXMYASADKAsyGC5sZW5vLnByb2R1Y3QudjEuU2t1SW5mb1IE",
-            "c2t1cyIrChJHZXRTa3VTdG9ja1JlcXVlc3QSFQoGc2t1X2lkGAEgASgDUgVz",
-            "a3VJZCJbCghTa3VTdG9jaxIVCgZza3VfaWQYASABKANSBXNrdUlkEhwKCWF2",
-            "YWlsYWJsZRgCIAEoBVIJYXZhaWxhYmxlEhoKCHJlc2VydmVkGAMgASgFUghy",
-            "ZXNlcnZlZCIwChdHZXRQcm9kdWN0RGV0YWlsUmVxdWVzdBIVCgZzcHVfaWQY",
-            "ASABKANSBXNwdUlkIqkBCg1Qcm9kdWN0RGV0YWlsEhUKBnNwdV9pZBgBIAEo",
-            "A1IFc3B1SWQSFAoFdGl0bGUYAiABKAlSBXRpdGxlEiAKC2Rlc2NyaXB0aW9u",
-            "GAMgASgJUgtkZXNjcmlwdGlvbhIbCglzZWxsZXJfaWQYBCABKANSCHNlbGxl",
-            "cklkEiwKBHNrdXMYBSADKAsyGC5sZW5vLnByb2R1Y3QudjEuU2t1SW5mb1IE",
-            "c2t1czL3AgoWUHJvZHVjdEludGVybmFsU2VydmljZRJKCgpHZXRTa3VJbmZv",
-            "EiIubGVuby5wcm9kdWN0LnYxLkdldFNrdUluZm9SZXF1ZXN0GhgubGVuby5w",
-            "cm9kdWN0LnYxLlNrdUluZm8SZAoPQmF0Y2hHZXRTa3VJbmZvEicubGVuby5w",
-            "cm9kdWN0LnYxLkJhdGNoR2V0U2t1SW5mb1JlcXVlc3QaKC5sZW5vLnByb2R1",
-            "Y3QudjEuQmF0Y2hHZXRTa3VJbmZvUmVzcG9uc2USTQoLR2V0U2t1U3RvY2sS",
-            "Iy5sZW5vLnByb2R1Y3QudjEuR2V0U2t1U3RvY2tSZXF1ZXN0GhkubGVuby5w",
-            "cm9kdWN0LnYxLlNrdVN0b2NrElwKEEdldFByb2R1Y3REZXRhaWwSKC5sZW5v",
-            "LnByb2R1Y3QudjEuR2V0UHJvZHVjdERldGFpbFJlcXVlc3QaHi5sZW5vLnBy",
-            "b2R1Y3QudjEuUHJvZHVjdERldGFpbEInqgIkTGVuby5TaGFyZWRDb250cmFj",
-            "dHMuR3JwYy5Qcm9kdWN0LlYxYgZwcm90bzM="));
+            "ChRQcm90b3MvcHJvZHVjdC5wcm90bxIPbGVuby5wcm9kdWN0LnYxIjsKEUdl",
+            "dFNrdUluZm9SZXF1ZXN0EhIKBnNrdV9pZBgBIAEoA0ICGAESEgoKc2t1X2lk",
+            "X3N0chgCIAEoCSLbAgoHU2t1SW5mbxISCgZza3VfaWQYASABKANCAhgBEhIK",
+            "BnNwdV9pZBgCIAEoA0ICGAESDQoFdGl0bGUYAyABKAkSEgoKbWFpbl9pbWFn",
+            "ZRgEIAEoCRITCgtwcmljZV9jZW50cxgFIAEoAxIQCghjdXJyZW5jeRgGIAEo",
+            "CRIPCgdzYWxhYmxlGAcgASgIEhUKCXNlbGxlcl9pZBgIIAEoA0ICGAESDQoF",
+            "c3RvY2sYCSABKAUSEwoGc3RhdHVzGAogASgJSACIAQESFAoHc2hvcF9pZBgL",
+            "IAEoCUgBiAEBEhcKCnVwZGF0ZWRfYXQYDCABKANIAogBARISCgpza3VfaWRf",
+            "c3RyGA0gASgJEhIKCnNwdV9pZF9zdHIYDiABKAkSFQoNc2VsbGVyX2lkX3N0",
+            "chgPIAEoCUIJCgdfc3RhdHVzQgoKCF9zaG9wX2lkQg0KC191cGRhdGVkX2F0",
+            "IkIKFkJhdGNoR2V0U2t1SW5mb1JlcXVlc3QSEwoHc2t1X2lkcxgBIAMoA0IC",
+            "GAESEwoLc2t1X2lkc19zdHIYAiADKAkiQQoXQmF0Y2hHZXRTa3VJbmZvUmVz",
+            "cG9uc2USJgoEc2t1cxgBIAMoCzIYLmxlbm8ucHJvZHVjdC52MS5Ta3VJbmZv",
+            "IjwKEkdldFNrdVN0b2NrUmVxdWVzdBISCgZza3VfaWQYASABKANCAhgBEhIK",
+            "CnNrdV9pZF9zdHIYAiABKAkiVwoIU2t1U3RvY2sSEgoGc2t1X2lkGAEgASgD",
+            "QgIYARIRCglhdmFpbGFibGUYAiABKAUSEAoIcmVzZXJ2ZWQYAyABKAUSEgoK",
+            "c2t1X2lkX3N0chgEIAEoCSJBChdHZXRQcm9kdWN0RGV0YWlsUmVxdWVzdBIS",
+            "CgZzcHVfaWQYASABKANCAhgBEhIKCnNwdV9pZF9zdHIYAiABKAkisQEKDVBy",
+            "b2R1Y3REZXRhaWwSEgoGc3B1X2lkGAEgASgDQgIYARINCgV0aXRsZRgCIAEo",
+            "CRITCgtkZXNjcmlwdGlvbhgDIAEoCRIVCglzZWxsZXJfaWQYBCABKANCAhgB",
+            "EiYKBHNrdXMYBSADKAsyGC5sZW5vLnByb2R1Y3QudjEuU2t1SW5mbxISCgpz",
+            "cHVfaWRfc3RyGAYgASgJEhUKDXNlbGxlcl9pZF9zdHIYByABKAky9wIKFlBy",
+            "b2R1Y3RJbnRlcm5hbFNlcnZpY2USSgoKR2V0U2t1SW5mbxIiLmxlbm8ucHJv",
+            "ZHVjdC52MS5HZXRTa3VJbmZvUmVxdWVzdBoYLmxlbm8ucHJvZHVjdC52MS5T",
+            "a3VJbmZvEmQKD0JhdGNoR2V0U2t1SW5mbxInLmxlbm8ucHJvZHVjdC52MS5C",
+            "YXRjaEdldFNrdUluZm9SZXF1ZXN0GigubGVuby5wcm9kdWN0LnYxLkJhdGNo",
+            "R2V0U2t1SW5mb1Jlc3BvbnNlEk0KC0dldFNrdVN0b2NrEiMubGVuby5wcm9k",
+            "dWN0LnYxLkdldFNrdVN0b2NrUmVxdWVzdBoZLmxlbm8ucHJvZHVjdC52MS5T",
+            "a3VTdG9jaxJcChBHZXRQcm9kdWN0RGV0YWlsEigubGVuby5wcm9kdWN0LnYx",
+            "LkdldFByb2R1Y3REZXRhaWxSZXF1ZXN0Gh4ubGVuby5wcm9kdWN0LnYxLlBy",
+            "b2R1Y3REZXRhaWxCJ6oCJExlbm8uU2hhcmVkQ29udHJhY3RzLkdycGMuUHJv",
+            "ZHVjdC5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.GetSkuInfoRequest), global::Leno.SharedContracts.Grpc.Product.V1.GetSkuInfoRequest.Parser, new[]{ "SkuId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.SkuInfo), global::Leno.SharedContracts.Grpc.Product.V1.SkuInfo.Parser, new[]{ "SkuId", "SpuId", "Title", "MainImage", "PriceCents", "Currency", "Salable", "SellerId", "Stock", "Status", "ShopId", "UpdatedAt" }, new[]{ "Status", "ShopId", "UpdatedAt" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.BatchGetSkuInfoRequest), global::Leno.SharedContracts.Grpc.Product.V1.BatchGetSkuInfoRequest.Parser, new[]{ "SkuIds" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.GetSkuInfoRequest), global::Leno.SharedContracts.Grpc.Product.V1.GetSkuInfoRequest.Parser, new[]{ "SkuId", "SkuIdStr" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.SkuInfo), global::Leno.SharedContracts.Grpc.Product.V1.SkuInfo.Parser, new[]{ "SkuId", "SpuId", "Title", "MainImage", "PriceCents", "Currency", "Salable", "SellerId", "Stock", "Status", "ShopId", "UpdatedAt", "SkuIdStr", "SpuIdStr", "SellerIdStr" }, new[]{ "Status", "ShopId", "UpdatedAt" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.BatchGetSkuInfoRequest), global::Leno.SharedContracts.Grpc.Product.V1.BatchGetSkuInfoRequest.Parser, new[]{ "SkuIds", "SkuIdsStr" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.BatchGetSkuInfoResponse), global::Leno.SharedContracts.Grpc.Product.V1.BatchGetSkuInfoResponse.Parser, new[]{ "Skus" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.GetSkuStockRequest), global::Leno.SharedContracts.Grpc.Product.V1.GetSkuStockRequest.Parser, new[]{ "SkuId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.SkuStock), global::Leno.SharedContracts.Grpc.Product.V1.SkuStock.Parser, new[]{ "SkuId", "Available", "Reserved" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.GetProductDetailRequest), global::Leno.SharedContracts.Grpc.Product.V1.GetProductDetailRequest.Parser, new[]{ "SpuId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.ProductDetail), global::Leno.SharedContracts.Grpc.Product.V1.ProductDetail.Parser, new[]{ "SpuId", "Title", "Description", "SellerId", "Skus" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.GetSkuStockRequest), global::Leno.SharedContracts.Grpc.Product.V1.GetSkuStockRequest.Parser, new[]{ "SkuId", "SkuIdStr" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.SkuStock), global::Leno.SharedContracts.Grpc.Product.V1.SkuStock.Parser, new[]{ "SkuId", "Available", "Reserved", "SkuIdStr" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.GetProductDetailRequest), global::Leno.SharedContracts.Grpc.Product.V1.GetProductDetailRequest.Parser, new[]{ "SpuId", "SpuIdStr" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Product.V1.ProductDetail), global::Leno.SharedContracts.Grpc.Product.V1.ProductDetail.Parser, new[]{ "SpuId", "Title", "Description", "SellerId", "Skus", "SpuIdStr", "SellerIdStr" }, null, null, null, null)
           }));
     }
     #endregion
@@ -108,6 +109,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetSkuInfoRequest(GetSkuInfoRequest other) : this() {
       skuId_ = other.skuId_;
+      skuIdStr_ = other.skuIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -120,12 +122,25 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     /// <summary>Field number for the "sku_id" field.</summary>
     public const int SkuIdFieldNumber = 1;
     private long skuId_;
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long SkuId {
       get { return skuId_; }
       set {
         skuId_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "sku_id_str" field.</summary>
+    public const int SkuIdStrFieldNumber = 2;
+    private string skuIdStr_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SkuIdStr {
+      get { return skuIdStr_; }
+      set {
+        skuIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
@@ -145,6 +160,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         return true;
       }
       if (SkuId != other.SkuId) return false;
+      if (SkuIdStr != other.SkuIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -153,6 +169,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     public override int GetHashCode() {
       int hash = 1;
       if (SkuId != 0L) hash ^= SkuId.GetHashCode();
+      if (SkuIdStr.Length != 0) hash ^= SkuIdStr.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -175,6 +192,10 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         output.WriteRawTag(8);
         output.WriteInt64(SkuId);
       }
+      if (SkuIdStr.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(SkuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -189,6 +210,10 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         output.WriteRawTag(8);
         output.WriteInt64(SkuId);
       }
+      if (SkuIdStr.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(SkuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -201,6 +226,9 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       int size = 0;
       if (SkuId != 0L) {
         size += 1 + pb::CodedOutputStream.ComputeInt64Size(SkuId);
+      }
+      if (SkuIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SkuIdStr);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -217,6 +245,9 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       if (other.SkuId != 0L) {
         SkuId = other.SkuId;
       }
+      if (other.SkuIdStr.Length != 0) {
+        SkuIdStr = other.SkuIdStr;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -228,16 +259,16 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 8: {
             SkuId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            SkuIdStr = input.ReadString();
             break;
           }
         }
@@ -251,16 +282,16 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 8: {
             SkuId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            SkuIdStr = input.ReadString();
             break;
           }
         }
@@ -319,6 +350,9 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       status_ = other.status_;
       shopId_ = other.shopId_;
       updatedAt_ = other.updatedAt_;
+      skuIdStr_ = other.skuIdStr_;
+      spuIdStr_ = other.spuIdStr_;
+      sellerIdStr_ = other.sellerIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -331,6 +365,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     /// <summary>Field number for the "sku_id" field.</summary>
     public const int SkuIdFieldNumber = 1;
     private long skuId_;
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long SkuId {
@@ -343,6 +378,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     /// <summary>Field number for the "spu_id" field.</summary>
     public const int SpuIdFieldNumber = 2;
     private long spuId_;
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long SpuId {
@@ -415,6 +451,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     /// <summary>Field number for the "seller_id" field.</summary>
     public const int SellerIdFieldNumber = 8;
     private long sellerId_;
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long SellerId {
@@ -518,6 +555,45 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       _hasBits0 &= ~1;
     }
 
+    /// <summary>Field number for the "sku_id_str" field.</summary>
+    public const int SkuIdStrFieldNumber = 13;
+    private string skuIdStr_ = "";
+    /// <summary>
+    /// Guid→string 迁移新增 string ID 字段
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SkuIdStr {
+      get { return skuIdStr_; }
+      set {
+        skuIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "spu_id_str" field.</summary>
+    public const int SpuIdStrFieldNumber = 14;
+    private string spuIdStr_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SpuIdStr {
+      get { return spuIdStr_; }
+      set {
+        spuIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "seller_id_str" field.</summary>
+    public const int SellerIdStrFieldNumber = 15;
+    private string sellerIdStr_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SellerIdStr {
+      get { return sellerIdStr_; }
+      set {
+        sellerIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -545,6 +621,9 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       if (Status != other.Status) return false;
       if (ShopId != other.ShopId) return false;
       if (UpdatedAt != other.UpdatedAt) return false;
+      if (SkuIdStr != other.SkuIdStr) return false;
+      if (SpuIdStr != other.SpuIdStr) return false;
+      if (SellerIdStr != other.SellerIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -564,6 +643,9 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       if (HasStatus) hash ^= Status.GetHashCode();
       if (HasShopId) hash ^= ShopId.GetHashCode();
       if (HasUpdatedAt) hash ^= UpdatedAt.GetHashCode();
+      if (SkuIdStr.Length != 0) hash ^= SkuIdStr.GetHashCode();
+      if (SpuIdStr.Length != 0) hash ^= SpuIdStr.GetHashCode();
+      if (SellerIdStr.Length != 0) hash ^= SellerIdStr.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -630,6 +712,18 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         output.WriteRawTag(96);
         output.WriteInt64(UpdatedAt);
       }
+      if (SkuIdStr.Length != 0) {
+        output.WriteRawTag(106);
+        output.WriteString(SkuIdStr);
+      }
+      if (SpuIdStr.Length != 0) {
+        output.WriteRawTag(114);
+        output.WriteString(SpuIdStr);
+      }
+      if (SellerIdStr.Length != 0) {
+        output.WriteRawTag(122);
+        output.WriteString(SellerIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -688,6 +782,18 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         output.WriteRawTag(96);
         output.WriteInt64(UpdatedAt);
       }
+      if (SkuIdStr.Length != 0) {
+        output.WriteRawTag(106);
+        output.WriteString(SkuIdStr);
+      }
+      if (SpuIdStr.Length != 0) {
+        output.WriteRawTag(114);
+        output.WriteString(SpuIdStr);
+      }
+      if (SellerIdStr.Length != 0) {
+        output.WriteRawTag(122);
+        output.WriteString(SellerIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -733,6 +839,15 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       }
       if (HasUpdatedAt) {
         size += 1 + pb::CodedOutputStream.ComputeInt64Size(UpdatedAt);
+      }
+      if (SkuIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SkuIdStr);
+      }
+      if (SpuIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SpuIdStr);
+      }
+      if (SellerIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SellerIdStr);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -782,6 +897,15 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       if (other.HasUpdatedAt) {
         UpdatedAt = other.UpdatedAt;
       }
+      if (other.SkuIdStr.Length != 0) {
+        SkuIdStr = other.SkuIdStr;
+      }
+      if (other.SpuIdStr.Length != 0) {
+        SpuIdStr = other.SpuIdStr;
+      }
+      if (other.SellerIdStr.Length != 0) {
+        SellerIdStr = other.SellerIdStr;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -793,11 +917,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -849,6 +969,18 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
             UpdatedAt = input.ReadInt64();
             break;
           }
+          case 106: {
+            SkuIdStr = input.ReadString();
+            break;
+          }
+          case 114: {
+            SpuIdStr = input.ReadString();
+            break;
+          }
+          case 122: {
+            SellerIdStr = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -860,11 +992,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -914,6 +1042,18 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
           }
           case 96: {
             UpdatedAt = input.ReadInt64();
+            break;
+          }
+          case 106: {
+            SkuIdStr = input.ReadString();
+            break;
+          }
+          case 114: {
+            SpuIdStr = input.ReadString();
+            break;
+          }
+          case 122: {
+            SellerIdStr = input.ReadString();
             break;
           }
         }
@@ -959,6 +1099,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public BatchGetSkuInfoRequest(BatchGetSkuInfoRequest other) : this() {
       skuIds_ = other.skuIds_.Clone();
+      skuIdsStr_ = other.skuIdsStr_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -973,10 +1114,22 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     private static readonly pb::FieldCodec<long> _repeated_skuIds_codec
         = pb::FieldCodec.ForInt64(10);
     private readonly pbc::RepeatedField<long> skuIds_ = new pbc::RepeatedField<long>();
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<long> SkuIds {
       get { return skuIds_; }
+    }
+
+    /// <summary>Field number for the "sku_ids_str" field.</summary>
+    public const int SkuIdsStrFieldNumber = 2;
+    private static readonly pb::FieldCodec<string> _repeated_skuIdsStr_codec
+        = pb::FieldCodec.ForString(18);
+    private readonly pbc::RepeatedField<string> skuIdsStr_ = new pbc::RepeatedField<string>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<string> SkuIdsStr {
+      get { return skuIdsStr_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -995,6 +1148,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         return true;
       }
       if(!skuIds_.Equals(other.skuIds_)) return false;
+      if(!skuIdsStr_.Equals(other.skuIdsStr_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1003,6 +1157,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     public override int GetHashCode() {
       int hash = 1;
       hash ^= skuIds_.GetHashCode();
+      hash ^= skuIdsStr_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1022,6 +1177,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       output.WriteRawMessage(this);
     #else
       skuIds_.WriteTo(output, _repeated_skuIds_codec);
+      skuIdsStr_.WriteTo(output, _repeated_skuIdsStr_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1033,6 +1189,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
       skuIds_.WriteTo(ref output, _repeated_skuIds_codec);
+      skuIdsStr_.WriteTo(ref output, _repeated_skuIdsStr_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1044,6 +1201,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     public int CalculateSize() {
       int size = 0;
       size += skuIds_.CalculateSize(_repeated_skuIds_codec);
+      size += skuIdsStr_.CalculateSize(_repeated_skuIdsStr_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -1057,6 +1215,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         return;
       }
       skuIds_.Add(other.skuIds_);
+      skuIdsStr_.Add(other.skuIdsStr_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -1068,17 +1227,17 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10:
           case 8: {
             skuIds_.AddEntriesFrom(input, _repeated_skuIds_codec);
+            break;
+          }
+          case 18: {
+            skuIdsStr_.AddEntriesFrom(input, _repeated_skuIdsStr_codec);
             break;
           }
         }
@@ -1092,17 +1251,17 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 10:
           case 8: {
             skuIds_.AddEntriesFrom(ref input, _repeated_skuIds_codec);
+            break;
+          }
+          case 18: {
+            skuIdsStr_.AddEntriesFrom(ref input, _repeated_skuIdsStr_codec);
             break;
           }
         }
@@ -1257,11 +1416,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1280,11 +1435,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1335,6 +1486,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetSkuStockRequest(GetSkuStockRequest other) : this() {
       skuId_ = other.skuId_;
+      skuIdStr_ = other.skuIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1347,12 +1499,25 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     /// <summary>Field number for the "sku_id" field.</summary>
     public const int SkuIdFieldNumber = 1;
     private long skuId_;
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long SkuId {
       get { return skuId_; }
       set {
         skuId_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "sku_id_str" field.</summary>
+    public const int SkuIdStrFieldNumber = 2;
+    private string skuIdStr_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SkuIdStr {
+      get { return skuIdStr_; }
+      set {
+        skuIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
@@ -1372,6 +1537,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         return true;
       }
       if (SkuId != other.SkuId) return false;
+      if (SkuIdStr != other.SkuIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1380,6 +1546,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     public override int GetHashCode() {
       int hash = 1;
       if (SkuId != 0L) hash ^= SkuId.GetHashCode();
+      if (SkuIdStr.Length != 0) hash ^= SkuIdStr.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1402,6 +1569,10 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         output.WriteRawTag(8);
         output.WriteInt64(SkuId);
       }
+      if (SkuIdStr.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(SkuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1416,6 +1587,10 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         output.WriteRawTag(8);
         output.WriteInt64(SkuId);
       }
+      if (SkuIdStr.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(SkuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1428,6 +1603,9 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       int size = 0;
       if (SkuId != 0L) {
         size += 1 + pb::CodedOutputStream.ComputeInt64Size(SkuId);
+      }
+      if (SkuIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SkuIdStr);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1444,6 +1622,9 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       if (other.SkuId != 0L) {
         SkuId = other.SkuId;
       }
+      if (other.SkuIdStr.Length != 0) {
+        SkuIdStr = other.SkuIdStr;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -1455,16 +1636,16 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 8: {
             SkuId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            SkuIdStr = input.ReadString();
             break;
           }
         }
@@ -1478,16 +1659,16 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 8: {
             SkuId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            SkuIdStr = input.ReadString();
             break;
           }
         }
@@ -1535,6 +1716,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       skuId_ = other.skuId_;
       available_ = other.available_;
       reserved_ = other.reserved_;
+      skuIdStr_ = other.skuIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1547,6 +1729,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     /// <summary>Field number for the "sku_id" field.</summary>
     public const int SkuIdFieldNumber = 1;
     private long skuId_;
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long SkuId {
@@ -1580,6 +1763,18 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       }
     }
 
+    /// <summary>Field number for the "sku_id_str" field.</summary>
+    public const int SkuIdStrFieldNumber = 4;
+    private string skuIdStr_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SkuIdStr {
+      get { return skuIdStr_; }
+      set {
+        skuIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1598,6 +1793,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       if (SkuId != other.SkuId) return false;
       if (Available != other.Available) return false;
       if (Reserved != other.Reserved) return false;
+      if (SkuIdStr != other.SkuIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1608,6 +1804,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       if (SkuId != 0L) hash ^= SkuId.GetHashCode();
       if (Available != 0) hash ^= Available.GetHashCode();
       if (Reserved != 0) hash ^= Reserved.GetHashCode();
+      if (SkuIdStr.Length != 0) hash ^= SkuIdStr.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1638,6 +1835,10 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         output.WriteRawTag(24);
         output.WriteInt32(Reserved);
       }
+      if (SkuIdStr.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteString(SkuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1660,6 +1861,10 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         output.WriteRawTag(24);
         output.WriteInt32(Reserved);
       }
+      if (SkuIdStr.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteString(SkuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1678,6 +1883,9 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       }
       if (Reserved != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(Reserved);
+      }
+      if (SkuIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SkuIdStr);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1700,6 +1908,9 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       if (other.Reserved != 0) {
         Reserved = other.Reserved;
       }
+      if (other.SkuIdStr.Length != 0) {
+        SkuIdStr = other.SkuIdStr;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -1711,11 +1922,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1731,6 +1938,10 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
             Reserved = input.ReadInt32();
             break;
           }
+          case 34: {
+            SkuIdStr = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -1742,11 +1953,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1760,6 +1967,10 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
           }
           case 24: {
             Reserved = input.ReadInt32();
+            break;
+          }
+          case 34: {
+            SkuIdStr = input.ReadString();
             break;
           }
         }
@@ -1805,6 +2016,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetProductDetailRequest(GetProductDetailRequest other) : this() {
       spuId_ = other.spuId_;
+      spuIdStr_ = other.spuIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1817,12 +2029,25 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     /// <summary>Field number for the "spu_id" field.</summary>
     public const int SpuIdFieldNumber = 1;
     private long spuId_;
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long SpuId {
       get { return spuId_; }
       set {
         spuId_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "spu_id_str" field.</summary>
+    public const int SpuIdStrFieldNumber = 2;
+    private string spuIdStr_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SpuIdStr {
+      get { return spuIdStr_; }
+      set {
+        spuIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
     }
 
@@ -1842,6 +2067,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         return true;
       }
       if (SpuId != other.SpuId) return false;
+      if (SpuIdStr != other.SpuIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1850,6 +2076,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     public override int GetHashCode() {
       int hash = 1;
       if (SpuId != 0L) hash ^= SpuId.GetHashCode();
+      if (SpuIdStr.Length != 0) hash ^= SpuIdStr.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1872,6 +2099,10 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         output.WriteRawTag(8);
         output.WriteInt64(SpuId);
       }
+      if (SpuIdStr.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(SpuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1886,6 +2117,10 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         output.WriteRawTag(8);
         output.WriteInt64(SpuId);
       }
+      if (SpuIdStr.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(SpuIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1898,6 +2133,9 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       int size = 0;
       if (SpuId != 0L) {
         size += 1 + pb::CodedOutputStream.ComputeInt64Size(SpuId);
+      }
+      if (SpuIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SpuIdStr);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1914,6 +2152,9 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       if (other.SpuId != 0L) {
         SpuId = other.SpuId;
       }
+      if (other.SpuIdStr.Length != 0) {
+        SpuIdStr = other.SpuIdStr;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -1925,16 +2166,16 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 8: {
             SpuId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            SpuIdStr = input.ReadString();
             break;
           }
         }
@@ -1948,16 +2189,16 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 8: {
             SpuId = input.ReadInt64();
+            break;
+          }
+          case 18: {
+            SpuIdStr = input.ReadString();
             break;
           }
         }
@@ -2007,6 +2248,8 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       description_ = other.description_;
       sellerId_ = other.sellerId_;
       skus_ = other.skus_.Clone();
+      spuIdStr_ = other.spuIdStr_;
+      sellerIdStr_ = other.sellerIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -2019,6 +2262,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     /// <summary>Field number for the "spu_id" field.</summary>
     public const int SpuIdFieldNumber = 1;
     private long spuId_;
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long SpuId {
@@ -2055,6 +2299,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     /// <summary>Field number for the "seller_id" field.</summary>
     public const int SellerIdFieldNumber = 4;
     private long sellerId_;
+    [global::System.ObsoleteAttribute]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long SellerId {
@@ -2073,6 +2318,30 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public pbc::RepeatedField<global::Leno.SharedContracts.Grpc.Product.V1.SkuInfo> Skus {
       get { return skus_; }
+    }
+
+    /// <summary>Field number for the "spu_id_str" field.</summary>
+    public const int SpuIdStrFieldNumber = 6;
+    private string spuIdStr_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SpuIdStr {
+      get { return spuIdStr_; }
+      set {
+        spuIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "seller_id_str" field.</summary>
+    public const int SellerIdStrFieldNumber = 7;
+    private string sellerIdStr_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SellerIdStr {
+      get { return sellerIdStr_; }
+      set {
+        sellerIdStr_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -2095,6 +2364,8 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       if (Description != other.Description) return false;
       if (SellerId != other.SellerId) return false;
       if(!skus_.Equals(other.skus_)) return false;
+      if (SpuIdStr != other.SpuIdStr) return false;
+      if (SellerIdStr != other.SellerIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2107,6 +2378,8 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       if (Description.Length != 0) hash ^= Description.GetHashCode();
       if (SellerId != 0L) hash ^= SellerId.GetHashCode();
       hash ^= skus_.GetHashCode();
+      if (SpuIdStr.Length != 0) hash ^= SpuIdStr.GetHashCode();
+      if (SellerIdStr.Length != 0) hash ^= SellerIdStr.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2142,6 +2415,14 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         output.WriteInt64(SellerId);
       }
       skus_.WriteTo(output, _repeated_skus_codec);
+      if (SpuIdStr.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(SpuIdStr);
+      }
+      if (SellerIdStr.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(SellerIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -2169,6 +2450,14 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         output.WriteInt64(SellerId);
       }
       skus_.WriteTo(ref output, _repeated_skus_codec);
+      if (SpuIdStr.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(SpuIdStr);
+      }
+      if (SellerIdStr.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(SellerIdStr);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -2192,6 +2481,12 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         size += 1 + pb::CodedOutputStream.ComputeInt64Size(SellerId);
       }
       size += skus_.CalculateSize(_repeated_skus_codec);
+      if (SpuIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SpuIdStr);
+      }
+      if (SellerIdStr.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SellerIdStr);
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -2217,6 +2512,12 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         SellerId = other.SellerId;
       }
       skus_.Add(other.skus_);
+      if (other.SpuIdStr.Length != 0) {
+        SpuIdStr = other.SpuIdStr;
+      }
+      if (other.SellerIdStr.Length != 0) {
+        SellerIdStr = other.SellerIdStr;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -2228,11 +2529,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2256,6 +2553,14 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
             skus_.AddEntriesFrom(input, _repeated_skus_codec);
             break;
           }
+          case 50: {
+            SpuIdStr = input.ReadString();
+            break;
+          }
+          case 58: {
+            SellerIdStr = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -2267,11 +2572,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-      if ((tag & 7) == 4) {
-        // Abort on any end group tag.
-        return;
-      }
-      switch(tag) {
+        switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2293,6 +2594,14 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
           }
           case 42: {
             skus_.AddEntriesFrom(ref input, _repeated_skus_codec);
+            break;
+          }
+          case 50: {
+            SpuIdStr = input.ReadString();
+            break;
+          }
+          case 58: {
+            SellerIdStr = input.ReadString();
             break;
           }
         }

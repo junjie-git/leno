@@ -26,9 +26,21 @@ public sealed class ProductGrpcService : ProductInternalService.ProductInternalS
 
     public override async Task<SkuInfo> GetSkuInfo(GetSkuInfoRequest request, ServerCallContext context)
     {
-        // 注：product.proto 中 sku_id 为 int64，POC 阶段使用 GetHashCode 简化
-        // 生产化阶段需将 .proto 改为 string sku_id 承载 Guid.ToString()
-        var skuId = new Guid(Convert.FromHexString(request.SkuId.ToString("X16")));
+        // 优先读 string 字段（Guid.ToString()），回退到 int64（向后兼容旧客户端）
+        Guid skuId;
+        if (!string.IsNullOrEmpty(request.SkuIdStr))
+        {
+            if (!Guid.TryParse(request.SkuIdStr, out skuId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid sku_id_str: {request.SkuIdStr}"));
+            }
+        }
+        else
+        {
+            // 旧客户端回退：int64 → Guid（X16 十六进制反序列化）
+            skuId = new Guid(Convert.FromHexString(request.SkuId.ToString("X16")));
+        }
+
         var dto = await _queryService.GetSkuInfoAsync(skuId, context.CancellationToken)
             .ConfigureAwait(false);
 
@@ -43,7 +55,17 @@ public sealed class ProductGrpcService : ProductInternalService.ProductInternalS
     public override async Task<BatchGetSkuInfoResponse> BatchGetSkuInfo(
         BatchGetSkuInfoRequest request, ServerCallContext context)
     {
-        var skuIds = request.SkuIds.Select(id => new Guid(Convert.FromHexString(id.ToString("X16")))).ToList();
+        // 优先读 string 字段，回退到 int64
+        List<Guid> skuIds;
+        if (request.SkuIdsStr.Count > 0)
+        {
+            skuIds = request.SkuIdsStr.Select(Guid.Parse).ToList();
+        }
+        else
+        {
+            skuIds = request.SkuIds.Select(id => new Guid(Convert.FromHexString(id.ToString("X16")))).ToList();
+        }
+
         var dtos = await _queryService.GetSkuInfosBatchAsync(skuIds, context.CancellationToken)
             .ConfigureAwait(false);
 
@@ -55,12 +77,21 @@ public sealed class ProductGrpcService : ProductInternalService.ProductInternalS
     public override Task<SkuStock> GetSkuStock(GetSkuStockRequest request, ServerCallContext context)
     {
         // POC 阶段未实现库存查询，返回占位（后续阶段补齐）
-        return Task.FromResult(new SkuStock
+        // 双写 int64 + string ID 字段，保持向后兼容
+        var stock = new SkuStock
         {
-            SkuId = request.SkuId,
             Available = 0,
             Reserved = 0
-        });
+        };
+        if (!string.IsNullOrEmpty(request.SkuIdStr))
+        {
+            stock.SkuIdStr = request.SkuIdStr;
+        }
+        else
+        {
+            stock.SkuId = request.SkuId;
+        }
+        return Task.FromResult(stock);
     }
 
     public override Task<ProductDetail> GetProductDetail(GetProductDetailRequest request, ServerCallContext context)
@@ -71,6 +102,7 @@ public sealed class ProductGrpcService : ProductInternalService.ProductInternalS
 
     private static SkuInfo MapToProto(SkuInfoResultDto dto) => new()
     {
+        // 既有 int64 字段（向后兼容，标记 deprecated）
         SkuId = (long)dto.SkuId.GetHashCode(),  // POC 简化：Guid→int64 映射，生产化改为 string
         SpuId = (long)dto.SpuId.GetHashCode(),
         Title = dto.Title,
@@ -82,7 +114,11 @@ public sealed class ProductGrpcService : ProductInternalService.ProductInternalS
         Stock = dto.Stock,
         Status = dto.Status,
         ShopId = dto.ShopId?.ToString() ?? string.Empty,
-        UpdatedAt = dto.UpdatedAt?.ToUnixTimeSeconds() ?? 0L
+        UpdatedAt = dto.UpdatedAt?.ToUnixTimeSeconds() ?? 0L,
+        // 新增 string 字段（Guid→string 迁移，新客户端优先读）
+        SkuIdStr = dto.SkuId.ToString(),
+        SpuIdStr = dto.SpuId.ToString(),
+        SellerIdStr = dto.SellerId.ToString()
     };
 }
 

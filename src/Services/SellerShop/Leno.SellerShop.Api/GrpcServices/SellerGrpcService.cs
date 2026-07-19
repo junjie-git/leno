@@ -46,9 +46,20 @@ public sealed class SellerGrpcService : SellerInternalService.SellerInternalServ
     public override async Task<ShopInfo> GetShopInfo(
         GetShopInfoRequest request, ServerCallContext context)
     {
-        // proto shop_id 是 int64，业务侧用 Guid。
-        // POC 简化：将 int64 嵌入 Guid 前 4 字节，其余补零（生产化改为 proto 字段改 string）。
-        var shopId = new Guid((int)request.ShopId, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        // 优先读 string 字段（Guid.ToString()），回退到 int64（向后兼容旧客户端）
+        Guid shopId;
+        if (!string.IsNullOrEmpty(request.ShopIdStr))
+        {
+            if (!Guid.TryParse(request.ShopIdStr, out shopId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid shop_id_str: {request.ShopIdStr}"));
+            }
+        }
+        else
+        {
+            // 旧客户端回退：将 int64 嵌入 Guid 前 4 字节，其余补零
+            shopId = new Guid((int)request.ShopId, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        }
 
         var dto = await _queryService.GetShopInfoAsync(shopId, context.CancellationToken)
             .ConfigureAwait(false);
@@ -80,10 +91,12 @@ public sealed class SellerGrpcService : SellerInternalService.SellerInternalServ
 
     private static ShopInfo MapToProto(ShopInfoDto dto) => new()
     {
-        // POC 简化：Guid→int64 不可逆映射，生产化改为 proto 字段改 string
+        // 既有 int64 字段（向后兼容，标记 deprecated）
         ShopId = (long)dto.ShopId.GetHashCode(),
         Name = dto.Name,
         Status = dto.Status,
-        SellerId = dto.SellerId.ToString()
+        SellerId = dto.SellerId.ToString(),
+        // 新增 string 字段（Guid→string 迁移，新客户端优先读）
+        ShopIdStr = dto.ShopId.ToString()
     };
 }
