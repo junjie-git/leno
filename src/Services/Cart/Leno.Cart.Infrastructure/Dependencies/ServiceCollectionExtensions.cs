@@ -1,6 +1,7 @@
 using FluentValidation;
 using Leno.Cart.Application;
 using Leno.Cart.Application.Abstractions;
+using Leno.Cart.Application.InternalQueryServices;
 using Leno.Cart.Application.Services;
 using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
@@ -153,6 +154,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAnonymousCartAppService, AnonymousCartAppService>();
 
         services.AddScoped<ICartAppService, CartAppService>();
+
+        // M4 双轨方案：注册跨 BC 内部查询服务（供 CartGrpcService 复用）
+        services.AddScoped<ICartInternalQueryService, CartInternalQueryService>();
 
         services.AddValidatorsFromAssembly(typeof(ICartAppService).Assembly);
 
