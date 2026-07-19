@@ -15,12 +15,17 @@ message SellerInfo {
   string status = 3;
   int64 shop_id = 4;
 }
-message GetShopInfoRequest { int64 shop_id = 1; }
+message GetShopInfoRequest {
+  int64 shop_id = 1 [deprecated = true];
+  string shop_id_str = 2;
+}
 message ShopInfo {
-  int64 shop_id = 1;
+  int64 shop_id = 1 [deprecated = true];
   string name = 2;
   string status = 3;
   string seller_id = 4;
+  // Guid→string 迁移新增 string ID 字段
+  string shop_id_str = 5;
 }
 message ValidateSellerOwnershipRequest {
   string seller_id = 1;

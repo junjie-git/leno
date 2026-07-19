@@ -31,12 +31,14 @@ message OrderDetail {
   repeated OrderItem items = 5;
 }
 message OrderItem {
-  int64 sku_id = 1;
+  int64 sku_id = 1 [deprecated = true];
   int32 quantity = 2;
   int64 unit_price_cents = 3;
   // M4 双轨方案新增字段
   optional string sku_name = 4;
   optional int64 sub_total_cents = 5;
+  // Guid→string 迁移新增 string ID 字段
+  string sku_id_str = 6;
 }
 message GetSellerOrdersRequest {
   string seller_id = 1;

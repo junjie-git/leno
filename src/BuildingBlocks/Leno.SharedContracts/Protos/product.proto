@@ -9,35 +9,54 @@ service ProductInternalService {
   rpc GetProductDetail(GetProductDetailRequest) returns (ProductDetail);
 }
 
-message GetSkuInfoRequest { int64 sku_id = 1; }
+message GetSkuInfoRequest {
+  int64 sku_id = 1 [deprecated = true];
+  string sku_id_str = 2;
+}
 message SkuInfo {
-  int64 sku_id = 1;
-  int64 spu_id = 2;
+  int64 sku_id = 1 [deprecated = true];
+  int64 spu_id = 2 [deprecated = true];
   string title = 3;
   string main_image = 4;
   int64 price_cents = 5;
   string currency = 6;
   bool salable = 7;
-  int64 seller_id = 8;
+  int64 seller_id = 8 [deprecated = true];
   int32 stock = 9;
   // M4 双轨方案新增字段
   optional string status = 10;
   optional string shop_id = 11;
   optional int64 updated_at = 12;
+  // Guid→string 迁移新增 string ID 字段
+  string sku_id_str = 13;
+  string spu_id_str = 14;
+  string seller_id_str = 15;
 }
-message BatchGetSkuInfoRequest { repeated int64 sku_ids = 1; }
+message BatchGetSkuInfoRequest {
+  repeated int64 sku_ids = 1 [deprecated = true];
+  repeated string sku_ids_str = 2;
+}
 message BatchGetSkuInfoResponse { repeated SkuInfo skus = 1; }
-message GetSkuStockRequest { int64 sku_id = 1; }
+message GetSkuStockRequest {
+  int64 sku_id = 1 [deprecated = true];
+  string sku_id_str = 2;
+}
 message SkuStock {
-  int64 sku_id = 1;
+  int64 sku_id = 1 [deprecated = true];
   int32 available = 2;
   int32 reserved = 3;
+  string sku_id_str = 4;
 }
-message GetProductDetailRequest { int64 spu_id = 1; }
+message GetProductDetailRequest {
+  int64 spu_id = 1 [deprecated = true];
+  string spu_id_str = 2;
+}
 message ProductDetail {
-  int64 spu_id = 1;
+  int64 spu_id = 1 [deprecated = true];
   string title = 2;
   string description = 3;
-  int64 seller_id = 4;
+  int64 seller_id = 4 [deprecated = true];
   repeated SkuInfo skus = 5;
+  string spu_id_str = 6;
+  string seller_id_str = 7;
 }

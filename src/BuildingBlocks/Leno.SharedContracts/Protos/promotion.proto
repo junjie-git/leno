@@ -14,8 +14,10 @@ message CalculateDiscountRequest {
   repeated OrderItem items = 2;
 }
 message OrderItem {
-  int64 sku_id = 1;
+  int64 sku_id = 1 [deprecated = true];
   int64 subtotal_cents = 2;
+  // Guid→string 迁移新增 string ID 字段
+  string sku_id_str = 3;
 }
 message CalculateDiscountResponse {
   int64 discount_cents = 1;
