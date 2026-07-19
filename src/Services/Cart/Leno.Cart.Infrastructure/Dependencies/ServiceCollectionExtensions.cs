@@ -106,12 +106,42 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<CartPriceService>());
         }
 
-        // 商品快照防腐层：商品更新事件消费时查询单 SKU 展示快照，复用商品域 BaseAddress
-        services.AddHttpClient<IProductSnapshotAntiCorruption, ProductSnapshotAntiCorruptionService>(client =>
+        // 商品快照防腐层 HttpClient 实现（保留作为降级备份）
+        services.AddHttpClient<ProductSnapshotAntiCorruptionService>(client =>
         {
             var baseAddress = configuration["ServiceUrls:ProductApi"] ?? "http://localhost:5150";
             client.BaseAddress = new Uri(baseAddress);
-        });
+        })
+            .AddAntiCorruptionPolicies();
+
+        // M4 双轨方案：商品快照防腐层 gRPC 客户端 + Dispatcher（仅当 UseGrpc=true 时生效）
+        if (antiCorruptionOptions.UseGrpc)
+        {
+            // ProductInternalServiceClient 已在 CartPriceService 双轨时注册，此处不重复注册
+            services.AddScoped<GrpcProductSnapshotAntiCorruptionClient>();
+
+            // CircuitBreakerState("product") 已在 CartPriceService 双轨时注册为 KeyedSingleton，此处复用
+
+            services.AddScoped<AntiCorruptionDispatcher<IProductSnapshotAntiCorruption>>(sp =>
+            {
+                var httpImpl = sp.GetRequiredService<ProductSnapshotAntiCorruptionService>();
+                var grpcImpl = sp.GetService<GrpcProductSnapshotAntiCorruptionClient>();
+                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IProductSnapshotAntiCorruption>>>();
+                var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("product");
+                return new AntiCorruptionDispatcher<IProductSnapshotAntiCorruption>(
+                    httpImpl, grpcImpl, options, logger, "product", cb);
+            });
+            services.AddScoped<ProductSnapshotDispatcherAdapter>();
+            services.AddScoped<IProductSnapshotAntiCorruption>(sp =>
+                sp.GetRequiredService<ProductSnapshotDispatcherAdapter>());
+        }
+        else
+        {
+            // UseGrpc=false：直接注册 HttpClient 实现
+            services.AddScoped<IProductSnapshotAntiCorruption>(sp =>
+                sp.GetRequiredService<ProductSnapshotAntiCorruptionService>());
+        }
 
         // 购物车-SKU 反向索引：基于 Redis Set，商品事件消费时定位受影响购物车
         services.AddScoped<ICartSkuIndexService, CartSkuIndexService>();

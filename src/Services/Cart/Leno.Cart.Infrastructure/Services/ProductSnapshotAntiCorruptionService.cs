@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using Leno.Cart.Application.Abstractions;
 using Leno.Cart.Application.DTOs;
-using Leno.Infrastructure.Auth;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.SharedContracts.Responses;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,62 +9,68 @@ using Microsoft.Extensions.Options;
 namespace Leno.Cart.Infrastructure.Services;
 
 /// <summary>
-/// 商品域快照防腐层实现，通过 HttpClient 调用商品域 internal API 查询单 SKU 展示快照。
-/// 使用 X-Internal-Key 头部鉴权，调用失败返回 null（不抛异常），由调用方决定降级策略。
+/// 商品域快照防腐层 HttpClient 实现。
+/// 继承 <see cref="AntiCorruptionBase"/>，调用失败统一抛 <see cref="AntiCorruptionException"/>。
+/// M5.2：通过 <see cref="AntiCorruptionOptions.TargetInternalApiKeys"/> 读取目标 BC（Product）的 InternalApiKey。
 /// </summary>
-public sealed class ProductSnapshotAntiCorruptionService : IProductSnapshotAntiCorruption
+public sealed class ProductSnapshotAntiCorruptionService : AntiCorruptionBase, IProductSnapshotAntiCorruption
 {
     private const string InternalKeyHeader = "X-Internal-Key";
     private const string SkuEndpointPrefix = "internal/v1/products/skus/";
+    private const string TargetBc = "Product";
 
     private readonly HttpClient _httpClient;
-    private readonly InternalApiKeyOptions _internalKeyOptions;
     private readonly ILogger<ProductSnapshotAntiCorruptionService> _logger;
+    private readonly string _targetInternalKey;
+
+    protected override string ServiceName => "product";
 
     public ProductSnapshotAntiCorruptionService(
         HttpClient httpClient,
-        IOptions<InternalApiKeyOptions> internalKeyOptions,
+        IOptions<AntiCorruptionOptions> options,
         ILogger<ProductSnapshotAntiCorruptionService> logger)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
-        ArgumentNullException.ThrowIfNull(internalKeyOptions);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
         _httpClient = httpClient;
-        _internalKeyOptions = internalKeyOptions.Value;
+        _targetInternalKey = ResolveTargetInternalKey(options);
         _logger = logger;
     }
 
     /// <inheritdoc />
-    public async Task<SkuSnapshotDto?> GetSkuSnapshotAsync(Guid skuId, CancellationToken ct = default)
+    public Task<SkuSnapshotDto> GetSkuSnapshotAsync(Guid skuId, CancellationToken ct = default)
+        => ExecuteAsync("get_sku_snapshot", async token =>
     {
-        try
-        {
-            using var request = new HttpRequestMessage(
-                HttpMethod.Get,
-                SkuEndpointPrefix + skuId.ToString());
-            request.Headers.TryAddWithoutValidation(InternalKeyHeader, _internalKeyOptions.ApiKey);
+        using var request = new HttpRequestMessage(HttpMethod.Get, SkuEndpointPrefix + skuId.ToString());
+        request.Headers.TryAddWithoutValidation(InternalKeyHeader, _targetInternalKey);
 
-            using var response = await _httpClient.SendAsync(request, ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning(
-                    "查询商品域 SKU 快照失败 SkuId={SkuId} Status={Status}",
-                    skuId, (int)response.StatusCode);
-                return null;
-            }
+        using var response = await _httpClient.SendAsync(request, token);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            throw new AntiCorruptionException(
+                $"SKU {skuId} 不存在", "PRODUCT_REMOTE_FAILED");
+        }
+        EnsureSuccessStatusCode(response, "get_sku_snapshot");
 
-            var apiResponse = await response.Content
-                .ReadFromJsonAsync<ApiResponse<SkuSnapshotDto>>(ct);
-            return apiResponse?.Data;
-        }
-        catch (OperationCanceledException)
+        var apiResponse = await response.Content
+            .ReadFromJsonAsync<ApiResponse<SkuSnapshotDto>>(token);
+        if (apiResponse?.Data is null)
         {
-            throw;
+            throw new AntiCorruptionException(
+                $"商品域返回空数据 SkuId={skuId}", "PRODUCT_REMOTE_FAILED");
         }
-        catch (Exception ex)
+        return apiResponse.Data;
+    }, ct);
+
+    private static string ResolveTargetInternalKey(IOptions<AntiCorruptionOptions> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (!options.Value.TargetInternalApiKeys.TryGetValue(TargetBc, out var key) || string.IsNullOrWhiteSpace(key))
         {
-            _logger.LogWarning(ex, "查询商品域 SKU 快照异常 SkuId={SkuId}", skuId);
-            return null;
+            throw new InvalidOperationException(
+                $"AntiCorruption:TargetInternalApiKeys:{TargetBc} 配置缺失，请通过 Consul KV 配置 leno/security/internal-key/{TargetBc}");
         }
+        return key;
     }
 }

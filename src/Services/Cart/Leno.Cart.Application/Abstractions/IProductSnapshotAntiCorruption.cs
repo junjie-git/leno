@@ -13,6 +13,9 @@ public interface IProductSnapshotAntiCorruption
     /// </summary>
     /// <param name="skuId">商品 SKU 标识。</param>
     /// <param name="ct">取消令牌。</param>
-    /// <returns>SKU 快照；查询失败或不存在返回 null。</returns>
-    Task<SkuSnapshotDto?> GetSkuSnapshotAsync(Guid skuId, CancellationToken ct = default);
+    /// <returns>SKU 快照。</returns>
+    /// <exception cref="Leno.Infrastructure.AntiCorruption.AntiCorruptionException">
+    /// 查询失败抛 PRODUCT_UNAVAILABLE；SKU 不存在抛 PRODUCT_REMOTE_FAILED。
+    /// </exception>
+    Task<SkuSnapshotDto> GetSkuSnapshotAsync(Guid skuId, CancellationToken ct = default);
 }

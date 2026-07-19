@@ -1,6 +1,8 @@
 using Leno.Cart.Application.Abstractions;
+using Leno.Cart.Application.DTOs;
 using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.EventBus;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
@@ -167,10 +169,15 @@ public sealed class ProductUpdatedEventConsumer : IntegrationEventConsumerBase<P
             if (cartIds.Count == 0) continue;
 
             // 每 SKU 查询一次快照，避免重复调用商品域
-            var snapshot = await _snapshotAntiCorruption.GetSkuSnapshotAsync(skuId, ct);
-            if (snapshot is null)
+            // M4 双轨方案：GetSkuSnapshotAsync 失败抛 AntiCorruptionException，此处捕获后跳过该 SKU
+            SkuSnapshotDto snapshot;
+            try
             {
-                Logger.LogWarning("SKU 快照查询失败，跳过刷新 SkuId={SkuId}", skuId);
+                snapshot = await _snapshotAntiCorruption.GetSkuSnapshotAsync(skuId, ct);
+            }
+            catch (AntiCorruptionException ex)
+            {
+                Logger.LogWarning(ex, "SKU 快照查询失败，跳过刷新 SkuId={SkuId} ErrorCode={ErrorCode}", skuId, ex.ErrorCode);
                 continue;
             }
 
