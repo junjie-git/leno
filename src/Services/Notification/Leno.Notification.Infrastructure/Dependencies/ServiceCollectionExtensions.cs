@@ -9,11 +9,15 @@ using Leno.Notification.Infrastructure.Consumers;
 using Leno.Notification.Infrastructure.Jobs;
 using Leno.Notification.Infrastructure.Repositories;
 using Leno.Notification.Infrastructure.Services;
+using Leno.Notification.Infrastructure.Services.Grpc;
+using Leno.SharedContracts.Grpc.User.V1;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Leno.Notification.Infrastructure.Dependencies;
 
@@ -48,8 +52,54 @@ public static class ServiceCollectionExtensions
 
         // 用户联系方式防腐层（通过 HTTP 调用用户域内部端点获取手机号/邮箱）
         var userAuthApiUrl = configuration["ServiceUrls:UserAuthApi"] ?? "http://localhost:5173";
-        services.AddHttpClient<IUserContactService, UserContactAntiCorruptionService>(c => c.BaseAddress = new Uri(userAuthApiUrl))
+        // HttpClient 防腐层实现（保留作为降级备份，不绑定接口）
+        services.AddHttpClient<UserContactAntiCorruptionService>(c => c.BaseAddress = new Uri(userAuthApiUrl))
             .AddAntiCorruptionPolicies();
+
+        // M4 双轨方案：gRPC 客户端 + 熔断器 + Dispatcher（仅当 UseGrpc=true 时生效）
+        var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
+        if (antiCorruptionOptions.UseGrpc)
+        {
+            var userAuthGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("UserAuth")
+                ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:UserAuth 配置缺失");
+
+            services.AddGrpcClient<UserInternalService.UserInternalServiceClient>(options =>
+            {
+                options.Address = new Uri(userAuthGrpcEndpoint);
+            });
+            services.AddScoped<GrpcUserContactAntiCorruptionClient>();
+
+            services.AddKeyedSingleton<CircuitBreakerState>("user_contact", (sp, _) =>
+            {
+                var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
+                var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
+                return new CircuitBreakerState(
+                    "user_contact",
+                    cbOpts.FailureThreshold,
+                    cbOpts.SuccessThreshold,
+                    TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
+            });
+
+            services.AddScoped<AntiCorruptionDispatcher<IUserContactService>>(sp =>
+            {
+                var httpImpl = sp.GetRequiredService<UserContactAntiCorruptionService>();
+                var grpcImpl = sp.GetService<GrpcUserContactAntiCorruptionClient>();
+                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IUserContactService>>>();
+                var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("user_contact");
+                return new AntiCorruptionDispatcher<IUserContactService>(
+                    httpImpl, grpcImpl, options, logger, "user_contact", cb);
+            });
+            services.AddScoped<UserContactDispatcherAdapter>();
+            services.AddScoped<IUserContactService>(sp =>
+                sp.GetRequiredService<UserContactDispatcherAdapter>());
+        }
+        else
+        {
+            // UseGrpc=false：直接注册 HttpClient 实现（兼容期）
+            services.AddScoped<IUserContactService>(sp =>
+                sp.GetRequiredService<UserContactAntiCorruptionService>());
+        }
 
         // 通知渠道配置
         services.Configure<EmailChannelOptions>(configuration.GetSection("Notification:Email"));

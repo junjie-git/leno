@@ -3,6 +3,7 @@ using Leno.Infrastructure.Dependencies;
 using Leno.Infrastructure.Persistence;
 using Leno.Infrastructure.ServiceDiscovery;
 using Leno.Infrastructure.Telemetry;
+using Leno.UserAuth.Api.GrpcServices;
 using Leno.UserAuth.Infrastructure;
 using Leno.UserAuth.Infrastructure.Audit;
 using Leno.UserAuth.Infrastructure.Dependencies;
@@ -42,6 +43,12 @@ if (!app.Configuration.ValidateSensitiveConfig())
 app.UseLenoPipeline();
 // 用户认证授权域专属：审计日志中间件（在管线之后，捕获控制器执行上下文）
 app.UseMiddleware<AuditLogMiddleware>();
+
+// M4 双轨方案：启用 gRPC 服务端（仅当 AntiCorruption:UseGrpc=true 时映射）
+if (builder.Configuration.GetValue<bool>("AntiCorruption:UseGrpc"))
+{
+    app.MapGrpcService<UserAuthGrpcService>();
+}
 
 // 启动时执行 EF Core 迁移（带 Redis 分布式锁，避免多实例并发冲突）
 await app.Services.MigrateWithLockAsync<UserAuthDbContext>();
