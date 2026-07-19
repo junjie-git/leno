@@ -3,6 +3,7 @@ using Leno.Infrastructure.Cqrs;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.SellerShop.Application;
+using Leno.SellerShop.Application.InternalQueryServices;
 using Leno.SellerShop.Application.Queries;
 using Leno.SellerShop.Application.Services;
 using Leno.SellerShop.Domain.Repositories;
@@ -61,6 +62,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IShopAppService, ShopAppService>();
         services.AddScoped<ISellerAppService, SellerAppService>();
         services.AddScoped<ISellerDashboardAppService, SellerDashboardAppService>();
+
+        // M4 双轨方案：注册跨 BC 内部查询服务（供 SellerGrpcService 复用）
+        services.AddScoped<ISellerInternalQueryService, SellerInternalQueryService>();
 
         // ES 读模型同步：店铺工作台读模型构建器（被 3 个 ShopDashboard 同步消费者共用）
         services.AddScoped<IShopDashboardReadModelBuilder, ShopDashboardReadModelBuilder>();
