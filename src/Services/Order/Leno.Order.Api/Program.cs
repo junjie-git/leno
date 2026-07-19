@@ -3,6 +3,7 @@ using Leno.Infrastructure.Dependencies;
 using Leno.Infrastructure.Persistence;
 using Leno.Infrastructure.ServiceDiscovery;
 using Leno.Infrastructure.Telemetry;
+using Leno.Order.Api.GrpcServices;
 using Leno.Order.Infrastructure;
 using Leno.Order.Infrastructure.Dependencies;
 
@@ -40,6 +41,12 @@ if (!app.Configuration.ValidateSensitiveConfig())
 
 // 一站式中间件管线：OpenAPI + 全局异常 + 内部 API Key + 鉴权 + 健康检查端点 + Controllers
 app.UseLenoPipeline();
+
+// M4 双轨方案：启用 gRPC 服务端（仅当 AntiCorruption:UseGrpc=true 时映射）
+if (builder.Configuration.GetValue<bool>("AntiCorruption:UseGrpc"))
+{
+    app.MapGrpcService<OrderGrpcService>();
+}
 
 // 启动时执行 EF Core 迁移（带 Redis 分布式锁，避免多实例并发冲突）
 await app.Services.MigrateWithLockAsync<OrderDbContext>();

@@ -7,6 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Grpc.AspNetCore" Version="2.65.0" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
         <PackageReference Include="Microsoft.OpenApi" Version="2.10.0" />
@@ -20,6 +21,7 @@
     <ItemGroup>
         <ProjectReference Include="..\Leno.Order.Application\Leno.Order.Application.csproj" />
         <ProjectReference Include="..\Leno.Order.Infrastructure\Leno.Order.Infrastructure.csproj" />
+        <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts.Grpc\Leno.SharedContracts.Grpc.csproj" />
     </ItemGroup>
 
 </Project>
