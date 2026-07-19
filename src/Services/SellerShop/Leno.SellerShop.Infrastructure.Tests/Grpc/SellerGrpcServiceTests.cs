@@ -182,20 +182,89 @@ public class SellerGrpcServiceTests
     }
 
     [Fact]
-    public async Task ValidateSellerOwnership_AlwaysThrows_Unimplemented()
+    public async Task ValidateSellerOwnership_ValidInput_ReturnsResponse()
     {
-        var queryMock = new Mock<ISellerInternalQueryService>(MockBehavior.Strict);
+        // 安排：mock 查询服务返回 true（归属校验通过）
+        var sellerId = Guid.NewGuid();
+        var resourceId = Guid.NewGuid();
+        var queryMock = new Mock<ISellerInternalQueryService>();
+        queryMock.Setup(q => q.ValidateOwnershipAsync(sellerId, "shop", resourceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
         var svc = new SellerGrpcService(queryMock.Object, NullLogger<SellerGrpcService>.Instance);
+
+        // 行动：调用 ValidateSellerOwnership
+        var result = await svc.ValidateSellerOwnership(
+            new ValidateSellerOwnershipRequest
+            {
+                SellerId = sellerId.ToString(),
+                ResourceType = "shop",
+                ResourceId = resourceId.ToString()
+            },
+            new TestServerCallContext());
+
+        // 断言：返回 isValid=true，且 queryService 被调用一次
+        result.IsValid.Should().BeTrue();
+        queryMock.Verify(q => q.ValidateOwnershipAsync(sellerId, "shop", resourceId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ValidateSellerOwnership_InvalidSellerId_ThrowsInvalidArgument()
+    {
+        var svc = new SellerGrpcService(Mock.Of<ISellerInternalQueryService>(), NullLogger<SellerGrpcService>.Instance);
+
+        var act = async () => await svc.ValidateSellerOwnership(
+            new ValidateSellerOwnershipRequest
+            {
+                SellerId = "not-a-guid",
+                ResourceType = "shop",
+                ResourceId = Guid.NewGuid().ToString()
+            },
+            new TestServerCallContext());
+
+        (await act.Should().ThrowAsync<RpcException>()).Which.Status.StatusCode.Should().Be(StatusCode.InvalidArgument);
+    }
+
+    [Fact]
+    public async Task ValidateSellerOwnership_InvalidResourceId_ThrowsInvalidArgument()
+    {
+        var svc = new SellerGrpcService(Mock.Of<ISellerInternalQueryService>(), NullLogger<SellerGrpcService>.Instance);
 
         var act = async () => await svc.ValidateSellerOwnership(
             new ValidateSellerOwnershipRequest
             {
                 SellerId = Guid.NewGuid().ToString(),
                 ResourceType = "shop",
-                ResourceId = "1"
+                ResourceId = "not-a-guid"
             },
             new TestServerCallContext());
 
-        (await act.Should().ThrowAsync<RpcException>()).Which.Status.StatusCode.Should().Be(StatusCode.Unimplemented);
+        (await act.Should().ThrowAsync<RpcException>()).Which.Status.StatusCode.Should().Be(StatusCode.InvalidArgument);
+    }
+
+    [Fact]
+    public async Task ValidateSellerOwnership_OwnershipFalse_ReturnsIsValidFalse()
+    {
+        // 安排：mock 查询服务返回 false（归属校验未通过，如跨域资源不归属）
+        var sellerId = Guid.NewGuid();
+        var resourceId = Guid.NewGuid();
+        var queryMock = new Mock<ISellerInternalQueryService>();
+        queryMock.Setup(q => q.ValidateOwnershipAsync(sellerId, "spu", resourceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var svc = new SellerGrpcService(queryMock.Object, NullLogger<SellerGrpcService>.Instance);
+
+        // 行动：调用 ValidateSellerOwnership
+        var result = await svc.ValidateSellerOwnership(
+            new ValidateSellerOwnershipRequest
+            {
+                SellerId = sellerId.ToString(),
+                ResourceType = "spu",
+                ResourceId = resourceId.ToString()
+            },
+            new TestServerCallContext());
+
+        // 断言：返回 isValid=false（fail-closed）
+        result.IsValid.Should().BeFalse();
     }
 }

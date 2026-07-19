@@ -1,4 +1,5 @@
 using FluentValidation;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.Cqrs;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
@@ -14,11 +15,15 @@ using Leno.SellerShop.Infrastructure.EventBus;
 using Leno.SellerShop.Infrastructure.ReadModels;
 using Leno.SellerShop.Infrastructure.Repositories;
 using Leno.SellerShop.Infrastructure.Services;
+using Leno.SellerShop.Infrastructure.Services.Grpc;
+using Leno.SharedContracts.Grpc.Order.V1;
+using Leno.SharedContracts.Grpc.Product.V1;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Leno.SellerShop.Infrastructure.Dependencies;
 
@@ -65,6 +70,24 @@ public static class ServiceCollectionExtensions
 
         // M4 双轨方案：注册跨 BC 内部查询服务（供 SellerGrpcService 复用）
         services.AddScoped<ISellerInternalQueryService, SellerInternalQueryService>();
+
+        // M4 双轨方案：注册卖家域跨 BC 防腐层（gRPC 客户端）
+        // 卖家归属校验（ValidateSellerOwnership）通过防腐层反查 Product/Order 域的卖家归属
+        var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
+        var productGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Product") ?? "http://localhost:5150";
+        var orderGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Order") ?? "http://localhost:5154";
+
+        services.AddGrpcClient<ProductInternalService.ProductInternalServiceClient>(options =>
+        {
+            options.Address = new Uri(productGrpcEndpoint);
+        });
+        services.AddGrpcClient<OrderInternalService.OrderInternalServiceClient>(options =>
+        {
+            options.Address = new Uri(orderGrpcEndpoint);
+        });
+
+        services.AddScoped<IProductAntiCorruptionService, GrpcProductAntiCorruptionClient>();
+        services.AddScoped<IOrderAntiCorruptionService, GrpcOrderAntiCorruptionClient>();
 
         // ES 读模型同步：店铺工作台读模型构建器（被 3 个 ShopDashboard 同步消费者共用）
         services.AddScoped<IShopDashboardReadModelBuilder, ShopDashboardReadModelBuilder>();

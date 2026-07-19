@@ -72,12 +72,22 @@ public sealed class SellerGrpcService : SellerInternalService.SellerInternalServ
         return MapToProto(dto);
     }
 
-    public override Task<ValidateSellerOwnershipResponse> ValidateSellerOwnership(
+    public override async Task<ValidateSellerOwnershipResponse> ValidateSellerOwnership(
         ValidateSellerOwnershipRequest request, ServerCallContext context)
     {
-        // F1.4 独立任务，本次抛 Unimplemented
-        throw new RpcException(new Status(StatusCode.Unimplemented,
-            "ValidateSellerOwnership not implemented, see F1.4"));
+        if (!Guid.TryParse(request.SellerId, out var sellerId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid seller_id: {request.SellerId}"));
+        }
+        if (!Guid.TryParse(request.ResourceId, out var resourceId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid resource_id: {request.ResourceId}"));
+        }
+
+        var isValid = await _queryService.ValidateOwnershipAsync(
+            sellerId, request.ResourceType, resourceId, context.CancellationToken)
+            .ConfigureAwait(false);
+        return new ValidateSellerOwnershipResponse { IsValid = isValid };
     }
 
     private static SellerInfo MapToProto(SellerInfoDto dto) => new()
