@@ -389,3 +389,219 @@ Internal API 错误响应统一遵循 `ApiResponse<T>` 结构（`code` + `messag
 | v1.0 | 2026-07-17 | M4.2 准备阶段初始版本，记录 11 个 internal 端点契约（路由前缀 `internal/`，未带 `/v1/`） |
 | v1.1 | 2026-07-18 | M4.2 落地，11 条路由统一加 `/v1/` 前缀，双路由期开始 |
 | v1.2 | 2026-07-19 | M5.2 落地，11 BC 独立 InternalApiKey + Consul KV 配置中心；M6.5 修复 `release-coupons` 契约不一致端点，端点总数 12 条；新增第 5 节 gRPC 契约（M4.3）、第 6 节错误响应、第 7 节网关与内部鉴权附录 |
+| v1.3 | 2026-07-19 | M4 双轨方案落地（Task 26 文档收尾）：新增第 9 节"M4 gRPC 双轨契约（基于实施）"，基于实际代码梳理 6 个 gRPC 服务端、7 个 gRPC 客户端、Dispatcher 适配器模式、熔断器、Consul 热更新等实施细节；如与第 5 节 Plan 期描述冲突，以第 9 节为准 |
+
+---
+
+## 9 M4 gRPC 双轨契约（基于实施）
+
+> 本节为 M4 gRPC 双轨方案（Plan 8 M4.3 Task 26）的实际落地契约，基于源代码梳理。如与第 5 节 Plan 期描述冲突，以本节为准。
+> 落地日期：2026-07-19；配套 Runbook：`docs/runbooks/m4-grpc-poc-verification.md`；防腐层架构详见 `docs/architecture/anticorruption-pattern.md`。
+
+### 9.1 服务端约定
+
+- 所有 GrpcService 放置在 `{BC}.Api/GrpcServices/` 目录。
+- 命名规则：`{BC}GrpcService`，继承 `{BC}InternalService.{BC}InternalServiceBase`（gRPC 自动生成的 base 类）。
+- **必须复用 Application 层 `IXxxInternalQueryService` 业务逻辑**，禁止在 GrpcService 中直接访问仓储或重复业务规则。
+- 错误码映射约定：
+
+  | 业务场景 | gRPC StatusCode |
+  |---|---|
+  | 资源不存在（NotFound） | `StatusCode.NotFound` |
+  | 权限缺失（InternalApiKey 校验失败） | `StatusCode.Unauthenticated`（由 `GrpcInternalKeyInterceptor` 抛出） |
+  | 参数无效（Guid 解析失败等） | `StatusCode.InvalidArgument` |
+  | POC 阶段未实现的方法 | `StatusCode.Unimplemented` |
+  | 服务端内部异常 | `StatusCode.Internal` |
+
+- 必须添加 `[Authorize]` 特性（与 HTTP 路径 `InternalApiKeyMiddleware` 形成双轨鉴权）。
+- 通过 `GrpcInternalKeyInterceptor` 拦截器统一校验 metadata `x-internal-key`（小写），与 HttpClient 模式的 `X-Internal-Key` 请求头语义一致。
+- 在 `Program.cs` 中条件性映射（同端口复用 HTTP/1.1 + HTTP/2）：
+
+  ```csharp
+  // M4 双轨方案：启用 gRPC 服务端（仅当 AntiCorruption:UseGrpc=true 时映射）
+  if (builder.Configuration.GetValue<bool>("AntiCorruption:UseGrpc"))
+  {
+      app.MapGrpcService<ProductGrpcService>();
+  }
+  ```
+
+### 9.2 客户端约定
+
+- 所有 gRPC 客户端放置在 `{调用方BC}.Infrastructure/Services/Grpc/` 目录。
+- 命名规则：
+  - 防腐层语义强的客户端：`Grpc{目标BC}AntiCorruptionClient`（如 `GrpcProductAntiCorruptionClient`）。
+  - 功能语义强的客户端：`Grpc{功能}Provider` 或 `Grpc{功能}Service`（如 `GrpcOrderStatusProvider`、`GrpcCartPriceService`）。
+- 必须继承 `GrpcAntiCorruptionClientBase` 并实现与 HttpClient 模式相同的防腐层接口（如 `IProductAntiCorruptionService`、`IOrderStatusProvider`）。
+- **禁止将 gRPC 客户端直接注入业务层**。必须通过 `AntiCorruptionDispatcher<TService>` 双轨调度，由 Dispatcher 在运行时根据 `UseGrpc` 开关与熔断状态选择 HttpClient 或 gRPC 实现。
+- 由于 `AntiCorruptionDispatcher<TService>` **不实现 `TService` 接口**（仅提供 `ExecuteAsync` 模板方法），必须为每个防腐层接口创建 `{Service}DispatcherAdapter` 适配器，作为 DI 容器中 `TService` 的具体实现。
+- 熔断器为 `CircuitBreakerState` Keyed Singleton，每个防腐层一个实例，`serviceName` 必须与 Metrics 标签一致（如 `product`、`promotion`、`points`、`order`、`payment`、`user-auth`）。
+
+### 9.3 配置约定
+
+```jsonc
+// appsettings.json（Order BC 示例）
+{
+  "AntiCorruption": {
+    "UseGrpc": false,                              // 灰度总开关，Consul KV 热更新
+    "GrpcEndpoints": {                              // 仅 UseGrpc=true 时需配置
+      "Product": "http://leno-product-api:5150",
+      "Promotion": "http://leno-promotion-api:5152",
+      "PointsMembership": "http://leno-pointsmembership-api:5153"
+    },
+    "TargetInternalApiKeys": {                      // 各目标 BC 的 InternalApiKey
+      "Product": "${LENO_INTERNAL_API_KEY_PRODUCT}",
+      "Promotion": "${LENO_INTERNAL_API_KEY_PROMOTION}",
+      "PointsMembership": "${LENO_INTERNAL_API_KEY_POINTSMEMBERSHIP}"
+    },
+    "CircuitBreaker": {                             // 熔断器参数（可选，缺省 3/2/30s）
+      "FailureThreshold": 3,
+      "SuccessThreshold": 2,
+      "OpenDurationSeconds": 30
+    },
+    "InternalApiKey": "${LENO_INTERNAL_API_KEY_ORDER}",  // 本 BC 作为被调用方时校验的 key
+    "ServiceName": "order"
+  }
+}
+```
+
+| 配置项 | 作用 | 热更新 | 默认值 |
+|---|---|---|---|
+| `AntiCorruption:UseGrpc` | 调用方 BC 是否启用 gRPC 模式 | 是（Consul KV `leno/anticorruption/use-grpc/{BC}`，5 分钟长轮询） | `false` |
+| `AntiCorruption:GrpcEndpoints:{BC}` | 各目标 BC 的 gRPC 端点地址（与 HTTP 端口同端口复用 HTTP/1.1 + HTTP/2） | 是 | 必填（UseGrpc=true 时缺失抛 `InvalidOperationException`） |
+| `AntiCorruption:TargetInternalApiKeys:{BC}` | 各目标 BC 的 InternalApiKey，注入 gRPC metadata `x-internal-key` | 是 | 必填 |
+| `AntiCorruption:CircuitBreaker` | 熔断器参数 | 是（`IOptionsMonitor` 推送） | `FailureThreshold=3 / SuccessThreshold=2 / OpenDurationSeconds=30` |
+| `AntiCorruption:InternalApiKey` | 本 BC 作为被调用方时 `GrpcInternalKeyInterceptor` 校验的 key | 是 | 必填（缺失拒绝所有 gRPC 调用） |
+| `AntiCorruption:ServiceName` | 本 BC 服务名 | 是 | 必填 |
+
+> **端口约定**：gRPC 与 HTTP 同端口复用（HTTP/1.1 + HTTP/2 协商），**不再使用第 5.4 节"HTTP + 100"的独立端口分配方案**。各 BC 实际端口以其 `appsettings.json` 的 `ServiceUrls` 或 Consul 服务发现为准。
+
+### 9.4 服务清单（基于实际代码）
+
+#### 9.4.1 gRPC 服务端（6 个 BC）
+
+| BC | GrpcService 类 | .proto service | 复用 Application 接口 | 源文件 |
+|---|---|---|---|---|
+| Product | `ProductGrpcService` | `ProductInternalService` | `IProductInternalQueryService` | `src/Services/Product/Leno.Product.Api/GrpcServices/ProductGrpcService.cs` |
+| Promotion | `PromotionGrpcService` | `PromotionInternalService` | `IPromotionInternalQueryService` | `src/Services/Promotion/Leno.Promotion.Api/GrpcServices/PromotionGrpcService.cs` |
+| PointsMembership | `PointsGrpcService` | `PointsInternalService` | `IPointsInternalQueryService` | `src/Services/PointsMembership/Leno.PointsMembership.Api/GrpcServices/PointsGrpcService.cs` |
+| UserAuth | `UserAuthGrpcService` | `UserAuthInternalService` | `IUserInternalQueryService` | `src/Services/UserAuth/Leno.UserAuth.Api/GrpcServices/UserAuthGrpcService.cs` |
+| Order | `OrderGrpcService` | `OrderInternalService` | `IOrderInternalQueryService` | `src/Services/Order/Leno.Order.Api/GrpcServices/OrderGrpcService.cs` |
+| Payment | `PaymentGrpcService` | `PaymentInternalService` | `IPaymentInternalQueryService` | `src/Services/Payment/Leno.Payment.Api/GrpcServices/PaymentGrpcService.cs` |
+
+> 未暴露 gRPC 服务端的 BC（Cart/ReviewAfterSales/Notification/SellerShop/SystemAdmin）仅作为调用方消费 gRPC，其 `Program.cs` 不映射 GrpcService。
+
+#### 9.4.2 gRPC 客户端（7 个防腐层）
+
+| 调用方 BC | gRPC 客户端类 | 实现接口 | DispatcherAdapter | serviceName |
+|---|---|---|---|---|
+| Order | `GrpcProductAntiCorruptionClient` | `IProductAntiCorruptionService` | `ProductAntiCorruptionDispatcherAdapter` | `product` |
+| Order | `GrpcPromotionAntiCorruptionClient` | `IPromotionAntiCorruptionService` | `PromotionAntiCorruptionDispatcherAdapter` | `promotion` |
+| Order | `GrpcPointsAntiCorruptionClient` | `IPointsAntiCorruptionService` | `PointsAntiCorruptionDispatcherAdapter` | `points` |
+| Notification | `GrpcUserContactAntiCorruptionClient` | `IUserContactService` | `UserContactDispatcherAdapter` | `user-auth` |
+| Cart | `GrpcCartPriceService` | `ICartPriceService` | `CartPriceDispatcherAdapter` | `product` |
+| ReviewAfterSales | `GrpcOrderStatusProvider` | `IOrderStatusProvider` | `OrderStatusDispatcherAdapter` | `order` |
+| ReviewAfterSales | `GrpcPaymentInfoQueryService` | `IPaymentInfoQueryService` | `PaymentInfoQueryDispatcherAdapter` | `payment` |
+
+> 共 7 个 gRPC 客户端覆盖 5 个调用方 BC（Order ×3、Notification ×1、Cart ×1、ReviewAfterSales ×2）。Cart BC 的 `GrpcCartPriceService` 复用 Product BC 的 gRPC 服务端。
+
+#### 9.4.3 .proto 契约清单
+
+11 个 .proto 文件位于 `src/BuildingBlocks/Leno.SharedContracts/Protos/`，与 11 个 BC 一一对应：
+
+```
+cart.proto          notification.proto    product.proto     seller.proto
+order.proto         payment.proto         promotion.proto   system.proto
+points.proto        review.proto          user.proto
+```
+
+- `package`：`leno.{bc}.v1`（如 `leno.product.v1`、`leno.order.v1`）。
+- `option csharp_namespace`：`Leno.SharedContracts.Grpc.{BC}.V1`。
+- 服务命名：`{BC}InternalService`（如 `ProductInternalService`，**非** Plan 期描述的 `XxxInternalQueryService`）。
+- 字段命名：`snake_case`，C# 自动生成 `PascalCase` 属性。
+- 字段扩展只能新增 `optional` 字段或新字段号，禁止修改或删除（保证 wire 兼容，buf breaking 校验）。
+- POC 阶段 Guid 字段使用 `int64` 简化（通过 `GetHashCode()` 映射），生产化阶段需迁移为 `string`，迁移时通过新增 `string` 字段保持向后兼容。
+
+### 9.5 DI 注册模式
+
+每个调用方 BC 的 `{BC}.Infrastructure/Dependencies/ServiceCollectionExtensions.cs` 按以下模式注册双轨防腐层：
+
+```csharp
+// 1. HttpClient 实现（始终注册，作为降级备份）
+services.AddHttpClient<ProductAntiCorruptionService>(c => c.BaseAddress = new Uri(productApiUrl))
+    .AddAntiCorruptionPolicies();
+
+// 2. UseGrpc=true 时注册 gRPC 链路
+if (antiCorruptionOptions.UseGrpc)
+{
+    // 2.1 gRPC 客户端工厂
+    services.AddGrpcClient<ProductInternalService.ProductInternalServiceClient>(options =>
+    {
+        options.Address = new Uri(productGrpcEndpoint);
+    });
+    services.AddScoped<GrpcProductAntiCorruptionClient>();
+
+    // 2.2 熔断器 Keyed Singleton（serviceName 与 Metrics 标签一致）
+    services.AddKeyedSingleton<CircuitBreakerState>("product", (sp, _) =>
+    {
+        var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
+        var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
+        return new CircuitBreakerState(
+            "product",
+            cbOpts.FailureThreshold,
+            cbOpts.SuccessThreshold,
+            TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
+    });
+
+    // 2.3 Dispatcher（Scoped，组合 HttpClient + gRPC + 熔断器 + IOptionsMonitor）
+    services.AddScoped<AntiCorruptionDispatcher<IProductAntiCorruptionService>>(sp => { /* ... */ });
+
+    // 2.4 适配器作为 TService 的具体实现
+    services.AddScoped<ProductAntiCorruptionDispatcherAdapter>();
+    services.AddScoped<IProductAntiCorruptionService>(sp =>
+        sp.GetRequiredService<ProductAntiCorruptionDispatcherAdapter>());
+}
+else
+{
+    // UseGrpc=false：直接注册 HttpClient 实现（兼容期）
+    services.AddScoped<IProductAntiCorruptionService>(sp =>
+        sp.GetRequiredService<ProductAntiCorruptionService>());
+}
+```
+
+> **设计要点**：业务层仅依赖 `IXxxAntiCorruptionService` 接口，对底层是 HttpClient 还是 gRPC 完全无感。切换由 `UseGrpc` 配置 + `AntiCorruptionDispatcher` 运行时决策。
+
+### 9.6 鉴权与错误处理
+
+#### 9.6.1 服务端鉴权（`GrpcInternalKeyInterceptor`）
+
+- 拦截所有 unary gRPC 调用，从 metadata 读取 `x-internal-key`（大小写不敏感）。
+- 与 `AntiCorruptionOptions.InternalApiKey`（被调用方 BC 的 key）比对。
+- 缺失配置：抛 `RpcException(Unauthenticated, "Internal API key not configured on server")`，拒绝所有 gRPC 调用（fail-closed）。
+- 缺失或值不匹配：抛 `RpcException(Unauthenticated, "Invalid or missing x-internal-key")`。
+- 客户端被判定为业务异常（`Unauthenticated`），**不触发降级**，直接抛出给上层业务。
+
+#### 9.6.2 客户端异常分类（`GrpcAntiCorruptionClientBase`）
+
+| 异常类型 | 映射 ErrorCode | 触发熔断降级 |
+|---|---|---|
+| `OperationCanceledException`（用户取消） | 透传不埋点 | 否 |
+| `OperationCanceledException`（超时） | `{SERVICE}_UNAVAILABLE` | 是（`DeadlineExceeded`） |
+| `RpcException`（Unavailable/DeadlineExceeded/Internal/ResourceExhausted） | `{SERVICE}_UNAVAILABLE` | **是** |
+| `RpcException`（其他 StatusCode：NotFound/PermissionDenied/InvalidArgument/AlreadyExists/...） | `{SERVICE}_REMOTE_FAILED` | 否（业务异常） |
+| `DomainException` | 透传不埋点 | 否 |
+| 其他 `Exception` | `{SERVICE}_REMOTE_FAILED` | 否 |
+
+> **关键约束**：所有 `RpcException` 必须作为 `AntiCorruptionException.InnerException` 保留，供 `AntiCorruptionDispatcher.IsGrpcUnavailable(ex)` 判断是否降级。
+
+### 9.7 与第 5 节的差异说明
+
+第 5 节为 Plan 期描述，本节为实际实施版本。主要差异：
+
+| 项 | 第 5 节（Plan） | 第 9 节（实施） |
+|---|---|---|
+| 服务命名 | `XxxInternalQueryService` | `{BC}InternalService`（如 `ProductInternalService`） |
+| 端口分配 | HTTP + 100 独立 gRPC 端口（5251-5261） | 同端口复用 HTTP/1.1 + HTTP/2 |
+| 客户端基类 | Polly 策略链（重试 + 熔断 + Timeout） | 简单 try/catch + 独立 `CircuitBreakerState` 状态机 |
+| 双轨实现 | 单一客户端类内部 `UseGrpc` 分支 | HttpClient 与 gRPC 分离为两个类，由 `AntiCorruptionDispatcher<TService>` 调度 |
+| 适配器 | 未提及 | 必须创建 `{Service}DispatcherAdapter`（Dispatcher 不实现 TService 接口） |
+| 灰度粒度 | 全局 `UseGrpc` 开关 | 按 BC 粒度（Consul KV `leno/anticorruption/use-grpc/{BC}`） |
