@@ -27,10 +27,11 @@ public sealed class GrpcCartPriceService
     protected override string ServiceName => "product";
 
     public GrpcCartPriceService(
+        IServiceProvider serviceProvider,
         ProductInternalService.ProductInternalServiceClient client,
         IOptionsMonitor<AntiCorruptionOptions> options,
         ILogger<GrpcCartPriceService> logger)
-        : base()
+        : base(serviceProvider)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _options = options ?? throw new ArgumentNullException(nameof(options));

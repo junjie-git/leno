@@ -3,6 +3,7 @@ using Grpc.Core;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.ReviewAfterSales.Infrastructure.Services.Grpc;
 using Leno.SharedContracts.Grpc.Order.V1;
+using Leno.Testing.Builders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -58,7 +59,7 @@ public class GrpcOrderStatusProviderTests
                 () => new Metadata(),
                 () => { }));
 
-        var client = new GrpcOrderStatusProvider(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcOrderStatusProvider(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcOrderStatusProvider>.Instance);
 
         var result = await client.GetOrderStatusAsync(orderId);
@@ -105,7 +106,7 @@ public class GrpcOrderStatusProviderTests
                 () => new Metadata(),
                 () => { }));
 
-        var client = new GrpcOrderStatusProvider(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcOrderStatusProvider(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcOrderStatusProvider>.Instance);
 
         var result = await client.GetOrderStatusAsync(orderId);
@@ -130,7 +131,7 @@ public class GrpcOrderStatusProviderTests
                 It.IsAny<CancellationToken>()))
             .Throws(rpcEx);
 
-        var client = new GrpcOrderStatusProvider(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcOrderStatusProvider(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcOrderStatusProvider>.Instance);
 
         var act = async () => await client.GetOrderStatusAsync(Guid.NewGuid());
@@ -153,7 +154,7 @@ public class GrpcOrderStatusProviderTests
                 It.IsAny<CancellationToken>()))
             .Throws(rpcEx);
 
-        var client = new GrpcOrderStatusProvider(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcOrderStatusProvider(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcOrderStatusProvider>.Instance);
 
         var act = async () => await client.GetOrderStatusAsync(Guid.NewGuid());

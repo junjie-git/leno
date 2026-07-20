@@ -3,6 +3,7 @@ using Grpc.Core;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.Order.Infrastructure.Services.Grpc;
 using Leno.SharedContracts.Grpc.Product.V1;
+using Leno.Testing.Builders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -63,7 +64,7 @@ public class GrpcProductAntiCorruptionClientTests
                 () => new Metadata(),
                 () => { }));
 
-        var client = new GrpcProductAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcProductAntiCorruptionClient(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcProductAntiCorruptionClient>.Instance);
 
         var result = await client.GetSkuInfoAsync(skuId);
@@ -114,7 +115,7 @@ public class GrpcProductAntiCorruptionClientTests
                 () => new Metadata(),
                 () => { }));
 
-        var client = new GrpcProductAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcProductAntiCorruptionClient(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcProductAntiCorruptionClient>.Instance);
 
         var result = await client.GetSkuInfoAsync(skuId);
@@ -140,7 +141,7 @@ public class GrpcProductAntiCorruptionClientTests
                 It.IsAny<CancellationToken>()))
             .Throws(rpcEx);
 
-        var client = new GrpcProductAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcProductAntiCorruptionClient(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcProductAntiCorruptionClient>.Instance);
 
         var act = async () => await client.GetSkuInfoAsync(Guid.NewGuid());
@@ -163,7 +164,7 @@ public class GrpcProductAntiCorruptionClientTests
                 It.IsAny<CancellationToken>()))
             .Throws(rpcEx);
 
-        var client = new GrpcProductAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcProductAntiCorruptionClient(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcProductAntiCorruptionClient>.Instance);
 
         var act = async () => await client.GetSkuInfoAsync(Guid.NewGuid());

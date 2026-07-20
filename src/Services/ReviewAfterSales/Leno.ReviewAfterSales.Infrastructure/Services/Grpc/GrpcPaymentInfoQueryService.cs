@@ -24,10 +24,11 @@ public sealed class GrpcPaymentInfoQueryService
     protected override string ServiceName => "payment";
 
     public GrpcPaymentInfoQueryService(
+        IServiceProvider serviceProvider,
         PaymentInternalService.PaymentInternalServiceClient client,
         IOptionsMonitor<AntiCorruptionOptions> options,
         ILogger<GrpcPaymentInfoQueryService> logger)
-        : base()
+        : base(serviceProvider)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _options = options ?? throw new ArgumentNullException(nameof(options));

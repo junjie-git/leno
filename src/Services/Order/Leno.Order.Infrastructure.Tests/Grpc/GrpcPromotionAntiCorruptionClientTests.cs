@@ -4,6 +4,7 @@ using Leno.Infrastructure.AntiCorruption;
 using Leno.Order.Application.Services;
 using Leno.Order.Infrastructure.Services.Grpc;
 using Leno.SharedContracts.Grpc.Promotion.V1;
+using Leno.Testing.Builders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -42,7 +43,7 @@ public class GrpcPromotionAntiCorruptionClientTests
                 () => new Metadata(),
                 () => { }));
 
-        var client = new GrpcPromotionAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcPromotionAntiCorruptionClient(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcPromotionAntiCorruptionClient>.Instance);
 
         var result = await client.CalculateDiscountAsync(Guid.NewGuid(), new List<(Guid, decimal)> { (Guid.NewGuid(), 100m) });
@@ -63,7 +64,7 @@ public class GrpcPromotionAntiCorruptionClientTests
                 It.IsAny<CancellationToken>()))
             .Throws(rpcEx);
 
-        var client = new GrpcPromotionAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcPromotionAntiCorruptionClient(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcPromotionAntiCorruptionClient>.Instance);
 
         var act = async () => await client.CalculateDiscountAsync(Guid.NewGuid(), new List<(Guid, decimal)>());
@@ -89,7 +90,7 @@ public class GrpcPromotionAntiCorruptionClientTests
                 () => new Metadata(),
                 () => { }));
 
-        var client = new GrpcPromotionAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcPromotionAntiCorruptionClient(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcPromotionAntiCorruptionClient>.Instance);
 
         var act = async () => await client.LockCouponAsync(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());

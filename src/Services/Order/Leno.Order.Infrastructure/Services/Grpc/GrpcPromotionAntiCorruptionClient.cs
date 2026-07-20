@@ -24,10 +24,11 @@ public sealed class GrpcPromotionAntiCorruptionClient
     protected override string ServiceName => "promotion";
 
     public GrpcPromotionAntiCorruptionClient(
+        IServiceProvider serviceProvider,
         PromotionInternalService.PromotionInternalServiceClient client,
         IOptionsMonitor<AntiCorruptionOptions> options,
         ILogger<GrpcPromotionAntiCorruptionClient> logger)
-        : base()
+        : base(serviceProvider)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _options = options ?? throw new ArgumentNullException(nameof(options));

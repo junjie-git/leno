@@ -3,6 +3,7 @@ using Grpc.Core;
 using Leno.Cart.Infrastructure.Services.Grpc;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.SharedContracts.Grpc.Product.V1;
+using Leno.Testing.Builders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -51,7 +52,7 @@ public class GrpcProductSnapshotAntiCorruptionClientTests
                 () => new Metadata(),
                 () => { }));
 
-        var client = new GrpcProductSnapshotAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcProductSnapshotAntiCorruptionClient(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcProductSnapshotAntiCorruptionClient>.Instance);
 
         var result = await client.GetSkuSnapshotAsync(skuId);
@@ -77,7 +78,7 @@ public class GrpcProductSnapshotAntiCorruptionClientTests
                 It.IsAny<CancellationToken>()))
             .Throws(rpcEx);
 
-        var client = new GrpcProductSnapshotAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcProductSnapshotAntiCorruptionClient(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcProductSnapshotAntiCorruptionClient>.Instance);
 
         var act = async () => await client.GetSkuSnapshotAsync(Guid.NewGuid());
@@ -100,7 +101,7 @@ public class GrpcProductSnapshotAntiCorruptionClientTests
                 It.IsAny<CancellationToken>()))
             .Throws(rpcEx);
 
-        var client = new GrpcProductSnapshotAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcProductSnapshotAntiCorruptionClient(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcProductSnapshotAntiCorruptionClient>.Instance);
 
         var act = async () => await client.GetSkuSnapshotAsync(Guid.NewGuid());

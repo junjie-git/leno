@@ -24,10 +24,11 @@ public sealed class GrpcOrderStatusProvider
     protected override string ServiceName => "order";
 
     public GrpcOrderStatusProvider(
+        IServiceProvider serviceProvider,
         OrderInternalService.OrderInternalServiceClient client,
         IOptionsMonitor<AntiCorruptionOptions> options,
         ILogger<GrpcOrderStatusProvider> logger)
-        : base()
+        : base(serviceProvider)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _options = options ?? throw new ArgumentNullException(nameof(options));

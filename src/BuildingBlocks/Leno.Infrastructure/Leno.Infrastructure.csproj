@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Leno.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="Leno.Testing" />
   </ItemGroup>
 
   <ItemGroup>

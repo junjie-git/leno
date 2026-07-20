@@ -27,10 +27,11 @@ public sealed class GrpcOrderAntiCorruptionClient
     protected override string ServiceName => "order";
 
     public GrpcOrderAntiCorruptionClient(
+        IServiceProvider serviceProvider,
         OrderInternalService.OrderInternalServiceClient client,
         IOptionsMonitor<AntiCorruptionOptions> options,
         ILogger<GrpcOrderAntiCorruptionClient> logger)
-        : base()
+        : base(serviceProvider)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _options = options ?? throw new ArgumentNullException(nameof(options));

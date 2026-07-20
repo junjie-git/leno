@@ -24,10 +24,11 @@ public sealed class GrpcUserContactAntiCorruptionClient
     protected override string ServiceName => "user_contact";
 
     public GrpcUserContactAntiCorruptionClient(
+        IServiceProvider serviceProvider,
         UserInternalService.UserInternalServiceClient client,
         IOptionsMonitor<AntiCorruptionOptions> options,
         ILogger<GrpcUserContactAntiCorruptionClient> logger)
-        : base()
+        : base(serviceProvider)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _options = options ?? throw new ArgumentNullException(nameof(options));

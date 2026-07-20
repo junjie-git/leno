@@ -25,10 +25,11 @@ public sealed class GrpcProductSnapshotAntiCorruptionClient
     protected override string ServiceName => "product";
 
     public GrpcProductSnapshotAntiCorruptionClient(
+        IServiceProvider serviceProvider,
         ProductInternalService.ProductInternalServiceClient client,
         IOptionsMonitor<AntiCorruptionOptions> options,
         ILogger<GrpcProductSnapshotAntiCorruptionClient> logger)
-        : base()
+        : base(serviceProvider)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _options = options ?? throw new ArgumentNullException(nameof(options));

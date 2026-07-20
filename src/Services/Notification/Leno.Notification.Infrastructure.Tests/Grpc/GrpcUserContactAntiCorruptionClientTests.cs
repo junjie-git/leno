@@ -3,6 +3,7 @@ using Grpc.Core;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.Notification.Infrastructure.Services.Grpc;
 using Leno.SharedContracts.Grpc.User.V1;
+using Leno.Testing.Builders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -48,7 +49,7 @@ public class GrpcUserContactAntiCorruptionClientTests
                 () => new Metadata(),
                 () => { }));
 
-        var client = new GrpcUserContactAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcUserContactAntiCorruptionClient(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcUserContactAntiCorruptionClient>.Instance);
 
         var result = await client.GetContactsAsync(userId);
@@ -72,7 +73,7 @@ public class GrpcUserContactAntiCorruptionClientTests
                 It.IsAny<CancellationToken>()))
             .Throws(rpcEx);
 
-        var client = new GrpcUserContactAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcUserContactAntiCorruptionClient(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcUserContactAntiCorruptionClient>.Instance);
 
         var act = async () => await client.GetContactsAsync(Guid.NewGuid());
@@ -95,7 +96,7 @@ public class GrpcUserContactAntiCorruptionClientTests
                 It.IsAny<CancellationToken>()))
             .Throws(rpcEx);
 
-        var client = new GrpcUserContactAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcUserContactAntiCorruptionClient(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcUserContactAntiCorruptionClient>.Instance);
 
         var act = async () => await client.GetContactsAsync(Guid.NewGuid());

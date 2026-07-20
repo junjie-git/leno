@@ -3,6 +3,7 @@ using Grpc.Core;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.ReviewAfterSales.Infrastructure.Services.Grpc;
 using Leno.SharedContracts.Grpc.Payment.V1;
+using Leno.Testing.Builders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -50,7 +51,7 @@ public class GrpcPaymentInfoQueryServiceTests
                 () => new Metadata(),
                 () => { }));
 
-        var client = new GrpcPaymentInfoQueryService(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcPaymentInfoQueryService(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcPaymentInfoQueryService>.Instance);
 
         var result = await client.GetByOrderIdAsync(orderId);
@@ -73,7 +74,7 @@ public class GrpcPaymentInfoQueryServiceTests
                 It.IsAny<CancellationToken>()))
             .Throws(rpcEx);
 
-        var client = new GrpcPaymentInfoQueryService(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcPaymentInfoQueryService(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcPaymentInfoQueryService>.Instance);
 
         var act = async () => await client.GetByOrderIdAsync(Guid.NewGuid());
@@ -96,7 +97,7 @@ public class GrpcPaymentInfoQueryServiceTests
                 It.IsAny<CancellationToken>()))
             .Throws(rpcEx);
 
-        var client = new GrpcPaymentInfoQueryService(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcPaymentInfoQueryService(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcPaymentInfoQueryService>.Instance);
 
         var act = async () => await client.GetByOrderIdAsync(Guid.NewGuid());

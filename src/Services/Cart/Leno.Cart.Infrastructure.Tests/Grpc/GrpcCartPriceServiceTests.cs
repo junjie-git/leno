@@ -4,6 +4,7 @@ using Leno.Cart.Domain.Services;
 using Leno.Cart.Infrastructure.Services.Grpc;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.SharedContracts.Grpc.Product.V1;
+using Leno.Testing.Builders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -57,7 +58,7 @@ public class GrpcCartPriceServiceTests
                 () => new Metadata(),
                 () => { }));
 
-        var client = new GrpcCartPriceService(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcCartPriceService(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcCartPriceService>.Instance);
 
         var result = await client.GetSkuPricesAsync(new[] { skuId });
@@ -105,7 +106,7 @@ public class GrpcCartPriceServiceTests
                 () => new Metadata(),
                 () => { }));
 
-        var client = new GrpcCartPriceService(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcCartPriceService(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcCartPriceService>.Instance);
 
         var result = await client.GetSkuPricesAsync(new[] { skuId });
@@ -131,7 +132,7 @@ public class GrpcCartPriceServiceTests
                 It.IsAny<CancellationToken>()))
             .Throws(rpcEx);
 
-        var client = new GrpcCartPriceService(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcCartPriceService(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcCartPriceService>.Instance);
 
         var act = async () => await client.GetSkuPricesAsync(new[] { Guid.NewGuid() });
@@ -146,7 +147,7 @@ public class GrpcCartPriceServiceTests
     {
         var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>(MockBehavior.Strict);
 
-        var client = new GrpcCartPriceService(clientMock.Object, CreateOptionsMonitor(),
+        var client = new GrpcCartPriceService(GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(), clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcCartPriceService>.Instance);
 
         var result = await client.GetSkuPricesAsync(Array.Empty<Guid>());

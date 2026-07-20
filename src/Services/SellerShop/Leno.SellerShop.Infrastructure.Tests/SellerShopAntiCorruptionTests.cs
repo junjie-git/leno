@@ -3,6 +3,7 @@ using Leno.Infrastructure.AntiCorruption;
 using Leno.SellerShop.Infrastructure.Services.Grpc;
 using Leno.SharedContracts.Grpc.Order.V1;
 using Leno.SharedContracts.Grpc.Product.V1;
+using Leno.Testing.Builders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -60,6 +61,7 @@ public class SellerShopAntiCorruptionTests
             .Returns(CreateAsyncUnaryCall(productDetail));
 
         var client = new GrpcProductAntiCorruptionClient(
+            GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(),
             clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcProductAntiCorruptionClient>.Instance);
 
@@ -84,6 +86,7 @@ public class SellerShopAntiCorruptionTests
             .Throws(new RpcException(new Status(StatusCode.Unavailable, "gRPC down")));
 
         var client = new GrpcProductAntiCorruptionClient(
+            GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(),
             clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcProductAntiCorruptionClient>.Instance);
 
@@ -114,6 +117,7 @@ public class SellerShopAntiCorruptionTests
             .Returns(CreateAsyncUnaryCall(productDetail));
 
         var client = new GrpcProductAntiCorruptionClient(
+            GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(),
             clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcProductAntiCorruptionClient>.Instance);
 
@@ -143,6 +147,7 @@ public class SellerShopAntiCorruptionTests
             .Returns(CreateAsyncUnaryCall(response));
 
         var client = new GrpcOrderAntiCorruptionClient(
+            GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(),
             clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcOrderAntiCorruptionClient>.Instance);
 
@@ -167,6 +172,7 @@ public class SellerShopAntiCorruptionTests
             .Throws(new RpcException(new Status(StatusCode.Unavailable, "gRPC down")));
 
         var client = new GrpcOrderAntiCorruptionClient(
+            GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(),
             clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcOrderAntiCorruptionClient>.Instance);
 
@@ -191,6 +197,7 @@ public class SellerShopAntiCorruptionTests
             .Throws(new RpcException(new Status(StatusCode.NotFound, "order not found")));
 
         var client = new GrpcOrderAntiCorruptionClient(
+            GrpcAntiCorruptionTestHelper.BuildServiceProviderWithGrpcRetry(),
             clientMock.Object, CreateOptionsMonitor(),
             NullLogger<GrpcOrderAntiCorruptionClient>.Instance);
 
