@@ -2,6 +2,7 @@ using Grpc.Core;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.SellerShop.Application.Services;
 using Leno.SharedContracts.Grpc.Order.V1;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -29,8 +30,9 @@ public sealed class GrpcOrderAntiCorruptionClient
     public GrpcOrderAntiCorruptionClient(
         OrderInternalService.OrderInternalServiceClient client,
         IOptionsMonitor<AntiCorruptionOptions> options,
-        ILogger<GrpcOrderAntiCorruptionClient> logger)
-        : base()
+        ILogger<GrpcOrderAntiCorruptionClient> logger,
+        IServiceProvider? serviceProvider = null)
+        : base(serviceProvider, logger)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _options = options ?? throw new ArgumentNullException(nameof(options));

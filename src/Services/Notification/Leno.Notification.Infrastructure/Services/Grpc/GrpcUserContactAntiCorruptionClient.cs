@@ -2,6 +2,7 @@ using Grpc.Core;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.Notification.Domain.Services;
 using Leno.SharedContracts.Grpc.User.V1;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -26,12 +27,12 @@ public sealed class GrpcUserContactAntiCorruptionClient
     public GrpcUserContactAntiCorruptionClient(
         UserInternalService.UserInternalServiceClient client,
         IOptionsMonitor<AntiCorruptionOptions> options,
-        ILogger<GrpcUserContactAntiCorruptionClient> logger)
-        : base()
+        ILogger<GrpcUserContactAntiCorruptionClient> logger,
+        IServiceProvider? serviceProvider = null)
+        : base(serviceProvider, logger)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _options = options ?? throw new ArgumentNullException(nameof(options));
-        _ = logger; // 保留参数供未来扩展，当前基类不使用 logger
     }
 
     /// <inheritdoc />

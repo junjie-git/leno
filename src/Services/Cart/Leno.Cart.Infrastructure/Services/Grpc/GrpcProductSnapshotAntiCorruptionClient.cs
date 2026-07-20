@@ -3,6 +3,7 @@ using Leno.Cart.Application.Abstractions;
 using Leno.Cart.Application.DTOs;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.SharedContracts.Grpc.Product.V1;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -27,12 +28,12 @@ public sealed class GrpcProductSnapshotAntiCorruptionClient
     public GrpcProductSnapshotAntiCorruptionClient(
         ProductInternalService.ProductInternalServiceClient client,
         IOptionsMonitor<AntiCorruptionOptions> options,
-        ILogger<GrpcProductSnapshotAntiCorruptionClient> logger)
-        : base()
+        ILogger<GrpcProductSnapshotAntiCorruptionClient> logger,
+        IServiceProvider? serviceProvider = null)
+        : base(serviceProvider, logger)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _options = options ?? throw new ArgumentNullException(nameof(options));
-        _ = logger;
     }
 
     /// <inheritdoc />

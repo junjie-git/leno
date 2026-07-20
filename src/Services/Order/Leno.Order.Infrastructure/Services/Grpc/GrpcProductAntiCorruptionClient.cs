@@ -2,6 +2,7 @@ using Grpc.Core;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.Order.Application.Services;
 using Leno.SharedContracts.Grpc.Product.V1;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SkuInfoDto = Leno.Order.Application.Services.SkuInfo;
@@ -28,12 +29,12 @@ public sealed class GrpcProductAntiCorruptionClient
     public GrpcProductAntiCorruptionClient(
         ProductInternalService.ProductInternalServiceClient client,
         IOptionsMonitor<AntiCorruptionOptions> options,
-        ILogger<GrpcProductAntiCorruptionClient> logger)
-        : base()
+        ILogger<GrpcProductAntiCorruptionClient> logger,
+        IServiceProvider? serviceProvider = null)
+        : base(serviceProvider, logger)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _options = options ?? throw new ArgumentNullException(nameof(options));
-        _ = logger; // 保留参数供未来扩展，当前基类不使用 logger
     }
 
     /// <inheritdoc />

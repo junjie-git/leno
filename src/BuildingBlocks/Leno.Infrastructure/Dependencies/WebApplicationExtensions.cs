@@ -65,6 +65,10 @@ public static class WebApplicationExtensions
         // 1.1 防腐层 HttpClient Polly 策略（重试/熔断/超时，由各 BC AddHttpClient 链式追加）
         services.AddLenoAntiCorruptionPolly(configuration);
 
+        // 1.1.1 防腐层 gRPC Polly 重试策略（P1-B.1：临时性故障自动重试 2 次）
+        //       由 GrpcAntiCorruptionClientBase.ExecuteAsync 内嵌使用
+        services.AddLenoGrpcAntiCorruptionPolly(configuration);
+
         // 1.2 防腐层 gRPC 灰度开关（M4.3 + M4 双轨方案）：默认 false 走 HTTP，true 走 gRPC
         // 各 BC 在 configureInfrastructure 委托中按 UseGrpc 注册具体 gRPC 客户端/服务
         services.Configure<AntiCorruptionOptions>(configuration.GetSection("AntiCorruption"));

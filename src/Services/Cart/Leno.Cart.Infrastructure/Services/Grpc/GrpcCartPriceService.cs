@@ -2,6 +2,7 @@ using Grpc.Core;
 using Leno.Cart.Domain.Services;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.SharedContracts.Grpc.Product.V1;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SkuPriceSnapshotDomain = Leno.Cart.Domain.Services.SkuPriceSnapshot;
@@ -29,12 +30,12 @@ public sealed class GrpcCartPriceService
     public GrpcCartPriceService(
         ProductInternalService.ProductInternalServiceClient client,
         IOptionsMonitor<AntiCorruptionOptions> options,
-        ILogger<GrpcCartPriceService> logger)
-        : base()
+        ILogger<GrpcCartPriceService> logger,
+        IServiceProvider? serviceProvider = null)
+        : base(serviceProvider, logger)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _options = options ?? throw new ArgumentNullException(nameof(options));
-        _ = logger; // 保留参数供未来扩展，当前基类不使用 logger
     }
 
     /// <inheritdoc />

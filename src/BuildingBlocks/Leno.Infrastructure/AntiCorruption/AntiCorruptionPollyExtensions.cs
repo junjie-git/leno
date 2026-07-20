@@ -1,3 +1,4 @@
+using Grpc.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
@@ -15,6 +16,12 @@ namespace Leno.Infrastructure.AntiCorruption;
 public static class AntiCorruptionPollyExtensions
 {
     public const string SectionName = "AntiCorruption:Polly";
+
+    /// <summary>
+    /// gRPC 重试策略的 keyed service 标识，由 <see cref="AddLenoGrpcAntiCorruptionPolly"/> 注册。
+    /// <see cref="GrpcAntiCorruptionClientBase"/> 通过此 key 解析 <see cref="IAsyncPolicy"/>。
+    /// </summary>
+    public const string GrpcRetryPolicyKey = "GrpcAntiCorruptionRetry";
 
     public static IServiceCollection AddLenoAntiCorruptionPolly(
         this IServiceCollection services,
@@ -47,6 +54,55 @@ public static class AntiCorruptionPollyExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// 注册 gRPC 防腐层 Polly 重试策略（P1-B.1 问题 9）。
+    /// <para>
+    /// 在 <see cref="GrpcAntiCorruptionClientBase.ExecuteAsync{T}"/> 内嵌执行，对所有 gRPC 派生类自动生效。
+    /// 仅对临时性 gRPC 故障重试：<see cref="StatusCode.Unavailable"/>、<see cref="StatusCode.DeadlineExceeded"/>、
+    /// <see cref="StatusCode.Aborted"/>、<see cref="StatusCode.ResourceExhausted"/>。
+    /// 业务错误（InvalidArgument/NotFound/PermissionDenied 等）与 <see cref="DomainException"/> 不重试。
+    /// </para>
+    /// <para>
+    /// 重试次数保守（默认 2 次），指数退避（1s, 2s），避免放大下游压力。
+    /// 与既有 <see cref="CircuitBreakerState"/> 共存：Polly 在单次调用内重试，
+    /// <see cref="CircuitBreakerState"/> 在外层判断是否降级到 HttpClient，互不干扰。
+    /// </para>
+    /// </summary>
+    /// <param name="services">服务集合。</param>
+    /// <param name="configuration">应用配置，读取 <c>AntiCorruption:Polly:GrpcRetryCount</c>（默认 2）。</param>
+    /// <returns>服务集合，便于链式调用。</returns>
+    public static IServiceCollection AddLenoGrpcAntiCorruptionPolly(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        var section = configuration.GetSection(SectionName);
+        var grpcRetryCount = section?.GetValue("GrpcRetryCount", 2) ?? 2;
+
+        // gRPC retry：仅对临时性故障重试，业务错误与领域异常不重试
+        var grpcRetryPolicy = Policy
+            .Handle<RpcException>(ex => IsTransientGrpcStatus(ex.StatusCode))
+            .WaitAndRetryAsync(grpcRetryCount, retryAttempt =>
+                TimeSpan.FromSeconds(Math.Pow(2, retryAttempt - 1)));
+
+        services.AddKeyedSingleton<IAsyncPolicy>(GrpcRetryPolicyKey, grpcRetryPolicy);
+        return services;
+    }
+
+    /// <summary>
+    /// 判断 gRPC <see cref="StatusCode"/> 是否属于临时性故障（可重试）。
+    /// 业务错误（InvalidArgument/NotFound/PermissionDenied/Unauthenticated）不重试，
+    /// 避免无意义重试放大下游压力。
+    /// </summary>
+    /// <param name="statusCode">gRPC 状态码。</param>
+    /// <returns>是临时性故障返回 true，否则 false。</returns>
+    public static bool IsTransientGrpcStatus(StatusCode statusCode) =>
+        statusCode is StatusCode.Unavailable
+            or StatusCode.DeadlineExceeded
+            or StatusCode.Aborted
+            or StatusCode.ResourceExhausted;
 
     public static IAsyncPolicy<HttpResponseMessage>[] GetAntiCorruptionPolicies(
         IServiceProvider services)
