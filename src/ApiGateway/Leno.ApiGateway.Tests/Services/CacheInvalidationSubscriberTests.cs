@@ -26,7 +26,7 @@ public class CacheInvalidationSubscriberTests
 
         // Assert
         subscriberMock.Verify(
-            s => s.Subscribe(
+            s => s.SubscribeAsync(
                 It.Is<RedisChannel>(c => c == RedisChannel.Literal(CacheInvalidationSubscriber.ChannelName)),
                 It.IsAny<Action<RedisChannel, RedisValue>>(),
                 It.IsAny<CommandFlags>()),
@@ -213,7 +213,7 @@ public class CacheInvalidationSubscriberTests
         await subscriber.StartAsync(CancellationToken.None);
         // StartAsync 后 Subscribe 调用 1 次
         subscriberMock.Verify(
-            s => s.Subscribe(
+            s => s.SubscribeAsync(
                 It.Is<RedisChannel>(c => c == RedisChannel.Literal(CacheInvalidationSubscriber.ChannelName)),
                 It.IsAny<Action<RedisChannel, RedisValue>>(),
                 It.IsAny<CommandFlags>()),
@@ -231,7 +231,7 @@ public class CacheInvalidationSubscriberTests
 
         // Assert：Subscribe 被再次调用（重连后重新订阅）
         subscriberMock.Verify(
-            s => s.Subscribe(
+            s => s.SubscribeAsync(
                 It.Is<RedisChannel>(c => c == RedisChannel.Literal(CacheInvalidationSubscriber.ChannelName)),
                 It.IsAny<Action<RedisChannel, RedisValue>>(),
                 It.IsAny<CommandFlags>()),
@@ -269,7 +269,7 @@ public class CacheInvalidationSubscriberTests
 
         // Assert：Subscribe 被再次调用
         subscriberMock.Verify(
-            s => s.Subscribe(
+            s => s.SubscribeAsync(
                 It.Is<RedisChannel>(c => c == RedisChannel.Literal(CacheInvalidationSubscriber.ChannelName)),
                 It.IsAny<Action<RedisChannel, RedisValue>>(),
                 It.IsAny<CommandFlags>()),
@@ -348,6 +348,145 @@ public class CacheInvalidationSubscriberTests
         }
 
         throw new InvalidOperationException("无法构造 InternalErrorEventArgs，请检查 StackExchange.Redis 版本");
+    }
+
+    // ===== P1-B.1 Task 3: OnMessage async void → async Task 改造测试 =====
+
+    /// <summary>
+    /// P1-B.1 Task 3：OnMessage 处理非法 JSON 时不应抛异常。
+    /// 原 `async void` 实现无法 await，反序列化后续 await 抛出的异常会作为 unobserved exception 崩进程；
+    /// 改为 `async Task` 后，handler 可被 await 验证不会冒泡。
+    /// 通过 internal OnMessage 直接调用以模拟 Redis 消息到达。
+    /// </summary>
+    [Fact]
+    public async Task OnMessage_DeserializeThrows_DoesNotCrashProcess()
+    {
+        // Arrange
+        var redisMock = new Mock<IConnectionMultiplexer>();
+        var subscriberMock = new Mock<ISubscriber>();
+        var databaseMock = new Mock<IDatabase>();
+        redisMock.Setup(r => r.GetSubscriber(It.IsAny<object>())).Returns(subscriberMock.Object);
+        redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(databaseMock.Object);
+        databaseMock.Setup(d => d.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(false);
+
+        // StartAsync 内部走 SubscribeAsync（Action 重载），mock 直接放行
+        subscriberMock
+            .Setup(s => s.SubscribeAsync(
+                It.Is<RedisChannel>(c => c == RedisChannel.Literal(CacheInvalidationSubscriber.ChannelName)),
+                It.IsAny<Action<RedisChannel, RedisValue>>(),
+                It.IsAny<CommandFlags>()))
+            .Returns(Task.CompletedTask);
+
+        var subscriber = new CacheInvalidationSubscriber(
+            redisMock.Object, NullLogger<CacheInvalidationSubscriber>.Instance);
+
+        await subscriber.StartAsync(CancellationToken.None);
+
+        // Act：直接调用 internal OnMessage（async Task），传入非法 JSON 触发 JsonException
+        var act = async () => await subscriber.OnMessage(
+            RedisChannel.Literal(CacheInvalidationSubscriber.ChannelName),
+            (RedisValue)"not-json");
+
+        // Assert：OnMessage 不抛异常（已被内部 try-catch 消化），且不会触发 KeyDelete
+        await act.Should().NotThrowAsync();
+        databaseMock.Verify(
+            d => d.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()),
+            Times.Never);
+
+        subscriber.Dispose();
+    }
+
+    /// <summary>
+    /// P1-B.1 Task 3：OnMessage 处理合法 CacheKey 消息时应触发 KeyDelete（双删模式两次）。
+    /// </summary>
+    [Fact]
+    public async Task OnMessage_ValidMessage_DeletesKeyAndDelayedDelete()
+    {
+        // Arrange
+        var redisMock = new Mock<IConnectionMultiplexer>();
+        var subscriberMock = new Mock<ISubscriber>();
+        var databaseMock = new Mock<IDatabase>();
+        redisMock.Setup(r => r.GetSubscriber(It.IsAny<object>())).Returns(subscriberMock.Object);
+        redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(databaseMock.Object);
+        databaseMock.Setup(d => d.KeyDeleteAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        subscriberMock
+            .Setup(s => s.SubscribeAsync(
+                It.Is<RedisChannel>(c => c == RedisChannel.Literal(CacheInvalidationSubscriber.ChannelName)),
+                It.IsAny<Action<RedisChannel, RedisValue>>(),
+                It.IsAny<CommandFlags>()))
+            .Returns(Task.CompletedTask);
+
+        var subscriber = new CacheInvalidationSubscriber(
+            redisMock.Object, NullLogger<CacheInvalidationSubscriber>.Instance);
+        // 短双删延迟以加速测试
+        subscriber.DoubleDeleteDelayOverride = TimeSpan.FromMilliseconds(1);
+
+        await subscriber.StartAsync(CancellationToken.None);
+
+        var validMessage = (RedisValue)JsonSerializer.Serialize(new
+        {
+            eventType = "CacheInvalidated",
+            cacheKey = "GET:/api/products/123::42",
+            pattern = (string?)null
+        });
+
+        // Act
+        await subscriber.OnMessage(
+            RedisChannel.Literal(CacheInvalidationSubscriber.ChannelName),
+            validMessage);
+
+        // 等待双删第二阶段（DelayedDeleteAsync 内的 Task.Delay）完成
+        await Task.Delay(50, CancellationToken.None);
+
+        // Assert：双删两次 KeyDeleteAsync，且 Key 拼接 KeyPrefix
+        databaseMock.Verify(
+            d => d.KeyDeleteAsync(
+                It.Is<RedisKey>(k => k == (RedisKey)("leno:cache:GET:/api/products/123::42")),
+                It.IsAny<CommandFlags>()),
+            Times.Exactly(2));
+
+        subscriber.Dispose();
+    }
+
+    /// <summary>
+    /// P1-B.1 Task 3：StartAsync 在 SubscribeAsync 失败时应记日志不抛异常，由重连机制兜底。
+    /// </summary>
+    [Fact]
+    public async Task StartAsync_SubscribeAsyncFails_LogsButDoesNotThrow()
+    {
+        // Arrange
+        var redisMock = new Mock<IConnectionMultiplexer>();
+        var subscriberMock = new Mock<ISubscriber>();
+        redisMock.Setup(r => r.GetSubscriber(It.IsAny<object>())).Returns(subscriberMock.Object);
+
+        subscriberMock
+            .Setup(s => s.SubscribeAsync(
+                It.Is<RedisChannel>(c => c == RedisChannel.Literal(CacheInvalidationSubscriber.ChannelName)),
+                It.IsAny<Action<RedisChannel, RedisValue>>(),
+                It.IsAny<CommandFlags>()))
+            .ThrowsAsync(new InvalidOperationException("Redis subscribe failed"));
+
+        var subscriber = new CacheInvalidationSubscriber(
+            redisMock.Object, NullLogger<CacheInvalidationSubscriber>.Instance);
+
+        // Act
+        var act = async () => await subscriber.StartAsync(CancellationToken.None);
+
+        // Assert：不抛异常，由 HostedService 健康检查 + 重连机制兜底
+        await act.Should().NotThrowAsync();
+
+        // SubscribeAsync 确实被调用了一次（证明已切换到 SubscribeAsync）
+        subscriberMock.Verify(
+            s => s.SubscribeAsync(
+                It.Is<RedisChannel>(c => c == RedisChannel.Literal(CacheInvalidationSubscriber.ChannelName)),
+                It.IsAny<Action<RedisChannel, RedisValue>>(),
+                It.IsAny<CommandFlags>()),
+            Times.Once);
+
+        subscriber.Dispose();
     }
 
     // ===== T23: InvalidatePatternAsync — UNLINK + 分批 SCAN 测试 =====

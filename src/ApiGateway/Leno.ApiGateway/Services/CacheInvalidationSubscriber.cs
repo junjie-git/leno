@@ -37,7 +37,7 @@ public sealed record CacheInvalidatedEvent
 /// 断线后以指数退避自动重新订阅通道，避免 Redis 故障恢复后订阅静默失效。
 /// </para>
 /// </summary>
-public sealed class CacheInvalidationSubscriber : IHostedService, IDisposable
+public sealed class CacheInvalidationSubscriber : IHostedService, IDisposable, IAsyncDisposable
 {
     private readonly IConnectionMultiplexer _redis;
     private readonly ILogger<CacheInvalidationSubscriber> _logger;
@@ -93,13 +93,13 @@ public sealed class CacheInvalidationSubscriber : IHostedService, IDisposable
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         _stoppingCts = new CancellationTokenSource();
         try
         {
             SubscribeToRedisEvents();
-            EnsureSubscribed();
+            await EnsureSubscribedAsync().ConfigureAwait(false);
             _logger.LogInformation(
                 "Subscribed to cache invalidation channel {Channel}", ChannelName);
         }
@@ -109,8 +109,6 @@ public sealed class CacheInvalidationSubscriber : IHostedService, IDisposable
             _logger.LogError(ex,
                 "Failed to subscribe to cache invalidation channel {Channel}", ChannelName);
         }
-
-        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -171,7 +169,7 @@ public sealed class CacheInvalidationSubscriber : IHostedService, IDisposable
 
             try
             {
-                EnsureSubscribed();
+                await EnsureSubscribedAsync().ConfigureAwait(false);
                 _logger.LogInformation(
                     "Redis 缓存失效订阅重连成功 Channel={Channel}", ChannelName);
                 return;
@@ -189,18 +187,49 @@ public sealed class CacheInvalidationSubscriber : IHostedService, IDisposable
 
     /// <summary>
     /// 确保 Pub/Sub 通道已订阅。重复调用幂等（先 Unsubscribe 再 Subscribe）。
+    /// <para>
+    /// P1-B.1：改用 <see cref="ISubscriber.SubscribeAsync(RedisChannel, Action{RedisChannel, RedisValue}, CommandFlags)"/>
+    /// 异步订阅，避免同步 <c>Subscribe</c> 在连接建立期间阻塞调用线程。
+    /// </para>
+    /// <para>
+    /// 注意：StackExchange.Redis 2.8.x 的 <c>SubscribeAsync</c> 仅接受
+    /// <see cref="Action{RedisChannel, RedisValue}"/> 委托（无 <c>Func&lt;..., Task&gt;</c> 重载），
+    /// 因此 <see cref="OnMessage"/> 是 <c>async Task</c>，由 <see cref="OnMessageHandler"/> 适配器
+    /// 包装为 <c>Action</c> 后注册到 SubscribeAsync。适配器内显式丢弃 Task，但
+    /// <see cref="OnMessage"/> 内部已包 try-catch 消化所有非 OCE 异常，Task 不会 fault。
+    /// </para>
     /// </summary>
-    private void EnsureSubscribed()
+    private Task EnsureSubscribedAsync()
     {
         _subscriber = _redis.GetSubscriber();
-        _subscriber.Subscribe(RedisChannel.Literal(ChannelName), OnMessage);
+        return _subscriber.SubscribeAsync(RedisChannel.Literal(ChannelName), OnMessageHandler);
     }
 
     /// <summary>
-    /// Redis 消息回调。签名要求 <c>async void</c>，内部 try-catch 防止未观察异常。
+    /// <see cref="ISubscriber.SubscribeAsync"/> 要求的 <c>Action</c> 适配器，
+    /// 内部触发 <see cref="OnMessage"/> 异步处理。
+    /// <para>
+    /// 丢弃 <see cref="OnMessage"/> 返回的 Task 是安全的：
+    /// <list type="bullet">
+    /// <item><see cref="OnMessage"/> 内部 try-catch 消化所有非 OCE 异常并记 LogError；</item>
+    /// <item>OCE 仅在服务停止时触发，<c>_ =</c> 丢弃产生的 unobserved exception
+    /// 在 .NET 4.5+ 默认不崩进程（仅触发 <c>TaskScheduler.UnobservedTaskException</c> 事件）；</item>
+    /// <item>原 <c>async void</c> 实现同样不观察 Task，但异常会直接冒泡到 SynchronizationContext
+    /// 并崩溃进程；改 <c>async Task</c> + 适配器后异常被 Task 捕获，不会冒泡。</item>
+    /// </list>
+    /// </para>
+    /// </summary>
+    private void OnMessageHandler(RedisChannel channel, RedisValue message)
+    {
+        _ = OnMessage(channel, message);
+    }
+
+    /// <summary>
+    /// Redis 消息回调。P1-B.1：原 <c>async void</c> 改为 <c>async Task</c>，
+    /// 内部 try-catch 防止未观察异常崩进程，且支持测试直接 await 验证。
     /// 采用双删模式：立即删除 → 延迟 500ms → 再删一次，缩小"先删→写库→并发读回填"脏读窗口。
     /// </summary>
-    private async void OnMessage(RedisChannel channel, RedisValue message)
+    internal async Task OnMessage(RedisChannel channel, RedisValue message)
     {
         try
         {
@@ -236,7 +265,7 @@ public sealed class CacheInvalidationSubscriber : IHostedService, IDisposable
                 await InvalidatePatternAsync(db, evt.Pattern, isSecondDelete: true);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Failed to process cache invalidation message: {Message}", message);
         }
@@ -400,6 +429,57 @@ public sealed class CacheInvalidationSubscriber : IHostedService, IDisposable
         try
         {
             _subscriber?.UnsubscribeAll();
+        }
+        catch
+        {
+            // 忽略 dispose 异常
+        }
+
+        try
+        {
+            _redis.ConnectionFailed -= OnConnectionFailed;
+            _redis.InternalError -= OnInternalError;
+        }
+        catch
+        {
+            // 忽略 dispose 异常
+        }
+    }
+
+    /// <summary>
+    /// P1-B.1：异步释放资源。DI 容器优先调用 <see cref="DisposeAsync"/> 而非 <see cref="Dispose"/>。
+    /// <para>
+    /// 与 <see cref="Dispose"/> 的区别：使用 <see cref="ISubscriber.UnsubscribeAllAsync"/>
+    /// 异步取消订阅，避免同步 <c>UnsubscribeAll</c> 在网络故障时阻塞 Dispose 调用线程。
+    /// </para>
+    /// <para>
+    /// 通过 <see cref="Interlocked.Exchange(ref int, int)"/> 保证幂等，
+    /// 与 <see cref="Dispose"/> 互斥（任一先执行后，另一个直接返回）。
+    /// </para>
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            _stoppingCts?.Cancel();
+            _stoppingCts?.Dispose();
+        }
+        catch
+        {
+            // 忽略 dispose 异常
+        }
+
+        try
+        {
+            if (_subscriber is not null)
+            {
+                await _subscriber.UnsubscribeAllAsync().ConfigureAwait(false);
+            }
         }
         catch
         {
