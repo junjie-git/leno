@@ -224,9 +224,11 @@ public class ReconciliationServiceTests
         };
         // Manually set OutTradeNo to match only one
         typeof(PaymentOrder).GetProperty("OutTradeNo")!.SetValue(systemOrders[0], "PAY001");
+        typeof(PaymentOrder).GetProperty("ChannelTradeNo")!.SetValue(systemOrders[0], "WX_TXN_001");
 
+        var (byOutTradeNo, byChannelTradeNo) = BuildDictionaries(systemOrders);
         var diffs = ReconciliationService.CompareReconciliation(
-            billDate, channel, channelRecords, systemOrders);
+            billDate, channel, channelRecords, byOutTradeNo, byChannelTradeNo);
 
         var channelOnlyDiffs = diffs.Where(d => d.DiffType == ReconciliationDiffType.ChannelOnly).ToList();
         channelOnlyDiffs.Should().HaveCount(1);
@@ -250,10 +252,13 @@ public class ReconciliationServiceTests
             PaymentOrder.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 200m, "CNY", PaymentChannel.WeChatPay)
         };
         typeof(PaymentOrder).GetProperty("OutTradeNo")!.SetValue(systemOrders[0], "PAY001");
+        typeof(PaymentOrder).GetProperty("ChannelTradeNo")!.SetValue(systemOrders[0], "WX_TXN_001");
         typeof(PaymentOrder).GetProperty("OutTradeNo")!.SetValue(systemOrders[1], "PAY002");
+        typeof(PaymentOrder).GetProperty("ChannelTradeNo")!.SetValue(systemOrders[1], "WX_TXN_002");
 
+        var (byOutTradeNo, byChannelTradeNo) = BuildDictionaries(systemOrders);
         var diffs = ReconciliationService.CompareReconciliation(
-            billDate, channel, channelRecords, systemOrders);
+            billDate, channel, channelRecords, byOutTradeNo, byChannelTradeNo);
 
         var systemOnlyDiffs = diffs.Where(d => d.DiffType == ReconciliationDiffType.SystemOnly).ToList();
         systemOnlyDiffs.Should().HaveCount(1);
@@ -276,9 +281,11 @@ public class ReconciliationServiceTests
             PaymentOrder.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 90m, "CNY", PaymentChannel.WeChatPay)
         };
         typeof(PaymentOrder).GetProperty("OutTradeNo")!.SetValue(systemOrders[0], "PAY001");
+        typeof(PaymentOrder).GetProperty("ChannelTradeNo")!.SetValue(systemOrders[0], "WX_TXN_001");
 
+        var (byOutTradeNo, byChannelTradeNo) = BuildDictionaries(systemOrders);
         var diffs = ReconciliationService.CompareReconciliation(
-            billDate, channel, channelRecords, systemOrders);
+            billDate, channel, channelRecords, byOutTradeNo, byChannelTradeNo);
 
         var amountDiffs = diffs.Where(d => d.DiffType == ReconciliationDiffType.AmountMismatch).ToList();
         amountDiffs.Should().HaveCount(1);
@@ -302,10 +309,37 @@ public class ReconciliationServiceTests
             PaymentOrder.Create(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 100m, "CNY", PaymentChannel.WeChatPay)
         };
         typeof(PaymentOrder).GetProperty("OutTradeNo")!.SetValue(systemOrders[0], "PAY001");
+        typeof(PaymentOrder).GetProperty("ChannelTradeNo")!.SetValue(systemOrders[0], "WX_TXN_001");
 
+        var (byOutTradeNo, byChannelTradeNo) = BuildDictionaries(systemOrders);
         var diffs = ReconciliationService.CompareReconciliation(
-            billDate, channel, channelRecords, systemOrders);
+            billDate, channel, channelRecords, byOutTradeNo, byChannelTradeNo);
 
         diffs.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// 按系统订单列表构建 OutTradeNo 与 ChannelTradeNo 两个索引字典，
+    /// 与 ReconciliationService.LoadSystemOrdersPagedAsync 内部字典构建逻辑保持一致，
+    /// 避免在每个测试用例内重复编写相同的字典填充代码。
+    /// </summary>
+    private static (IReadOnlyDictionary<string, PaymentOrder> byOutTradeNo,
+                    IReadOnlyDictionary<string, PaymentOrder> byChannelTradeNo) BuildDictionaries(
+        IReadOnlyList<PaymentOrder> orders)
+    {
+        var byOut = new Dictionary<string, PaymentOrder>();
+        var byChannel = new Dictionary<string, PaymentOrder>();
+        foreach (var o in orders)
+        {
+            if (!string.IsNullOrEmpty(o.OutTradeNo))
+            {
+                byOut[o.OutTradeNo] = o;
+            }
+            if (!string.IsNullOrEmpty(o.ChannelTradeNo))
+            {
+                byChannel[o.ChannelTradeNo!] = o;
+            }
+        }
+        return (byOut, byChannel);
     }
 }

@@ -17,6 +17,13 @@ namespace Leno.Payment.Infrastructure.Services;
 /// </summary>
 public sealed class ReconciliationService : BackgroundService, IReconciliationService
 {
+    /// <summary>
+    /// 对账分页大小：每页 500 条，循环查询直到不足一页。
+    /// 旧实现一次性 QueryAsync(..., 1, 10000) 在大数据量场景下会漏对账，
+    /// 改为分页循环可避免该问题。
+    /// </summary>
+    private const int ReconciliationPageSize = 500;
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ReconciliationService> _logger;
 
@@ -70,6 +77,8 @@ public sealed class ReconciliationService : BackgroundService, IReconciliationSe
 
     /// <summary>
     /// 执行对账：下载渠道账单、解析、与系统支付单对比、记录差异。
+    /// 系统支付单采用 PageSize=500 分页循环查询，避免一次性拉取 10000 条
+    /// 在大数据量场景下漏对账。
     /// </summary>
     public async Task ReconcileAsync(DateTime billDate, CancellationToken ct = default)
     {
@@ -92,13 +101,17 @@ public sealed class ReconciliationService : BackgroundService, IReconciliationSe
                 // 2. 解析对账单
                 var channelRecords = ParseBill(channel, billContent);
 
-                // 3. 查询系统支付单
-                var systemOrders = await paymentRepo.QueryAsync(
-                    null, channel, PaymentStatus.Paid,
-                    billDate, billDate.AddDays(1).AddTicks(-1), 1, 10000, ct);
+                // 3. 分页查询系统支付单，构建 OutTradeNo 与 ChannelTradeNo 索引
+                var (systemByOutTradeNo, systemByChannelTradeNo) = await LoadSystemOrdersPagedAsync(
+                    paymentRepo, channel, billDate, ct);
+
+                _logger.LogInformation(
+                    "渠道 {Channel} 系统支付单加载完成 共 {Count} 条",
+                    channel, systemByOutTradeNo.Count);
 
                 // 4. 对比
-                var diffs = CompareReconciliation(billDate, channel, channelRecords, systemOrders);
+                var diffs = CompareReconciliation(
+                    billDate, channel, channelRecords, systemByOutTradeNo, systemByChannelTradeNo);
 
                 // 5. 保存差异
                 if (diffs.Count > 0)
@@ -120,6 +133,58 @@ public sealed class ReconciliationService : BackgroundService, IReconciliationSe
                 _logger.LogError(ex, "渠道 {Channel} 对账异常", channel);
             }
         }
+    }
+
+    /// <summary>
+    /// 分页循环加载系统支付单并构建索引字典。
+    /// 循环退出条件：返回 0 条（无更多数据）或返回不足一页（batch.Count &lt; PageSize）。
+    /// 当 batch.Count == PageSize 时必须继续查询下一页，确认无更多数据。
+    /// </summary>
+    private async Task<(Dictionary<string, PaymentOrder> byOutTradeNo,
+                        Dictionary<string, PaymentOrder> byChannelTradeNo)> LoadSystemOrdersPagedAsync(
+        IPaymentOrderRepository paymentRepo,
+        PaymentChannel channel,
+        DateTime billDate,
+        CancellationToken ct)
+    {
+        var byOutTradeNo = new Dictionary<string, PaymentOrder>();
+        var byChannelTradeNo = new Dictionary<string, PaymentOrder>();
+        var endDateExclusive = billDate.AddDays(1).AddTicks(-1);
+
+        var page = 1;
+        while (true)
+        {
+            var batch = await paymentRepo.QueryAsync(
+                null, channel, PaymentStatus.Paid,
+                billDate, endDateExclusive,
+                page, ReconciliationPageSize, ct).ConfigureAwait(false);
+
+            if (batch.Count == 0)
+            {
+                break;
+            }
+
+            foreach (var order in batch)
+            {
+                if (!string.IsNullOrEmpty(order.OutTradeNo))
+                {
+                    byOutTradeNo[order.OutTradeNo] = order;
+                }
+                if (!string.IsNullOrEmpty(order.ChannelTradeNo))
+                {
+                    byChannelTradeNo[order.ChannelTradeNo!] = order;
+                }
+            }
+
+            if (batch.Count < ReconciliationPageSize)
+            {
+                break;
+            }
+
+            page++;
+        }
+
+        return (byOutTradeNo, byChannelTradeNo);
     }
 
     /// <summary>
@@ -257,76 +322,82 @@ public sealed class ReconciliationService : BackgroundService, IReconciliationSe
 
     /// <summary>
     /// 对比渠道账单与系统支付单，生成差异列表。
+    /// 接收预构建的索引字典（由 ReconcileAsync 分页加载后构建），避免在比对阶段重复扫描系统订单列表。
+    /// 匹配优先级：先按 OutTradeNo 匹配，未命中再按 ChannelTradeNo 匹配。
     /// </summary>
+    /// <param name="billDate">对账日期（账单日期）。</param>
+    /// <param name="channel">支付渠道。</param>
+    /// <param name="channelRecords">渠道账单解析后的交易记录列表。</param>
+    /// <param name="systemByOutTradeNo">系统支付单按 OutTradeNo 建立的索引。</param>
+    /// <param name="systemByChannelTradeNo">系统支付单按 ChannelTradeNo 建立的索引。</param>
+    /// <returns>差异列表，可能包含 ChannelOnly / SystemOnly / AmountMismatch。</returns>
     public static List<ReconciliationDiff> CompareReconciliation(
         DateTime billDate,
         PaymentChannel channel,
-        List<BillRecord> channelRecords,
-        List<PaymentOrder> systemOrders)
+        IReadOnlyList<BillRecord> channelRecords,
+        IReadOnlyDictionary<string, PaymentOrder> systemByOutTradeNo,
+        IReadOnlyDictionary<string, PaymentOrder> systemByChannelTradeNo)
     {
         var diffs = new List<ReconciliationDiff>();
+        var matchedOrderIds = new HashSet<Guid>();
 
-        // 构建渠道交易号索引
-        var channelByTransactionNo = channelRecords
-            .Where(r => !string.IsNullOrWhiteSpace(r.ChannelTransactionNo))
-            .ToDictionary(r => r.ChannelTransactionNo!);
-
-        // 构建系统交易号索引
-        var systemByOutTradeNo = systemOrders
-            .Where(o => !string.IsNullOrWhiteSpace(o.OutTradeNo))
-            .ToDictionary(o => o.OutTradeNo!);
-
-        // 1. 渠道有记录，系统无记录（ChannelOnly）
-        foreach (var (txnNo, record) in channelByTransactionNo)
+        // 1. 遍历渠道账单，按 OutTradeNo / ChannelTradeNo 匹配系统支付单
+        foreach (var record in channelRecords)
         {
-            if (!systemByOutTradeNo.ContainsKey(txnNo) && !systemByOutTradeNo.ContainsKey(record.OutTradeNo))
-            {
-                // 同时按交易号和商户订单号查找
-                var systemByChannelTradeNo = systemOrders
-                    .Where(o => o.ChannelTradeNo == txnNo)
-                    .ToList();
+            PaymentOrder? matched = null;
 
-                if (systemByChannelTradeNo.Count == 0)
+            // 优先按商户订单号匹配
+            if (!string.IsNullOrEmpty(record.OutTradeNo)
+                && systemByOutTradeNo.TryGetValue(record.OutTradeNo, out var byOut))
+            {
+                matched = byOut;
+            }
+            // 其次按渠道交易号匹配
+            else if (!string.IsNullOrEmpty(record.ChannelTransactionNo)
+                && systemByChannelTradeNo.TryGetValue(record.ChannelTransactionNo, out var byChannel))
+            {
+                matched = byChannel;
+            }
+
+            if (matched is null)
+            {
+                // 渠道有记录，系统无匹配 → ChannelOnly
+                diffs.Add(ReconciliationDiff.Create(
+                    Guid.NewGuid(), billDate, channel, ReconciliationDiffType.ChannelOnly,
+                    record.ChannelTransactionNo, record.Amount, record.TransactionTime,
+                    null, null, null,
+                    $"渠道有交易记录但系统无对应支付单：商户订单号={record.OutTradeNo}"));
+            }
+            else
+            {
+                matchedOrderIds.Add(matched.Id);
+
+                // 金额不一致 → AmountMismatch
+                if (matched.Amount != record.Amount)
                 {
                     diffs.Add(ReconciliationDiff.Create(
-                        Guid.NewGuid(), billDate, channel, ReconciliationDiffType.ChannelOnly,
-                        txnNo, record.Amount, record.TransactionTime,
-                        null, null, null,
-                        $"渠道有交易记录但系统无对应支付单：商户订单号={record.OutTradeNo}"));
+                        Guid.NewGuid(), billDate, channel, ReconciliationDiffType.AmountMismatch,
+                        record.ChannelTransactionNo, record.Amount, record.TransactionTime,
+                        matched.OutTradeNo, matched.Amount, matched.Id,
+                        $"金额不一致：渠道={record.Amount}，系统={matched.Amount}"));
                 }
             }
         }
 
-        // 2. 系统有记录，渠道无记录（SystemOnly）
-        foreach (var order in systemOrders)
+        // 2. 系统有记录但渠道未匹配 → SystemOnly
+        foreach (var kvp in systemByOutTradeNo)
         {
-            var hasMatch = channelByTransactionNo.ContainsKey(order.OutTradeNo)
-                || (order.ChannelTradeNo is not null && channelByTransactionNo.ContainsKey(order.ChannelTradeNo));
-
-            if (!hasMatch)
+            var order = kvp.Value;
+            if (matchedOrderIds.Contains(order.Id))
             {
-                diffs.Add(ReconciliationDiff.Create(
-                    Guid.NewGuid(), billDate, channel, ReconciliationDiffType.SystemOnly,
-                    order.ChannelTradeNo, null, null,
-                    order.OutTradeNo, order.Amount, order.Id,
-                    $"系统有支付单但渠道无对应交易记录"));
+                continue;
             }
-        }
 
-        // 3. 金额不一致（AmountMismatch）
-        foreach (var (txnNo, record) in channelByTransactionNo)
-        {
-            var matchedOrder = systemOrders.FirstOrDefault(o =>
-                o.ChannelTradeNo == txnNo || o.OutTradeNo == txnNo);
-
-            if (matchedOrder is not null && matchedOrder.Amount != record.Amount)
-            {
-                diffs.Add(ReconciliationDiff.Create(
-                    Guid.NewGuid(), billDate, channel, ReconciliationDiffType.AmountMismatch,
-                    txnNo, record.Amount, record.TransactionTime,
-                    matchedOrder.OutTradeNo, matchedOrder.Amount, matchedOrder.Id,
-                    $"金额不一致：渠道={record.Amount}，系统={matchedOrder.Amount}"));
-            }
+            diffs.Add(ReconciliationDiff.Create(
+                Guid.NewGuid(), billDate, channel, ReconciliationDiffType.SystemOnly,
+                order.ChannelTradeNo, null, null,
+                order.OutTradeNo, order.Amount, order.Id,
+                $"系统有支付单但渠道无对应交易记录"));
         }
 
         return diffs;
