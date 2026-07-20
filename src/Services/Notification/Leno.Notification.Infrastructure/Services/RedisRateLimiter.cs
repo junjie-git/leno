@@ -103,20 +103,32 @@ public sealed class RedisRateLimiter : IRateLimiter
         var transaction = db.CreateTransaction();
 
         // 1. 移除窗口外的过期记录
-        _ = transaction.SortedSetRemoveRangeByScoreAsync(key, double.NegativeInfinity, windowStart);
+        var removeTask = transaction.SortedSetRemoveRangeByScoreAsync(key, double.NegativeInfinity, windowStart);
 
         // 2. 统计窗口内的记录数
         var countTask = transaction.SortedSetLengthAsync(key);
 
         // 3. 添加当前请求记录
-        _ = transaction.SortedSetAddAsync(key, now, now);
+        var addTask = transaction.SortedSetAddAsync(key, now, now);
 
         // 4. 设置过期时间
-        _ = transaction.KeyExpireAsync(key, window + TimeSpan.FromMinutes(1));
+        var expireTask = transaction.KeyExpireAsync(key, window + TimeSpan.FromMinutes(1));
 
-        await transaction.ExecuteAsync();
+        var executed = await transaction.ExecuteAsync().ConfigureAwait(false);
+        if (!executed)
+        {
+            // 事务未执行（条件不满足或 Redis 内部错误）→ fail-open 降级为允许
+            // 此时排队中的 Task 可能未完成，不应阻塞 await，直接降级
+            _logger.LogWarning("Redis 事务未执行 Recipient={Recipient} Channel={Channel} Window={WindowType}",
+                recipient, channel, windowType);
+            return RateLimitResult.AllowedResult();
+        }
 
-        var count = (int)(await countTask);
+        // 显式等待所有事务 Task 完成，消除 unobserved exception 风险
+        // （removeTask/addTask/expireTask 此前被 _ = 丢弃，faulted 时会触发 TaskScheduler.UnobservedTaskException）
+        await Task.WhenAll(removeTask, countTask, addTask, expireTask).ConfigureAwait(false);
+
+        var count = (int)(await countTask.ConfigureAwait(false));
 
         if (count > limit)
         {
