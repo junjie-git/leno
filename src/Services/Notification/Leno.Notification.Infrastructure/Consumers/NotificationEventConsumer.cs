@@ -9,7 +9,7 @@ namespace Leno.Notification.Infrastructure.Consumers;
 
 /// <summary>
 /// 统一通知事件消费者，处理所有 12 种集成事件，将其映射为通知发送请求。
-/// 主事务不等待通知完成（fire-and-forget）；变量补全失败或缺少映射时不阻塞队列。
+/// await 通知发送完成，异常冒泡到 MassTransit 触发重试；变量补全失败或缺少映射时不阻塞队列。
 /// </summary>
 public sealed class NotificationEventConsumer :
     IConsumer<OrderCreatedEvent>,
@@ -137,10 +137,11 @@ public sealed class NotificationEventConsumer :
         });
 
     /// <summary>
-    /// 通用事件处理：映射事件类型到模板编码，构建变量，调用通知服务（fire-and-forget）。
-    /// 缺少模板映射或变量补全失败时仅记录警告，不阻塞消息队列。
+    /// 通用事件处理：映射事件类型到模板编码，构建变量，await 调用通知服务。
+    /// 缺少模板映射或变量补全失败时仅记录警告，不阻塞消息队列（这些是配置/数据问题，重试无意义）。
+    /// 通知发送失败时异常冒泡到 MassTransit，由重试策略 + 死信队列处理。
     /// </summary>
-    private Task HandleAsync<TEvent>(
+    private async Task HandleAsync<TEvent>(
         TEvent evt,
         string eventType,
         Func<TEvent, Guid> getUserId,
@@ -153,7 +154,7 @@ public sealed class NotificationEventConsumer :
         if (templateCode is null)
         {
             _logger.LogWarning("事件类型 {EventType} 未找到模板映射，跳过通知发送 EventId={EventId}", eventType, evt.EventId);
-            return Task.CompletedTask;
+            return;
         }
 
         Dictionary<string, string> variables;
@@ -164,7 +165,7 @@ public sealed class NotificationEventConsumer :
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "事件 {EventType} 变量补全失败，跳过通知发送 EventId={EventId}", eventType, evt.EventId);
-            return Task.CompletedTask;
+            return;
         }
 
         var request = new NotificationRequest
@@ -176,21 +177,18 @@ public sealed class NotificationEventConsumer :
             BusinessRef = string.Empty
         };
 
-        // Fire-and-forget: 主事务不等待通知发送完成
-        _ = SendAsync(request, eventType, evt.EventId);
-        return Task.CompletedTask;
+        // await SendAsync: 异常冒泡到 MassTransit 重试；IdempotencyKey 已设置，重试不会重复发送
+        await SendAsync(request, eventType, evt.EventId).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// 调用通知服务发送通知。异常冒泡到 MassTransit，由重试策略 + 死信队列处理。
+    /// IdempotencyKey 已在调用前设置为 EventId，重试不会重复发送。
+    /// </summary>
     private async Task SendAsync(NotificationRequest request, string eventType, Guid eventId)
     {
-        try
-        {
-            await _notificationService.SendAsync(request);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "通知发送异常 EventType={EventType} EventId={EventId} TemplateCode={TemplateCode}",
-                eventType, eventId, request.TemplateCode);
-        }
+        await _notificationService.SendAsync(request).ConfigureAwait(false);
+        _logger.LogInformation("通知发送成功 EventType={EventType} EventId={EventId} TemplateCode={TemplateCode}",
+            eventType, eventId, request.TemplateCode);
     }
 }

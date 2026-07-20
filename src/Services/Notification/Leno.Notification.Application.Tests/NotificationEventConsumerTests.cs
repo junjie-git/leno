@@ -29,24 +29,26 @@ public class NotificationEventConsumerTests
     }
 
     [Fact]
-    public async Task Consume_OrderCreatedEvent_ShouldFireAndForget()
+    public async Task Consume_OrderCreatedEvent_ShouldSendNotification()
     {
         // Arrange
         SetupSendAsyncSuccess();
         var evt = new OrderCreatedEvent(
-            Guid.NewGuid(), Guid.NewGuid(), 99.99m, "CNY", DateTime.UtcNow, []);
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 99.99m, "CNY", DateTime.UtcNow, []);
         var context = new Mock<ConsumeContext<OrderCreatedEvent>>();
         context.Setup(c => c.Message).Returns(evt);
 
-        // Act
-        var result = _sut.Consume(context.Object);
+        // Act - 直接 await Consume，异常会冒泡到 MassTransit 重试
+        await _sut.Consume(context.Object);
 
-        // Assert - should return completed task immediately (fire-and-forget)
-        result.IsCompletedSuccessfully.Should().BeTrue();
+        // Assert - SendAsync 被调用一次
+        _notificationServiceMock.Verify(
+            s => s.SendAsync(It.IsAny<NotificationRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task Consume_OrderShippedEvent_ShouldFireAndForget()
+    public async Task Consume_OrderShippedEvent_ShouldSendNotification()
     {
         // Arrange
         SetupSendAsyncSuccess();
@@ -56,14 +58,16 @@ public class NotificationEventConsumerTests
         context.Setup(c => c.Message).Returns(evt);
 
         // Act
-        var result = _sut.Consume(context.Object);
+        await _sut.Consume(context.Object);
 
         // Assert
-        result.IsCompletedSuccessfully.Should().BeTrue();
+        _notificationServiceMock.Verify(
+            s => s.SendAsync(It.IsAny<NotificationRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task Consume_OrderCompletedEvent_ShouldFireAndForget()
+    public async Task Consume_OrderCompletedEvent_ShouldSendNotification()
     {
         // Arrange
         SetupSendAsyncSuccess();
@@ -73,14 +77,16 @@ public class NotificationEventConsumerTests
         context.Setup(c => c.Message).Returns(evt);
 
         // Act
-        var result = _sut.Consume(context.Object);
+        await _sut.Consume(context.Object);
 
         // Assert
-        result.IsCompletedSuccessfully.Should().BeTrue();
+        _notificationServiceMock.Verify(
+            s => s.SendAsync(It.IsAny<NotificationRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task Consume_PaymentSucceededEvent_ShouldFireAndForget()
+    public async Task Consume_PaymentSucceededEvent_ShouldSendNotification()
     {
         // Arrange
         SetupSendAsyncSuccess();
@@ -90,14 +96,16 @@ public class NotificationEventConsumerTests
         context.Setup(c => c.Message).Returns(evt);
 
         // Act
-        var result = _sut.Consume(context.Object);
+        await _sut.Consume(context.Object);
 
         // Assert
-        result.IsCompletedSuccessfully.Should().BeTrue();
+        _notificationServiceMock.Verify(
+            s => s.SendAsync(It.IsAny<NotificationRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task Consume_PaymentFailedEvent_ShouldFireAndForget()
+    public async Task Consume_PaymentFailedEvent_ShouldSendNotification()
     {
         // Arrange
         SetupSendAsyncSuccess();
@@ -107,14 +115,16 @@ public class NotificationEventConsumerTests
         context.Setup(c => c.Message).Returns(evt);
 
         // Act
-        var result = _sut.Consume(context.Object);
+        await _sut.Consume(context.Object);
 
         // Assert
-        result.IsCompletedSuccessfully.Should().BeTrue();
+        _notificationServiceMock.Verify(
+            s => s.SendAsync(It.IsAny<NotificationRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task Consume_AfterSalesApprovedEvent_ShouldFireAndForget()
+    public async Task Consume_AfterSalesApprovedEvent_ShouldSendNotification()
     {
         // Arrange
         SetupSendAsyncSuccess();
@@ -124,14 +134,16 @@ public class NotificationEventConsumerTests
         context.Setup(c => c.Message).Returns(evt);
 
         // Act
-        var result = _sut.Consume(context.Object);
+        await _sut.Consume(context.Object);
 
         // Assert
-        result.IsCompletedSuccessfully.Should().BeTrue();
+        _notificationServiceMock.Verify(
+            s => s.SendAsync(It.IsAny<NotificationRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task Consume_RefundCompletedEvent_ShouldFireAndForget()
+    public async Task Consume_RefundCompletedEvent_ShouldSendNotification()
     {
         // Arrange
         SetupSendAsyncSuccess();
@@ -141,14 +153,16 @@ public class NotificationEventConsumerTests
         context.Setup(c => c.Message).Returns(evt);
 
         // Act
-        var result = _sut.Consume(context.Object);
+        await _sut.Consume(context.Object);
 
         // Assert
-        result.IsCompletedSuccessfully.Should().BeTrue();
+        _notificationServiceMock.Verify(
+            s => s.SendAsync(It.IsAny<NotificationRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task Consume_UserRegisteredEvent_ShouldFireAndForget()
+    public async Task Consume_UserRegisteredEvent_ShouldSendNotification()
     {
         // Arrange
         SetupSendAsyncSuccess();
@@ -157,10 +171,12 @@ public class NotificationEventConsumerTests
         context.Setup(c => c.Message).Returns(evt);
 
         // Act
-        var result = _sut.Consume(context.Object);
+        await _sut.Consume(context.Object);
 
         // Assert
-        result.IsCompletedSuccessfully.Should().BeTrue();
+        _notificationServiceMock.Verify(
+            s => s.SendAsync(It.IsAny<NotificationRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -175,14 +191,12 @@ public class NotificationEventConsumerTests
 
         var buyerId = Guid.NewGuid();
         var evt = new OrderCreatedEvent(
-            Guid.NewGuid(), buyerId, 99.99m, "CNY", DateTime.UtcNow, []);
+            Guid.NewGuid(), buyerId, Guid.NewGuid(), 99.99m, "CNY", DateTime.UtcNow, []);
         var context = new Mock<ConsumeContext<OrderCreatedEvent>>();
         context.Setup(c => c.Message).Returns(evt);
 
-        // Act
-        _ = _sut.Consume(context.Object);
-        // Wait for fire-and-forget to complete
-        await Task.Delay(100);
+        // Act - 直接 await Consume，无需 Task.Delay 等待 fire-and-forget
+        await _sut.Consume(context.Object);
 
         // Assert
         capturedRequest.Should().NotBeNull();
@@ -206,8 +220,7 @@ public class NotificationEventConsumerTests
         context.Setup(c => c.Message).Returns(evt);
 
         // Act
-        _ = _sut.Consume(context.Object);
-        await Task.Delay(100);
+        await _sut.Consume(context.Object);
 
         // Assert
         capturedRequest.Should().NotBeNull();
@@ -215,21 +228,71 @@ public class NotificationEventConsumerTests
     }
 
     [Fact]
-    public async Task Consume_SendAsyncFails_ShouldNotThrow()
+    public async Task Consume_SendAsyncFails_ShouldThrow()
     {
-        // Arrange
+        // Arrange - 模拟通知发送失败（如 SMS 网关宕机）
         _notificationServiceMock
             .Setup(s => s.SendAsync(It.IsAny<NotificationRequest>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("Send failed"));
+            .ThrowsAsync(new InvalidOperationException("SMS gateway down"));
 
         var evt = new UserRegisteredEvent(Guid.NewGuid(), "testuser", "test@example.com", "13800138000");
         var context = new Mock<ConsumeContext<UserRegisteredEvent>>();
         context.Setup(c => c.Message).Returns(evt);
 
-        // Act - should not throw
-        var result = _sut.Consume(context.Object);
+        // Act + Assert - 异常应冒泡到 MassTransit 触发重试，而非被吞掉
+        // 当前 fire-and-forget 实现下 Consume 立即返回 Task.CompletedTask，本测试应失败
+        await FluentActions.Awaiting(() => _sut.Consume(context.Object))
+            .Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("SMS gateway down");
+    }
 
-        // Assert
-        result.IsCompletedSuccessfully.Should().BeTrue();
+    [Fact]
+    public async Task Consume_OrderCreated_ShouldSendNotification()
+    {
+        // Arrange - 验证 await 后 SendAsync 被调用且参数正确
+        NotificationRequest? capturedRequest = null;
+        _notificationServiceMock
+            .Setup(s => s.SendAsync(It.IsAny<NotificationRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<NotificationRequest, CancellationToken>((r, _) => capturedRequest = r)
+            .ReturnsAsync(new NotificationSendResult { Succeeded = true });
+
+        var buyerId = Guid.NewGuid();
+        var evt = new OrderCreatedEvent(
+            Guid.NewGuid(), buyerId, Guid.NewGuid(), 99.99m, "CNY", DateTime.UtcNow, []);
+        var context = new Mock<ConsumeContext<OrderCreatedEvent>>();
+        context.Setup(c => c.Message).Returns(evt);
+
+        // Act - 直接 await Consume（不再 fire-and-forget）
+        await _sut.Consume(context.Object);
+
+        // Assert - SendAsync 被调用一次，参数正确
+        _notificationServiceMock.Verify(
+            s => s.SendAsync(It.IsAny<NotificationRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        capturedRequest.Should().NotBeNull();
+        capturedRequest!.UserId.Should().Be(buyerId);
+        capturedRequest.TemplateCode.Should().Be("order_created");
+        capturedRequest.IdempotencyKey.Should().Be(evt.EventId.ToString());
+        capturedRequest.Variables.Should().ContainKey("orderId");
+        capturedRequest.Variables.Should().ContainKey("totalAmount");
+        capturedRequest.Variables.Should().ContainKey("currency");
+    }
+
+    [Fact]
+    public async Task Consume_SendAsyncSucceeds_ShouldAckMessage()
+    {
+        // Arrange - 验证成功后 Consume 正常返回（隐式 ACK，无异常）
+        SetupSendAsyncSuccess();
+        var evt = new UserRegisteredEvent(Guid.NewGuid(), "testuser", "test@example.com", "13800138000");
+        var context = new Mock<ConsumeContext<UserRegisteredEvent>>();
+        context.Setup(c => c.Message).Returns(evt);
+
+        // Act - Consume 正常完成意味着 MassTransit 会 ACK 消息
+        await _sut.Consume(context.Object);
+
+        // Assert - SendAsync 被调用一次
+        _notificationServiceMock.Verify(
+            s => s.SendAsync(It.IsAny<NotificationRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

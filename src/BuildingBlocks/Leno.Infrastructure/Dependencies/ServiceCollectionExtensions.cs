@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using StackExchange.Redis;
+using System.Globalization;
 
 namespace Leno.Infrastructure.Dependencies;
 
@@ -143,8 +144,40 @@ public static class ServiceCollectionExtensions
                     h.Password(password);
                 });
 
-                // 指数退避重试，重试耗尽进入死信队列
-                rabbitCfg.UseMessageRetry(r => r.Incremental(5, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30)));
+                // 重试策略：从 MassTransit:Retry 配置节读取，未配置时使用默认值 5 次/10s 初始/30s 递增（向后兼容）
+                // 重试耗尽后由 MassTransit 转入死信队列
+                // 配置 Interval 时同时用作初始间隔和递增量（符合设计 spec 的 5s/10s/15s 模式）
+                var retrySection = configuration.GetSection("MassTransit:Retry");
+                var retryCount = retrySection.GetValue<int?>("Count") ?? 5;
+                var isIncremental = retrySection.GetValue<bool?>("Incremental") ?? true;
+
+                TimeSpan initialInterval;
+                TimeSpan intervalIncrement;
+                var intervalStr = retrySection["Interval"];
+                if (TimeSpan.TryParse(intervalStr, CultureInfo.InvariantCulture, out var parsedInterval))
+                {
+                    // 配置了 Interval：同时作为初始间隔和递增量（符合 spec 的 5s/10s/15s 模式）
+                    initialInterval = parsedInterval;
+                    intervalIncrement = parsedInterval;
+                }
+                else
+                {
+                    // 未配置 Interval：使用既有默认值 10s 初始 + 30s 递增（向后兼容其他服务）
+                    initialInterval = TimeSpan.FromSeconds(10);
+                    intervalIncrement = TimeSpan.FromSeconds(30);
+                }
+
+                rabbitCfg.UseMessageRetry(r =>
+                {
+                    if (isIncremental)
+                    {
+                        r.Incremental(retryCount, initialInterval, intervalIncrement);
+                    }
+                    else
+                    {
+                        r.Intervals(initialInterval);
+                    }
+                });
 
                 rabbitCfg.ConfigureEndpoints(context);
             });

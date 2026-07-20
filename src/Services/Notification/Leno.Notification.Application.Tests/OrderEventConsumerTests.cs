@@ -33,7 +33,7 @@ public class OrderEventConsumerTests
 
         var buyerId = Guid.NewGuid();
         var orderId = Guid.NewGuid();
-        var evt = new OrderCreatedEvent(orderId, buyerId, 199.99m, "CNY", DateTime.UtcNow, []);
+        var evt = new OrderCreatedEvent(orderId, buyerId, Guid.NewGuid(), 199.99m, "CNY", DateTime.UtcNow, []);
         var context = new Mock<ConsumeContext<OrderCreatedEvent>>();
         context.Setup(c => c.Message).Returns(evt);
         context.Setup(c => c.CancellationToken).Returns(CancellationToken.None);
