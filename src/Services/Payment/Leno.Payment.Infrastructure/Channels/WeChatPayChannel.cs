@@ -91,28 +91,37 @@ public sealed class WeChatPayChannel
             return SignatureVerificationResult.Failure("时间戳超出容差范围（5 分钟）");
         }
 
-        // 3. 验证随机数（防重放）
-        if (!await ValidateNonceAsync(nonce, ct).ConfigureAwait(false))
+        try
         {
-            _logger.LogWarning("微信支付回调验签：随机数重复 Nonce={Nonce}", nonce);
-            return SignatureVerificationResult.Failure("随机数重复，疑似重放攻击");
+            // 3. 验证随机数（防重放）
+            if (!await ValidateNonceAsync(nonce, ct).ConfigureAwait(false))
+            {
+                _logger.LogWarning("微信支付回调验签：随机数重复 Nonce={Nonce}", nonce);
+                return SignatureVerificationResult.Failure("随机数重复，疑似重放攻击");
+            }
+
+            // 4. 验证签名
+            var config = await _configProvider.GetConfigAsync(Domain.ValueObjects.PaymentChannel.WeChatPay, ct)
+                .ConfigureAwait(false);
+
+            var verified = WeChatPay.WeChatPayV3SignatureHelper.VerifyNotifySign(
+                timestamp, nonce, rawBody, signature, config.ApiKey);
+
+            if (!verified)
+            {
+                _logger.LogWarning("微信支付回调验签：签名不匹配");
+                return SignatureVerificationResult.Failure("签名验证失败");
+            }
+
+            _logger.LogInformation("微信支付回调验签通过 SerialNo={SerialNo}", serialNo);
+            return SignatureVerificationResult.Success;
         }
-
-        // 4. 验证签名
-        var config = await _configProvider.GetConfigAsync(Domain.ValueObjects.PaymentChannel.WeChatPay, ct)
-            .ConfigureAwait(false);
-
-        var verified = WeChatPay.WeChatPayV3SignatureHelper.VerifyNotifySign(
-            timestamp, nonce, rawBody, signature, config.ApiKey);
-
-        if (!verified)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogWarning("微信支付回调验签：签名不匹配");
-            return SignatureVerificationResult.Failure("签名验证失败");
+            // fail-closed：防重放/验签过程异常时拒绝验签，让微信重试回调
+            _logger.LogError(ex, "微信支付回调验签异常 Nonce={Nonce}", nonce);
+            return SignatureVerificationResult.Failure("验签异常");
         }
-
-        _logger.LogInformation("微信支付回调验签通过 SerialNo={SerialNo}", serialNo);
-        return SignatureVerificationResult.Success;
     }
 
     /// <summary>
@@ -133,14 +142,16 @@ public sealed class WeChatPayChannel
     /// <summary>
     /// 验证随机数是否已使用（防重放）。
     /// 使用 Redis SET NX 原子操作，首次写入成功表示未重放。
-    /// 若无 Redis 可用则跳过防重放检查。
+    /// <see cref="_redis"/> 为 null（开发环境未配置 Redis）时放行，此为配置选择而非故障。
+    /// Redis 故障时 fail-closed：向上抛出由 <see cref="VerifySignatureAsync"/> 外层 catch 返回
+    /// <see cref="SignatureVerificationResult.Failure"/>，让微信重试回调，对齐 T19 模式。
     /// </summary>
     private async Task<bool> ValidateNonceAsync(string nonce, CancellationToken ct)
     {
         if (_redis is null)
         {
-            // Redis 不可用时跳过防重放检查（生产环境应始终配置 Redis）
-            _logger.LogWarning("微信支付回调：Redis 不可用，跳过防重放检查");
+            // Redis 未配置：保持兼容放行，但记警告（生产环境应配置 Redis）
+            _logger.LogWarning("微信支付回调：Redis 未配置，跳过防重放检查 Nonce={Nonce}", nonce);
             return true;
         }
 
@@ -153,8 +164,9 @@ public sealed class WeChatPayChannel
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "微信支付回调防重放检查异常 Nonce={Nonce}", nonce);
-            return true; // 降级：Redis 异常时放行，避免误拦截
+            // fail-closed：Redis 故障时拒绝验签，让微信重试回调
+            _logger.LogError(ex, "微信支付回调防重放检查 Redis 故障 Nonce={Nonce}", nonce);
+            throw;
         }
     }
 

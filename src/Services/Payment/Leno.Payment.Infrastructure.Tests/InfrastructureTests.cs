@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
+using StackExchange.Redis;
 
 namespace Leno.Payment.Infrastructure.Tests;
 
@@ -1447,6 +1448,128 @@ public class WeChatPayChannelTests
         var result = await _sut.VerifySignatureAsync(headers, rawBody);
 
         result.IsValid.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// P1-B.1 问题 4：Redis 故障时防重放检查应 fail-closed（拒绝验签），
+    /// 让微信重试回调，而不是 fail-open 放行。
+    /// </summary>
+    [Fact]
+    public async Task ValidateNonce_RedisThrows_ShouldFailVerification()
+    {
+        // Arrange：mock Redis StringSetAsync 抛 RedisConnectionException
+        // 注意：StringSetAsync 在 IDatabaseAsync 上有多个重载，
+        // 实际调用 db.StringSetAsync(key, "1", ttl, When.NotExists) 匹配 4 参数重载，
+        // 因此 mock setup 必须使用相同的 4 参数重载，否则不会触发。
+        var redisMock = new Mock<IConnectionMultiplexer>();
+        var dbMock = new Mock<IDatabase>();
+        dbMock
+            .Setup(d => d.StringSetAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<RedisValue>(),
+                It.IsAny<TimeSpan?>(),
+                It.IsAny<When>()))
+            .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "redis down"));
+        redisMock
+            .Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
+            .Returns(dbMock.Object);
+
+        var loggerMock = new Mock<ILogger<WeChatPayChannel>>();
+        var sut = new WeChatPayChannel(_configProviderMock.Object, redisMock.Object, loggerMock.Object);
+
+        var rawBody = "{\"id\":\"evt-001\",\"event_type\":\"TRANSACTION.SUCCESS\"}";
+        var (signature, timestamp, nonce) = CreateValidSignature(rawBody);
+        SetupConfig();
+        var headers = new Dictionary<string, string>
+        {
+            ["Wechatpay-Timestamp"] = timestamp,
+            ["Wechatpay-Nonce"] = nonce,
+            ["Wechatpay-Signature"] = signature,
+            ["Wechatpay-Serial"] = "SERIAL001"
+        };
+
+        // Act：Redis 故障应 fail-closed，验签失败
+        var result = await sut.VerifySignatureAsync(headers, rawBody);
+
+        // Assert：验签拒绝（fail-closed），等待微信重试
+        result.IsValid.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("验签异常");
+    }
+
+    /// <summary>
+    /// P1-B.1 问题 4：_redis = null（开发环境未配置 Redis）时跳过防重放检查并放行。
+    /// 此为配置选择而非故障，保留兼容语义。
+    /// </summary>
+    [Fact]
+    public async Task ValidateNonce_RedisUnavailable_ShouldSkipAndSucceed()
+    {
+        // Arrange：_redis = null，跳过防重放
+        var sut = new WeChatPayChannel(_configProviderMock.Object, redis: null, Mock.Of<ILogger<WeChatPayChannel>>());
+
+        var rawBody = "{\"id\":\"evt-001\",\"event_type\":\"TRANSACTION.SUCCESS\"}";
+        var (signature, timestamp, nonce) = CreateValidSignature(rawBody);
+        SetupConfig();
+        var headers = new Dictionary<string, string>
+        {
+            ["Wechatpay-Timestamp"] = timestamp,
+            ["Wechatpay-Nonce"] = nonce,
+            ["Wechatpay-Signature"] = signature,
+            ["Wechatpay-Serial"] = "SERIAL001"
+        };
+
+        // Act
+        var result = await sut.VerifySignatureAsync(headers, rawBody);
+
+        // Assert：Redis 未配置时跳过防重放，验签通过
+        result.IsValid.Should().BeTrue();
+        result.ErrorMessage.Should().BeNull();
+    }
+
+    /// <summary>
+    /// P1-B.1 问题 4：同一 nonce 二次到达应被识别为重放攻击并拒绝验签。
+    /// Redis SET NX 第二次返回 false（key 已存在）。
+    /// </summary>
+    [Fact]
+    public async Task VerifySignatureAsync_ReplayAttack_ShouldFail()
+    {
+        // Arrange：mock Redis StringSetAsync 第一次返回 true（首次写入），第二次返回 false（重放）
+        // 注意：使用 4 参数重载匹配实际调用 db.StringSetAsync(key, "1", ttl, When.NotExists)
+        var redisMock = new Mock<IConnectionMultiplexer>();
+        var dbMock = new Mock<IDatabase>();
+        var sequence = dbMock.SetupSequence(d => d.StringSetAsync(
+            It.IsAny<RedisKey>(),
+            It.IsAny<RedisValue>(),
+            It.IsAny<TimeSpan?>(),
+            It.IsAny<When>()));
+        sequence.ReturnsAsync(true);
+        sequence.ReturnsAsync(false);
+        redisMock
+            .Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
+            .Returns(dbMock.Object);
+
+        var sut = new WeChatPayChannel(_configProviderMock.Object, redisMock.Object, Mock.Of<ILogger<WeChatPayChannel>>());
+
+        var rawBody = "{\"id\":\"evt-001\",\"event_type\":\"TRANSACTION.SUCCESS\"}";
+        var (signature, timestamp, nonce) = CreateValidSignature(rawBody);
+        SetupConfig();
+        var headers = new Dictionary<string, string>
+        {
+            ["Wechatpay-Timestamp"] = timestamp,
+            ["Wechatpay-Nonce"] = nonce,
+            ["Wechatpay-Signature"] = signature,
+            ["Wechatpay-Serial"] = "SERIAL001"
+        };
+
+        // Act：第一次验签通过（首次写入 nonce）
+        var firstResult = await sut.VerifySignatureAsync(headers, rawBody);
+        firstResult.IsValid.Should().BeTrue();
+
+        // 第二次同 nonce 重放，应失败
+        var secondResult = await sut.VerifySignatureAsync(headers, rawBody);
+
+        // Assert：重放被拒绝
+        secondResult.IsValid.Should().BeFalse();
+        secondResult.ErrorMessage.Should().Contain("随机数重复");
     }
 }
 
