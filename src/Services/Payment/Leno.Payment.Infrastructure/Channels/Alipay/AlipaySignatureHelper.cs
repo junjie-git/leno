@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace Leno.Payment.Infrastructure.Channels.Alipay;
 
@@ -37,7 +38,12 @@ public static class AlipaySignatureHelper
     /// <param name="parameters">通知报文解析出的参数集合（含 sign，验签时自动排除）。</param>
     /// <param name="publicKey">PEM 格式的 RSA 公钥字符串。</param>
     /// <param name="sign">通知报文中携带的签名。</param>
-    public static bool VerifySign(Dictionary<string, string> parameters, string publicKey, string? sign)
+    /// <param name="logger">可选日志记录器，传入时按异常类型分类记日志。</param>
+    public static bool VerifySign(
+        Dictionary<string, string> parameters,
+        string publicKey,
+        string? sign,
+        ILogger? logger = null)
     {
         if (string.IsNullOrEmpty(sign))
         {
@@ -55,10 +61,26 @@ public static class AlipaySignatureHelper
                 HashAlgorithmName.SHA256,
                 RSASignaturePadding.Pkcs1);
         }
-        catch (Exception)
+        catch (ArgumentException ex) when (ex is not ArgumentNullException)
         {
+            // 公钥 PEM 格式错误（无 PEM 标记、label 非法等）：配置问题，需立即修复。
+            // 排除 ArgumentNullException：编程错误（如 parameters=null）应冒泡到调用方 fail-fast。
+            logger?.LogError(ex, "支付宝公钥 PEM 格式错误，验签失败");
             return false;
         }
+        catch (FormatException ex)
+        {
+            // sign 非 Base64：可能是攻击或客户端异常
+            logger?.LogWarning(ex, "支付宝 sign 字段非合法 Base64");
+            return false;
+        }
+        catch (CryptographicException ex)
+        {
+            // RSA 验签失败：PEM ASN.1 内容非法或签名不匹配
+            logger?.LogDebug(ex, "支付宝 RSA 验签失败（签名不匹配或公钥内容非法）");
+            return false;
+        }
+        // 不再吞其他异常：未知异常冒泡由调用方处理
     }
 
     /// <summary>

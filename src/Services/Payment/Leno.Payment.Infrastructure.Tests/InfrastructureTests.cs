@@ -146,6 +146,121 @@ public class AlipaySignatureHelperTests
 
         result.Should().BeFalse();
     }
+
+    /// <summary>
+    /// P1-B.1 问题 5：非法 PEM 公钥（无 PEM 标记）应触发 ArgumentException 并记 Error 日志，
+    /// 而非静默吞异常返回 false。RSA.ImportFromPem 在找不到 PEM 标记时抛 ArgumentException。
+    /// </summary>
+    [Fact]
+    public void VerifySign_InvalidPublicKey_ShouldReturnFalseAndLogError()
+    {
+        // Arrange：非法 PEM 字符串（无 PEM 头尾标记）触发 ArgumentException
+        var loggerMock = new Mock<ILogger>();
+        var parameters = new Dictionary<string, string>
+        {
+            ["app_id"] = "2021000000000001",
+            ["out_trade_no"] = "PAY001"
+        };
+        // 合法 Base64 的 sign，确保走完到 ImportFromPem
+        var validBase64Sign = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 });
+
+        // Act：当前实现吞所有异常返回 false，但不记日志 → 测试应失败
+        var result = AlipaySignatureHelper.VerifySign(parameters, "not-a-pem", validBase64Sign, loggerMock.Object);
+
+        // Assert：返回 false 且记 Error 日志
+        result.Should().BeFalse();
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => true),
+                It.IsAny<ArgumentException>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// P1-B.1 问题 5：sign 非 Base64 应触发 FormatException 并记 Warning 日志。
+    /// Convert.FromBase64String 在遇到非法字符时抛 FormatException。
+    /// </summary>
+    [Fact]
+    public void VerifySign_InvalidBase64Sign_ShouldReturnFalseAndLogWarning()
+    {
+        // Arrange：合法 RSA 公钥 + 非 Base64 sign 触发 FormatException
+        GenerateTestKeyPair(out _, out var publicKey);
+        var loggerMock = new Mock<ILogger>();
+        var parameters = new Dictionary<string, string>
+        {
+            ["app_id"] = "2021000000000001",
+            ["out_trade_no"] = "PAY001"
+        };
+
+        // Act：当前实现吞所有异常返回 false，但不记日志 → 测试应失败
+        var result = AlipaySignatureHelper.VerifySign(parameters, publicKey, "!!!notbase64!!!", loggerMock.Object);
+
+        // Assert：返回 false 且记 Warning 日志
+        result.Should().BeFalse();
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => true),
+                It.IsAny<FormatException>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// P1-B.1 问题 5：公钥 PEM 头尾正确但 ASN.1 内容非法应触发 CryptographicException 并记 Debug 日志。
+    /// RSA.ImportFromPem 在 PEM 标记合法但密钥二进制无法解析为 RSA 公钥时抛 CryptographicException。
+    /// 注：RSA.VerifyData 在签名不匹配时仅返回 false 不抛异常；CryptographicException 主要来自
+    /// ImportFromPem 的 ASN.1 解析失败。此处用全零 Base64 内容触发 CryptographicException。
+    /// </summary>
+    [Fact]
+    public void VerifySign_TamperedSignature_ShouldReturnFalseAndLogDebug()
+    {
+        // Arrange：构造 PEM 头尾正确但 ASN.1 内容非法（全零字节）的公钥
+        // Base64 "AAAA..." 解码后全为 0x00，ASN.1 标签 0x00 非法，触发 CryptographicException
+        var invalidPemContent = "-----BEGIN PUBLIC KEY-----\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n-----END PUBLIC KEY-----";
+        var loggerMock = new Mock<ILogger>();
+        var parameters = new Dictionary<string, string>
+        {
+            ["app_id"] = "2021000000000001",
+            ["out_trade_no"] = "PAY001"
+        };
+        var validBase64Sign = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 });
+
+        // Act：当前实现吞所有异常返回 false，但不记日志 → 测试应失败
+        var result = AlipaySignatureHelper.VerifySign(parameters, invalidPemContent, validBase64Sign, loggerMock.Object);
+
+        // Assert：返回 false 且记 Debug 日志
+        result.Should().BeFalse();
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => true),
+                It.IsAny<CryptographicException>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    /// <summary>
+    /// P1-B.1 问题 5：未预期异常（如 parameters=null 触发 ArgumentNullException）
+    /// 应冒泡到调用方，而非被静默吞掉返回 false。编程错误应 fail-fast 暴露。
+    /// </summary>
+    [Fact]
+    public void VerifySign_UnexpectedException_ShouldBubbleToCaller()
+    {
+        // Arrange：parameters=null 触发 ArgumentNullException（编程错误应冒泡）
+        GenerateTestKeyPair(out _, out var publicKey);
+        var validBase64Sign = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 });
+
+        // Act & Assert：当前实现吞所有异常返回 false；修复后 ArgumentNullException 应冒泡到调用方
+        var act = () => AlipaySignatureHelper.VerifySign(null!, publicKey, validBase64Sign);
+
+        act.Should().Throw<ArgumentNullException>();
+    }
 }
 
 public class AlipayAdapterTests

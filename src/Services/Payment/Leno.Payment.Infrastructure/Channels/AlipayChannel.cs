@@ -41,16 +41,26 @@ public sealed class AlipayChannel
         var config = await _configProvider.GetConfigAsync(Domain.ValueObjects.PaymentChannel.Alipay, ct)
             .ConfigureAwait(false);
 
-        var verified = Alipay.AlipaySignatureHelper.VerifySign(formFields, config.ApiKey, sign);
-
-        if (!verified)
+        try
         {
-            _logger.LogWarning("支付宝回调验签：签名不匹配");
-            return SignatureVerificationResult.Failure("签名验证失败");
-        }
+            var verified = Alipay.AlipaySignatureHelper.VerifySign(formFields, config.ApiKey, sign, _logger);
 
-        _logger.LogInformation("支付宝回调验签通过");
-        return SignatureVerificationResult.Success;
+            if (!verified)
+            {
+                _logger.LogWarning("支付宝回调验签：签名不匹配");
+                return SignatureVerificationResult.Failure("签名验证失败");
+            }
+
+            _logger.LogInformation("支付宝回调验签通过");
+            return SignatureVerificationResult.Success;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // VerifySign 不再吞未预期异常（如 ArgumentNullException 等编程错误），
+            // 此处兜底转为 Failure，避免 NotifyController 抛 500。
+            _logger.LogError(ex, "支付宝验签未预期异常");
+            return SignatureVerificationResult.Failure("验签异常");
+        }
     }
 
     private static string? GetField(Dictionary<string, string> dict, string key)
