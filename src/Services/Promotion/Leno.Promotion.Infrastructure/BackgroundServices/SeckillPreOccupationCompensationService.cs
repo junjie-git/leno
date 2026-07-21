@@ -78,22 +78,37 @@ public sealed class SeckillPreOccupationCompensationService : BackgroundService
         {
             try
             {
-                // 回退 Redis 库存
-                await stockService.RestoreAsync(record.ActivityId, record.SkuId, record.Quantity, ct);
+                await using var tx = await unitOfWork.BeginTransactionAsync(ct);
 
-                // 回退 DB 基线库存
-                var activity = await activityRepository.GetByIdAsync(record.ActivityId, ct);
-                if (activity is not null)
+                // 事务内重新加载记录，校验状态是否在读取后被变更（防 TOCTOU 竞态）：
+                // 若 SeckillOrderConfirmedEventConsumer 已在读取后置 IsFulfilled=true，
+                // 补偿不应继续回退库存，否则产生 IsFulfilled=true && IsRolledBack=true 非法状态
+                var fresh = await recordRepository.GetByIdAsync(record.Id, ct);
+                if (fresh is null || fresh.IsFulfilled || fresh.IsRolledBack)
                 {
-                    activity.RestoreStock(record.Quantity);
+                    _logger.LogInformation(
+                        "记录已变更 OrderId={OrderId} IsFulfilled={IsFulfilled} IsRolledBack={IsRolledBack}，跳过补偿",
+                        record.OrderId, fresh?.IsFulfilled ?? false, fresh?.IsRolledBack ?? false);
+                    continue;
                 }
 
-                record.MarkRolledBack();
+                // 回退 Redis 库存
+                await stockService.RestoreAsync(fresh.ActivityId, fresh.SkuId, fresh.Quantity, ct);
+
+                // 回退 DB 基线库存
+                var activity = await activityRepository.GetByIdAsync(fresh.ActivityId, ct);
+                if (activity is not null)
+                {
+                    activity.RestoreStock(fresh.Quantity);
+                }
+
+                fresh.MarkRolledBack();
                 await unitOfWork.SaveEntitiesAsync(ct);
+                await tx.CommitAsync(ct);
 
                 _logger.LogInformation(
                     "补偿回退完成 OrderId={OrderId} ActivityId={ActivityId} SkuId={SkuId} Quantity={Quantity}",
-                    record.OrderId, record.ActivityId, record.SkuId, record.Quantity);
+                    fresh.OrderId, fresh.ActivityId, fresh.SkuId, fresh.Quantity);
             }
             catch (Exception ex)
             {
