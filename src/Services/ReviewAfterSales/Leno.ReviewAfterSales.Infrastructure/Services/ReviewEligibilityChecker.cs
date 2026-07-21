@@ -1,6 +1,7 @@
 using Leno.ReviewAfterSales.Domain.Exceptions;
 using Leno.ReviewAfterSales.Domain.Repositories;
 using Leno.ReviewAfterSales.Domain.Services;
+using Leno.SharedContracts.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.ReviewAfterSales.Infrastructure.Services;
@@ -9,11 +10,11 @@ namespace Leno.ReviewAfterSales.Infrastructure.Services;
 /// 评价资格校验器实现（M4 双轨方案重构后）。
 /// 远程订单状态查询委托 <see cref="IOrderStatusProvider"/>（HttpClient 或 gRPC 双轨），本类仅保留业务规则校验与仓储查询。
 /// 校验失败抛 <see cref="ReviewDomainException"/>。
+/// 订单状态码引用共享枚举 <see cref="OrderStatusEnum"/>（审计 3.9），避免魔法数跨 BC 契约脆弱。
 /// </summary>
 public sealed class ReviewEligibilityChecker : IReviewEligibilityChecker
 {
     private const int ReviewWindowDays = 30;
-    private const int OrderStatusCompleted = 3;
 
     private readonly IOrderStatusProvider _orderStatusProvider;
     private readonly IReviewRepository _reviewRepository;
@@ -48,7 +49,7 @@ public sealed class ReviewEligibilityChecker : IReviewEligibilityChecker
             throw new ReviewDomainException("无权操作此订单", "REVIEW_FORBIDDEN");
         }
 
-        if (order.Status != OrderStatusCompleted)
+        if (order.Status != (int)OrderStatusEnum.Completed)
         {
             throw new ReviewDomainException("订单未完成，不可评价", "REVIEW_ORDER_NOT_COMPLETED");
         }

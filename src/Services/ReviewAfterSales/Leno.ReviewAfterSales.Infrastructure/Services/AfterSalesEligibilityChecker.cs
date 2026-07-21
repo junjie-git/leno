@@ -2,6 +2,7 @@ using Leno.ReviewAfterSales.Domain.Exceptions;
 using Leno.ReviewAfterSales.Domain.Repositories;
 using Leno.ReviewAfterSales.Domain.Services;
 using Leno.ReviewAfterSales.Domain.ValueObjects;
+using Leno.SharedContracts.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.ReviewAfterSales.Infrastructure.Services;
@@ -10,12 +11,11 @@ namespace Leno.ReviewAfterSales.Infrastructure.Services;
 /// 售后资格校验器实现（M4 双轨方案重构后）。
 /// 远程订单状态查询委托 <see cref="IOrderStatusProvider"/>（HttpClient 或 gRPC 双轨），本类仅保留业务规则校验与仓储查询。
 /// 校验失败抛 <see cref="ReviewDomainException"/>。
+/// 订单状态码引用共享枚举 <see cref="OrderStatusEnum"/>（审计 3.9），避免魔法数跨 BC 契约脆弱。
 /// </summary>
 public sealed class AfterSalesEligibilityChecker : IAfterSalesEligibilityChecker
 {
     private const int AfterSalesWindowDays = 15;
-    private const int OrderStatusShipped = 2;
-    private const int OrderStatusCompleted = 3;
 
     private readonly IOrderStatusProvider _orderStatusProvider;
     private readonly IAfterSalesRepository _afterSalesRepository;
@@ -50,12 +50,12 @@ public sealed class AfterSalesEligibilityChecker : IAfterSalesEligibilityChecker
             throw new ReviewDomainException("无权操作此订单", "AFTERSALES_FORBIDDEN");
         }
 
-        if (order.Status != OrderStatusShipped && order.Status != OrderStatusCompleted)
+        if (order.Status != (int)OrderStatusEnum.Shipped && order.Status != (int)OrderStatusEnum.Completed)
         {
             throw new ReviewDomainException("订单当前状态不支持售后申请", "AFTERSALES_STATUS_INVALID");
         }
 
-        if (order.Status == OrderStatusCompleted
+        if (order.Status == (int)OrderStatusEnum.Completed
             && order.CompletedAt != default
             && DateTime.UtcNow - order.CompletedAt > TimeSpan.FromDays(AfterSalesWindowDays))
         {
