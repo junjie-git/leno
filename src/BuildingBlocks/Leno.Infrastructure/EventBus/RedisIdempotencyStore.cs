@@ -42,14 +42,48 @@ public sealed class RedisIdempotencyStore : IIdempotencyStore
         return exists;
     }
 
+    /// <summary>
+    /// 指示此实现支持原子处理权获取（SET NX）。
+    /// </summary>
+    public bool SupportsAtomicProcessing => true;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// 使用 Redis SET NX 原子操作：仅当 processing key 不存在时设置成功。
+    /// processing key 的 TTL 为 5 分钟，防止消费者崩溃后永久锁定。
+    /// </remarks>
+    public async Task<bool> TryMarkAsProcessingAsync(Guid eventId, CancellationToken ct = default)
+    {
+        var db = _redisMultiplexer.GetDatabase();
+        var key = BuildProcessingKey(eventId);
+        // SET NX：原子操作，仅当 key 不存在时设置成功
+        var processingTtl = TimeSpan.FromMinutes(5);
+        var wasSet = await db.StringSetAsync(key, "1", processingTtl, when: When.NotExists);
+        return wasSet;
+    }
+
+    /// <inheritdoc />
+    public async Task ReleaseProcessingLockAsync(Guid eventId, CancellationToken ct = default)
+    {
+        var db = _redisMultiplexer.GetDatabase();
+        var key = BuildProcessingKey(eventId);
+        await db.KeyDeleteAsync(key);
+    }
+
     /// <inheritdoc />
     public async Task MarkAsProcessedAsync(Guid eventId, CancellationToken ct = default)
     {
         var db = _redisMultiplexer.GetDatabase();
-        var key = BuildKey(eventId);
-        // SET NX：仅当 key 不存在时设置，避免覆盖既有 TTL
-        await db.StringSetAsync(key, "1", KeyTtl, when: When.NotExists);
+        var processedKey = BuildKey(eventId);
+        var processingKey = BuildProcessingKey(eventId);
+
+        // 原子标记已处理（SET NX + TTL）
+        await db.StringSetAsync(processedKey, "1", KeyTtl, when: When.NotExists);
+        // 删除 processing 标记
+        await db.KeyDeleteAsync(processingKey);
     }
 
     private string BuildKey(Guid eventId) => $"{KeyPrefix}:{eventId}";
+
+    private string BuildProcessingKey(Guid eventId) => $"{KeyPrefix}:processing:{eventId}";
 }

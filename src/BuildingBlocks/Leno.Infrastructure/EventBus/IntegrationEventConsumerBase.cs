@@ -50,6 +50,7 @@ public abstract class IntegrationEventConsumerBase<T> : IConsumer<T>
         Logger.LogDebug("消费集成事件 EventId={EventId} IdempotencyKey={Key} Type={EventType}",
             evt.EventId, effectiveKey, typeof(T).Name);
 
+        // 快速预检查：已处理则跳过（兼容所有 store 实现，包括不支持原子操作的 Mock）
         if (await IsProcessedAsync(evt.EventId, context.CancellationToken))
         {
             Logger.LogInformation("事件已处理，跳过重复消费 EventId={EventId} IdempotencyKey={Key} Type={EventType}",
@@ -57,10 +58,30 @@ public abstract class IntegrationEventConsumerBase<T> : IConsumer<T>
             return;
         }
 
+        // 原子获取处理权：若 store 支持（SupportsAtomicProcessing），用 SET NX 原子标记"处理中"，
+        // 保证只有一个消费者获取处理权，消除并发穿透。
+        // 不支持原子操作的 store（如 Mock）走旧逻辑（已通过上方 IsProcessedAsync 预检查）。
+        var acquired = await TryAcquireProcessingLockAsync(evt.EventId, context.CancellationToken);
+        if (!acquired)
+        {
+            Logger.LogInformation("事件被其他消费者占用或已处理，跳过 EventId={EventId} IdempotencyKey={Key} Type={EventType}",
+                evt.EventId, effectiveKey, typeof(T).Name);
+            return;
+        }
+
         Logger.LogInformation("开始消费集成事件 EventId={EventId} IdempotencyKey={Key} Type={EventType}",
             evt.EventId, effectiveKey, typeof(T).Name);
 
-        await HandleAsync(evt, context.CancellationToken);
+        try
+        {
+            await HandleAsync(evt, context.CancellationToken);
+        }
+        catch
+        {
+            // 处理失败：释放处理锁，允许后续重试
+            await ReleaseProcessingLockAsync(evt.EventId, context.CancellationToken);
+            throw;
+        }
 
         await MarkAsProcessedAsync(evt.EventId, context.CancellationToken);
 
@@ -80,6 +101,34 @@ public abstract class IntegrationEventConsumerBase<T> : IConsumer<T>
     /// </summary>
     protected virtual Task<bool> IsProcessedAsync(Guid eventId, CancellationToken ct)
         => IdempotencyStore.IsProcessedAsync(eventId, ct);
+
+    /// <summary>
+    /// 原子地尝试获取事件处理权。
+    /// 若 <see cref="IIdempotencyStore.SupportsAtomicProcessing"/> 为 true，委托给
+    /// <see cref="IIdempotencyStore.TryMarkAsProcessingAsync"/>（SET NX 原子操作）。
+    /// 否则返回 true（向后兼容，已通过 <see cref="IsProcessedAsync"/> 预检查）。
+    /// </summary>
+    protected virtual Task<bool> TryAcquireProcessingLockAsync(Guid eventId, CancellationToken ct)
+    {
+        if (IdempotencyStore.SupportsAtomicProcessing)
+        {
+            return IdempotencyStore.TryMarkAsProcessingAsync(eventId, ct);
+        }
+        return Task.FromResult(true);
+    }
+
+    /// <summary>
+    /// 释放处理锁（处理失败时调用，允许后续重试）。
+    /// 仅在 <see cref="IIdempotencyStore.SupportsAtomicProcessing"/> 为 true 时有实际操作。
+    /// </summary>
+    protected virtual Task ReleaseProcessingLockAsync(Guid eventId, CancellationToken ct)
+    {
+        if (IdempotencyStore.SupportsAtomicProcessing)
+        {
+            return IdempotencyStore.ReleaseProcessingLockAsync(eventId, ct);
+        }
+        return Task.CompletedTask;
+    }
 
     /// <summary>
     /// 标记事件已处理。默认委托给 <see cref="IIdempotencyStore"/>。
