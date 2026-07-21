@@ -67,6 +67,8 @@ public sealed class ReviewGrpcService : ReviewInternalService.ReviewInternalServ
             throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid order_id: {request.OrderId}"));
         }
 
+        // 审计 4.7：实现层 GetOrderReviewsAsync 不再返回 null，无可见评价时返回空 Reviews 列表，
+        // gRPC 响应直接返回空 OrderReviews。此处的 null 检查为防御性编程，仅 mock 测试场景触发。
         var dto = await _queryService.GetOrderReviewsAsync(orderId, context.CancellationToken)
             .ConfigureAwait(false);
 

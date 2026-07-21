@@ -40,11 +40,13 @@ public sealed class ReviewInternalQueryService : IReviewInternalQueryService
     /// <inheritdoc />
     public async Task<OrderReviewsDto?> GetOrderReviewsAsync(Guid orderId, CancellationToken ct = default)
     {
-        // 仅返回 Approved 评价摘要，与买家可见视图一致
+        // 审计 4.7：订单无可见评价时返回空 Reviews 列表的 OrderReviewsDto，而非 null。
+        // 签名保留 nullable 以兼容既有消费方与防御性编程（如 ReviewGrpcService 的 null 检查），
+        // 但实现层不再返回 null，简化下游空值处理。
         var reviews = await _reviewRepository.GetByOrderIdAsync(orderId, ReviewStatus.Approved, ct);
         if (reviews is null || reviews.Count == 0)
         {
-            return null;
+            return new OrderReviewsDto();
         }
 
         return new OrderReviewsDto

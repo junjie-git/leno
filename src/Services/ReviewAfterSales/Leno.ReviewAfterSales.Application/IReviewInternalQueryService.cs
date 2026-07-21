@@ -21,7 +21,7 @@ public interface IReviewInternalQueryService
     /// </summary>
     /// <param name="orderId">订单标识。</param>
     /// <param name="ct">取消令牌。</param>
-    /// <returns>订单评价列表；订单无可见评价返回 null。</returns>
+    /// <returns>订单评价列表 DTO；订单无可见评价返回空 Reviews 列表（审计 4.7，实现层不再返回 null，签名保留 nullable 以兼容既有消费方与防御性编程）。</returns>
     Task<OrderReviewsDto?> GetOrderReviewsAsync(Guid orderId, CancellationToken ct = default);
 }
 
