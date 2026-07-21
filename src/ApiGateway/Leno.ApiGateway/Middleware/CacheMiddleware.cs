@@ -64,10 +64,18 @@ public sealed class CacheMiddleware
         using var memoryStream = new MemoryStream();
         context.Response.Body = memoryStream;
 
-        await _next(context);
+        try
+        {
+            await _next(context);
+        }
+        finally
+        {
+            // 无论 _next 成功或抛异常，都必须恢复原始 Body 流。
+            // 否则异常传播到上层中间件时，Response.Body 仍指向 memoryStream，
+            // 上层错误处理中间件写入错误的流，导致响应损坏或连接挂起。
+            context.Response.Body = originalBodyStream;
+        }
 
-        // 恢复原始 Body 流
-        context.Response.Body = originalBodyStream;
         memoryStream.Seek(0, SeekOrigin.Begin);
         var responseBytes = memoryStream.ToArray();
 
