@@ -67,8 +67,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasIndex(u => u.Username).HasDatabaseName("ix_users_username").IsUnique();
         builder.HasIndex(u => u.Email).HasDatabaseName("ix_users_email").IsUnique()
-            .HasFilter("\"email\" IS NOT NULL");
+            .HasFilter("[email] IS NOT NULL");
         builder.HasIndex(u => u.PhoneNumber).HasDatabaseName("ix_users_phone_number").IsUnique()
-            .HasFilter("\"phone_number\" IS NOT NULL");
+            .HasFilter("[phone_number] IS NOT NULL");
     }
 }
