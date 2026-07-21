@@ -87,7 +87,7 @@ public sealed class NotificationTemplateAppService : INotificationTemplateAppSer
                 "TEMPLATE_CODE_CHANNEL_IMMUTABLE");
         }
 
-        template.Update(dto.Subject, dto.Body, dto.Variables);
+        template.Update(dto.Subject, dto.Body, dto.Variables, dto.SmsTemplateCode);
 
         // 校验未定义占位符（模板中有 {{xxx}} 但未在 Variables 中声明）
         var undefined = _templateRenderService.ValidateUndefinedPlaceholders(template);

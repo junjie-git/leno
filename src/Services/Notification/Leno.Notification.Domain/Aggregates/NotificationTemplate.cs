@@ -84,12 +84,57 @@ public sealed class NotificationTemplate : AggregateRoot
     /// <summary>
     /// 更新模板内容与变量。
     /// </summary>
-    public void Update(string subject, string body, List<TemplateVariable> variables)
+    /// <param name="subject">标题模板。</param>
+    /// <param name="body">内容模板。</param>
+    /// <param name="variables">模板变量列表。</param>
+    /// <param name="smsTemplateCode">
+    /// 短信模板编码，<c>null</c> 表示不修改既有值；非空时按渠道格式校验：
+    /// 阿里云形如 <c>SMS_12345678</c>（前缀 <c>SMS_</c>），腾讯云为纯数字。
+    /// </param>
+    public void Update(
+        string subject,
+        string body,
+        List<TemplateVariable> variables,
+        string? smsTemplateCode = null)
     {
         ValidateCommon(Id, Code, Name, Channel, subject, body);
+
+        // P2-46：smsTemplateCode=null 表示不修改；非 null 时校验格式（SMS_ 前缀或纯数字），避免脏值落库后渠道发送失败。
+        if (smsTemplateCode is not null)
+        {
+            if (!IsValidSmsTemplateCode(smsTemplateCode))
+            {
+                throw new NotificationDomainException(
+                    $"短信模板编码格式非法：{smsTemplateCode}（需 SMS_ 前缀或纯数字）",
+                    "NOTIFICATION_TEMPLATE_SMS_CODE_INVALID");
+            }
+
+            SmsTemplateCode = smsTemplateCode;
+        }
+
         Subject = subject;
         Body = body;
         Variables = variables ?? [];
+    }
+
+    /// <summary>
+    /// 校验短信模板编码格式：阿里云 SMS_ 前缀，或腾讯云纯数字；空字符串视为非法。
+    /// </summary>
+    private static bool IsValidSmsTemplateCode(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return false;
+        }
+
+        if (code.StartsWith("SMS_", StringComparison.Ordinal))
+        {
+            // 阿里云 SMS_ 后须至少一位非空白字符
+            return code.Length > "SMS_".Length;
+        }
+
+        // 腾讯云纯数字模板 ID
+        return code.All(char.IsDigit);
     }
 
     /// <summary>
