@@ -327,19 +327,39 @@ public sealed class Order : AggregateRoot
     }
 
     /// <summary>
-    /// 标记支付成功，校验待支付态，置已支付态并发布 <see cref="OrderPaidEvent"/>。
+    /// 标记支付成功，校验待支付态、支付已发起、支付金额匹配、支付单标识非空，置已支付态并发布 <see cref="OrderPaidEvent"/>。
     /// </summary>
     /// <param name="paymentId">支付单标识。</param>
     /// <param name="channel">支付渠道。</param>
     /// <param name="paidAt">支付时间（UTC）。</param>
     /// <param name="tradeNo">第三方交易号。</param>
-    public void MarkAsPaid(Guid paymentId, string channel, DateTime paidAt, string tradeNo)
+    /// <param name="paidAmount">实付金额，须等于 <see cref="TotalAmount"/>。</param>
+    public void MarkAsPaid(Guid paymentId, string channel, DateTime paidAt, string tradeNo, decimal paidAmount)
     {
         if (Status != OrderStatus.PendingPayment)
         {
             throw new OrderDomainException(
                 $"当前状态 {Status} 不可标记支付，仅 PendingPayment 可支付",
                 "ORDER_PAID_STATUS_INVALID");
+        }
+
+        if (!PaymentInitiated)
+        {
+            throw new OrderDomainException(
+                "支付未发起，不可标记支付成功",
+                "ORDER_PAY_NOT_INITIATED");
+        }
+
+        if (paymentId == Guid.Empty)
+        {
+            throw new OrderDomainException("支付单标识不可为空", "ORDER_PAYMENT_ID_EMPTY");
+        }
+
+        if (paidAmount != TotalAmount)
+        {
+            throw new OrderDomainException(
+                $"支付金额不匹配：应付 {TotalAmount}，实付 {paidAmount}",
+                "ORDER_PAID_AMOUNT_MISMATCH");
         }
 
         Status = OrderStatus.Paid;

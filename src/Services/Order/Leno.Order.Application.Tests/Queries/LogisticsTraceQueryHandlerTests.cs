@@ -81,7 +81,8 @@ public class LogisticsTraceQueryHandlerTests
     {
         // Arrange：订单已发货，物流公司支持轨迹查询
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "TRADE-001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "TRADE-001", order.TotalAmount);
         order.Ship("SF-1234567890", "SF", DateTime.UtcNow, SellerId);
 
         var query = new LogisticsTraceQuery { OrderId = OrderId };

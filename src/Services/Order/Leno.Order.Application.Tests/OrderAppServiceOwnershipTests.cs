@@ -98,7 +98,7 @@ public class OrderAppServiceOwnershipTests
             OrderId, "TEST-SHIP-001", OrderType.Normal, UserId, sellerId,
             new List<OrderItem> { item }, CreateAddress(), 0m, 0m, DateTime.UtcNow.AddMinutes(30));
         order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "TEST-TRADE");
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "TEST-TRADE", order.TotalAmount);
         return order;
     }
 

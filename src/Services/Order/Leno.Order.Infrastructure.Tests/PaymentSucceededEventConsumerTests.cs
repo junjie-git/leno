@@ -146,7 +146,8 @@ public class PaymentSucceededEventConsumerTests
         // Arrange
         var order = CreateOrderWithTwoSkus();
         // 先将订单置为已支付状态
-        order.MarkAsPaid(Guid.NewGuid(), "wechat", DateTime.UtcNow, "2024071200002");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "wechat", DateTime.UtcNow, "2024071200002", order.TotalAmount);
 
         var mockOrderRepo = new Mock<IOrderRepository>();
         mockOrderRepo.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))

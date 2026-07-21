@@ -47,7 +47,8 @@ public class AfterSalesWindowConsumerTests
         var order = OrderAggregate.Create(
             OrderId, "ORD-001", OrderType.Normal, UserId, SellerId,
             new List<OrderItem> { item }, CreateAddress(), 10m, 0m, DateTime.UtcNow.AddHours(1));
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         order.ConfirmReceipt();
         // Set AfterSalesWindowEndsAt to past

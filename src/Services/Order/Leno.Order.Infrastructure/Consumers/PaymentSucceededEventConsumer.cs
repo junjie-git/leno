@@ -59,7 +59,7 @@ public sealed class PaymentSucceededEventConsumer : IntegrationEventConsumerBase
             return;
         }
 
-        order.MarkAsPaid(integrationEvent.PaymentId, integrationEvent.Channel, integrationEvent.PaidAt, integrationEvent.TradeNo);
+        order.MarkAsPaid(integrationEvent.PaymentId, integrationEvent.Channel, integrationEvent.PaidAt, integrationEvent.TradeNo, integrationEvent.Amount);
 
         // 会员订阅订单支付后自动完成（无发货流程）
         if (order.OrderType == OrderType.Membership)

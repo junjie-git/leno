@@ -152,7 +152,8 @@ public class SellerOwnershipIntegrationTests : CrossBcIntegrationTestBase<OrderD
             pointsOffsetAmount: 0m,
             expireAt: DateTime.UtcNow.AddHours(2));
 
-        order.MarkAsPaid(paymentId, "WeChatPay", DateTime.UtcNow, "TEST_TRADE_001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(paymentId, "WeChatPay", DateTime.UtcNow, "TEST_TRADE_001", order.TotalAmount);
         return order;
     }
 }

@@ -95,7 +95,7 @@ public class OrderAppServiceForceCancelTests
     {
         var order = CreateBaseOrder("TEST-FC-001");
         order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
-        order.MarkAsPaid(PaymentId, "WeChatPay", DateTime.UtcNow, "TEST-TRADE-001");
+        order.MarkAsPaid(PaymentId, "WeChatPay", DateTime.UtcNow, "TEST-TRADE-001", order.TotalAmount);
         return order;
     }
 

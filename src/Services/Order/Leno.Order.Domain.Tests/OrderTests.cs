@@ -202,7 +202,8 @@ public class OrderTests
     public void ApplyDiscount_NotPendingPayment_ShouldThrowException()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
         var act = () => order.ApplyDiscount(5m, new List<(Guid, decimal)> { (SkuId, 5m) });
 
@@ -288,7 +289,8 @@ public class OrderTests
     public void ApplyPointsOffset_NotPendingPayment_ShouldThrowException()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
         var act = () => order.ApplyPointsOffset(5m);
 
@@ -305,7 +307,8 @@ public class OrderTests
         var order = CreateOrder();
         order.Status.Should().Be(OrderStatus.PendingPayment);
 
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Status.Should().Be(OrderStatus.Paid);
 
         order.Ship("SF123456", "SF", DateTime.UtcNow, Guid.NewGuid());
@@ -327,9 +330,10 @@ public class OrderTests
     public void MarkAsPaid_NotPendingPayment_ShouldThrowException()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
-        var act = () => order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T002");
+        var act = () => order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T002", order.TotalAmount);
 
         act.Should().Throw<OrderDomainException>().WithMessage("*状态*");
     }
@@ -374,7 +378,8 @@ public class OrderTests
     public void MarkPaymentInitiated_NotPendingPayment_ShouldThrowException()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
         var act = () => order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
 
@@ -408,7 +413,8 @@ public class OrderTests
     public void Ship_EmptyLogisticsNo_ShouldThrowException()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
         var act = () => order.Ship("", "SF", DateTime.UtcNow, Guid.NewGuid());
 
@@ -419,7 +425,8 @@ public class OrderTests
     public void Ship_EmptyLogisticsCompanyCode_ShouldThrowException()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
         var act = () => order.Ship("SF123", "", DateTime.UtcNow, Guid.NewGuid());
 
@@ -430,7 +437,8 @@ public class OrderTests
     public void Ship_ShouldSetLogisticsCompanyCode()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
 
@@ -454,7 +462,8 @@ public class OrderTests
         var order = OrderAggregate.Create(
             Guid.NewGuid(), "ORD-MEM", OrderType.Membership, UserId, SellerId,
             CreateOrderItems(), CreateAddress(), 0m, 0m, DateTime.UtcNow.AddHours(1));
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
         order.CompleteMembershipOrder();
 
@@ -465,7 +474,8 @@ public class OrderTests
     public void CompleteMembershipOrder_NotMembershipType_ShouldThrowException()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
         var act = () => order.CompleteMembershipOrder();
 
@@ -498,7 +508,8 @@ public class OrderTests
     public void Cancel_NotPendingPayment_ShouldThrowException()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
         var act = () => order.Cancel("test", "Buyer");
 
@@ -509,7 +520,8 @@ public class OrderTests
     public void ForceCancel_FromPaid_ShouldTransitionToCancelled()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
         order.ForceCancel("Fraudulent", "Operator");
 
@@ -520,7 +532,8 @@ public class OrderTests
     public void ForceCancel_FromPaid_ShouldSetCancelReason()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
         order.ForceCancel("Fraudulent order", "Admin-001");
 
@@ -532,7 +545,8 @@ public class OrderTests
     public void ForceCancel_FromPaid_ShouldPublishCancelledEvent()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
         order.ForceCancel("Fraudulent", "Admin-001");
 
@@ -546,7 +560,8 @@ public class OrderTests
     public void ForceCancel_FromShipped_ShouldTransitionToCancelled()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
 
         order.ForceCancel("Fraudulent", "Operator");
@@ -558,7 +573,8 @@ public class OrderTests
     public void ForceCancel_FromCompleted_ShouldThrowException()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         order.ConfirmReceipt();
 
@@ -571,7 +587,8 @@ public class OrderTests
     public void ForceCancel_FromClosed_ShouldThrowException()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         order.ConfirmReceipt();
         typeof(OrderAggregate).GetProperty(nameof(OrderAggregate.AfterSalesWindowEndsAt))!
@@ -602,7 +619,8 @@ public class OrderTests
     public void CloseAfterSalesWindow_AfterSalesWindowNotEnded_ShouldThrowException()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         order.ConfirmReceipt();
         // AfterSalesWindowEndsAt is 7 days from now, so CloseAfterSalesWindow should throw
@@ -616,7 +634,8 @@ public class OrderTests
     public void CloseAfterSalesWindow_AfterSalesWindowEnded_ShouldTransitionToClosed()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         order.ConfirmReceipt();
         // Set AfterSalesWindowEndsAt to past
@@ -664,7 +683,8 @@ public class OrderTests
         var order = OrderAggregate.Create(
             Guid.NewGuid(), "ORD-MEM", OrderType.Membership, UserId, Guid.Empty,
             CreateOrderItems(), CreateAddress(), 0m, 0m, DateTime.UtcNow.AddHours(1));
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
 
         order.CompleteMembershipOrder();
 

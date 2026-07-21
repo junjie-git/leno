@@ -108,7 +108,8 @@ public class OrderAppServiceTests
     public async Task ShipAsync_ValidInput_ShouldShip()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
 
@@ -137,7 +138,8 @@ public class OrderAppServiceTests
     public async Task ConfirmReceiptAsync_Valid_ShouldComplete()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
@@ -152,7 +154,8 @@ public class OrderAppServiceTests
     public async Task ConfirmReceiptAsync_WrongUser_ShouldThrowException()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
@@ -202,7 +205,8 @@ public class OrderAppServiceTests
     public async Task ForceCancelAsync_Valid_ShouldForceCancel()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
         _stockServiceMock.Setup(s => s.ReleaseBatchAsync(OrderId, It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
@@ -289,7 +293,8 @@ public class OrderAppServiceTests
     public async Task PayAsync_NotPendingPayment_ShouldThrowException()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
 
@@ -527,7 +532,8 @@ public class OrderAppServiceTests
     public async Task GetLogisticsTraceAsync_NoCompanyCode_ShouldReturnWarning()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         // Reset company code to simulate missing
         typeof(OrderAggregate).GetProperty("LogisticsCompanyCode")!.SetValue(order, null);
@@ -544,7 +550,8 @@ public class OrderAppServiceTests
     public async Task GetLogisticsTraceAsync_CompanyNotSupportTracking_ShouldReturnWarning()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
@@ -564,7 +571,8 @@ public class OrderAppServiceTests
     public async Task GetLogisticsTraceAsync_CompanyDisabled_ShouldReturnWarning()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
@@ -583,7 +591,8 @@ public class OrderAppServiceTests
     public async Task GetLogisticsTraceAsync_Valid_ShouldReturnTrace()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
@@ -611,7 +620,8 @@ public class OrderAppServiceTests
     public async Task GetLogisticsTraceAsync_FromCache_ShouldIndicateCache()
     {
         var order = CreateOrder();
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001");
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
