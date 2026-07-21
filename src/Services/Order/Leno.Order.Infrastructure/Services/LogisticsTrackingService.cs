@@ -13,6 +13,8 @@ namespace Leno.Order.Infrastructure.Services;
 /// 物流轨迹查询服务实现，实现领域层 <see cref="ILogisticsTrackingService"/>。
 /// 通过 HttpClient 调用第三方物流轨迹查询 API，结果缓存至 Redis（TTL 1 小时）。
 /// 继承 <see cref="AntiCorruptionBase"/>：第三方 API 失败时降级返回缓存或空轨迹（不抛异常），仅当缓存读取本身异常时由基类统一捕获埋点。
+/// P1-T25：API 失败时上报 <see cref="AntiCorruptionMetrics"/> 指标，连续失败超阈值（5 次）切换降级模式
+/// （<see cref="IsDegraded"/>=true + 熔断器 Open 状态），恢复后自动复位。避免第三方持续故障时运维无感知。
 /// 缓存 key 格式：logistics:trace:{logisticsNo}:{companyCode}。
 /// </summary>
 public sealed class LogisticsTrackingService : AntiCorruptionBase, ILogisticsTrackingService
@@ -22,12 +24,25 @@ public sealed class LogisticsTrackingService : AntiCorruptionBase, ILogisticsTra
     private const string CacheKeyPrefix = "logistics:trace:";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(1);
 
+    /// <summary>连续失败次数达到此阈值时切换为降级模式（P1-T25）。</summary>
+    private const int DegradationThreshold = 5;
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly HttpClient _httpClient;
     private readonly LogisticsApiOptions _options;
     private readonly IConnectionMultiplexer _redis;
     private readonly ILogger<LogisticsTrackingService> _logger;
+
+    /// <summary>连续失败计数（线程安全，经 <see cref="Interlocked"/> 操作）。</summary>
+    private int _consecutiveFailures;
+
+    /// <summary>
+    /// 当前是否处于降级模式（P1-T25）。
+    /// 连续失败 ≥ <see cref="DegradationThreshold"/> 时为 true，API 恢复后自动复位为 false。
+    /// 经 <see cref="AntiCorruptionMetrics.UpdateCircuitOpenState"/> 同步至 Prometheus gauge 供运维监控。
+    /// </summary>
+    public bool IsDegraded => Volatile.Read(ref _consecutiveFailures) >= DegradationThreshold;
 
     protected override string ServiceName => "logistics";
 
@@ -92,15 +107,21 @@ public sealed class LogisticsTrackingService : AntiCorruptionBase, ILogisticsTra
 
                     var result = new LogisticsTraceResult(logisticsNo, companyCode, nodes, false);
                     await CacheResultAsync(cacheKey, result, token);
+                    // P1-T25：API 恢复后复位降级状态与熔断器
+                    ResetFailureState();
                     return result;
                 }
 
+                // P1-T25：非成功状态码上报失败指标
                 _logger.LogWarning("物流查询失败 LogisticsNo={LogisticsNo} CompanyCode={CompanyCode} Status={Status}",
                     logisticsNo, companyCode, (int)response.StatusCode);
+                RecordFailure();
             }
             catch (Exception ex)
             {
+                // P1-T25：异常上报失败指标，持续失败触发降级
                 _logger.LogWarning(ex, "物流查询异常 LogisticsNo={LogisticsNo} CompanyCode={CompanyCode}", logisticsNo, companyCode);
+                RecordFailure();
             }
 
             // API 失败或异常时尝试从缓存获取
@@ -113,6 +134,40 @@ public sealed class LogisticsTrackingService : AntiCorruptionBase, ILogisticsTra
 
             return LogisticsTraceResult.Empty(logisticsNo, companyCode);
         }, ct);
+
+    /// <summary>
+    /// P1-T25：记录一次连续失败，递增计数器并上报指标。
+    /// 当连续失败次数达到 <see cref="DegradationThreshold"/> 时切换为降级模式（熔断器 Open）。
+    /// </summary>
+    private void RecordFailure()
+    {
+        AntiCorruptionMetrics.RecordFailure(ServiceName, "query_trace");
+        var current = Interlocked.Increment(ref _consecutiveFailures);
+        if (current == DegradationThreshold)
+        {
+            // 首次达到阈值时切换为降级模式，更新熔断器 Open 状态并记录严重告警
+            AntiCorruptionMetrics.UpdateCircuitOpenState(ServiceName, isOpen: true);
+            _logger.LogCritical(
+                "物流轨迹服务进入降级模式：连续失败 {FailureCount} 次达阈值 {Threshold}，后续查询将降级返回缓存或空轨迹",
+                current, DegradationThreshold);
+        }
+    }
+
+    /// <summary>
+    /// P1-T25：API 恢复后复位连续失败计数与降级状态。
+    /// 仅在之前处于降级模式时更新熔断器状态并记录恢复日志，避免每次成功请求都写日志。
+    /// </summary>
+    private void ResetFailureState()
+    {
+        var previous = Interlocked.Exchange(ref _consecutiveFailures, 0);
+        if (previous >= DegradationThreshold)
+        {
+            AntiCorruptionMetrics.UpdateCircuitOpenState(ServiceName, isOpen: false);
+            _logger.LogInformation(
+                "物流轨迹服务退出降级模式：连续失败计数从 {PreviousCount} 复位，API 已恢复",
+                previous);
+        }
+    }
 
     /// <summary>
     /// 将物流轨迹结果缓存到 Redis。
