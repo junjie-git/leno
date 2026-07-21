@@ -25,7 +25,9 @@ public interface ISoftDeletable
 /// </summary>
 public abstract class Entity : IAuditable
 {
-    public Guid Id { get; protected set; }
+    // T31：改为 init 替代 protected set，确保 Id 仅在构造阶段可赋值，
+    // 构造完成后对外完全只读（包括子类）。EF Core 通过反射支持 init setter 物化。
+    public Guid Id { get; init; }
 
     public DateTime CreatedAt { get; set; }
 
@@ -67,7 +69,10 @@ public abstract class Entity : IAuditable
         return Id == other.Id;
     }
 
-    public override int GetHashCode() => Id.GetHashCode();
+    // T32：基于类型 + Id 计算哈希，避免未持久化实体（Id = Guid.Empty）跨类型哈希碰撞。
+    // 原 Id.GetHashCode() 在 Guid.Empty 时所有临时实体哈希相同，影响 HashSet/Dictionary 性能。
+    // HashCode.Combine(GetType(), Id) 使不同实体类型即使 Id 均为 Empty 也有不同哈希。
+    public override int GetHashCode() => HashCode.Combine(GetType(), Id);
 
     public static bool operator ==(Entity? left, Entity? right)
     {
