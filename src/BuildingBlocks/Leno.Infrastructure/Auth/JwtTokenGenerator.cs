@@ -42,28 +42,54 @@ public sealed class JwtTokenGenerator
     }
 
     /// <summary>
-    /// 生成访问令牌。
+    /// 生成访问令牌（单角色重载，向后兼容）。
     /// </summary>
     public string GenerateAccessToken(Guid userId, string role, Guid? shopId, IDictionary<string, string>? additionalClaims = null)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            throw new ArgumentException("Role 不可为空", nameof(role));
+        }
+
+        return GenerateAccessToken(userId, new[] { role }, shopId, additionalClaims);
+    }
+
+    /// <summary>
+    /// 生成访问令牌（多角色重载）。
+    /// 每个角色同时添加 <see cref="ClaimTypes.Role"/> 与 <c>"role"</c> 两种 Claim 类型，
+    /// 兼容 ASP.NET Core RBAC（<c>User.IsInRole</c>）与网关自定义 role 校验。
+    /// </summary>
+    public string GenerateAccessToken(Guid userId, IEnumerable<string> roles, Guid? shopId, IDictionary<string, string>? additionalClaims = null)
     {
         if (userId == Guid.Empty)
         {
             throw new ArgumentException("UserId 不可为空", nameof(userId));
         }
 
-        if (string.IsNullOrWhiteSpace(role))
-        {
-            throw new ArgumentException("Role 不可为空", nameof(role));
-        }
+        ArgumentNullException.ThrowIfNull(roles);
 
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(ClaimTypes.NameIdentifier, userId.ToString()),
-            new(ClaimTypes.Role, role),
-            new("role", role)
+            new(ClaimTypes.NameIdentifier, userId.ToString())
         };
+
+        var hasRole = false;
+        foreach (var role in roles)
+        {
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+                claims.Add(new Claim("role", role));
+                hasRole = true;
+            }
+        }
+
+        if (!hasRole)
+        {
+            throw new ArgumentException("至少需要一个有效角色", nameof(roles));
+        }
 
         if (shopId.HasValue && shopId.Value != Guid.Empty)
         {

@@ -25,5 +25,9 @@ public sealed class TokenService : ITokenService
         => _generator.GenerateAccessToken(userId, role, shopId);
 
     /// <inheritdoc />
+    public string GenerateAccessToken(Guid userId, IReadOnlyCollection<string> roles, Guid? shopId = null)
+        => _generator.GenerateAccessToken(userId, roles, shopId);
+
+    /// <inheritdoc />
     public int AccessTokenExpirySeconds => _options.AccessTokenExpiryMinutes * 60;
 }

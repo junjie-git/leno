@@ -43,6 +43,8 @@ public class UserAppServiceTests
 
         _tokenMock.Setup(t => t.GenerateAccessToken(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Guid?>()))
             .Returns("access-token");
+        _tokenMock.Setup(t => t.GenerateAccessToken(It.IsAny<Guid>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<Guid?>()))
+            .Returns("access-token");
         _tokenMock.Setup(t => t.AccessTokenExpirySeconds).Returns(3600);
 
         _refreshTokenMock.Setup(r => r.IssueAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
@@ -266,6 +268,31 @@ public class UserAppServiceTests
     }
 
     [Fact]
+    public async Task LoginAsync_MultiRoleUser_Should_Pass_All_Roles_To_GenerateAccessToken()
+    {
+        // P2-6: 同时持有 Buyer + Seller 的用户，JWT 应携带全部角色 claim
+        var user = CreateUser();
+        user.AssignRole(RoleType.Seller, null);
+        _userRepoMock.Setup(r => r.GetByUsernameAsync("testuser", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var dto = new LoginDto { Account = "testuser", Password = "Pass123!" };
+
+        var result = await _sut.LoginAsync(dto);
+
+        result.Should().NotBeNull();
+        _tokenMock.Verify(
+            t => t.GenerateAccessToken(
+                user.Id,
+                It.Is<IReadOnlyCollection<string>>(roles =>
+                    roles.Contains(RoleType.Buyer.ToString()) &&
+                    roles.Contains(RoleType.Seller.ToString()) &&
+                    roles.Count == 2),
+                It.IsAny<Guid?>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task LoginAsync_Should_Retry_When_DbUpdateConcurrencyException_Thrown()
     {
         // Arrange：构造一个账户并让 SaveEntitiesAsync 第一次抛并发异常，第二次成功
@@ -434,6 +461,8 @@ public class UserAppServiceTests
         _userRepoMock.Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
         _tokenMock.Setup(t => t.GenerateAccessToken(user.Id, It.IsAny<string>(), It.IsAny<Guid?>()))
+            .Returns("access");
+        _tokenMock.Setup(t => t.GenerateAccessToken(user.Id, It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<Guid?>()))
             .Returns("access");
         _refreshTokenMock.Setup(s => s.IssueAsync(user.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync("new-rt");

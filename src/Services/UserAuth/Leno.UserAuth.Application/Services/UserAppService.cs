@@ -573,8 +573,10 @@ public sealed class UserAppService : IUserAppService
 
     private async Task<TokenDto> IssueTokensAsync(User user, CancellationToken ct)
     {
-        var role = GetPrimaryRole(user.Roles);
-        var accessToken = _tokenService.GenerateAccessToken(user.Id, role, shopId: null);
+        // P2-6: JWT 携带用户全部角色 claim，支持 User.IsInRole 多角色校验。
+        // 同时持有 Buyer + Seller 的用户可同时访问两类路由，不再因只取最高权限角色而丢失权限。
+        var roles = user.Roles.Select(r => r.Value.ToString()).ToList();
+        var accessToken = _tokenService.GenerateAccessToken(user.Id, roles, shopId: null);
         var refreshToken = await _refreshTokenStore.IssueAsync(user.Id, ct);
 
         return new TokenDto
@@ -620,19 +622,6 @@ public sealed class UserAppService : IUserAppService
         {
             throw new UserAuthValidationException(result.Errors.Select(e => e.ErrorMessage));
         }
-    }
-
-    private static string GetPrimaryRole(IReadOnlyCollection<UserRole> roles)
-    {
-        if (roles.Count == 0)
-        {
-            return RoleType.Buyer.ToString();
-        }
-
-        return roles.Select(r => r.Value)
-            .OrderByDescending(r => (int)r)
-            .First()
-            .ToString();
     }
 
     private static UserDto ToUserDto(User user)
