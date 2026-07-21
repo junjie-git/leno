@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Leno.ReviewAfterSales.Domain.Aggregates;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Leno.ReviewAfterSales.Infrastructure.Configurations;
@@ -47,13 +48,18 @@ public sealed class AfterSalesConfiguration : IEntityTypeConfiguration<AfterSale
         builder.Property(a => a.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(a => a.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
 
-        // 凭证图片 URL 集合序列化为 JSON 列
-        builder.Property(a => a.Images)
+        // 凭证图片 URL 集合序列化为 JSON 列，通过 backing field _images 持久化，
+        // 配合聚合根 Images 只读视图，避免 EF Core 经属性 setter 绕过封装。
+        builder.Property<List<string>>("_images")
             .HasColumnName("images")
             .HasColumnType("nvarchar(max)")
             .HasConversion(
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-                v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>());
+                v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>())
+            .Metadata.SetValueComparer(new ValueComparer<List<string>>(
+                (a, b) => (a == null && b == null) || (a != null && b != null && a.SequenceEqual(b)),
+                c => c == null ? 0 : c.Aggregate(0, (h, v) => h ^ v.GetHashCode()),
+                c => c == null ? new List<string>() : c.ToList()));
 
         builder.HasIndex(a => a.OrderId).HasDatabaseName("ix_after_sales_order_id");
         builder.HasIndex(a => a.SellerId).HasDatabaseName("ix_after_sales_seller_id");

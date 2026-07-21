@@ -270,7 +270,7 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
             Type = afterSales.Type,
             ReasonCategory = afterSales.ReasonCategory,
             Reason = afterSales.Reason,
-            Images = afterSales.Images,
+            Images = afterSales.Images.ToList(),
             RequestedAmount = afterSales.RequestedAmount,
             Currency = afterSales.Currency,
             ApprovedAmount = afterSales.ApprovedAmount,

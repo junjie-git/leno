@@ -131,7 +131,7 @@ public sealed class ReviewAppService : IReviewAppService
             UserId = review.UserId,
             Rating = review.Rating,
             Content = review.Content,
-            Images = review.Images,
+            Images = review.Images.ToList(),
             Status = review.Status,
             SellerReplyContent = review.SellerReplyContent,
             SellerReplyBy = review.SellerReplyBy,

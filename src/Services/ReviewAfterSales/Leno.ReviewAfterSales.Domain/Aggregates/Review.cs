@@ -38,10 +38,10 @@ public sealed class Review : AggregateRoot
 
     /// <summary>
     /// 图片 URL 列表，仅经聚合根维护，最多 9 张。
-    /// 持久化为聚合子集合，私有 setter 阻止外部整体替换。
+    /// 通过 <see cref="Images"/> 只读视图对外暴露，防止外部 mutate 内部集合。
     /// </summary>
     private List<string> _images = [];
-    public List<string> Images { get => _images; private set => _images = value ?? []; }
+    public IReadOnlyList<string> Images => _images.AsReadOnly();
 
     /// <summary>审核状态。</summary>
     public ReviewStatus Status { get; private set; }
@@ -157,7 +157,7 @@ public sealed class Review : AggregateRoot
             throw new ReviewDomainException("评价内容不可超过 500 字", "REVIEW_CONTENT_TOO_LONG");
         }
 
-        var imageList = images ?? [];
+        var imageList = (images ?? []).ToList();
         if (imageList.Count > 9)
         {
             throw new ReviewDomainException($"图片数量超限：{imageList.Count}，最多 9 张", "REVIEW_IMAGES_TOO_MANY");
@@ -174,9 +174,12 @@ public sealed class Review : AggregateRoot
             Rating = rating,
             Content = content,
             Status = ReviewStatus.Pending,
-            SubmittedAt = DateTime.UtcNow,
-            Images = imageList
+            SubmittedAt = DateTime.UtcNow
         };
+
+        // 直接赋 backing field，避免经 Images 只读视图（无 setter）赋值；
+        // imageList 已为防御性拷贝，外部 mutate 不影响聚合内部状态。
+        review._images = imageList;
 
         review.AddDomainEvent(new ReviewSubmittedDomainEvent(reviewId, userId, spuId, rating, newScore, reviewCount));
 
