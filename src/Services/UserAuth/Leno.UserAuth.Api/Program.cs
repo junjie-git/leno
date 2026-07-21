@@ -19,7 +19,7 @@ builder.AddConsulServiceRegistration("leno-user-auth-api");
 builder.Services.AddLenoApi<UserAuthDbContext>(
     builder.Configuration,
     "leno-user-auth-api",
-    configureInfrastructure: s => s.AddUserAuthInfrastructure(builder.Configuration));
+    configureInfrastructure: s => s.AddUserAuthInfrastructure(builder.Configuration, hostEnvironment: builder.Environment));
 
 // 启用 Consul KV 配置中心
 builder.AddLenoConsulConfig();

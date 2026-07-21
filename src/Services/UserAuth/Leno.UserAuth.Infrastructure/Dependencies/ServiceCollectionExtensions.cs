@@ -1,4 +1,5 @@
 using FluentValidation;
+using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.SharedKernel.Abstractions;
@@ -15,6 +16,9 @@ using Leno.UserAuth.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Leno.UserAuth.Infrastructure.Dependencies;
 
@@ -29,13 +33,18 @@ public static class ServiceCollectionExtensions
     /// 注册用户与认证授权域的全部基础设施服务。
     /// </summary>
     /// <param name="connectionStringName">连接字符串名称，默认 <c>UserAuthDb</c>。</param>
+    /// <param name="hostEnvironment">宿主环境，用于校验 InMemory 刷新令牌存储仅用于 Development。若为 null 则尝试从 DI 解析。</param>
     public static IServiceCollection AddUserAuthInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration,
-        string connectionStringName = "UserAuthDb")
+        string connectionStringName = "UserAuthDb",
+        IHostEnvironment? hostEnvironment = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
+
+        // 若未显式传入环境，尝试从已注册的 IHostEnvironment 单例中解析（用于支持 Program.cs 旧调用形式）
+        hostEnvironment ??= TryResolveHostEnvironment(services);
 
         services.Configure<PasswordHashOptions>(configuration.GetSection("PasswordHash"));
 
@@ -61,7 +70,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<ITokenVerifier, TotpTokenVerifier>();
-        services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
+        RegisterRefreshTokenStore(services, configuration, hostEnvironment);
 
         // JWT 黑名单吊销服务：登出时写入 Redis 黑名单（与网关共用 Redis 实例与 Key 格式）
         services.AddScoped<IJwtRevocationService, JwtRevocationService>();
@@ -104,4 +113,66 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// 按配置与环境切换刷新令牌存储：
+    /// 默认 Redis；仅当显式配置 <c>RefreshToken:Provider=InMemory</c> 且环境为 Development 时使用 InMemoryRefreshTokenStore；
+    /// 生产环境配置 InMemory 直接抛出异常，避免静默退化导致多实例刷新令牌失效。
+    /// </summary>
+    private static void RegisterRefreshTokenStore(
+        IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment? hostEnvironment)
+    {
+        var provider = configuration["RefreshToken:Provider"] ?? "Redis";
+        var jwtOptions = configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
+        var refreshTokenExpiry = TimeSpan.FromDays(jwtOptions.RefreshTokenExpiryDays > 0
+            ? jwtOptions.RefreshTokenExpiryDays
+            : 7);
+
+        if (string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase))
+        {
+            if (hostEnvironment is null || !hostEnvironment.IsDevelopment())
+            {
+                throw new InvalidOperationException(
+                    "InMemoryRefreshTokenStore 仅允许在 Development 环境使用；" +
+                    "生产环境必须配置 RefreshToken:Provider=Redis 与 Redis:Connection。");
+            }
+
+            services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
+            return;
+        }
+
+        if (!string.Equals(provider, "Redis", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"不支持的 RefreshToken:Provider={provider}，仅支持 Redis 或 InMemory（仅 Development）。");
+        }
+
+        services.AddSingleton<IRefreshTokenStore>(sp =>
+        {
+            var multiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
+            var logger = sp.GetRequiredService<ILogger<RedisRefreshTokenStore>>();
+            return new RedisRefreshTokenStore(multiplexer, refreshTokenExpiry, logger);
+        });
+    }
+
+    /// <summary>
+    /// 从已注册的服务描述符中查找 <see cref="IHostEnvironment"/> 实例（仅对 AddSingleton(instance) 形式有效）。
+    /// </summary>
+    private static IHostEnvironment? TryResolveHostEnvironment(IServiceCollection services)
+    {
+        for (var i = 0; i < services.Count; i++)
+        {
+            var descriptor = services[i];
+            if (descriptor.ServiceType == typeof(IHostEnvironment)
+                && descriptor.ImplementationInstance is IHostEnvironment env)
+            {
+                return env;
+            }
+        }
+
+        return null;
+    }
 }
+

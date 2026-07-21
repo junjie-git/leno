@@ -1,23 +1,30 @@
 using System.Collections.Concurrent;
 using Leno.Infrastructure.Auth;
 using Leno.UserAuth.Application.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace Leno.UserAuth.Infrastructure.Services;
 
 /// <summary>
-/// 刷新令牌存储的进程内默认实现，供开发与单实例部署使用。
-/// 生产环境应替换为基于 Redis 或数据库的实现以保证多实例间共享与持久化。
+/// 刷新令牌存储的进程内默认实现，仅供开发与单实例部署使用。
+/// 生产环境必须使用 <see cref="RedisRefreshTokenStore"/> 以保证多实例间共享与持久化。
 /// 注册为单例以在请求间共享令牌表。
 /// </summary>
 public sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
 {
     private readonly JwtTokenGenerator _generator;
     private readonly ConcurrentDictionary<string, RefreshTokenEntry> _store = new();
+    private readonly ILogger<InMemoryRefreshTokenStore> _logger;
 
-    public InMemoryRefreshTokenStore(JwtTokenGenerator generator)
+    public InMemoryRefreshTokenStore(JwtTokenGenerator generator, ILogger<InMemoryRefreshTokenStore> logger)
     {
         ArgumentNullException.ThrowIfNull(generator);
+        ArgumentNullException.ThrowIfNull(logger);
         _generator = generator;
+        _logger = logger;
+        _logger.LogWarning(
+            "InMemoryRefreshTokenStore 已启用：刷新令牌仅存储于当前进程内存，水平扩容或进程重启后失效。" +
+            "生产环境必须配置 RefreshToken:Provider=Redis 与 Redis:Connection。");
     }
 
     /// <inheritdoc />
