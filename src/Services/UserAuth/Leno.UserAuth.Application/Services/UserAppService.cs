@@ -9,6 +9,7 @@ using Leno.UserAuth.Domain.Repositories;
 using Leno.UserAuth.Domain.Services;
 using Leno.UserAuth.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
+using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 
 namespace Leno.UserAuth.Application.Services;
@@ -135,14 +136,20 @@ public sealed class UserAppService : IUserAppService
 
         if (!passwordOk)
         {
-            await _userRepository.UpdateAsync(user, ct);
-            await _unitOfWork.SaveEntitiesAsync(ct);
+            await SaveWithConcurrencyRetryAsync(async ct =>
+            {
+                await _userRepository.UpdateAsync(user, ct);
+                await _unitOfWork.SaveEntitiesAsync(ct);
+            }, ct);
             throw new UnauthorizedAccessException("账号或密码错误");
         }
 
         user.RecordLogin();
-        await _userRepository.UpdateAsync(user, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        await SaveWithConcurrencyRetryAsync(async ct =>
+        {
+            await _userRepository.UpdateAsync(user, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }, ct);
 
         // 如已启用双因子认证，返回临时令牌要求二次验证
         if (user.TwoFactorEnabled)
@@ -535,6 +542,30 @@ public sealed class UserAppService : IUserAppService
 
         // 撤销该用户所有 RefreshToken，防止旧令牌继续使用
         await _refreshTokenStore.RevokeAllAsync(user.Id, ct);
+    }
+
+    /// <summary>
+    /// 带乐观锁重试的保存操作。捕获 <see cref="DbUpdateConcurrencyException"/> 后短暂退避并重试，
+    /// 用于 FailedLoginCount 并发累加等需要原子性的场景。
+    /// </summary>
+    private static async Task SaveWithConcurrencyRetryAsync(
+        Func<CancellationToken, Task> saveAction,
+        CancellationToken ct,
+        int maxRetry = 3)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                await saveAction(ct);
+                return;
+            }
+            catch (DbUpdateConcurrencyException) when (attempt < maxRetry)
+            {
+                // 重新加载聚合以拿到最新的 RowVersion，由调用方再次构造变更
+                await Task.Delay(TimeSpan.FromMilliseconds(50 * (attempt + 1)), ct);
+            }
+        }
     }
 
     private async Task<TokenDto> IssueTwoFactorRequiredTokenAsync(User user, CancellationToken ct)

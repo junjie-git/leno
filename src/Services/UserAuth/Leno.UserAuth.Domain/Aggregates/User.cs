@@ -64,6 +64,9 @@ public sealed partial class User : AggregateRoot
     /// <summary>双因子认证 TOTP 共享密钥（Base32）。为空表示未设置。</summary>
     public string? TwoFactorSecret { get; private set; }
 
+    /// <summary>EF Core 乐观并发控制版本号（shadow property 配合 IsRowVersion）。</summary>
+    public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
+
     /// <summary>EF Core 无参构造。</summary>
     private User() { }
 

@@ -10,6 +10,7 @@ using Leno.UserAuth.Domain.Repositories;
 using Leno.UserAuth.Domain.Services;
 using Leno.UserAuth.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using StackExchange.Redis;
 
@@ -249,6 +250,36 @@ public class UserAppServiceTests
         var result = await _sut.LoginAsync(dto);
 
         result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task LoginAsync_Should_Retry_When_DbUpdateConcurrencyException_Thrown()
+    {
+        // Arrange：构造一个账户并让 SaveEntitiesAsync 第一次抛并发异常，第二次成功
+        var user = CreateUser();
+        _userRepoMock.Setup(r => r.GetByUsernameAsync("testuser", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var saveCallCount = 0;
+        _uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                saveCallCount++;
+                if (saveCallCount == 1)
+                {
+                    throw new DbUpdateConcurrencyException("RowVersion mismatch");
+                }
+                return Task.CompletedTask;
+            });
+
+        // Act：登录失败一次（密码错误），第一次 Save 抛并发异常，应自动重试
+        var dto = new LoginDto { Account = "testuser", Password = "wrong" };
+
+        await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
+            _sut.LoginAsync(dto, CancellationToken.None));
+
+        // Assert：至少重试一次，证明并发重试逻辑生效
+        Assert.True(saveCallCount >= 2);
     }
 
     #endregion

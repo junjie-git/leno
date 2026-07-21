@@ -30,6 +30,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.TwoFactorEnabled).HasColumnName("two_factor_enabled");
         builder.Property(u => u.TwoFactorSecret).HasColumnName("two_factor_secret").HasMaxLength(256);
 
+        // 乐观并发控制：FailedLoginCount 并发累加时通过 RowVersion 检测冲突
+        builder.Property(u => u.RowVersion).HasColumnName("row_version").IsRowVersion();
+
         builder.Property(u => u.CreatedAt).HasColumnName("created_at");
         builder.Property(u => u.UpdatedAt).HasColumnName("updated_at");
         builder.Property(u => u.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

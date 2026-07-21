@@ -1,5 +1,6 @@
 using Leno.UserAuth.Domain.Aggregates;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Leno.UserAuth.Infrastructure.Tests.Configurations;
 
@@ -56,5 +57,27 @@ public sealed class UserConfigurationTests
         Assert.NotNull(filter);
         Assert.Contains("[phone_number]", filter);
         Assert.DoesNotContain("\"phone_number\"", filter);
+    }
+
+    [Fact]
+    public void UserConfiguration_Should_Configure_RowVersion_As_Concurrency_Token()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<UserAuthDbContext>()
+            .UseSqlServer("Server=localhost;Database=Dummy;Trusted_Connection=True;")
+            .Options;
+
+        using var context = new UserAuthDbContext(options);
+
+        // Act
+        var entityType = context.Model.FindEntityType(typeof(User));
+        Assert.NotNull(entityType);
+
+        var rowVersionProp = entityType.FindProperty(nameof(User.RowVersion));
+        Assert.NotNull(rowVersionProp);
+
+        // Assert：RowVersion 应作为乐观并发令牌，且由数据库在新增/更新时生成
+        Assert.True(rowVersionProp.IsConcurrencyToken);
+        Assert.Equal(ValueGenerated.OnAddOrUpdate, rowVersionProp.ValueGenerated);
     }
 }
