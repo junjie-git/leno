@@ -32,6 +32,12 @@ public sealed class JwtTokenGenerator
     /// <summary>ShopId 自定义 Claim 类型。</summary>
     public const string ShopIdClaimType = "shop_id";
 
+    /// <summary>T23：ClockSkew 缩短为 30 秒，配合 JwtBlacklistService Pub/Sub 实时同步缩短吊销生效窗口。</summary>
+    private static readonly TimeSpan ClockSkew = TimeSpan.FromSeconds(30);
+
+    /// <summary>T22：HS256 要求 SymmetricSecurityKey 至少 256 位（32 字节）。</summary>
+    private const int MinSecretKeyBytes = 32;
+
     private readonly JwtOptions _options;
     private readonly JwtSecurityTokenHandler _tokenHandler = new();
 
@@ -39,6 +45,16 @@ public sealed class JwtTokenGenerator
     {
         ArgumentNullException.ThrowIfNull(options);
         _options = options.Value ?? throw new InvalidOperationException("JwtOptions 未配置");
+
+        // T22：校验 SymmetricSecurityKey 长度 >= 32 字节（HS256 要求 256 位密钥）
+        // 短密钥在运行时抛 SecurityTokenInvalidSigningKeyException 或安全降级，构造时 fail-fast 更明确
+        var keyBytes = Encoding.UTF8.GetBytes(_options.SecretKey ?? string.Empty);
+        if (keyBytes.Length < MinSecretKeyBytes)
+        {
+            throw new InvalidOperationException(
+                $"JwtOptions.SecretKey 长度不足：HS256 要求至少 {MinSecretKeyBytes} 字节（256 位），" +
+                $"当前 UTF-8 编码仅 {keyBytes.Length} 字节。请使用更长的随机密钥。");
+        }
     }
 
     /// <summary>
@@ -164,7 +180,8 @@ public sealed class JwtTokenGenerator
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = key,
-            ClockSkew = TimeSpan.FromMinutes(1),
+            // T23：ClockSkew 从 1 分钟缩短为 30 秒
+            ClockSkew = ClockSkew,
             RoleClaimType = ClaimTypes.Role,
             NameClaimType = ClaimTypes.NameIdentifier
         };

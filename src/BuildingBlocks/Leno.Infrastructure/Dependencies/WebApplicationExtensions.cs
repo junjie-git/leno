@@ -122,6 +122,16 @@ public static class WebApplicationExtensions
             {
                 var jwtOpts = configuration.GetSection("Jwt").Get<JwtOptions>()
                     ?? throw new InvalidOperationException("Jwt 配置节缺失");
+
+                // T22：校验 SymmetricSecurityKey 长度 >= 32 字节（HS256 要求 256 位密钥）
+                var secretKeyBytes = Encoding.UTF8.GetBytes(jwtOpts.SecretKey ?? string.Empty);
+                if (secretKeyBytes.Length < 32)
+                {
+                    throw new InvalidOperationException(
+                        $"Jwt 配置节 SecretKey 长度不足：HS256 要求至少 32 字节（256 位），" +
+                        $"当前 UTF-8 编码仅 {secretKeyBytes.Length} 字节。请使用更长的随机密钥。");
+                }
+
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -130,8 +140,9 @@ public static class WebApplicationExtensions
                     ValidAudience = jwtOpts.Audience,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOpts.SecretKey)),
-                    ClockSkew = TimeSpan.FromMinutes(1)
+                    IssuerSigningKey = new SymmetricSecurityKey(secretKeyBytes),
+                    // T23：ClockSkew 从 1 分钟缩短为 30 秒
+                    ClockSkew = TimeSpan.FromSeconds(30)
                 };
             })
             .AddScheme<GatewayAuthOptions, GatewayAuthHandler>("GatewayHeader", _ => { });
