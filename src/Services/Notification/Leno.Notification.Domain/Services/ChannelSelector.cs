@@ -78,6 +78,12 @@ public sealed class ChannelSelector : IChannelSelector
     }
 
     /// <inheritdoc />
+    public string SelectSmsProvider()
+    {
+        return NormalizeProvider(_smsProvider);
+    }
+
+    /// <inheritdoc />
     public string? SelectFallbackProvider(NotificationChannel channel)
     {
         return channel switch

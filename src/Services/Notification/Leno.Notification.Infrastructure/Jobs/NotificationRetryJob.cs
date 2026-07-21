@@ -15,7 +15,7 @@ namespace Leno.Notification.Infrastructure.Jobs;
 public sealed class NotificationRetryJob
 {
     private readonly INotificationRecordRepository _recordRepository;
-    private readonly IEnumerable<INotificationChannel> _channels;
+    private readonly IReadOnlyDictionary<NotificationChannel, INotificationChannel> _channelDict;
     private readonly IUserContactService _userContactService;
     private readonly IRetryPolicy _retryPolicy;
     private readonly IUnitOfWork _unitOfWork;
@@ -36,7 +36,8 @@ public sealed class NotificationRetryJob
         ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(logger);
         _recordRepository = recordRepository;
-        _channels = channels;
+        // 构造时一次性构建渠道字典并缓存，避免每次 ExecuteAsync 重建触发 ToDictionary 重复键异常。
+        _channelDict = channels.ToDictionary(c => c.Channel);
         _userContactService = userContactService;
         _retryPolicy = retryPolicy;
         _unitOfWork = unitOfWork;
@@ -104,13 +105,12 @@ public sealed class NotificationRetryJob
             return;
         }
 
-        var channelDict = _channels.ToDictionary(c => c.Channel);
         foreach (var record in scheduledRecords)
         {
             // MarkSending 从 Retried → Sending
             record.MarkSending();
 
-            if (channelDict.TryGetValue(record.Channel, out var sender))
+            if (_channelDict.TryGetValue(record.Channel, out var sender))
             {
                 try
                 {

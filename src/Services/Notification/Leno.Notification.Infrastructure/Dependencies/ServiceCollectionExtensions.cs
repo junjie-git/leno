@@ -105,15 +105,18 @@ public static class ServiceCollectionExtensions
         services.Configure<EmailChannelOptions>(configuration.GetSection("Notification:Email"));
         services.Configure<SmsChannelOptions>(configuration.GetSection("Notification:Sms"));
 
-        // 通知渠道实现
-        services.AddHttpClient<AliyunSmsChannel>()
+        // 通知渠道实现：ISmsProvider 由 AliyunSmsProvider/TencentSmsProvider 实现，
+        // SmsChannel 外壳类作为唯一的 INotificationChannel(NotificationChannel.Sms) 注册到 DI，
+        // 避免两个 SMS 实现注册为 INotificationChannel 时 ToDictionary 抛重复键异常。
+        services.AddHttpClient<AliyunSmsProvider>()
             .AddAntiCorruptionPolicies();
-        services.AddHttpClient<TencentSmsChannel>()
+        services.AddHttpClient<TencentSmsProvider>()
             .AddAntiCorruptionPolicies();
-        services.AddScoped<INotificationChannel, InAppChannel>();
+        services.AddScoped<ISmsProvider, AliyunSmsProvider>();
+        services.AddScoped<ISmsProvider, TencentSmsProvider>();
+        services.AddScoped<INotificationChannel, SmsChannel>();
         services.AddScoped<INotificationChannel, SmtpEmailChannel>();
-        services.AddScoped<INotificationChannel, AliyunSmsChannel>();
-        services.AddScoped<INotificationChannel, TencentSmsChannel>();
+        services.AddScoped<INotificationChannel, InAppChannel>();
 
         // 重试策略
         services.AddSingleton<Domain.Services.IRetryPolicy, Infrastructure.Services.RetryPolicy>();

@@ -15,7 +15,7 @@ namespace Leno.Notification.Infrastructure.Jobs;
 public sealed class NotificationDispatchJob
 {
     private readonly INotificationRecordRepository _recordRepository;
-    private readonly IEnumerable<INotificationChannel> _channels;
+    private readonly IReadOnlyDictionary<NotificationChannel, INotificationChannel> _channelDict;
     private readonly IUserContactService _userContactService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<NotificationDispatchJob> _logger;
@@ -33,7 +33,8 @@ public sealed class NotificationDispatchJob
         ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(logger);
         _recordRepository = recordRepository;
-        _channels = channels;
+        // 构造时一次性构建渠道字典并缓存，避免每次 ExecuteAsync 重建触发 ToDictionary 重复键异常。
+        _channelDict = channels.ToDictionary(c => c.Channel);
         _userContactService = userContactService;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -50,10 +51,9 @@ public sealed class NotificationDispatchJob
             return;
         }
 
-        var channelDict = _channels.ToDictionary(c => c.Channel);
         foreach (var record in pending)
         {
-            if (channelDict.TryGetValue(record.Channel, out var sender))
+            if (_channelDict.TryGetValue(record.Channel, out var sender))
             {
                 try
                 {

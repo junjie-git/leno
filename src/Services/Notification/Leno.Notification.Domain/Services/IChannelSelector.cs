@@ -19,6 +19,13 @@ public interface IChannelSelector
     string SelectProvider(NotificationChannel channel);
 
     /// <summary>
+    /// 选择当前配置的短信提供商名称（如 "Aliyun"、"Tencent"）。
+    /// 供 <c>SmsChannel</c> 外壳类在运行时选择具体的 <see cref="ISmsProvider"/> 实现。
+    /// </summary>
+    /// <returns>短信提供商标识。</returns>
+    string SelectSmsProvider();
+
+    /// <summary>
     /// 选择指定渠道的备选适配器提供商标识。
     /// 无备选时返回 null。
     /// </summary>

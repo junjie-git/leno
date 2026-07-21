@@ -17,7 +17,7 @@ public sealed class NotificationDispatcher : INotificationDispatcher
     private readonly INotificationPreferenceRepository _preferenceRepository;
     private readonly INotificationRecordRepository _recordRepository;
     private readonly ITemplateRenderer _renderer;
-    private readonly IEnumerable<INotificationChannel> _channels;
+    private readonly IReadOnlyDictionary<NotificationChannel, INotificationChannel> _channelDict;
     private readonly IUserContactService _userContactService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<NotificationDispatcher> _logger;
@@ -44,7 +44,9 @@ public sealed class NotificationDispatcher : INotificationDispatcher
         _preferenceRepository = preferenceRepository;
         _recordRepository = recordRepository;
         _renderer = renderer;
-        _channels = channels;
+        // 构造时一次性构建渠道字典并缓存，避免每次 DispatchAsync 重建触发 ToDictionary 重复键异常。
+        // P0-1 修复后：SmsChannel 外壳作为唯一的 Sms INotificationChannel 注册，Channel 值不再重复。
+        _channelDict = channels.ToDictionary(c => c.Channel);
         _userContactService = userContactService;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -66,8 +68,7 @@ public sealed class NotificationDispatcher : INotificationDispatcher
             ? preference.GetChannels(templateCode)
             : [NotificationChannel.InApp];
 
-        // 按渠道创建通知记录并发送
-        var channelDict = _channels.ToDictionary(c => c.Channel);
+        // 按渠道创建通知记录并发送（使用构造时缓存的渠道字典，避免每次重建触发 ToDictionary 重复键异常）
         foreach (var channel in channels)
         {
             var template = await _templateRepository.GetEnabledAsync(templateCode, channel, ct);
@@ -85,7 +86,7 @@ public sealed class NotificationDispatcher : INotificationDispatcher
             await _unitOfWork.SaveChangesAsync(ct);
 
             // 立即发送
-            if (channelDict.TryGetValue(channel, out var sender))
+            if (_channelDict.TryGetValue(channel, out var sender))
             {
                 try
                 {

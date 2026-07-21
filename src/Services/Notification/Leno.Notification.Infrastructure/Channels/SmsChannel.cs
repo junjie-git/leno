@@ -8,18 +8,19 @@ using Microsoft.Extensions.Options;
 namespace Leno.Notification.Infrastructure.Channels;
 
 /// <summary>
-/// 阿里云短信发送渠道，通过 HTTP 调用阿里云短信 API。
+/// 阿里云短信发送提供商，通过 HTTP 调用阿里云短信 API。
+/// 实现 <see cref="ISmsProvider"/>，由 <see cref="SmsChannel"/> 外壳类按 <see cref="IChannelSelector"/> 选择。
 /// </summary>
-public sealed class AliyunSmsChannel : INotificationChannel
+public sealed class AliyunSmsProvider : ISmsProvider
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan HttpTimeout = TimeSpan.FromSeconds(10);
 
     private readonly SmsChannelOptions _options;
     private readonly HttpClient _httpClient;
-    private readonly ILogger<AliyunSmsChannel> _logger;
+    private readonly ILogger<AliyunSmsProvider> _logger;
 
-    public AliyunSmsChannel(IOptions<SmsChannelOptions> options, HttpClient httpClient, ILogger<AliyunSmsChannel> logger)
+    public AliyunSmsProvider(IOptions<SmsChannelOptions> options, HttpClient httpClient, ILogger<AliyunSmsProvider> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(httpClient);
@@ -30,7 +31,7 @@ public sealed class AliyunSmsChannel : INotificationChannel
     }
 
     /// <inheritdoc />
-    public NotificationChannel Channel => NotificationChannel.Sms;
+    public string ProviderName => "Aliyun";
 
     /// <inheritdoc />
     public async Task<ChannelSendResult> SendAsync(ChannelSendRequest request, CancellationToken ct = default)
@@ -95,18 +96,19 @@ public sealed class AliyunSmsChannel : INotificationChannel
 }
 
 /// <summary>
-/// 腾讯云短信发送渠道，通过 HTTP 调用腾讯云短信 API。
+/// 腾讯云短信发送提供商，通过 HTTP 调用腾讯云短信 API。
+/// 实现 <see cref="ISmsProvider"/>，由 <see cref="SmsChannel"/> 外壳类按 <see cref="IChannelSelector"/> 选择。
 /// </summary>
-public sealed class TencentSmsChannel : INotificationChannel
+public sealed class TencentSmsProvider : ISmsProvider
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan HttpTimeout = TimeSpan.FromSeconds(10);
 
     private readonly SmsChannelOptions _options;
     private readonly HttpClient _httpClient;
-    private readonly ILogger<TencentSmsChannel> _logger;
+    private readonly ILogger<TencentSmsProvider> _logger;
 
-    public TencentSmsChannel(IOptions<SmsChannelOptions> options, HttpClient httpClient, ILogger<TencentSmsChannel> logger)
+    public TencentSmsProvider(IOptions<SmsChannelOptions> options, HttpClient httpClient, ILogger<TencentSmsProvider> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(httpClient);
@@ -117,7 +119,7 @@ public sealed class TencentSmsChannel : INotificationChannel
     }
 
     /// <inheritdoc />
-    public NotificationChannel Channel => NotificationChannel.Sms;
+    public string ProviderName => "Tencent";
 
     /// <inheritdoc />
     public async Task<ChannelSendResult> SendAsync(ChannelSendRequest request, CancellationToken ct = default)
@@ -178,5 +180,54 @@ public sealed class TencentSmsChannel : INotificationChannel
             _logger.LogError(ex, "腾讯云短信发送异常 Phone={Phone}", phoneNumber);
             return new ChannelSendResult(false, ex.Message, "SMS_EXCEPTION", null);
         }
+    }
+}
+
+/// <summary>
+/// 短信渠道外壳类，按 <see cref="IChannelSelector"/> 在运行时选择具体的 <see cref="ISmsProvider"/> 发送。
+/// 作为唯一的 <see cref="INotificationChannel"/>（<see cref="NotificationChannel.Sms"/>）注册到 DI，
+/// 避免多个 SMS 实现注册为 <see cref="INotificationChannel"/> 时 <c>ToDictionary</c> 抛重复键异常。
+/// </summary>
+public sealed class SmsChannel : INotificationChannel
+{
+    private readonly Dictionary<string, ISmsProvider> _providers;
+    private readonly IChannelSelector _channelSelector;
+    private readonly ILogger<SmsChannel> _logger;
+
+    /// <inheritdoc />
+    public NotificationChannel Channel => NotificationChannel.Sms;
+
+    public SmsChannel(
+        IEnumerable<ISmsProvider> providers,
+        IChannelSelector channelSelector,
+        ILogger<SmsChannel> logger)
+    {
+        ArgumentNullException.ThrowIfNull(providers);
+        ArgumentNullException.ThrowIfNull(channelSelector);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _providers = providers.ToDictionary(p => p.ProviderName, StringComparer.OrdinalIgnoreCase);
+        _channelSelector = channelSelector;
+        _logger = logger;
+
+        if (_providers.Count == 0)
+        {
+            _logger.LogWarning("SmsChannel 注册时未提供任何 ISmsProvider 实现，所有短信发送将返回 SMS_PROVIDER_NOT_FOUND");
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<ChannelSendResult> SendAsync(ChannelSendRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var providerName = _channelSelector.SelectSmsProvider();
+        if (string.IsNullOrWhiteSpace(providerName) || !_providers.TryGetValue(providerName, out var provider))
+        {
+            _logger.LogWarning("未找到短信提供商 Provider={Provider}", providerName);
+            return new ChannelSendResult(false, "短信提供商未配置", "SMS_PROVIDER_NOT_FOUND", null);
+        }
+
+        return await provider.SendAsync(request, ct).ConfigureAwait(false);
     }
 }
