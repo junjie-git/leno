@@ -46,6 +46,38 @@ public sealed class DashboardReportDto
 }
 
 /// <summary>
+/// 对账记录 DTO，对应 <see cref="Leno.SystemAdmin.Domain.Aggregates.ReconciliationRecord"/> 聚合根的对外投影。
+/// 不暴露 <see cref="Leno.SystemAdmin.Domain.ValueObjects.StatisticsSnapshot"/> 内部结构（含原始指标列表与差异项明细），
+/// 仅暴露对外契约字段：状态/差异计数/告警与修正标记。
+/// </summary>
+public sealed class ReconciliationRecordDto
+{
+    /// <summary>对账记录标识。</summary>
+    public Guid RecordId { get; set; }
+
+    /// <summary>对账的报表类型。</summary>
+    public ReportType ReportType { get; set; }
+
+    /// <summary>对账执行时间（UTC）。</summary>
+    public DateTime ReconciledAt { get; set; }
+
+    /// <summary>对账状态。</summary>
+    public ReconciliationStatus Status { get; set; }
+
+    /// <summary>差异项数量（投影自 Snapshot.Discrepancies.Count，不暴露明细）。</summary>
+    public int DiscrepancyCount { get; set; }
+
+    /// <summary>是否触发告警。</summary>
+    public bool AlertTriggered { get; set; }
+
+    /// <summary>是否触发自动修正。</summary>
+    public bool CorrectionTriggered { get; set; }
+
+    /// <summary>对账错误信息（对账失败时填充，对账成功时为 null）。</summary>
+    public string? ErrorMessage { get; set; }
+}
+
+/// <summary>
 /// 运营人员 DTO。
 /// </summary>
 public sealed class OperatorDto
