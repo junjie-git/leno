@@ -33,6 +33,7 @@ public sealed class EfCoreDataDictionaryRepository : IDataDictionaryRepository
     /// <inheritdoc />
     public async Task<List<DataDictionary>> QueryAsync(string? name, DictionaryStatus? status, int page, int pageSize, CancellationToken ct = default)
     {
+        // ApplyFilters 返回公共 IQueryable，QueryAsync 在其基础上 .Include 子集合后分页查询
         var query = ApplyFilters(_context.DataDictionaries.AsQueryable(), name, status)
             .Include(d => d.Items);
         return await query
@@ -45,6 +46,8 @@ public sealed class EfCoreDataDictionaryRepository : IDataDictionaryRepository
     /// <inheritdoc />
     public async Task<int> CountAsync(string? name, DictionaryStatus? status, CancellationToken ct = default)
     {
+        // Count 不需要 Include：Include 仅影响返回实体的子集合填充，不影响行数统计。
+        // 直接对 ApplyFilters 返回的 IQueryable 计数，与 QueryAsync 过滤逻辑保持一致。
         var query = ApplyFilters(_context.DataDictionaries.AsQueryable(), name, status);
         return await query.CountAsync(ct);
     }
