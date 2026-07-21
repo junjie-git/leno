@@ -51,6 +51,13 @@ public sealed class AliyunSmsProvider : ISmsProvider
             return new ChannelSendResult(false, "短信渠道未配置", "SMS_CONFIG_MISSING", null);
         }
 
+        var smsTemplateCode = request.SmsTemplateCode;
+        if (string.IsNullOrWhiteSpace(smsTemplateCode))
+        {
+            _logger.LogWarning("短信模板编码未配置，跳过发送 UserId={UserId}", request.Recipient.UserId);
+            return new ChannelSendResult(false, "短信模板编码未配置", "SMS_TEMPLATE_CODE_MISSING", null);
+        }
+
         try
         {
             using var timeoutCts = new CancellationTokenSource(HttpTimeout);
@@ -60,7 +67,7 @@ public sealed class AliyunSmsProvider : ISmsProvider
             {
                 PhoneNumbers = phoneNumber,
                 SignName = _options.SignName,
-                TemplateCode = "SMS_000000", // 由模板系统控制
+                TemplateCode = smsTemplateCode,
                 TemplateParam = JsonSerializer.Serialize(new { content = request.Body }, JsonOptions)
             };
 
@@ -139,6 +146,13 @@ public sealed class TencentSmsProvider : ISmsProvider
             return new ChannelSendResult(false, "短信渠道未配置", "SMS_CONFIG_MISSING", null);
         }
 
+        var smsTemplateCode = request.SmsTemplateCode;
+        if (string.IsNullOrWhiteSpace(smsTemplateCode))
+        {
+            _logger.LogWarning("短信模板编码未配置，跳过发送 UserId={UserId}", request.Recipient.UserId);
+            return new ChannelSendResult(false, "短信模板编码未配置", "SMS_TEMPLATE_CODE_MISSING", null);
+        }
+
         try
         {
             using var timeoutCts = new CancellationTokenSource(HttpTimeout);
@@ -148,7 +162,7 @@ public sealed class TencentSmsProvider : ISmsProvider
             {
                 PhoneNumberSet = new[] { phoneNumber },
                 SignName = _options.SignName,
-                TemplateId = "000000", // 由模板系统控制
+                TemplateId = smsTemplateCode,
                 TemplateParamSet = new[] { request.Body }
             };
 

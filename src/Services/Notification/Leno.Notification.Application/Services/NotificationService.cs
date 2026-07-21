@@ -136,7 +136,7 @@ public sealed class NotificationService : INotificationService
 
         try
         {
-            var sendRequest = await BuildChannelSendRequestAsync(record, linkedCts.Token);
+            var sendRequest = await BuildChannelSendRequestAsync(record, template, linkedCts.Token);
             var result = await channel.SendAsync(sendRequest, linkedCts.Token);
             if (result.Succeeded)
             {
@@ -185,7 +185,8 @@ public sealed class NotificationService : INotificationService
         };
     }
 
-    private async Task<ChannelSendRequest> BuildChannelSendRequestAsync(NotificationRecord record, CancellationToken ct)
+    private async Task<ChannelSendRequest> BuildChannelSendRequestAsync(
+        NotificationRecord record, NotificationTemplate template, CancellationToken ct)
     {
         var contacts = await _userContactService.GetContactsAsync(record.UserId, ct);
         var recipient = Recipient.Create(
@@ -198,6 +199,7 @@ public sealed class NotificationService : INotificationService
             recipient,
             record.Title,
             record.Content,
-            record.IdempotencyKey ?? string.Empty);
+            record.IdempotencyKey ?? string.Empty,
+            template.SmsTemplateCode);
     }
 }
