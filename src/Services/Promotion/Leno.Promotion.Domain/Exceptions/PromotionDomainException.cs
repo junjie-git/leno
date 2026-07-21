@@ -11,4 +11,9 @@ public sealed class PromotionDomainException : DomainException
         : base(message, errorCode)
     {
     }
+
+    public PromotionDomainException(string message, string errorCode, Exception innerException)
+        : base(message, innerException, errorCode)
+    {
+    }
 }

@@ -56,15 +56,25 @@ public sealed class SeckillAppService : ISeckillAppService
     public async Task ActivateAsync(Guid activityId, CancellationToken ct = default)
     {
         var activity = await RequireActivityAsync(activityId, ct);
-        activity.Activate();
 
-        // 初始化 Redis 多 SKU 库存（Hash 结构）
+        // 先初始化 Redis 库存，成功后再改聚合状态，避免 Redis 故障期间聚合被错误标记为 Active
+        // （原实现先 activity.Activate() 再 InitializeAsync，若 Redis 异常则内存中 Status 已为 Active 但未持久化；
+        //  若 Redis 半成功（HashSetAsync 覆盖已有库存），老库存被重置，后续 PlaceOrder 用错误库存）
         var skuStocks = new Dictionary<Guid, int>
         {
             { activity.SkuId, activity.TotalStock }
         };
-        await _stockService.InitializeAsync(activity.Id, skuStocks, ct);
+        try
+        {
+            await _stockService.InitializeAsync(activity.Id, skuStocks, ct);
+        }
+        catch (Exception ex)
+        {
+            throw new PromotionDomainException(
+                $"秒杀活动 {activityId} Redis 库存初始化失败：{ex.Message}", "SECKILL_REDIS_INIT_FAILED", ex);
+        }
 
+        activity.Activate();
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
