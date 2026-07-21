@@ -39,12 +39,17 @@ redis.call('INCRBY', KEYS[2], qty)
 return 0";
 
     /// <summary>
-    /// Lua 脚本：原子回退指定 SKU 库存。
+    /// Lua 脚本：原子回退指定 SKU 库存，带 TotalStock 上限保护。
     /// KEYS[1] = 库存 Hash key
-    /// ARGV[1] = skuId (field), ARGV[2] = 回退数量
+    /// ARGV[1] = skuId (field), ARGV[2] = 回退数量, ARGV[3] = TotalStock 上限
+    /// 返回：0=成功，1=回退后超出 TotalStock 上限（防双重复回退导致库存膨胀）
     /// </summary>
     private const string RestoreLuaScript = @"
+local cur = tonumber(redis.call('HGET', KEYS[1], ARGV[1]) or '0')
+local total = tonumber(ARGV[3])
 local qty = tonumber(ARGV[2])
+local new = cur + qty
+if new > total then return 1 end
 redis.call('HINCRBY', KEYS[1], ARGV[1], qty)
 return 0";
 
@@ -115,10 +120,25 @@ return 0";
         var db = _redis.GetDatabase();
         var stockKey = BuildStockKey(activityId);
 
-        await db.ScriptEvaluateAsync(
+        // 内部通过仓储查询活动的 TotalStock 作为回退上限，防双重复回退导致库存膨胀
+        // 若活动查询失败（已删除/不存在），退化为 int.MaxValue 不做上限校验，保持向后兼容
+        var activity = await _repository.GetByIdAsync(activityId, ct);
+        var totalStock = activity?.TotalStock ?? int.MaxValue;
+
+        var result = (long?)await db.ScriptEvaluateAsync(
             RestoreLuaScript,
             new RedisKey[] { stockKey },
-            new RedisValue[] { skuId.ToString(), quantity });
+            new RedisValue[] { skuId.ToString(), quantity, totalStock });
+
+        var code = result ?? -1;
+        if (code == 1)
+        {
+            // 回退后超出 TotalStock 上限：记日志但不抛异常（防回退风暴），调用方按业务正常完成处理
+            _logger.LogWarning(
+                "秒杀库存回退超出 TotalStock 上限，已拒绝回退 ActivityId={ActivityId} SkuId={SkuId} Quantity={Quantity} TotalStock={TotalStock}",
+                activityId, skuId, quantity, totalStock);
+            return;
+        }
 
         _logger.LogInformation("秒杀库存回退 ActivityId={ActivityId} SkuId={SkuId} Quantity={Quantity}",
             activityId, skuId, quantity);
