@@ -48,7 +48,8 @@ public sealed partial class TemplateRenderer : ITemplateRenderer, ITemplateRende
         // 必填变量缺失时抛 NotificationDomainException 而非保留 {{var}} 占位符静默发送。
         ValidateRequiredVariables(notificationTemplate, variables);
 
-        var title = RenderTemplate(notificationTemplate.Subject, variables, escapeHtml: false);
+        // P1-32：标题也做 HTML 转义，防止变量值中的 <script> 等内容注入邮件/站内信标题。
+        var title = RenderTemplate(notificationTemplate.Subject, variables, escapeHtml: true);
         var content = RenderTemplate(notificationTemplate.Body, variables, escapeHtml: true);
         return (title, content);
     }
