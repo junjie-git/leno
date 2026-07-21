@@ -274,18 +274,23 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// 注册 BFF 聚合转发相关服务：
     /// <list type="bullet">
-    ///   <item>命名 HttpClient <c>"BffForwarder"</c>（3 秒超时，与 <see cref="BffForwarderService"/> 内部 CTS 超时一致）</item>
-    ///   <item><see cref="IBffForwarderService"/> 作用域服务</item>
+    ///   <item>命名 HttpClient <c>"BffForwarder"</c>（超时从 <see cref="BffOptions.PerRequestTimeout"/> 读取，默认 3 秒）</item>
+    ///   <item><see cref="IBffForwarderService"/> 作用域服务（T15：从 <see cref="BffOptions"/> 读取整体与单请求超时）</item>
     ///   <item>调用 <see cref="MvcServiceCollectionExtensions.AddControllers(IServiceCollection)"/> 启用 BFF 控制器发现</item>
     /// </list>
     /// </summary>
-    public static IServiceCollection AddBffForwarding(this IServiceCollection services)
+    public static IServiceCollection AddBffForwarding(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        services.Configure<BffOptions>(configuration.GetSection("Bff"));
+
+        var bffOptions = configuration.GetSection("Bff").Get<BffOptions>() ?? new BffOptions();
 
         services.AddHttpClient(BffForwarderService.HttpClientName, client =>
         {
-            client.Timeout = BffForwarderService.DefaultTimeout;
+            client.Timeout = bffOptions.PerRequestTimeout;
         });
 
         services.AddScoped<IBffForwarderService, BffForwarderService>();
