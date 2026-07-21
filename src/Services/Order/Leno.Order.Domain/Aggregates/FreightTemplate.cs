@@ -21,9 +21,12 @@ public sealed class FreightTemplate : AggregateRoot
 
     /// <summary>
     /// 区域运费规则集合，仅经聚合根 <see cref="UpdateRules"/> 维护。
-    /// 持久化为聚合子集合，故以可赋值 List 暴露给 EF Core，私有 setter 阻止外部整体替换。
+    /// 底层为 <c>_regionRules</c> 只读字段，对外暴露 <see cref="IReadOnlyList{T}"/> 视图阻止外部 Add/Clear 绕过聚合根不变量（P1-T21）。
+    /// 持久化为聚合 owned collection，EF Core 经 <c>PropertyAccessMode.Field</c> 读写 backing field。
     /// </summary>
-    public List<FreightRegionRule> RegionRules { get; private set; } = new();
+    public IReadOnlyList<FreightRegionRule> RegionRules => _regionRules;
+
+    private readonly List<FreightRegionRule> _regionRules = new();
 
     /// <summary>卖家（店铺）标识。</summary>
     public Guid SellerId { get; private set; }
@@ -73,6 +76,8 @@ public sealed class FreightTemplate : AggregateRoot
 
     /// <summary>
     /// 更新区域运费规则集合，整体替换为传入列表。
+    /// 因 <c>_regionRules</c> 为 readonly 字段（P1-T21），采用 Clear + AddRange 原地替换语义，
+    /// 保留同一 List 引用以便 EF Core 变更跟踪器正确识别集合变更。
     /// </summary>
     /// <param name="rules">区域规则列表，须非空引用。</param>
     public void UpdateRules(List<FreightRegionRule> rules)
@@ -82,7 +87,8 @@ public sealed class FreightTemplate : AggregateRoot
             throw new OrderDomainException("区域运费规则列表不可为空", "FREIGHT_RULES_EMPTY");
         }
 
-        RegionRules = rules;
+        _regionRules.Clear();
+        _regionRules.AddRange(rules);
     }
 
     /// <summary>启用运费模板。</summary>

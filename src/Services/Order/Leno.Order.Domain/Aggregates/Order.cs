@@ -29,9 +29,12 @@ public sealed class Order : AggregateRoot
 
     /// <summary>
     /// 订单明细集合，仅经聚合根维护。
-    /// 持久化为聚合子实体集合，故以可赋值 List 暴露给 EF Core，私有 setter 阻止外部整体替换。
+    /// 底层为 <c>_items</c> 只读字段，对外暴露 <see cref="IReadOnlyList{T}"/> 视图阻止外部 Add/Clear 绕过聚合根不变量（P1-T21）。
+    /// 持久化为聚合 owned collection，EF Core 经 <c>PropertyAccessMode.Field</c> 读写 backing field。
     /// </summary>
-    public List<OrderItem> Items { get; private set; } = new();
+    public IReadOnlyList<OrderItem> Items => _items;
+
+    private readonly List<OrderItem> _items = new();
 
     /// <summary>商品总金额（明细小计之和）。</summary>
     public decimal ItemsAmount { get; private set; }
@@ -103,6 +106,15 @@ public sealed class Order : AggregateRoot
     private Order() { }
 
     private Order(Guid id) : base(id) { }
+
+    /// <summary>
+    /// 内部构造，初始化只读 <c>_items</c> backing field（P1-T21）。
+    /// readonly 字段仅可在构造函数中赋值，故经此构造注入明细集合，工厂方法 <see cref="Create"/> 调用。
+    /// </summary>
+    private Order(Guid id, List<OrderItem> items) : base(id)
+    {
+        _items = items;
+    }
 
     /// <summary>
     /// 工厂方法，校验入参合法、计算金额不变量、置待支付态并发布 <see cref="OrderCreatedEvent"/>。
@@ -185,13 +197,12 @@ public sealed class Order : AggregateRoot
                 "ORDER_POINTS_OFFSET_EXCEED_LIMIT");
         }
 
-        var order = new Order(orderId)
+        var order = new Order(orderId, items)
         {
             OrderNo = orderNo,
             OrderType = orderType,
             UserId = userId,
             SellerId = sellerId == Guid.Empty ? null : sellerId,
-            Items = items,
             ItemsAmount = itemsAmount,
             DiscountAmount = 0,
             PointsOffsetAmount = pointsOffsetAmount,

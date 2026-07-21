@@ -90,6 +90,11 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<OrderAggregate
             });
         });
 
+        // Items 为 IReadOnlyList 视图，底层 _items readonly 字段，EF Core 经 Field 访问模式读写 backing field（P1-T21）
+        builder.Metadata
+            .FindNavigation(nameof(OrderAggregate.Items))?
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
+
         builder.HasIndex(o => o.OrderNo).IsUnique().HasDatabaseName("ix_orders_order_no");
         builder.HasIndex(o => o.UserId).HasDatabaseName("ix_orders_user_id");
         builder.HasIndex(o => o.SellerId).HasDatabaseName("ix_orders_seller_id");

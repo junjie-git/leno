@@ -40,6 +40,11 @@ public sealed class FreightTemplateConfiguration : IEntityTypeConfiguration<Frei
             rule.Property(r => r.AdditionalPrice).HasColumnName("additional_price");
         });
 
+        // RegionRules 为 IReadOnlyList 视图，底层 _regionRules readonly 字段，EF Core 经 Field 访问模式读写 backing field（P1-T21）
+        builder.Metadata
+            .FindNavigation(nameof(FreightTemplate.RegionRules))?
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
+
         builder.HasIndex(f => f.SellerId).HasDatabaseName("ix_freight_templates_seller_id");
     }
 }
