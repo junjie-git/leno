@@ -6,7 +6,7 @@ namespace Leno.SellerShop.Infrastructure.ReadModels;
 /// 由 3 个集成事件驱动重建（IndexAsync 覆盖更新）：
 /// <list type="bullet">
 /// <item><see cref="OrderCreatedShopDashboardSyncConsumer"/>（订单创建，<c>OrderCreatedEvent.SellerId</c> 即 ShopId）</item>
-/// <item><see cref="OrderConfirmedShopDashboardSyncConsumer"/>（订单完成，<c>OrderCompletedEvent.SellerId</c> 即 ShopId）</item>
+/// <item><see cref="OrderCompletedShopDashboardSyncConsumer"/>（订单完成，<c>OrderCompletedEvent.SellerId</c> 即 ShopId）</item>
 /// <item><see cref="ReviewSubmittedShopDashboardSyncConsumer"/>（评价提交，<c>ReviewSubmittedEvent.SpuId</c> 经映射得 ShopId）</item>
 /// </list>
 /// 字段值由 <see cref="IShopDashboardReadModelBuilder"/> 从 SellerShop BC 既有聚合（Shop、ShopDashboardData）读取后重建。
