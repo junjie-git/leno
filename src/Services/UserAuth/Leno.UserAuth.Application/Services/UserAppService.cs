@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using FluentValidation;
 using Leno.UserAuth.Application.Abstractions;
 using Leno.UserAuth.Application.DTOs;
@@ -277,7 +278,10 @@ public sealed class UserAppService : IUserAppService
         }
 
         var authService = _providerResolver.Resolve(provider);
-        var state = Guid.NewGuid().ToString("N");
+
+        // P2-11: OAuth state 使用密码学安全随机（256 位熵）替代 Guid.NewGuid，
+        // Guid v4 仅 122 位熵且非密码学安全，存在被预测/碰撞的攻击面。
+        var state = GenerateSecureToken(32);
 
         // 存储 state 到抽象存储（Redis / 内存皆可），TTL 5 分钟
         await _oauthStateStore.StoreAsync(state, authService.Provider, redirectUri, TimeSpan.FromMinutes(5), ct);
@@ -673,5 +677,27 @@ public sealed class UserAppService : IUserAppService
         }
 
         return string.Concat(phone.AsSpan(0, 3), "****", phone.AsSpan(phone.Length - 4));
+    }
+
+    /// <summary>
+    /// 生成 URL 安全的密码学安全随机令牌（P2-11）。
+    /// 使用 <see cref="RandomNumberGenerator"/> 生成指定字节数的随机数据，
+    /// 经 Base64url 编码（去除 padding，<c>+</c> → <c>-</c>，<c>/</c> → <c>_</c>），
+    /// 适用于 OAuth state、CSRF token 等安全敏感场景，替代 <see cref="Guid"/> 的 122 位熵。
+    /// </summary>
+    /// <param name="byteLength">随机字节数，默认 32（256 位熵）。</param>
+    /// <returns>URL 安全且无 padding 的 Base64url 编码字符串。</returns>
+    public static string GenerateSecureToken(int byteLength = 32)
+    {
+        if (byteLength <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(byteLength), "字节数必须大于零");
+        }
+
+        var bytes = RandomNumberGenerator.GetBytes(byteLength);
+        return Convert.ToBase64String(bytes)
+            .TrimEnd('=')
+            .Replace("+", "-")
+            .Replace("/", "_");
     }
 }
