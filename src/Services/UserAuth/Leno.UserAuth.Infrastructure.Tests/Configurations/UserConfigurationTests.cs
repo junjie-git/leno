@@ -80,4 +80,23 @@ public sealed class UserConfigurationTests
         Assert.True(rowVersionProp.IsConcurrencyToken);
         Assert.Equal(ValueGenerated.OnAddOrUpdate, rowVersionProp.ValueGenerated);
     }
+
+    [Fact]
+    public void UserConfiguration_PasswordHash_Should_Have_MaxLength_256()
+    {
+        // P2-5: password_hash 扩列至 256，为未来切换 Argon2id（典型 96+ 字符）预留空间
+        var options = new DbContextOptionsBuilder<UserAuthDbContext>()
+            .UseSqlServer("Server=localhost;Database=Dummy;Trusted_Connection=True;")
+            .Options;
+
+        using var context = new UserAuthDbContext(options);
+
+        var entityType = context.Model.FindEntityType(typeof(User));
+        Assert.NotNull(entityType);
+
+        var passwordHashProp = entityType.FindProperty(nameof(User.PasswordHash));
+        Assert.NotNull(passwordHashProp);
+
+        Assert.Equal(256, passwordHashProp.GetMaxLength());
+    }
 }

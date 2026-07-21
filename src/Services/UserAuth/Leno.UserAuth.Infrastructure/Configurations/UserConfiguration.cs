@@ -20,7 +20,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Username).HasColumnName("username").HasMaxLength(32).IsRequired();
         builder.Property(u => u.Email).HasColumnName("email").HasMaxLength(256);
         builder.Property(u => u.PhoneNumber).HasColumnName("phone_number").HasMaxLength(20);
-        builder.Property(u => u.PasswordHash).HasColumnName("password_hash").HasMaxLength(128);
+        // password_hash 扩列至 256，为未来切换 Argon2id（典型 96+ 字符）预留空间（P2-5）
+        builder.Property(u => u.PasswordHash).HasColumnName("password_hash").HasMaxLength(256);
         builder.Property(u => u.Nickname).HasColumnName("nickname").HasMaxLength(32).IsRequired();
         builder.Property(u => u.AvatarUrl).HasColumnName("avatar_url").HasMaxLength(512);
         builder.Property(u => u.Status).HasColumnName("status").HasConversion<int>();
