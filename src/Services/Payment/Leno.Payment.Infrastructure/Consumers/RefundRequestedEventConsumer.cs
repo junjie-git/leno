@@ -20,13 +20,13 @@ public sealed class RefundRequestedEventConsumer : IntegrationEventConsumerBase<
     private readonly IRefundOrderRepository _refundOrderRepository;
     private readonly IPaymentOrderRepository _paymentOrderRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly PaymentChannelFactory _channelFactory;
+    private readonly IPaymentChannelFactory _channelFactory;
 
     public RefundRequestedEventConsumer(
         IRefundOrderRepository refundOrderRepository,
         IPaymentOrderRepository paymentOrderRepository,
         IUnitOfWork unitOfWork,
-        PaymentChannelFactory channelFactory,
+        IPaymentChannelFactory channelFactory,
         ILogger<RefundRequestedEventConsumer> logger,
         IIdempotencyStore idempotencyStore)
         : base(logger, idempotencyStore)
@@ -61,6 +61,15 @@ public sealed class RefundRequestedEventConsumer : IntegrationEventConsumerBase<
         if (originalPayment is null)
         {
             throw new InvalidOperationException($"原支付单不存在 PaymentId={integrationEvent.PaymentId}");
+        }
+
+        // 状态校验：仅当原支付单状态为 Paid 时才允许发起退款
+        // 若原支付单处于 Pending/ChannelOrdered/Failed/Closed 等状态，渠道侧会拒绝退款请求，
+        // 系统不应创建退款单，避免本地与渠道状态不一致
+        if (originalPayment.Status != PaymentStatus.Paid)
+        {
+            throw new InvalidOperationException(
+                $"原支付单状态非已支付，不可退款 PaymentId={integrationEvent.PaymentId} Status={originalPayment.Status}");
         }
 
         var refundOrder = RefundOrder.Create(
