@@ -345,6 +345,13 @@ public sealed class UserAppService : IUserAppService
             await _userRepository.UpdateAsync(user, ct);
             await _unitOfWork.SaveEntitiesAsync(ct);
 
+            // P2-8: OAuth 用户已启用 2FA 时，签发临时令牌要求二次验证（与 LoginAsync 一致），
+            // 避免已启用 2FA 的 OAuth 用户通过 OAuth 回调直接签发完整 AccessToken 绕过 2FA。
+            if (user.TwoFactorEnabled)
+            {
+                return await IssueTwoFactorRequiredTokenAsync(user, ct);
+            }
+
             return await IssueTokensAsync(user, ct);
         }
 

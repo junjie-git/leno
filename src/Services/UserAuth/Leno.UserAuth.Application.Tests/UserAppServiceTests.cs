@@ -687,6 +687,66 @@ public class UserAppServiceTests
         Assert.Equal("OAUTH_REDIRECT_URI_MISMATCH", ex.ErrorCode);
     }
 
+    [Fact]
+    public async Task HandleOAuthCallbackAsync_2FAUser_Should_Return_RequiresTwoFactor()
+    {
+        // P2-8: 已启用 2FA 的 OAuth 用户通过回调登录时应返回临时令牌要求二次验证，
+        // 而非直接签发完整 AccessToken。
+        // Arrange
+        var user = User.Create(
+            Guid.NewGuid(),
+            "oauthuser",
+            "oauth@example.com",
+            null,
+            _hasherMock.Object.Hash("Pass123!"),
+            "OAuth User");
+        user.LinkExternalLogin("google", "google-123", "oauth@example.com", "OAuth User", null);
+
+        // 启用并确认 2FA
+        var tokenVerifierMock = new Mock<ITokenVerifier>();
+        tokenVerifierMock.Setup(v => v.GenerateSecret()).Returns("ABCDEFGHIJKLMNOP");
+        tokenVerifierMock.Setup(v => v.GenerateQrCodeUri(It.IsAny<string>(), It.IsAny<string>())).Returns("otpauth://test");
+        tokenVerifierMock.Setup(v => v.Verify(It.IsAny<string>(), It.IsAny<string>())).Returns(true);
+        user.EnableTwoFactor(tokenVerifierMock.Object);
+        user.ConfirmTwoFactor("123456", tokenVerifierMock.Object);
+        Assert.True(user.TwoFactorEnabled);
+
+        var externalInfo = new ExternalLoginInfo("google", "google-123", "oauth@example.com", "OAuth User", null);
+
+        _userRepoMock
+            .Setup(r => r.FindByExternalLoginAsync("google", "google-123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        _oauthStateStoreMock
+            .Setup(s => s.ConsumeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OAuthStateData("google", "https://app.leno.com/callback"));
+
+        var authServiceMock = new Mock<IExternalAuthService>();
+        authServiceMock.SetupGet(s => s.Provider).Returns("google");
+        authServiceMock
+            .Setup(s => s.ExchangeCodeAsync("code", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(externalInfo);
+
+        _providerResolverMock
+            .Setup(r => r.Resolve("google"))
+            .Returns(authServiceMock.Object);
+
+        _twoFactorTempTokenStoreMock
+            .Setup(s => s.IssueAsync(user.Id, It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("2fa-temp-token");
+
+        var service = BuildUserAppService(authServiceMock.Object);
+
+        // Act
+        var token = await service.HandleOAuthCallbackAsync("google", "code", "state", "https://app.leno.com/callback", CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(token);
+        Assert.True(token.TwoFactorRequired);
+        Assert.Equal("2fa-temp-token", token.TempToken);
+        Assert.True(string.IsNullOrEmpty(token.AccessToken));
+    }
+
     #endregion
 
     #region ChangePasswordAsync
