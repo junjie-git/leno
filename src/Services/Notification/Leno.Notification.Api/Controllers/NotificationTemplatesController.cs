@@ -36,12 +36,11 @@ public sealed class NotificationTemplatesController : NotificationControllerBase
     /// <summary>按标识查询模板。</summary>
     [Authorize(Roles = "Operator,Admin")]
     [HttpGet("api/admin/notification-templates/{templateId:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<NotificationTemplateListResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<NotificationTemplateDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByIdAsync(Guid templateId, CancellationToken ct)
     {
-        // 复用查询接口按单条查询
-        var result = await _templateAppService.QueryTemplatesAsync(null, null, 1, int.MaxValue, ct);
-        var item = result.Items.FirstOrDefault(t => t.TemplateId == templateId);
+        // 走主键查询，避免全表加载后内存 FirstOrDefault
+        var item = await _templateAppService.GetByIdAsync(templateId, ct);
         return Ok(ApiResponse.Success(item));
     }
 

@@ -142,6 +142,19 @@ public sealed class NotificationTemplateAppService : INotificationTemplateAppSer
     }
 
     /// <inheritdoc />
+    public async Task<NotificationTemplateDto?> GetByIdAsync(Guid templateId, CancellationToken ct = default)
+    {
+        if (templateId == Guid.Empty)
+        {
+            throw new ArgumentException("TemplateId 不可为空", nameof(templateId));
+        }
+
+        // 走主键查询，避免 QueryTemplatesAsync(int.MaxValue) 全表加载后内存 FirstOrDefault
+        var template = await _templateRepository.GetByIdAsync(templateId, ct);
+        return template is null ? null : ToDto(template);
+    }
+
+    /// <inheritdoc />
     public async Task<TemplatePreviewResultDto> PreviewAsync(Guid templateId, PreviewTemplateDto dto, CancellationToken ct = default)
     {
         var template = await _templateRepository.GetByIdAsync(templateId, ct)
