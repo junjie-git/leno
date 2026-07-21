@@ -34,9 +34,24 @@ public sealed class EfCorePointsAccountRepository : IPointsAccountRepository
 
     /// <inheritdoc />
     public async Task<PointsAccountAggregate?> GetByFrozenOrderIdAsync(Guid orderId, CancellationToken ct = default)
-        => await _context.PointsAccounts
+    {
+        // PM-M01 修复：先按 order_id 直接查冻结明细（命中 ix_points_frozen_entries_order_id 索引），
+        // 取出影子外键 PointsAccountId，再按账户标识加载聚合并 Include FrozenEntries，
+        // 避免 FrozenEntries.Any 集合扫描导致索引失效
+        var frozenEntry = await _context.PointsFrozenEntries
+            .FirstOrDefaultAsync(e => e.OrderId == orderId, ct);
+
+        if (frozenEntry is null)
+        {
+            return null;
+        }
+
+        var accountId = _context.Entry(frozenEntry).Property<Guid>("PointsAccountId").CurrentValue;
+
+        return await _context.PointsAccounts
             .Include(a => a.FrozenEntries)
-            .FirstOrDefaultAsync(a => a.FrozenEntries.Any(e => e.OrderId == orderId), ct);
+            .FirstOrDefaultAsync(a => a.Id == accountId, ct);
+    }
 
     /// <inheritdoc />
     public async Task<List<PointsAccountAggregate>> GetAllWithPositiveBalanceAsync(
