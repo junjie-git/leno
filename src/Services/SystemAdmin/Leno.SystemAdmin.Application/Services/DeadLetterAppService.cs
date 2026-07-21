@@ -86,12 +86,26 @@ public sealed class DeadLetterAppService : IDeadLetterAppService
             Errors = new List<BatchOperationErrorDto>()
         };
 
+        // 先按 ID 批量加载所有死信消息，逐条应用 Retry 状态变更，最后一次 SaveEntitiesAsync 提交事务
+        var messagesToUpdate = new List<DeadLetterMessage>();
         foreach (var messageId in messageIds)
         {
+            var entity = await _repository.GetByIdAsync(messageId, ct);
+            if (entity is null)
+            {
+                result.FailureCount++;
+                result.Errors.Add(new BatchOperationErrorDto
+                {
+                    MessageId = messageId,
+                    Error = $"死信消息 {messageId} 不存在"
+                });
+                continue;
+            }
+
             try
             {
-                await RetryAsync(messageId, operatorId, ct);
-                result.SuccessCount++;
+                entity.Retry(operatorId);
+                messagesToUpdate.Add(entity);
             }
             catch (Exception ex)
             {
@@ -103,6 +117,22 @@ public sealed class DeadLetterAppService : IDeadLetterAppService
                 });
             }
         }
+
+        // 单次事务提交所有可重投的消息，避免逐条 SaveEntitiesAsync 造成中途失败状态不一致
+        foreach (var entity in messagesToUpdate)
+        {
+            await _repository.UpdateAsync(entity, ct);
+        }
+
+        if (messagesToUpdate.Count > 0)
+        {
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
+
+        result.SuccessCount = messagesToUpdate.Count;
+        _logger.LogInformation(
+            "批量重投完成 OperatorId={OperatorId} Success={Success} Failure={Failure}",
+            operatorId, result.SuccessCount, result.FailureCount);
 
         return result;
     }
@@ -117,12 +147,26 @@ public sealed class DeadLetterAppService : IDeadLetterAppService
             Errors = new List<BatchOperationErrorDto>()
         };
 
+        // 先按 ID 批量加载所有死信消息，逐条应用 Discard 状态变更，最后一次 SaveEntitiesAsync 提交事务
+        var messagesToUpdate = new List<DeadLetterMessage>();
         foreach (var messageId in messageIds)
         {
+            var entity = await _repository.GetByIdAsync(messageId, ct);
+            if (entity is null)
+            {
+                result.FailureCount++;
+                result.Errors.Add(new BatchOperationErrorDto
+                {
+                    MessageId = messageId,
+                    Error = $"死信消息 {messageId} 不存在"
+                });
+                continue;
+            }
+
             try
             {
-                await DiscardAsync(messageId, operatorId, reason, ct);
-                result.SuccessCount++;
+                entity.Discard(operatorId, reason);
+                messagesToUpdate.Add(entity);
             }
             catch (Exception ex)
             {
@@ -134,6 +178,22 @@ public sealed class DeadLetterAppService : IDeadLetterAppService
                 });
             }
         }
+
+        // 单次事务提交所有可丢弃的消息，避免逐条 SaveEntitiesAsync 造成中途失败状态不一致
+        foreach (var entity in messagesToUpdate)
+        {
+            await _repository.UpdateAsync(entity, ct);
+        }
+
+        if (messagesToUpdate.Count > 0)
+        {
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
+
+        result.SuccessCount = messagesToUpdate.Count;
+        _logger.LogInformation(
+            "批量丢弃完成 OperatorId={OperatorId} Success={Success} Failure={Failure}",
+            operatorId, result.SuccessCount, result.FailureCount);
 
         return result;
     }
