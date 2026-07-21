@@ -48,7 +48,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IIntegrationEventMapper, NullIntegrationEventMapper>();
         AddElasticsearch(services, configuration);
         AddEventBus(services, configuration, configureConsumers);
-        AddHealthChecks(services);
+        AddHealthChecks(services, configuration);
 
         return services;
     }
@@ -185,12 +185,23 @@ public static class ServiceCollectionExtensions
         });
     }
 
-    private static void AddHealthChecks(IServiceCollection services)
+    private static void AddHealthChecks(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddHealthChecks()
+        var builder = services.AddHealthChecks()
             .AddCheck("self", () => HealthCheckResult.Healthy(), tags: Array.Empty<string>())
             .AddCheck<RedisHealthCheck>("redis", tags: ReadyTags)
             .AddCheck<ElasticsearchHealthCheck>("elasticsearch", tags: ReadyTags);
+
+        // T20：基础路径也注册 RabbitMQ 健康检查，确保仅调用 AddLenoInfrastructure（不走 AddLenoFullHealthChecks）
+        // 的场景下 RabbitMQ 依赖也被纳入就绪探针。
+        // 与 HealthChecksUIExtensions.AddLenoHealthChecks 保持一致：仅当 RabbitMQ:Host 配置时注册。
+        var rabbitHost = configuration["RabbitMQ:Host"];
+        if (!string.IsNullOrWhiteSpace(rabbitHost))
+        {
+            var rabbitPort = configuration["RabbitMQ:Port"] ?? "5672";
+            var rabbitConnectionString = $"amqp://{configuration["RabbitMQ:Username"] ?? "guest"}:{configuration["RabbitMQ:Password"] ?? "guest"}@{rabbitHost}:{rabbitPort}";
+            builder.AddRabbitMQ(rabbitConnectionString, name: "rabbitmq", tags: ReadyTags);
+        }
     }
 
     /// <summary>
