@@ -37,5 +37,13 @@ public sealed class StockReservationCompensationConfiguration : IEntityTypeConfi
         // 索引：按状态查询 Pending 记录 + 按订单查询
         builder.HasIndex(c => c.Status).HasDatabaseName("ix_stock_compensations_status");
         builder.HasIndex(c => c.OrderId).HasDatabaseName("ix_stock_compensations_order_id");
+
+        // P2-T31：(OrderId, SkuId) 复合唯一过滤索引，仅对 Pending 状态记录强制唯一
+        // 防止同一订单同一 SKU 被重复写入补偿表（CompensationStatus.Pending = 0）
+        // SQL Server 过滤索引语法：HasFilter 接收数据库原生 SQL 谓词
+        builder.HasIndex(c => new { c.OrderId, c.SkuId })
+            .HasDatabaseName("ix_stock_compensations_order_sku_pending")
+            .HasFilter("[status] = 0")
+            .IsUnique();
     }
 }
