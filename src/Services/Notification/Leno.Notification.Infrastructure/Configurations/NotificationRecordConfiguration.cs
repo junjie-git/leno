@@ -45,6 +45,9 @@ public sealed class NotificationRecordConfiguration : IEntityTypeConfiguration<N
         builder.HasIndex(n => n.Status).HasDatabaseName("ix_notification_records_status");
         builder.HasIndex(n => n.EventId).HasDatabaseName("ix_notification_records_event_id");
         builder.HasIndex(n => n.TemplateCode).HasDatabaseName("ix_notification_records_template_code");
-        builder.HasIndex(n => n.IdempotencyKey).HasDatabaseName("ix_notification_records_idempotency_key");
+        builder.HasIndex(n => n.IdempotencyKey)
+            .IsUnique()
+            .HasFilter("[idempotency_key] IS NOT NULL")
+            .HasDatabaseName("ix_notification_records_idempotency_key");
     }
 }
