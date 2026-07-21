@@ -164,7 +164,9 @@ public sealed class OrderAppService : IOrderAppService
         };
         var sagaResult = await _sagaOrchestrator.ExecuteAsync(sagaContext, ct);
 
-        return ToDto(sagaResult.FirstOrder);
+        // P1-T23：Saga 返回 OrderCreatedResult DTO，应用层不再持有 OrderAggregate 聚合根实例；
+        // 新建订单生命周期字段（PaymentMethod/PaidAt/ShippedAt 等）默认为空，直接映射 DTO 返回。
+        return ToDto(sagaResult.FirstResult);
     }
 
     /// <inheritdoc />
@@ -560,6 +562,37 @@ public sealed class OrderAppService : IOrderAppService
             CancelReason = order.CancelReason,
             CreatedAt = order.CreatedAt,
             Items = order.Items.Select(ToItemDto).ToList()
+        };
+
+    /// <summary>
+    /// 由 Saga 返回的下单结果 DTO（<see cref="OrderCreatedResult"/>）映射为 <see cref="OrderDto"/>（P1-T23）。
+    /// 新建订单生命周期字段（支付方式/支付时间/发货时间/物流单号/完成时间/取消时间/取消原因）默认为空。
+    /// </summary>
+    private static OrderDto ToDto(OrderCreatedResult result)
+        => new()
+        {
+            Id = result.OrderId,
+            OrderNo = result.OrderNo,
+            OrderType = result.OrderType,
+            UserId = result.UserId,
+            SellerId = result.SellerId,
+            Status = result.Status,
+            ItemsAmount = result.ItemsAmount,
+            DiscountAmount = result.DiscountAmount,
+            PointsOffsetAmount = result.PointsOffsetAmount,
+            FreightAmount = result.FreightAmount,
+            TotalAmount = result.TotalAmount,
+            PaymentMethod = null,
+            ExpireAt = result.ExpireAt,
+            PaidAt = null,
+            ShippedAt = null,
+            LogisticsNo = null,
+            LogisticsCompanyCode = null,
+            CompletedAt = null,
+            CancelledAt = null,
+            CancelReason = null,
+            CreatedAt = result.CreatedAt,
+            Items = result.Items.ToList()
         };
 
     private static OrderItemDto ToItemDto(OrderItem item)

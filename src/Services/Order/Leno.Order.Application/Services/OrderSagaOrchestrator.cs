@@ -90,8 +90,8 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
 
         return new OrderSagaResult
         {
-            FirstOrder = completed[0].Order,
-            Orders = completed.Select(c => c.Order).ToList()
+            FirstResult = OrderCreatedResult.FromOrder(completed[0].Order),
+            Results = completed.Select(c => OrderCreatedResult.FromOrder(c.Order)).ToList()
         };
     }
 
@@ -341,13 +341,104 @@ public sealed class OrderSagaGroupInput
 }
 
 /// <summary>
-/// Saga 执行结果，含首单聚合（多卖家拆单返回首单）与全部订单聚合列表。
+/// Saga 执行结果，含首单创建结果 DTO（多卖家拆单返回首单）与全部订单创建结果列表（P1-T23）。
+/// 不再暴露 <c>OrderAggregate</c> 聚合根实例给应用层，应用层经 <see cref="OrderCreatedResult"/> DTO 访问下单结果。
 /// </summary>
 public sealed class OrderSagaResult
 {
-    /// <summary>首个订单聚合（多卖家拆单返回首单）。</summary>
-    public required OrderAggregate FirstOrder { get; init; }
+    /// <summary>首个订单创建结果 DTO（多卖家拆单返回首单）。</summary>
+    public required OrderCreatedResult FirstResult { get; init; }
 
-    /// <summary>全部成功创建的订单聚合列表。</summary>
-    public required IReadOnlyList<OrderAggregate> Orders { get; init; }
+    /// <summary>全部成功创建的订单结果 DTO 列表。</summary>
+    public required IReadOnlyList<OrderCreatedResult> Results { get; init; }
+}
+
+/// <summary>
+/// 订单创建结果 DTO（P1-T23），表达 Saga 创建订单后的快照视图，避免应用层直接持有 <see cref="OrderAggregate"/> 聚合根实例。
+/// 含下单瞬间的金额、状态、明细与超时时间等字段；生命周期字段（支付/发货/完成/取消）在创建时为默认值。
+/// </summary>
+public sealed class OrderCreatedResult
+{
+    /// <summary>订单标识。</summary>
+    public Guid OrderId { get; init; }
+
+    /// <summary>订单编号。</summary>
+    public string OrderNo { get; init; } = string.Empty;
+
+    /// <summary>订单类型。</summary>
+    public OrderType OrderType { get; init; }
+
+    /// <summary>买家标识。</summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>卖家标识，会员订阅订单为 <see cref="Guid.Empty"/>。</summary>
+    public Guid SellerId { get; init; }
+
+    /// <summary>订单状态（创建后为 <see cref="OrderStatus.PendingPayment"/>）。</summary>
+    public OrderStatus Status { get; init; }
+
+    /// <summary>商品总金额。</summary>
+    public decimal ItemsAmount { get; init; }
+
+    /// <summary>优惠总金额。</summary>
+    public decimal DiscountAmount { get; init; }
+
+    /// <summary>积分抵现金额。</summary>
+    public decimal PointsOffsetAmount { get; init; }
+
+    /// <summary>运费金额。</summary>
+    public decimal FreightAmount { get; init; }
+
+    /// <summary>订单总金额（实付）。</summary>
+    public decimal TotalAmount { get; init; }
+
+    /// <summary>支付截止时间（UTC）。</summary>
+    public DateTime ExpireAt { get; init; }
+
+    /// <summary>创建时间（UTC）。</summary>
+    public DateTime CreatedAt { get; init; }
+
+    /// <summary>订单明细 DTO 列表。</summary>
+    public required IReadOnlyList<OrderItemDto> Items { get; init; }
+
+    /// <summary>
+    /// 由订单聚合根构造创建结果 DTO（P1-T23）。
+    /// 仅读取聚合根当前状态做快照映射，不持有聚合根引用，避免应用层绕过聚合根方法。
+    /// </summary>
+    /// <param name="order">订单聚合根实例。</param>
+    /// <returns>下单瞬间的快照 DTO。</returns>
+    public static OrderCreatedResult FromOrder(OrderAggregate order)
+    {
+        ArgumentNullException.ThrowIfNull(order);
+
+        var items = order.Items.Select(i => new OrderItemDto
+        {
+            SkuId = i.SkuId,
+            ProductName = i.ProductSnapshot.ProductName,
+            SkuName = i.ProductSnapshot.SkuName,
+            MainImage = i.ProductSnapshot.MainImage,
+            UnitPrice = i.UnitPrice,
+            Quantity = i.Quantity,
+            DiscountAllocation = i.DiscountAllocation,
+            Subtotal = i.Subtotal
+        }).ToList();
+
+        return new OrderCreatedResult
+        {
+            OrderId = order.Id,
+            OrderNo = order.OrderNo,
+            OrderType = order.OrderType,
+            UserId = order.UserId,
+            SellerId = order.SellerId ?? Guid.Empty,
+            Status = order.Status,
+            ItemsAmount = order.ItemsAmount,
+            DiscountAmount = order.DiscountAmount,
+            PointsOffsetAmount = order.PointsOffsetAmount,
+            FreightAmount = order.FreightAmount,
+            TotalAmount = order.TotalAmount,
+            ExpireAt = order.ExpireAt,
+            CreatedAt = order.CreatedAt,
+            Items = items
+        };
+    }
 }
