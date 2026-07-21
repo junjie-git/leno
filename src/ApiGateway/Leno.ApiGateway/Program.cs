@@ -1,5 +1,6 @@
 using Leno.ApiGateway.Extensions;
 using Leno.ApiGateway.Middleware;
+using Leno.ApiGateway.Options;
 using Leno.ApiGateway.Services;
 using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.HealthChecks;
@@ -50,6 +51,9 @@ builder.Services.AddGatewayCors(builder.Configuration);
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 // 注册 JwtTokenGenerator 单例（依赖 IOptions<JwtOptions>，使测试覆盖生效）
 builder.Services.AddSingleton<JwtTokenGenerator>();
+
+// T26：白名单路由配置（从 Gateway:Whitelist 节绑定，未配置时使用 WhitelistOptions 默认值）
+builder.Services.Configure<WhitelistOptions>(builder.Configuration.GetSection(WhitelistOptions.SectionName));
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
@@ -133,30 +137,8 @@ if (jwtEnabled)
     app.UseMiddleware<JwtBlacklistMiddleware>();
 
     // 白名单路由 + 未认证拦截：在 UseAuthentication 之后（已填充 User）、UseAuthorization 之前
-    app.Use(async (context, next) =>
-    {
-        var path = context.Request.Path.Value ?? string.Empty;
-        var isWhitelisted = path.StartsWith("/api/auth/login", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/api/auth/register", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/api/auth/refresh-token", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/health", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase);
-
-        if (isWhitelisted)
-        {
-            await next();
-            return;
-        }
-
-        if (context.User?.Identity?.IsAuthenticated != true)
-        {
-            context.Response.StatusCode = 401;
-            await context.Response.WriteAsJsonAsync(new { code = 401, message = "未认证" });
-            return;
-        }
-
-        await next();
-    });
+    // T26：原内联 lambda 提取为 WhitelistMiddleware，路径从 IOptionsMonitor<WhitelistOptions> 读取
+    app.UseMiddleware<WhitelistMiddleware>();
 
     app.UseAuthorization();
 }
