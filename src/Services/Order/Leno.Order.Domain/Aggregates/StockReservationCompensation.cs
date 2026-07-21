@@ -1,3 +1,4 @@
+using Leno.Order.Domain.Events;
 using Leno.Order.Domain.Exceptions;
 using Leno.SharedKernel.Abstractions;
 
@@ -29,8 +30,13 @@ public sealed class StockReservationCompensation : AggregateRoot
     /// <summary>补偿状态。</summary>
     public CompensationStatus Status { get; private set; }
 
-    /// <summary>已重试次数。</summary>
-    public int RetryCount { get; private set; }
+    /// <summary>
+    /// 已重试次数。底层为 <c>_retryCount</c> 字段，<see cref="MarkFailed"/> 通过
+    /// <see cref="Interlocked.Increment(ref int)"/> 原子自增，避免并发场景下非原子 ++ 导致的计数错乱。
+    /// </summary>
+    public int RetryCount => _retryCount;
+
+    private int _retryCount;
 
     /// <summary>最大重试次数，超过即标记 MaxRetriesExceeded 等待人工介入。</summary>
     public int MaxRetries { get; private set; }
@@ -87,7 +93,7 @@ public sealed class StockReservationCompensation : AggregateRoot
             SkuId = skuId,
             Quantity = quantity,
             Status = CompensationStatus.Pending,
-            RetryCount = 0,
+            _retryCount = 0,
             MaxRetries = maxRetries,
             LastAttemptedAt = null,
             LastErrorMessage = null
@@ -95,8 +101,12 @@ public sealed class StockReservationCompensation : AggregateRoot
     }
 
     /// <summary>
-    /// 记录一次重试失败：递增 <see cref="RetryCount"/>、更新 <see cref="LastAttemptedAt"/> 与 <see cref="LastErrorMessage"/>。
-    /// 达到 <see cref="MaxRetries"/> 时自动流转到 <see cref="CompensationStatus.MaxRetriesExceeded"/>。
+    /// 记录一次重试失败：通过 <see cref="Interlocked.Increment(ref int)"/> 原子递增 <see cref="RetryCount"/>、
+    /// 更新 <see cref="LastAttemptedAt"/> 与 <see cref="LastErrorMessage"/>。
+    /// 达到 <see cref="MaxRetries"/> 时自动流转到 <see cref="CompensationStatus.MaxRetriesExceeded"/>，
+    /// 并发布 <see cref="CompensationMaxRetriesExceededDomainEvent"/> 上报告警供运维人工介入。
+    /// 并发更新覆盖由 BaseDbContext 的 Version shadow property（IsRowVersion）保证：并发写入抛
+    /// <c>DbUpdateConcurrencyException</c>，由后台任务捕获后下一轮重试。
     /// </summary>
     /// <param name="errorMessage">本次失败原因。</param>
     public void MarkFailed(string? errorMessage)
@@ -106,15 +116,26 @@ public sealed class StockReservationCompensation : AggregateRoot
             return;
         }
 
-        RetryCount++;
+        // 原子自增避免并发 MarkFailed 调用导致的计数丢失（P1-T20）
+        var currentRetry = Interlocked.Increment(ref _retryCount);
         LastAttemptedAt = DateTime.UtcNow;
         LastErrorMessage = string.IsNullOrEmpty(errorMessage)
             ? null
             : (errorMessage.Length > 500 ? errorMessage[..500] : errorMessage);
 
-        if (RetryCount >= MaxRetries)
+        if (currentRetry >= MaxRetries)
         {
             Status = CompensationStatus.MaxRetriesExceeded;
+            // 流转到终态时上报告警领域事件，供 Outbox 同事务发布至告警通道
+            AddDomainEvent(new CompensationMaxRetriesExceededDomainEvent(
+                compensationId: Id,
+                orderId: OrderId,
+                skuId: SkuId,
+                quantity: Quantity,
+                retryCount: currentRetry,
+                maxRetries: MaxRetries,
+                lastErrorMessage: LastErrorMessage,
+                occurredAtUtc: LastAttemptedAt.Value));
         }
         else
         {
