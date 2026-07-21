@@ -83,9 +83,17 @@ public sealed class EfCoreOrderRepository : IOrderRepository
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// P1-T26：原实现调用 <c>_context.Orders.Remove(aggregate)</c> 物理删除，会破坏订单历史可追溯性。
+    /// 改为调用 <see cref="OrderAggregate.SoftDelete"/> 设置 <c>IsDeleted=true</c> 并发布领域事件，
+    /// 由全局查询过滤器 <c>HasQueryFilter(o => !o.IsDeleted)</c> 自动排除已删除记录。
+    /// 操作人标识由调用方在调用 <c>SoftDelete(operatorId)</c> 时显式传入；仓储层不感知操作人上下文。
+    /// </remarks>
     public Task RemoveAsync(OrderAggregate aggregate, CancellationToken ct = default)
     {
-        _context.Orders.Remove(aggregate);
+        ArgumentNullException.ThrowIfNull(aggregate);
+        aggregate.SoftDelete();
+        _context.Orders.Update(aggregate);
         return Task.CompletedTask;
     }
 

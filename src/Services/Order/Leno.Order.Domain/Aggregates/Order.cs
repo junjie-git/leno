@@ -102,6 +102,15 @@ public sealed class Order : AggregateRoot
     /// <summary>乐观并发控制版本号，由 EF Core 自动生成与校验。</summary>
     public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
 
+    /// <summary>
+    /// 软删除标记（P1-T26），true 表示该订单已被软删除，默认查询过滤器自动排除。
+    /// 由 <see cref="SoftDelete"/> 方法设置，不由外部直接修改。
+    /// </summary>
+    public bool IsDeleted { get; private set; }
+
+    /// <summary>软删除时间（UTC），未删除时为 null（P1-T26）。</summary>
+    public DateTime? DeletedAt { get; private set; }
+
     /// <summary>EF Core 无参构造。</summary>
     private Order() { }
 
@@ -553,6 +562,24 @@ public sealed class Order : AggregateRoot
             throw new OrderDomainException("仅秒杀订单可追加秒杀确认事件", "ORDER_NOT_SECKILL");
         }
         AddDomainEvent(new SeckillOrderConfirmedDomainEvent(activityId, Id));
+    }
+
+    /// <summary>
+    /// 软删除订单（P1-T26），设置 <see cref="IsDeleted"/> 与 <see cref="DeletedAt"/> 并发布 <see cref="OrderSoftDeletedDomainEvent"/>。
+    /// 已软删除的订单重复调用为幂等操作（不重复发布事件）。
+    /// 由仓储层 <c>RemoveAsync</c> 调用，替代物理删除；EF Core 全局查询过滤器自动排除 <c>IsDeleted=true</c> 记录。
+    /// </summary>
+    /// <param name="operatorId">操作人标识（审计用），可为空（系统自动操作）。</param>
+    public void SoftDelete(Guid operatorId = default)
+    {
+        if (IsDeleted)
+        {
+            return;
+        }
+
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+        AddDomainEvent(new OrderSoftDeletedDomainEvent(Id, operatorId, DeletedAt.Value));
     }
 
     /// <summary>

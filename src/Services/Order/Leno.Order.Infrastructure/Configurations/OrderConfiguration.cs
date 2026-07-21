@@ -41,6 +41,11 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<OrderAggregate
         builder.Property(o => o.CancelledAt).HasColumnName("cancelled_at");
         builder.Property(o => o.CancelReason).HasColumnName("cancel_reason").HasMaxLength(512);
 
+        // 软删除字段（P1-T26）：IsDeleted 标记软删除，DeletedAt 记录删除时间，全局查询过滤器默认排除已删除记录
+        builder.Property(o => o.IsDeleted).HasColumnName("is_deleted").IsRequired();
+        builder.Property(o => o.DeletedAt).HasColumnName("deleted_at");
+        builder.HasQueryFilter(o => !o.IsDeleted);
+
         // 乐观并发控制：RowVersion 由数据库自动生成与校验，并发写入时抛 DbUpdateConcurrencyException
         builder.Property(o => o.RowVersion).HasColumnName("row_version").IsRowVersion();
 
@@ -99,5 +104,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<OrderAggregate
         builder.HasIndex(o => o.UserId).HasDatabaseName("ix_orders_user_id");
         builder.HasIndex(o => o.SellerId).HasDatabaseName("ix_orders_seller_id");
         builder.HasIndex(o => o.Status).HasDatabaseName("ix_orders_status");
+        // 软删除过滤索引（P1-T26），加速 IsDeleted=false 默认查询路径
+        builder.HasIndex(o => o.IsDeleted).HasDatabaseName("ix_orders_is_deleted");
     }
 }
