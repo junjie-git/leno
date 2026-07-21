@@ -28,14 +28,15 @@ public class ReviewApprovedEventConsumerTests
         await (Task)method.Invoke(consumer, [evt, ct])!;
     }
 
-    private static Mock<IDatabase> CreateDatabaseMock(int dailyCount = 0)
+    private static Mock<IDatabase> CreateDatabaseMock(long incrementedCount = 1)
     {
         var dbMock = new Mock<IDatabase>();
-        var redisValue = dailyCount > 0 ? (RedisValue)dailyCount : RedisValue.Null;
-        dbMock.Setup(d => d.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(redisValue);
-        dbMock.Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(),
-            It.IsAny<TimeSpan>(), It.IsAny<bool>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
+        // PM-H06 修复后改用 StringIncrementAsync 原子自增；incrementedCount 表示自增后返回的新值
+        dbMock.Setup(d => d.StringIncrementAsync(It.IsAny<RedisKey>(), It.IsAny<long>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(incrementedCount);
+        dbMock.Setup(d => d.StringDecrementAsync(It.IsAny<RedisKey>(), It.IsAny<long>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync(incrementedCount - 1);
+        dbMock.Setup(d => d.KeyExpireAsync(It.IsAny<RedisKey>(), It.IsAny<TimeSpan?>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
         return dbMock;
     }
@@ -53,7 +54,8 @@ public class ReviewApprovedEventConsumerTests
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<ReviewApprovedEventConsumer>>();
         var redisMock = new Mock<IConnectionMultiplexer>();
-        var dbMock = CreateDatabaseMock(0);
+        // 自增后返回 1（未达上限，正常发放）
+        var dbMock = CreateDatabaseMock(incrementedCount: 1);
         redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(dbMock.Object);
 
         var idempotencyStoreMock = new Mock<IIdempotencyStore>();
@@ -80,7 +82,8 @@ public class ReviewApprovedEventConsumerTests
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<ReviewApprovedEventConsumer>>();
         var redisMock = new Mock<IConnectionMultiplexer>();
-        var dbMock = CreateDatabaseMock(5);
+        // 自增后返回 6（超过每日 5 条上限），应回滚并跳过发放
+        var dbMock = CreateDatabaseMock(incrementedCount: 6);
         redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(dbMock.Object);
 
         var idempotencyStoreMock = new Mock<IIdempotencyStore>();
@@ -91,6 +94,8 @@ public class ReviewApprovedEventConsumerTests
 
         account.Balance.Should().Be(0);
         uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        // 应回滚计数
+        dbMock.Verify(d => d.StringDecrementAsync(It.IsAny<RedisKey>(), It.IsAny<long>(), It.IsAny<CommandFlags>()), Times.Once);
     }
 
     [Fact]
@@ -105,7 +110,7 @@ public class ReviewApprovedEventConsumerTests
         var uowMock = new Mock<IUnitOfWork>();
         var loggerMock = new Mock<ILogger<ReviewApprovedEventConsumer>>();
         var redisMock = new Mock<IConnectionMultiplexer>();
-        var dbMock = CreateDatabaseMock(0);
+        var dbMock = CreateDatabaseMock(incrementedCount: 1);
         redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(dbMock.Object);
 
         var idempotencyStoreMock = new Mock<IIdempotencyStore>();

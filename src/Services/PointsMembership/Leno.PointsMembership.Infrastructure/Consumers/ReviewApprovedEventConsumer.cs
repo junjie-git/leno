@@ -40,14 +40,23 @@ public sealed class ReviewApprovedEventConsumer : IntegrationEventConsumerBase<R
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        // 每日评价积分上限检查
+        // 每日评价积分上限检查：使用 StringIncrementAsync 原子自增并返回新值，避免并发场景下多个消费者同时读到相同计数突破每日 5 条上限
         var today = DateTime.UtcNow.ToString("yyyyMMdd");
         var dailyKey = $"review:points:{integrationEvent.UserId}:{today}";
-        var dailyCount = await _redisDb.StringGetAsync(dailyKey);
-        var currentCount = dailyCount.HasValue ? (int)dailyCount : 0;
 
-        if (currentCount >= MaxDailyReviewPoints)
+        // 原子自增并返回新值
+        var newCount = await _redisDb.StringIncrementAsync(dailyKey);
+
+        // 设置过期时间（仅首次自增时设置，避免每次重置 TTL）
+        if (newCount == 1)
         {
+            await _redisDb.KeyExpireAsync(dailyKey, TimeSpan.FromHours(25));
+        }
+
+        if (newCount > MaxDailyReviewPoints)
+        {
+            // 超过上限，回滚计数并跳过积分发放
+            await _redisDb.StringDecrementAsync(dailyKey);
             Logger.LogInformation("用户 {UserId} 今日评价积分已达上限 {Max}，跳过发放",
                 integrationEvent.UserId, MaxDailyReviewPoints);
             return;
@@ -56,6 +65,8 @@ public sealed class ReviewApprovedEventConsumer : IntegrationEventConsumerBase<R
         var account = await _accountRepository.GetByUserIdAsync(integrationEvent.UserId, ct);
         if (account is null)
         {
+            // 账户不存在也回滚计数，避免占用当日配额
+            await _redisDb.StringDecrementAsync(dailyKey);
             Logger.LogWarning("用户 {UserId} 积分账户不存在，跳过评价积分发放", integrationEvent.UserId);
             return;
         }
@@ -63,12 +74,9 @@ public sealed class ReviewApprovedEventConsumer : IntegrationEventConsumerBase<R
         account.Earn(PointsSource.Review, ReviewPointsPerReview,
             $"评价 {integrationEvent.ReviewId} 返积分");
 
-        // 更新每日计数
-        await _redisDb.StringSetAsync(dailyKey, currentCount + 1, TimeSpan.FromHours(25));
-
         await _unitOfWork.SaveEntitiesAsync(ct);
 
         Logger.LogInformation("评价 {ReviewId} 审核通过，发放 {Points} 积分给用户 {UserId}（今日第 {Count} 条）",
-            integrationEvent.ReviewId, ReviewPointsPerReview, integrationEvent.UserId, currentCount + 1);
+            integrationEvent.ReviewId, ReviewPointsPerReview, integrationEvent.UserId, newCount);
     }
 }
