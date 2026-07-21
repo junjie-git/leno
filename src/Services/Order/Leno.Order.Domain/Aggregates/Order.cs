@@ -503,7 +503,8 @@ public sealed class Order : AggregateRoot
         Status = OrderStatus.Cancelled;
         CancelReason = reason;
         CancelledAt = DateTime.UtcNow;
-        AddDomainEvent(new OrderCancelledDomainEvent(Id, SellerId ?? Guid.Empty, reason, CancelledAt.Value, cancelledBy, (int)Math.Round(PointsOffsetAmount * 100)));
+        // P2-T34：金融场景统一使用 MidpointRounding.AwayFromZero（四舍五入），避免默认 ToEven（银行家舍入）导致的精度差异
+        AddDomainEvent(new OrderCancelledDomainEvent(Id, SellerId ?? Guid.Empty, reason, CancelledAt.Value, cancelledBy, (int)Math.Round(PointsOffsetAmount * 100, MidpointRounding.AwayFromZero)));
     }
 
     /// <summary>
@@ -523,7 +524,8 @@ public sealed class Order : AggregateRoot
         Status = OrderStatus.Cancelled;
         CancelReason = reason;
         CancelledAt = DateTime.UtcNow;
-        AddDomainEvent(new OrderCancelledDomainEvent(Id, SellerId ?? Guid.Empty, reason, CancelledAt.Value, operatorId, (int)Math.Round(PointsOffsetAmount * 100)));
+        // P2-T34：金融场景统一使用 MidpointRounding.AwayFromZero（四舍五入），与 Cancel 方法保持一致
+        AddDomainEvent(new OrderCancelledDomainEvent(Id, SellerId ?? Guid.Empty, reason, CancelledAt.Value, operatorId, (int)Math.Round(PointsOffsetAmount * 100, MidpointRounding.AwayFromZero)));
     }
 
     /// <summary>

@@ -227,7 +227,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
             groupPointsOffset = 0m;
         }
         var groupPoints = (group.UsePoints && groupPointsOffset > 0)
-            ? (int)Math.Round(groupPointsOffset * 100m, MidpointRounding.ToEven)
+            ? (int)Math.Round(groupPointsOffset * 100m, MidpointRounding.AwayFromZero)
             : 0;
 
         // 预占库存
