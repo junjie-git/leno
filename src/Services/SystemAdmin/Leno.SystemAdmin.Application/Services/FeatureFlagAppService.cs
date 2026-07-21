@@ -3,6 +3,7 @@ using Leno.SystemAdmin.Domain.Aggregates;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.Services;
 using Leno.SystemAdmin.Domain.ValueObjects;
+using Leno.SystemAdmin.Infrastructure.Cache;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -12,27 +13,32 @@ namespace Leno.SystemAdmin.Application.Services;
 /// 特性开关管理应用服务实现。
 /// 启停/更新经聚合根附加 <see cref="Leno.SystemAdmin.Domain.Events.FeatureFlagChangedEvent"/> 领域事件，
 /// 由工作单元的发件箱机制在同一事务内持久化并发布。
+/// 写操作后主动失效 Redis 缓存，避免最长 30 分钟脏读。
 /// </summary>
 public sealed class FeatureFlagAppService : IFeatureFlagAppService
 {
     private readonly IFeatureFlagRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IFeatureFlagEvaluator _evaluator;
+    private readonly FeatureFlagCache _cache;
     private readonly ILogger<FeatureFlagAppService> _logger;
 
     public FeatureFlagAppService(
         IFeatureFlagRepository repository,
         IUnitOfWork unitOfWork,
         IFeatureFlagEvaluator evaluator,
+        FeatureFlagCache cache,
         ILogger<FeatureFlagAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(evaluator);
+        ArgumentNullException.ThrowIfNull(cache);
         ArgumentNullException.ThrowIfNull(logger);
         _repository = repository;
         _unitOfWork = unitOfWork;
         _evaluator = evaluator;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -61,6 +67,7 @@ public sealed class FeatureFlagAppService : IFeatureFlagAppService
 
         await _repository.UpdateAsync(entity, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+        await _cache.RemoveAsync(entity.Key, ct);
 
         _logger.LogInformation("特性开关已更新：{FlagId}（Key={FlagKey}）", flagId, entity.Key);
         return ToDto(entity);
@@ -74,6 +81,7 @@ public sealed class FeatureFlagAppService : IFeatureFlagAppService
 
         await _repository.UpdateAsync(entity, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+        await _cache.RemoveAsync(entity.Key, ct);
 
         _logger.LogInformation("特性开关已启用：{FlagId}（Key={FlagKey}）", flagId, entity.Key);
     }
@@ -86,6 +94,7 @@ public sealed class FeatureFlagAppService : IFeatureFlagAppService
 
         await _repository.UpdateAsync(entity, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+        await _cache.RemoveAsync(entity.Key, ct);
 
         _logger.LogInformation("特性开关已停用：{FlagId}（Key={FlagKey}）", flagId, entity.Key);
     }

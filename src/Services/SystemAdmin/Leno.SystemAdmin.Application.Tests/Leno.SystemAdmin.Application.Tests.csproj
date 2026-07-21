@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Leno.SystemAdmin.Application\Leno.SystemAdmin.Application.csproj" />
+    <ProjectReference Include="..\Leno.SystemAdmin.Infrastructure\Leno.SystemAdmin.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.Testing\Leno.Testing.csproj" />
   </ItemGroup>
 

@@ -2,6 +2,7 @@ using Leno.SystemAdmin.Application.DTOs;
 using Leno.SystemAdmin.Domain.Aggregates;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.ValueObjects;
+using Leno.SystemAdmin.Infrastructure.Cache;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -9,8 +10,9 @@ namespace Leno.SystemAdmin.Application.Services;
 
 /// <summary>
 /// 系统配置管理应用服务实现。
-/// 配置变更（创建/更新/启停）经聚合根附加 <see cref="Leno.SystemAdmin.Domain.Events.ConfigChangedEvent"/> 领域事件，
-/// 由工作单元的发件箱机制在同一事务内持久化并发布，不手动调用 IEventBus。
+/// 配置变更经聚合根附加 <see cref="Leno.SystemAdmin.Domain.Events.ConfigChangedEvent"/> 领域事件，
+/// 由工作单元的发件箱机制在同一事务内持久化并发布。
+/// 写操作后主动失效 Redis 缓存，避免最长 30 分钟脏读。
 /// </summary>
 public sealed class SystemConfigAppService : ISystemConfigAppService
 {
@@ -18,18 +20,22 @@ public sealed class SystemConfigAppService : ISystemConfigAppService
 
     private readonly ISystemConfigRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly SystemConfigCache _cache;
     private readonly ILogger<SystemConfigAppService> _logger;
 
     public SystemConfigAppService(
         ISystemConfigRepository repository,
         IUnitOfWork unitOfWork,
+        SystemConfigCache cache,
         ILogger<SystemConfigAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
+        ArgumentNullException.ThrowIfNull(cache);
         ArgumentNullException.ThrowIfNull(logger);
         _repository = repository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -43,6 +49,7 @@ public sealed class SystemConfigAppService : ISystemConfigAppService
 
         await _repository.AddAsync(entity, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+        await _cache.RemoveAsync(entity.Key, ct);
 
         _logger.LogInformation("系统配置已创建：{ConfigId}（Key={ConfigKey}）", configId, entity.Key);
         return ToDto(entity);
@@ -58,6 +65,7 @@ public sealed class SystemConfigAppService : ISystemConfigAppService
 
         await _repository.UpdateAsync(entity, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+        await _cache.RemoveAsync(entity.Key, ct);
 
         _logger.LogInformation("系统配置已更新：{ConfigId}（Key={ConfigKey}）", configId, entity.Key);
         return ToDto(entity);
@@ -71,6 +79,7 @@ public sealed class SystemConfigAppService : ISystemConfigAppService
 
         await _repository.UpdateAsync(entity, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+        await _cache.RemoveAsync(entity.Key, ct);
 
         _logger.LogInformation("系统配置已启用：{ConfigId}（Key={ConfigKey}）", configId, entity.Key);
     }
@@ -83,6 +92,7 @@ public sealed class SystemConfigAppService : ISystemConfigAppService
 
         await _repository.UpdateAsync(entity, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+        await _cache.RemoveAsync(entity.Key, ct);
 
         _logger.LogInformation("系统配置已停用：{ConfigId}（Key={ConfigKey}）", configId, entity.Key);
     }
