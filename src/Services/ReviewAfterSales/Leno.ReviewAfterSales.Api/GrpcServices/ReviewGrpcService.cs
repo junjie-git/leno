@@ -27,7 +27,8 @@ public sealed class ReviewGrpcService : ReviewInternalService.ReviewInternalServ
     public override async Task<ProductRating> GetProductRating(
         GetProductRatingRequest request, ServerCallContext context)
     {
-        // 优先读 string 字段（Guid.ToString()），回退到 int64（向后兼容旧客户端）
+        // Guid→string 迁移：必须使用 SpuIdStr（Guid 字符串）定位商品。
+        // 旧 int64 字段已 deprecated 且 GetHashCode 不可逆，不再支持回退，强制客户端升级。
         Guid spuId;
         if (!string.IsNullOrEmpty(request.SpuIdStr))
         {
@@ -36,10 +37,15 @@ public sealed class ReviewGrpcService : ReviewInternalService.ReviewInternalServ
                 throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid spu_id_str: {request.SpuIdStr}"));
             }
         }
+        else if (request.SpuId != 0)
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                "SpuId int64 field is deprecated and non-reversible, please use SpuIdStr (Guid string) instead"));
+        }
         else
         {
-            // 旧客户端回退：将 int64 嵌入 Guid 前 4 字节，其余补零
-            spuId = new Guid((int)request.SpuId, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                "Either SpuIdStr must be provided (SpuId int64 is deprecated)"));
         }
 
         var dto = await _queryService.GetProductRatingAsync(spuId, context.CancellationToken)
@@ -47,7 +53,7 @@ public sealed class ReviewGrpcService : ReviewInternalService.ReviewInternalServ
 
         if (dto is null)
         {
-            throw new RpcException(new Status(StatusCode.NotFound, $"Product rating for spu {request.SpuId} not found"));
+            throw new RpcException(new Status(StatusCode.NotFound, $"Product rating for spu {request.SpuIdStr} not found"));
         }
 
         return MapToProto(dto);
@@ -74,12 +80,13 @@ public sealed class ReviewGrpcService : ReviewInternalService.ReviewInternalServ
 
     private static ProductRating MapToProto(ProductRatingDto dto) => new()
     {
-        // 既有 int64 字段（向后兼容，标记 deprecated）
-        SpuId = (long)dto.SpuId.GetHashCode(),
+        // 既有 int64 字段已 deprecated：强制返回 0，Guid.GetHashCode 不可逆且跨进程不一致，
+        // 新客户端必须读 SpuIdStr（Guid 字符串）。
+        SpuId = 0,
         AverageRating = dto.AverageRating,
         TotalCount = dto.TotalCount,
         PositiveCount = dto.PositiveCount,
-        // 新增 string 字段（Guid→string 迁移，新客户端优先读）
+        // Guid→string 迁移：权威字段，新客户端优先读
         SpuIdStr = dto.SpuId.ToString()
     };
 
@@ -91,8 +98,8 @@ public sealed class ReviewGrpcService : ReviewInternalService.ReviewInternalServ
             proto.Reviews.Add(new ReviewSummary
             {
                 ReviewId = r.ReviewId.ToString(),
-                // 双写：既有 int64 字段（GetHashCode，向后兼容）+ 新增 string 字段（Guid.ToString()）
-                SpuId = (long)r.SpuId.GetHashCode(),
+                // 既有 int64 字段已 deprecated：强制返回 0，避免 GetHashCode 失真
+                SpuId = 0,
                 SpuIdStr = r.SpuId.ToString(),
                 Rating = r.Rating,
                 Content = r.Content,
