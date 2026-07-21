@@ -78,6 +78,15 @@ public sealed class NotificationTemplateAppService : INotificationTemplateAppSer
                 "TEMPLATE_DISABLED_CANNOT_EDIT");
         }
 
+        // P2-44：模板 Code/Channel 为不可变标识，不允许通过 Update 修改，避免破坏 (Code, Channel) 唯一索引与既有引用。
+        if (!string.Equals(template.Code, dto.Code, StringComparison.Ordinal)
+            || template.Channel != dto.Channel)
+        {
+            throw new NotificationDomainException(
+                "模板 Code/Channel 不允许修改",
+                "TEMPLATE_CODE_CHANNEL_IMMUTABLE");
+        }
+
         template.Update(dto.Subject, dto.Body, dto.Variables);
 
         // 校验未定义占位符（模板中有 {{xxx}} 但未在 Variables 中声明）
