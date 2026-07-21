@@ -267,6 +267,16 @@ public sealed class OrderAppService : IOrderAppService
     public async Task ShipAsync(Guid orderId, Guid operatorId, ShipOrderDto dto, CancellationToken ct = default)
     {
         var order = await RequireOwnedOrderAsync(orderId, operatorId, ct);
+
+        // 校验物流公司编码存在且为启用状态（聚合根仅校验非空，应用层补充存在性校验）
+        var company = await _logisticsCompanyRepository.GetByCodeAsync(dto.LogisticsCompanyCode, ct);
+        if (company is null || company.Status != LogisticsCompanyStatus.Enabled)
+        {
+            throw new OrderDomainException(
+                $"物流公司编码不存在或已停用：{dto.LogisticsCompanyCode}",
+                "LOGISTICS_COMPANY_NOT_FOUND");
+        }
+
         order.Ship(dto.LogisticsNo, dto.LogisticsCompanyCode, DateTime.UtcNow, operatorId);
         await _orderRepository.UpdateAsync(order, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
