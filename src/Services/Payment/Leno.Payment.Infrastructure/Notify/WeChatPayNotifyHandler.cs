@@ -1,8 +1,6 @@
-using System.Xml.Linq;
 using Leno.Payment.Domain.Repositories;
 using Leno.Payment.Domain.Services;
 using Leno.Payment.Domain.ValueObjects;
-using Leno.Payment.Infrastructure.Channels;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
@@ -10,13 +8,19 @@ using StackExchange.Redis;
 namespace Leno.Payment.Infrastructure.Notify;
 
 /// <summary>
-/// 微信支付异步通知处理器，解析通知 XML、验签、更新支付单/退款单状态并经发件箱发布集成事件。
+/// 微信支付异步通知处理器，验签后基于 <see cref="ChannelNotifyResult"/> 更新支付单/退款单状态并经发件箱发布集成事件。
 /// 验签或状态机非法时返回 <c>FAIL</c>，通知渠道重试；处理成功返回 <c>SUCCESS</c>。
 /// 回调幂等：使用 Redis 记录已处理的渠道交易号，防止重复处理。
 /// </summary>
+/// <remarks>
+/// P0-1 修复：移除验签前 <c>ParseXml</c> 调用。微信 V3 回调报文为 JSON 而非 XML，
+/// 验签前调用 <c>ParseXml</c> 会抛 <c>XmlException</c> 被外层 catch 吞掉返回 <c>FAIL</c>，
+/// 导致所有 V3 回调永远无法处理。修复后先验签，验签失败直接返回 <c>FAIL</c>，
+/// 验签成功后直接使用 <see cref="ChannelNotifyResult"/> 中的字段，由 <c>WeChatPayAdapter</c> 解析解密数据填充。
+/// </remarks>
 public sealed class WeChatPayNotifyHandler
 {
-    private readonly WeChatPayAdapter _adapter;
+    private readonly IPaymentChannelAdapter _adapter;
     private readonly IPaymentOrderRepository _paymentOrderRepository;
     private readonly IRefundOrderRepository _refundOrderRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -24,7 +28,7 @@ public sealed class WeChatPayNotifyHandler
     private readonly ILogger<WeChatPayNotifyHandler> _logger;
 
     public WeChatPayNotifyHandler(
-        WeChatPayAdapter adapter,
+        IPaymentChannelAdapter adapter,
         IPaymentOrderRepository paymentOrderRepository,
         IRefundOrderRepository refundOrderRepository,
         IUnitOfWork unitOfWork,
@@ -40,9 +44,9 @@ public sealed class WeChatPayNotifyHandler
     }
 
     /// <summary>
-    /// 处理微信支付异步通知。
+    /// 处理微信支付异步通知。先验签，验签失败直接返回 <c>FAIL</c>，不再解析未授信报文。
     /// </summary>
-    /// <param name="rawBody">原始 XML 报文体。</param>
+    /// <param name="rawBody">原始报文体（V3 为 JSON）。</param>
     /// <param name="headers">通知请求头字典。</param>
     /// <returns><c>SUCCESS</c> 表示处理成功，<c>FAIL</c> 表示处理失败需重试。</returns>
     public async Task<string> HandleAsync(string rawBody, Dictionary<string, string> headers)
@@ -52,7 +56,7 @@ public sealed class WeChatPayNotifyHandler
             ArgumentNullException.ThrowIfNull(rawBody);
             ArgumentNullException.ThrowIfNull(headers);
 
-            var fields = ParseXml(rawBody);
+            // 先验签，验签失败直接返回 FAIL，不解析未授信报文（P0-1 修复）
             var result = await _adapter.VerifyNotifyAsync(rawBody, headers);
 
             if (!result.Verified)
@@ -74,12 +78,12 @@ public sealed class WeChatPayNotifyHandler
 
             if (result.IsPaid)
             {
-                return await HandlePaymentNotifyAsync(fields, result);
+                return await HandlePaymentNotifyAsync(result);
             }
 
             if (result.IsRefund)
             {
-                return await HandleRefundNotifyAsync(fields);
+                return await HandleRefundNotifyAsync(result);
             }
 
             _logger.LogInformation("微信支付通知：非支付/退款通知，忽略");
@@ -92,9 +96,15 @@ public sealed class WeChatPayNotifyHandler
         }
     }
 
-    private async Task<string> HandlePaymentNotifyAsync(Dictionary<string, string> fields, ChannelNotifyResult result)
+    private async Task<string> HandlePaymentNotifyAsync(ChannelNotifyResult result)
     {
-        var outTradeNo = GetField(fields, "out_trade_no");
+        var outTradeNo = result.OutTradeNo;
+        if (string.IsNullOrEmpty(outTradeNo))
+        {
+            _logger.LogWarning("微信支付通知：OutTradeNo 为空 ChannelTradeNo={ChannelTradeNo}", result.ChannelTradeNo);
+            return "FAIL";
+        }
+
         var order = await _paymentOrderRepository.GetByOutTradeNoAsync(outTradeNo);
         if (order is null)
         {
@@ -139,9 +149,16 @@ public sealed class WeChatPayNotifyHandler
         return "SUCCESS";
     }
 
-    private async Task<string> HandleRefundNotifyAsync(Dictionary<string, string> fields)
+    private async Task<string> HandleRefundNotifyAsync(ChannelNotifyResult result)
     {
-        var outRefundNo = GetField(fields, "out_refund_no");
+        // WeChatPayAdapter 在退款通知时将 out_refund_no 填入 OutTradeNo 字段，refund_id 填入 ChannelTradeNo 字段
+        var outRefundNo = result.OutTradeNo;
+        if (string.IsNullOrEmpty(outRefundNo))
+        {
+            _logger.LogWarning("微信支付通知：退款通知缺少 OutRefundNo ChannelTradeNo={ChannelTradeNo}", result.ChannelTradeNo);
+            return "FAIL";
+        }
+
         var refund = await _refundOrderRepository.GetByOutRefundNoAsync(outRefundNo);
         if (refund is null)
         {
@@ -162,12 +179,7 @@ public sealed class WeChatPayNotifyHandler
             return "SUCCESS";
         }
 
-        var channelRefundNo = GetField(fields, "refund_id");
-        if (string.IsNullOrEmpty(channelRefundNo))
-        {
-            channelRefundNo = refund.OutRefundNo;
-        }
-
+        var channelRefundNo = !string.IsNullOrEmpty(result.ChannelTradeNo) ? result.ChannelTradeNo : refund.OutRefundNo;
         refund.MarkSucceeded(channelRefundNo, DateTime.UtcNow);
         await _refundOrderRepository.UpdateAsync(refund);
         await _unitOfWork.SaveEntitiesAsync();
@@ -204,20 +216,4 @@ public sealed class WeChatPayNotifyHandler
             throw;
         }
     }
-
-    private static Dictionary<string, string> ParseXml(string xml)
-    {
-        var doc = XDocument.Parse(xml);
-        var root = doc.Root ?? throw new InvalidOperationException("微信支付通知 XML 缺少根节点");
-        var dict = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var el in root.Elements())
-        {
-            dict[el.Name.LocalName] = el.Value;
-        }
-
-        return dict;
-    }
-
-    private static string GetField(Dictionary<string, string> dict, string key)
-        => dict.TryGetValue(key, out var v) ? v : string.Empty;
 }

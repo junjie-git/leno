@@ -205,18 +205,28 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
             {
                 var dataRoot = JsonDocument.Parse(decryptData).RootElement;
 
-                // 提取 out_trade_no（商户支付单号），供 NotifyHandler 查找本地支付单
-                outTradeNo = dataRoot.TryGetProperty("out_trade_no", out var otn) ? otn.GetString() : null;
-
-                channelTradeNo = dataRoot.TryGetProperty("transaction_id", out var txnId) ? txnId.GetString() : null;
                 var tradeState = dataRoot.TryGetProperty("trade_state", out var state) ? state.GetString() : null;
                 isPaid = string.Equals(tradeState, "SUCCESS", StringComparison.OrdinalIgnoreCase);
 
-                var successTime = dataRoot.TryGetProperty("success_time", out var st) ? st.GetString() : null;
-                paidAt = ParseWeChatTime(successTime);
-
                 var refundStatus = dataRoot.TryGetProperty("refund_status", out var rs) ? rs.GetString() : null;
                 isRefund = !string.IsNullOrEmpty(refundStatus);
+
+                // 支付通知：OutTradeNo = out_trade_no（商户支付单号），ChannelTradeNo = transaction_id（微信支付单号）
+                // 退款通知：OutTradeNo = out_refund_no（商户退款单号），ChannelTradeNo = refund_id（微信退款单号）
+                // NotifyHandler 据此分别查找本地支付单/退款单，不再依赖验签前解析原始 XML
+                if (isRefund)
+                {
+                    outTradeNo = dataRoot.TryGetProperty("out_refund_no", out var orn) ? orn.GetString() : null;
+                    channelTradeNo = dataRoot.TryGetProperty("refund_id", out var rid) ? rid.GetString() : null;
+                }
+                else
+                {
+                    outTradeNo = dataRoot.TryGetProperty("out_trade_no", out var otn) ? otn.GetString() : null;
+                    channelTradeNo = dataRoot.TryGetProperty("transaction_id", out var txnId) ? txnId.GetString() : null;
+                }
+
+                var successTime = dataRoot.TryGetProperty("success_time", out var st) ? st.GetString() : null;
+                paidAt = ParseWeChatTime(successTime);
 
                 if (dataRoot.TryGetProperty("amount", out var amountNode))
                 {
