@@ -87,6 +87,8 @@ public static class ServiceCollectionExtensions
         services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 
         services.AddScoped<IFeatureFlagEvaluator, FeatureFlagEvaluatorImpl>();
+        services.AddHttpClient<StatisticsMetricsQueryClient>();
+        services.AddScoped<IStatisticsDataSource, StatisticsMetricsSource>();
         services.AddScoped<IStatisticsAggregationService, StatisticsAggregationService>();
         services.AddScoped<IStatisticsReconciliationService, ReconciliationServiceImpl>();
         services.AddSingleton<QuartzJobScheduler>();
