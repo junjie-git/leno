@@ -25,7 +25,7 @@ public class ProductInternalQueryServiceTests
         // Arrange
         var skuId = Guid.NewGuid();
         await using var context = await CreateContextAsync();
-        var baseline = StockBaseline.Create(Guid.NewGuid(), skuId, initialQty: 100);
+        var baseline = StockBaseline.Create(Guid.NewGuid(), skuId, initialQty: 100, productId: Guid.NewGuid());
         baseline.SyncReserved(30);
         context.StockBaselines.Add(baseline);
         await context.SaveChangesAsync();

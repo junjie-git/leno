@@ -17,6 +17,7 @@ public sealed class StockBaselineConfiguration : IEntityTypeConfiguration<StockB
 
         builder.Property(s => s.Id).HasColumnName("id");
         builder.Property(s => s.SkuId).HasColumnName("sku_id");
+        builder.Property(s => s.ProductId).HasColumnName("product_id");
         builder.Property(s => s.AvailableQty).HasColumnName("available_qty");
         builder.Property(s => s.ReservedQty).HasColumnName("reserved_qty");
         builder.Property(s => s.DeductedQty).HasColumnName("deducted_qty");
@@ -26,5 +27,7 @@ public sealed class StockBaselineConfiguration : IEntityTypeConfiguration<StockB
         builder.Property(s => s.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(s => s.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
         builder.HasIndex(s => s.SkuId).HasDatabaseName("ix_stock_baselines_sku_id").IsUnique();
+        // 按商品查询库存的非唯一索引（修复审计 #3：ProductId 字段新增）
+        builder.HasIndex(s => s.ProductId).HasDatabaseName("ix_stock_baselines_product_id");
     }
 }

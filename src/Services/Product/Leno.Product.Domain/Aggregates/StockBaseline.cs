@@ -14,6 +14,9 @@ public sealed class StockBaseline : AggregateRoot
     /// <summary>所属 SKU 标识。</summary>
     public Guid SkuId { get; private set; }
 
+    /// <summary>所属商品（SPU）标识，用于发布库存调整事件时填充 ProductId。</summary>
+    public Guid ProductId { get; private set; }
+
     /// <summary>可用库存（物理在库，可被预占）。</summary>
     public int AvailableQty { get; private set; }
 
@@ -34,7 +37,8 @@ public sealed class StockBaseline : AggregateRoot
     /// <param name="baselineId">基线标识，由应用层生成。</param>
     /// <param name="skuId">所属 SKU 标识。</param>
     /// <param name="initialQty">初始可用库存，须 ≥ 0。</param>
-    public static StockBaseline Create(Guid baselineId, Guid skuId, int initialQty)
+    /// <param name="productId">所属商品（SPU）标识，须非空，用于发布库存调整事件时填充 ProductId。</param>
+    public static StockBaseline Create(Guid baselineId, Guid skuId, int initialQty, Guid productId)
     {
         if (baselineId == Guid.Empty)
         {
@@ -46,6 +50,11 @@ public sealed class StockBaseline : AggregateRoot
             throw new ProductDomainException("SKU 标识不可为空", "STOCK_SKU_EMPTY");
         }
 
+        if (productId == Guid.Empty)
+        {
+            throw new ProductDomainException("商品标识不可为空", "STOCK_PRODUCT_EMPTY");
+        }
+
         if (initialQty < 0)
         {
             throw new ProductDomainException("初始库存不可为负", "STOCK_INITIAL_NEGATIVE");
@@ -54,6 +63,7 @@ public sealed class StockBaseline : AggregateRoot
         return new StockBaseline(baselineId)
         {
             SkuId = skuId,
+            ProductId = productId,
             AvailableQty = initialQty,
             ReservedQty = 0,
             DeductedQty = 0
@@ -73,7 +83,7 @@ public sealed class StockBaseline : AggregateRoot
 
         AvailableQty += qty;
 
-        AddDomainEvent(new StockAdjustedDomainEvent(Id, SkuId, Guid.Empty, AvailableQty, qty, DateTime.UtcNow));
+        AddDomainEvent(new StockAdjustedDomainEvent(Id, SkuId, ProductId, AvailableQty, qty, DateTime.UtcNow));
     }
 
     /// <summary>

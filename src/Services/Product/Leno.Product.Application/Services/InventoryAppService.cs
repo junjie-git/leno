@@ -51,7 +51,7 @@ public sealed class InventoryAppService : IInventoryAppService
         var baseline = await _stockBaselineRepository.GetBySkuIdAsync(skuId, ct);
         if (baseline is null)
         {
-            baseline = StockBaseline.Create(Guid.NewGuid(), skuId, dto.Quantity);
+            baseline = StockBaseline.Create(Guid.NewGuid(), skuId, dto.Quantity, spu.Id);
             await _stockBaselineRepository.AddAsync(baseline, ct);
         }
         else

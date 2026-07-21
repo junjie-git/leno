@@ -1,4 +1,5 @@
 using Leno.Product.Domain.Aggregates;
+using Leno.Product.Domain.Events;
 using Leno.Product.Domain.Exceptions;
 
 namespace Leno.Product.Domain.Tests;
@@ -8,7 +9,7 @@ public class StockBaselineTests
     [Fact]
     public void Create_ValidParameters_ShouldCreateStockBaseline()
     {
-        var baseline = StockBaseline.Create(Guid.NewGuid(), Guid.NewGuid(), 100);
+        var baseline = StockBaseline.Create(Guid.NewGuid(), Guid.NewGuid(), 100, Guid.NewGuid());
 
         baseline.AvailableQty.Should().Be(100);
         baseline.ReservedQty.Should().Be(0);
@@ -18,9 +19,17 @@ public class StockBaselineTests
     [Fact]
     public void Create_NegativeInitialQty_ShouldThrowException()
     {
-        var act = () => StockBaseline.Create(Guid.NewGuid(), Guid.NewGuid(), -1);
+        var act = () => StockBaseline.Create(Guid.NewGuid(), Guid.NewGuid(), -1, Guid.NewGuid());
 
         act.Should().Throw<ProductDomainException>().WithMessage("*库存*");
+    }
+
+    [Fact]
+    public void Create_EmptyProductId_ShouldThrowException()
+    {
+        var act = () => StockBaseline.Create(Guid.NewGuid(), Guid.NewGuid(), 100, Guid.Empty);
+
+        act.Should().Throw<ProductDomainException>().WithMessage("*商品*");
     }
 
     [Fact]
@@ -41,6 +50,25 @@ public class StockBaselineTests
         var act = () => baseline.Replenish(0);
 
         act.Should().Throw<ProductDomainException>().WithMessage("*补货*");
+    }
+
+    [Fact]
+    public void Replenish_Should_Publish_StockAdjustedDomainEvent_With_Real_ProductId()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        var baseline = StockBaseline.Create(Guid.NewGuid(), Guid.NewGuid(), 100, productId);
+
+        // Act
+        baseline.Replenish(50);
+
+        // Assert
+        var domainEvent = baseline.DomainEvents.OfType<StockAdjustedDomainEvent>().SingleOrDefault();
+        domainEvent.Should().NotBeNull();
+        domainEvent!.ProductId.Should().Be(productId);
+        domainEvent.ProductId.Should().NotBe(Guid.Empty);
+        domainEvent.AvailableQty.Should().Be(150);
+        domainEvent.Delta.Should().Be(50);
     }
 
     [Fact]
@@ -110,6 +138,6 @@ public class StockBaselineTests
 
     private static StockBaseline CreateBaseline()
     {
-        return StockBaseline.Create(Guid.NewGuid(), Guid.NewGuid(), 100);
+        return StockBaseline.Create(Guid.NewGuid(), Guid.NewGuid(), 100, Guid.NewGuid());
     }
 }
