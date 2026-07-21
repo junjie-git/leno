@@ -118,9 +118,11 @@ public sealed class Member : AggregateRoot
 
     /// <summary>
     /// 累加成长值，校验数量 &gt; 0。成长值在消费积分入账时同步增加。
+    /// PM-M02 修复：将 reason 写入 <see cref="LevelChangeHistories"/> 子实体集合，
+    /// 记录每次成长值累加的快照（当前等级、累加后总成长值、原因）。
     /// </summary>
     /// <param name="amount">成长值数量，须 &gt; 0。</param>
-    /// <param name="reason">增加原因。</param>
+    /// <param name="reason">增加原因，写入历史记录。</param>
     public void AddGrowthValue(int amount, string reason)
     {
         if (amount <= 0)
@@ -130,6 +132,10 @@ public sealed class Member : AggregateRoot
 
         GrowthValue += amount;
         GrowthValueUpdatedAt = DateTime.UtcNow;
+
+        // PM-M02 修复：记录成长值累加历史（等级未变，仅成长值变动），将 reason 落库
+        LevelChangeHistories.Add(new MemberLevelChangeHistory(
+            CurrentGrowthLevel, CurrentGrowthLevel, GrowthValue, GrowthValueUpdatedAt, reason));
     }
 
     /// <summary>
