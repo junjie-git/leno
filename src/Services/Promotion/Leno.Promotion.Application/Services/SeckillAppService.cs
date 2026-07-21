@@ -112,7 +112,7 @@ public sealed class SeckillAppService : ISeckillAppService
         // 使用请求中的 SkuId，若未指定则使用活动的默认 SkuId（向后兼容）
         var skuId = dto.SkuId != Guid.Empty ? dto.SkuId : activity.SkuId;
 
-        // 1. Redis 原子预扣库存 + 限购校验（高频路径，支持多 SKU）
+        // 1. Redis 原子预扣库存 + 限购校验（高频热路径，支持多 SKU）
         var deductResult = await _stockService.TryDeductAsync(
             activity.Id, skuId, userId, dto.Quantity, activity.LimitPerUser, ct);
 
@@ -128,12 +128,14 @@ public sealed class SeckillAppService : ISeckillAppService
                 $"秒杀失败：{reason}", "SECKILL_DEDUCT_FAILED");
         }
 
-        // 2. Redis 预扣成功后同步 DB 基线并发布事件；若 DB 失败则回退 Redis
+        // 2. Redis 预扣成功后仅创建预占记录 + 发事件（不调用 activity.DeductStock）
+        // DB 基线（AvailableStock）由后台对账任务或活动结束时 WriteBackToDbAsync 同步，
+        // 避免 rowversion 乐观锁冲突导致"幽灵失败"（高并发下 N 个请求通过 Redis Lua 原子扣减，
+        // 但 DB 提交只能串行，除第一个外其余均因 rowversion 不匹配抛 DbUpdateConcurrencyException 被回退 Redis）
+        // 热路径仅写预占记录 + 发件箱事件，DB 不参与扣减
         Guid orderId;
         try
         {
-            activity.DeductStock(userId, dto.Quantity);
-
             orderId = Guid.NewGuid();
             activity.RecordOrderCreated(userId, orderId, dto.Quantity);
 
@@ -146,7 +148,7 @@ public sealed class SeckillAppService : ISeckillAppService
         }
         catch
         {
-            // DB 写入失败，回退 Redis 预扣，保持库存最终一致
+            // 预占记录写入失败（非乐观锁冲突，如网络故障），回退 Redis 预扣保持库存最终一致
             await _stockService.RestoreAsync(activity.Id, skuId, dto.Quantity, CancellationToken.None);
             throw;
         }
