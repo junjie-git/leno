@@ -90,12 +90,17 @@ public sealed class SeckillAppService : ISeckillAppService
     public async Task CloseActivityWithStockWriteBackAsync(Guid activityId, CancellationToken ct = default)
     {
         var activity = await RequireActivityAsync(activityId, ct);
+
+        // 单一事务包裹：activity.Close() 内存变更 + WriteBackToDbAsync 内部 SaveEntitiesAsync
+        // 消除原实现两次 SaveEntitiesAsync 之间无事务的隐患，保证聚合状态变更与库存回写原子提交
+        await using var tx = await _unitOfWork.BeginTransactionAsync(ct);
+
         activity.Close();
 
-        // 活动关闭时，将 Redis 剩余库存回写到 DB
+        // 活动关闭时，将 Redis 剩余库存回写到 DB（内部已调 SaveEntitiesAsync，参与本事务）
         await _stockService.WriteBackToDbAsync(activityId, ct);
 
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        await tx.CommitAsync(ct);
     }
 
     /// <inheritdoc />
