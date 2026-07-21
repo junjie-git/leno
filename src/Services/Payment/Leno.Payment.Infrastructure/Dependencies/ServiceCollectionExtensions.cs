@@ -71,6 +71,9 @@ public static class ServiceCollectionExtensions
         // WeChatPayNotifyHandler 依赖 IPaymentChannelAdapter 抽象（P0-1），将其解析为 WeChatPayAdapter 具体实现。
         // AlipayNotifyHandler 仍直接依赖 AlipayAdapter 具体类，不受此注册影响。
         services.AddScoped<IPaymentChannelAdapter>(sp => sp.GetRequiredService<WeChatPayAdapter>());
+        // PaymentRequestedEventConsumer 依赖 IPaymentChannelFactory 抽象（P0-6），解析为 PaymentChannelFactory 具体实现，
+        // 与同 scope 的 PaymentChannelFactory 共享实例。
+        services.AddScoped<IPaymentChannelFactory>(sp => sp.GetRequiredService<PaymentChannelFactory>());
 
         // 渠道签名验证（供表现层验签后处理业务）
         services.AddScoped<WeChatPayChannel>();
