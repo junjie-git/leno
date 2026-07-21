@@ -60,7 +60,7 @@ public class ReviewApprovedEventConsumerTests
 
         var idempotencyStoreMock = new Mock<IIdempotencyStore>();
         var consumer = new ReviewApprovedEventConsumer(
-            accountRepoMock.Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object, redisMock.Object);
+            accountRepoMock.Object, new Mock<IMemberRepository>().Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object, redisMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 
@@ -88,7 +88,7 @@ public class ReviewApprovedEventConsumerTests
 
         var idempotencyStoreMock = new Mock<IIdempotencyStore>();
         var consumer = new ReviewApprovedEventConsumer(
-            accountRepoMock.Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object, redisMock.Object);
+            accountRepoMock.Object, new Mock<IMemberRepository>().Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object, redisMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 
@@ -115,7 +115,7 @@ public class ReviewApprovedEventConsumerTests
 
         var idempotencyStoreMock = new Mock<IIdempotencyStore>();
         var consumer = new ReviewApprovedEventConsumer(
-            accountRepoMock.Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object, redisMock.Object);
+            accountRepoMock.Object, new Mock<IMemberRepository>().Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object, redisMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 

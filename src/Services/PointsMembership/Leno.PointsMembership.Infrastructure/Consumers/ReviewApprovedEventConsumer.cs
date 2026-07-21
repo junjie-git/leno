@@ -20,11 +20,13 @@ public sealed class ReviewApprovedEventConsumer : IntegrationEventConsumerBase<R
     private const int MaxDailyReviewPoints = 5;
 
     private readonly IPointsAccountRepository _accountRepository;
+    private readonly IMemberRepository _memberRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDatabase _redisDb;
 
     public ReviewApprovedEventConsumer(
         IPointsAccountRepository accountRepository,
+        IMemberRepository memberRepository,
         IUnitOfWork unitOfWork,
         ILogger<ReviewApprovedEventConsumer> logger,
         IIdempotencyStore idempotencyStore,
@@ -32,6 +34,7 @@ public sealed class ReviewApprovedEventConsumer : IntegrationEventConsumerBase<R
         : base(logger, idempotencyStore)
     {
         _accountRepository = accountRepository;
+        _memberRepository = memberRepository;
         _unitOfWork = unitOfWork;
         _redisDb = redisMultiplexer.GetDatabase();
     }
@@ -71,8 +74,15 @@ public sealed class ReviewApprovedEventConsumer : IntegrationEventConsumerBase<R
             return;
         }
 
-        account.Earn(PointsSource.Review, ReviewPointsPerReview,
-            $"评价 {integrationEvent.ReviewId} 返积分");
+        var reviewReason = $"评价 {integrationEvent.ReviewId} 返积分";
+        account.Earn(PointsSource.Review, ReviewPointsPerReview, reviewReason);
+
+        // PM-H01 修复：1 积分 = 1 成长值，同步累加成长值打通 V0-V4 等级体系
+        var member = await _memberRepository.GetByUserIdAsync(integrationEvent.UserId, ct);
+        if (member is not null)
+        {
+            member.AddGrowthValue(ReviewPointsPerReview, reviewReason);
+        }
 
         await _unitOfWork.SaveEntitiesAsync(ct);
 

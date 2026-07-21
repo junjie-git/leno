@@ -14,6 +14,7 @@ public class PointsAppServiceTests
 {
     private readonly Mock<IPointsAccountRepository> _accountRepoMock = new();
     private readonly Mock<ICheckInRecordRepository> _checkInRepoMock = new();
+    private readonly Mock<IMemberRepository> _memberRepoMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly PointsAppService _sut;
 
@@ -22,7 +23,9 @@ public class PointsAppServiceTests
 
     public PointsAppServiceTests()
     {
-        _sut = new PointsAppService(_accountRepoMock.Object, _checkInRepoMock.Object, _uowMock.Object);
+        // PM-H01 修复后 PointsAppService 新增 IMemberRepository 依赖；
+        // 既有测试不验证成长值累加，仅以默认 Mock 满足构造签名，行为由 PointsAppServiceCheckInGrowthTests 覆盖
+        _sut = new PointsAppService(_accountRepoMock.Object, _checkInRepoMock.Object, _memberRepoMock.Object, _uowMock.Object);
     }
 
     private static PointsAccount CreateAccount()

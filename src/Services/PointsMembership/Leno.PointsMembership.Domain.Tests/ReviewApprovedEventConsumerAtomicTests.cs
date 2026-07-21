@@ -54,7 +54,7 @@ public sealed class ReviewApprovedEventConsumerAtomicTests
         redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(dbMock.Object);
 
         var consumer = new ReviewApprovedEventConsumer(
-            accountRepoMock.Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object, redisMock.Object);
+            accountRepoMock.Object, new Mock<IMemberRepository>().Object, uowMock.Object, loggerMock.Object, idempotencyStoreMock.Object, redisMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 
@@ -98,7 +98,7 @@ public sealed class ReviewApprovedEventConsumerAtomicTests
         redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(dbMock.Object);
 
         var consumer = new ReviewApprovedEventConsumer(
-            accountRepoMock.Object, uowMock.Object, loggerMock, idempotencyStoreMock.Object, redisMock.Object);
+            accountRepoMock.Object, new Mock<IMemberRepository>().Object, uowMock.Object, loggerMock, idempotencyStoreMock.Object, redisMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 
@@ -134,7 +134,7 @@ public sealed class ReviewApprovedEventConsumerAtomicTests
         redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(dbMock.Object);
 
         var consumer = new ReviewApprovedEventConsumer(
-            accountRepoMock.Object, uowMock.Object, loggerMock, idempotencyStoreMock.Object, redisMock.Object);
+            accountRepoMock.Object, new Mock<IMemberRepository>().Object, uowMock.Object, loggerMock, idempotencyStoreMock.Object, redisMock.Object);
 
         await InvokeHandleAsync(consumer, evt);
 

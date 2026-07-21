@@ -141,6 +141,11 @@ public sealed class OrderAfterSalesWindowClosedEventConsumer : IntegrationEventC
             var member = await _memberRepository.GetByUserIdAsync(integrationEvent.UserId, ct);
             if (member is not null)
             {
+                // PM-H01 修复：1 积分 = 1 成长值，同步累加成长值打通 V0-V4 等级体系
+                if (points > 0)
+                {
+                    member.AddGrowthValue(points, $"订单 {integrationEvent.OrderId} 消费返积分");
+                }
                 member.AddConsumption(integrationEvent.PaidAmount);
 
                 var levels = await _levelRepository.GetAllEnabledAsync(ct);

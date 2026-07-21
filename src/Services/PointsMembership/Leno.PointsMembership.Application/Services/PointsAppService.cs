@@ -20,15 +20,18 @@ public sealed class PointsAppService : IPointsAppService
 
     private readonly IPointsAccountRepository _accountRepository;
     private readonly ICheckInRecordRepository _checkInRepository;
+    private readonly IMemberRepository _memberRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public PointsAppService(
         IPointsAccountRepository accountRepository,
         ICheckInRecordRepository checkInRepository,
+        IMemberRepository memberRepository,
         IUnitOfWork unitOfWork)
     {
         _accountRepository = accountRepository;
         _checkInRepository = checkInRepository;
+        _memberRepository = memberRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -62,7 +65,15 @@ public sealed class PointsAppService : IPointsAppService
         await _checkInRepository.AddAsync(record, ct);
 
         var account = await RequireAccountAsync(userId, ct);
-        account.Earn(PointsSource.CheckIn, pointsAwarded, $"每日签到（连续 {continuousDays} 天）");
+        var checkInReason = $"每日签到（连续 {continuousDays} 天）";
+        account.Earn(PointsSource.CheckIn, pointsAwarded, checkInReason);
+
+        // PM-H01 修复：同步累加会员成长值（1 积分 = 1 成长值），打通 V0-V4 成长值等级体系
+        var member = await _memberRepository.GetByUserIdAsync(userId, ct);
+        if (member is not null)
+        {
+            member.AddGrowthValue(pointsAwarded, checkInReason);
+        }
 
         await _unitOfWork.SaveEntitiesAsync(ct);
 
