@@ -60,6 +60,9 @@ public sealed class RedisAnonymousCartRepository : IAnonymousCartRepository
         ArgumentNullException.ThrowIfNull(cart);
         try
         {
+            // 序列化前清理领域事件，避免 Redis JSON 单调增长（_domainEvents 仅在 EF Core 落库路径
+            // 由 SaveChangesWithOutboxAsync 清理，匿名购物车走 Redis 持久化路径需显式清理）
+            cart.ClearDomainEvents();
             var db = _redis.GetDatabase();
             var key = BuildKey(sessionId);
             var value = JsonSerializer.Serialize(cart, JsonOptions);
