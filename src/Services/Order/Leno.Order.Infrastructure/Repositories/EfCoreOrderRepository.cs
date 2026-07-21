@@ -48,9 +48,11 @@ public sealed class EfCoreOrderRepository : IOrderRepository
 
         query = ApplyFilters(query, userId, sellerId, status, startDate, endDate);
 
+        // P2-T35：page 从 0 起（CQRS 标准），Skip = page * pageSize；负数页码归零保护
+        var safePage = page < 0 ? 0 : page;
         return await query
             .OrderByDescending(o => o.CreatedAt)
-            .Skip((page - 1) * pageSize)
+            .Skip(safePage * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
     }

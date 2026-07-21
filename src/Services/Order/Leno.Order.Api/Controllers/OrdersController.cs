@@ -62,7 +62,7 @@ public sealed class OrdersController : OrderControllerBase
     [Authorize(Roles = "Buyer")]
     [HttpGet("api/orders")]
     [ProducesResponseType(typeof(ApiResponse<OrderListResultDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> ListMineAsync([FromQuery] OrderStatus? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    public async Task<IActionResult> ListMineAsync([FromQuery] OrderStatus? status, [FromQuery] int page = 0, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
         var result = await _orderAppService.QueryAsync(GetCurrentUserId(), null, status, page, pageSize, ct);
         return Ok(ApiResponse.Success(result));
@@ -116,7 +116,7 @@ public sealed class OrdersController : OrderControllerBase
     [Authorize(Roles = "Operator,Admin")]
     [HttpGet("api/admin/orders")]
     [ProducesResponseType(typeof(ApiResponse<OrderListResultDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> ListAsync([FromQuery] Guid? userId, [FromQuery] Guid? sellerId, [FromQuery] OrderStatus? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    public async Task<IActionResult> ListAsync([FromQuery] Guid? userId, [FromQuery] Guid? sellerId, [FromQuery] OrderStatus? status, [FromQuery] int page = 0, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
         var result = await _orderAppService.QueryAsync(userId, sellerId, status, page, pageSize, ct);
         return Ok(ApiResponse.Success(result));

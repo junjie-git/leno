@@ -24,7 +24,7 @@ public interface IOrderRepository : IRepository<OrderAggregate>
     /// <param name="status">订单状态过滤，为空不过滤。</param>
     /// <param name="startDate">创建起始时间过滤，为空不过滤。</param>
     /// <param name="endDate">创建结束时间过滤，为空不过滤。</param>
-    /// <param name="page">页码（从 1 起）。</param>
+    /// <param name="page">页码（从 0 起，P2-T35：与 CQRS OrderListQuery.PageIndex 对齐）。</param>
     /// <param name="pageSize">每页大小。</param>
     Task<List<OrderAggregate>> QueryAsync(Guid? userId, Guid? sellerId, OrderStatus? status, DateTime? startDate, DateTime? endDate, int page, int pageSize, CancellationToken ct = default);
 

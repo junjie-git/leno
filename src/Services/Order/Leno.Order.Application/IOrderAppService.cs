@@ -88,7 +88,7 @@ public interface IOrderAppService
     /// <param name="userId">买家标识过滤，为空不过滤。</param>
     /// <param name="sellerId">卖家标识过滤，为空不过滤。</param>
     /// <param name="status">订单状态过滤，为空不过滤。</param>
-    /// <param name="page">页码（从 1 起）。</param>
+    /// <param name="page">页码（从 0 起，P2-T35：与 CQRS OrderListQuery.PageIndex 对齐）。</param>
     /// <param name="pageSize">每页大小。</param>
     [Obsolete("请使用 IQueryHandler<OrderListQuery, OrderListResult>，将在 2026-08-01 移除")]
     Task<OrderListResultDto> QueryAsync(Guid? userId, Guid? sellerId, OrderStatus? status, int page, int pageSize, CancellationToken ct = default);

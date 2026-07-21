@@ -195,6 +195,7 @@ public sealed class OrderListResultDto
 
     public int Total { get; init; }
 
+    /// <summary>页码，从 0 起（P2-T35：与 OrderListQuery.PageIndex / OrderListResult.PageIndex 对齐，统一 CQRS 0-based 标准）。</summary>
     public int Page { get; init; }
 
     public int PageSize { get; init; }
