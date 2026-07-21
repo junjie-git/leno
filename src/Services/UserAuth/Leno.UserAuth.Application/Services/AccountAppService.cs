@@ -1,6 +1,8 @@
+using System.Text.Json;
 using Leno.SharedKernel.Abstractions;
 using Leno.UserAuth.Application.Abstractions;
 using Leno.UserAuth.Application.DTOs;
+using Leno.UserAuth.Domain.Aggregates;
 using Leno.UserAuth.Domain.Exceptions;
 using Leno.UserAuth.Domain.Repositories;
 
@@ -8,22 +10,27 @@ namespace Leno.UserAuth.Application.Services;
 
 /// <summary>
 /// 账户管理应用服务实现，处理外部登录绑定/解绑等操作。
+/// 绑定外部登录写操作在事务内写入 <see cref="AuditLog"/> 审计日志，操作人即账户持有人本身。
 /// </summary>
 public sealed class AccountAppService : IAccountAppService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOAuth2ProviderResolver _providerResolver;
 
     public AccountAppService(
         IUserRepository userRepository,
+        IAuditLogRepository auditLogRepository,
         IUnitOfWork unitOfWork,
         IOAuth2ProviderResolver providerResolver)
     {
         ArgumentNullException.ThrowIfNull(userRepository);
+        ArgumentNullException.ThrowIfNull(auditLogRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(providerResolver);
         _userRepository = userRepository;
+        _auditLogRepository = auditLogRepository;
         _unitOfWork = unitOfWork;
         _providerResolver = providerResolver;
     }
@@ -66,6 +73,8 @@ public sealed class AccountAppService : IAccountAppService
                 $"该 {externalInfo.Provider} 账户已被其他用户绑定", "EXTERNAL_LOGIN_ALREADY_BOUND");
         }
 
+        var before = Snapshot(user);
+
         user.LinkExternalLogin(
             externalInfo.Provider,
             externalInfo.ProviderUserId,
@@ -74,6 +83,7 @@ public sealed class AccountAppService : IAccountAppService
             externalInfo.AvatarUrl);
 
         await _userRepository.UpdateAsync(user, ct);
+        await WriteAuditAsync("ExternalLoginBind", userId, userId, before, Snapshot(user), ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
@@ -90,9 +100,40 @@ public sealed class AccountAppService : IAccountAppService
             throw new UserAuthDomainException("用户不存在", "USER_NOT_FOUND");
         }
 
+        var before = Snapshot(user);
+
         user.UnlinkExternalLogin(provider);
 
         await _userRepository.UpdateAsync(user, ct);
+        await WriteAuditAsync("ExternalLoginUnbind", userId, userId, before, Snapshot(user), ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
+
+    private async Task WriteAuditAsync(
+        string action,
+        Guid operatorId,
+        Guid targetUserId,
+        string? beforeSnapshot,
+        string? afterSnapshot,
+        CancellationToken ct)
+    {
+        var auditLog = AuditLog.Create(
+            Guid.NewGuid(),
+            operatorId,
+            action,
+            "User",
+            targetUserId.ToString(),
+            beforeSnapshot,
+            afterSnapshot);
+
+        await _auditLogRepository.AddAsync(auditLog, ct);
+    }
+
+    private static string Snapshot(User user)
+        => JsonSerializer.Serialize(new
+        {
+            user.Id,
+            user.Username,
+            ExternalLogins = user.ExternalLogins.Select(el => new { el.Provider, el.ProviderUserId }).ToArray()
+        });
 }

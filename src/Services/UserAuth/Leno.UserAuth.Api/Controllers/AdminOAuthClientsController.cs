@@ -39,7 +39,7 @@ public sealed class AdminOAuthClientsController : UserAuthControllerBase
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateAsync(string provider, [FromBody] UpdateOAuthClientDto dto, CancellationToken ct)
     {
-        await _oauthClientAppService.UpdateAsync(provider, dto, ct);
+        await _oauthClientAppService.UpdateAsync(provider, dto, GetCurrentUserId(), ct);
         return Ok(ApiResponse.Success("OAuth 客户端配置已更新"));
     }
 
@@ -48,7 +48,7 @@ public sealed class AdminOAuthClientsController : UserAuthControllerBase
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> EnableAsync(string provider, CancellationToken ct)
     {
-        await _oauthClientAppService.EnableAsync(provider, ct);
+        await _oauthClientAppService.EnableAsync(provider, GetCurrentUserId(), ct);
         return Ok(ApiResponse.Success("OAuth 提供方已启用"));
     }
 
@@ -57,7 +57,7 @@ public sealed class AdminOAuthClientsController : UserAuthControllerBase
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> DisableAsync(string provider, CancellationToken ct)
     {
-        await _oauthClientAppService.DisableAsync(provider, ct);
+        await _oauthClientAppService.DisableAsync(provider, GetCurrentUserId(), ct);
         return Ok(ApiResponse.Success("OAuth 提供方已禁用"));
     }
 }

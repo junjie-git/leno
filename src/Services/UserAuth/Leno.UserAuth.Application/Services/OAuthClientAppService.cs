@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Leno.SharedKernel.Abstractions;
 using Leno.UserAuth.Application.Abstractions;
 using Leno.UserAuth.Application.DTOs;
@@ -10,21 +11,26 @@ namespace Leno.UserAuth.Application.Services;
 /// <summary>
 /// OAuth2 客户端配置管理应用服务实现。
 /// ClientSecret 加密存储，返回时掩码。
+/// 写操作在事务内写入 <see cref="AuditLog"/> 审计日志，确保 OAuth 提供方配置变更可追溯。
 /// </summary>
 public sealed class OAuthClientAppService : IOAuthClientAppService
 {
     private readonly IOAuthClientRepository _repository;
+    private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClientSecretEncryptionService? _encryptionService;
 
     public OAuthClientAppService(
         IOAuthClientRepository repository,
+        IAuditLogRepository auditLogRepository,
         IUnitOfWork unitOfWork,
         IClientSecretEncryptionService? encryptionService = null)
     {
         ArgumentNullException.ThrowIfNull(repository);
+        ArgumentNullException.ThrowIfNull(auditLogRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
         _repository = repository;
+        _auditLogRepository = auditLogRepository;
         _unitOfWork = unitOfWork;
         _encryptionService = encryptionService;
     }
@@ -35,7 +41,7 @@ public sealed class OAuthClientAppService : IOAuthClientAppService
         return clients.Select(MapToDto).ToList();
     }
 
-    public async Task UpdateAsync(string provider, UpdateOAuthClientDto dto, CancellationToken ct = default)
+    public async Task UpdateAsync(string provider, UpdateOAuthClientDto dto, Guid operatorId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(provider))
         {
@@ -44,6 +50,9 @@ public sealed class OAuthClientAppService : IOAuthClientAppService
 
         var normalizedProvider = provider.Trim().ToLowerInvariant();
         var client = await _repository.GetByProviderAsync(normalizedProvider, ct);
+
+        string? beforeSnapshot = null;
+        Guid clientId;
 
         if (client is null)
         {
@@ -55,32 +64,60 @@ public sealed class OAuthClientAppService : IOAuthClientAppService
                 dto.ClientId,
                 encryptedSecret,
                 dto.RedirectUri);
+            clientId = client.Id;
             await _repository.AddAsync(client, ct);
         }
         else
         {
+            beforeSnapshot = Snapshot(client);
             var encryptedSecret = GetEncryptedSecret(dto.ClientSecret);
             client.Update(dto.ClientId, encryptedSecret, dto.RedirectUri);
+            clientId = client.Id;
             await _repository.UpdateAsync(client, ct);
         }
 
+        await WriteAuditAsync("OAuthClientUpdate", operatorId, clientId, beforeSnapshot, Snapshot(client), ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
-    public async Task EnableAsync(string provider, CancellationToken ct = default)
+    public async Task EnableAsync(string provider, Guid operatorId, CancellationToken ct = default)
     {
         var client = await GetClientOrThrowAsync(provider, ct);
+        var before = Snapshot(client);
         client.Enable();
         await _repository.UpdateAsync(client, ct);
+        await WriteAuditAsync("OAuthClientEnable", operatorId, client.Id, before, Snapshot(client), ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
-    public async Task DisableAsync(string provider, CancellationToken ct = default)
+    public async Task DisableAsync(string provider, Guid operatorId, CancellationToken ct = default)
     {
         var client = await GetClientOrThrowAsync(provider, ct);
+        var before = Snapshot(client);
         client.Disable();
         await _repository.UpdateAsync(client, ct);
+        await WriteAuditAsync("OAuthClientDisable", operatorId, client.Id, before, Snapshot(client), ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    private async Task WriteAuditAsync(
+        string action,
+        Guid operatorId,
+        Guid resourceId,
+        string? beforeSnapshot,
+        string? afterSnapshot,
+        CancellationToken ct)
+    {
+        var auditLog = AuditLog.Create(
+            Guid.NewGuid(),
+            operatorId,
+            action,
+            "OAuthClient",
+            resourceId.ToString(),
+            beforeSnapshot,
+            afterSnapshot);
+
+        await _auditLogRepository.AddAsync(auditLog, ct);
     }
 
     private async Task<OAuthClient> GetClientOrThrowAsync(string provider, CancellationToken ct)
@@ -110,6 +147,16 @@ public sealed class OAuthClientAppService : IOAuthClientAppService
 
         return _encryptionService.Encrypt(plainSecret);
     }
+
+    private static string Snapshot(OAuthClient client)
+        => JsonSerializer.Serialize(new
+        {
+            client.Id,
+            client.Provider,
+            client.ClientId,
+            client.RedirectUri,
+            client.Enabled
+        });
 
     private static OAuthClientDto MapToDto(OAuthClient client)
     {

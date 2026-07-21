@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Leno.SharedKernel.Abstractions;
 using Leno.UserAuth.Application.DTOs;
 using Leno.UserAuth.Domain.Aggregates;
@@ -9,19 +10,25 @@ namespace Leno.UserAuth.Application.Services;
 
 /// <summary>
 /// 角色权限管理应用服务实现。
+/// 所有写操作在事务内写入 <see cref="AuditLog"/> 审计日志，与 <see cref="UserAdminAppService"/> 保持一致，
+/// 确保 RBAC 变更（角色 CRUD、权限全量替换）可追溯。
 /// </summary>
 public sealed class PermissionAppService : IPermissionAppService
 {
     private readonly IPermissionRepository _permissionRepository;
+    private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public PermissionAppService(
         IPermissionRepository permissionRepository,
+        IAuditLogRepository auditLogRepository,
         IUnitOfWork unitOfWork)
     {
         ArgumentNullException.ThrowIfNull(permissionRepository);
+        ArgumentNullException.ThrowIfNull(auditLogRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
         _permissionRepository = permissionRepository;
+        _auditLogRepository = auditLogRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -49,7 +56,7 @@ public sealed class PermissionAppService : IPermissionAppService
     }
 
     /// <inheritdoc />
-    public async Task<RoleDto> CreateRoleAsync(SaveRoleDto dto, CancellationToken ct = default)
+    public async Task<RoleDto> CreateRoleAsync(SaveRoleDto dto, Guid operatorId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(dto.Name))
         {
@@ -65,13 +72,14 @@ public sealed class PermissionAppService : IPermissionAppService
 
         var role = Role.Create(Guid.NewGuid(), dto.Name, dto.Description);
         await _permissionRepository.AddAsync(role, ct);
+        await WriteAuditAsync("RoleCreate", operatorId, role.Id, null, Snapshot(role), ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
 
         return ToDto(role);
     }
 
     /// <inheritdoc />
-    public async Task<RoleDto> UpdateRoleAsync(Guid roleId, SaveRoleDto dto, CancellationToken ct = default)
+    public async Task<RoleDto> UpdateRoleAsync(Guid roleId, SaveRoleDto dto, Guid operatorId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(dto.Name))
         {
@@ -79,6 +87,7 @@ public sealed class PermissionAppService : IPermissionAppService
         }
 
         var role = await RequireRoleAsync(roleId, ct);
+        var before = Snapshot(role);
 
         // 检查名称是否被其他角色占用
         var existing = await _permissionRepository.GetByNameAsync(dto.Name, ct);
@@ -89,13 +98,14 @@ public sealed class PermissionAppService : IPermissionAppService
 
         role.Update(dto.Name, dto.Description);
         await _permissionRepository.UpdateAsync(role, ct);
+        await WriteAuditAsync("RoleUpdate", operatorId, role.Id, before, Snapshot(role), ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
 
         return ToDto(role);
     }
 
     /// <inheritdoc />
-    public async Task DeleteRoleAsync(Guid roleId, CancellationToken ct = default)
+    public async Task DeleteRoleAsync(Guid roleId, Guid operatorId, CancellationToken ct = default)
     {
         var role = await RequireRoleAsync(roleId, ct);
 
@@ -111,7 +121,9 @@ public sealed class PermissionAppService : IPermissionAppService
             throw new UserAuthDomainException("角色存在用户引用，不可删除", "ROLE_HAS_USER_REFERENCES");
         }
 
+        var before = Snapshot(role);
         await _permissionRepository.RemoveAsync(role, ct);
+        await WriteAuditAsync("RoleDelete", operatorId, role.Id, before, null, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
@@ -123,9 +135,10 @@ public sealed class PermissionAppService : IPermissionAppService
     }
 
     /// <inheritdoc />
-    public async Task UpdateRolePermissionsAsync(Guid roleId, UpdatePermissionsDto dto, CancellationToken ct = default)
+    public async Task UpdateRolePermissionsAsync(Guid roleId, UpdatePermissionsDto dto, Guid operatorId, CancellationToken ct = default)
     {
         var role = await RequireRoleAsync(roleId, ct);
+        var before = Snapshot(role);
 
         var permissions = dto.Permissions
             .Select(p => new PermissionVO(p))
@@ -133,7 +146,28 @@ public sealed class PermissionAppService : IPermissionAppService
 
         role.SetPermissions(permissions);
         await _permissionRepository.UpdateAsync(role, ct);
+        await WriteAuditAsync("RolePermissionsUpdate", operatorId, role.Id, before, Snapshot(role), ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    private async Task WriteAuditAsync(
+        string action,
+        Guid operatorId,
+        Guid roleId,
+        string? beforeSnapshot,
+        string? afterSnapshot,
+        CancellationToken ct)
+    {
+        var auditLog = AuditLog.Create(
+            Guid.NewGuid(),
+            operatorId,
+            action,
+            "Role",
+            roleId.ToString(),
+            beforeSnapshot,
+            afterSnapshot);
+
+        await _auditLogRepository.AddAsync(auditLog, ct);
     }
 
     private async Task<Role> RequireRoleAsync(Guid roleId, CancellationToken ct)
@@ -146,6 +180,15 @@ public sealed class PermissionAppService : IPermissionAppService
 
         return role;
     }
+
+    private static string Snapshot(Role role)
+        => JsonSerializer.Serialize(new
+        {
+            role.Id,
+            role.Name,
+            role.Description,
+            Permissions = role.Permissions.Select(p => p.ResourceKey).ToArray()
+        });
 
     private static RoleDto ToDto(Role role)
         => new()

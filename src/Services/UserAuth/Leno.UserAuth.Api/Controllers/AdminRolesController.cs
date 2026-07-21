@@ -52,7 +52,7 @@ public sealed class AdminRolesController : UserAuthControllerBase
     [ProducesResponseType(typeof(ApiResponse<RoleDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateRoleAsync([FromBody] SaveRoleDto dto, CancellationToken ct)
     {
-        var role = await _permissionAppService.CreateRoleAsync(dto, ct);
+        var role = await _permissionAppService.CreateRoleAsync(dto, GetCurrentUserId(), ct);
         return CreatedAtAction(nameof(GetRoleAsync), new { roleId = role.Id }, ApiResponse.Success(role));
     }
 
@@ -61,7 +61,7 @@ public sealed class AdminRolesController : UserAuthControllerBase
     [ProducesResponseType(typeof(ApiResponse<RoleDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateRoleAsync(Guid roleId, [FromBody] SaveRoleDto dto, CancellationToken ct)
     {
-        var role = await _permissionAppService.UpdateRoleAsync(roleId, dto, ct);
+        var role = await _permissionAppService.UpdateRoleAsync(roleId, dto, GetCurrentUserId(), ct);
         return Ok(ApiResponse.Success(role));
     }
 
@@ -70,7 +70,7 @@ public sealed class AdminRolesController : UserAuthControllerBase
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> DeleteRoleAsync(Guid roleId, CancellationToken ct)
     {
-        await _permissionAppService.DeleteRoleAsync(roleId, ct);
+        await _permissionAppService.DeleteRoleAsync(roleId, GetCurrentUserId(), ct);
         return Ok(ApiResponse.Success("角色已删除"));
     }
 
@@ -88,7 +88,7 @@ public sealed class AdminRolesController : UserAuthControllerBase
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateRolePermissionsAsync(Guid roleId, [FromBody] UpdatePermissionsDto dto, CancellationToken ct)
     {
-        await _permissionAppService.UpdateRolePermissionsAsync(roleId, dto, ct);
+        await _permissionAppService.UpdateRolePermissionsAsync(roleId, dto, GetCurrentUserId(), ct);
         return Ok(ApiResponse.Success("权限已更新"));
     }
 }

@@ -12,11 +12,12 @@ namespace Leno.UserAuth.Application.Tests;
 
 /// <summary>
 /// AccountAppService 单元测试，聚焦 BindExternalLogin/UnbindExternalLogin 的
-/// SaveEntitiesAsync 调用契约，确保领域事件与 Outbox 在同事务内写入。
+/// SaveEntitiesAsync 调用契约与审计日志写入验证。
 /// </summary>
 public class AccountAppServiceTests
 {
     private readonly Mock<IUserRepository> _userRepositoryMock = new();
+    private readonly Mock<IAuditLogRepository> _auditLogRepositoryMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly Mock<IOAuth2ProviderResolver> _providerResolverMock = new();
     private readonly Mock<IExternalAuthService> _authServiceMock = new();
@@ -27,6 +28,7 @@ public class AccountAppServiceTests
     {
         _sut = new AccountAppService(
             _userRepositoryMock.Object,
+            _auditLogRepositoryMock.Object,
             _unitOfWorkMock.Object,
             _providerResolverMock.Object);
     }
@@ -93,5 +95,52 @@ public class AccountAppServiceTests
         // Assert
         _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BindExternalLoginAsync_Should_Write_AuditLog()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var user = CreateUser(userId);
+        SetupBindExternalLogin(userId, user);
+
+        var dto = new BindExternalLoginDto
+        {
+            Provider = "google",
+            Code = "code",
+            RedirectUri = "https://app.leno.com/cb"
+        };
+
+        // Act
+        await _sut.BindExternalLoginAsync(userId, dto, CancellationToken.None);
+
+        // Assert
+        _auditLogRepositoryMock.Verify(a => a.AddAsync(It.Is<AuditLog>(log =>
+            log.Action == "ExternalLoginBind" &&
+            log.ResourceType == "User" &&
+            log.OperatorId == userId &&
+            log.ResourceId == userId.ToString()), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UnbindExternalLoginAsync_Should_Write_AuditLog()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var user = CreateUser(userId);
+        user.LinkExternalLogin("google", "g-1", "u1@example.com", "U1", null);
+        _userRepositoryMock.Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        // Act
+        await _sut.UnbindExternalLoginAsync(userId, "google", CancellationToken.None);
+
+        // Assert
+        _auditLogRepositoryMock.Verify(a => a.AddAsync(It.Is<AuditLog>(log =>
+            log.Action == "ExternalLoginUnbind" &&
+            log.ResourceType == "User" &&
+            log.OperatorId == userId &&
+            log.ResourceId == userId.ToString()), It.IsAny<CancellationToken>()), Times.Once);
     }
 }
