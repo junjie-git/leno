@@ -73,20 +73,18 @@ public sealed class OrderTimeoutDelayMessageConsumer : IConsumer<OrderTimeoutMes
 
         order.Cancel("支付超时自动取消", "System");
 
-        // Release reserved stock
+        // 先持久化订单状态变更与 OrderCancelledDomainEvent（经 Outbox 同事务），避免 SaveEntitiesAsync
+        // 失败后库存/积分/优惠券已释放但订单状态未变更的不一致
+        await _orderRepository.UpdateAsync(order, context.CancellationToken);
+        await _unitOfWork.SaveEntitiesAsync(context.CancellationToken);
+
+        // 持久化成功后再释放预占库存、冻结积分与优惠券（可独立重试）
         var skuQuantities = order.Items
             .GroupBy(i => i.SkuId)
             .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
         await _stockService.ReleaseBatchAsync(order.Id, skuQuantities, context.CancellationToken);
-
-        // Release frozen points
         await _pointsAntiCorruption.ReleaseAsync(order.Id, context.CancellationToken);
-
-        // Release coupons
         await _promotionAntiCorruption.ReleaseCouponsAsync(order.Id, context.CancellationToken);
-
-        await _orderRepository.UpdateAsync(order, context.CancellationToken);
-        await _unitOfWork.SaveEntitiesAsync(context.CancellationToken);
 
         _logger.LogInformation("订单 {OrderId} 因支付超时已自动取消", msg.OrderId);
     }

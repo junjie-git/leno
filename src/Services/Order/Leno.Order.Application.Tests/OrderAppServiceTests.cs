@@ -197,6 +197,50 @@ public class OrderAppServiceTests
         await act.Should().ThrowAsync<OrderDomainException>().WithMessage("*无权*");
     }
 
+    [Fact]
+    public async Task CancelAsync_Should_SaveEntities_First_Then_Release_Resources()
+    {
+        // Arrange
+        var order = CreateOrder();
+        _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        // 记录 SaveEntitiesAsync 与 ReleaseBatchAsync 的调用顺序
+        var callOrder = new List<string>();
+        _uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .Returns(() => { callOrder.Add("SaveEntitiesAsync"); return Task.CompletedTask; });
+        _stockServiceMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+            .Returns(() => { callOrder.Add("ReleaseStock"); return Task.CompletedTask; });
+
+        var dto = new CancelOrderDto { Reason = "test" };
+
+        // Act
+        await _sut.CancelAsync(OrderId, UserId, dto, CancellationToken.None);
+
+        // Assert：SaveEntitiesAsync 应在 ReleaseBatchAsync 之前执行
+        callOrder.IndexOf("SaveEntitiesAsync").Should().BeLessThan(callOrder.IndexOf("ReleaseStock"));
+    }
+
+    [Fact]
+    public async Task CancelAsync_Should_Publish_OrderCancelledEvent_Via_Outbox()
+    {
+        // Arrange
+        var order = CreateOrder();
+        _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        var dto = new CancelOrderDto { Reason = "test" };
+
+        // Act
+        await _sut.CancelAsync(OrderId, UserId, dto, CancellationToken.None);
+
+        // Assert：订单聚合应包含 OrderCancelledDomainEvent（经 Outbox 同事务持久化）
+        order.Status.Should().Be(OrderStatus.Cancelled);
+        order.DomainEvents.Should().Contain(e => e is OrderCancelledDomainEvent);
+        _orderRepoMock.Verify(r => r.UpdateAsync(order, It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     #endregion
 
     #region ForceCancelAsync

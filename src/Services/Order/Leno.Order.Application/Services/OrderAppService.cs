@@ -303,14 +303,16 @@ public sealed class OrderAppService : IOrderAppService
         }
         order.Cancel(dto.Reason, "Buyer");
 
-        // 释放预占库存、冻结积分与优惠券
+        // 先持久化订单状态变更与 OrderCancelledDomainEvent（经 Outbox 同事务），避免 SaveEntitiesAsync
+        // 失败后库存/积分/优惠券已释放但订单状态未变更的不一致
+        await _orderRepository.UpdateAsync(order, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        // 持久化成功后再释放预占库存、冻结积分与优惠券（可独立重试）
         var skuQuantities = BuildSkuQuantities(order);
         await _stockService.ReleaseBatchAsync(orderId, skuQuantities, ct);
         await _pointsAntiCorruption.ReleaseAsync(orderId, ct);
         await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct);
-
-        await _orderRepository.UpdateAsync(order, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
     /// <inheritdoc />
@@ -318,18 +320,19 @@ public sealed class OrderAppService : IOrderAppService
     {
         var order = await RequireOrderAsync(orderId, ct);
 
-        // 待支付订单：直接取消（释放库存、积分、优惠券）
+        // 待支付订单：先持久化取消状态（含 Outbox OrderCancelledEvent），再释放资源
         if (order.Status == OrderStatus.PendingPayment)
         {
             order.Cancel(dto.Reason, "Admin");
 
+            await _orderRepository.UpdateAsync(order, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+
+            // 持久化成功后再释放预占库存、冻结积分与优惠券
             var skuQuantities = BuildSkuQuantities(order);
             await _stockService.ReleaseBatchAsync(orderId, skuQuantities, ct);
             await _pointsAntiCorruption.ReleaseAsync(orderId, ct);
             await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct);
-
-            await _orderRepository.UpdateAsync(order, ct);
-            await _unitOfWork.SaveEntitiesAsync(ct);
 
             // 发布操作日志事件
             await PublishAdminOperationLogAsync(operatorId, "ForceCancel", "Order",
