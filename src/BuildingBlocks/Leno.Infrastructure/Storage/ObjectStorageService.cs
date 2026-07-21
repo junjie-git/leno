@@ -19,6 +19,18 @@ public sealed class ObjectStorageService : IFileStorageService
     private readonly ObjectStorageOptions _options;
     private readonly ILogger<ObjectStorageService> _logger;
 
+    /// <summary>双重检查锁定用的同步对象，保证 EnsureBucketExistsOnceAsync 串行执行。</summary>
+    private readonly SemaphoreSlim _bucketEnsureLock = new(1, 1);
+
+    /// <summary>0=未确保，1=已确保。使用 Volatile.Read/Write 保证跨线程可见性。</summary>
+    private int _bucketEnsured;
+
+    /// <summary>
+    /// 指示 Bucket 确保操作是否尚未执行（延迟到首次使用）。
+    /// 测试可据此断言构造函数未执行 sync-over-async。
+    /// </summary>
+    internal bool IsBucketEnsurePending => Volatile.Read(ref _bucketEnsured) == 0;
+
     private static readonly HashSet<string> AllowedCategories =
         new(StringComparer.OrdinalIgnoreCase) { "avatar", "product", "review", "aftersales", "credential", "misc" };
 
@@ -43,7 +55,9 @@ public sealed class ObjectStorageService : IFileStorageService
             .WithSSL(_options.UseSsl)
             .Build();
 
-        EnsureBucketExistsAsync().GetAwaiter().GetResult();
+        // 不再在构造函数中 sync-over-async 调用 EnsureBucketExistsAsync().GetAwaiter().GetResult()。
+        // Bucket 确保延迟到首次使用时异步执行（见 EnsureBucketExistsOnceAsync），
+        // 避免高并发启动或线程池 starvation 时的死锁风险。
     }
 
     /// <inheritdoc />
@@ -54,6 +68,9 @@ public sealed class ObjectStorageService : IFileStorageService
         {
             throw new ArgumentException("文件名不可为空", nameof(fileName));
         }
+
+        // 延迟确保 Bucket 存在（首次调用时执行，后续跳过）
+        await EnsureBucketExistsOnceAsync(ct).ConfigureAwait(false);
 
         var safeCategory = SanitizeCategory(category);
         var ext = Path.GetExtension(fileName);
@@ -78,6 +95,9 @@ public sealed class ObjectStorageService : IFileStorageService
     /// <inheritdoc />
     public async Task<Stream> DownloadAsync(string fileUrl, CancellationToken ct = default)
     {
+        // 延迟确保 Bucket 存在（首次调用时执行，后续跳过）
+        await EnsureBucketExistsOnceAsync(ct).ConfigureAwait(false);
+
         var objectName = ResolveObjectName(fileUrl);
         var memoryStream = new MemoryStream();
 
@@ -98,6 +118,9 @@ public sealed class ObjectStorageService : IFileStorageService
         {
             return;
         }
+
+        // 延迟确保 Bucket 存在（首次调用时执行，后续跳过）
+        await EnsureBucketExistsOnceAsync(ct).ConfigureAwait(false);
 
         var objectName = ResolveObjectName(fileUrl);
 
@@ -130,6 +153,9 @@ public sealed class ObjectStorageService : IFileStorageService
         {
             return false;
         }
+
+        // 延迟确保 Bucket 存在（首次调用时执行，后续跳过）
+        await EnsureBucketExistsOnceAsync(ct).ConfigureAwait(false);
 
         var objectName = ResolveObjectName(fileUrl);
 
@@ -202,20 +228,52 @@ public sealed class ObjectStorageService : IFileStorageService
     }
 
     /// <summary>
+    /// 延迟确保 Bucket 存在（首次使用时异步执行，后续调用直接跳过）。
+    /// 使用双重检查锁定 + Volatile.Read/Write 保证线程安全与跨线程可见性。
+    /// </summary>
+    /// <param name="ct">取消令牌。</param>
+    private async Task EnsureBucketExistsOnceAsync(CancellationToken ct)
+    {
+        // 快速路径：已确保则直接返回，无锁
+        if (Volatile.Read(ref _bucketEnsured) == 1)
+        {
+            return;
+        }
+
+        await _bucketEnsureLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            // 二次检查：防止多个线程排队后重复执行
+            if (_bucketEnsured == 1)
+            {
+                return;
+            }
+
+            await EnsureBucketExistsAsync(ct).ConfigureAwait(false);
+            Volatile.Write(ref _bucketEnsured, 1);
+        }
+        finally
+        {
+            _bucketEnsureLock.Release();
+        }
+    }
+
+    /// <summary>
     /// 确保 Bucket 存在，不存在则创建。
     /// </summary>
-    private async Task EnsureBucketExistsAsync()
+    /// <param name="ct">取消令牌。</param>
+    private async Task EnsureBucketExistsAsync(CancellationToken ct)
     {
         var bucketExistsArgs = new BucketExistsArgs()
             .WithBucket(_options.BucketName);
 
-        var exists = await _minioClient.BucketExistsAsync(bucketExistsArgs).ConfigureAwait(false);
+        var exists = await _minioClient.BucketExistsAsync(bucketExistsArgs, ct).ConfigureAwait(false);
         if (!exists)
         {
             var makeBucketArgs = new MakeBucketArgs()
                 .WithBucket(_options.BucketName);
 
-            await _minioClient.MakeBucketAsync(makeBucketArgs).ConfigureAwait(false);
+            await _minioClient.MakeBucketAsync(makeBucketArgs, ct).ConfigureAwait(false);
             _logger.LogInformation("MinIO Bucket 已创建 BucketName={BucketName}", _options.BucketName);
         }
     }
