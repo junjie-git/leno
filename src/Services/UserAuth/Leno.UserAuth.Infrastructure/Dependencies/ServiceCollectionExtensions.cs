@@ -47,6 +47,7 @@ public static class ServiceCollectionExtensions
         hostEnvironment ??= TryResolveHostEnvironment(services);
 
         services.Configure<PasswordHashOptions>(configuration.GetSection("PasswordHash"));
+        services.Configure<OAuth2Options>(configuration.GetSection("OAuth2"));
 
         services.AddDbContext<UserAuthDbContext>((sp, options) =>
         {

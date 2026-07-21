@@ -10,6 +10,7 @@ using Leno.UserAuth.Domain.Services;
 using Leno.UserAuth.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 namespace Leno.UserAuth.Application.Services;
@@ -43,6 +44,7 @@ public sealed class UserAppService : IUserAppService
     private readonly IValidator<ChangePasswordDto> _changePasswordValidator;
     private readonly IEnumerable<IExternalAuthService> _externalAuthServices;
     private readonly IDatabase _redis;
+    private readonly OAuth2Options _oauth2Options;
 
     public UserAppService(
         IUserRepository userRepository,
@@ -58,7 +60,8 @@ public sealed class UserAppService : IUserAppService
         IValidator<UpdateProfileDto> updateProfileValidator,
         IValidator<ChangePasswordDto> changePasswordValidator,
         IEnumerable<IExternalAuthService> externalAuthServices,
-        IConnectionMultiplexer connectionMultiplexer)
+        IConnectionMultiplexer connectionMultiplexer,
+        IOptions<OAuth2Options> oauth2Options)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
@@ -74,6 +77,7 @@ public sealed class UserAppService : IUserAppService
         _changePasswordValidator = changePasswordValidator;
         _externalAuthServices = externalAuthServices;
         _redis = connectionMultiplexer.GetDatabase();
+        _oauth2Options = oauth2Options.Value;
     }
 
     /// <inheritdoc />
@@ -260,6 +264,13 @@ public sealed class UserAppService : IUserAppService
     /// <inheritdoc />
     public async Task<string> GetOAuthLoginUrlAsync(string provider, string redirectUri, CancellationToken ct = default)
     {
+        // 白名单校验，防止开放重定向攻击（P1-8）
+        if (_oauth2Options.AllowedRedirectUris.Count > 0
+            && !_oauth2Options.AllowedRedirectUris.Contains(redirectUri, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new UserAuthDomainException("redirectUri 不在白名单", "OAUTH_REDIRECT_URI_NOT_ALLOWED");
+        }
+
         var authService = ResolveAuthService(provider);
         var state = Guid.NewGuid().ToString("N");
 
