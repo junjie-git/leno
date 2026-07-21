@@ -96,6 +96,25 @@ public sealed class StockReservationDomainService : IStockReservationDomainServi
         }
     }
 
+    /// <inheritdoc />
+    public async Task ReturnDeductedBatchAsync(Guid orderId, Dictionary<Guid, int> skuQuantities, CancellationToken ct = default)
+    {
+        // 逐个归还已扣减库存，单个 SKU 失败记入补偿表，不影响其它 SKU 归还
+        foreach (var (skuId, quantity) in skuQuantities)
+        {
+            try
+            {
+                await _inventoryRepository.ReturnDeductedAsync(skuId, orderId, quantity, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "批量归还已扣减库存失败，写入补偿表 OrderId={OrderId} SkuId={SkuId} Quantity={Quantity}",
+                    orderId, skuId, quantity);
+                await RecordCompensationAsync(orderId, skuId, quantity, ex, ct);
+            }
+        }
+    }
+
     /// <summary>
     /// 将回滚失败记录写入补偿表（独立 DbContext 作用域，避免污染 Saga 事务）。
     /// 补偿记录由 <see cref="StockReservationCompensationBackgroundService"/> 定期重试。

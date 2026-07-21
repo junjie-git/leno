@@ -30,4 +30,14 @@ public interface IStockReservationDomainService
     /// <param name="skuQuantities">SKU 与释放数量映射。</param>
     /// <param name="ct">取消令牌。</param>
     Task ReleaseBatchAsync(Guid orderId, Dictionary<Guid, int> skuQuantities, CancellationToken ct = default);
+
+    /// <summary>
+    /// 批量归还已扣减库存（已支付/已发货订单强制取消时调用）。
+    /// 逐个 SKU 调用 IInventoryRepository.ReturnDeductedAsync，单个失败记入补偿表。
+    /// 与 <see cref="ReleaseBatchAsync"/> 区别：Release 释放的是预占（Reserved），ReturnDeducted 归还的是已扣减（Deducted）。
+    /// </summary>
+    /// <param name="orderId">关联订单标识。</param>
+    /// <param name="skuQuantities">SKU 与数量映射。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task ReturnDeductedBatchAsync(Guid orderId, Dictionary<Guid, int> skuQuantities, CancellationToken ct = default);
 }

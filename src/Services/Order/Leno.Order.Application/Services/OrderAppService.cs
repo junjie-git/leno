@@ -340,9 +340,9 @@ public sealed class OrderAppService : IOrderAppService
         // 已支付/已发货订单：强制取消并触发退款
         order.ForceCancel(dto.Reason, operatorId.ToString());
 
-        // 释放预占库存、冻结积分与优惠券
+        // 已支付/已发货订单库存已被确认扣减，需归还已扣减库存（而非释放预占）
         var quantities = BuildSkuQuantities(order);
-        await _stockService.ReleaseBatchAsync(orderId, quantities, ct);
+        await _stockService.ReturnDeductedBatchAsync(orderId, quantities, ct);
         await _pointsAntiCorruption.ReleaseAsync(orderId, ct);
         await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct);
 
