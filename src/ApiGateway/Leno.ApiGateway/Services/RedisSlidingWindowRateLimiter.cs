@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using System.Threading.RateLimiting;
 
@@ -53,6 +54,7 @@ return 1
     private readonly int _permitLimit;
     private readonly TimeSpan _window;
     private readonly int _segmentsPerWindow;
+    private readonly ILogger<RedisSlidingWindowRateLimiter> _logger;
     private long _counter;
 
     /// <summary>
@@ -63,12 +65,14 @@ return 1
     /// <param name="permitLimit">窗口内最大请求数。</param>
     /// <param name="window">滑动窗口时长。</param>
     /// <param name="segmentsPerWindow">窗口分段数（仅用于 TTL 计算，Redis SortedSet 滑动窗口本身无分段概念）。</param>
+    /// <param name="logger">日志记录器。T28：Redis 异常时记录 warning 便于运维感知限流器故障。null 时使用 NullLogger。</param>
     public RedisSlidingWindowRateLimiter(
         IDatabase database,
         string key,
         int permitLimit,
         TimeSpan window,
-        int segmentsPerWindow)
+        int segmentsPerWindow,
+        ILogger<RedisSlidingWindowRateLimiter>? logger = null)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         if (string.IsNullOrEmpty(key)) throw new ArgumentException("key cannot be null or empty", nameof(key));
@@ -77,6 +81,7 @@ return 1
         _window = window;
         _segmentsPerWindow = segmentsPerWindow > 0 ? segmentsPerWindow : 1;
         _counter = 0;
+        _logger = logger ?? NullLogger<RedisSlidingWindowRateLimiter>.Instance;
     }
 
     /// <inheritdoc />
@@ -124,9 +129,13 @@ return 1
 
             return result == 1L;
         }
-        catch
+        catch (Exception ex)
         {
-            // Redis 不可用时降级放行（fail-open），避免 Redis 故障阻断所有流量
+            // T28：Redis 不可用时降级放行（fail-open），避免 Redis 故障阻断所有流量。
+            // 记录 warning 日志便于运维感知限流器故障，包含异常信息与 Redis key。
+            _logger.LogWarning(ex,
+                "Redis 滑动窗口限流器同步路径异常，fail-open 放行。Key={Key} PermitLimit={Limit} Window={Window}",
+                _key, _permitLimit, _window);
             return true;
         }
     }
@@ -158,9 +167,13 @@ return 1
         {
             throw;
         }
-        catch
+        catch (Exception ex)
         {
-            // Redis 不可用时降级放行（fail-open）
+            // T28：Redis 不可用时降级放行（fail-open）。
+            // 记录 warning 日志便于运维感知限流器故障，包含异常信息与 Redis key。
+            _logger.LogWarning(ex,
+                "Redis 滑动窗口限流器异步路径异常，fail-open 放行。Key={Key} PermitLimit={Limit} Window={Window}",
+                _key, _permitLimit, _window);
             return true;
         }
     }

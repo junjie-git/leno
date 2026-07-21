@@ -3,6 +3,7 @@ using Leno.ApiGateway.Services;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using System.Threading.RateLimiting;
 
@@ -119,6 +120,8 @@ public static class RateLimiterExtensions
         if (options.UseRedisDistributed)
         {
             var database = httpContext.RequestServices.GetRequiredService<IDatabase>();
+            // T28：从 DI 解析 logger 传入限流器，使 Redis 异常时能记录 warning 日志
+            var logger = httpContext.RequestServices.GetService<ILogger<RedisSlidingWindowRateLimiter>>();
             return RateLimitPartition.Get(
                 compositeKey,
                 _ => new RedisSlidingWindowRateLimiter(
@@ -126,7 +129,8 @@ public static class RateLimiterExtensions
                     compositeKey,
                     permitLimit,
                     window,
-                    segmentsPerWindow));
+                    segmentsPerWindow,
+                    logger));
         }
 
         return RateLimitPartition.GetSlidingWindowLimiter(
