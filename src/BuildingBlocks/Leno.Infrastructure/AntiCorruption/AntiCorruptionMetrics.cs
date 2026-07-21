@@ -52,7 +52,10 @@ public static class AntiCorruptionMetrics
             unit: "s",
             description: "gRPC 调用延迟分布（按 service/status_code 维度统计）");
 
-    /// <summary>熔断器状态值回调表（service -> 1=Open / 0=Closed|HalfOpen）。由 CircuitBreakerState 维护。</summary>
+    /// <summary>
+    /// 熔断器状态值回调表（service -> 0=Closed / 1=Open / 2=HalfOpen）。由 CircuitBreakerState 维护。
+    /// T14 修复：原仅区分 Open(1)/Closed|HalfOpen(0)，现区分三态，运维可识别 HalfOpen 探测中。
+    /// </summary>
     /// <remarks>使用 ConcurrentDictionary 保证多 BC 并发写入与 OTLP 枚举的线程安全。</remarks>
     private static readonly ConcurrentDictionary<string, int> _circuitOpenStates = new();
 
@@ -64,8 +67,8 @@ public static class AntiCorruptionMetrics
             observeValues: () => _circuitOpenStates.Select(kv => new Measurement<int>(
                 kv.Value,
                 new KeyValuePair<string, object?>(ServiceLabel, kv.Key))),
-            unit: "bool",
-            description: "熔断器是否打开（1=Open，0=Closed/HalfOpen）");
+            unit: "state",
+            description: "熔断器状态（0=Closed，1=Open，2=HalfOpen）");
     }
 
     public static string GetMeterName(string bcName)
@@ -99,10 +102,25 @@ public static class AntiCorruptionMetrics
             new KeyValuePair<string, object?>(ReasonLabel, reason));
     }
 
-    /// <summary>更新熔断器 Open 状态（由 CircuitBreakerState 调用）。</summary>
+    /// <summary>
+    /// 更新熔断器三态状态（由 CircuitBreakerState 调用）。
+    /// T14 修复：替代原 <see cref="UpdateCircuitOpenState"/> 的二态布尔值，
+    /// 支持区分 Closed(0) / Open(1) / HalfOpen(2)。
+    /// </summary>
+    /// <param name="service">防腐层服务标识。</param>
+    /// <param name="state">熔断器状态值：0=Closed, 1=Open, 2=HalfOpen。</param>
+    public static void UpdateCircuitState(string service, int state)
+    {
+        _circuitOpenStates[service] = state;
+    }
+
+    /// <summary>
+    /// 更新熔断器 Open 状态（向后兼容重载，由 Order.Infrastructure.LogisticsTrackingService 等历史调用方使用）。
+    /// 内部委托给 <see cref="UpdateCircuitState"/>：isOpen=true→1(Open)，isOpen=false→0(Closed)。
+    /// </summary>
     public static void UpdateCircuitOpenState(string service, bool isOpen)
     {
-        _circuitOpenStates[service] = isOpen ? 1 : 0;
+        UpdateCircuitState(service, isOpen ? 1 : 0);
     }
 
     /// <summary>记录一次 gRPC 调用计数与延迟。</summary>
