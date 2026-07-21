@@ -28,53 +28,53 @@ public sealed class FreightTemplateAppService : IFreightTemplateAppService
             Guid.NewGuid(), dto.SellerId, dto.Name, dto.Type, dto.FreeShippingThreshold);
         var rules = dto.RegionRules.Select(ToRule).ToList();
         entity.UpdateRules(rules);
-        await _repository.AddAsync(entity, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        await _repository.AddAsync(entity, ct).ConfigureAwait(false);
+        await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
         return ToDto(entity);
     }
 
     /// <inheritdoc />
     public async Task<FreightTemplateDto> UpdateRulesAsync(Guid id, UpdateFreightTemplateRulesDto dto, CancellationToken ct = default)
     {
-        var entity = await RequireAsync(id, ct);
+        var entity = await RequireAsync(id, ct).ConfigureAwait(false);
         var rules = dto.RegionRules.Select(ToRule).ToList();
         entity.UpdateRules(rules);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
         return ToDto(entity);
     }
 
     /// <inheritdoc />
     public async Task EnableAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await RequireAsync(id, ct);
+        var entity = await RequireAsync(id, ct).ConfigureAwait(false);
         entity.Enable();
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task DisableAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await RequireAsync(id, ct);
+        var entity = await RequireAsync(id, ct).ConfigureAwait(false);
         entity.Disable();
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task<FreightTemplateDto?> GetBySellerIdAsync(Guid sellerId, CancellationToken ct = default)
     {
-        var entity = await _repository.GetBySellerIdAsync(sellerId, ct);
+        var entity = await _repository.GetBySellerIdAsync(sellerId, ct).ConfigureAwait(false);
         return entity is null ? null : ToDto(entity);
     }
 
     /// <inheritdoc />
     public async Task<List<FreightTemplateDto>> ListAsync(int page, int pageSize, CancellationToken ct = default)
     {
-        var list = await _repository.ListAsync(page, pageSize, ct);
+        var list = await _repository.ListAsync(page, pageSize, ct).ConfigureAwait(false);
         return list.Select(ToDto).ToList();
     }
 
     private async Task<FreightTemplate> RequireAsync(Guid id, CancellationToken ct)
-        => await _repository.GetByIdAsync(id, ct)
+        => (await _repository.GetByIdAsync(id, ct).ConfigureAwait(false))
            ?? throw new OrderDomainException($"运费模板 {id} 不存在", "FREIGHT_NOT_FOUND");
 
     private static FreightRegionRule ToRule(FreightRegionRuleDto dto)

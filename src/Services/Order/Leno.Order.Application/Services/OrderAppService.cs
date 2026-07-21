@@ -111,7 +111,7 @@ public sealed class OrderAppService : IOrderAppService
         var skuInfos = new Dictionary<Guid, SkuInfo>();
         foreach (var ci in dto.Items)
         {
-            var info = await _productAntiCorruption.GetSkuInfoAsync(ci.SkuId, ct)
+            var info = (await _productAntiCorruption.GetSkuInfoAsync(ci.SkuId, ct).ConfigureAwait(false))
                 ?? throw new OrderDomainException($"SKU {ci.SkuId} 不存在或已下架", "ORDER_SKU_NOT_FOUND");
             if (!info.IsOnSale)
             {
@@ -162,7 +162,7 @@ public sealed class OrderAppService : IOrderAppService
             Address = address,
             Groups = sagaGroups
         };
-        var sagaResult = await _sagaOrchestrator.ExecuteAsync(sagaContext, ct);
+        var sagaResult = await _sagaOrchestrator.ExecuteAsync(sagaContext, ct).ConfigureAwait(false);
 
         // P1-T23：Saga 返回 OrderCreatedResult DTO，应用层不再持有 OrderAggregate 聚合根实例；
         // 新建订单生命周期字段（PaymentMethod/PaidAt/ShippedAt 等）默认为空，直接映射 DTO 返回。
@@ -188,7 +188,7 @@ public sealed class OrderAppService : IOrderAppService
             District = dto.District,
             Detail = dto.Detail
         };
-        return await CreateOrderAsync(userId, createDto, ct);
+        return await CreateOrderAsync(userId, createDto, ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -201,7 +201,7 @@ public sealed class OrderAppService : IOrderAppService
         var previewItems = new List<OrderPreviewItem>();
         foreach (var ci in dto.Items)
         {
-            var info = await _productAntiCorruption.GetSkuInfoAsync(ci.SkuId, ct)
+            var info = (await _productAntiCorruption.GetSkuInfoAsync(ci.SkuId, ct).ConfigureAwait(false))
                 ?? throw new OrderDomainException($"SKU {ci.SkuId} 不存在或已下架", "ORDER_SKU_NOT_FOUND");
             var subtotal = info.UnitPrice * ci.Quantity;
             previewItems.Add(new OrderPreviewItem
@@ -228,7 +228,7 @@ public sealed class OrderAppService : IOrderAppService
         // 价格防篡改校验（使用预查的 skuCurrentPrices）
         var skuPrices = previewItems.Select(d => (d.SkuId, d.UnitPrice)).ToList();
         var previewSkuCurrentPrices = previewItems.GroupBy(d => d.SkuId).ToDictionary(g => g.Key, g => g.First().UnitPrice);
-        await _pricingService.ValidatePricesAsync(skuPrices, previewSkuCurrentPrices, ct);
+        await _pricingService.ValidatePricesAsync(skuPrices, previewSkuCurrentPrices, ct).ConfigureAwait(false);
 
         // 按卖家分组计算优惠与运费
         decimal discountAmount = 0;
@@ -236,9 +236,9 @@ public sealed class OrderAppService : IOrderAppService
         foreach (var sellerId in sellerSubtotals.Keys)
         {
             var subtotals = sellerSubtotals[sellerId];
-            discountAmount += await _promotionAntiCorruption.CalculateDiscountAsync(userId, subtotals, ct);
+            discountAmount += await _promotionAntiCorruption.CalculateDiscountAsync(userId, subtotals, ct).ConfigureAwait(false);
             freightAmount += await _freightCalculator.CalculateAsync(
-                sellerId, dto.Province, sellerQuantities[sellerId], sellerAmounts[sellerId], ct);
+                sellerId, dto.Province, sellerQuantities[sellerId], sellerAmounts[sellerId], ct).ConfigureAwait(false);
         }
 
         // 积分抵现原始金额（裁剪与上限校验下沉到 IOrderPricingPreviewService 复用聚合根不变量）
@@ -246,7 +246,7 @@ public sealed class OrderAppService : IOrderAppService
 
         // 委托领域服务复用聚合根金额公式与积分上限裁剪逻辑（消除应用层重复实现）
         var previewResult = await _pricingPreviewService.PreviewAsync(
-            previewItems, discountAmount, pointsOffset, freightAmount, ct);
+            previewItems, discountAmount, pointsOffset, freightAmount, ct).ConfigureAwait(false);
 
         return new OrderPreviewResultDto
         {
@@ -269,7 +269,7 @@ public sealed class OrderAppService : IOrderAppService
     /// <inheritdoc />
     public async Task PayAsync(Guid orderId, Guid userId, PayOrderDto dto, CancellationToken ct = default)
     {
-        var order = await RequireOrderAsync(orderId, ct);
+        var order = await RequireOrderAsync(orderId, ct).ConfigureAwait(false);
         if (order.UserId != userId)
         {
             throw new OrderDomainException("无权操作此订单", "ORDER_FORBIDDEN");
@@ -279,17 +279,17 @@ public sealed class OrderAppService : IOrderAppService
         // 重复发起由聚合抛 OrderDomainException；经 Outbox 与状态变更同事务持久化，避免重复发布。
         order.MarkPaymentInitiated(dto.PaymentMethod);
 
-        await _orderRepository.UpdateAsync(order, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        await _orderRepository.UpdateAsync(order, ct).ConfigureAwait(false);
+        await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task ShipAsync(Guid orderId, Guid operatorId, ShipOrderDto dto, CancellationToken ct = default)
     {
-        var order = await RequireOwnedOrderAsync(orderId, operatorId, ct);
+        var order = await RequireOwnedOrderAsync(orderId, operatorId, ct).ConfigureAwait(false);
 
         // 校验物流公司编码存在且为启用状态（聚合根仅校验非空，应用层补充存在性校验）
-        var company = await _logisticsCompanyRepository.GetByCodeAsync(dto.LogisticsCompanyCode, ct);
+        var company = await _logisticsCompanyRepository.GetByCodeAsync(dto.LogisticsCompanyCode, ct).ConfigureAwait(false);
         if (company is null || company.Status != LogisticsCompanyStatus.Enabled)
         {
             throw new OrderDomainException(
@@ -298,21 +298,21 @@ public sealed class OrderAppService : IOrderAppService
         }
 
         order.Ship(dto.LogisticsNo, dto.LogisticsCompanyCode, DateTime.UtcNow, operatorId);
-        await _orderRepository.UpdateAsync(order, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        await _orderRepository.UpdateAsync(order, ct).ConfigureAwait(false);
+        await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task ConfirmReceiptAsync(Guid orderId, Guid userId, CancellationToken ct = default)
     {
-        var order = await RequireOrderAsync(orderId, ct);
+        var order = await RequireOrderAsync(orderId, ct).ConfigureAwait(false);
         if (order.UserId != userId)
         {
             throw new OrderDomainException("无权操作此订单", "ORDER_FORBIDDEN");
         }
         order.ConfirmReceipt();
-        await _orderRepository.UpdateAsync(order, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        await _orderRepository.UpdateAsync(order, ct).ConfigureAwait(false);
+        await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
 
         // 调度售后窗口结束延迟消息（7 天后）
         var scheduler = _bus.CreateMessageScheduler();
@@ -320,13 +320,13 @@ public sealed class OrderAppService : IOrderAppService
             new Uri("queue:order-after-sales-window"),
             order.AfterSalesWindowEndsAt!.Value,
             new AfterSalesWindowMessage(orderId),
-            ct);
+            ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task CancelAsync(Guid orderId, Guid userId, CancelOrderDto dto, CancellationToken ct = default)
     {
-        var order = await RequireOrderAsync(orderId, ct);
+        var order = await RequireOrderAsync(orderId, ct).ConfigureAwait(false);
         if (order.UserId != userId)
         {
             throw new OrderDomainException("无权操作此订单", "ORDER_FORBIDDEN");
@@ -335,38 +335,38 @@ public sealed class OrderAppService : IOrderAppService
 
         // 先持久化订单状态变更与 OrderCancelledDomainEvent（经 Outbox 同事务），避免 SaveEntitiesAsync
         // 失败后库存/积分/优惠券已释放但订单状态未变更的不一致
-        await _orderRepository.UpdateAsync(order, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        await _orderRepository.UpdateAsync(order, ct).ConfigureAwait(false);
+        await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
 
         // 持久化成功后再释放预占库存、冻结积分与优惠券（可独立重试）
         var skuQuantities = BuildSkuQuantities(order);
-        await _stockService.ReleaseBatchAsync(orderId, skuQuantities, ct);
-        await _pointsAntiCorruption.ReleaseAsync(orderId, ct);
-        await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct);
+        await _stockService.ReleaseBatchAsync(orderId, skuQuantities, ct).ConfigureAwait(false);
+        await _pointsAntiCorruption.ReleaseAsync(orderId, ct).ConfigureAwait(false);
+        await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task ForceCancelAsync(Guid orderId, Guid operatorId, ForceCancelOrderDto dto, CancellationToken ct = default)
     {
-        var order = await RequireOrderAsync(orderId, ct);
+        var order = await RequireOrderAsync(orderId, ct).ConfigureAwait(false);
 
         // 待支付订单：先持久化取消状态（含 Outbox OrderCancelledEvent），再释放资源
         if (order.Status == OrderStatus.PendingPayment)
         {
             order.Cancel(dto.Reason, "Admin");
 
-            await _orderRepository.UpdateAsync(order, ct);
-            await _unitOfWork.SaveEntitiesAsync(ct);
+            await _orderRepository.UpdateAsync(order, ct).ConfigureAwait(false);
+            await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
 
             // 持久化成功后再释放预占库存、冻结积分与优惠券
             var skuQuantities = BuildSkuQuantities(order);
-            await _stockService.ReleaseBatchAsync(orderId, skuQuantities, ct);
-            await _pointsAntiCorruption.ReleaseAsync(orderId, ct);
-            await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct);
+            await _stockService.ReleaseBatchAsync(orderId, skuQuantities, ct).ConfigureAwait(false);
+            await _pointsAntiCorruption.ReleaseAsync(orderId, ct).ConfigureAwait(false);
+            await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct).ConfigureAwait(false);
 
             // 发布操作日志事件
             await PublishAdminOperationLogAsync(operatorId, "ForceCancel", "Order",
-                $"运营强制取消待支付订单 {order.OrderNo}，原因：{dto.Reason}", orderId, ct);
+                $"运营强制取消待支付订单 {order.OrderNo}，原因：{dto.Reason}", orderId, ct).ConfigureAwait(false);
 
             return;
         }
@@ -376,9 +376,9 @@ public sealed class OrderAppService : IOrderAppService
 
         // 已支付/已发货订单库存已被确认扣减，需归还已扣减库存（而非释放预占）
         var quantities = BuildSkuQuantities(order);
-        await _stockService.ReturnDeductedBatchAsync(orderId, quantities, ct);
-        await _pointsAntiCorruption.ReleaseAsync(orderId, ct);
-        await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct);
+        await _stockService.ReturnDeductedBatchAsync(orderId, quantities, ct).ConfigureAwait(false);
+        await _pointsAntiCorruption.ReleaseAsync(orderId, ct).ConfigureAwait(false);
+        await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct).ConfigureAwait(false);
 
         // 已支付订单：通过聚合事件触发退款（Outbox 同事务持久化，替代直接 IEventBus.PublishAsync）
         if (order.PaymentId.HasValue)
@@ -390,12 +390,12 @@ public sealed class OrderAppService : IOrderAppService
                 $"运营强制取消退款：{dto.Reason}");
         }
 
-        await _orderRepository.UpdateAsync(order, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        await _orderRepository.UpdateAsync(order, ct).ConfigureAwait(false);
+        await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
 
         // 发布操作日志事件
         await PublishAdminOperationLogAsync(operatorId, "ForceCancel", "Order",
-            $"运营强制取消已支付订单 {order.OrderNo}，原因：{dto.Reason}，已触发退款", orderId, ct);
+            $"运营强制取消已支付订单 {order.OrderNo}，原因：{dto.Reason}，已触发退款", orderId, ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -410,14 +410,14 @@ public sealed class OrderAppService : IOrderAppService
         CancellationToken ct)
     {
         var logEvent = new AdminOperationLogEvent(operatorId, operationType, module, description, null, aggregateId);
-        await _eventBus.PublishAsync(logEvent, ct);
+        await _eventBus.PublishAsync(logEvent, ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     [Obsolete("请使用 IQueryHandler<OrderDetailQuery, OrderDetailResult>，将在 2026-08-01 移除")]
     public async Task<OrderDto> GetByIdAsync(Guid orderId, CancellationToken ct = default)
     {
-        var order = await RequireOrderAsync(orderId, ct);
+        var order = await RequireOrderAsync(orderId, ct).ConfigureAwait(false);
         return ToDto(order);
     }
 
@@ -425,8 +425,8 @@ public sealed class OrderAppService : IOrderAppService
     [Obsolete("请使用 IQueryHandler<OrderListQuery, OrderListResult>，将在 2026-08-01 移除")]
     public async Task<OrderListResultDto> QueryAsync(Guid? userId, Guid? sellerId, OrderStatus? status, int page, int pageSize, CancellationToken ct = default)
     {
-        var orders = await _orderRepository.QueryAsync(userId, sellerId, status, null, null, page, pageSize, ct);
-        var total = await _orderRepository.CountAsync(userId, sellerId, status, null, null, ct);
+        var orders = await _orderRepository.QueryAsync(userId, sellerId, status, null, null, page, pageSize, ct).ConfigureAwait(false);
+        var total = await _orderRepository.CountAsync(userId, sellerId, status, null, null, ct).ConfigureAwait(false);
         var items = orders.Select(ToDto).ToList();
         return new OrderListResultDto
         {
@@ -441,7 +441,7 @@ public sealed class OrderAppService : IOrderAppService
     [Obsolete("请使用 IQueryHandler<LogisticsTraceQuery, LogisticsTraceResult>，将在 2026-08-01 移除")]
     public async Task<LogisticsTrackingDto> GetLogisticsTraceAsync(Guid orderId, CancellationToken ct = default)
     {
-        var order = await RequireOrderAsync(orderId, ct);
+        var order = await RequireOrderAsync(orderId, ct).ConfigureAwait(false);
 
         if (string.IsNullOrWhiteSpace(order.LogisticsNo))
         {
@@ -460,7 +460,7 @@ public sealed class OrderAppService : IOrderAppService
         }
 
         // 校验物流公司是否支持轨迹查询（按 Code 精确查询，利用唯一索引）
-        var company = await _logisticsCompanyRepository.GetByCodeAsync(order.LogisticsCompanyCode, ct);
+        var company = await _logisticsCompanyRepository.GetByCodeAsync(order.LogisticsCompanyCode, ct).ConfigureAwait(false);
         var companyEnabled = company is not null &&
             company.Status == LogisticsCompanyStatus.Enabled &&
             company.SupportTracking;
@@ -478,7 +478,7 @@ public sealed class OrderAppService : IOrderAppService
 
         // 调用领域服务查询物流轨迹
         var traceResult = await _logisticsTrackingService.QueryTraceAsync(
-            order.LogisticsNo, order.LogisticsCompanyCode, ct);
+            order.LogisticsNo, order.LogisticsCompanyCode, ct).ConfigureAwait(false);
 
         return new LogisticsTrackingDto
         {
@@ -499,7 +499,7 @@ public sealed class OrderAppService : IOrderAppService
     /// 按标识加载订单，不存在抛领域异常。
     /// </summary>
     private async Task<OrderAggregate> RequireOrderAsync(Guid orderId, CancellationToken ct)
-        => await _orderRepository.GetByIdAsync(orderId, ct)
+        => (await _orderRepository.GetByIdAsync(orderId, ct).ConfigureAwait(false))
            ?? throw new OrderDomainException($"订单 {orderId} 不存在", "ORDER_NOT_FOUND");
 
     /// <summary>
@@ -508,7 +508,7 @@ public sealed class OrderAppService : IOrderAppService
     private async Task<OrderAggregate> RequireOwnedOrderAsync(Guid orderId, Guid sellerId, CancellationToken ct)
     {
         EnsureNonEmptyUser(sellerId);
-        var order = await RequireOrderAsync(orderId, ct);
+        var order = await RequireOrderAsync(orderId, ct).ConfigureAwait(false);
         if (!order.SellerId.HasValue || order.SellerId.Value != sellerId)
         {
             throw new OrderDomainException("无权操作此订单", "ORDER_NOT_OWNED");
@@ -646,7 +646,7 @@ public sealed class OrderAppService : IOrderAppService
             // 优惠分摊（复用 OrderPricingDomainService 的比例分摊，已校验 totalDiscount ≤ sumSubtotals）
             var itemSubtotals = items.Select(i => (i.SkuId, i.Subtotal)).ToList();
             var allocations = totalDiscount > 0
-                ? await _pricingDomainService.CalculateAndAllocateAsync(totalDiscount, itemSubtotals, ct)
+                ? await _pricingDomainService.CalculateAndAllocateAsync(totalDiscount, itemSubtotals, ct).ConfigureAwait(false)
                 : new List<(Guid SkuId, decimal Allocation)>(0);
 
             var discountAmount = totalDiscount;

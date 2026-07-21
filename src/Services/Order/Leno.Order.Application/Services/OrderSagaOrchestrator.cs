@@ -88,7 +88,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
                 ct));
         }
 
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
 
         // 任一组失败：对已成功组执行补偿（释放库存/积分/优惠券）后抛首个原始异常
         if (firstException is not null)
@@ -101,7 +101,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
                     successful.Add(slot);
                 }
             }
-            await CompensateAsync(successful, CancellationToken.None);
+            await CompensateAsync(successful, CancellationToken.None).ConfigureAwait(false);
             throw firstException;
         }
 
@@ -117,11 +117,11 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
         // EF Core DbContext 非线程安全：并行阶段仅构建聚合不入库，全部成功后顺序 AddAsync
         foreach (var g in completed)
         {
-            await _orderRepository.AddAsync(g.Order, ct);
+            await _orderRepository.AddAsync(g.Order, ct).ConfigureAwait(false);
         }
 
         // 全部组成功 → 统一提交工作单元（订单聚合 + 发件箱集成事件同事务持久化）
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
 
         // SaveEntitiesAsync 成功后统一调度超时延迟消息（保证订单已持久化，避免 Saga 失败回滚后产生幽灵延迟消息）
         foreach (var g in completed)
@@ -131,7 +131,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
                 new Uri("queue:order-timeout"),
                 g.Order.ExpireAt,
                 new OrderTimeoutMessage(g.OrderId),
-                ct);
+                ct).ConfigureAwait(false);
         }
 
         return new OrderSagaResult
@@ -154,10 +154,10 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
         Action<Exception> onException,
         CancellationToken ct)
     {
-        await _semaphore.WaitAsync(ct);
+        await _semaphore.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var completed = await ExecuteGroupAsync(userId, address, group, ct);
+            var completed = await ExecuteGroupAsync(userId, address, group, ct).ConfigureAwait(false);
             slots[index] = completed;
         }
         catch (Exception ex)
@@ -203,17 +203,17 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
         // 价格防篡改校验（使用预查的 SkuInfos，避免 N+1）
         var skuPrices = itemSubtotals.Select(s => (s.SkuId, group.SkuInfos[s.SkuId].UnitPrice)).ToList();
         var skuCurrentPrices = group.SkuInfos.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.UnitPrice);
-        await _pricingService.ValidatePricesAsync(skuPrices, skuCurrentPrices, ct);
+        await _pricingService.ValidatePricesAsync(skuPrices, skuCurrentPrices, ct).ConfigureAwait(false);
 
         // 计算优惠并按 SKU 分摊
-        var discount = await _promotionAntiCorruption.CalculateDiscountAsync(userId, itemSubtotals, ct);
+        var discount = await _promotionAntiCorruption.CalculateDiscountAsync(userId, itemSubtotals, ct).ConfigureAwait(false);
         var allocations = discount > 0
-            ? await _pricingService.CalculateAndAllocateAsync(discount, itemSubtotals, ct)
+            ? await _pricingService.CalculateAndAllocateAsync(discount, itemSubtotals, ct).ConfigureAwait(false)
             : new List<(Guid SkuId, decimal Allocation)>();
 
         // 计算运费
         var quantity = group.Items.Sum(i => i.Quantity);
-        var freight = await _freightCalculator.CalculateAsync(group.SellerId, address.Province, quantity, groupItemsAmount, ct);
+        var freight = await _freightCalculator.CalculateAsync(group.SellerId, address.Province, quantity, groupItemsAmount, ct).ConfigureAwait(false);
 
         // 积分抵现上限裁剪：抵现金额不得超过 商品总额 - 优惠（避免总金额为负）
         var groupPointsOffset = group.GroupPointsOffsetRaw;
@@ -232,7 +232,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
 
         // 预占库存
         var orderId = Guid.NewGuid();
-        var reserved = await _stockService.ReserveBatchAsync(orderId, skuQuantities, ct);
+        var reserved = await _stockService.ReserveBatchAsync(orderId, skuQuantities, ct).ConfigureAwait(false);
         if (!reserved)
         {
             throw new OrderDomainException("库存预占失败，SKU 库存不足", "ORDER_STOCK_RESERVE_FAILED");
@@ -244,18 +244,18 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
         {
             try
             {
-                await _pointsAntiCorruption.FreezeAsync(userId, orderId, groupPoints, ct);
+                await _pointsAntiCorruption.FreezeAsync(userId, orderId, groupPoints, ct).ConfigureAwait(false);
                 pointsFrozen = true;
             }
             catch (Exception)
             {
-                await _stockService.ReleaseBatchAsync(orderId, skuQuantities, CancellationToken.None);
+                await _stockService.ReleaseBatchAsync(orderId, skuQuantities, CancellationToken.None).ConfigureAwait(false);
                 throw;
             }
         }
 
         // 生成订单编号并创建订单聚合（积分抵现初始为 0，由 ApplyPointsOffset 校验不变量）
-        var orderNo = await _orderNumberGenerator.GenerateAsync(ct);
+        var orderNo = await _orderNumberGenerator.GenerateAsync(ct).ConfigureAwait(false);
         var order = OrderAggregate.Create(
             orderId, orderNo, OrderType.Normal, userId, group.SellerId,
             orderItems, address, freight, pointsOffsetAmount: 0m, DateTime.UtcNow.AddMinutes(30));
@@ -303,7 +303,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
             {
                 try
                 {
-                    await _promotionAntiCorruption.ReleaseCouponsAsync(g.OrderId, ct);
+                    await _promotionAntiCorruption.ReleaseCouponsAsync(g.OrderId, ct).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -317,7 +317,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
             {
                 try
                 {
-                    await _pointsAntiCorruption.ReleaseAsync(g.OrderId, ct);
+                    await _pointsAntiCorruption.ReleaseAsync(g.OrderId, ct).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -329,7 +329,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
             // 释放预占库存
             try
             {
-                await _stockService.ReleaseBatchAsync(g.OrderId, g.SkuQuantities, ct);
+                await _stockService.ReleaseBatchAsync(g.OrderId, g.SkuQuantities, ct).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
