@@ -33,7 +33,7 @@ public sealed class NotificationAppService : INotificationAppService
     public async Task<NotificationListResultDto> GetNotificationsAsync(Guid userId, bool? isRead, int page, int pageSize, CancellationToken ct = default)
     {
         var items = await _recordRepository.QueryByUserAsync(userId, isRead, page, pageSize, ct);
-        var total = await _recordRepository.CountByUserAsync(userId, null, ct);
+        var total = await _recordRepository.CountByUserAsync(userId, isRead, ct);
         var unreadCount = await _recordRepository.CountByUserAsync(userId, false, ct);
 
         return new NotificationListResultDto
