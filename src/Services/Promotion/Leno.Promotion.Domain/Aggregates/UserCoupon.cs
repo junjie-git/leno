@@ -96,11 +96,13 @@ public sealed class UserCoupon : AggregateRoot
             Status = CouponStatus.Expired;
             UsedOrderId = null;
             UsedAt = null;
+            LockedOrderId = null;
             return;
         }
         Status = CouponStatus.Unused;
         UsedOrderId = null;
         UsedAt = null;
+        LockedOrderId = null;
     }    public void RecordExchangeSucceeded(Guid exchangeId)
     {
         AddDomainEvent(new CouponExchangeSucceededDomainEvent(exchangeId, UserId, Id));
