@@ -37,9 +37,15 @@ public sealed class ShopConfiguration : IEntityTypeConfiguration<Shop>
         builder.HasIndex(s => s.SellerId).HasDatabaseName("ix_shops_seller_id").IsUnique();
         builder.HasIndex(s => s.Status).HasDatabaseName("ix_shops_status");
 
-        builder.HasMany<ShopQualification>("Qualifications")
+        // 通过表达式访问 Shop.Qualifications 导航属性，
+        // EF Core 依据约定（_<camelCasePropertyName>）发现 _qualifications backing field；
+        // 显式配置 PropertyAccessMode.Field，避免依赖自动发现且 Shop.Qualifications 为只读集合。
+        builder.HasMany(s => s.Qualifications)
             .WithOne()
             .HasForeignKey("ShopId")
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Metadata.FindNavigation(nameof(Shop.Qualifications))?
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
     }
 }
