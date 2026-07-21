@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Leno.Cart.Application\Leno.Cart.Application.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Leno.Infrastructure\Leno.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

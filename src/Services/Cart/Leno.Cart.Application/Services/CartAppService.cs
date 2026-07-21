@@ -4,6 +4,7 @@ using Leno.Cart.Domain.Exceptions;
 using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
 using Leno.SharedKernel.Abstractions;
+using Leno.SharedKernel.Exceptions;
 using Microsoft.Extensions.Logging;
 using CartAggregate = Leno.Cart.Domain.Aggregates.Cart;
 
@@ -221,12 +222,13 @@ public sealed class CartAppService : ICartAppService
                 var priceSnapshots = await _priceService.GetSkuPricesAsync(skuIds, ct);
                 priceMap = priceSnapshots.ToDictionary(p => p.SkuId);
             }
-            catch (CartDomainException ex)
+            catch (DomainException ex)
             {
-                // 购物车"查看"场景不因价格服务故障整体崩溃，降级展示并标记 PriceUnavailable，
-                // 由前端禁止结算；详见 PreviewCheckoutAsync 对结算的硬性拦截。
-                _logger.LogWarning(ex, "购物车价格服务不可用，降级展示 UserId={UserId} ItemCount={ItemCount}",
-                    cart.UserId, skuIds.Count);
+                // 防腐层（HTTP/gRPC、超时、非 2xx）异常统一抛 AntiCorruptionException（继承 DomainException），
+                // 旧实现误 catch CartDomainException 永不命中，导致降级分支不可达；
+                // 改为 catch DomainException 基类，捕获 AntiCorruptionException 进入降级展示分支
+                _logger.LogWarning(ex, "购物车价格服务不可用，降级展示 UserId={UserId} ItemCount={ItemCount} ErrorCode={ErrorCode}",
+                    cart.UserId, skuIds.Count, ex.ErrorCode);
                 priceServiceUnavailable = true;
             }
         }
