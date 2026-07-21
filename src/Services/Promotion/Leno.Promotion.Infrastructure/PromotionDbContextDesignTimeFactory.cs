@@ -1,19 +1,17 @@
+using Leno.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
 
 namespace Leno.Promotion.Infrastructure;
 
 /// <summary>
-/// EF Core 设计期工厂，避免 dotnet ef migrations add 启动完整 Program.cs（依赖 Redis 等基础设施）。
-/// 仅用于生成迁移与脚本，不连接真实数据库。
+/// Promotion BC 设计期 DbContext 工厂，从环境变量读取连接字符串。
+/// 不再硬编码 SA 密码，消除源码泄露风险（ADR 与安全审计统一要求）。
 /// </summary>
-public sealed class PromotionDbContextDesignTimeFactory : IDesignTimeDbContextFactory<PromotionDbContext>
+public sealed class PromotionDbContextDesignTimeFactory : DesignTimeDbContextFactoryBase<PromotionDbContext>
 {
-    public PromotionDbContext CreateDbContext(string[] args)
+    public override PromotionDbContext CreateDbContext(string[] args)
     {
-        var options = new DbContextOptionsBuilder<PromotionDbContext>()
-            .UseSqlServer("Server=localhost,1433;Database=LenoPromotion;User Id=sa;Password=Leno@SqlServer2019;TrustServerCertificate=True;MultipleActiveResultSets=true")
-            .Options;
-        return new PromotionDbContext(options);
+        var builder = CreateOptionsBuilder(databaseName: "LenoPromotion");
+        return new PromotionDbContext(builder.Options);
     }
 }

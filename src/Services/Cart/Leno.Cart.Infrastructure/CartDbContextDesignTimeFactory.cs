@@ -1,19 +1,17 @@
+using Leno.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
 
 namespace Leno.Cart.Infrastructure;
 
 /// <summary>
-/// EF Core 设计期工厂，避免 dotnet ef migrations add 启动完整 Program.cs（依赖 Redis 等基础设施）。
-/// 仅用于生成迁移与脚本，不连接真实数据库。
+/// Cart BC 设计期 DbContext 工厂，从环境变量读取连接字符串。
+/// 不再硬编码 SA 密码，消除源码泄露风险（ADR 与安全审计统一要求）。
 /// </summary>
-public sealed class CartDbContextDesignTimeFactory : IDesignTimeDbContextFactory<CartDbContext>
+public sealed class CartDbContextDesignTimeFactory : DesignTimeDbContextFactoryBase<CartDbContext>
 {
-    public CartDbContext CreateDbContext(string[] args)
+    public override CartDbContext CreateDbContext(string[] args)
     {
-        var options = new DbContextOptionsBuilder<CartDbContext>()
-            .UseSqlServer("Server=localhost,1433;Database=LenoCart;User Id=sa;Password=Leno@SqlServer2019;TrustServerCertificate=True;MultipleActiveResultSets=true")
-            .Options;
-        return new CartDbContext(options);
+        var builder = CreateOptionsBuilder(databaseName: "LenoCart");
+        return new CartDbContext(builder.Options);
     }
 }
