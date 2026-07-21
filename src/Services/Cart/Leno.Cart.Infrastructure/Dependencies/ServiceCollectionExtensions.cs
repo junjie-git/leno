@@ -47,7 +47,10 @@ public static class ServiceCollectionExtensions
             options.UseSqlServer(connectionString);
         });
 
-        services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<CartDbContext>>();
+        // 注册 CartSkuIndexDomainEventDispatcher 与 CartUnitOfWork：
+        // 在落库前分发 SkuAddedToCartEvent/SkuRemovedFromCartEvent 到反向索引服务，维护购物车-SKU 索引一致
+        services.AddScoped<CartSkuIndexDomainEventDispatcher>();
+        services.AddScoped<IUnitOfWork, CartUnitOfWork>();
 
         // 注册 Cart BC 领域事件到集成事件翻译器
         services.AddSingleton<IIntegrationEventMapper, CartIntegrationEventMapper>();
