@@ -38,6 +38,13 @@ public sealed class RateLimitRule : AggregateRoot
     /// <summary>是否启用。</summary>
     public bool Enabled { get; private set; }
 
+    /// <summary>
+    /// 乐观并发控制版本号（RowVersion）。
+    /// 由 EF Core 在每次 SaveChanges 时自动递增，配合 <c>IsRowVersion()</c> 配置实现乐观并发控制。
+    /// 控制器层捕获 <see cref="Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException"/> 返回 409 Conflict。
+    /// </summary>
+    public byte[] Version { get; private set; } = Array.Empty<byte>();
+
     /// <summary>EF Core 无参构造。</summary>
     private RateLimitRule() { }
 

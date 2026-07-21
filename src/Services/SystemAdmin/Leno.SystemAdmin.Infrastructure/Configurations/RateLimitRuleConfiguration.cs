@@ -30,5 +30,9 @@ public sealed class RateLimitRuleConfiguration : IEntityTypeConfiguration<RateLi
 
         builder.HasIndex(r => r.TargetApi).HasDatabaseName("ix_rate_limit_rules_target_api");
         builder.HasIndex(r => r.Enabled).HasDatabaseName("ix_rate_limit_rules_enabled");
+
+        // 乐观并发控制：IsRowVersion() 让 EF Core 在 Update 时将 Version 加入 WHERE 子句，
+        // 不匹配则抛 DbUpdateConcurrencyException，由控制器捕获并返回 409 Conflict。
+        builder.Property(r => r.Version).HasColumnName("version").IsRowVersion();
     }
 }
