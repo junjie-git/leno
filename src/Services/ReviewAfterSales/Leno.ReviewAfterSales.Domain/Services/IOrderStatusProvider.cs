@@ -20,6 +20,8 @@ public sealed class OrderStatusInfo
     public Guid OrderId { get; init; }
     public int Status { get; init; }
     public Guid UserId { get; init; }
+    /// <summary>订单归属卖家标识，由订单域防腐层查询填充，用于防止客户端伪造 SellerId。</summary>
+    public Guid SellerId { get; init; }
     public DateTime CompletedAt { get; init; }
     public DateTime CreatedAt { get; init; }
     public List<OrderItemStatusInfo> Items { get; init; } = [];

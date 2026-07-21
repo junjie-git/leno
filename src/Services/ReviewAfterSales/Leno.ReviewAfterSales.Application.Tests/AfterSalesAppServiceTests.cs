@@ -48,6 +48,9 @@ public class AfterSalesAppServiceTests
     [Fact]
     public async Task SubmitAfterSalesAsync_Valid_ShouldCreateAndSave()
     {
+        _eligibilityMock
+            .Setup(e => e.EnsureEligibleAsync(OrderId, OrderLineId, UserId, AfterSalesType.ReturnRefund, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OrderStatusInfo { OrderId = OrderId, UserId = UserId, SellerId = SellerId, Status = 2, Items = [] });
         var dto = BuildSubmitDto(AfterSalesType.ReturnRefund, 199m);
 
         var result = await _sut.SubmitAfterSalesAsync(UserId, dto);

@@ -51,11 +51,13 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
     /// <inheritdoc />
     public async Task<AfterSalesDto> SubmitAfterSalesAsync(Guid userId, SubmitAfterSalesDto dto, CancellationToken ct = default)
     {
-        await _eligibilityChecker.EnsureEligibleAsync(dto.OrderId, dto.OrderLineId, userId, dto.Type, ct);
+        // 资格校验器查询订单域并校验申请人归属，返回携带真实 SellerId 的订单状态概要。
+        // 忽略 dto.SellerId（客户端可伪造），仅使用订单域返回的真实卖家标识创建售后单。
+        var order = await _eligibilityChecker.EnsureEligibleAsync(dto.OrderId, dto.OrderLineId, userId, dto.Type, ct);
 
         var afterSalesId = Guid.NewGuid();
         var afterSales = AfterSalesAggregate.Create(
-            afterSalesId, dto.OrderId, dto.OrderLineId, userId, dto.SellerId,
+            afterSalesId, dto.OrderId, dto.OrderLineId, userId, order.SellerId,
             dto.Type, dto.ReasonCategory, dto.Reason, dto.Images,
             dto.RequestedAmount, dto.Currency);
 

@@ -35,7 +35,7 @@ public sealed class AfterSalesEligibilityChecker : IAfterSalesEligibilityChecker
     }
 
     /// <inheritdoc />
-    public async Task EnsureEligibleAsync(Guid orderId, Guid? orderLineId, Guid userId, AfterSalesType type, CancellationToken ct = default)
+    public async Task<OrderStatusInfo> EnsureEligibleAsync(Guid orderId, Guid? orderLineId, Guid userId, AfterSalesType type, CancellationToken ct = default)
     {
         var order = await _orderStatusProvider.GetOrderStatusAsync(orderId, ct)
             .ConfigureAwait(false);
@@ -70,5 +70,7 @@ public sealed class AfterSalesEligibilityChecker : IAfterSalesEligibilityChecker
                 throw new ReviewDomainException("该订单行已存在进行中的同类型售后单", "AFTERSALES_DUPLICATE");
             }
         }
+
+        return order;
     }
 }

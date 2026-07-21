@@ -64,6 +64,8 @@ public sealed class GrpcOrderStatusProvider
             // 注：proto OrderStatus.status 为 string，DTO 为 int，POC 简化用 int.Parse
             Status = int.TryParse(proto.Status, out var s) ? s : 0,
             UserId = proto.HasUserId && Guid.TryParse(proto.UserId, out var uid) ? uid : Guid.Empty,
+            // 从订单域 proto 读取真实 SellerId，防止客户端伪造
+            SellerId = proto.HasSellerId && Guid.TryParse(proto.SellerId, out var sid) ? sid : Guid.Empty,
             CompletedAt = proto.CompletedAt != 0
                 ? DateTimeOffset.FromUnixTimeSeconds(proto.CompletedAt).UtcDateTime
                 : default,

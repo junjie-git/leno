@@ -22,12 +22,15 @@ public sealed class RedisSlidingWindowRateLimiter : RateLimiter
     // ARGV[3] = current timestamp string (member, must be unique → use counter)
     // ARGV[4] = permit limit
     // ARGV[5] = key TTL in seconds
+    // 修复：必须先 ZREMRANGEBYSCORE 清除窗口外过期记录，再 ZCARD 计数。
+    // 原实现先 ZCARD 后 ZREMRANGEBYSCORE，第一次计数包含已过期但未清理的旧记录，
+    // 导致窗口边界附近误拒合法请求。
     private const string Script = @"
+redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, ARGV[2])
 local count = redis.call('ZCARD', KEYS[1])
 if count >= tonumber(ARGV[4]) then
     return 0
 end
-redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, ARGV[2])
 redis.call('ZADD', KEYS[1], ARGV[1], ARGV[3])
 if count == 0 then
     redis.call('EXPIRE', KEYS[1], ARGV[5])
@@ -39,6 +42,11 @@ if newCount > tonumber(ARGV[4]) then
 end
 return 1
 ";
+
+    /// <summary>
+    /// 暴露 Lua 脚本用于测试验证脚本顺序（internal 可见性，仅测试使用）。
+    /// </summary>
+    internal static string GetScriptForTesting() => Script;
 
     private readonly IDatabase _database;
     private readonly string _key;

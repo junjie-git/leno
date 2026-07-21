@@ -70,6 +70,7 @@ public sealed class HttpOrderStatusProvider : AntiCorruptionBase, IOrderStatusPr
         OrderId = dto.OrderId,
         Status = dto.Status,
         UserId = dto.UserId,
+        SellerId = dto.SellerId,
         CompletedAt = dto.CompletedAt,
         CreatedAt = dto.CreatedAt,
         Items = dto.Items.Select(i => new OrderItemStatusInfo
@@ -97,6 +98,7 @@ public sealed class HttpOrderStatusProvider : AntiCorruptionBase, IOrderStatusPr
         public Guid OrderId { get; set; }
         public int Status { get; set; }
         public Guid UserId { get; set; }
+        public Guid SellerId { get; set; }
         public DateTime CompletedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public List<OrderItemStatusResponse> Items { get; set; } = [];
