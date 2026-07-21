@@ -21,15 +21,21 @@ public sealed class EfCoreReviewRepository : IReviewRepository
 
     /// <inheritdoc />
     public async Task<Review?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _context.Reviews.FirstOrDefaultAsync(r => r.Id == id, ct);
+        => await _context.Reviews
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == id, ct);
 
     /// <inheritdoc />
     public async Task<Review?> GetByOrderLineAsync(Guid orderLineId, CancellationToken ct = default)
-        => await _context.Reviews.FirstOrDefaultAsync(r => r.OrderLineId == orderLineId, ct);
+        => await _context.Reviews
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.OrderLineId == orderLineId, ct);
 
     /// <inheritdoc />
     public async Task<bool> ExistsByOrderLineAsync(Guid orderLineId, CancellationToken ct = default)
-        => await _context.Reviews.AnyAsync(r => r.OrderLineId == orderLineId, ct);
+        => await _context.Reviews
+            .AsNoTracking()
+            .AnyAsync(r => r.OrderLineId == orderLineId, ct);
 
     /// <inheritdoc />
     public async Task<List<Review>> QueryAsync(
@@ -40,7 +46,7 @@ public sealed class EfCoreReviewRepository : IReviewRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = ApplyFilters(_context.Reviews.AsQueryable(), spuId, userId, status);
+        var query = ApplyFilters(_context.Reviews.AsNoTracking(), spuId, userId, status);
 
         return await query
             .OrderByDescending(r => r.CreatedAt)
@@ -56,7 +62,7 @@ public sealed class EfCoreReviewRepository : IReviewRepository
         ReviewStatus? status,
         CancellationToken ct = default)
     {
-        var query = ApplyFilters(_context.Reviews.AsQueryable(), spuId, userId, status);
+        var query = ApplyFilters(_context.Reviews.AsNoTracking(), spuId, userId, status);
         return await query.CountAsync(ct);
     }
 
@@ -66,7 +72,7 @@ public sealed class EfCoreReviewRepository : IReviewRepository
         ReviewStatus? status = null,
         CancellationToken ct = default)
     {
-        var query = _context.Reviews.AsQueryable().Where(r => r.SpuId == spuId);
+        var query = _context.Reviews.AsNoTracking().Where(r => r.SpuId == spuId);
         if (status.HasValue)
         {
             query = query.Where(r => r.Status == status.Value);
@@ -101,7 +107,7 @@ public sealed class EfCoreReviewRepository : IReviewRepository
         ReviewStatus? status = null,
         CancellationToken ct = default)
     {
-        var query = _context.Reviews.AsQueryable().Where(r => r.OrderId == orderId);
+        var query = _context.Reviews.AsNoTracking().Where(r => r.OrderId == orderId);
         if (status.HasValue)
         {
             query = query.Where(r => r.Status == status.Value);

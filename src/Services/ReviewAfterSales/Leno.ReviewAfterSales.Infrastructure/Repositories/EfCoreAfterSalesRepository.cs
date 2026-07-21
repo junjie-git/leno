@@ -21,11 +21,14 @@ public sealed class EfCoreAfterSalesRepository : IAfterSalesRepository
 
     /// <inheritdoc />
     public async Task<AfterSales?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _context.AfterSales.FirstOrDefaultAsync(a => a.Id == id, ct);
+        => await _context.AfterSales
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id, ct);
 
     /// <inheritdoc />
     public async Task<List<AfterSales>> GetByOrderIdAsync(Guid orderId, CancellationToken ct = default)
         => await _context.AfterSales
+            .AsNoTracking()
             .Where(a => a.OrderId == orderId)
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync(ct);
@@ -81,7 +84,7 @@ public sealed class EfCoreAfterSalesRepository : IAfterSalesRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = ApplyFilters(_context.AfterSales.AsQueryable(), orderId, userId, sellerId, status);
+        var query = ApplyFilters(_context.AfterSales.AsNoTracking(), orderId, userId, sellerId, status);
 
         return await query
             .OrderByDescending(a => a.CreatedAt)
@@ -98,7 +101,7 @@ public sealed class EfCoreAfterSalesRepository : IAfterSalesRepository
         AfterSalesStatus? status,
         CancellationToken ct = default)
     {
-        var query = ApplyFilters(_context.AfterSales.AsQueryable(), orderId, userId, sellerId, status);
+        var query = ApplyFilters(_context.AfterSales.AsNoTracking(), orderId, userId, sellerId, status);
         return await query.CountAsync(ct);
     }
 
