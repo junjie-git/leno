@@ -57,6 +57,23 @@ public sealed class CacheService : ICacheService
     /// </summary>
     private static readonly TimeSpan LockTimeout = TimeSpan.FromSeconds(10);
 
+    /// <summary>
+    /// T27：缓存击穿防护中获取互斥锁失败后的指数退避重试间隔（毫秒）。
+    /// 默认 3 次重试：50ms → 100ms → 200ms（总等待 350ms）。
+    /// 每次重试前先检查缓存，若其他线程已回填则直接返回缓存值。
+    /// </summary>
+    private static readonly int[] LockRetryBackoffMs = { 50, 100, 200 };
+
+    /// <summary>
+    /// T27：重试间隔覆盖值（毫秒），测试时可设为全 0 或极小值以加速。null 时使用 <see cref="LockRetryBackoffMs"/>。
+    /// </summary>
+    internal int[]? LockRetryBackoffMsOverride { get; set; }
+
+    /// <summary>
+    /// T27：实际使用的重试间隔数组。返回覆盖值或默认值。
+    /// </summary>
+    private int[] EffectiveLockRetryBackoffMs => LockRetryBackoffMsOverride ?? LockRetryBackoffMs;
+
     public CacheService(
         IConnectionMultiplexer connectionMultiplexer,
         IBloomFilter bloomFilter,
@@ -146,23 +163,38 @@ public sealed class CacheService : ICacheService
             }
         }
 
-        // 未获取到锁，等待后重试读取缓存
-        _logger.LogDebug("未获取互斥锁，等待后重试: {Key}", key);
-        await Task.Delay(100, ct);
-
-        var retryValue = await _database.StringGetAsync(key);
-        if (retryValue.HasValue)
+        // T27：未获取到锁，按指数退避重试（50ms → 100ms → 200ms，最多 3 次）。
+        // 每次重试前先检查缓存，若其他线程已回填则直接返回缓存值，避免不必要的回源。
+        // 重试耗尽后仍无缓存值时，记 warning 并直接回源（factory），保证可用性优先于防击穿。
+        var backoffMs = EffectiveLockRetryBackoffMs;
+        foreach (var delayMs in backoffMs)
         {
-            var retryString = retryValue.ToString();
-            if (retryString == NullMarker)
-            {
-                return null;
-            }
+            _logger.LogDebug("未获取互斥锁，{Delay}ms 后重试读取缓存: {Key}", delayMs, key);
+            await Task.Delay(delayMs, ct);
 
-            return JsonSerializer.Deserialize<T>(retryString);
+            var retryValue = await _database.StringGetAsync(key);
+            if (retryValue.HasValue)
+            {
+                var retryString = retryValue.ToString();
+                if (retryString == NullMarker)
+                {
+                    _logger.LogDebug("重试命中空值标记: {Key}", key);
+                    return null;
+                }
+
+                _logger.LogDebug("重试命中缓存: {Key}", key);
+                return JsonSerializer.Deserialize<T>(retryString);
+            }
         }
 
-        return null;
+        // T27：重试耗尽仍无缓存值，记 warning 并直接回源。
+        // 注意：此处不设置缓存（未持有锁，避免与持锁线程的写回竞争导致脏写），
+        // 也不重新尝试获取锁（避免无限等待），保证请求可用性。
+        _logger.LogWarning(
+            "缓存击穿防护：{RetryCount} 次指数退避重试后仍未获取互斥锁且缓存未回填，直接回源 Key={Key}",
+            backoffMs.Length, key);
+
+        return await factory(ct);
     }
 
     public async Task SetAsync<T>(string key, T value, TimeSpan? expiry = null, CancellationToken ct = default) where T : class
