@@ -14,10 +14,14 @@ namespace Leno.Notification.Infrastructure.Jobs;
 /// </summary>
 public sealed class NotificationDispatchJob
 {
+    private const string LockKeyPrefix = "dispatch:record:";
+    private static readonly TimeSpan LockExpiry = TimeSpan.FromMinutes(2);
+
     private readonly INotificationRecordRepository _recordRepository;
     private readonly IReadOnlyDictionary<NotificationChannel, INotificationChannel> _channelDict;
     private readonly IUserContactService _userContactService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IDistributedLockProvider _lockProvider;
     private readonly ILogger<NotificationDispatchJob> _logger;
 
     public NotificationDispatchJob(
@@ -25,18 +29,21 @@ public sealed class NotificationDispatchJob
         IEnumerable<INotificationChannel> channels,
         IUserContactService userContactService,
         IUnitOfWork unitOfWork,
+        IDistributedLockProvider lockProvider,
         ILogger<NotificationDispatchJob> logger)
     {
         ArgumentNullException.ThrowIfNull(recordRepository);
         ArgumentNullException.ThrowIfNull(channels);
         ArgumentNullException.ThrowIfNull(userContactService);
         ArgumentNullException.ThrowIfNull(unitOfWork);
+        ArgumentNullException.ThrowIfNull(lockProvider);
         ArgumentNullException.ThrowIfNull(logger);
         _recordRepository = recordRepository;
         // 构造时一次性构建渠道字典并缓存，避免每次 ExecuteAsync 重建触发 ToDictionary 重复键异常。
         _channelDict = channels.ToDictionary(c => c.Channel);
         _userContactService = userContactService;
         _unitOfWork = unitOfWork;
+        _lockProvider = lockProvider;
         _logger = logger;
     }
 
@@ -53,29 +60,46 @@ public sealed class NotificationDispatchJob
 
         foreach (var record in pending)
         {
-            if (_channelDict.TryGetValue(record.Channel, out var sender))
+            // P1-25：多实例并发时通过分布式锁防止重复拾取同一记录。
+            // 锁 TTL 设为 2 分钟（远超单条发送 3s 超时），持锁进程崩溃后 TTL 到期自动释放。
+            var lockKey = LockKeyPrefix + record.Id;
+            var lockToken = await _lockProvider.TryAcquireAsync(lockKey, LockExpiry, ct);
+            if (lockToken is null)
             {
-                try
-                {
-                    record.MarkSending();
-                    var sendRequest = await BuildChannelSendRequestAsync(record, ct);
-                    var result = await sender.SendAsync(sendRequest, ct);
-                    if (result.Succeeded)
-                    {
-                        record.MarkSucceeded(result.ChannelMessageId);
-                    }
-                    else
-                    {
-                        record.MarkFailed(result.ErrorMessage ?? "发送失败", result.ErrorCode);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "调度发送异常 RecordId={RecordId}", record.Id);
-                    record.MarkFailed(ex.Message, "DISPATCH_EXCEPTION");
-                }
+                _logger.LogDebug("记录被其他实例锁定，跳过 RecordId={RecordId}", record.Id);
+                continue;
+            }
 
-                await _recordRepository.UpdateAsync(record, ct);
+            try
+            {
+                if (_channelDict.TryGetValue(record.Channel, out var sender))
+                {
+                    try
+                    {
+                        record.MarkSending();
+                        var sendRequest = await BuildChannelSendRequestAsync(record, ct);
+                        var result = await sender.SendAsync(sendRequest, ct);
+                        if (result.Succeeded)
+                        {
+                            record.MarkSucceeded(result.ChannelMessageId);
+                        }
+                        else
+                        {
+                            record.MarkFailed(result.ErrorMessage ?? "发送失败", result.ErrorCode);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "调度发送异常 RecordId={RecordId}", record.Id);
+                        record.MarkFailed(ex.Message, "DISPATCH_EXCEPTION");
+                    }
+
+                    await _recordRepository.UpdateAsync(record, ct);
+                }
+            }
+            finally
+            {
+                await _lockProvider.ReleaseAsync(lockKey, lockToken, ct);
             }
         }
 

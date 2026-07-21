@@ -125,6 +125,9 @@ public static class ServiceCollectionExtensions
         // 频率限制器
         services.AddSingleton<Domain.Services.IRateLimiter, Infrastructure.Services.RedisRateLimiter>();
 
+        // 分布式锁提供者（Job 多实例并发防重复拾取）
+        services.AddSingleton<Domain.Services.IDistributedLockProvider, Infrastructure.Services.RedisDistributedLockProvider>();
+
         // 通知调度器
         services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
 

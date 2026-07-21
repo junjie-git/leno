@@ -14,11 +14,15 @@ namespace Leno.Notification.Infrastructure.Jobs;
 /// </summary>
 public sealed class NotificationRetryJob
 {
+    private const string LockKeyPrefix = "retry:record:";
+    private static readonly TimeSpan LockExpiry = TimeSpan.FromMinutes(2);
+
     private readonly INotificationRecordRepository _recordRepository;
     private readonly IReadOnlyDictionary<NotificationChannel, INotificationChannel> _channelDict;
     private readonly IUserContactService _userContactService;
     private readonly IRetryPolicy _retryPolicy;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IDistributedLockProvider _lockProvider;
     private readonly ILogger<NotificationRetryJob> _logger;
 
     public NotificationRetryJob(
@@ -27,6 +31,7 @@ public sealed class NotificationRetryJob
         IUserContactService userContactService,
         IRetryPolicy retryPolicy,
         IUnitOfWork unitOfWork,
+        IDistributedLockProvider lockProvider,
         ILogger<NotificationRetryJob> logger)
     {
         ArgumentNullException.ThrowIfNull(recordRepository);
@@ -34,6 +39,7 @@ public sealed class NotificationRetryJob
         ArgumentNullException.ThrowIfNull(userContactService);
         ArgumentNullException.ThrowIfNull(retryPolicy);
         ArgumentNullException.ThrowIfNull(unitOfWork);
+        ArgumentNullException.ThrowIfNull(lockProvider);
         ArgumentNullException.ThrowIfNull(logger);
         _recordRepository = recordRepository;
         // 构造时一次性构建渠道字典并缓存，避免每次 ExecuteAsync 重建触发 ToDictionary 重复键异常。
@@ -41,6 +47,7 @@ public sealed class NotificationRetryJob
         _userContactService = userContactService;
         _retryPolicy = retryPolicy;
         _unitOfWork = unitOfWork;
+        _lockProvider = lockProvider;
         _logger = logger;
     }
 
@@ -69,25 +76,41 @@ public sealed class NotificationRetryJob
 
         foreach (var record in failedRecords)
         {
-            // 错误分类：不可重试 → 直接死信
-            if (!_retryPolicy.ShouldRetry(record.ErrorCode))
+            // P1-25：多实例并发时通过分布式锁防止重复拾取同一记录。
+            var lockKey = LockKeyPrefix + record.Id;
+            var lockToken = await _lockProvider.TryAcquireAsync(lockKey, LockExpiry, ct);
+            if (lockToken is null)
             {
-                record.ScheduleRetry(); // 必须先进入 Retried 才能 MoveToDeadLetter
-                record.MoveToDeadLetter($"不可重试错误：{record.ErrorCode} - {record.ErrorMessage}");
-                _logger.LogWarning("通知不可重试，直接移入死信 RecordId={RecordId} ErrorCode={ErrorCode}",
-                    record.Id, record.ErrorCode);
-                await _recordRepository.UpdateAsync(record, ct);
+                _logger.LogDebug("失败记录被其他实例锁定，跳过 RecordId={RecordId}", record.Id);
                 continue;
             }
 
-            // 可重试：安排指数退避
-            var delay = _retryPolicy.NextDelay(record.RetryCount);
-            var nextRetryAt = DateTime.UtcNow.Add(delay);
-            record.ScheduleRetry(nextRetryAt);
-            _logger.LogInformation("通知已安排重试 RecordId={RecordId} RetryCount={RetryCount} NextRetryAt={NextRetryAt} Delay={Delay}",
-                record.Id, record.RetryCount, nextRetryAt, delay);
+            try
+            {
+                // 错误分类：不可重试 → 直接死信
+                if (!_retryPolicy.ShouldRetry(record.ErrorCode))
+                {
+                    record.ScheduleRetry(); // 必须先进入 Retried 才能 MoveToDeadLetter
+                    record.MoveToDeadLetter($"不可重试错误：{record.ErrorCode} - {record.ErrorMessage}");
+                    _logger.LogWarning("通知不可重试，直接移入死信 RecordId={RecordId} ErrorCode={ErrorCode}",
+                        record.Id, record.ErrorCode);
+                    await _recordRepository.UpdateAsync(record, ct);
+                    continue;
+                }
 
-            await _recordRepository.UpdateAsync(record, ct);
+                // 可重试：安排指数退避
+                var delay = _retryPolicy.NextDelay(record.RetryCount);
+                var nextRetryAt = DateTime.UtcNow.Add(delay);
+                record.ScheduleRetry(nextRetryAt);
+                _logger.LogInformation("通知已安排重试 RecordId={RecordId} RetryCount={RetryCount} NextRetryAt={NextRetryAt} Delay={Delay}",
+                    record.Id, record.RetryCount, nextRetryAt, delay);
+
+                await _recordRepository.UpdateAsync(record, ct);
+            }
+            finally
+            {
+                await _lockProvider.ReleaseAsync(lockKey, lockToken, ct);
+            }
         }
 
         await _unitOfWork.SaveChangesAsync(ct);
@@ -107,6 +130,15 @@ public sealed class NotificationRetryJob
 
         foreach (var record in scheduledRecords)
         {
+            // P1-25：多实例并发时通过分布式锁防止重复拾取同一记录。
+            var lockKey = LockKeyPrefix + record.Id;
+            var lockToken = await _lockProvider.TryAcquireAsync(lockKey, LockExpiry, ct);
+            if (lockToken is null)
+            {
+                _logger.LogDebug("重试记录被其他实例锁定，跳过 RecordId={RecordId}", record.Id);
+                continue;
+            }
+
             try
             {
                 if (!_channelDict.TryGetValue(record.Channel, out var sender))
@@ -184,6 +216,10 @@ public sealed class NotificationRetryJob
                             record.Id, record.Status);
                     }
                 }
+            }
+            finally
+            {
+                await _lockProvider.ReleaseAsync(lockKey, lockToken, ct);
             }
         }
 
