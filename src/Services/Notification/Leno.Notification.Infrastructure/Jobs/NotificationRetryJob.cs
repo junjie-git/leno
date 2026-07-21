@@ -107,61 +107,83 @@ public sealed class NotificationRetryJob
 
         foreach (var record in scheduledRecords)
         {
-            // MarkSending 从 Retried → Sending
-            record.MarkSending();
-
-            if (_channelDict.TryGetValue(record.Channel, out var sender))
+            try
             {
-                try
+                if (!_channelDict.TryGetValue(record.Channel, out var sender))
                 {
-                    var sendRequest = await BuildChannelSendRequestAsync(record, ct);
-                    var result = await sender.SendAsync(sendRequest, ct);
-                    if (result.Succeeded)
-                    {
-                        record.MarkSucceeded(result.ChannelMessageId);
-                        _logger.LogInformation("重试发送成功 RecordId={RecordId}", record.Id);
-                    }
-                    else
-                    {
-                        record.MarkFailed(result.ErrorMessage ?? "重试发送失败", result.ErrorCode);
-
-                        // 检查是否还能继续重试
-                        if (!record.CanRetry)
-                        {
-                            record.ScheduleRetry();
-                            record.MoveToDeadLetter($"超过最大重试次数 {record.RetryCount}/{record.MaxRetry}");
-                            _logger.LogWarning("通知超过最大重试次数，已移入死信 RecordId={RecordId} RetryCount={RetryCount}",
-                                record.Id, record.RetryCount);
-                        }
-                        else
-                        {
-                            // 仍然可重试 → 继续安排下一次重试
-                            var delay = _retryPolicy.NextDelay(record.RetryCount);
-                            var nextRetryAt = DateTime.UtcNow.Add(delay);
-                            record.ScheduleRetry(nextRetryAt);
-                            _logger.LogInformation("重试失败，继续安排下一次重试 RecordId={RecordId} RetryCount={RetryCount} Delay={Delay}",
-                                record.Id, record.RetryCount, delay);
-                        }
-                    }
+                    _logger.LogWarning("重试记录找不到渠道实现 RecordId={RecordId} Channel={Channel}", record.Id, record.Channel);
+                    continue;
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "重试发送异常 RecordId={RecordId}", record.Id);
-                    record.MarkFailed(ex.Message, "RETRY_EXCEPTION");
 
+                // P1-24：MarkSending 移入 try 块，状态机异常（如并发改状态）不中断整批。
+                // MarkSending 从 Retried → Sending
+                record.MarkSending();
+
+                var sendRequest = await BuildChannelSendRequestAsync(record, ct);
+                var result = await sender.SendAsync(sendRequest, ct);
+                if (result.Succeeded)
+                {
+                    record.MarkSucceeded(result.ChannelMessageId);
+                    _logger.LogInformation("重试发送成功 RecordId={RecordId}", record.Id);
+                }
+                else
+                {
+                    record.MarkFailed(result.ErrorMessage ?? "重试发送失败", result.ErrorCode);
+
+                    // 检查是否还能继续重试
                     if (!record.CanRetry)
                     {
                         record.ScheduleRetry();
-                        record.MoveToDeadLetter($"超过最大重试次数 {record.RetryCount}/{record.MaxRetry}（异常）");
+                        record.MoveToDeadLetter($"超过最大重试次数 {record.RetryCount}/{record.MaxRetry}");
+                        _logger.LogWarning("通知超过最大重试次数，已移入死信 RecordId={RecordId} RetryCount={RetryCount}",
+                            record.Id, record.RetryCount);
                     }
                     else
                     {
+                        // 仍然可重试 → 继续安排下一次重试
                         var delay = _retryPolicy.NextDelay(record.RetryCount);
-                        record.ScheduleRetry(DateTime.UtcNow.Add(delay));
+                        var nextRetryAt = DateTime.UtcNow.Add(delay);
+                        record.ScheduleRetry(nextRetryAt);
+                        _logger.LogInformation("重试失败，继续安排下一次重试 RecordId={RecordId} RetryCount={RetryCount} Delay={Delay}",
+                            record.Id, record.RetryCount, delay);
                     }
                 }
 
                 await _recordRepository.UpdateAsync(record, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "重试发送异常 RecordId={RecordId}", record.Id);
+
+                // P1-24：仅当已进入 Sending 状态（MarkSending 已执行）才尝试标记失败并安排下一次重试。
+                // 若 MarkSending 本身抛出（状态机异常），记录保持原状态（Retried），跳过本条继续下一条，
+                // 下次 Job 执行时会重新拾取（GetRetriedWithExpiredNextRetryAsync 仍可命中）。
+                if (record.Status == NotificationStatus.Sending)
+                {
+                    try
+                    {
+                        record.MarkFailed(ex.Message, "RETRY_EXCEPTION");
+
+                        if (!record.CanRetry)
+                        {
+                            record.ScheduleRetry();
+                            record.MoveToDeadLetter($"超过最大重试次数 {record.RetryCount}/{record.MaxRetry}（异常）");
+                        }
+                        else
+                        {
+                            var delay = _retryPolicy.NextDelay(record.RetryCount);
+                            record.ScheduleRetry(DateTime.UtcNow.Add(delay));
+                        }
+
+                        await _recordRepository.UpdateAsync(record, ct);
+                    }
+                    catch (Exception innerEx)
+                    {
+                        // 状态机二次异常时不再尝试，记录保持当前状态，等待人工介入或下次 Job 拾取
+                        _logger.LogError(innerEx, "重试异常处理后状态机仍失败 RecordId={RecordId} Status={Status}",
+                            record.Id, record.Status);
+                    }
+                }
             }
         }
 
