@@ -359,6 +359,76 @@ public class UserAppServiceTests
         await act.Should().ThrowAsync<UserAuthValidationException>();
     }
 
+    [Fact]
+    public async Task RefreshTokenAsync_Should_Reject_Locked_User_Within_Lock_Window()
+    {
+        // Arrange
+        var user = CreateUser();
+        user.Lock("audit test", TimeSpan.FromMinutes(30));
+
+        _refreshTokenMock.Setup(s => s.ValidateAndRotateAsync("rt", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user.Id);
+        _userRepoMock.Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<UserAuthDomainException>(() =>
+            _sut.RefreshTokenAsync("rt", CancellationToken.None));
+        Assert.Equal("USER_LOCKED", ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_Should_Auto_Unlock_When_Lock_Window_Elapsed()
+    {
+        // Arrange
+        var user = CreateUser();
+        user.Lock("test", TimeSpan.FromMilliseconds(1));
+        await Task.Delay(50); // 等待锁定过期
+
+        _refreshTokenMock.Setup(s => s.ValidateAndRotateAsync("rt", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user.Id);
+        _userRepoMock.Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+        _tokenMock.Setup(t => t.GenerateAccessToken(user.Id, It.IsAny<string>(), It.IsAny<Guid?>()))
+            .Returns("access");
+        _refreshTokenMock.Setup(s => s.IssueAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("new-rt");
+
+        // Act
+        var token = await _sut.RefreshTokenAsync("rt", CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(token);
+        Assert.Equal(AccountStatus.Active, user.Status);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_Should_Return_Temp_Token_When_TwoFactor_Enabled()
+    {
+        // Arrange
+        var user = CreateUser();
+        var tokenVerifierMock = new Mock<ITokenVerifier>();
+        tokenVerifierMock.Setup(v => v.GenerateSecret()).Returns("ABCDEFGHIJKLMNOP");
+        tokenVerifierMock.Setup(v => v.GenerateQrCodeUri(It.IsAny<string>(), It.IsAny<string>())).Returns("otpauth://test");
+        // 让 TOTP 校验直接通过，使 ConfirmTwoFactor 完成启用流程，无需反射设置私有字段
+        tokenVerifierMock.Setup(v => v.Verify(It.IsAny<string>(), It.IsAny<string>())).Returns(true);
+        user.EnableTwoFactor(tokenVerifierMock.Object);
+        user.ConfirmTwoFactor("123456", tokenVerifierMock.Object);
+
+        _refreshTokenMock.Setup(s => s.ValidateAndRotateAsync("rt", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user.Id);
+        _userRepoMock.Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        // Act
+        var token = await _sut.RefreshTokenAsync("rt", CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(token);
+        Assert.True(token.TwoFactorRequired);
+        Assert.False(string.IsNullOrEmpty(token.TempToken));
+    }
+
     #endregion
 
     #region ForgotPasswordAsync

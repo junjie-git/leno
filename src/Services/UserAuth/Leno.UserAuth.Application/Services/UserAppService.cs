@@ -173,6 +173,28 @@ public sealed class UserAppService : IUserAppService
             throw new UnauthorizedAccessException("账户不可用");
         }
 
+        // 锁定超时自动解锁（与 LoginAsync 一致），解锁后继续签发新令牌
+        if (user.Status == AccountStatus.Locked
+            && (!user.LockedUntil.HasValue || user.LockedUntil.Value <= DateTime.UtcNow))
+        {
+            user.Unlock();
+            await _userRepository.UpdateAsync(user, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
+        else if (user.Status == AccountStatus.Locked)
+        {
+            // 仍在锁定期：拒绝刷新令牌，避免被锁用户绕过登录锁定机制
+            throw new UserAuthDomainException(
+                $"账户已锁定，请于 {user.LockedUntil:O} 后重试", "USER_LOCKED");
+        }
+
+        // 已启用 2FA 的用户：刷新令牌不应直接换发完整 AccessToken，
+        // 改为签发临时令牌要求二次验证，避免 2FA 被旧刷新令牌绕过。
+        if (user.TwoFactorEnabled)
+        {
+            return await IssueTwoFactorRequiredTokenAsync(user, ct);
+        }
+
         return await IssueTokensAsync(user, ct);
     }
 
