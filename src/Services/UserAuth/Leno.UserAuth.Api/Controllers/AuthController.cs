@@ -4,6 +4,7 @@ using Leno.UserAuth.Application.Abstractions;
 using Leno.UserAuth.Application.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Leno.UserAuth.Api.Controllers;
@@ -18,13 +19,23 @@ public sealed class AuthController : ControllerBase
 {
     private readonly IUserAppService _userAppService;
     private readonly IJwtRevocationService _revocationService;
+    private readonly OAuth2Options _oauth2Options;
+    private readonly IHostEnvironment _environment;
 
-    public AuthController(IUserAppService userAppService, IJwtRevocationService revocationService)
+    public AuthController(
+        IUserAppService userAppService,
+        IJwtRevocationService revocationService,
+        IOptions<OAuth2Options> oauth2Options,
+        IHostEnvironment environment)
     {
         ArgumentNullException.ThrowIfNull(userAppService);
         ArgumentNullException.ThrowIfNull(revocationService);
+        ArgumentNullException.ThrowIfNull(oauth2Options);
+        ArgumentNullException.ThrowIfNull(environment);
         _userAppService = userAppService;
         _revocationService = revocationService;
+        _oauth2Options = oauth2Options.Value;
+        _environment = environment;
     }
 
     /// <summary>注册账户并签发令牌。</summary>
@@ -122,10 +133,27 @@ public sealed class AuthController : ControllerBase
             return BadRequest(ApiResponse.Fail(400, "state 不可为空"));
         }
 
-        // 从 state 中恢复 redirectUri（若 query 未提供则使用回调 URL 自身）
+        // 从 state 中恢复 redirectUri（若 query 未提供则使用回调 URL 自身）。
+        // 必须使用配置中的 PublicBaseUrl，禁止直接信任 Request.Host，
+        // 否则反向代理未设置 ForwardedHost 时攻击者可构造 Host: evil.com 注入开放重定向（P1-15）。
+        // 仅在开发环境且 PublicBaseUrl 未配置时回退到 Request.Host，便于本地调试。
         if (string.IsNullOrWhiteSpace(redirectUri))
         {
-            redirectUri = $"{Request.Scheme}://{Request.Host}/api/auth/oauth/{provider}/callback";
+            var configuredBase = _oauth2Options.PublicBaseUrl;
+            if (!string.IsNullOrWhiteSpace(configuredBase))
+            {
+                redirectUri = $"{configuredBase.TrimEnd('/')}/api/auth/oauth/{provider}/callback";
+            }
+            else
+            {
+                if (!_environment.IsDevelopment())
+                {
+                    throw new InvalidOperationException(
+                        "OAuth2:PublicBaseUrl 配置缺失，生产环境禁止使用 Request.Host 构造回调 URL（Host Header 注入风险，参见 P1-15）");
+                }
+
+                redirectUri = $"{Request.Scheme}://{Request.Host}/api/auth/oauth/{provider}/callback";
+            }
         }
 
         var token = await _userAppService.HandleOAuthCallbackAsync(provider, code, state, redirectUri, ct);
