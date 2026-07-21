@@ -44,6 +44,10 @@ public sealed partial class TemplateRenderer : ITemplateRenderer, ITemplateRende
         ArgumentNullException.ThrowIfNull(notificationTemplate);
         ArgumentNullException.ThrowIfNull(variables);
 
+        // P1-31：同步 Render 方法也校验必填变量，与 RenderAsync 行为一致，
+        // 必填变量缺失时抛 NotificationDomainException 而非保留 {{var}} 占位符静默发送。
+        ValidateRequiredVariables(notificationTemplate, variables);
+
         var title = RenderTemplate(notificationTemplate.Subject, variables, escapeHtml: false);
         var content = RenderTemplate(notificationTemplate.Body, variables, escapeHtml: true);
         return (title, content);
