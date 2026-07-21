@@ -436,6 +436,10 @@ public sealed class UserAppService : IUserAppService
         // 发布领域事件
         user.PublishForgotPasswordRequested(resetToken);
 
+        // 显式 Attach 聚合变更，确保 EF ChangeTracker 与领域事件 Outbox 收集。
+        // 若 BaseDbContext/UoW 对未显式 Attach 的实体在 SaveChanges 时跳过领域事件收集，
+        // ForgotPasswordRequestedEvent 将丢失，导致重置邮件不发送。
+        await _userRepository.UpdateAsync(user, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
 

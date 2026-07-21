@@ -361,6 +361,47 @@ public class UserAppServiceTests
 
     #endregion
 
+    #region ForgotPasswordAsync
+
+    [Fact]
+    public async Task ForgotPasswordAsync_Should_Call_UpdateAsync_Before_SaveEntitiesAsync()
+    {
+        // Arrange
+        var user = User.Create(
+            Guid.NewGuid(),
+            "alice",
+            "alice@example.com",
+            "+8613800138000",
+            _hasherMock.Object.Hash("Password123"),
+            "Alice");
+        _userRepoMock.Setup(r => r.GetByEmailAsync("alice@example.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+        // FindByAccountAsync 路由 GetByEmailAsync 已 mock；StringSetAsync 返回默认值即可
+        _databaseMock.Setup(d => d.StringSetAsync(
+            It.IsAny<RedisKey>(),
+            It.IsAny<RedisValue>(),
+            It.IsAny<TimeSpan?>(),
+            It.IsAny<bool>(),
+            It.IsAny<CommandFlags>()))
+            .ReturnsAsync(true);
+
+        var callOrder = new List<string>();
+        _userRepoMock.Setup(r => r.UpdateAsync(user, It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("UpdateAsync"))
+            .Returns(Task.CompletedTask);
+        _uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("SaveEntitiesAsync"))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _sut.ForgotPasswordAsync(new ForgotPasswordDto { Account = "alice@example.com" }, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(new[] { "UpdateAsync", "SaveEntitiesAsync" }, callOrder);
+    }
+
+    #endregion
+
     #region HandleOAuthCallbackAsync
 
     [Fact]
