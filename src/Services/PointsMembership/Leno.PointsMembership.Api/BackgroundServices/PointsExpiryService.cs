@@ -36,11 +36,14 @@ public sealed class PointsExpiryService : BackgroundService
         _logger.LogInformation("PointsExpiryService 启动，扫描间隔 {Interval}，过期阈值 {Months} 个月",
             ScanInterval, _options.ExpiryMonths);
 
+        // PM-L01 修复：异常后采用指数退避（1min/5min/30min/1h），正常执行后恢复 24h 扫描间隔
+        var failureCount = 0;
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 await ProcessExpiredPointsAsync(stoppingToken);
+                failureCount = 0;
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -48,12 +51,28 @@ public sealed class PointsExpiryService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "积分过期处理异常");
+                failureCount++;
+                _logger.LogError(ex,
+                    "积分过期处理异常，连续失败 {FailureCount} 次，将在 {Delay} 后重试",
+                    failureCount, ComputeBackoffDelay(failureCount));
             }
 
-            await Task.Delay(ScanInterval, stoppingToken);
+            var delay = failureCount > 0 ? ComputeBackoffDelay(failureCount) : ScanInterval;
+            await Task.Delay(delay, stoppingToken);
         }
     }
+
+    /// <summary>
+    /// PM-L01 修复：根据连续失败次数计算指数退避延迟。
+    /// 第 1 次：1 分钟；第 2 次：5 分钟；第 3 次：30 分钟；第 4 次及以上：1 小时。
+    /// </summary>
+    private static TimeSpan ComputeBackoffDelay(int failureCount) => failureCount switch
+    {
+        1 => TimeSpan.FromMinutes(1),
+        2 => TimeSpan.FromMinutes(5),
+        3 => TimeSpan.FromMinutes(30),
+        _ => TimeSpan.FromHours(1)
+    };
 
     private async Task ProcessExpiredPointsAsync(CancellationToken ct)
     {
