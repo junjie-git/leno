@@ -11,8 +11,8 @@ using Leno.UserAuth.Domain.Services;
 using Leno.UserAuth.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Moq;
-using StackExchange.Redis;
 
 namespace Leno.UserAuth.Application.Tests;
 
@@ -29,8 +29,9 @@ public class UserAppServiceTests
     private readonly Mock<IValidator<LoginDto>> _loginValidatorMock = new();
     private readonly Mock<IValidator<UpdateProfileDto>> _updateProfileValidatorMock = new();
     private readonly Mock<IValidator<ChangePasswordDto>> _changePasswordValidatorMock = new();
-    private readonly Mock<IConnectionMultiplexer> _redisMock = new();
-    private readonly Mock<IDatabase> _databaseMock = new();
+    private readonly Mock<IOAuthStateStore> _oauthStateStoreMock = new();
+    private readonly Mock<ITwoFactorTempTokenStore> _twoFactorTempTokenStoreMock = new();
+    private readonly Mock<IPasswordResetTokenStore> _passwordResetTokenStoreMock = new();
     private readonly UserAppService _sut;
 
     public UserAppServiceTests()
@@ -55,7 +56,14 @@ public class UserAppServiceTests
         _changePasswordValidatorMock.Setup(v => v.ValidateAsync(It.IsAny<ChangePasswordDto>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ValidationResult());
 
-        _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(_databaseMock.Object);
+        // 2FA 临时令牌存储默认返回一个固定令牌，便于登录 2FA 路径测试
+        _twoFactorTempTokenStoreMock
+            .Setup(s => s.IssueAsync(It.IsAny<Guid>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("temp-token");
+        // 密码重置令牌存储默认返回一个固定令牌
+        _passwordResetTokenStoreMock
+            .Setup(s => s.IssueAsync(It.IsAny<Guid>(), It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("reset-token");
 
         _sut = new UserAppService(
             _userRepoMock.Object,
@@ -64,13 +72,17 @@ public class UserAppServiceTests
             _tokenMock.Object,
             _tokenVerifierMock.Object,
             _refreshTokenMock.Object,
+            Mock.Of<IJwtRevocationService>(),
             _uowMock.Object,
             _registerValidatorMock.Object,
             _loginValidatorMock.Object,
             _updateProfileValidatorMock.Object,
             _changePasswordValidatorMock.Object,
             Array.Empty<IExternalAuthService>(),
-            _redisMock.Object);
+            _oauthStateStoreMock.Object,
+            _twoFactorTempTokenStoreMock.Object,
+            _passwordResetTokenStoreMock.Object,
+            Options.Create(new OAuth2Options()));
     }
 
     #region RegisterAsync
@@ -477,14 +489,7 @@ public class UserAppServiceTests
             "Alice");
         _userRepoMock.Setup(r => r.GetByEmailAsync("alice@example.com", It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
-        // FindByAccountAsync 路由 GetByEmailAsync 已 mock；StringSetAsync 返回默认值即可
-        _databaseMock.Setup(d => d.StringSetAsync(
-            It.IsAny<RedisKey>(),
-            It.IsAny<RedisValue>(),
-            It.IsAny<TimeSpan?>(),
-            It.IsAny<bool>(),
-            It.IsAny<CommandFlags>()))
-            .ReturnsAsync(true);
+        // 密码重置令牌由存储抽象签发，默认 mock 已返回 "reset-token"
 
         var callOrder = new List<string>();
         _userRepoMock.Setup(r => r.UpdateAsync(user, It.IsAny<CancellationToken>()))
@@ -531,9 +536,9 @@ public class UserAppServiceTests
             .Setup(r => r.GetByEmailAsync("victim@example.com", It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingUser);
 
-        _databaseMock
-            .Setup(d => d.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync((RedisValue)"google|https://app.leno.com/callback");
+        _oauthStateStoreMock
+            .Setup(s => s.ConsumeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OAuthStateData("google", "https://app.leno.com/callback"));
 
         var authServiceMock = new Mock<IExternalAuthService>();
         authServiceMock.SetupGet(s => s.Provider).Returns("google");
@@ -569,9 +574,9 @@ public class UserAppServiceTests
                 return true;
             });
 
-        _databaseMock
-            .Setup(d => d.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync((RedisValue)"google|https://app.leno.com/callback");
+        _oauthStateStoreMock
+            .Setup(s => s.ConsumeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OAuthStateData("google", "https://app.leno.com/callback"));
 
         var authServiceMock = new Mock<IExternalAuthService>();
         authServiceMock.SetupGet(s => s.Provider).Returns("google");
@@ -598,8 +603,9 @@ public class UserAppServiceTests
     public async Task HandleOAuthCallbackAsync_Should_Reject_When_State_Provider_Mismatch_Callback_Provider()
     {
         // Arrange：state 中存 google，但回调 provider=wechat
-        _databaseMock.Setup(r => r.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync((RedisValue)"google|https://app.leno.com/cb");
+        _oauthStateStoreMock
+            .Setup(s => s.ConsumeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OAuthStateData("google", "https://app.leno.com/cb"));
 
         var service = BuildUserAppService();
 
@@ -612,24 +618,28 @@ public class UserAppServiceTests
     [Fact]
     public async Task HandleOAuthCallbackAsync_Should_Reject_When_State_Parts_Length_Not_Two()
     {
-        // Arrange：state 中无 redirectUri（只有 provider，无分隔符或只 1 段）
-        _databaseMock.Setup(r => r.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync((RedisValue)"google");
+        // Arrange：state 数据格式无效（仅 provider 无分隔符）。
+        // 新设计中 state 解析由 RedisOAuthStateStore.ConsumeAsync 内部完成，
+        // 解析失败返回 null，UserAppService 看到 null 抛 OAUTH_STATE_EXPIRED。
+        _oauthStateStoreMock
+            .Setup(s => s.ConsumeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OAuthStateData?)null);
 
         var service = BuildUserAppService();
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<UserAuthDomainException>(() =>
             service.HandleOAuthCallbackAsync("google", "code", "state", "https://app.leno.com/cb", CancellationToken.None));
-        Assert.Equal("OAUTH_STATE_INVALID", ex.ErrorCode);
+        Assert.Equal("OAUTH_STATE_EXPIRED", ex.ErrorCode);
     }
 
     [Fact]
     public async Task HandleOAuthCallbackAsync_Should_Reject_When_State_RedirectUri_Mismatch()
     {
         // Arrange：state 中 redirectUri 与回调不一致
-        _databaseMock.Setup(r => r.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync((RedisValue)"google|https://app.leno.com/original-cb");
+        _oauthStateStoreMock
+            .Setup(s => s.ConsumeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OAuthStateData("google", "https://app.leno.com/original-cb"));
 
         var service = BuildUserAppService();
 
@@ -684,8 +694,9 @@ public class UserAppServiceTests
             _hasherMock.Object.Hash("OldPassword1"),
             "Alice");
         var token = "reset-token";
-        _databaseMock.Setup(r => r.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync((RedisValue)user.Id.ToString());
+        _passwordResetTokenStoreMock
+            .Setup(s => s.ValidateAndConsumeAsync(token, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user.Id);
         _userRepoMock.Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
@@ -707,13 +718,17 @@ public class UserAppServiceTests
             _tokenMock.Object,
             _tokenVerifierMock.Object,
             _refreshTokenMock.Object,
+            Mock.Of<IJwtRevocationService>(),
             _uowMock.Object,
             _registerValidatorMock.Object,
             _loginValidatorMock.Object,
             _updateProfileValidatorMock.Object,
             _changePasswordValidatorMock.Object,
             externalAuthServices,
-            _redisMock.Object);
+            _oauthStateStoreMock.Object,
+            _twoFactorTempTokenStoreMock.Object,
+            _passwordResetTokenStoreMock.Object,
+            Options.Create(new OAuth2Options()));
     }
 
     private static User CreateUser()

@@ -11,7 +11,6 @@ using Leno.UserAuth.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using StackExchange.Redis;
 
 namespace Leno.UserAuth.Application.Services;
 
@@ -43,7 +42,9 @@ public sealed class UserAppService : IUserAppService
     private readonly IValidator<UpdateProfileDto> _updateProfileValidator;
     private readonly IValidator<ChangePasswordDto> _changePasswordValidator;
     private readonly IEnumerable<IExternalAuthService> _externalAuthServices;
-    private readonly IDatabase _redis;
+    private readonly IOAuthStateStore _oauthStateStore;
+    private readonly ITwoFactorTempTokenStore _twoFactorTempTokenStore;
+    private readonly IPasswordResetTokenStore _passwordResetTokenStore;
     private readonly OAuth2Options _oauth2Options;
 
     public UserAppService(
@@ -60,7 +61,9 @@ public sealed class UserAppService : IUserAppService
         IValidator<UpdateProfileDto> updateProfileValidator,
         IValidator<ChangePasswordDto> changePasswordValidator,
         IEnumerable<IExternalAuthService> externalAuthServices,
-        IConnectionMultiplexer connectionMultiplexer,
+        IOAuthStateStore oauthStateStore,
+        ITwoFactorTempTokenStore twoFactorTempTokenStore,
+        IPasswordResetTokenStore passwordResetTokenStore,
         IOptions<OAuth2Options> oauth2Options)
     {
         _userRepository = userRepository;
@@ -76,7 +79,9 @@ public sealed class UserAppService : IUserAppService
         _updateProfileValidator = updateProfileValidator;
         _changePasswordValidator = changePasswordValidator;
         _externalAuthServices = externalAuthServices;
-        _redis = connectionMultiplexer.GetDatabase();
+        _oauthStateStore = oauthStateStore;
+        _twoFactorTempTokenStore = twoFactorTempTokenStore;
+        _passwordResetTokenStore = passwordResetTokenStore;
         _oauth2Options = oauth2Options.Value;
     }
 
@@ -274,10 +279,8 @@ public sealed class UserAppService : IUserAppService
         var authService = ResolveAuthService(provider);
         var state = Guid.NewGuid().ToString("N");
 
-        // 存储 state 到 Redis，TTL 5 分钟
-        var redisKey = $"oauth:state:{state}";
-        var redisValue = $"{authService.Provider}|{redirectUri}";
-        await _redis.StringSetAsync(redisKey, redisValue, TimeSpan.FromMinutes(5));
+        // 存储 state 到抽象存储（Redis / 内存皆可），TTL 5 分钟
+        await _oauthStateStore.StoreAsync(state, authService.Provider, redirectUri, TimeSpan.FromMinutes(5), ct);
 
         return authService.GetAuthorizationUrl(state, redirectUri);
     }
@@ -295,35 +298,22 @@ public sealed class UserAppService : IUserAppService
             throw new UserAuthDomainException("State 参数不可为空", "OAUTH_STATE_EMPTY");
         }
 
-        // 校验 state
-        var redisKey = $"oauth:state:{state}";
-        var redisValue = await _redis.StringGetAsync(redisKey);
+        // 校验并消费 state（原子 GETDEL 防止重放）
+        var stateData = await _oauthStateStore.ConsumeAsync(state, ct);
 
-        if (!redisValue.HasValue)
+        if (stateData is null)
         {
             throw new UserAuthDomainException("State 已过期或无效", "OAUTH_STATE_EXPIRED");
         }
 
-        // 删除 state，防止重放
-        await _redis.KeyDeleteAsync(redisKey);
-
-        var parts = redisValue.ToString().Split('|');
-        if (parts.Length != 2)
-        {
-            throw new UserAuthDomainException("State 数据无效", "OAUTH_STATE_INVALID");
-        }
-
-        var stateProvider = parts[0];
-        var stateRedirectUri = parts[1];
-
         // 校验 state 内 provider 与 callback provider 一致，防止跨 OAuth 提供方的 CSRF
-        if (!string.Equals(stateProvider, provider.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(stateData.Provider, provider.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))
         {
             throw new UserAuthDomainException("State 与 provider 不匹配", "OAUTH_STATE_PROVIDER_MISMATCH");
         }
 
         // 校验 state 内 redirectUri 与 callback redirectUri 一致，防止开放重定向
-        if (!string.Equals(stateRedirectUri, redirectUri, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(stateData.RedirectUri, redirectUri, StringComparison.OrdinalIgnoreCase))
         {
             throw new UserAuthDomainException("State 内 redirectUri 与回调不匹配", "OAUTH_REDIRECT_URI_MISMATCH");
         }
@@ -453,24 +443,15 @@ public sealed class UserAppService : IUserAppService
             throw new UserAuthDomainException("验证码不可为空", "USER_2FA_CODE_EMPTY");
         }
 
-        // 从 Redis 验证临时令牌
-        var redisKey = $"2fa:temp:{dto.TempToken}";
-        var redisValue = await _redis.StringGetAsync(redisKey);
+        // 校验并消费临时令牌（原子 GETDEL 防止重放）
+        var userId = await _twoFactorTempTokenStore.ValidateAndConsumeAsync(dto.TempToken, ct);
 
-        if (!redisValue.HasValue)
+        if (!userId.HasValue)
         {
             throw new UserAuthDomainException("临时令牌已过期或无效", "USER_2FA_TEMP_TOKEN_INVALID");
         }
 
-        if (!Guid.TryParse(redisValue.ToString(), out var userId))
-        {
-            throw new UserAuthDomainException("临时令牌数据无效", "USER_2FA_TEMP_TOKEN_INVALID");
-        }
-
-        // 删除临时令牌，防止重放
-        await _redis.KeyDeleteAsync(redisKey);
-
-        var user = await RequireUserAsync(userId, ct);
+        var user = await RequireUserAsync(userId.Value, ct);
 
         if (!user.VerifyTwoFactorCode(dto.Code, _tokenVerifier))
         {
@@ -500,12 +481,8 @@ public sealed class UserAppService : IUserAppService
             return;
         }
 
-        // 生成一次性重置令牌
-        var resetToken = Guid.NewGuid().ToString("N");
-        var redisKey = $"reset:pwd:{resetToken}";
-
-        // 存储到 Redis，10 分钟过期
-        await _redis.StringSetAsync(redisKey, user.Id.ToString(), TimeSpan.FromMinutes(10));
+        // 生成一次性重置令牌（令牌由存储抽象内部生成，TTL 10 分钟）
+        var resetToken = await _passwordResetTokenStore.IssueAsync(user.Id, TimeSpan.FromMinutes(10), ct);
 
         // 发布领域事件
         user.PublishForgotPasswordRequested(resetToken);
@@ -530,24 +507,15 @@ public sealed class UserAppService : IUserAppService
             throw new UserAuthDomainException("新密码不可为空", "USER_NEW_PASSWORD_EMPTY");
         }
 
-        // 从 Redis 获取并删除令牌
-        var redisKey = $"reset:pwd:{dto.Token}";
-        var redisValue = await _redis.StringGetAsync(redisKey);
+        // 校验并消费重置令牌（原子 GETDEL 防止重放）
+        var userId = await _passwordResetTokenStore.ValidateAndConsumeAsync(dto.Token, ct);
 
-        // 删除令牌，防止重复使用
-        await _redis.KeyDeleteAsync(redisKey);
-
-        if (!redisValue.HasValue)
+        if (!userId.HasValue)
         {
             throw new UserAuthDomainException("重置令牌无效或已过期", "USER_RESET_TOKEN_INVALID");
         }
 
-        if (!Guid.TryParse(redisValue.ToString(), out var userId))
-        {
-            throw new UserAuthDomainException("重置令牌数据无效", "USER_RESET_TOKEN_INVALID");
-        }
-
-        var user = await RequireUserAsync(userId, ct);
+        var user = await RequireUserAsync(userId.Value, ct);
 
         if (user.Status == AccountStatus.Disabled)
         {
@@ -591,10 +559,8 @@ public sealed class UserAppService : IUserAppService
 
     private async Task<TokenDto> IssueTwoFactorRequiredTokenAsync(User user, CancellationToken ct)
     {
-        // 生成临时令牌，存储到 Redis（5 分钟过期）
-        var tempToken = Guid.NewGuid().ToString("N");
-        var redisKey = $"2fa:temp:{tempToken}";
-        await _redis.StringSetAsync(redisKey, user.Id.ToString(), TimeSpan.FromMinutes(5));
+        // 生成临时令牌（由存储抽象内部生成，TTL 5 分钟）
+        var tempToken = await _twoFactorTempTokenStore.IssueAsync(user.Id, TimeSpan.FromMinutes(5), ct);
 
         return new TokenDto
         {

@@ -73,6 +73,27 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITokenVerifier, TotpTokenVerifier>();
         RegisterRefreshTokenStore(services, configuration, hostEnvironment);
 
+        // OAuth state / 2FA 临时令牌 / 密码重置令牌 存储抽象（P1-3）
+        // 全部基于 Redis 实现复用 IConnectionMultiplexer 单例；用 AddScoped 以便在请求作用域内复用连接。
+        services.AddScoped<IOAuthStateStore>(sp =>
+        {
+            var multiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
+            var logger = sp.GetRequiredService<ILogger<RedisOAuthStateStore>>();
+            return new RedisOAuthStateStore(multiplexer, logger);
+        });
+        services.AddScoped<ITwoFactorTempTokenStore>(sp =>
+        {
+            var multiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
+            var logger = sp.GetRequiredService<ILogger<RedisTwoFactorTempTokenStore>>();
+            return new RedisTwoFactorTempTokenStore(multiplexer, logger);
+        });
+        services.AddScoped<IPasswordResetTokenStore>(sp =>
+        {
+            var multiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
+            var logger = sp.GetRequiredService<ILogger<RedisPasswordResetTokenStore>>();
+            return new RedisPasswordResetTokenStore(multiplexer, logger);
+        });
+
         // JWT 黑名单吊销服务：登出时写入 Redis 黑名单（与网关共用 Redis 实例与 Key 格式）
         services.AddScoped<IJwtRevocationService, JwtRevocationService>();
 
