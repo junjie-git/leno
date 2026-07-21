@@ -1,7 +1,7 @@
 # ADR-0007: Guid→string 迁移策略
 
 ## 状态
-已接受（2026-07-19，工作流 D 决策）
+已接受（2026-07-19，工作流 D 决策；2026-07-22 P1-T27 补充 int64 字段映射策略）
 
 ## 上下文
 ADR-0006 记录的 POC 阶段 `Guid → int64` 简化（`GetHashCode`）存在数据完整性问题，
@@ -27,6 +27,7 @@ ADR-0006 记录的 POC 阶段 `Guid → int64` 简化（`GetHashCode`）存在�
 - **GrpcService（服务端）**：双写 `int64` + `string` 字段（保证旧客户端兼容）
 - **GrpcClient（客户端）**：优先读 `string` 字段，回退到 `int64`（兼容旧服务端）
 - **迁移路径**：客户端逐步升级到读 `string`，最终所有客户端都读 `string` 后，下版 .proto 可删除 `int64` 字段
+- **int64 字段映射策略（P1-T27，2026-07-22）**：迁移期间保留的 `int64` 字段不再使用 `(long)Guid.GetHashCode()` 映射（32 位 int 转 long，2^32 碰撞率），改用 `BitConverter.ToInt64(Guid.ToByteArray(), 0)` 取 Guid 前 8 字节作为 long。虽然 2^64 仍存在极小概率碰撞，但远低于 GetHashCode 的 2^32，且仅作为 string 字段迁移完成前的向后兼容兜底。新增客户端必须读 `string` 字段，不得依赖 int64 字段的唯一性
 
 ## 后果
 

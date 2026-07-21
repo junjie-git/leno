@@ -76,7 +76,10 @@ public sealed class OrderGrpcService : OrderInternalService.OrderInternalService
 
         return new GetOrderSellerIdResponse
         {
-            SellerId = (long)sellerId.GetHashCode(), // 保留 POC 简化映射（双轨向后兼容）
+            // P1-T27：原 (long)GetHashCode() 是 32 位 int 转 long，2^32 哈希碰撞率不可接受。
+            // 改用 BitConverter.ToInt64(sellerId.ToByteArray(), 0) 取 Guid 前 8 字节作为 long，
+            // 碰撞率降至 2^64，远低于 GetHashCode 的 2^32，作为 string 字段迁移完成前的向后兼容兜底。
+            SellerId = BitConverter.ToInt64(sellerId.ToByteArray(), 0),
             SellerIdStr = sellerId.ToString()
         };
     }
@@ -101,10 +104,10 @@ public sealed class OrderGrpcService : OrderInternalService.OrderInternalService
 
         foreach (var item in dto.Items)
         {
-            // 双写：既有 int64 字段（GetHashCode，向后兼容）+ 新增 string 字段（Guid.ToString()）
+            // 双写：int64 字段（P1-T27：BitConverter.ToInt64 取 Guid 前 8 字节）+ string 字段（Guid.ToString()）
             proto.Items.Add(new OrderItem
             {
-                SkuId = (long)item.SkuId.GetHashCode(),
+                SkuId = BitConverter.ToInt64(item.SkuId.ToByteArray(), 0),
                 SkuIdStr = item.SkuId.ToString(),
                 Quantity = item.Quantity
                 // sku_name/sub_total_cents 当前 DTO 未提供，留默认值
