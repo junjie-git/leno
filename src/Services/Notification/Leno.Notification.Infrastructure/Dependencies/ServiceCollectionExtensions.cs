@@ -158,13 +158,15 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(configurator);
 
+        // 仅注册按 BC 拆分的专用 Consumer。
+        // 删除 NotificationEventConsumer 的注册：它与各专用 Consumer 实现相同的 IConsumer<T> 接口，
+        // 全部注册后每条集成事件会被两个队列各消费一次（重复订阅 P0 问题）。
         configurator.AddConsumer<UserEventConsumer>();
         configurator.AddConsumer<OrderEventConsumer>();
         configurator.AddConsumer<PaymentEventConsumer>();
         configurator.AddConsumer<PromotionEventConsumer>();
         configurator.AddConsumer<PointsEventConsumer>();
         configurator.AddConsumer<AfterSalesEventConsumer>();
-        configurator.AddConsumer<NotificationEventConsumer>();
 
         return configurator;
     }

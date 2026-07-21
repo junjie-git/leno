@@ -11,6 +11,13 @@ namespace Leno.Notification.Infrastructure.Consumers;
 /// 统一通知事件消费者，处理所有 12 种集成事件，将其映射为通知发送请求。
 /// await 通知发送完成，异常冒泡到 MassTransit 触发重试；变量补全失败或缺少映射时不阻塞队列。
 /// </summary>
+/// <remarks>
+/// [Obsolete] 该消费者已从 DI 注册中移除（P0-3 修复），不应再注册或使用。
+/// 各 BC 已有专用 Consumer（OrderEventConsumer/UserEventConsumer 等）处理对应事件，
+/// 同时注册本类会导致每条集成事件被消费两次（重复订阅）。
+/// 保留类本身仅为兼容既有测试，新代码请使用专用 Consumer。
+/// </remarks>
+[Obsolete("已从 AddNotificationConsumers 中移除注册，使用各 BC 专用 Consumer 替代。详见 P0-3 修复。")]
 public sealed class NotificationEventConsumer :
     IConsumer<OrderCreatedEvent>,
     IConsumer<OrderShippedEvent>,
