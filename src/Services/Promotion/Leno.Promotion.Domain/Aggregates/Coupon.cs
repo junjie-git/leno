@@ -193,6 +193,11 @@ public sealed class Coupon : AggregateRoot
                 "COUPON_QTY_EXCEED");
         }
 
+        if ((long)IssuedQty + quantity > int.MaxValue)
+        {
+            throw new PromotionDomainException("发放数量溢出", "COUPON_QTY_OVERFLOW");
+        }
+
         IssuedQty += quantity;
     }
 
