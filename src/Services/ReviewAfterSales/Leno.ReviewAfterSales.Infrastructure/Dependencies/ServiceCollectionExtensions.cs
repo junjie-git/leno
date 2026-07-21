@@ -168,7 +168,8 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(configurator);
 
-        configurator.AddConsumer<OrderCompletedEventConsumer>();
+        // 审计 4.1：OrderCompletedEventConsumer 仅打日志无副作用，评价资格校验在提交时通过订单域防腐层执行，
+        // 死消费者徒增事件总线负担，已删除。
         configurator.AddConsumer<RefundSucceededEventConsumer>();
         configurator.AddConsumer<RefundFailedEventConsumer>();
         configurator.AddConsumer<ReviewReadModelSyncConsumer>();
