@@ -67,9 +67,10 @@ public sealed class DeadLetterAppService : IDeadLetterAppService
 
         foreach (var recordId in request.RecordIds)
         {
+            NotificationRecord? record = null;
             try
             {
-                var record = await _recordRepository.GetByIdAsync(recordId, ct);
+                record = await _recordRepository.GetByIdAsync(recordId, ct);
                 if (record is null)
                 {
                     result.FailureCount++;
@@ -91,9 +92,10 @@ public sealed class DeadLetterAppService : IDeadLetterAppService
                     continue;
                 }
 
-                // 重发：重置死信状态并重新发送
-                record.MarkResend();
+                // P1-23：先构建发送请求，再 MarkResend，避免 BuildChannelSendRequestAsync 抛异常时
+                // 记录已被置为 Sending 而后续无 Job 拾取导致永久卡死。
                 var sendRequest = await BuildChannelSendRequestAsync(record, ct);
+                record.MarkResend();
                 var sendResult = await sender.SendAsync(sendRequest, ct);
                 if (sendResult.Succeeded)
                 {
@@ -112,6 +114,14 @@ public sealed class DeadLetterAppService : IDeadLetterAppService
             }
             catch (Exception ex)
             {
+                // P1-23：异常时若记录已 MarkResend（Sending 状态），回退到 DeadLettered，
+                // 避免记录卡死在 Sending（无 Job 拾取）。MoveToDeadLetter 对 DeadLettered/Sending 均安全。
+                if (record is not null && record.Status == NotificationStatus.Sending)
+                {
+                    record.MoveToDeadLetter("重发失败");
+                    await _recordRepository.UpdateAsync(record, ct);
+                }
+
                 result.FailureCount++;
                 result.Errors.Add($"记录 {recordId} 重发异常：{ex.Message}");
                 _logger.LogError(ex, "手工重发死信异常 RecordId={RecordId} OperatorId={OperatorId}", recordId, operatorId);

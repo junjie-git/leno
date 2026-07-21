@@ -213,6 +213,8 @@ public sealed class NotificationRecord : AggregateRoot
 
     /// <summary>
     /// 移入死信队列。Retried → DeadLettered（终态）。
+    /// 此外允许 Sending → DeadLettered，用于 DeadLetterAppService.BatchResendAsync
+    /// 在 MarkResend 后渠道发送异常时回退状态，避免记录卡死在 Sending（无 Job 拾取）。
     /// </summary>
     public void MoveToDeadLetter(string reason)
     {
@@ -221,10 +223,10 @@ public sealed class NotificationRecord : AggregateRoot
             return;
         }
 
-        if (Status != NotificationStatus.Retried)
+        if (Status != NotificationStatus.Retried && Status != NotificationStatus.Sending)
         {
             throw new NotificationDomainException(
-                $"当前状态 {Status} 不可移入死信，仅 Retried 状态可转入 DeadLettered", "NOTIFICATION_DEAD_LETTER_STATUS_INVALID");
+                $"当前状态 {Status} 不可移入死信，仅 Retried 或 Sending 状态可转入 DeadLettered", "NOTIFICATION_DEAD_LETTER_STATUS_INVALID");
         }
 
         Status = NotificationStatus.DeadLettered;
