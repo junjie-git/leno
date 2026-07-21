@@ -21,6 +21,7 @@ public sealed class NotificationService : INotificationService
     private readonly IUserContactService _userContactService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IRateLimiter? _rateLimiter;
+    private readonly INotificationPreferenceRepository? _preferenceRepository;
     private readonly ILogger<NotificationService> _logger;
 
     public NotificationService(
@@ -31,7 +32,8 @@ public sealed class NotificationService : INotificationService
         IUserContactService userContactService,
         IUnitOfWork unitOfWork,
         ILogger<NotificationService> logger,
-        IRateLimiter? rateLimiter = null)
+        IRateLimiter? rateLimiter = null,
+        INotificationPreferenceRepository? preferenceRepository = null)
     {
         ArgumentNullException.ThrowIfNull(templateRepository);
         ArgumentNullException.ThrowIfNull(recordRepository);
@@ -48,6 +50,7 @@ public sealed class NotificationService : INotificationService
         _unitOfWork = unitOfWork;
         _logger = logger;
         _rateLimiter = rateLimiter;
+        _preferenceRepository = preferenceRepository;
     }
 
     /// <inheritdoc />
@@ -81,6 +84,30 @@ public sealed class NotificationService : INotificationService
                 ErrorCode = "TEMPLATE_NOT_FOUND",
                 ErrorMessage = $"模板 {request.TemplateCode} 不存在或未启用"
             };
+        }
+
+        // P1-38：查询用户通知偏好并按偏好过滤渠道。
+        // 用户设置"不接收短信"后，模板渠道为 Sms 的通知不触发短信渠道。
+        // preferenceRepository 为可选依赖（向后兼容测试），未注入时跳过偏好过滤。
+        if (_preferenceRepository is not null)
+        {
+            var preference = await _preferenceRepository.GetByUserIdAsync(request.UserId, ct);
+            if (preference is not null && preference.Status == PreferenceStatus.Active)
+            {
+                var allowedChannels = preference.GetChannels(request.TemplateCode);
+                if (!allowedChannels.Contains(template.Channel))
+                {
+                    _logger.LogInformation(
+                        "用户偏好过滤渠道 UserId={UserId} TemplateCode={Code} Channel={Channel}",
+                        request.UserId, request.TemplateCode, template.Channel);
+                    return new NotificationSendResult
+                    {
+                        Succeeded = false,
+                        ErrorCode = "PREFERENCE_FILTERED",
+                        ErrorMessage = $"用户偏好设置不允许 {template.Channel} 渠道"
+                    };
+                }
+            }
         }
 
         // 3. Template rendering
