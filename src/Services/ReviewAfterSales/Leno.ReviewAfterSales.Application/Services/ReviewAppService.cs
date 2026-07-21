@@ -39,11 +39,13 @@ public sealed class ReviewAppService : IReviewAppService
     /// <inheritdoc />
     public async Task<ReviewDto> SubmitReviewAsync(Guid userId, SubmitReviewDto dto, CancellationToken ct = default)
     {
-        await _eligibilityChecker.EnsureEligibleAsync(dto.OrderId, dto.OrderLineId, userId, ct);
+        // 资格校验器查询订单域并校验申请人归属与订单行存在性，返回携带真实 SpuId/SkuId 的订单行概要。
+        // 忽略 dto.SpuId/dto.SkuId（客户端可伪造），仅使用订单域返回的真实商品标识创建评价。
+        var lineItem = await _eligibilityChecker.EnsureEligibleAsync(dto.OrderId, dto.OrderLineId, userId, ct);
 
         var reviewId = Guid.NewGuid();
         var review = ReviewAggregate.Create(
-            reviewId, dto.OrderId, dto.OrderLineId, dto.SpuId, dto.SkuId,
+            reviewId, dto.OrderId, dto.OrderLineId, lineItem.SpuId, lineItem.SkuId,
             userId, dto.Rating, dto.Content, dto.Images);
 
         await _reviewRepository.AddAsync(review, ct);

@@ -33,7 +33,7 @@ public sealed class ReviewEligibilityChecker : IReviewEligibilityChecker
     }
 
     /// <inheritdoc />
-    public async Task EnsureEligibleAsync(Guid orderId, Guid orderLineId, Guid userId, CancellationToken ct = default)
+    public async Task<OrderItemStatusInfo> EnsureEligibleAsync(Guid orderId, Guid orderLineId, Guid userId, CancellationToken ct = default)
     {
         var order = await _orderStatusProvider.GetOrderStatusAsync(orderId, ct)
             .ConfigureAwait(false);
@@ -59,10 +59,18 @@ public sealed class ReviewEligibilityChecker : IReviewEligibilityChecker
             throw new ReviewDomainException("评价已超过期限", "REVIEW_WINDOW_EXPIRED");
         }
 
+        var lineItem = order.Items.FirstOrDefault(i => i.OrderLineId == orderLineId);
+        if (lineItem is null)
+        {
+            throw new ReviewDomainException("订单行不存在", "REVIEW_ORDER_LINE_NOT_FOUND");
+        }
+
         var exists = await _reviewRepository.ExistsByOrderLineAsync(orderLineId, ct);
         if (exists)
         {
             throw new ReviewDomainException("该订单行已评价", "REVIEW_DUPLICATE");
         }
+
+        return lineItem;
     }
 }

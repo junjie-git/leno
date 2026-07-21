@@ -77,6 +77,7 @@ public sealed class HttpOrderStatusProvider : AntiCorruptionBase, IOrderStatusPr
         {
             OrderLineId = i.OrderLineId,
             SkuId = i.SkuId,
+            SpuId = i.SpuId,
             Quantity = i.Quantity,
             AfterSalesStatus = i.AfterSalesStatus
         }).ToList()
@@ -108,6 +109,7 @@ public sealed class HttpOrderStatusProvider : AntiCorruptionBase, IOrderStatusPr
     {
         public Guid OrderLineId { get; set; }
         public Guid SkuId { get; set; }
+        public Guid SpuId { get; set; }
         public int Quantity { get; set; }
         public int AfterSalesStatus { get; set; }
     }

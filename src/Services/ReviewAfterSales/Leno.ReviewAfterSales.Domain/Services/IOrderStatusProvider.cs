@@ -32,6 +32,8 @@ public sealed class OrderItemStatusInfo
 {
     public Guid OrderLineId { get; init; }
     public Guid SkuId { get; init; }
+    /// <summary>SPU 标识，由订单域防腐层查询填充，用于防止客户端伪造 SpuId。</summary>
+    public Guid SpuId { get; init; }
     public int Quantity { get; init; }
     public int AfterSalesStatus { get; init; }
 }

@@ -83,6 +83,8 @@ public sealed class GrpcOrderStatusProvider
                 OrderLineId = Guid.Empty,
                 // M4 Guid→string 迁移：优先读 sku_id_str，回退到 Guid.Empty（POC 阶段 int64→Guid 不可逆）
                 SkuId = !string.IsNullOrEmpty(item.SkuIdStr) ? Guid.Parse(item.SkuIdStr) : Guid.Empty,
+                // 注：proto OrderItem 无 spu_id 字段，POC 简化为 Guid.Empty
+                SpuId = Guid.Empty,
                 Quantity = item.Quantity,
                 AfterSalesStatus = 0  // proto 未提供
             });

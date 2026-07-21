@@ -42,12 +42,20 @@ public class ReviewAppServiceTests
     [Fact]
     public async Task SubmitReviewAsync_Valid_ShouldCreateReviewAndSave()
     {
+        // P0-2.2: EnsureEligibleAsync 返回携带真实 SpuId/SkuId 的订单行概要，
+        // 应用层使用订单域返回的商品标识创建评价，忽略 dto 中的 SpuId/SkuId。
+        _eligibilityMock
+            .Setup(e => e.EnsureEligibleAsync(OrderId, OrderLineId, UserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OrderItemStatusInfo { OrderLineId = OrderLineId, SkuId = SkuId, SpuId = SpuId, Quantity = 1 });
+
         var dto = BuildSubmitDto();
 
         var result = await _sut.SubmitReviewAsync(UserId, dto);
 
         result.ReviewId.Should().NotBe(Guid.Empty);
         result.OrderId.Should().Be(OrderId);
+        result.SpuId.Should().Be(SpuId);
+        result.SkuId.Should().Be(SkuId);
         result.Rating.Should().Be(5);
         result.Status.Should().Be(ReviewStatus.Pending);
         _eligibilityMock.Verify(e => e.EnsureEligibleAsync(OrderId, OrderLineId, UserId, It.IsAny<CancellationToken>()), Times.Once);
