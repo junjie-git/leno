@@ -111,9 +111,10 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
             groupItemsAmount += orderItem.Subtotal;
         }
 
-        // 价格防篡改校验
+        // 价格防篡改校验（使用预查的 SkuInfos，避免 N+1）
         var skuPrices = itemSubtotals.Select(s => (s.SkuId, group.SkuInfos[s.SkuId].UnitPrice)).ToList();
-        await _pricingService.ValidatePricesAsync(skuPrices, ct);
+        var skuCurrentPrices = group.SkuInfos.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.UnitPrice);
+        await _pricingService.ValidatePricesAsync(skuPrices, skuCurrentPrices, ct);
 
         // 计算优惠并按 SKU 分摊
         var discount = await _promotionAntiCorruption.CalculateDiscountAsync(userId, itemSubtotals, ct);

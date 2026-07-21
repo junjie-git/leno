@@ -8,10 +8,12 @@ public interface IOrderPricingDomainService
 {
     /// <summary>
     /// 校验下单单价与商品域当前售价一致，不一致抛出领域异常（防篡改）。
+    /// 接收预查的 SKU 当前售价字典，避免 N+1 远程调用。
     /// </summary>
-    /// <param name="skuPrices">SKU 与期望单价列表。</param>
+    /// <param name="skuPrices">SKU 与期望单价列表（由应用层从客户端构建）。</param>
+    /// <param name="skuCurrentPrices">预查的 SKU 当前售价字典（由应用层批量查询后传入，键为 SkuId 值为 UnitPrice）。</param>
     /// <param name="ct">取消令牌。</param>
-    Task ValidatePricesAsync(List<(Guid SkuId, decimal ExpectedPrice)> skuPrices, CancellationToken ct = default);
+    Task ValidatePricesAsync(List<(Guid SkuId, decimal ExpectedPrice)> skuPrices, IReadOnlyDictionary<Guid, decimal> skuCurrentPrices, CancellationToken ct = default);
 
     /// <summary>
     /// 计算优惠总金额按小计比例分摊到各 SKU，返回各 SKU 分摊金额列表。

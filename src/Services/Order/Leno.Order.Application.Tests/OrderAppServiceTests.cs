@@ -323,7 +323,7 @@ public class OrderAppServiceTests
         };
         _productAcMock.Setup(p => p.GetSkuInfoAsync(SkuId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(skuInfo);
-        _pricingServiceMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
+        _pricingServiceMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<IReadOnlyDictionary<Guid, decimal>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _promotionAcMock.Setup(p => p.CalculateDiscountAsync(UserId, It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(0m);
@@ -376,7 +376,7 @@ public class OrderAppServiceTests
         };
         _productAcMock.Setup(p => p.GetSkuInfoAsync(SkuId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(skuInfo);
-        _pricingServiceMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
+        _pricingServiceMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<IReadOnlyDictionary<Guid, decimal>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _promotionAcMock.Setup(p => p.CalculateDiscountAsync(UserId, It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(0m);
@@ -451,7 +451,7 @@ public class OrderAppServiceTests
         };
         _productAcMock.Setup(p => p.GetSkuInfoAsync(SkuId, It.IsAny<CancellationToken>())).ReturnsAsync(skuInfo1);
         _productAcMock.Setup(p => p.GetSkuInfoAsync(skuId2, It.IsAny<CancellationToken>())).ReturnsAsync(skuInfo2);
-        _pricingServiceMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
+        _pricingServiceMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<IReadOnlyDictionary<Guid, decimal>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         // 第一组涉及优惠（discount > 0），补偿时须释放优惠券
         _promotionAcMock.Setup(p => p.CalculateDiscountAsync(UserId, It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))

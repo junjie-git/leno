@@ -18,18 +18,22 @@ public sealed class OrderPricingDomainService : IOrderPricingDomainService
     }
 
     /// <inheritdoc />
-    public async Task ValidatePricesAsync(List<(Guid SkuId, decimal ExpectedPrice)> skuPrices, CancellationToken ct = default)
+    public Task ValidatePricesAsync(List<(Guid SkuId, decimal ExpectedPrice)> skuPrices, IReadOnlyDictionary<Guid, decimal> skuCurrentPrices, CancellationToken ct = default)
     {
         foreach (var (skuId, expectedPrice) in skuPrices)
         {
-            var skuInfo = await _productAntiCorruption.GetSkuInfoAsync(skuId, ct)
-                ?? throw new OrderDomainException($"SKU {skuId} 不存在或已下架", "ORDER_SKU_NOT_FOUND");
+            if (!skuCurrentPrices.TryGetValue(skuId, out var currentPrice))
+            {
+                throw new OrderDomainException($"SKU {skuId} 不存在或已下架", "ORDER_SKU_NOT_FOUND");
+            }
 
-            if (skuInfo.UnitPrice != expectedPrice)
+            if (currentPrice != expectedPrice)
             {
                 throw new OrderDomainException("商品价格已变更，请重新下单", "ORDER_PRICE_CHANGED");
             }
         }
+
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />

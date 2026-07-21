@@ -201,9 +201,10 @@ public sealed class OrderAppService : IOrderAppService
             sellerQuantities[info.SellerId] += ci.Quantity;
         }
 
-        // 价格防篡改校验
+        // 价格防篡改校验（使用预查的 skuCurrentPrices）
         var skuPrices = details.Select(d => (d.SkuId, d.UnitPrice)).ToList();
-        await _pricingService.ValidatePricesAsync(skuPrices, ct);
+        var previewSkuCurrentPrices = details.GroupBy(d => d.SkuId).ToDictionary(g => g.Key, g => g.First().UnitPrice);
+        await _pricingService.ValidatePricesAsync(skuPrices, previewSkuCurrentPrices, ct);
 
         // 按卖家分组计算优惠与运费
         decimal discountAmount = 0;
