@@ -61,9 +61,24 @@ public sealed class EfCorePermissionRepository : IPermissionRepository
     /// <inheritdoc />
     public async Task<IReadOnlyList<Role>> GetRolesByPermissionAsync(string resourceKey, CancellationToken ct = default)
     {
-        // Because permissions are stored as JSON, we load all roles and filter in memory
-        var allRoles = await _context.Roles.AsNoTracking().ToListAsync(ct);
-        return allRoles.Where(r => r.HasPermission(resourceKey)).ToList();
+        if (string.IsNullOrWhiteSpace(resourceKey))
+        {
+            return Array.Empty<Role>();
+        }
+
+        // 权限以 JSON nvarchar(max) 存储（格式 [{"resourceKey":"...","description":"..."},...]）。
+        // 使用 SQL Server OPENJSON 在数据库端解析 JSON 权限列并按 resourceKey 精确过滤，
+        // 避免全表加载后内存反序列化过滤（原实现 P1-4 问题）。
+        // OPENJSON 对 NULL/空数组返回 0 行，无需额外判空。
+        var roles = await _context.Roles
+            .FromSqlInterpolated($@"
+                SELECT r.* FROM roles r
+                CROSS APPLY OPENJSON(r.permissions) WITH (resourceKey nvarchar(256) '$.resourceKey') AS p
+                WHERE p.resourceKey = {resourceKey}")
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        return roles;
     }
 
     /// <inheritdoc />
