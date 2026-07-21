@@ -20,7 +20,7 @@ public sealed class InternalOrdersController : ControllerBase
     }
 
     [HttpGet("internal/v1/orders/{orderId:guid}/status")]
-    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
+    [Obsolete("双路由期保留，将于 2026-08-15 下线；旧路由 internal/orders/{orderId}/status 调用方请切换到 internal/v1/orders/{orderId}/status（统一 v1 前缀），跟踪 issue: order-bc/internal-route-deprecation-2026-08")]
     [HttpGet("internal/orders/{orderId:guid}/status")]
     [ProducesResponseType(typeof(ApiResponse<OrderStatusResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
