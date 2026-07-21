@@ -83,6 +83,15 @@ public static class ServiceCollectionExtensions
         {
             q.UseSimpleTypeLoader();
             q.UseDefaultThreadPool(tp => tp.MaxConcurrency = 10);
+
+            // L-04: DLQ 清理作业，默认每小时执行一次，可通过 DlqCleanup:CronExpression 配置
+            var dlqCleanupCron = configuration["DlqCleanup:CronExpression"] ?? "0 0 * * * ?";
+            var dlqCleanupJobKey = new JobKey("dlq-cleanup", "systemadmin");
+            q.AddJob<DlqCleanupJob>(opts => opts.WithIdentity(dlqCleanupJobKey));
+            q.AddTrigger(opts => opts
+                .ForJob(dlqCleanupJobKey)
+                .WithIdentity("dlq-cleanup-trigger", "systemadmin")
+                .WithCronSchedule(dlqCleanupCron));
         });
         services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 
