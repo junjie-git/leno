@@ -96,6 +96,9 @@ public sealed class Order : AggregateRoot
     /// <summary>取消原因。</summary>
     public string? CancelReason { get; private set; }
 
+    /// <summary>乐观并发控制版本号，由 EF Core 自动生成与校验。</summary>
+    public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
+
     /// <summary>EF Core 无参构造。</summary>
     private Order() { }
 

@@ -41,6 +41,9 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<OrderAggregate
         builder.Property(o => o.CancelledAt).HasColumnName("cancelled_at");
         builder.Property(o => o.CancelReason).HasColumnName("cancel_reason").HasMaxLength(512);
 
+        // 乐观并发控制：RowVersion 由数据库自动生成与校验，并发写入时抛 DbUpdateConcurrencyException
+        builder.Property(o => o.RowVersion).HasColumnName("row_version").IsRowVersion();
+
         builder.Property(o => o.CreatedAt).HasColumnName("created_at");
         builder.Property(o => o.UpdatedAt).HasColumnName("updated_at");
         builder.Property(o => o.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

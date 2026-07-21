@@ -696,6 +696,20 @@ public class OrderTests
     }
 
     #endregion
+
+    #region RowVersion
+
+    [Fact]
+    public void Order_Should_Have_RowVersion_Property_Initialized_Empty()
+    {
+        var order = CreateOrder();
+
+        order.RowVersion.Should().NotBeNull();
+        order.RowVersion.Should().HaveCount(0);
+    }
+
+    #endregion
+
     private static OrderAggregate CreateOrder()
     {
         return OrderAggregate.Create(
