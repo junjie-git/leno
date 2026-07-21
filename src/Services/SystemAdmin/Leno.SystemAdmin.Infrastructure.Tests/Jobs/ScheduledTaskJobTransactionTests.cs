@@ -94,6 +94,70 @@ public sealed class ScheduledTaskJobTransactionTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Execute_When_TaskId_IsNull_Should_LogWarning_And_Return()
+    {
+        var context = CreateJobExecutionContext(null!);
+
+        var job = new ScheduledTaskJob(_serviceProvider);
+        await job.Execute(context);
+
+        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _repoMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        VerifyTaskIdParseWarningLogged();
+    }
+
+    [Fact]
+    public async Task Execute_When_TaskId_IsEmptyString_Should_LogWarning_And_Return()
+    {
+        var context = CreateJobExecutionContext(string.Empty);
+
+        var job = new ScheduledTaskJob(_serviceProvider);
+        await job.Execute(context);
+
+        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _repoMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        VerifyTaskIdParseWarningLogged();
+    }
+
+    [Fact]
+    public async Task Execute_When_TaskId_IsInvalidGuid_Should_LogWarning_And_Return()
+    {
+        var context = CreateJobExecutionContext("not-a-guid");
+
+        var job = new ScheduledTaskJob(_serviceProvider);
+        await job.Execute(context);
+
+        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _repoMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        VerifyTaskIdParseWarningLogged();
+    }
+
+    [Fact]
+    public async Task Execute_When_TaskId_IsEmptyGuid_Should_LogWarning_And_Return()
+    {
+        var context = CreateJobExecutionContext(Guid.Empty.ToString());
+
+        var job = new ScheduledTaskJob(_serviceProvider);
+        await job.Execute(context);
+
+        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _repoMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        VerifyTaskIdParseWarningLogged();
+    }
+
+    private void VerifyTaskIdParseWarningLogged()
+    {
+        _loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("taskId 解析失败", StringComparison.Ordinal)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
     private static IJobExecutionContext CreateJobExecutionContext(string taskId)
     {
         var mock = new Mock<IJobExecutionContext>();

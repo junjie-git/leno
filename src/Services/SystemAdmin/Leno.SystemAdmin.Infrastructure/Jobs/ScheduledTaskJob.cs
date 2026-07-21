@@ -28,16 +28,20 @@ public sealed class ScheduledTaskJob : IJob
     {
         ArgumentNullException.ThrowIfNull(context);
         var ct = context.CancellationToken;
+
+        // 提前从根容器解析 logger（ILogger<T> 为单例），以便在 taskId 解析失败时记录告警日志
+        var logger = _serviceProvider.GetRequiredService<ILogger<ScheduledTaskJob>>();
+
         var taskIdValue = context.MergedJobDataMap.GetString("taskId");
         if (!Guid.TryParse(taskIdValue, out var taskId) || taskId == Guid.Empty)
         {
+            logger.LogWarning("定时任务 taskId 解析失败或为空，跳过执行 JobDataMap={JobDataMap}", taskIdValue);
             return;
         }
 
         await using var scope = _serviceProvider.CreateAsyncScope();
         var repository = scope.ServiceProvider.GetRequiredService<IScheduledTaskRepository>();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<ScheduledTaskJob>>();
 
         var task = await repository.GetByIdAsync(taskId, ct);
         if (task is null)
