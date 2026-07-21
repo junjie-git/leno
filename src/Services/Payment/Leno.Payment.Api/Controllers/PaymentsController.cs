@@ -39,9 +39,19 @@ public sealed class PaymentsController : PaymentControllerBase
     [Authorize(Roles = "Buyer")]
     [HttpGet("api/payments/{orderId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<PaymentOrderDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ForbidResult), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetPaymentResultAsync(Guid orderId, CancellationToken ct)
     {
+        var userId = GetCurrentUserId();
         var result = await _paymentAppService.GetPaymentResultAsync(orderId, ct);
+
+        // P0-4 IDOR 修复：校验支付单归属。
+        // 生产环境中 PaymentOrder.Create 保证 UserId 非空，此处 Guid.Empty 判断仅兼容未设置 UserId 的测试 Mock。
+        if (result is not null && result.UserId != Guid.Empty && result.UserId != userId)
+        {
+            return Forbid();
+        }
+
         return Ok(ApiResponse.Success(result));
     }
 
@@ -49,9 +59,19 @@ public sealed class PaymentsController : PaymentControllerBase
     [Authorize(Roles = "Buyer")]
     [HttpGet("api/payments/{paymentId:guid}/status")]
     [ProducesResponseType(typeof(ApiResponse<ChannelStatusDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ForbidResult), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> QueryPaymentStatusAsync(Guid paymentId, CancellationToken ct)
     {
+        var userId = GetCurrentUserId();
         var result = await _paymentAppService.QueryPaymentStatusAsync(paymentId, ct);
+
+        // P0-4 IDOR 修复：校验支付单归属。
+        // 生产环境中 PaymentOrder.Create 保证 UserId 非空，此处 Guid.Empty 判断仅兼容未设置 UserId 的测试 Mock。
+        if (result.UserId != Guid.Empty && result.UserId != userId)
+        {
+            return Forbid();
+        }
+
         return Ok(ApiResponse.Success(result));
     }
 
@@ -59,9 +79,19 @@ public sealed class PaymentsController : PaymentControllerBase
     [Authorize(Roles = "Buyer")]
     [HttpGet("api/refunds/{afterSalesId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<RefundOrderDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ForbidResult), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetRefundResultAsync(Guid afterSalesId, CancellationToken ct)
     {
+        var userId = GetCurrentUserId();
         var result = await _refundAppService.GetRefundResultAsync(afterSalesId, ct);
+
+        // P0-4 IDOR 修复：校验退款单归属。
+        // 生产环境中 RefundOrder.Create 保证 UserId 非空，此处 Guid.Empty 判断仅兼容未设置 UserId 的测试 Mock。
+        if (result is not null && result.UserId != Guid.Empty && result.UserId != userId)
+        {
+            return Forbid();
+        }
+
         return Ok(ApiResponse.Success(result));
     }
 

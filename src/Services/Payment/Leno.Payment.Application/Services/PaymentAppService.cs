@@ -54,6 +54,7 @@ public sealed class PaymentAppService : IPaymentAppService
             return new ChannelStatusDto
             {
                 PaymentId = payment.Id,
+                UserId = payment.UserId,
                 IsPaid = payment.Status == PaymentStatus.Paid,
                 ChannelTradeNo = payment.ChannelTradeNo,
                 PaidAt = payment.PaidAt
@@ -74,6 +75,7 @@ public sealed class PaymentAppService : IPaymentAppService
                 return new ChannelStatusDto
                 {
                     PaymentId = payment.Id,
+                    UserId = payment.UserId,
                     IsPaid = false,
                     ChannelTradeNo = result.ChannelTradeNo,
                     PaidAt = result.PaidAt
@@ -90,6 +92,7 @@ public sealed class PaymentAppService : IPaymentAppService
         return new ChannelStatusDto
         {
             PaymentId = payment.Id,
+            UserId = payment.UserId,
             IsPaid = result.IsPaid,
             ChannelTradeNo = result.ChannelTradeNo,
             PaidAt = result.PaidAt

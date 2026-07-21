@@ -76,6 +76,10 @@ public sealed class RefundListResultDto
 public sealed class ChannelStatusDto
 {
     public Guid PaymentId { get; set; }
+
+    /// <summary>支付单所属用户标识，用于买家端接口归属校验（P0-4 IDOR 修复）。</summary>
+    public Guid UserId { get; set; }
+
     public bool IsPaid { get; set; }
     public string? ChannelTradeNo { get; set; }
     public DateTime? PaidAt { get; set; }
