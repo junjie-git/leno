@@ -17,7 +17,6 @@ public sealed class CacheService : ICacheService
     private readonly IConnectionMultiplexer _redis;
     private readonly IBloomFilter _bloomFilter;
     private readonly ILogger<CacheService> _logger;
-    private readonly Random _random;
 
     /// <summary>
     /// 默认缓存过期时间：5 分钟。
@@ -60,7 +59,6 @@ public sealed class CacheService : ICacheService
         _database = connectionMultiplexer.GetDatabase();
         _bloomFilter = bloomFilter;
         _logger = logger;
-        _random = new Random();
     }
 
     public async Task<T?> GetOrSetAsync<T>(
@@ -394,10 +392,12 @@ public sealed class CacheService : ICacheService
 
     /// <summary>
     /// 在原有过期时间上添加 30-120 秒的随机抖动，防止缓存雪崩。
+    /// 使用 <see cref="Random.Shared"/>（.NET 6+ 线程安全零分配全局实例），
+    /// 避免单例 CacheService 中实例字段 Random 的并发竞态。
     /// </summary>
     internal TimeSpan ApplyJitter(TimeSpan baseExpiry)
     {
-        var jitterSeconds = _random.Next((int)JitterMin.TotalSeconds, (int)JitterMax.TotalSeconds + 1);
+        var jitterSeconds = Random.Shared.Next((int)JitterMin.TotalSeconds, (int)JitterMax.TotalSeconds + 1);
         return baseExpiry.Add(TimeSpan.FromSeconds(jitterSeconds));
     }
 }

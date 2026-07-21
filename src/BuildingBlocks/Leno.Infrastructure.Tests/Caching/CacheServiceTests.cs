@@ -4,6 +4,7 @@ using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using StackExchange.Redis;
+using System.Collections.Concurrent;
 
 namespace Leno.Infrastructure.Tests.Caching;
 
@@ -645,5 +646,42 @@ public class CacheServiceTests
             await Task.Yield();
             yield return key;
         }
+    }
+
+    /// <summary>
+    /// P0-T1：ApplyJitter 在高并发调用下不应抛出异常，
+    /// 且 jitter 值应产生多种不同秒数（证明随机性正常，未退化）。
+    /// 使用 Random.Shared 替代实例字段 Random，消除单例并发竞态。
+    /// </summary>
+    [Fact]
+    public void ApplyJitter_ConcurrentCalls_ShouldNotThrow_AndProduceVariedValues()
+    {
+        // Arrange
+        var results = new ConcurrentBag<TimeSpan>();
+        var exceptions = new ConcurrentBag<Exception>();
+        var baseExpiry = TimeSpan.FromMinutes(5);
+
+        // Act — 并发 10000 次调用 ApplyJitter，触发实例字段 Random 的竞态（若存在）
+        Parallel.For(0, 10000, new ParallelOptions { MaxDegreeOfParallelism = 32 }, i =>
+        {
+            try
+            {
+                var jittered = _sut.ApplyJitter(baseExpiry);
+                results.Add(jittered);
+            }
+            catch (Exception ex)
+            {
+                exceptions.Add(ex);
+            }
+        });
+
+        // Assert
+        exceptions.Should().BeEmpty("并发调用 ApplyJitter 不应抛出异常");
+        // 验证 jitter 值分布有变化（不全是同一个值，证明随机性正常）
+        var distinctSeconds = results
+            .Select(r => (int)(r - baseExpiry).TotalSeconds)
+            .Distinct()
+            .Count();
+        distinctSeconds.Should().BeGreaterThan(1, "jitter 随机值应产生多种不同秒数，而非退化");
     }
 }
