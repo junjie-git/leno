@@ -158,11 +158,13 @@ public sealed class AddressAppService : IAddressAppService
 
     private async Task ClearExistingDefaultAsync(Guid userId, CancellationToken ct)
     {
+        // 地址通过 GetActiveByUserIdAsync 加载已纳入 EF 变更跟踪，
+        // 调用 UnmarkDefault() 修改字段后由 UnitOfWork.SaveEntitiesAsync 统一持久化，
+        // 无需在循环内调用 UpdateAsync（P2-10：移除无效 UpdateAsync 避免误导读者以为有 DB 调用）。
         var addresses = await _addressRepository.GetActiveByUserIdAsync(userId, ct);
         foreach (var existing in addresses.Where(a => a.IsDefault))
         {
             existing.UnmarkDefault();
-            await _addressRepository.UpdateAsync(existing, ct);
         }
     }
 
