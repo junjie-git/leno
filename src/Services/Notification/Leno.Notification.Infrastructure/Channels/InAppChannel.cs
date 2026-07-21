@@ -42,9 +42,12 @@ public sealed class InAppChannel : INotificationChannel
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "更新站内信未读计数失败 UserId={UserId}", request.Recipient.UserId);
-            // 站内信 DB 写入已成功，Redis 失败不影响送达
-            return new ChannelSendResult(true, null, null, null);
+            // P1-28：区分"DB 写入成功"与"缓存更新成功"。
+            // 站内信 DB 写入由 NotificationService 在调用本渠道前已完成，Redis 失败不影响送达状态。
+            // 但需通过 ErrorCode="CACHE_SYNC_FAILED" 标记缓存同步失败，便于监控告警与定时重建。
+            // 缓存恢复后可通过 CountByUserAsync(userId, false) 从 DB 重建未读计数。
+            _logger.LogWarning(ex, "站内信未读计数缓存同步失败 UserId={UserId}，待定时同步 Job 重建", request.Recipient.UserId);
+            return new ChannelSendResult(true, "站内信未读计数缓存同步失败，待重建", "CACHE_SYNC_FAILED", null);
         }
     }
 }
