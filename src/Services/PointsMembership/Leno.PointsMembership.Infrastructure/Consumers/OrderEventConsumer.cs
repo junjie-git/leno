@@ -41,34 +41,15 @@ public sealed class OrderCompletedEventConsumer : IntegrationEventConsumerBase<O
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        // 消费返积分：1 元 = 1 积分（简化规则）
-        var points = (int)Math.Floor(integrationEvent.TotalAmount);
-        if (points > 0)
-        {
-            var account = await _accountRepository.GetByUserIdAsync(integrationEvent.UserId, ct);
-            if (account is not null)
-            {
-                account.Earn(PointsSource.Consumption, points, $"订单 {integrationEvent.OrderId} 消费返积分");
-            }
-        }
+        // PM-H07 修复：消费返积分与消费金额累加统一由 OrderAfterSalesWindowClosedEventConsumer
+        // 在售后窗口关闭后发放，避免订单完成与售后窗口关闭双事件触发导致同一订单双倍发放积分
+        // 与消费金额翻倍，以及退货后已发积分难追回的问题。本消费者仅记录日志，
+        // 便于后续若需触发"订单完成通知"等下游事件时扩展。
+        await Task.CompletedTask;
 
-        // 累加会员消费金额并检查升级
-        var member = await _memberRepository.GetByUserIdAsync(integrationEvent.UserId, ct);
-        if (member is not null)
-        {
-            member.AddConsumption(integrationEvent.TotalAmount);
-
-            var levels = await _levelRepository.GetAllEnabledAsync(ct);
-            var thresholds = levels
-                .Select(l => new LevelThreshold(l.Level, l.Name, l.MinConsumption))
-                .ToList();
-            member.CheckUpgrade(thresholds);
-        }
-
-        await _unitOfWork.SaveEntitiesAsync(ct);
-
-        Logger.LogInformation("订单 {OrderId} 完成，发放 {Points} 消费积分给用户 {UserId}",
-            integrationEvent.OrderId, points, integrationEvent.UserId);
+        Logger.LogInformation(
+            "订单 {OrderId} 已完成，消费返积分将在售后窗口关闭后由 OrderAfterSalesWindowClosedEventConsumer 发放",
+            integrationEvent.OrderId);
     }
 }
 
