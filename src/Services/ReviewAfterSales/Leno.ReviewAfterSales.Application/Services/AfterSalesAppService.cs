@@ -109,6 +109,9 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
         var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
             ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
 
+        // 越权校验：仅归属卖家可驳回（防止卖家 A 驳回卖家 B 的售后单）
+        RequireOwnedAfterSales(afterSales, operatorId);
+
         afterSales.Reject(operatorId, reason);
         await _afterSalesRepository.UpdateAsync(afterSales, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
@@ -186,6 +189,12 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
     {
         var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
             ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        // 越权校验：仅申请人（买家）本人可填写退货物流单号，防止他人冒充买家退货
+        if (afterSales.UserId != userId)
+        {
+            throw new ReviewDomainException("无权操作此售后单", "AFTERSALES_NOT_OWNED");
+        }
 
         afterSales.ReturnGoods(trackingNo);
         await _afterSalesRepository.UpdateAsync(afterSales, ct);

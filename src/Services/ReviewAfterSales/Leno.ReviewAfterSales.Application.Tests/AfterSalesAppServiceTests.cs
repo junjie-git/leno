@@ -31,7 +31,6 @@ public class AfterSalesAppServiceTests
     private static readonly Guid OrderLineId = Guid.NewGuid();
     private static readonly Guid UserId = Guid.NewGuid();
     private static readonly Guid SellerId = Guid.NewGuid();
-    private static readonly Guid OperatorId = Guid.NewGuid();
     private static readonly Guid PaymentId = Guid.NewGuid();
 
     public AfterSalesAppServiceTests()
@@ -87,11 +86,12 @@ public class AfterSalesAppServiceTests
             .Setup(r => r.GetByIdAsync(AfterSalesId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(afterSales);
 
-        await _sut.RejectAfterSalesAsync(AfterSalesId, OperatorId, "不符合售后条件");
+        // P0-2.6: Reject 为卖家操作，operatorId 须等于 SellerId 通过归属校验
+        await _sut.RejectAfterSalesAsync(AfterSalesId, SellerId, "不符合售后条件");
 
         afterSales.Status.Should().Be(AfterSalesStatus.Rejected);
         afterSales.RejectReason.Should().Be("不符合售后条件");
-        afterSales.ApproverId.Should().Be(OperatorId);
+        afterSales.ApproverId.Should().Be(SellerId);
         _afterSalesRepoMock.Verify(r => r.UpdateAsync(afterSales, It.IsAny<CancellationToken>()), Times.Once);
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -103,7 +103,7 @@ public class AfterSalesAppServiceTests
             .Setup(r => r.GetByIdAsync(AfterSalesId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((AfterSalesAggregate?)null);
 
-        var act = () => _sut.RejectAfterSalesAsync(AfterSalesId, OperatorId, "原因");
+        var act = () => _sut.RejectAfterSalesAsync(AfterSalesId, SellerId, "原因");
 
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*售后单不存在*");
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);

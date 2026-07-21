@@ -86,6 +86,73 @@ public class AfterSalesOwnershipTests
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task RejectAfterSalesAsync_NonOwnerSeller_ShouldThrowReviewDomainException()
+    {
+        // Arrange: 售后单归属 OwnerSellerId，调用方是 OtherSellerId
+        var afterSales = CreatePendingAfterSales(OwnerSellerId);
+        _afterSalesRepoMock.Setup(r => r.GetByIdAsync(AfterSalesId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(afterSales);
+
+        // Act & Assert: 非归属卖家驳回应被拒绝
+        var act = () => _sut.RejectAfterSalesAsync(AfterSalesId, OtherSellerId, "不符合条件", CancellationToken.None);
+        await act.Should().ThrowAsync<ReviewDomainException>()
+            .Where(ex => ex.ErrorCode == "AFTERSALES_NOT_OWNED");
+
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RejectAfterSalesAsync_OwnerSeller_ShouldSucceed()
+    {
+        // Arrange: 归属卖家驳回待审核售后单
+        var afterSales = CreatePendingAfterSales(OwnerSellerId);
+        _afterSalesRepoMock.Setup(r => r.GetByIdAsync(AfterSalesId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(afterSales);
+
+        // Act
+        await _sut.RejectAfterSalesAsync(AfterSalesId, OwnerSellerId, "不符合条件", CancellationToken.None);
+
+        // Assert
+        afterSales.Status.Should().Be(Domain.ValueObjects.AfterSalesStatus.Rejected);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ReturnGoodsAsync_NonOwnerUser_ShouldThrowReviewDomainException()
+    {
+        // Arrange: 售后单申请人 BuyerUserId，调用方是攻击者 OtherUserId
+        var afterSales = CreateApprovedReturnRefundAfterSales(OwnerSellerId, BuyerUserId);
+        _afterSalesRepoMock.Setup(r => r.GetByIdAsync(AfterSalesId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(afterSales);
+
+        // Act & Assert: 非申请人退货应被拒绝
+        var act = () => _sut.ReturnGoodsAsync(AfterSalesId, OtherUserId, "TRACKING-ATTACK", CancellationToken.None);
+        await act.Should().ThrowAsync<ReviewDomainException>()
+            .Where(ex => ex.ErrorCode == "AFTERSALES_NOT_OWNED");
+
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ReturnGoodsAsync_OwnerUser_ShouldSucceed()
+    {
+        // Arrange: 申请人本人退货
+        var afterSales = CreateApprovedReturnRefundAfterSales(OwnerSellerId, BuyerUserId);
+        _afterSalesRepoMock.Setup(r => r.GetByIdAsync(AfterSalesId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(afterSales);
+
+        // Act
+        await _sut.ReturnGoodsAsync(AfterSalesId, BuyerUserId, "TRACKING-001", CancellationToken.None);
+
+        // Assert
+        afterSales.Status.Should().Be(Domain.ValueObjects.AfterSalesStatus.ReturnGoods);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private static readonly Guid BuyerUserId = Guid.NewGuid();
+    private static readonly Guid OtherUserId = Guid.NewGuid();
+
     private static AfterSalesAggregate CreatePendingAfterSales(Guid sellerId) =>
         AfterSalesAggregate.Create(
             AfterSalesId, Guid.NewGuid(), null, Guid.NewGuid(), sellerId,
@@ -104,6 +171,18 @@ public class AfterSalesOwnershipTests
         afterSales.Approve(sellerId, 100m);
         // 买家已退货
         afterSales.ReturnGoods("TRACKING-001");
+        return afterSales;
+    }
+
+    private static AfterSalesAggregate CreateApprovedReturnRefundAfterSales(Guid sellerId, Guid userId)
+    {
+        // 推进售后状态机到 Approved（已审核通过，待买家退货）：
+        // Pending → Approve
+        var afterSales = AfterSalesAggregate.Create(
+            AfterSalesId, Guid.NewGuid(), null, userId, sellerId,
+            AfterSalesType.ReturnRefund, "质量问题", "商品损坏", new List<string>(),
+            100m, "CNY");
+        afterSales.Approve(sellerId, 100m);
         return afterSales;
     }
 }
