@@ -10,6 +10,9 @@ namespace Leno.Cart.Domain.Aggregates;
 /// </summary>
 public sealed class Cart : AggregateRoot
 {
+    /// <summary>购物车品类数量上限（不同 SKU 数）。</summary>
+    private const int MaxVariety = 50;
+
     private readonly List<CartItem> _items = new();
 
     /// <summary>所属买家账号标识（用户域 UserId）。</summary>
@@ -83,6 +86,12 @@ public sealed class Cart : AggregateRoot
 
             existing.SetQuantity(merged);
             return;
+        }
+
+        // 新增 SKU 前校验品类上限（聚合不变量统一由聚合根保证）
+        if (_items.Count >= MaxVariety)
+        {
+            throw new CartDomainException($"购物车品类数量已达上限 {MaxVariety}", "CART_VARIETY_LIMIT");
         }
 
         var item = new CartItem(Guid.NewGuid(), Id, skuId, sellerId, quantity);
@@ -229,16 +238,15 @@ public sealed class Cart : AggregateRoot
     public int MergeFrom(Cart anonymousCart)
     {
         ArgumentNullException.ThrowIfNull(anonymousCart);
-        const int maxVariety = 50;
 
         var mergedCount = 0;
         foreach (var item in anonymousCart.Items)
         {
             // 检查品类上限（新增项时）
             var existing = FindItem(item.SkuId);
-            if (existing is null && _items.Count >= maxVariety)
+            if (existing is null && _items.Count >= MaxVariety)
             {
-                throw new CartDomainException($"购物车品类数量已达上限 {maxVariety}", "CART_VARIETY_LIMIT");
+                throw new CartDomainException($"购物车品类数量已达上限 {MaxVariety}", "CART_VARIETY_LIMIT");
             }
 
             AddItem(item.SkuId, item.Quantity, item.SellerId);
