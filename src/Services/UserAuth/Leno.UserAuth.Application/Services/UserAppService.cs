@@ -285,23 +285,16 @@ public sealed class UserAppService : IUserAppService
         }
 
         // 首次登录：检查邮箱是否已被其他账户使用
+        // 静默绑定到已有账户会导致账户接管：攻击者只要控制一个 Google 账户并把邮箱改成受害者邮箱即可登录受害者账户。
+        // 邮箱冲突时返回错误，要求用户先登录已有账户后通过 AccountController.BindExternalLogin 主动绑定。
         if (!string.IsNullOrWhiteSpace(externalLoginInfo.Email))
         {
             var existingByEmail = await _userRepository.GetByEmailAsync(externalLoginInfo.Email, ct);
             if (existingByEmail is not null)
             {
-                // 邮箱已存在，绑定到已有账户
-                existingByEmail.LinkExternalLogin(
-                    externalLoginInfo.Provider,
-                    externalLoginInfo.ProviderUserId,
-                    externalLoginInfo.Email,
-                    externalLoginInfo.Name,
-                    externalLoginInfo.AvatarUrl);
-
-                await _userRepository.UpdateAsync(existingByEmail, ct);
-                await _unitOfWork.SaveEntitiesAsync(ct);
-
-                return await IssueTokensAsync(existingByEmail, ct);
+                throw new UserAuthDomainException(
+                    $"邮箱 {externalLoginInfo.Email} 已被注册，请先登录已有账户后在「账户设置」中绑定 {externalLoginInfo.Provider} 登录",
+                    "OAUTH_EMAIL_ALREADY_USED");
             }
         }
 

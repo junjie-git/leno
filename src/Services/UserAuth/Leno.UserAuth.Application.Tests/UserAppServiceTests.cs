@@ -361,6 +361,74 @@ public class UserAppServiceTests
 
     #endregion
 
+    #region HandleOAuthCallbackAsync
+
+    [Fact]
+    public async Task HandleOAuthCallbackAsync_Should_Not_Silently_Bind_When_Email_Collides_With_Existing_Account()
+    {
+        // Arrange
+        var existingUser = User.Create(
+            Guid.NewGuid(),
+            "victim",
+            "victim@example.com",
+            "+8613800138000",
+            _hasherMock.Object.Hash("Password123"),
+            "Victim");
+
+        var externalInfo = new ExternalLoginInfo(
+            "google",
+            "attacker-google-id",
+            "victim@example.com",
+            "Attacker",
+            null);
+
+        _userRepoMock
+            .Setup(r => r.FindByExternalLoginAsync("google", "attacker-google-id", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+        _userRepoMock
+            .Setup(r => r.GetByEmailAsync("victim@example.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingUser);
+
+        _databaseMock
+            .Setup(d => d.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync((RedisValue)"google|https://app.leno.com/callback");
+
+        var authServiceMock = new Mock<IExternalAuthService>();
+        authServiceMock.SetupGet(s => s.Provider).Returns("google");
+        authServiceMock
+            .Setup(s => s.ExchangeCodeAsync("code", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(externalInfo);
+
+        var service = BuildUserAppService(authServiceMock.Object);
+
+        // Act & Assert：应当抛出异常而非自动绑定
+        var ex = await Assert.ThrowsAsync<UserAuthDomainException>(() =>
+            service.HandleOAuthCallbackAsync("google", "code", "state", "https://app.leno.com/callback", CancellationToken.None));
+        Assert.Equal("OAUTH_EMAIL_ALREADY_USED", ex.ErrorCode);
+        // 验证未调用 UpdateAsync（即未绑定到 existingUser）
+        _userRepoMock.Verify(r => r.UpdateAsync(existingUser, It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    #endregion
+
+    private UserAppService BuildUserAppService(params IExternalAuthService[] externalAuthServices)
+    {
+        return new UserAppService(
+            _userRepoMock.Object,
+            _hasherMock.Object,
+            _uniquenessMock.Object,
+            _tokenMock.Object,
+            _tokenVerifierMock.Object,
+            _refreshTokenMock.Object,
+            _uowMock.Object,
+            _registerValidatorMock.Object,
+            _loginValidatorMock.Object,
+            _updateProfileValidatorMock.Object,
+            _changePasswordValidatorMock.Object,
+            externalAuthServices,
+            _redisMock.Object);
+    }
+
     private static User CreateUser()
     {
         var hasher = new Mock<IPasswordHasher>();
