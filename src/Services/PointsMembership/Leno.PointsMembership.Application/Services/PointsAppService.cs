@@ -107,10 +107,25 @@ public sealed class PointsAppService : IPointsAppService
     }
 
     /// <inheritdoc />
-    public Task<List<PointsLedgerDto>> GetLedgerAsync(Guid userId, int page, int pageSize, CancellationToken ct = default)
+    public async Task<List<PointsLedgerDto>> GetLedgerAsync(Guid userId, int page, int pageSize, CancellationToken ct = default)
     {
-        // 流水查询需独立的 IPointsLedgerRepository，当前域尚未定义，暂返回空列表。
-        return Task.FromResult(new List<PointsLedgerDto>());
+        // PM-M07 修复：实现真实分页查询，按发生时间倒序返回积分流水
+        // 分页参数边界保护：page < 1 视为第 1 页，pageSize < 1 默认 20，pageSize > 100 上限 100
+        if (page < 1)
+        {
+            page = 1;
+        }
+        if (pageSize < 1)
+        {
+            pageSize = 20;
+        }
+        if (pageSize > 100)
+        {
+            pageSize = 100;
+        }
+
+        var ledgers = await _accountRepository.GetLedgersByUserIdAsync(userId, page, pageSize, ct);
+        return (ledgers ?? new List<PointsLedger>()).Select(ToDto).ToList();
     }
 
     /// <inheritdoc />
@@ -137,5 +152,19 @@ public sealed class PointsAppService : IPointsAppService
             TotalEarned = account.TotalEarned,
             TotalSpent = account.TotalSpent,
             CreatedAt = account.CreatedAt
+        };
+
+    private static PointsLedgerDto ToDto(PointsLedger ledger)
+        => new()
+        {
+            Id = ledger.Id,
+            AccountId = ledger.AccountId,
+            TxType = ledger.TxType,
+            Amount = ledger.Amount,
+            BalanceAfter = ledger.BalanceAfter,
+            Source = ledger.Source,
+            ReferenceId = ledger.ReferenceId,
+            Reason = ledger.Reason,
+            OccurredAt = ledger.OccurredAt
         };
 }

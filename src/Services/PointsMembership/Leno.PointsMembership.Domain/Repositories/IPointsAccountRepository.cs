@@ -33,4 +33,13 @@ public interface IPointsAccountRepository : IRepository<PointsAccountAggregate>
     /// </summary>
     /// <param name="accountId">积分账户标识。</param>
     Task<List<PointsLedger>> GetEarnLedgersByAccountIdAsync(Guid accountId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 按用户标识分页查询积分流水，按发生时间倒序（最新在前）。
+    /// PM-M07 修复：供 PointsAppService.GetLedgerAsync 真实分页查询使用，替代原先返回空列表的占位实现。
+    /// </summary>
+    /// <param name="userId">用户标识。</param>
+    /// <param name="page">页码，从 1 开始。</param>
+    /// <param name="pageSize">每页条数。</param>
+    Task<List<PointsLedger>> GetLedgersByUserIdAsync(Guid userId, int page, int pageSize, CancellationToken ct = default);
 }

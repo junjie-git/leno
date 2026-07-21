@@ -73,6 +73,32 @@ public sealed class EfCorePointsAccountRepository : IPointsAccountRepository
             .ToListAsync(ct);
 
     /// <inheritdoc />
+    public async Task<List<PointsLedger>> GetLedgersByUserIdAsync(
+        Guid userId, int page, int pageSize, CancellationToken ct = default)
+    {
+        // PM-M07 修复：按用户标识分页查询积分流水
+        // 先按 UserId 查询账户标识（每用户仅一个账户），再按 AccountId 分页查询流水
+        // 按发生时间倒序（最新在前），分页参数 page 从 1 开始，skip = (page - 1) * pageSize
+        var accountId = await _context.PointsAccounts
+            .Where(a => a.UserId == userId)
+            .Select(a => (Guid?)a.Id)
+            .FirstOrDefaultAsync(ct);
+
+        if (accountId is null)
+        {
+            return new List<PointsLedger>();
+        }
+
+        var skip = (page - 1) * pageSize;
+        return await _context.PointsLedgers
+            .Where(l => l.AccountId == accountId.Value)
+            .OrderByDescending(l => l.OccurredAt)
+            .Skip(skip)
+            .Take(pageSize)
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
     public async Task AddAsync(PointsAccountAggregate aggregate, CancellationToken ct = default)
         => await _context.PointsAccounts.AddAsync(aggregate, ct);
 
