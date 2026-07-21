@@ -138,8 +138,8 @@ public sealed class ProductGrpcService : ProductInternalService.ProductInternalS
             SpuIdStr = dto.SpuId.ToString(),
             Title = dto.Title,
             Description = dto.Description,
-            // 保留 POC 简化映射（双轨向后兼容，M4 既定模式，不在本子项目重构）
-            SellerId = (long)dto.SellerId.GetHashCode(),
+            // 修复审计 #5：使用稳定算法替代 GetHashCode()（32 位碰撞率高）
+            SellerId = GuidToInt64Stable(dto.SellerId),
             SellerIdStr = dto.SellerId.ToString()
         };
 
@@ -147,11 +147,12 @@ public sealed class ProductGrpcService : ProductInternalService.ProductInternalS
         {
             detail.Skus.Add(new SkuInfo
             {
-                SkuId = (long)sku.SkuId.GetHashCode(),
+                SkuId = GuidToInt64Stable(sku.SkuId),
                 SkuIdStr = sku.SkuId.ToString(),
                 Title = sku.Title,
                 MainImage = sku.MainImageUrl,
-                PriceCents = (long)(sku.Price * 100),
+                // 修复审计 #12：PriceCents 从截断改为四舍五入
+                PriceCents = (long)Math.Round(sku.Price * 100m, MidpointRounding.AwayFromZero),
                 Currency = sku.Currency,
                 Stock = sku.Stock,
                 Status = sku.Status
@@ -164,14 +165,16 @@ public sealed class ProductGrpcService : ProductInternalService.ProductInternalS
     private static SkuInfo MapToProto(SkuInfoResultDto dto) => new()
     {
         // 既有 int64 字段（向后兼容，标记 deprecated）
-        SkuId = (long)dto.SkuId.GetHashCode(),  // POC 简化：Guid→int64 映射，生产化改为 string
-        SpuId = (long)dto.SpuId.GetHashCode(),
+        // 修复审计 #5：使用稳定算法替代 GetHashCode()（32 位碰撞率高）
+        SkuId = GuidToInt64Stable(dto.SkuId),
+        SpuId = GuidToInt64Stable(dto.SpuId),
         Title = dto.Title,
         MainImage = dto.MainImageUrl,
-        PriceCents = (long)(dto.Price * 100),
+        // 修复审计 #12：PriceCents 从截断改为四舍五入
+        PriceCents = (long)Math.Round(dto.Price * 100m, MidpointRounding.AwayFromZero),
         Currency = dto.Currency,
         Salable = dto.Available,
-        SellerId = (long)dto.SellerId.GetHashCode(),
+        SellerId = GuidToInt64Stable(dto.SellerId),
         Stock = dto.Stock,
         Status = dto.Status,
         ShopId = dto.ShopId?.ToString() ?? string.Empty,
@@ -181,6 +184,15 @@ public sealed class ProductGrpcService : ProductInternalService.ProductInternalS
         SpuIdStr = dto.SpuId.ToString(),
         SellerIdStr = dto.SellerId.ToString()
     };
+
+    /// <summary>
+    /// 将 Guid 映射为 int64 的稳定算法：取 Guid 字节序列前 8 字节转 int64。
+    /// 替代 GetHashCode()（32 位，碰撞率高），确保相同 Guid 始终映射到相同 int64。
+    /// 注：此映射不可逆（int64 仅 8 字节，Guid 16 字节），仅用于 deprecated int64 字段的向后兼容。
+    /// 新客户端应使用 XxxIdStr 字段。
+    /// </summary>
+    private static long GuidToInt64Stable(Guid guid)
+        => BitConverter.ToInt64(guid.ToByteArray(), 0);
 }
 
 internal static class DateTimeExtensions
