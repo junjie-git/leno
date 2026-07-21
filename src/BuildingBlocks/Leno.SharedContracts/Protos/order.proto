@@ -40,6 +40,9 @@ message OrderItem {
   optional int64 sub_total_cents = 5;
   // Guid→string 迁移新增 string ID 字段
   string sku_id_str = 6;
+  // 合并审计 3.5：补全 order_line_id 与 spu_id 字段，避免静默 Guid.Empty
+  optional string order_line_id = 7;
+  optional string spu_id = 8;
 }
 message GetSellerOrdersRequest {
   string seller_id = 1;

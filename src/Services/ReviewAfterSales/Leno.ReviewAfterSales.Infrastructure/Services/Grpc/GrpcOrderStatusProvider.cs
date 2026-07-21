@@ -59,12 +59,33 @@ public sealed class GrpcOrderStatusProvider
 
     private static OrderStatusInfo MapToInfo(OrderStatus proto)
     {
+        // 合并审计 3.5：关键字段解析失败抛 AntiCorruptionException 而非静默 Guid.Empty，
+        // 避免下游业务在不知情情况下使用空 Guid 创建聚合或做归属校验。
+        if (!Guid.TryParse(proto.OrderId, out var orderId) || orderId == Guid.Empty)
+        {
+            throw new AntiCorruptionException(
+                $"订单域返回无效 OrderId：{proto.OrderId}", "ORDER_REMOTE_FAILED");
+        }
+
+        var userId = proto.HasUserId && Guid.TryParse(proto.UserId, out var uid) ? uid : Guid.Empty;
+        if (userId == Guid.Empty)
+        {
+            throw new AntiCorruptionException(
+                $"订单域返回无效 UserId：OrderId={orderId}", "ORDER_REMOTE_FAILED");
+        }
+
         var sellerId = proto.HasSellerId && Guid.TryParse(proto.SellerId, out var sid) ? sid : Guid.Empty;
+        if (sellerId == Guid.Empty)
+        {
+            throw new AntiCorruptionException(
+                $"订单域返回无效 SellerId：OrderId={orderId}", "ORDER_REMOTE_FAILED");
+        }
+
         var info = new OrderStatusInfo
         {
-            // 注：proto OrderStatus.status 为 string，DTO 为 int，POC 简化用 int.Parse
+            // 注：proto OrderStatus.status 为 string，DTO 为 int
             Status = int.TryParse(proto.Status, out var s) ? s : 0,
-            UserId = proto.HasUserId && Guid.TryParse(proto.UserId, out var uid) ? uid : Guid.Empty,
+            UserId = userId,
             // 从订单域 proto 读取真实 SellerId，防止客户端伪造
             SellerId = sellerId,
             CompletedAt = proto.CompletedAt != 0
@@ -73,19 +94,37 @@ public sealed class GrpcOrderStatusProvider
             CreatedAt = proto.CreatedAt != 0
                 ? DateTimeOffset.FromUnixTimeSeconds(proto.CreatedAt).UtcDateTime
                 : default,
-            OrderId = Guid.TryParse(proto.OrderId, out var oid) ? oid : Guid.Empty
+            OrderId = orderId
         };
 
         foreach (var item in proto.Items)
         {
-            // 注：proto OrderItem 无 order_line_id 字段，POC 简化为 Guid.Empty
+            // 合并审计 3.5：从 proto OrderItem 读取 order_line_id 与 spu_id，解析失败抛异常。
+            // proto 字段缺失（HasOrderLineId=false）也算无效，避免静默 Guid.Empty。
+            if (!item.HasOrderLineId || !Guid.TryParse(item.OrderLineId, out var lineId) || lineId == Guid.Empty)
+            {
+                throw new AntiCorruptionException(
+                    $"订单域返回无效 OrderLineId：OrderId={orderId}", "ORDER_REMOTE_FAILED");
+            }
+
+            if (!item.HasSpuId || !Guid.TryParse(item.SpuId, out var spuId) || spuId == Guid.Empty)
+            {
+                throw new AntiCorruptionException(
+                    $"订单域返回无效 SpuId：OrderId={orderId} OrderLineId={lineId}", "ORDER_REMOTE_FAILED");
+            }
+
+            // M4 Guid→string 迁移：优先读 sku_id_str
+            if (string.IsNullOrEmpty(item.SkuIdStr) || !Guid.TryParse(item.SkuIdStr, out var skuId) || skuId == Guid.Empty)
+            {
+                throw new AntiCorruptionException(
+                    $"订单域返回无效 SkuId：OrderId={orderId} OrderLineId={lineId}", "ORDER_REMOTE_FAILED");
+            }
+
             info.Items.Add(new OrderItemStatusInfo
             {
-                OrderLineId = Guid.Empty,
-                // M4 Guid→string 迁移：优先读 sku_id_str，回退到 Guid.Empty（POC 阶段 int64→Guid 不可逆）
-                SkuId = !string.IsNullOrEmpty(item.SkuIdStr) ? Guid.Parse(item.SkuIdStr) : Guid.Empty,
-                // 注：proto OrderItem 无 spu_id 字段，POC 简化为 Guid.Empty
-                SpuId = Guid.Empty,
+                OrderLineId = lineId,
+                SkuId = skuId,
+                SpuId = spuId,
                 // 从订单级别复制 SellerId 到行级别，供评价聚合创建时使用（P0-2.7）
                 SellerId = sellerId,
                 Quantity = item.Quantity,
