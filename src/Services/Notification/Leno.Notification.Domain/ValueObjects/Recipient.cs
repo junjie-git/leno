@@ -80,7 +80,13 @@ public sealed class Recipient : IEquatable<Recipient>
                && string.Equals(PhoneNumber, other.PhoneNumber, StringComparison.Ordinal);
     }
 
-    public override int GetHashCode() => HashCode.Combine(UserId, Email.ToUpperInvariant(), PhoneNumber);
+    // P2-39：GetHashCode 必须与 Equals 使用相同的比较算法，保证两个 Equals 相等的 Recipient 哈希值相等。
+    // Equals 中 Email 用 OrdinalIgnoreCase、PhoneNumber 用 Ordinal 比较，故哈希也用对应 StringComparer。
+    public override int GetHashCode()
+        => HashCode.Combine(
+            UserId,
+            StringComparer.OrdinalIgnoreCase.GetHashCode(Email),
+            StringComparer.Ordinal.GetHashCode(PhoneNumber));
 
     public override string ToString() => $"Recipient({UserId})";
 }
