@@ -116,6 +116,20 @@ public sealed class PromotionActivity : AggregateRoot
     }
 
     /// <summary>
+    /// 重命名活动，校验非空后赋值。
+    /// </summary>
+    /// <param name="name">新活动名称。</param>
+    public void Rename(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new PromotionDomainException("活动名称不可为空", "PROMOTION_NAME_EMPTY");
+        }
+
+        Name = name;
+    }
+
+    /// <summary>
     /// 新增满减规则，重复门槛金额视为已存在抛出异常。
     /// </summary>
     /// <param name="thresholdAmount">门槛金额，须 ≥ 0。</param>

@@ -42,8 +42,7 @@ public sealed class PromotionAppService : IPromotionAppService
     public async Task<PromotionActivityDto> UpdateAsync(Guid activityId, UpdatePromotionActivityDto dto, CancellationToken ct = default)
     {
         var activity = await RequireActivityAsync(activityId, ct);
-        // 名称更新需通过聚合方法；这里利用反射或新增方法。简化：重建规则集合
-        // 由于 PromotionActivity 无 UpdateName 方法，保留原 Name 不变仅更新规则
+        activity.Rename(dto.Name);
         // 移除所有规则后重新添加
         var existingRules = activity.Rules.ToList();
         foreach (var rule in existingRules)
