@@ -89,7 +89,16 @@ public sealed class SmtpEmailChannel : INotificationChannel
             }
 
             var messageId = await client.SendAsync(message, linkedCts.Token);
-            await client.DisconnectAsync(true, CancellationToken.None);
+            // P1-30：使用 linkedCts.Token 替代 CancellationToken.None，网络抖动时 DisconnectAsync 不长时间阻塞。
+            // 若 linkedCts 已取消（如整体超时），DisconnectAsync 抛 OperationCanceledException，忽略以保留已成功的 messageId。
+            try
+            {
+                await client.DisconnectAsync(true, linkedCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("SMTP DisconnectAsync 因令牌取消未完成 To={To}", toAddress);
+            }
 
             _logger.LogInformation("邮件已发送 To={To} Subject={Subject}", toAddress, request.Subject);
             return new ChannelSendResult(true, null, null, messageId);
