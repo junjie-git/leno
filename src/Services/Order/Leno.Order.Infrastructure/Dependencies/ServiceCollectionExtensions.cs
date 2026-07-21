@@ -57,6 +57,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILogisticsCompanyRepository, EfCoreLogisticsCompanyRepository>();
         services.AddScoped<IFreightTemplateRepository, EfCoreFreightTemplateRepository>();
         services.AddScoped<IInventoryRepository, RedisInventoryRepository>();
+        services.AddScoped<IStockReservationRepository, EfCoreStockReservationRepository>();
         services.AddScoped<IStockReservationCompensationRepository, EfCoreStockReservationCompensationRepository>();
 
         // 领域服务

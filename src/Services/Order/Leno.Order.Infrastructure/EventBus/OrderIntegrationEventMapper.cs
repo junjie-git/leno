@@ -6,8 +6,8 @@ namespace Leno.Order.Infrastructure.EventBus;
 
 /// <summary>
 /// Order BC 领域事件到集成事件的翻译器。
-/// 将 Order 聚合收集的领域事件翻译为 SharedContracts 中的集成事件。
-/// StockReservedEvent/StockReleasedEvent/StockConfirmedEvent 当前无跨上下文消费方，仅本上下文内消费，不在此注册翻译。
+/// 将 Order 聚合与 StockReservation 聚合收集的领域事件翻译为 SharedContracts 中的集成事件。
+/// StockReservedEvent/StockReleasedEvent/StockConfirmedEvent 经 Outbox 持久化，供对账/审计域与未来跨上下文消费方订阅。
 /// </summary>
 public class OrderIntegrationEventMapper : IntegrationEventMapperBase
 {
@@ -58,5 +58,17 @@ public class OrderIntegrationEventMapper : IntegrationEventMapperBase
             new RefundRequestedIntegrationEvent(
                 e.RefundId, e.OrderId, e.UserId, e.AfterSalesId,
                 e.PaymentId, e.RefundAmount, e.Currency, e.Channel, e.RefundReason));
+
+        // StockReservedEvent → StockReservedIntegrationEvent（对账/审计域库存对账、未来跨上下文消费方）
+        RegisterHandler<StockReservedEvent, StockReservedIntegrationEvent>(e =>
+            new StockReservedIntegrationEvent(e.SkuId, e.OrderId, e.Quantity));
+
+        // StockConfirmedEvent → StockConfirmedIntegrationEvent（对账/审计域库存对账、未来跨上下文消费方）
+        RegisterHandler<StockConfirmedEvent, StockConfirmedIntegrationEvent>(e =>
+            new StockConfirmedIntegrationEvent(e.SkuId, e.OrderId, e.Quantity));
+
+        // StockReleasedEvent → StockReleasedIntegrationEvent（对账/审计域库存对账、未来跨上下文消费方）
+        RegisterHandler<StockReleasedEvent, StockReleasedIntegrationEvent>(e =>
+            new StockReleasedIntegrationEvent(e.SkuId, e.OrderId, e.Quantity));
     }
 }

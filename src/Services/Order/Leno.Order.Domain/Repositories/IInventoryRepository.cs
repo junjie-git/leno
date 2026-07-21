@@ -31,6 +31,15 @@ public interface IInventoryRepository
     Task ReleaseAsync(Guid skuId, Guid orderId, int quantity, CancellationToken ct = default);
 
     /// <summary>
+    /// 归还已扣减库存（已支付/已发货订单强制取消时调用），将已扣减数量加回可用库存。
+    /// 与 <see cref="ReleaseAsync"/> 区别：ReleaseAsync 释放的是预占（Reserved），ReturnDeductedAsync 归还的是已扣减（Deducted）。
+    /// </summary>
+    /// <param name="skuId">SKU 标识。</param>
+    /// <param name="orderId">关联订单标识。</param>
+    /// <param name="quantity">归还数量，须 &gt; 0。</param>
+    Task ReturnDeductedAsync(Guid skuId, Guid orderId, int quantity, CancellationToken ct = default);
+
+    /// <summary>
     /// 查询 SKU 当前可用库存。
     /// </summary>
     /// <param name="skuId">SKU 标识。</param>
