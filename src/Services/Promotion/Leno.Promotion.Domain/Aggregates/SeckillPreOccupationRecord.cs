@@ -78,12 +78,18 @@ public sealed class SeckillPreOccupationRecord : AggregateRoot
         FulfilledAt = DateTime.UtcNow;
     }
 
-    /// <summary>标记回退。</summary>
+    /// <summary>标记回退；已履约的预占记录不可回退，抛 <see cref="Exceptions.PromotionDomainException"/>。</summary>
     public void MarkRolledBack()
     {
         if (IsRolledBack)
         {
             return;
+        }
+
+        if (IsFulfilled)
+        {
+            throw new Exceptions.PromotionDomainException(
+                "已履约的预占记录不可回退", "PRE_OCCUPATION_FULFILLED");
         }
 
         IsRolledBack = true;

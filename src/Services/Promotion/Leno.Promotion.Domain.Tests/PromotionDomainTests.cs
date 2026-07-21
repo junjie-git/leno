@@ -952,6 +952,18 @@ public class SeckillPreOccupationRecordTests
         record.IsRolledBack.Should().BeTrue();
     }
 
+    [Fact]
+    public void MarkRolledBack_AfterFulfilled_ShouldThrowException()
+    {
+        var record = CreateRecord();
+        record.MarkFulfilled();
+
+        var act = () => record.MarkRolledBack();
+
+        act.Should().Throw<PromotionDomainException>()
+            .WithMessage("*已履约*");
+    }
+
     private static SeckillPreOccupationRecord CreateRecord()
         => SeckillPreOccupationRecord.Create(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 1);
