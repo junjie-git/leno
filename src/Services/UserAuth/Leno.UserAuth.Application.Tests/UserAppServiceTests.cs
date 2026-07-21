@@ -32,6 +32,7 @@ public class UserAppServiceTests
     private readonly Mock<IOAuthStateStore> _oauthStateStoreMock = new();
     private readonly Mock<ITwoFactorTempTokenStore> _twoFactorTempTokenStoreMock = new();
     private readonly Mock<IPasswordResetTokenStore> _passwordResetTokenStoreMock = new();
+    private readonly Mock<IOAuth2ProviderResolver> _providerResolverMock = new();
     private readonly UserAppService _sut;
 
     public UserAppServiceTests()
@@ -78,7 +79,7 @@ public class UserAppServiceTests
             _loginValidatorMock.Object,
             _updateProfileValidatorMock.Object,
             _changePasswordValidatorMock.Object,
-            Array.Empty<IExternalAuthService>(),
+            _providerResolverMock.Object,
             _oauthStateStoreMock.Object,
             _twoFactorTempTokenStoreMock.Object,
             _passwordResetTokenStoreMock.Object,
@@ -546,6 +547,10 @@ public class UserAppServiceTests
             .Setup(s => s.ExchangeCodeAsync("code", It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(externalInfo);
 
+        _providerResolverMock
+            .Setup(r => r.Resolve("google"))
+            .Returns(authServiceMock.Object);
+
         var service = BuildUserAppService(authServiceMock.Object);
 
         // Act & Assert：应当抛出异常而非自动绑定
@@ -583,6 +588,10 @@ public class UserAppServiceTests
         authServiceMock
             .Setup(s => s.ExchangeCodeAsync("code", It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(externalInfo);
+
+        _providerResolverMock
+            .Setup(r => r.Resolve("google"))
+            .Returns(authServiceMock.Object);
 
         _userRepoMock.Setup(r => r.FindByExternalLoginAsync("google", "g-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
@@ -711,6 +720,15 @@ public class UserAppServiceTests
 
     private UserAppService BuildUserAppService(params IExternalAuthService[] externalAuthServices)
     {
+        // 将传入的 IExternalAuthService 通过 _providerResolverMock 暴露给 UserAppService。
+        // P1-18 后 UserAppService 不再直接持有 IExternalAuthService 集合，统一通过 IOAuth2ProviderResolver 解析。
+        foreach (var svc in externalAuthServices)
+        {
+            _providerResolverMock
+                .Setup(r => r.Resolve(It.Is<string>(p => string.Equals(p, svc.Provider, StringComparison.OrdinalIgnoreCase))))
+                .Returns(svc);
+        }
+
         return new UserAppService(
             _userRepoMock.Object,
             _hasherMock.Object,
@@ -724,7 +742,7 @@ public class UserAppServiceTests
             _loginValidatorMock.Object,
             _updateProfileValidatorMock.Object,
             _changePasswordValidatorMock.Object,
-            externalAuthServices,
+            _providerResolverMock.Object,
             _oauthStateStoreMock.Object,
             _twoFactorTempTokenStoreMock.Object,
             _passwordResetTokenStoreMock.Object,

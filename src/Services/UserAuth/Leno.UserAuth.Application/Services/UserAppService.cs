@@ -41,7 +41,7 @@ public sealed class UserAppService : IUserAppService
     private readonly IValidator<LoginDto> _loginValidator;
     private readonly IValidator<UpdateProfileDto> _updateProfileValidator;
     private readonly IValidator<ChangePasswordDto> _changePasswordValidator;
-    private readonly IEnumerable<IExternalAuthService> _externalAuthServices;
+    private readonly IOAuth2ProviderResolver _providerResolver;
     private readonly IOAuthStateStore _oauthStateStore;
     private readonly ITwoFactorTempTokenStore _twoFactorTempTokenStore;
     private readonly IPasswordResetTokenStore _passwordResetTokenStore;
@@ -60,7 +60,7 @@ public sealed class UserAppService : IUserAppService
         IValidator<LoginDto> loginValidator,
         IValidator<UpdateProfileDto> updateProfileValidator,
         IValidator<ChangePasswordDto> changePasswordValidator,
-        IEnumerable<IExternalAuthService> externalAuthServices,
+        IOAuth2ProviderResolver providerResolver,
         IOAuthStateStore oauthStateStore,
         ITwoFactorTempTokenStore twoFactorTempTokenStore,
         IPasswordResetTokenStore passwordResetTokenStore,
@@ -78,7 +78,7 @@ public sealed class UserAppService : IUserAppService
         _loginValidator = loginValidator;
         _updateProfileValidator = updateProfileValidator;
         _changePasswordValidator = changePasswordValidator;
-        _externalAuthServices = externalAuthServices;
+        _providerResolver = providerResolver;
         _oauthStateStore = oauthStateStore;
         _twoFactorTempTokenStore = twoFactorTempTokenStore;
         _passwordResetTokenStore = passwordResetTokenStore;
@@ -276,7 +276,7 @@ public sealed class UserAppService : IUserAppService
             throw new UserAuthDomainException("redirectUri 不在白名单", "OAUTH_REDIRECT_URI_NOT_ALLOWED");
         }
 
-        var authService = ResolveAuthService(provider);
+        var authService = _providerResolver.Resolve(provider);
         var state = Guid.NewGuid().ToString("N");
 
         // 存储 state 到抽象存储（Redis / 内存皆可），TTL 5 分钟
@@ -318,7 +318,7 @@ public sealed class UserAppService : IUserAppService
             throw new UserAuthDomainException("State 内 redirectUri 与回调不匹配", "OAUTH_REDIRECT_URI_MISMATCH");
         }
 
-        var authService = ResolveAuthService(provider);
+        var authService = _providerResolver.Resolve(provider);
 
         // 交换授权码获取用户信息
         var externalLoginInfo = await authService.ExchangeCodeAsync(code, redirectUri, ct);
@@ -633,26 +633,6 @@ public sealed class UserAppService : IUserAppService
             .OrderByDescending(r => (int)r)
             .First()
             .ToString();
-    }
-
-    private IExternalAuthService ResolveAuthService(string provider)
-    {
-        if (string.IsNullOrWhiteSpace(provider))
-        {
-            throw new UserAuthDomainException("OAuth2 提供方不可为空", "OAUTH_PROVIDER_EMPTY");
-        }
-
-        var normalized = provider.Trim().ToLowerInvariant();
-        var service = _externalAuthServices.FirstOrDefault(s =>
-            string.Equals(s.Provider, normalized, StringComparison.OrdinalIgnoreCase));
-
-        if (service is null)
-        {
-            throw new UserAuthDomainException(
-                $"不支持的 OAuth2 提供方: {provider}", "OAUTH_PROVIDER_NOT_FOUND");
-        }
-
-        return service;
     }
 
     private static UserDto ToUserDto(User user)
