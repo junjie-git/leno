@@ -35,6 +35,7 @@ public sealed class UserAppService : IUserAppService
     private readonly ITokenService _tokenService;
     private readonly ITokenVerifier _tokenVerifier;
     private readonly IRefreshTokenStore _refreshTokenStore;
+    private readonly IJwtRevocationService _jwtRevocationService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<RegisterDto> _registerValidator;
     private readonly IValidator<LoginDto> _loginValidator;
@@ -50,6 +51,7 @@ public sealed class UserAppService : IUserAppService
         ITokenService tokenService,
         ITokenVerifier tokenVerifier,
         IRefreshTokenStore refreshTokenStore,
+        IJwtRevocationService jwtRevocationService,
         IUnitOfWork unitOfWork,
         IValidator<RegisterDto> registerValidator,
         IValidator<LoginDto> loginValidator,
@@ -64,6 +66,7 @@ public sealed class UserAppService : IUserAppService
         _tokenService = tokenService;
         _tokenVerifier = tokenVerifier;
         _refreshTokenStore = refreshTokenStore;
+        _jwtRevocationService = jwtRevocationService;
         _unitOfWork = unitOfWork;
         _registerValidator = registerValidator;
         _loginValidator = loginValidator;
@@ -188,6 +191,10 @@ public sealed class UserAppService : IUserAppService
         var user = await _userRepository.GetByIdAsync(userId.Value, ct);
         if (user is null || user.Status == AccountStatus.Disabled)
         {
+            // 用户被禁用或不存在：撤销该用户所有 RefreshToken 防止旧令牌重试，
+            // 并把 userId 加入 JWT 黑名单使已签发的 AccessToken 立即失效。
+            await _refreshTokenStore.RevokeAllAsync(userId.Value, ct);
+            await _jwtRevocationService.RevokeUserAsync(userId.Value, ct);
             throw new UnauthorizedAccessException("账户不可用");
         }
 
