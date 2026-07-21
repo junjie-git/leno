@@ -1,39 +1,33 @@
 using Leno.SystemAdmin.Application.DTOs;
 using Leno.SystemAdmin.Domain.Aggregates;
-using Leno.SystemAdmin.Domain.Events;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.ValueObjects;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
-using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.SystemAdmin.Application.Services;
 
 /// <summary>
 /// 系统公告管理应用服务实现。
-/// 发布公告后发布 <see cref="AnnouncementPublishedEvent"/> 集成事件，驱动消息通知域推送。
+/// 发布公告经聚合根附加 <see cref="Leno.SystemAdmin.Domain.Events.AnnouncementPublishedEvent"/> 领域事件，
+/// 由工作单元的发件箱机制在同一事务内持久化并发布，不手动调用 IEventBus。
 /// </summary>
 public sealed class AnnouncementAppService : IAnnouncementAppService
 {
     private readonly ISystemAnnouncementRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IEventBus _eventBus;
     private readonly ILogger<AnnouncementAppService> _logger;
 
     public AnnouncementAppService(
         ISystemAnnouncementRepository repository,
         IUnitOfWork unitOfWork,
-        IEventBus eventBus,
         ILogger<AnnouncementAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
-        ArgumentNullException.ThrowIfNull(eventBus);
         ArgumentNullException.ThrowIfNull(logger);
         _repository = repository;
         _unitOfWork = unitOfWork;
-        _eventBus = eventBus;
         _logger = logger;
     }
 
@@ -76,8 +70,6 @@ public sealed class AnnouncementAppService : IAnnouncementAppService
 
         await _repository.UpdateAsync(entity, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
-
-        await _eventBus.PublishAsync(new AnnouncementPublishedIntegrationEvent(entity.AnnouncementId, entity.Title, (int)entity.Type), ct);
 
         _logger.LogInformation("公告已发布：{AnnouncementId}", announcementId);
     }
