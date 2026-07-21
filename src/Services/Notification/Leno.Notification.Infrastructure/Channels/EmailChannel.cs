@@ -76,7 +76,16 @@ public sealed class SmtpEmailChannel : INotificationChannel
 
             if (!string.IsNullOrEmpty(_options.Username))
             {
-                await client.AuthenticateAsync(_options.Username, _options.Password, linkedCts.Token);
+                // P1-29：将 AuthenticateAsync 包入 try-catch，认证超时映射为 SMTP_AUTH_TIMEOUT 而非 EMAIL_EXCEPTION。
+                try
+                {
+                    await client.AuthenticateAsync(_options.Username, _options.Password, linkedCts.Token);
+                }
+                catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !ct.IsCancellationRequested)
+                {
+                    _logger.LogWarning("SMTP 认证超时 Host={Host} Port={Port}", _options.Host, port);
+                    return new ChannelSendResult(false, "SMTP 认证超时", "SMTP_AUTH_TIMEOUT", null);
+                }
             }
 
             var messageId = await client.SendAsync(message, linkedCts.Token);
