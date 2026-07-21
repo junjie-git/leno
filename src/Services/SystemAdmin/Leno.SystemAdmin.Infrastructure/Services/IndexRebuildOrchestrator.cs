@@ -48,17 +48,25 @@ public sealed class IndexRebuildOrchestrator : IIndexRebuildOrchestrator
 
         var taskId = Guid.NewGuid();
         var task = IndexRebuildTask.Create(taskId, targetContext, indexName, triggeredBy);
+        task.Start();
 
+        // 合并为单次事务：Create + Start + 持久化，避免中途失败导致状态不一致
         await _repository.AddAsync(task, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
 
-        // 开始执行
-        task.Start();
-        await _repository.UpdateAsync(task, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
-
-        // 触发底层索引重建操作
-        await _trigger.StartAsync(taskId, targetContext, indexName, ct);
+        // 触发底层索引重建操作；失败时标记任务为 Failed 并持久化
+        try
+        {
+            await _trigger.StartAsync(taskId, targetContext, indexName, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "ES 索引重建触发失败，标记任务为 Failed TaskId={TaskId}", taskId);
+            task.Fail(ex.Message);
+            await _repository.UpdateAsync(task, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
 
         _logger.LogInformation(
             "索引重建任务已创建并启动：TaskId={TaskId}, TargetContext={TargetContext}, IndexName={IndexName}",
@@ -91,14 +99,32 @@ public sealed class IndexRebuildOrchestrator : IIndexRebuildOrchestrator
         var task = await _repository.GetByIdAsync(taskId, ct)
                    ?? throw new SystemAdminDomainException($"索引重建任务 {taskId} 不存在", "REBUILD_TASK_NOT_FOUND");
 
-        task.Retry(triggeredBy);
+        // 重试前重新检查并发任务，避免与正在运行的任务竞争同一索引
+        var concurrent = await _repository.GetRunningByIndexAsync(task.TargetContext, task.IndexName, ct);
+        if (concurrent is not null && concurrent.TaskId != taskId)
+        {
+            throw new SystemAdminDomainException(
+                $"索引 {task.TargetContext}/{task.IndexName} 已有运行中的重建任务（TaskId={concurrent.TaskId}），不可重试",
+                "REBUILD_TASK_CONFLICT");
+        }
 
-        // 重试后状态回到 Created，立即启动
+        task.Retry(triggeredBy);
         task.Start();
         await _repository.UpdateAsync(task, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
 
-        await _trigger.StartAsync(taskId, task.TargetContext, task.IndexName, ct);
+        try
+        {
+            await _trigger.StartAsync(taskId, task.TargetContext, task.IndexName, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "ES 索引重建重试触发失败，标记任务为 Failed TaskId={TaskId}", taskId);
+            task.Fail(ex.Message);
+            await _repository.UpdateAsync(task, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
 
         _logger.LogInformation(
             "索引重建任务已重试：TaskId={TaskId}, RetryCount={RetryCount}, TargetContext={TargetContext}, IndexName={IndexName}",
