@@ -21,7 +21,7 @@ public sealed class InternalPointsController : ControllerBase
 
     /// <summary>试算积分可抵扣金额，不修改账户状态。</summary>
     [HttpPost("internal/v1/points/trial-offset")]
-    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
+    [Obsolete("双路由期保留，将于 2026-08-01 下线，请使用 internal/v1/points/trial-offset 路由", DiagnosticId = "LENO_PM001")]
     [HttpPost("internal/points/trial-offset")]
     [ProducesResponseType(typeof(ApiResponse<TrialOffsetResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> TrialOffsetAsync([FromBody] TrialOffsetDto input, CancellationToken ct)
@@ -32,7 +32,7 @@ public sealed class InternalPointsController : ControllerBase
 
     /// <summary>冻结积分（下单预占）。</summary>
     [HttpPost("internal/v1/points/freeze")]
-    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
+    [Obsolete("双路由期保留，将于 2026-08-01 下线，请使用 internal/v1/points/freeze 路由", DiagnosticId = "LENO_PM002")]
     [HttpPost("internal/points/freeze")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> FreezeAsync([FromBody] FreezePointsDto input, CancellationToken ct)
@@ -43,7 +43,7 @@ public sealed class InternalPointsController : ControllerBase
 
     /// <summary>释放冻结积分（订单取消回退）。</summary>
     [HttpPost("internal/v1/points/release")]
-    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
+    [Obsolete("双路由期保留，将于 2026-08-01 下线，请使用 internal/v1/points/release 路由", DiagnosticId = "LENO_PM003")]
     [HttpPost("internal/points/release")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ReleaseAsync([FromBody] ReleasePointsDto input, CancellationToken ct)
@@ -54,7 +54,7 @@ public sealed class InternalPointsController : ControllerBase
 
     /// <summary>确认扣减冻结积分（订单支付成功后核销）。</summary>
     [HttpPost("internal/v1/points/confirm")]
-    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
+    [Obsolete("双路由期保留，将于 2026-08-01 下线，请使用 internal/v1/points/confirm 路由", DiagnosticId = "LENO_PM004")]
     [HttpPost("internal/points/confirm")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ConfirmAsync([FromBody] ConfirmPointsDto input, CancellationToken ct)
