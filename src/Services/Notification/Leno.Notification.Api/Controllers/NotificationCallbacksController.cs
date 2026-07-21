@@ -19,8 +19,13 @@ public sealed class NotificationCallbacksController : ControllerBase
 {
     private readonly INotificationRecordRepository _recordRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IConfiguration _configuration;
+    private readonly string _callbackSecret;
     private readonly ILogger<NotificationCallbacksController> _logger;
+
+    /// <summary>
+    /// 回执时间戳允许的最大时钟偏移（分钟），超出窗口视为重放攻击。
+    /// </summary>
+    private const double MaxTimestampSkewMinutes = 5;
 
     public NotificationCallbacksController(
         INotificationRecordRepository recordRepository,
@@ -34,7 +39,15 @@ public sealed class NotificationCallbacksController : ControllerBase
         ArgumentNullException.ThrowIfNull(logger);
         _recordRepository = recordRepository;
         _unitOfWork = unitOfWork;
-        _configuration = configuration;
+
+        // 启动时校验密钥必须配置，拒绝回退到硬编码默认值
+        var secret = configuration["Notification:CallbackSecret"];
+        if (string.IsNullOrWhiteSpace(secret))
+        {
+            throw new InvalidOperationException(
+                "Notification:CallbackSecret 未配置，拒绝启动回执端点");
+        }
+        _callbackSecret = secret;
         _logger = logger;
     }
 
@@ -122,9 +135,22 @@ public sealed class NotificationCallbacksController : ControllerBase
             return false;
         }
 
-        var secret = _configuration["Notification:CallbackSecret"] ?? "LenoNotificationCallbackSecret2024";
-        var raw = $"{channelMessageId}|{succeeded}|{timestamp}|{secret}";
-        var computed = ComputeHmacSha256(raw, secret);
+        // 时间戳新鲜度校验：±5 分钟，防止重放攻击
+        if (!long.TryParse(timestamp, out var ts))
+        {
+            _logger.LogWarning("回执时间戳解析失败 ChannelMessageId={Id} Timestamp={Ts}", channelMessageId, timestamp);
+            return false;
+        }
+        var callbackTime = DateTimeOffset.FromUnixTimeSeconds(ts);
+        var skew = Math.Abs((DateTimeOffset.UtcNow - callbackTime).TotalMinutes);
+        if (skew > MaxTimestampSkewMinutes)
+        {
+            _logger.LogWarning("回执时间戳超出窗口 Skew={Skew}min ChannelMessageId={Id}", skew, channelMessageId);
+            return false;
+        }
+
+        var raw = $"{channelMessageId}|{succeeded}|{timestamp}|{_callbackSecret}";
+        var computed = ComputeHmacSha256(raw, _callbackSecret);
 
         return string.Equals(computed, signature, StringComparison.OrdinalIgnoreCase);
     }
