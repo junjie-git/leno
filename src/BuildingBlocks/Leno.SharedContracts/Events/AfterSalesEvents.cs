@@ -294,3 +294,70 @@ public sealed class AfterSalesCancelledEvent : IntegrationEventBase
         Reason = reason ?? string.Empty;
     }
 }
+
+/// <summary>
+/// 售后退款完成集成事件，由评价与售后域在售后单退款完成时发布（P0-2.11 解除事件回环）。
+/// 消费方：订单域（回滚销量）、促销域（退还优惠券）、消息通知域（退款到账通知）。
+/// 注意：本事件与支付域 <see cref="RefundCompletedEvent"/> 区分：
+/// - <see cref="RefundCompletedEvent"/> 仅由支付域 RefundOrder 聚合在第三方退款到账后发布；
+/// - <see cref="AfterSalesRefundCompletedEvent"/> 由售后域在消费 <see cref="RefundCompletedEvent"/> 标记售后单完成后发布，
+///   表达售后域视角的退款完成事实，避免售后域消费自己发布的 <see cref="RefundCompletedEvent"/> 造成回环。
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class AfterSalesRefundCompletedEvent : IntegrationEventBase
+{
+    /// <summary>售后单标识。</summary>
+    public Guid AfterSalesId { get; init; }
+
+    /// <summary>订单标识。</summary>
+    public Guid OrderId { get; init; }
+
+    /// <summary>申请人（买家）标识。</summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>退款单标识。</summary>
+    public Guid RefundId { get; init; }
+
+    /// <summary>退款金额。</summary>
+    public decimal RefundAmount { get; init; }
+
+    /// <summary>币种（ISO 4217），默认 CNY。</summary>
+    public string Currency { get; init; } = "CNY";
+
+    /// <summary>退款完成时间（UTC）。</summary>
+    public DateTime CompletedAt { get; init; }
+
+    /// <summary>
+    /// 第三方支付渠道返回的退款流水号（如微信 refund_id、支付宝 trade_no）。
+    /// 默认 string.Empty 保持向后兼容；由售后域从支付域 <see cref="RefundCompletedEvent.ChannelRefundNo"/> 透传。
+    /// </summary>
+    public string ChannelRefundNo { get; init; } = string.Empty;
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => AfterSalesId;
+
+    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
+    public AfterSalesRefundCompletedEvent() : base()
+    {
+    }
+
+    public AfterSalesRefundCompletedEvent(
+        Guid afterSalesId,
+        Guid orderId,
+        Guid userId,
+        Guid refundId,
+        decimal refundAmount,
+        string currency,
+        DateTime completedAt,
+        string channelRefundNo) : base()
+    {
+        AfterSalesId = afterSalesId;
+        OrderId = orderId;
+        UserId = userId;
+        RefundId = refundId;
+        RefundAmount = refundAmount;
+        Currency = string.IsNullOrWhiteSpace(currency) ? "CNY" : currency;
+        CompletedAt = completedAt;
+        ChannelRefundNo = channelRefundNo ?? string.Empty;
+    }
+}

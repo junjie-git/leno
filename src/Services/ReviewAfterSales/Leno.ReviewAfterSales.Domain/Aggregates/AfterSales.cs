@@ -381,7 +381,7 @@ public sealed class AfterSales : AggregateRoot
         RefundedAmount = amount;
         RefundedAt = DateTime.UtcNow;
         ChannelRefundNo = channelRefundNo;
-        AddDomainEvent(new AfterSalesRefundCompletedDomainEvent(OrderId, UserId, refundId, Id, amount, Currency, RefundedAt.Value));
+        AddDomainEvent(new AfterSalesRefundCompletedDomainEvent(OrderId, UserId, refundId, Id, amount, Currency, RefundedAt.Value, channelRefundNo ?? string.Empty));
     }
 
     /// <summary>

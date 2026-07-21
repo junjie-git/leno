@@ -132,9 +132,11 @@ public sealed class AfterSalesReturnConfirmedDomainEvent : DomainEventBase
 
 /// <summary>
 /// 售后退款完成领域事件，由 <see cref="Aggregates.AfterSales"/> 聚合在 MarkRefundCompleted 方法中收集。
-/// mapper 翻译为 <see cref="Leno.SharedContracts.Events.RefundCompletedEvent"/> 集成事件对外发布。
+/// mapper 翻译为 <see cref="Leno.SharedContracts.Events.AfterSalesRefundCompletedEvent"/> 集成事件对外发布。
 /// 消费方：订单域（回滚销量）、促销域（退还优惠券）、消息通知域（退款到账通知）。
-/// 注意：RefundCompletedEvent 同时由支付域 RefundOrder 聚合发布，本事件表达售后域视角的退款完成事实。
+/// 注意：P0-2.11 解除事件回环后，本事件不再翻译为 <see cref="Leno.SharedContracts.Events.RefundCompletedEvent"/>
+/// （RefundCompletedEvent 仅由支付域发布），改翻译为独立的 AfterSalesRefundCompletedEvent，
+/// 避免售后域消费自己发布的事件造成回环。
 /// </summary>
 public sealed class AfterSalesRefundCompletedDomainEvent : DomainEventBase
 {
@@ -145,10 +147,12 @@ public sealed class AfterSalesRefundCompletedDomainEvent : DomainEventBase
     public decimal RefundAmount { get; init; }
     public string Currency { get; init; } = "CNY";
     public DateTime CompletedAt { get; init; }
+    /// <summary>第三方支付渠道返回的退款流水号，由 MarkRefundCompleted 透传，用于下游财务对账。</summary>
+    public string ChannelRefundNo { get; init; } = string.Empty;
 
     public AfterSalesRefundCompletedDomainEvent(
         Guid orderId, Guid userId, Guid refundId, Guid afterSalesId,
-        decimal refundAmount, string currency, DateTime completedAt)
+        decimal refundAmount, string currency, DateTime completedAt, string channelRefundNo)
         : base(afterSalesId)
     {
         OrderId = orderId;
@@ -158,6 +162,7 @@ public sealed class AfterSalesRefundCompletedDomainEvent : DomainEventBase
         RefundAmount = refundAmount;
         Currency = string.IsNullOrWhiteSpace(currency) ? "CNY" : currency;
         CompletedAt = completedAt;
+        ChannelRefundNo = channelRefundNo ?? string.Empty;
     }
 }
 

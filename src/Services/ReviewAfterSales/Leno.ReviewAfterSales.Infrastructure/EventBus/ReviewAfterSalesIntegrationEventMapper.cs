@@ -46,12 +46,13 @@ public class ReviewAfterSalesIntegrationEventMapper : IntegrationEventMapperBase
         RegisterHandler<AfterSalesCancelledDomainEvent, AfterSalesCancelledEvent>(e =>
             new AfterSalesCancelledEvent(e.AfterSalesId, e.OrderId, e.UserId, e.SellerId, e.Reason));
 
-        // AfterSalesRefundCompletedDomainEvent → RefundCompletedEvent（订单域回滚销量、促销域退还优惠券、消息通知域退款到账通知）
-        // 注意：RefundCompletedEvent 同时由支付域 RefundOrder 聚合发布，本规则表达售后域视角的退款完成事实。
-        RegisterHandler<AfterSalesRefundCompletedDomainEvent, RefundCompletedEvent>(e =>
-            new RefundCompletedEvent(
-                e.OrderId, e.UserId, e.RefundId, e.AfterSalesId,
-                e.RefundAmount, e.Currency, e.CompletedAt));
+        // AfterSalesRefundCompletedDomainEvent → AfterSalesRefundCompletedEvent（订单域回滚销量、促销域退还优惠券、消息通知域退款到账通知）
+        // P0-2.11 解除事件回环：本事件不再翻译为 RefundCompletedEvent（RefundCompletedEvent 仅由支付域发布），
+        // 改翻译为独立的 AfterSalesRefundCompletedEvent，避免售后域消费自己发布的 RefundCompletedEvent 造成回环。
+        RegisterHandler<AfterSalesRefundCompletedDomainEvent, AfterSalesRefundCompletedEvent>(e =>
+            new AfterSalesRefundCompletedEvent(
+                e.AfterSalesId, e.OrderId, e.UserId, e.RefundId,
+                e.RefundAmount, e.Currency, e.CompletedAt, e.ChannelRefundNo));
 
         // AfterSalesRefundRequestedDomainEvent → RefundRequestedIntegrationEvent（支付域创建退款单执行退款）
         // 注意：RefundRequestedIntegrationEvent 同时由订单域发布，本规则表达售后域视角的退款请求事实。
