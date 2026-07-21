@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Leno.Notification.Application.DTOs;
 using Leno.Notification.Domain.Repositories;
+using Leno.SharedKernel.Abstractions;
 using Leno.SharedContracts.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -17,18 +18,22 @@ namespace Leno.Notification.Api.Controllers;
 public sealed class NotificationCallbacksController : ControllerBase
 {
     private readonly INotificationRecordRepository _recordRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IConfiguration _configuration;
     private readonly ILogger<NotificationCallbacksController> _logger;
 
     public NotificationCallbacksController(
         INotificationRecordRepository recordRepository,
+        IUnitOfWork unitOfWork,
         IConfiguration configuration,
         ILogger<NotificationCallbacksController> logger)
     {
         ArgumentNullException.ThrowIfNull(recordRepository);
+        ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(logger);
         _recordRepository = recordRepository;
+        _unitOfWork = unitOfWork;
         _configuration = configuration;
         _logger = logger;
     }
@@ -103,6 +108,7 @@ public sealed class NotificationCallbacksController : ControllerBase
         }
 
         await _recordRepository.UpdateAsync(record, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         _logger.LogInformation("{Channel}回执已处理 RecordId={RecordId} Succeeded={Succeeded}",
             channelName, record.Id, succeeded);
 
