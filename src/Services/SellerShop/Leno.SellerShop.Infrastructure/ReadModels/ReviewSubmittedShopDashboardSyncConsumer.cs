@@ -1,4 +1,5 @@
 using Leno.Infrastructure.ReadModel;
+using Leno.SellerShop.Application.Services;
 using Leno.SharedContracts.Events;
 using Microsoft.Extensions.Logging;
 
@@ -12,24 +13,43 @@ namespace Leno.SellerShop.Infrastructure.ReadModels;
 /// 幂等：ES 索引以店铺标识为 _id，重复索引为覆盖更新。
 /// </summary>
 /// <remarks>
-/// 事件契约限制说明：<see cref="ReviewSubmittedEvent"/> 仅含 <c>SpuId</c>（商品 SPU 标识），
-/// 不直接携带 <c>ShopId</c>/<c>SellerId</c>。SellerShop BC 当前不持有 SpuId→ShopId 映射仓储，
-/// 因此本消费者将 <c>SpuId</c> 作为 ShopId 传入 <see cref="IShopDashboardReadModelBuilder.BuildAsync"/>，
-/// builder 在 <see cref="ShopDashboardReadModelBuilder"/> 中按 ShopId 查询店铺聚合；未匹配时返回 null，跳过同步。
-/// 待后续接通 SpuId→ShopId 解析（跨 BC 查询或事件字段扩展）后，可直接替换此处传入的标识。
+/// 事件契约优先读取 <c>ReviewSubmittedEvent.ShopId</c>（由评价域发布时填充）；
+/// 为 <c>Guid.Empty</c> 时（旧版发布方未填充），通过
+/// <see cref="IProductAntiCorruptionService.GetSpuSellerIdAsync"/> 反查 SPU 归属卖家（即 ShopId）。
+/// 反查仍失败时记 Warning 跳过同步，避免静默失败。
 /// </remarks>
 public sealed class ReviewSubmittedShopDashboardSyncConsumer
     : ReadModelSyncConsumerBase<ReviewSubmittedEvent, ShopDashboardReadModel>
 {
     private readonly IShopDashboardReadModelBuilder _builder;
+    private readonly IProductAntiCorruptionService? _productAntiCorruption;
 
+    /// <summary>
+    /// 生产环境构造函数：注入 <see cref="IProductAntiCorruptionService"/> 用于 ShopId 缺失时反查 SPU 归属卖家。
+    /// </summary>
+    public ReviewSubmittedShopDashboardSyncConsumer(
+        IEsReadModelRepository<ShopDashboardReadModel> repository,
+        IShopDashboardReadModelBuilder builder,
+        IProductAntiCorruptionService productAntiCorruption,
+        ILogger<ReviewSubmittedShopDashboardSyncConsumer> logger)
+        : base(repository, logger)
+    {
+        _builder = builder ?? throw new ArgumentNullException(nameof(builder));
+        _productAntiCorruption = productAntiCorruption ?? throw new ArgumentNullException(nameof(productAntiCorruption));
+    }
+
+    /// <summary>
+    /// 兼容构造函数（不注入防腐层）：当 ShopId 为空时退回旧行为，以 SpuId 作为 builder 入参。
+    /// 仅供单元测试与历史调用方使用；生产环境请使用 4 参数构造函数注入 <see cref="IProductAntiCorruptionService"/>。
+    /// </summary>
     public ReviewSubmittedShopDashboardSyncConsumer(
         IEsReadModelRepository<ShopDashboardReadModel> repository,
         IShopDashboardReadModelBuilder builder,
         ILogger<ReviewSubmittedShopDashboardSyncConsumer> logger)
         : base(repository, logger)
     {
-        _builder = builder;
+        _builder = builder ?? throw new ArgumentNullException(nameof(builder));
+        _productAntiCorruption = null;
     }
 
     /// <inheritdoc />
@@ -37,14 +57,42 @@ public sealed class ReviewSubmittedShopDashboardSyncConsumer
     protected override async Task<(string Id, string IndexName, ShopDashboardReadModel? ReadModel)> BuildReadModelAsync(
         ReviewSubmittedEvent integrationEvent, CancellationToken ct)
     {
-        // ReviewSubmittedEvent 无 ShopId/SellerId 字段，暂以 SpuId 作为 builder 入参。
-        // 见类注释 remarks 了解限制与后续接通 SpuId→ShopId 解析的计划。
-        var shopId = integrationEvent.SpuId;
-        var readModel = await _builder.BuildAsync(shopId, ct);
+        var shopId = integrationEvent.ShopId;
+
+        // 旧版发布方未填充 ShopId 时，通过防腐层反查 SPU 归属卖家
+        if (shopId == Guid.Empty)
+        {
+            if (_productAntiCorruption is null)
+            {
+                // 兼容路径：未注入防腐层（如单元测试或老调用方），退回旧行为：以 SpuId 作为 builder 入参
+                Logger.LogWarning(
+                    "评价提交事件 ShopId 为空且未注入防腐层，回退以 SpuId 作为 ShopId 入参 SpuId={SpuId} ReviewId={ReviewId}",
+                    integrationEvent.SpuId, integrationEvent.ReviewId);
+                shopId = integrationEvent.SpuId;
+            }
+            else
+            {
+                var sellerId = await _productAntiCorruption.GetSpuSellerIdAsync(integrationEvent.SpuId, ct)
+                    .ConfigureAwait(false);
+                if (sellerId.HasValue)
+                {
+                    shopId = sellerId.Value;
+                }
+                else
+                {
+                    Logger.LogWarning(
+                        "评价提交事件无法解析 ShopId：SpuId={SpuId} ReviewId={ReviewId}，防腐层反查返回 null，跳过同步",
+                        integrationEvent.SpuId, integrationEvent.ReviewId);
+                    return (string.Empty, string.Empty, null);
+                }
+            }
+        }
+
+        var readModel = await _builder.BuildAsync(shopId, ct).ConfigureAwait(false);
         if (readModel is null)
         {
-            Logger.LogWarning("评价提交事件触发的工作台读模型构建为空 SpuId={SpuId} ReviewId={ReviewId}",
-                integrationEvent.SpuId, integrationEvent.ReviewId);
+            Logger.LogWarning("评价提交事件触发的工作台读模型构建为空 ShopId={ShopId} ReviewId={ReviewId}",
+                shopId, integrationEvent.ReviewId);
             return (string.Empty, string.Empty, null);
         }
 
