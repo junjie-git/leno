@@ -382,9 +382,9 @@ public sealed class AfterSales : AggregateRoot
     }
 
     /// <summary>
-    /// 标记退款失败，校验退款中态，置已失败态并记录失败原因。
+    /// 标记退款失败，校验退款中态，置已失败态并记录失败原因，发布 <see cref="AfterSalesRefundFailedDomainEvent"/>。
     /// </summary>
-    /// <param name="reason">失败原因。</param>
+    /// <param name="reason">失败原因，1-512 字。</param>
     public void MarkRefundFailed(string reason)
     {
         if (Status != AfterSalesStatus.Refunding)
@@ -394,8 +394,19 @@ public sealed class AfterSales : AggregateRoot
                 "AFTERSALES_REFUND_FAILED_STATUS_INVALID");
         }
 
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new ReviewDomainException("失败原因不可为空", "AFTERSALES_FAIL_REASON_EMPTY");
+        }
+
+        if (reason.Length > 512)
+        {
+            throw new ReviewDomainException("失败原因不可超过 512 字", "AFTERSALES_FAIL_REASON_TOO_LONG");
+        }
+
         Status = AfterSalesStatus.Failed;
         FailReason = reason;
+        AddDomainEvent(new AfterSalesRefundFailedDomainEvent(Id, OrderId, UserId, reason));
     }
 
     /// <summary>
@@ -438,10 +449,11 @@ public sealed class AfterSales : AggregateRoot
     }
 
     /// <summary>
-    /// 买家撤销，仅在待审核或已同意（未退货）态可调用，置已撤销态并记录撤销原因。
+    /// 买家撤销，仅在待审核或已同意（未退货）态可调用，置已撤销态并记录撤销原因，发布 <see cref="AfterSalesCancelledDomainEvent"/>。
+    /// 校验撤销人为申请人本人（合并审计 2.6：归属校验），reason 非空且不超过 200 字（合并审计 4.2）。
     /// </summary>
-    /// <param name="userId">撤销人标识。</param>
-    /// <param name="reason">撤销原因。</param>
+    /// <param name="userId">撤销人标识，须等于 <see cref="UserId"/>。</param>
+    /// <param name="reason">撤销原因，1-200 字。</param>
     public void Cancel(Guid userId, string reason)
     {
         if (Status != AfterSalesStatus.Pending && Status != AfterSalesStatus.Approved)
@@ -456,8 +468,24 @@ public sealed class AfterSales : AggregateRoot
             throw new ReviewDomainException("UserId 不可为空", "AFTERSALES_USER_EMPTY");
         }
 
+        if (userId != UserId)
+        {
+            throw new ReviewDomainException("仅申请人可撤销售后单", "AFTERSALES_CANCEL_NOT_OWNER");
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new ReviewDomainException("撤销原因不可为空", "AFTERSALES_CANCEL_REASON_EMPTY");
+        }
+
+        if (reason.Length > 200)
+        {
+            throw new ReviewDomainException("撤销原因不可超过 200 字", "AFTERSALES_CANCEL_REASON_TOO_LONG");
+        }
+
         Status = AfterSalesStatus.Cancelled;
         CancelledAt = DateTime.UtcNow;
         CancelReason = reason;
+        AddDomainEvent(new AfterSalesCancelledDomainEvent(Id, OrderId, UserId, SellerId, reason));
     }
 }

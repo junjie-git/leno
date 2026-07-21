@@ -64,7 +64,16 @@ public sealed class RefundFailedEventConsumer : IntegrationEventConsumerBase<Ref
             return;
         }
 
-        afterSales.MarkRefundFailed(integrationEvent.Reason);
+        // 防御性处理：上游事件可能携带空 Reason，提供默认值避免聚合校验抛异常导致重试风暴
+        var reason = string.IsNullOrWhiteSpace(integrationEvent.Reason)
+            ? "支付渠道未提供失败原因"
+            : integrationEvent.Reason;
+        if (reason.Length > 512)
+        {
+            reason = reason[..512];
+        }
+
+        afterSales.MarkRefundFailed(reason);
 
         await _afterSalesRepository.UpdateAsync(afterSales, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);

@@ -38,6 +38,14 @@ public class ReviewAfterSalesIntegrationEventMapper : IntegrationEventMapperBase
         RegisterHandler<AfterSalesReturnConfirmedDomainEvent, AfterSalesReturnConfirmedEvent>(e =>
             new AfterSalesReturnConfirmedEvent(e.AfterSalesId, e.OrderId, e.UserId, e.RefundAmount));
 
+        // AfterSalesRefundFailedDomainEvent → AfterSalesRefundFailedEvent（消息通知域通知买家退款失败、订单域更新售后状态视图）
+        RegisterHandler<AfterSalesRefundFailedDomainEvent, AfterSalesRefundFailedEvent>(e =>
+            new AfterSalesRefundFailedEvent(e.AfterSalesId, e.OrderId, e.UserId, e.Reason));
+
+        // AfterSalesCancelledDomainEvent → AfterSalesCancelledEvent（消息通知域通知卖家、促销域释放优惠券锁定）
+        RegisterHandler<AfterSalesCancelledDomainEvent, AfterSalesCancelledEvent>(e =>
+            new AfterSalesCancelledEvent(e.AfterSalesId, e.OrderId, e.UserId, e.SellerId, e.Reason));
+
         // AfterSalesRefundCompletedDomainEvent → RefundCompletedEvent（订单域回滚销量、促销域退还优惠券、消息通知域退款到账通知）
         // 注意：RefundCompletedEvent 同时由支付域 RefundOrder 聚合发布，本规则表达售后域视角的退款完成事实。
         RegisterHandler<AfterSalesRefundCompletedDomainEvent, RefundCompletedEvent>(e =>

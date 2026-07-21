@@ -285,3 +285,49 @@ public sealed class ReviewModeratedDomainEvent : DomainEventBase
         Action = action ?? string.Empty;
     }
 }
+
+/// <summary>
+/// 售后退款失败领域事件，由 <see cref="Aggregates.AfterSales"/> 聚合在 MarkRefundFailed 方法中收集。
+/// mapper 翻译为 <see cref="Leno.SharedContracts.Events.AfterSalesRefundFailedEvent"/> 集成事件对外发布。
+/// 消费方：消息通知域（通知买家退款失败并可重试）、订单域（更新售后状态视图）。
+/// </summary>
+public sealed class AfterSalesRefundFailedDomainEvent : DomainEventBase
+{
+    public Guid AfterSalesId { get; init; }
+    public Guid OrderId { get; init; }
+    public Guid UserId { get; init; }
+    public string Reason { get; init; } = string.Empty;
+
+    public AfterSalesRefundFailedDomainEvent(Guid afterSalesId, Guid orderId, Guid userId, string reason)
+        : base(afterSalesId)
+    {
+        AfterSalesId = afterSalesId;
+        OrderId = orderId;
+        UserId = userId;
+        Reason = reason ?? string.Empty;
+    }
+}
+
+/// <summary>
+/// 售后单撤销领域事件，由 <see cref="Aggregates.AfterSales"/> 聚合在 Cancel 方法中收集。
+/// mapper 翻译为 <see cref="Leno.SharedContracts.Events.AfterSalesCancelledEvent"/> 集成事件对外发布。
+/// 消费方：消息通知域（通知卖家售后单已撤销）、促销域（释放售后单关联的优惠券锁定）。
+/// </summary>
+public sealed class AfterSalesCancelledDomainEvent : DomainEventBase
+{
+    public Guid AfterSalesId { get; init; }
+    public Guid OrderId { get; init; }
+    public Guid UserId { get; init; }
+    public Guid SellerId { get; init; }
+    public string Reason { get; init; } = string.Empty;
+
+    public AfterSalesCancelledDomainEvent(Guid afterSalesId, Guid orderId, Guid userId, Guid sellerId, string reason)
+        : base(afterSalesId)
+    {
+        AfterSalesId = afterSalesId;
+        OrderId = orderId;
+        UserId = userId;
+        SellerId = sellerId;
+        Reason = reason ?? string.Empty;
+    }
+}

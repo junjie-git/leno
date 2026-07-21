@@ -220,3 +220,77 @@ public sealed class AfterSalesReturnConfirmedEvent : IntegrationEventBase
         RefundAmount = refundAmount;
     }
 }
+
+/// <summary>
+/// 售后退款失败集成事件，评价与售后域在退款失败时发布（与支付域 RefundFailedEvent 区分）。
+/// 消费方：消息通知域（通知买家退款失败并可重试）、订单域（更新售后状态视图）。
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class AfterSalesRefundFailedEvent : IntegrationEventBase
+{
+    /// <summary>售后单标识。</summary>
+    public Guid AfterSalesId { get; init; }
+
+    /// <summary>订单标识。</summary>
+    public Guid OrderId { get; init; }
+
+    /// <summary>申请人（买家）标识。</summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>失败原因。</summary>
+    public string Reason { get; init; } = string.Empty;
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => AfterSalesId;
+
+    public AfterSalesRefundFailedEvent() : base()
+    {
+    }
+
+    public AfterSalesRefundFailedEvent(Guid afterSalesId, Guid orderId, Guid userId, string reason) : base()
+    {
+        AfterSalesId = afterSalesId;
+        OrderId = orderId;
+        UserId = userId;
+        Reason = reason ?? string.Empty;
+    }
+}
+
+/// <summary>
+/// 售后单撤销集成事件，评价与售后域在买家撤销售后单时发布。
+/// 消费方：消息通知域（通知卖家售后单已撤销）、促销域（释放售后单关联的优惠券锁定）。
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class AfterSalesCancelledEvent : IntegrationEventBase
+{
+    /// <summary>售后单标识。</summary>
+    public Guid AfterSalesId { get; init; }
+
+    /// <summary>订单标识。</summary>
+    public Guid OrderId { get; init; }
+
+    /// <summary>申请人（买家）标识。</summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>被申请卖家标识。</summary>
+    public Guid SellerId { get; init; }
+
+    /// <summary>撤销原因。</summary>
+    public string Reason { get; init; } = string.Empty;
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => AfterSalesId;
+
+    public AfterSalesCancelledEvent() : base()
+    {
+    }
+
+    public AfterSalesCancelledEvent(Guid afterSalesId, Guid orderId, Guid userId, Guid sellerId, string reason) : base()
+    {
+        AfterSalesId = afterSalesId;
+        OrderId = orderId;
+        UserId = userId;
+        SellerId = sellerId;
+        Reason = reason ?? string.Empty;
+    }
+}
