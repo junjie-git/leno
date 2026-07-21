@@ -6,7 +6,9 @@ namespace Leno.SystemAdmin.Domain.Aggregates;
 
 /// <summary>
 /// 对账记录聚合根，记录每次统计对账的快照结果。
-/// 对账记录生成后不可变，仅追加不可修改。聚合标识 <see cref="Entity.Id"/> 即对外 <c>RecordId</c>。
+/// 对账记录快照（Snapshot/Status/ReconciledAt）生成后不可变，仅追加不可修改；
+/// 告警（AlertTriggered）与修正（CorrectionTriggered）为事后追加的状态标记，幂等可重置为 true 但不会回退快照本身。
+/// 聚合标识 <see cref="Entity.Id"/> 即对外 <c>RecordId</c>。
 /// </summary>
 public sealed class ReconciliationRecord : AggregateRoot
 {
@@ -64,18 +66,30 @@ public sealed class ReconciliationRecord : AggregateRoot
     }
 
     /// <summary>
-    /// 标记告警已触发。
+    /// 追加标记告警已触发。此为事后追加的状态标记，不影响快照本身的不变性；
+    /// 重复调用幂等返回，不重复触发领域事件。
     /// </summary>
     public void MarkAlertTriggered()
     {
+        if (AlertTriggered)
+        {
+            return;
+        }
+
         AlertTriggered = true;
     }
 
     /// <summary>
-    /// 标记自动修正已触发。
+    /// 追加标记自动修正已触发。此为事后追加的状态标记，不影响快照本身的不变性；
+    /// 重复调用幂等返回，不重复触发领域事件。
     /// </summary>
     public void MarkCorrectionTriggered()
     {
+        if (CorrectionTriggered)
+        {
+            return;
+        }
+
         CorrectionTriggered = true;
     }
 }

@@ -167,6 +167,66 @@ public class ReconciliationRecordTests
 
     #endregion
 
+    #region Idempotency
+
+    [Fact]
+    public void MarkAlertTriggered_CalledTwice_ShouldRemainTrueAndIdempotent()
+    {
+        var record = ReconciliationRecord.Create(ValidRecordId, CreateValidSnapshot());
+
+        record.MarkAlertTriggered();
+        record.MarkAlertTriggered();
+
+        record.AlertTriggered.Should().BeTrue();
+        record.CorrectionTriggered.Should().BeFalse();
+    }
+
+    [Fact]
+    public void MarkCorrectionTriggered_CalledTwice_ShouldRemainTrueAndIdempotent()
+    {
+        var record = ReconciliationRecord.Create(ValidRecordId, CreateValidSnapshot());
+
+        record.MarkCorrectionTriggered();
+        record.MarkCorrectionTriggered();
+
+        record.CorrectionTriggered.Should().BeTrue();
+        record.AlertTriggered.Should().BeFalse();
+    }
+
+    [Fact]
+    public void MarkBothTriggered_CalledTwice_ShouldRemainBothTrueAndIdempotent()
+    {
+        var record = ReconciliationRecord.Create(ValidRecordId, CreateValidSnapshot());
+
+        record.MarkAlertTriggered();
+        record.MarkCorrectionTriggered();
+        record.MarkAlertTriggered();
+        record.MarkCorrectionTriggered();
+
+        record.AlertTriggered.Should().BeTrue();
+        record.CorrectionTriggered.Should().BeTrue();
+    }
+
+    [Fact]
+    public void MarkAlertTriggered_OnAlreadyTriggeredRecord_ShouldNotAffectSnapshotFields()
+    {
+        var record = ReconciliationRecord.Create(ValidRecordId, CreateValidSnapshot());
+        var originalSnapshot = record.Snapshot;
+        var originalReconciledAt = record.ReconciledAt;
+        var originalStatus = record.Status;
+        var originalReportType = record.ReportType;
+
+        record.MarkAlertTriggered();
+        record.MarkAlertTriggered();
+
+        record.Snapshot.Should().BeSameAs(originalSnapshot);
+        record.ReconciledAt.Should().Be(originalReconciledAt);
+        record.Status.Should().Be(originalStatus);
+        record.ReportType.Should().Be(originalReportType);
+    }
+
+    #endregion
+
     #region Immutability
 
     [Fact]
