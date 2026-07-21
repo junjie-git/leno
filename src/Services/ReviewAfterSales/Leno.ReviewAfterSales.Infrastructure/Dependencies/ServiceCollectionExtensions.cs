@@ -22,6 +22,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -67,78 +68,102 @@ public static class ServiceCollectionExtensions
             .AddAntiCorruptionPolicies();
 
         // M4 双轨方案：gRPC 客户端 + 熔断器 + Dispatcher（仅当 UseGrpc=true 时生效）
+        // 审计 4.4：gRPC 端点缺失时不抛异常，记录 LogWarning 并降级到 HttpClient 模式（仅注册 HttpClient 实现）。
+        // 分别按 Payment/Order 端点是否存在独立降级，避免单端点缺失导致整个 BC 启动失败。
         var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
         if (antiCorruptionOptions.UseGrpc)
         {
             // Payment 双轨（IPaymentInfoQueryService）
-            var paymentGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Payment")
-                ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:Payment 配置缺失");
-
-            services.AddGrpcClient<PaymentInternalService.PaymentInternalServiceClient>(options =>
+            var paymentGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Payment");
+            if (!string.IsNullOrWhiteSpace(paymentGrpcEndpoint))
             {
-                options.Address = new Uri(paymentGrpcEndpoint);
-            });
-            services.AddScoped<GrpcPaymentInfoQueryService>();
+                services.AddGrpcClient<PaymentInternalService.PaymentInternalServiceClient>(options =>
+                {
+                    options.Address = new Uri(paymentGrpcEndpoint);
+                });
+                services.AddScoped<GrpcPaymentInfoQueryService>();
 
-            services.AddKeyedSingleton<CircuitBreakerState>("payment", (sp, _) =>
-            {
-                var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
-                var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
-                return new CircuitBreakerState(
-                    "payment",
-                    cbOpts.FailureThreshold,
-                    cbOpts.SuccessThreshold,
-                    TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
-            });
+                services.AddKeyedSingleton<CircuitBreakerState>("payment", (sp, _) =>
+                {
+                    var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
+                    var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
+                    return new CircuitBreakerState(
+                        "payment",
+                        cbOpts.FailureThreshold,
+                        cbOpts.SuccessThreshold,
+                        TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
+                });
 
-            services.AddScoped<AntiCorruptionDispatcher<IPaymentInfoQueryService>>(sp =>
+                services.AddScoped<AntiCorruptionDispatcher<IPaymentInfoQueryService>>(sp =>
+                {
+                    var httpImpl = sp.GetRequiredService<InfraServices.PaymentInfoQueryService>();
+                    var grpcImpl = sp.GetService<GrpcPaymentInfoQueryService>();
+                    var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                    var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IPaymentInfoQueryService>>>();
+                    var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("payment");
+                    return new AntiCorruptionDispatcher<IPaymentInfoQueryService>(
+                        httpImpl, grpcImpl, options, logger, "payment", cb);
+                });
+                services.AddScoped<PaymentInfoQueryDispatcherAdapter>();
+                services.AddScoped<IPaymentInfoQueryService>(sp =>
+                    sp.GetRequiredService<PaymentInfoQueryDispatcherAdapter>());
+            }
+            else
             {
-                var httpImpl = sp.GetRequiredService<InfraServices.PaymentInfoQueryService>();
-                var grpcImpl = sp.GetService<GrpcPaymentInfoQueryService>();
-                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
-                var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IPaymentInfoQueryService>>>();
-                var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("payment");
-                return new AntiCorruptionDispatcher<IPaymentInfoQueryService>(
-                    httpImpl, grpcImpl, options, logger, "payment", cb);
-            });
-            services.AddScoped<PaymentInfoQueryDispatcherAdapter>();
-            services.AddScoped<IPaymentInfoQueryService>(sp =>
-                sp.GetRequiredService<PaymentInfoQueryDispatcherAdapter>());
+                // 降级到 HttpClient 模式：注册启动时告警 HostedService，再注册 HttpClient 实现作为唯一实现。
+                services.AddHostedService(sp => new GrpcDegradationWarningHostedService(
+                    sp.GetRequiredService<ILogger<ServiceCollectionExtensions>>(),
+                    "Payment",
+                    "AntiCorruption:GrpcEndpoints:Payment"));
+                services.AddScoped<IPaymentInfoQueryService>(sp =>
+                    sp.GetRequiredService<InfraServices.PaymentInfoQueryService>());
+            }
 
             // Order 双轨（IOrderStatusProvider）
-            var orderGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Order")
-                ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:Order 配置缺失");
-
-            services.AddGrpcClient<OrderInternalService.OrderInternalServiceClient>(options =>
+            var orderGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Order");
+            if (!string.IsNullOrWhiteSpace(orderGrpcEndpoint))
             {
-                options.Address = new Uri(orderGrpcEndpoint);
-            });
-            services.AddScoped<GrpcOrderStatusProvider>();
+                services.AddGrpcClient<OrderInternalService.OrderInternalServiceClient>(options =>
+                {
+                    options.Address = new Uri(orderGrpcEndpoint);
+                });
+                services.AddScoped<GrpcOrderStatusProvider>();
 
-            services.AddKeyedSingleton<CircuitBreakerState>("order", (sp, _) =>
-            {
-                var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
-                var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
-                return new CircuitBreakerState(
-                    "order",
-                    cbOpts.FailureThreshold,
-                    cbOpts.SuccessThreshold,
-                    TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
-            });
+                services.AddKeyedSingleton<CircuitBreakerState>("order", (sp, _) =>
+                {
+                    var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
+                    var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
+                    return new CircuitBreakerState(
+                        "order",
+                        cbOpts.FailureThreshold,
+                        cbOpts.SuccessThreshold,
+                        TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
+                });
 
-            services.AddScoped<AntiCorruptionDispatcher<IOrderStatusProvider>>(sp =>
+                services.AddScoped<AntiCorruptionDispatcher<IOrderStatusProvider>>(sp =>
+                {
+                    var httpImpl = sp.GetRequiredService<InfraServices.HttpOrderStatusProvider>();
+                    var grpcImpl = sp.GetService<GrpcOrderStatusProvider>();
+                    var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                    var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IOrderStatusProvider>>>();
+                    var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("order");
+                    return new AntiCorruptionDispatcher<IOrderStatusProvider>(
+                        httpImpl, grpcImpl, options, logger, "order", cb);
+                });
+                services.AddScoped<OrderStatusDispatcherAdapter>();
+                services.AddScoped<IOrderStatusProvider>(sp =>
+                    sp.GetRequiredService<OrderStatusDispatcherAdapter>());
+            }
+            else
             {
-                var httpImpl = sp.GetRequiredService<InfraServices.HttpOrderStatusProvider>();
-                var grpcImpl = sp.GetService<GrpcOrderStatusProvider>();
-                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
-                var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IOrderStatusProvider>>>();
-                var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("order");
-                return new AntiCorruptionDispatcher<IOrderStatusProvider>(
-                    httpImpl, grpcImpl, options, logger, "order", cb);
-            });
-            services.AddScoped<OrderStatusDispatcherAdapter>();
-            services.AddScoped<IOrderStatusProvider>(sp =>
-                sp.GetRequiredService<OrderStatusDispatcherAdapter>());
+                // 降级到 HttpClient 模式：注册启动时告警 HostedService，再注册 HttpClient 实现作为唯一实现。
+                services.AddHostedService(sp => new GrpcDegradationWarningHostedService(
+                    sp.GetRequiredService<ILogger<ServiceCollectionExtensions>>(),
+                    "Order",
+                    "AntiCorruption:GrpcEndpoints:Order"));
+                services.AddScoped<IOrderStatusProvider>(sp =>
+                    sp.GetRequiredService<InfraServices.HttpOrderStatusProvider>());
+            }
         }
         else
         {
@@ -176,4 +201,44 @@ public static class ServiceCollectionExtensions
 
         return configurator;
     }
+}
+
+/// <summary>
+/// gRPC 端点缺失降级告警 HostedService（审计 4.4）。
+/// 在应用启动时记录 LogWarning，提示运维 AntiCorruption:GrpcEndpoints:{BcName} 配置缺失，
+/// 已自动降级到 HttpClient 模式。仅打日志无其他副作用，运行一次即结束。
+/// </summary>
+internal sealed class GrpcDegradationWarningHostedService : IHostedService
+{
+    private readonly ILogger _logger;
+    private readonly string _bcName;
+    private readonly string _configKey;
+
+    public GrpcDegradationWarningHostedService(ILogger logger, string bcName, string configKey)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        if (string.IsNullOrWhiteSpace(bcName))
+        {
+            throw new ArgumentException("BC 名称不可为空", nameof(bcName));
+        }
+        _bcName = bcName;
+        if (string.IsNullOrWhiteSpace(configKey))
+        {
+            throw new ArgumentException("配置键不可为空", nameof(configKey));
+        }
+        _configKey = configKey;
+    }
+
+    /// <inheritdoc />
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogWarning(
+            "AntiCorruption:UseGrpc=true 但 {ConfigKey} 配置缺失，{BcName} 防腐层已降级到 HttpClient 模式。请尽快补齐 gRPC 端点配置以恢复双轨能力。",
+            _configKey,
+            _bcName);
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
