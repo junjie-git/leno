@@ -64,7 +64,7 @@ public sealed class OAuthClientAppService : IOAuthClientAppService
             await _repository.UpdateAsync(client, ct);
         }
 
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
     public async Task EnableAsync(string provider, CancellationToken ct = default)
@@ -72,7 +72,7 @@ public sealed class OAuthClientAppService : IOAuthClientAppService
         var client = await GetClientOrThrowAsync(provider, ct);
         client.Enable();
         await _repository.UpdateAsync(client, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
     public async Task DisableAsync(string provider, CancellationToken ct = default)
@@ -80,7 +80,7 @@ public sealed class OAuthClientAppService : IOAuthClientAppService
         var client = await GetClientOrThrowAsync(provider, ct);
         client.Disable();
         await _repository.UpdateAsync(client, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
     private async Task<OAuthClient> GetClientOrThrowAsync(string provider, CancellationToken ct)

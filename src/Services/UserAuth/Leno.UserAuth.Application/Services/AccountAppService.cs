@@ -74,7 +74,7 @@ public sealed class AccountAppService : IAccountAppService
             externalInfo.AvatarUrl);
 
         await _userRepository.UpdateAsync(user, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
     public async Task UnbindExternalLoginAsync(Guid userId, string provider, CancellationToken ct = default)
@@ -93,6 +93,6 @@ public sealed class AccountAppService : IAccountAppService
         user.UnlinkExternalLogin(provider);
 
         await _userRepository.UpdateAsync(user, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
     }
 }
