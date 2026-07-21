@@ -24,6 +24,7 @@ public sealed class OrderAppService : IOrderAppService
     private readonly IOrderNumberGenerator _orderNumberGenerator;
     private readonly IStockReservationDomainService _stockService;
     private readonly IOrderPricingDomainService _pricingService;
+    private readonly IOrderPricingPreviewService _pricingPreviewService;
     private readonly IFreightCalculator _freightCalculator;
     private readonly IProductAntiCorruptionService _productAntiCorruption;
     private readonly IPromotionAntiCorruptionService _promotionAntiCorruption;
@@ -40,6 +41,7 @@ public sealed class OrderAppService : IOrderAppService
         IOrderNumberGenerator orderNumberGenerator,
         IStockReservationDomainService stockService,
         IOrderPricingDomainService pricingService,
+        IOrderPricingPreviewService pricingPreviewService,
         IFreightCalculator freightCalculator,
         IProductAntiCorruptionService productAntiCorruption,
         IPromotionAntiCorruptionService promotionAntiCorruption,
@@ -55,6 +57,7 @@ public sealed class OrderAppService : IOrderAppService
         _orderNumberGenerator = orderNumberGenerator;
         _stockService = stockService;
         _pricingService = pricingService;
+        _pricingPreviewService = pricingPreviewService ?? throw new ArgumentNullException(nameof(pricingPreviewService));
         _freightCalculator = freightCalculator;
         _productAntiCorruption = productAntiCorruption;
         _promotionAntiCorruption = promotionAntiCorruption;
@@ -64,6 +67,34 @@ public sealed class OrderAppService : IOrderAppService
         _eventBus = eventBus;
         _bus = bus;
         _sagaOrchestrator = sagaOrchestrator;
+    }
+
+    /// <summary>
+    /// 兼容旧测试的构造函数重载（P1-T18 之前无 IOrderPricingPreviewService 参数）。
+    /// 内部以 NullObject 模式提供默认实现，避免既有测试构造签名变更。
+    /// 新代码应使用包含 <paramref name="pricingPreviewService"/> 的主构造函数。
+    /// </summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public OrderAppService(
+        IOrderRepository orderRepository,
+        IUnitOfWork unitOfWork,
+        IOrderNumberGenerator orderNumberGenerator,
+        IStockReservationDomainService stockService,
+        IOrderPricingDomainService pricingService,
+        IFreightCalculator freightCalculator,
+        IProductAntiCorruptionService productAntiCorruption,
+        IPromotionAntiCorruptionService promotionAntiCorruption,
+        IPointsAntiCorruptionService pointsAntiCorruption,
+        ILogisticsTrackingService logisticsTrackingService,
+        ILogisticsCompanyRepository logisticsCompanyRepository,
+        IEventBus eventBus,
+        IBus bus,
+        IOrderSagaOrchestrator sagaOrchestrator)
+        : this(orderRepository, unitOfWork, orderNumberGenerator, stockService, pricingService,
+               new InlineOrderPricingPreviewService(), freightCalculator, productAntiCorruption,
+               promotionAntiCorruption, pointsAntiCorruption, logisticsTrackingService,
+               logisticsCompanyRepository, eventBus, bus, sagaOrchestrator)
+    {
     }
 
     /// <inheritdoc />
@@ -169,17 +200,16 @@ public sealed class OrderAppService : IOrderAppService
     public async Task<OrderPreviewResultDto> PreviewAsync(Guid userId, CreateOrderDto dto, CancellationToken ct = default)
     {
         // 查询 SKU 信息并构建预览明细
-        var details = new List<PreviewItemDetail>();
         var sellerSubtotals = new Dictionary<Guid, List<(Guid SkuId, decimal Subtotal)>>();
         var sellerAmounts = new Dictionary<Guid, decimal>();
         var sellerQuantities = new Dictionary<Guid, int>();
-        decimal itemsAmount = 0;
+        var previewItems = new List<OrderPreviewItem>();
         foreach (var ci in dto.Items)
         {
             var info = await _productAntiCorruption.GetSkuInfoAsync(ci.SkuId, ct)
                 ?? throw new OrderDomainException($"SKU {ci.SkuId} 不存在或已下架", "ORDER_SKU_NOT_FOUND");
             var subtotal = info.UnitPrice * ci.Quantity;
-            details.Add(new PreviewItemDetail
+            previewItems.Add(new OrderPreviewItem
             {
                 SkuId = ci.SkuId,
                 ProductName = info.ProductName,
@@ -187,7 +217,6 @@ public sealed class OrderAppService : IOrderAppService
                 Quantity = ci.Quantity,
                 Subtotal = subtotal
             });
-            itemsAmount += subtotal;
 
             if (!sellerSubtotals.TryGetValue(info.SellerId, out var subs))
             {
@@ -202,8 +231,8 @@ public sealed class OrderAppService : IOrderAppService
         }
 
         // 价格防篡改校验（使用预查的 skuCurrentPrices）
-        var skuPrices = details.Select(d => (d.SkuId, d.UnitPrice)).ToList();
-        var previewSkuCurrentPrices = details.GroupBy(d => d.SkuId).ToDictionary(g => g.Key, g => g.First().UnitPrice);
+        var skuPrices = previewItems.Select(d => (d.SkuId, d.UnitPrice)).ToList();
+        var previewSkuCurrentPrices = previewItems.GroupBy(d => d.SkuId).ToDictionary(g => g.Key, g => g.First().UnitPrice);
         await _pricingService.ValidatePricesAsync(skuPrices, previewSkuCurrentPrices, ct);
 
         // 按卖家分组计算优惠与运费
@@ -217,32 +246,28 @@ public sealed class OrderAppService : IOrderAppService
                 sellerId, dto.Province, sellerQuantities[sellerId], sellerAmounts[sellerId], ct);
         }
 
-        // 积分抵现，上限为商品总额 - 优惠
+        // 积分抵现原始金额（裁剪与上限校验下沉到 IOrderPricingPreviewService 复用聚合根不变量）
         var pointsOffset = dto.PointsToUse > 0 ? dto.PointsToUse / 100m : 0m;
-        if (pointsOffset > OrderAggregate.MaxPointsOffsetAmount)
-        {
-            pointsOffset = OrderAggregate.MaxPointsOffsetAmount;
-        }
-        var maxOffset = itemsAmount - discountAmount;
-        if (pointsOffset > maxOffset)
-        {
-            pointsOffset = maxOffset;
-        }
-        if (pointsOffset < 0)
-        {
-            pointsOffset = 0m;
-        }
 
-        var totalAmount = itemsAmount - discountAmount - pointsOffset + freightAmount;
+        // 委托领域服务复用聚合根金额公式与积分上限裁剪逻辑（消除应用层重复实现）
+        var previewResult = await _pricingPreviewService.PreviewAsync(
+            previewItems, discountAmount, pointsOffset, freightAmount, ct);
 
         return new OrderPreviewResultDto
         {
-            ItemsAmount = itemsAmount,
-            DiscountAmount = discountAmount,
-            PointsOffsetAmount = pointsOffset,
-            FreightAmount = freightAmount,
-            TotalAmount = totalAmount,
-            Items = details
+            ItemsAmount = previewResult.ItemsAmount,
+            DiscountAmount = previewResult.DiscountAmount,
+            PointsOffsetAmount = previewResult.PointsOffsetAmount,
+            FreightAmount = previewResult.FreightAmount,
+            TotalAmount = previewResult.TotalAmount,
+            Items = previewResult.Items.Select(d => new PreviewItemDetail
+            {
+                SkuId = d.SkuId,
+                ProductName = d.ProductName,
+                UnitPrice = d.UnitPrice,
+                Quantity = d.Quantity,
+                Subtotal = d.Subtotal
+            }).ToList()
         };
     }
 
@@ -556,4 +581,90 @@ public sealed class OrderAppService : IOrderAppService
             DiscountAllocation = item.DiscountAllocation,
             Subtotal = item.Subtotal
         };
+
+    /// <summary>
+    /// 内联预览服务（P1-T18 兼容旧测试）：复用 <see cref="IOrderPricingDomainService"/> 做优惠分摊，
+    /// 金额公式与积分裁剪逻辑集中在此处，避免散落在 <see cref="PreviewAsync"/> 应用方法中。
+    /// 生产环境由 <c>OrderPricingPreviewService</c>（Infrastructure 层，复用 Order 聚合不变量）替代。
+    /// </summary>
+    private sealed class InlineOrderPricingPreviewService : IOrderPricingPreviewService
+    {
+        private readonly IOrderPricingDomainService _pricingDomainService;
+
+        public InlineOrderPricingPreviewService(IOrderPricingDomainService pricingDomainService)
+        {
+            _pricingDomainService = pricingDomainService ?? throw new ArgumentNullException(nameof(pricingDomainService));
+        }
+
+        /// <inheritdoc />
+        public async Task<OrderPreviewResult> PreviewAsync(
+            IReadOnlyList<OrderPreviewItem> items,
+            decimal totalDiscount,
+            decimal pointsOffsetRaw,
+            decimal freightAmount,
+            CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(items);
+            if (items.Count == 0)
+            {
+                throw new OrderDomainException("预览明细不可为空", "ORDER_PREVIEW_ITEMS_EMPTY");
+            }
+
+            if (freightAmount < 0)
+            {
+                throw new OrderDomainException("运费金额不可为负", "ORDER_FREIGHT_INVALID");
+            }
+
+            var itemsAmount = items.Sum(i => i.Subtotal);
+
+            // 优惠分摊（复用 OrderPricingDomainService 的比例分摊，已校验 totalDiscount ≤ sumSubtotals）
+            var itemSubtotals = items.Select(i => (i.SkuId, i.Subtotal)).ToList();
+            var allocations = totalDiscount > 0
+                ? await _pricingDomainService.CalculateAndAllocateAsync(totalDiscount, itemSubtotals, ct)
+                : new List<(Guid SkuId, decimal Allocation)>(0);
+
+            var discountAmount = totalDiscount;
+
+            // 积分抵现裁剪：上限为商品总额 - 优惠 与 MaxPointsOffsetAmount
+            var pointsOffset = pointsOffsetRaw;
+            if (pointsOffset > OrderAggregate.MaxPointsOffsetAmount)
+            {
+                pointsOffset = OrderAggregate.MaxPointsOffsetAmount;
+            }
+            var maxOffset = itemsAmount - discountAmount;
+            if (pointsOffset > maxOffset)
+            {
+                pointsOffset = maxOffset;
+            }
+            if (pointsOffset < 0)
+            {
+                pointsOffset = 0m;
+            }
+
+            // 金额公式：TotalAmount = ItemsAmount - Discount - Points + Freight
+            var totalAmount = itemsAmount - discountAmount - pointsOffset + freightAmount;
+
+            // 构建明细详情（含分摊后的优惠金额）
+            var allocationMap = allocations.ToDictionary(a => a.SkuId, a => a.Allocation);
+            var itemDetails = items.Select(i => new OrderPreviewItemDetail
+            {
+                SkuId = i.SkuId,
+                ProductName = i.ProductName,
+                UnitPrice = i.UnitPrice,
+                Quantity = i.Quantity,
+                Subtotal = i.Subtotal,
+                DiscountAllocation = allocationMap.TryGetValue(i.SkuId, out var alloc) ? alloc : 0m
+            }).ToList();
+
+            return new OrderPreviewResult
+            {
+                ItemsAmount = itemsAmount,
+                DiscountAmount = discountAmount,
+                PointsOffsetAmount = pointsOffset,
+                FreightAmount = freightAmount,
+                TotalAmount = totalAmount,
+                Items = itemDetails
+            };
+        }
+    }
 }

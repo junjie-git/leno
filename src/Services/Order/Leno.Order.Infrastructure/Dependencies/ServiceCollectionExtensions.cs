@@ -63,6 +63,7 @@ public static class ServiceCollectionExtensions
         // 领域服务
         services.AddScoped<IStockReservationDomainService, StockReservationDomainService>();
         services.AddScoped<IOrderPricingDomainService, OrderPricingDomainService>();
+        services.AddScoped<IOrderPricingPreviewService, OrderPricingPreviewService>();
         services.AddScoped<IOrderNumberGenerator, OrderNumberGenerator>();
         services.AddScoped<IFreightCalculator, FreightCalculator>();
 

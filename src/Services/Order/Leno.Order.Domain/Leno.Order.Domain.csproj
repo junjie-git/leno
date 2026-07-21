@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Leno.Order.Application" />
+    <InternalsVisibleTo Include="Leno.Order.Infrastructure" />
     <InternalsVisibleTo Include="Leno.Order.Domain.Tests" />
     <InternalsVisibleTo Include="Leno.Order.Application.Tests" />
     <InternalsVisibleTo Include="Leno.Order.Infrastructure.Tests" />
