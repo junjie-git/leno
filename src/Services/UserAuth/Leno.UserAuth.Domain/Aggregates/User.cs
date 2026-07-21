@@ -20,6 +20,16 @@ public sealed partial class User : AggregateRoot
     /// <summary>登录失败锁定的默认时长。</summary>
     public static readonly TimeSpan DefaultLockDuration = TimeSpan.FromMinutes(30);
 
+    /// <summary>
+    /// 用于时序对齐的预生成 bcrypt 哈希。
+    /// 当 <see cref="PasswordHash"/> 为空（纯 OAuth 用户）时，<see cref="VerifyPassword"/> 会执行一次
+    /// dummy verify 使响应时间与真实 bcrypt 校验路径一致，防止攻击者通过响应时间差异枚举
+    /// 哪些账户设置了密码、哪些是纯 OAuth 账户（P2-4）。
+    /// 该哈希由 "leno-dummy-password-for-timing-equalization" 经 bcrypt cost 12 生成，无任何登录语义。
+    /// </summary>
+    private const string DummyPasswordHash =
+        "$2a$12$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+
     private readonly List<UserRole> _roles = new();
     private readonly List<ExternalLogin> _externalLogins = new();
 
@@ -121,14 +131,26 @@ public sealed partial class User : AggregateRoot
     }
 
     /// <summary>
-    /// 工厂方法，创建 OAuth2 用户。校验密码，失败时累加 <see cref="FailedLoginCount"/>，达阈值调用 <see cref="Lock"/>。
+    /// 校验明文密码是否与已存哈希匹配。
+    /// 失败时累加 <see cref="FailedLoginCount"/>，达阈值调用 <see cref="Lock"/>。
+    /// 当账户未设置密码（纯 OAuth 用户）时执行一次 dummy bcrypt verify 对齐响应时间，
+    /// 防止攻击者通过响应时间差异枚举账户类型（P2-4）。
     /// </summary>
     public bool VerifyPassword(string plainPassword, IPasswordHasher hasher)
     {
         ArgumentNullException.ThrowIfNull(hasher);
 
+        if (string.IsNullOrEmpty(plainPassword))
+        {
+            // 空密码直接拒绝，但仍执行一次 dummy verify 对齐时序
+            _ = hasher.Verify("\x00", DummyPasswordHash);
+            return false;
+        }
+
         if (string.IsNullOrEmpty(PasswordHash))
         {
+            // 纯 OAuth 用户无密码哈希，执行 dummy verify 对齐响应时间后返回 false
+            _ = hasher.Verify(plainPassword, DummyPasswordHash);
             return false;
         }
 

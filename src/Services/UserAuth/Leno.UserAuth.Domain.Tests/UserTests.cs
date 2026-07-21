@@ -119,6 +119,61 @@ public class UserTests
         user.FailedLoginCount.Should().Be(0);
     }
 
+    [Fact]
+    public void VerifyPassword_EmptyHash_ShouldStillInvokeHasherVerifyForTimingEqualization()
+    {
+        // 纯 OAuth 用户无密码哈希，VerifyPassword 应执行一次 dummy verify 对齐响应时间（P2-4）。
+        // 验证 hasher.Verify 被调用，且不递增 FailedLoginCount。
+        var info = new ExternalLoginInfo("google", "google-123", "test@gmail.com", "Test User", null);
+        var user = User.CreateFromExternal(Guid.NewGuid(), info);
+        user.PasswordHash.Should().BeNull();
+
+        var result = user.VerifyPassword("AnyPassword123", _hasherMock.Object);
+
+        result.Should().BeFalse();
+        user.FailedLoginCount.Should().Be(0);
+        _hasherMock.Verify(h => h.Verify("AnyPassword123", It.Is<string>(s => s.StartsWith("$2a$12$")), Times.Once));
+    }
+
+    [Fact]
+    public void VerifyPassword_EmptyHash_ShouldReturnFalseWithoutLocking()
+    {
+        // 纯 OAuth 用户多次调用 VerifyPassword 不应触发锁定（dummy verify 路径不计入失败次数）
+        var info = new ExternalLoginInfo("google", "google-123", "test@gmail.com", "Test User", null);
+        var user = User.CreateFromExternal(Guid.NewGuid(), info);
+
+        for (int i = 0; i < 10; i++)
+        {
+            user.VerifyPassword("AnyPassword123", _hasherMock.Object).Should().BeFalse();
+        }
+
+        user.Status.Should().Be(AccountStatus.Active);
+        user.FailedLoginCount.Should().Be(0);
+    }
+
+    [Fact]
+    public void VerifyPassword_EmptyPlainPassword_ShouldStillInvokeHasherVerifyForTimingEqualization()
+    {
+        // 空明文密码也应执行 dummy verify 对齐时序（P2-4）
+        var user = CreateUser();
+
+        var result = user.VerifyPassword("", _hasherMock.Object);
+
+        result.Should().BeFalse();
+        _hasherMock.Verify(h => h.Verify("\x00", It.Is<string>(s => s.StartsWith("$2a$12$")), Times.Once));
+    }
+
+    [Fact]
+    public void VerifyPassword_NullPlainPassword_ShouldStillInvokeHasherVerifyForTimingEqualization()
+    {
+        var user = CreateUser();
+
+        var result = user.VerifyPassword(null!, _hasherMock.Object);
+
+        result.Should().BeFalse();
+        _hasherMock.Verify(h => h.Verify("\x00", It.Is<string>(s => s.StartsWith("$2a$12$")), Times.Once));
+    }
+
     #endregion
 
     #region ChangePassword
