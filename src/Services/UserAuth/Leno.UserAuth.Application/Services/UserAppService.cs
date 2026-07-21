@@ -536,17 +536,9 @@ public sealed class UserAppService : IUserAppService
             throw new UserAuthDomainException("账户已被禁用", "USER_DISABLED");
         }
 
-        // 重置密码
-        if (string.IsNullOrEmpty(user.PasswordHash))
-        {
-            // 纯 OAuth 用户首次设置密码
-            user.ResetPassword(_passwordHasher.Hash(dto.NewPassword), _passwordHasher);
-        }
-        else
-        {
-            // 直接设置新密码（无需旧密码验证）
-            user.ResetPassword(_passwordHasher.Hash(dto.NewPassword), _passwordHasher);
-        }
+        // 重置密码（纯 OAuth 用户首次设置密码与密码用户重置走同一逻辑，
+        // 均直接设置新密码哈希，无需旧密码验证——令牌已通过邮箱/短信验证）
+        user.ResetPassword(_passwordHasher.Hash(dto.NewPassword), _passwordHasher);
 
         await _userRepository.UpdateAsync(user, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
