@@ -88,6 +88,13 @@ public sealed class UserMembership : AggregateRoot
             throw new PointsDomainException("OrderId 不可为空", "POINTS_ORDER_EMPTY");
         }
 
+        // PM-H08 幂等：已激活且 OrderId 相同则直接返回，避免重复事件抛 MEMBERSHIP_ACTIVATE_INVALID
+        // 触发 MassTransit 重试死循环（同订单重复支付成功事件场景）
+        if (Status == UserMembershipStatus.Active && OrderId == orderId)
+        {
+            return;
+        }
+
         if (durationDays <= 0)
         {
             throw new PointsDomainException("权益时长须大于 0", "MEMBERSHIP_DURATION_INVALID");

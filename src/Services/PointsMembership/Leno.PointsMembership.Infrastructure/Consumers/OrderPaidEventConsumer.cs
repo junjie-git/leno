@@ -48,16 +48,37 @@ public sealed class OrderPaidEventConsumer : IntegrationEventConsumerBase<OrderP
             account.ConfirmDeduct(integrationEvent.OrderId);
             Logger.LogInformation("订单 {OrderId} 支付成功，已确认扣减积分", integrationEvent.OrderId);
         }
+        else
+        {
+            Logger.LogInformation("订单 {OrderId} 无冻结积分，跳过 ConfirmDeduct", integrationEvent.OrderId);
+        }
 
         // 2. 若为会员订阅订单，激活 UserMembership
+        // PM-H08 修复：package null 或 DurationDays<=0 时记录告警并跳过 Activate，
+        // 避免 UserMembership.Activate 抛 MEMBERSHIP_DURATION_INVALID 触发 MassTransit 重试死循环
+        // （ConfirmDeduct 已成功执行，重试会触发 POINTS_FROZEN_ENTRY_NOT_FOUND 死循环）
         var userMembership = await _userMembershipRepository.GetByOrderIdAsync(integrationEvent.OrderId, ct);
         if (userMembership is not null && userMembership.Status == UserMembershipStatus.Pending)
         {
             var package = await _packageRepository.GetByIdAsync(userMembership.PackageId, ct);
-            var durationDays = package?.DurationDays ?? 0;
-            userMembership.Activate(integrationEvent.OrderId, integrationEvent.PaidAt, durationDays);
-            Logger.LogInformation("会员订阅订单 {OrderId} 支付成功，已激活会员 {UserMembershipId}",
-                integrationEvent.OrderId, userMembership.Id);
+            if (package is null)
+            {
+                Logger.LogWarning(
+                    "会员订阅订单 {OrderId} 对应套餐 {PackageId} 不存在或已下架，跳过 UserMembership 激活，需人工处理",
+                    integrationEvent.OrderId, userMembership.PackageId);
+            }
+            else if (package.DurationDays <= 0)
+            {
+                Logger.LogWarning(
+                    "会员订阅订单 {OrderId} 对应套餐 {PackageId} DurationDays={Days} 异常，跳过 UserMembership 激活，需人工处理",
+                    integrationEvent.OrderId, userMembership.PackageId, package.DurationDays);
+            }
+            else
+            {
+                userMembership.Activate(integrationEvent.OrderId, integrationEvent.PaidAt, package.DurationDays);
+                Logger.LogInformation("会员订阅订单 {OrderId} 支付成功，已激活会员 {UserMembershipId}",
+                    integrationEvent.OrderId, userMembership.Id);
+            }
         }
 
         await _unitOfWork.SaveEntitiesAsync(ct);
