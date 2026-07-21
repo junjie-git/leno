@@ -69,47 +69,58 @@ public sealed class NotificationDispatcher : INotificationDispatcher
             : [NotificationChannel.InApp];
 
         // 按渠道创建通知记录并发送（使用构造时缓存的渠道字典，避免每次重建触发 ToDictionary 重复键异常）
+        // P1-26：每个 channel 的处理放入独立 try-catch，单渠道失败不影响其他。
         foreach (var channel in channels)
         {
-            var template = await _templateRepository.GetEnabledAsync(templateCode, channel, ct);
-            if (template is null)
+            try
             {
-                _logger.LogWarning("未找到启用模板 TemplateCode={TemplateCode} Channel={Channel}，跳过", templateCode, channel);
-                continue;
-            }
-
-            var (title, content) = _renderer.Render(template, variables);
-            var record = NotificationRecord.Create(
-                Guid.NewGuid(), userId, templateCode, eventId, channel, title, content);
-
-            await _recordRepository.AddAsync(record, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
-
-            // 立即发送
-            if (_channelDict.TryGetValue(channel, out var sender))
-            {
-                try
+                var template = await _templateRepository.GetEnabledAsync(templateCode, channel, ct);
+                if (template is null)
                 {
-                    record.MarkSending();
-                    var sendRequest = await BuildChannelSendRequestAsync(record, ct);
-                    var result = await sender.SendAsync(sendRequest, ct);
-                    if (result.Succeeded)
-                    {
-                        record.MarkSucceeded(result.ChannelMessageId);
-                    }
-                    else
-                    {
-                        record.MarkFailed(result.ErrorMessage ?? "发送失败", result.ErrorCode);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "通知发送异常 RecordId={RecordId} Channel={Channel}", record.Id, channel);
-                    record.MarkFailed(ex.Message, "DISPATCH_EXCEPTION");
+                    _logger.LogWarning("未找到启用模板 TemplateCode={TemplateCode} Channel={Channel}，跳过", templateCode, channel);
+                    continue;
                 }
 
-                await _recordRepository.UpdateAsync(record, ct);
+                var (title, content) = _renderer.Render(template, variables);
+                var record = NotificationRecord.Create(
+                    Guid.NewGuid(), userId, templateCode, eventId, channel, title, content);
+
+                await _recordRepository.AddAsync(record, ct);
                 await _unitOfWork.SaveChangesAsync(ct);
+
+                // 立即发送
+                if (_channelDict.TryGetValue(channel, out var sender))
+                {
+                    try
+                    {
+                        record.MarkSending();
+                        var sendRequest = await BuildChannelSendRequestAsync(record, ct);
+                        var result = await sender.SendAsync(sendRequest, ct);
+                        if (result.Succeeded)
+                        {
+                            record.MarkSucceeded(result.ChannelMessageId);
+                        }
+                        else
+                        {
+                            record.MarkFailed(result.ErrorMessage ?? "发送失败", result.ErrorCode);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "通知发送异常 RecordId={RecordId} Channel={Channel}", record.Id, channel);
+                        record.MarkFailed(ex.Message, "DISPATCH_EXCEPTION");
+                    }
+
+                    await _recordRepository.UpdateAsync(record, ct);
+                    await _unitOfWork.SaveChangesAsync(ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                // P1-26：单渠道失败（模板查询/渲染/记录创建/保存等）不影响其他渠道发送，
+                // DispatchAsync 不抛异常，确保 Email 失败时 Sms 仍正常发送。
+                _logger.LogError(ex, "渠道处理异常，跳过该渠道 UserId={UserId} TemplateCode={TemplateCode} Channel={Channel}",
+                    userId, templateCode, channel);
             }
         }
 
