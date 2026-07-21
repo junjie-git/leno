@@ -20,6 +20,7 @@ public sealed class NotificationService : INotificationService
     private readonly IEnumerable<INotificationChannel> _channels;
     private readonly IUserContactService _userContactService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IRateLimiter? _rateLimiter;
     private readonly ILogger<NotificationService> _logger;
 
     public NotificationService(
@@ -29,7 +30,8 @@ public sealed class NotificationService : INotificationService
         IEnumerable<INotificationChannel> channels,
         IUserContactService userContactService,
         IUnitOfWork unitOfWork,
-        ILogger<NotificationService> logger)
+        ILogger<NotificationService> logger,
+        IRateLimiter? rateLimiter = null)
     {
         ArgumentNullException.ThrowIfNull(templateRepository);
         ArgumentNullException.ThrowIfNull(recordRepository);
@@ -45,6 +47,7 @@ public sealed class NotificationService : INotificationService
         _userContactService = userContactService;
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _rateLimiter = rateLimiter;
     }
 
     /// <inheritdoc />
@@ -130,6 +133,30 @@ public sealed class NotificationService : INotificationService
 
         // 6. Channel send with 3s timeout
         record.MarkSending();
+
+        // P1-20：渠道发送前进行限流检查，超限时标记 Failed + RATE_LIMITED
+        if (_rateLimiter is not null)
+        {
+            var recipientKey = request.UserId.ToString();
+            var rateLimitResult = await _rateLimiter.AcquireAsync(recipientKey, request.TemplateCode, template.Channel);
+            if (!rateLimitResult.Allowed)
+            {
+                _logger.LogWarning("通知发送被限流 RecordId={RecordId} Channel={Channel} ErrorCode={ErrorCode} Count={Count} Limit={Limit}",
+                    recordId, template.Channel, rateLimitResult.ErrorCode, rateLimitResult.CurrentCount, rateLimitResult.Limit);
+
+                record.MarkFailed(rateLimitResult.ErrorMessage ?? "发送频率超限", rateLimitResult.ErrorCode ?? "RATE_LIMITED");
+                await _recordRepository.UpdateAsync(record, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+
+                return new NotificationSendResult
+                {
+                    Succeeded = false,
+                    RecordId = recordId,
+                    ErrorCode = rateLimitResult.ErrorCode ?? "RATE_LIMITED",
+                    ErrorMessage = rateLimitResult.ErrorMessage ?? "发送频率超限"
+                };
+            }
+        }
 
         using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(SendTimeoutSeconds));
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
