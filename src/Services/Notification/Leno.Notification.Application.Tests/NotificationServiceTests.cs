@@ -439,7 +439,7 @@ public class NotificationServiceTests
     #region SendAsync - Timeout
 
     [Fact]
-    public async Task SendAsync_ChannelSendTimesOut_ShouldReturnAccepted()
+    public async Task SendAsync_ChannelSendTimesOut_ShouldMarkFailedNotStaySending()
     {
         // Arrange
         var template = CreateEnabledTemplate();
@@ -449,7 +449,13 @@ public class NotificationServiceTests
         SetupRecordAdd();
         SetupChannel(NotificationChannel.InApp);
         SetupUserContactService();
-        SetupRecordUpdate();
+
+        // 捕获 UpdateAsync 传入的记录以验证状态
+        NotificationRecord? capturedRecord = null;
+        _recordRepoMock
+            .Setup(r => r.UpdateAsync(It.IsAny<NotificationRecord>(), It.IsAny<CancellationToken>()))
+            .Callback<NotificationRecord, CancellationToken>((r, _) => capturedRecord = r)
+            .Returns(Task.CompletedTask);
 
         // Simulate timeout by delaying beyond the 3s timeout
         _channelMock
@@ -476,11 +482,17 @@ public class NotificationServiceTests
         // Act
         var result = await _sut.SendAsync(request);
 
-        // Assert
-        result.Succeeded.Should().BeTrue();
+        // Assert — P0-8 修复：超时应标记为 Failed（可被 RetryJob 拾取），
+        // 而非滞留在 Sending（无 Job 拾取导致永久卡死），也不应返回 Succeeded=true
+        result.Succeeded.Should().BeFalse();
         result.RecordId.Should().NotBeNull();
         result.ErrorCode.Should().Be("ACCEPTED_TIMEOUT");
-        result.ErrorMessage.Should().Contain("异步处理");
+        result.ErrorMessage.Should().Contain("已标记为失败等待重试");
+
+        capturedRecord.Should().NotBeNull();
+        capturedRecord!.Status.Should().Be(NotificationStatus.Failed);
+        capturedRecord.Status.Should().NotBe(NotificationStatus.Sending);
+        capturedRecord.ErrorCode.Should().Be("ACCEPTED_TIMEOUT");
     }
 
     #endregion

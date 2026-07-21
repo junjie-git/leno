@@ -149,19 +149,21 @@ public sealed class NotificationService : INotificationService
         }
         catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !ct.IsCancellationRequested)
         {
-            // 7. Timeout: return accepted, processing asynchronously
+            // 7. Timeout: 标记为 Failed 让 NotificationRetryJob 后续处理，
+            //    而非滞留在 Sending 状态（无 Job 拾取 Sending 状态记录，导致永久卡死）。
             _logger.LogWarning("通知发送超时 RecordId={RecordId} TemplateCode={Code} Channel={Channel}",
                 recordId, request.TemplateCode, template.Channel);
 
+            record.MarkFailed("发送超时", "ACCEPTED_TIMEOUT");
             await _recordRepository.UpdateAsync(record, ct);
             await _unitOfWork.SaveChangesAsync(ct);
 
             return new NotificationSendResult
             {
-                Succeeded = true,
+                Succeeded = false,
                 RecordId = recordId,
                 ErrorCode = "ACCEPTED_TIMEOUT",
-                ErrorMessage = "通知已接受，正在异步处理中"
+                ErrorMessage = "通知发送超时，已标记为失败等待重试"
             };
         }
         catch (Exception ex)
