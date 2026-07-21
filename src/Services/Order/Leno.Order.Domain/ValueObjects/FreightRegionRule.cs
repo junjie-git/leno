@@ -23,8 +23,12 @@ public sealed record FreightRegionRule
     /// <summary>续件单位运费，须 ≥ 0。</summary>
     public decimal AdditionalPrice { get; init; }
 
-    /// <summary>供 EF Core 与反序列化使用的无参构造。</summary>
-    public FreightRegionRule() { }
+    /// <summary>
+    /// 供 EF Core 与反序列化使用的无参构造（P1-T22 改为 private）。
+    /// 强制外部经 <see cref="Create"/> 工厂方法构造合法对象，避免 new FreightRegionRule() 创建 FirstUnit=0/AdditionalUnit=0 的非法实例。
+    /// EF Core 通过反射访问 private 构造完成实体物化。
+    /// </summary>
+    private FreightRegionRule() { }
 
     private FreightRegionRule(string regionCode, int firstUnit, decimal firstPrice, int additionalUnit, decimal additionalPrice)
     {
