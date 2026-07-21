@@ -73,7 +73,7 @@ public sealed class EfCoreNotificationRecordRepository : INotificationRecordRepo
     public async Task<List<NotificationRecord>> GetRetryableAsync(int limit, CancellationToken ct = default)
     {
         return await _context.NotificationRecords
-            .Where(n => n.Status == NotificationStatus.Failed && n.RetryCount < NotificationRecord.DefaultMaxRetry)
+            .Where(n => n.Status == NotificationStatus.Failed && n.RetryCount < n.MaxRetry)
             .OrderBy(n => n.CreatedAt)
             .Take(limit)
             .ToListAsync(ct);
