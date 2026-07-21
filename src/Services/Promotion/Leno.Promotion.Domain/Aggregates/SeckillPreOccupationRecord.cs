@@ -53,6 +53,36 @@ public sealed class SeckillPreOccupationRecord : AggregateRoot
         Guid orderId,
         int quantity)
     {
+        if (activityId == Guid.Empty)
+        {
+            throw new Exceptions.PromotionDomainException(
+                "秒杀活动标识不能为空", "PRE_OCCUPATION_ACTIVITY_EMPTY");
+        }
+
+        if (skuId == Guid.Empty)
+        {
+            throw new Exceptions.PromotionDomainException(
+                "SKU 标识不能为空", "PRE_OCCUPATION_SKU_EMPTY");
+        }
+
+        if (userId == Guid.Empty)
+        {
+            throw new Exceptions.PromotionDomainException(
+                "用户标识不能为空", "PRE_OCCUPATION_USER_EMPTY");
+        }
+
+        if (orderId == Guid.Empty)
+        {
+            throw new Exceptions.PromotionDomainException(
+                "订单标识不能为空", "PRE_OCCUPATION_ORDER_EMPTY");
+        }
+
+        if (quantity <= 0)
+        {
+            throw new Exceptions.PromotionDomainException(
+                "预占数量必须大于 0", "PRE_OCCUPATION_QTY_INVALID");
+        }
+
         return new SeckillPreOccupationRecord(Guid.NewGuid())
         {
             ActivityId = activityId,
