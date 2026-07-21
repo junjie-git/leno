@@ -112,6 +112,22 @@ public sealed class EfCoreUserRepository : IUserRepository
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// ⚠️ 注意（P2-9）：
+    /// 本方法不调用 <c>DbContext.Update(entity)</c>，因为 Update 会将实体及所有 owned 集合
+    /// 标记为 <c>Modified</c>，覆盖 owned 集合新增元素的 <c>Added</c> 状态，导致插入变为更新。
+    /// <para>
+    /// 正常使用模式：应用层通过 <c>GetByIdAsync</c> 等查询方法加载实体（已纳入变更跟踪），
+    /// 调用聚合行为方法修改字段后调用本方法（no-op，仅确保已跟踪），最后由
+    /// <c>IUnitOfWork.SaveEntitiesAsync</c> 统一持久化。
+    /// </para>
+    /// <para>
+    /// ⚠️ 若实体从外部传入且处于 <c>Detached</c> 状态，<c>Attach</c> 后实体状态为 <c>Unchanged</c>，
+    /// 对导航集合与字段的修改不会被变更跟踪检测。调用方须显式标记修改字段：
+    /// <c>_context.Entry(user).Property(x => x.SomeField).IsModified = true;</c>
+    /// 推荐始终通过仓储查询加载实体后再修改，避免 Detached 场景。
+    /// </para>
+    /// </remarks>
     public Task UpdateAsync(User user, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(user);
