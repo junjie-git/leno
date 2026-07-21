@@ -116,6 +116,18 @@ public sealed class FreightTemplate : AggregateRoot
     /// <returns>运费金额。</returns>
     public decimal CalculateFreight(string regionCode, int quantity, decimal orderAmount)
     {
+        // 边界校验：订单金额不可为负（负值无法判断包邮门槛）
+        if (orderAmount < 0)
+        {
+            throw new OrderDomainException("订单金额不可为负", "FREIGHT_ORDER_AMOUNT_INVALID");
+        }
+
+        // 边界校验：数量为 0 或负值时直接返回 0 运费，避免误命中 FirstUnit 阈值返回 FirstPrice
+        if (quantity <= 0)
+        {
+            return 0;
+        }
+
         if (FreeShippingThreshold.HasValue && orderAmount >= FreeShippingThreshold.Value)
         {
             return 0;
