@@ -65,6 +65,7 @@ public sealed class NotificationSendController : ControllerBase
             return Ok(ApiResponse.Success(response));
         }
 
-        return Ok(ApiResponse.Fail<SendNotificationResponse>(400, result.ErrorMessage ?? "发送失败", response));
+        // P2-41：发送失败时返回 HTTP 400 BadRequest，而非 200 OK 携带 body code=400，使调用方按状态码正确处理失败。
+        return BadRequest(ApiResponse.Fail<SendNotificationResponse>(400, result.ErrorMessage ?? "发送失败", response));
     }
 }
