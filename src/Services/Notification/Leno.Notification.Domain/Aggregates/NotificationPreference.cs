@@ -11,6 +11,12 @@ namespace Leno.Notification.Domain.Aggregates;
 /// </summary>
 public sealed class NotificationPreference : AggregateRoot
 {
+    /// <summary>
+    /// 默认渠道列表（站内信），未配置偏好时复用此引用，避免每次调用 GetChannels 分配新 List。
+    /// 该列表为不可变快照，调用方不应修改；EventChannels 中存储的用户自定义列表仍为独立实例。
+    /// </summary>
+    private static readonly List<NotificationChannel> DefaultInAppChannels = [NotificationChannel.InApp];
+
     /// <summary>用户标识。</summary>
     public Guid UserId { get; private set; }
 
@@ -88,7 +94,8 @@ public sealed class NotificationPreference : AggregateRoot
             return channels;
         }
 
-        return [NotificationChannel.InApp];
+        // P2-45：返回缓存的默认列表引用，避免每次调用分配新 List<NotificationChannel>。
+        return DefaultInAppChannels;
     }
 
     /// <summary>启用通知。</summary>
