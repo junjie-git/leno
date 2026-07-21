@@ -34,6 +34,7 @@ public sealed class ChannelConfigProvider : IChannelConfigProvider
             AppId = option.AppId,
             MchId = option.MchId,
             ApiKey = option.ApiKey,
+            PlatformPublicKey = option.PlatformPublicKey,
             CertPath = option.CertPath,
             NotifyUrl = option.NotifyUrl,
             RefundNotifyUrl = option.RefundNotifyUrl

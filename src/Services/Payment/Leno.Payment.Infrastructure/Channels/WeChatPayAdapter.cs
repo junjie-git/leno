@@ -154,9 +154,10 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
         var signature = GetHeader(headers, "Wechatpay-Signature");
         var serialNo = GetHeader(headers, "Wechatpay-Serial");
 
-        // 使用 APIv3 密钥进行验证（V3 回调使用平台公钥验证签名，此处用 ApiV3Key 作为平台公钥）
+        // V3 回调签名验证：使用微信支付平台公钥（RSA-SHA256），而非 APIv3 对称密钥
         var verified = WeChatPay.WeChatPayV3SignatureHelper.VerifyNotifySign(
-            timestamp ?? string.Empty, nonce ?? string.Empty, rawBody, signature ?? string.Empty, config.ApiKey);
+            timestamp ?? string.Empty, nonce ?? string.Empty, rawBody, signature ?? string.Empty,
+            config.PlatformPublicKey ?? string.Empty);
 
         if (!verified)
         {
