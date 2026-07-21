@@ -24,7 +24,11 @@ builder.Services.AddConsulDestinationResolver();
 builder.Services.AddGatewayRedis(builder.Configuration);
 
 // Phase 7 F2 安全修复：JWT 黑名单服务（依赖 IConnectionMultiplexer，需在 AddGatewayRedis 之后注册）
-builder.Services.AddSingleton<IJwtBlacklistService, JwtBlacklistService>();
+// 三层保障：Redis Pub/Sub 实时同步 + 本地 MemoryCache（TTL 对齐，避免泄漏）+ 启动预热订阅
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<JwtBlacklistService>();
+builder.Services.AddSingleton<IJwtBlacklistService>(sp => sp.GetRequiredService<JwtBlacklistService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<JwtBlacklistService>());
 
 // Phase 4：限流策略（global/default/seckill/per-user，Redis 启用时使用 RedisSlidingWindowRateLimiter）
 builder.Services.AddGatewayRateLimiter(builder.Configuration);
