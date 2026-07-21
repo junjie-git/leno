@@ -4,6 +4,7 @@ using Leno.PointsMembership.Domain.Exceptions;
 using Leno.PointsMembership.Domain.Repositories;
 using Leno.PointsMembership.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
+using Microsoft.Extensions.Options;
 using CheckInRecordAggregate = Leno.PointsMembership.Domain.Aggregates.CheckInRecord;
 using PointsAccountAggregate = Leno.PointsMembership.Domain.Aggregates.PointsAccount;
 
@@ -11,34 +12,45 @@ namespace Leno.PointsMembership.Application.Services;
 
 /// <summary>
 /// 积分管理应用服务实现，编排签到、积分余额查询、流水查询与运营手动发放用例。
+/// PM-M03 修复：签到日期计算改用配置的默认用户时区（Asia/Shanghai），避免 UTC 跨日导致签到错位。
 /// </summary>
 public sealed class PointsAppService : IPointsAppService
 {
     private const int CheckInBasePoints = 10;
     private const int CheckInWeeklyBonus = 20;
     private const int CheckInMonthlyBonus = 50;
+    private const string DefaultTimeZoneId = "Asia/Shanghai";
 
     private readonly IPointsAccountRepository _accountRepository;
     private readonly ICheckInRecordRepository _checkInRepository;
     private readonly IMemberRepository _memberRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly TimeZoneInfo _userTimeZone;
 
     public PointsAppService(
         IPointsAccountRepository accountRepository,
         ICheckInRecordRepository checkInRepository,
         IMemberRepository memberRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IOptions<PointsMembershipOptions>? options = null)
     {
         _accountRepository = accountRepository;
         _checkInRepository = checkInRepository;
         _memberRepository = memberRepository;
         _unitOfWork = unitOfWork;
+
+        // PM-M03 修复：从配置读取默认用户时区，解析失败时回退 Asia/Shanghai
+        var timeZoneId = options?.Value.DefaultTimeZone ?? DefaultTimeZoneId;
+        _userTimeZone = TimeZoneInfo.TryFindSystemTimeZoneById(timeZoneId, out var tz)
+            ? tz
+            : TimeZoneInfo.Utc;
     }
 
     /// <inheritdoc />
     public async Task<CheckInResultDto> CheckInAsync(Guid userId, CancellationToken ct = default)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        // PM-M03 修复：使用用户时区计算"今日"，避免 UTC 跨日导致用户在前一天 23:30 签到时被记为次日
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _userTimeZone));
 
         // 当日重复签到校验
         var existing = await _checkInRepository.GetByUserIdAndDateAsync(userId, today, ct);
