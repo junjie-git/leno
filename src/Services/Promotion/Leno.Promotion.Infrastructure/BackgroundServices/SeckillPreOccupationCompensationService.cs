@@ -9,15 +9,16 @@ namespace Leno.Promotion.Infrastructure.BackgroundServices;
 
 /// <summary>
 /// 秒杀预占补偿后台服务，定时扫描超时未履约的预占记录并回退库存。
-/// 默认每 30 秒扫描一次，超时阈值 5 分钟。
+/// 默认每 10 秒扫描一次（与事务内重校验配套，避免大批量下误回退），超时阈值 5 分钟。
+/// 批量大小 500，原 100+30s 在 1000 条积压下需 5 分钟清完，期间用户订单可能已确认但补偿仍误回退。
 /// </summary>
 public sealed class SeckillPreOccupationCompensationService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<SeckillPreOccupationCompensationService> _logger;
-    private static readonly TimeSpan ScanInterval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan ScanInterval = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan TimeoutThreshold = TimeSpan.FromMinutes(5);
-    private const int BatchSize = 100;
+    private const int BatchSize = 500;
 
     public SeckillPreOccupationCompensationService(
         IServiceScopeFactory scopeFactory,
