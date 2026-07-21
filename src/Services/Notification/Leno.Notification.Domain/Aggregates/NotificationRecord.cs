@@ -248,6 +248,12 @@ public sealed class NotificationRecord : AggregateRoot
             throw new NotificationDomainException("仅站内信可标记已读", "NOTIFICATION_READ_CHANNEL_INVALID");
         }
 
+        // P2-43：幂等保护，已读记录重复调用直接返回，避免触发不必要的更新与 SaveChanges。
+        if (IsRead)
+        {
+            return;
+        }
+
         IsRead = true;
     }
 
