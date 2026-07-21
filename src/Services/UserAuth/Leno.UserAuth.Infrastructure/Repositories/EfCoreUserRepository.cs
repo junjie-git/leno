@@ -58,10 +58,10 @@ public sealed class EfCoreUserRepository : IUserRepository
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
-            var kw = keyword.Trim();
-            query = query.Where(u => EF.Functions.Like(u.Username, $"%{kw}%")
-                || (u.Email != null && EF.Functions.Like(u.Email, $"%{kw}%"))
-                || (u.PhoneNumber != null && EF.Functions.Like(u.PhoneNumber, $"%{kw}%")));
+            var escaped = EscapeLikePattern(keyword.Trim());
+            query = query.Where(u => EF.Functions.Like(u.Username, $"%{escaped}%", "\\")
+                || (u.Email != null && EF.Functions.Like(u.Email, $"%{escaped}%", "\\"))
+                || (u.PhoneNumber != null && EF.Functions.Like(u.PhoneNumber, $"%{escaped}%", "\\")));
         }
 
         if (!string.IsNullOrWhiteSpace(role)
@@ -87,6 +87,20 @@ public sealed class EfCoreUserRepository : IUserRepository
             .ToListAsync(ct);
 
         return (items, total);
+    }
+
+    /// <summary>
+    /// 转义 LIKE 通配符（% / _ / \），使搜索关键字作为字面量匹配而非模式匹配。
+    /// 使用反斜杠作为 ESCAPE 字符（与 <c>EF.Functions.Like</c> 第三参数一致）。
+    /// </summary>
+    private static string EscapeLikePattern(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return input;
+        }
+
+        return input.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
     }
 
     /// <inheritdoc />
