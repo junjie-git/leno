@@ -1,10 +1,13 @@
 using Leno.Product.Domain.Aggregates;
 using Leno.Product.Domain.Repositories;
 using Leno.Product.Domain.ValueObjects;
+using Leno.Product.Infrastructure;
 using Leno.Product.Infrastructure.Consumers;
+using Leno.Product.Infrastructure.Repositories;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.SharedKernel.ValueObjects;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Leno.Infrastructure.Abstractions;
 using Moq;
@@ -202,6 +205,45 @@ public class ShopEventConsumerTests
         _spuRepoMock.Verify(r => r.QueryAsync(It.IsAny<Guid?>(), It.IsAny<Guid?>(),
             It.IsAny<ProductStatus?>(), It.IsAny<Guid?>(), It.IsAny<string?>(),
             It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_With_AsNoTracking_Entity_Should_Mark_Modified_And_Persist()
+    {
+        // Arrange：使用 InMemory 验证变更跟踪行为
+        var options = new DbContextOptionsBuilder<ProductDbContext>()
+            .UseInMemoryDatabase(databaseName: "update_test_" + Guid.NewGuid())
+            .Options;
+        await using var context = new ProductDbContext(options);
+        var repo = new EfCoreSPURepository(context);
+
+        var spu = SPU.Create(
+            Guid.NewGuid(), ShopId, SellerId, "测试商品",
+            "https://cdn.example.com/img.png", CategoryId, images: []);
+        var sku = SKU.Create(
+            Guid.NewGuid(), spu.Id, "SKU-001",
+            Money.Create(10m, "CNY"), 100,
+            SkuSpec.Create([SpecAttribute.Create("颜色", "红")]));
+        spu.AddSku(sku);
+        // 将 SPU 流转到 OnSale 状态，以便 SuspendByShop 能生效
+        spu.SubmitForReview();
+        spu.Approve(Guid.NewGuid());
+        context.SPUs.Add(spu);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear(); // 模拟 AsNoTracking 加载后的 Detached 状态
+
+        // Act：模拟 ShopEventConsumer 流程：AsNoTracking 加载 → 变更 → UpdateAsync
+        var (items, _) = await repo.QueryAsync(shopId: ShopId, ct: CancellationToken.None);
+        var loaded = items.Single();
+        loaded.SuspendByShop(); // 变更状态
+
+        await repo.UpdateAsync(loaded, CancellationToken.None);
+        await context.SaveChangesAsync();
+
+        // Assert：重新查询验证状态已持久化
+        context.ChangeTracker.Clear();
+        var persisted = await context.SPUs.AsNoTracking().FirstAsync(s => s.Id == spu.Id);
+        persisted.Status.Should().Be(ProductStatus.ShopSuspended);
     }
 
     private SPU CreateOnSaleSpu()

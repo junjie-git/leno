@@ -105,11 +105,11 @@ public sealed class EfCoreSPURepository : ISPURepository
     public Task UpdateAsync(SPU aggregate, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(aggregate);
-        if (_context.Entry(aggregate).State == EntityState.Detached)
-        {
-            _context.SPUs.Attach(aggregate);
-        }
-
+        // 修复审计 #4：原仅 Attach 不标记 Modified，Attach 后当前值被快照为原始值，
+        // ChangeTracker 检测不到差异。ShopEventConsumer 通过 QueryAsync(AsNoTracking)
+        // 加载 SPU 后变更状态，SaveEntitiesAsync 不发出 UPDATE 语句。
+        // 改用 DbContext.Update 强制标记所有属性为 Modified，确保 Detached 实体变更能持久化。
+        _context.SPUs.Update(aggregate);
         return Task.CompletedTask;
     }
 
