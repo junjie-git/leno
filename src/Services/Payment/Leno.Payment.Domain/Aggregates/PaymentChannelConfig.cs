@@ -25,7 +25,7 @@ public sealed class PaymentChannelConfig : AggregateRoot
     public string ConfigValue { get; private set; } = string.Empty;
 
     /// <summary>配置项描述。</summary>
-    public string? Description { get; set; }
+    public string? Description { get; private set; }
 
     /// <summary>是否启用。</summary>
     public bool Enabled { get; private set; }
@@ -145,5 +145,22 @@ public sealed class PaymentChannelConfig : AggregateRoot
 
         ConfigValue = newValue;
         AddDomainEvent(new PaymentChannelConfigChangedDomainEvent(Id, Channel.ToString(), ConfigName, "Updated"));
+    }
+
+    /// <summary>
+    /// 更新配置项描述，并发布 <see cref="PaymentChannelConfigChangedDomainEvent"/>。
+    /// 描述为空时清空，长度不可超过 <see cref="MaxDescriptionLength"/> 字符。
+    /// </summary>
+    /// <param name="description">新的配置项描述，可空。</param>
+    public void UpdateDescription(string? description)
+    {
+        if (description is not null && description.Length > MaxDescriptionLength)
+        {
+            throw new PaymentDomainException(
+                $"描述长度不可超过 {MaxDescriptionLength} 字符", "CHANNEL_CONFIG_DESC_LENGTH");
+        }
+
+        Description = description;
+        AddDomainEvent(new PaymentChannelConfigChangedDomainEvent(Id, Channel.ToString(), ConfigName, "DescriptionUpdated"));
     }
 }

@@ -54,7 +54,7 @@ public sealed class PaymentChannelConfigAppService : IPaymentChannelConfigAppSer
         config.UpdateConfigValue(dto.ConfigValue);
         if (dto.Description is not null)
         {
-            config.Description = dto.Description;
+            config.UpdateDescription(dto.Description);
         }
 
         await _repository.UpdateAsync(config, ct);

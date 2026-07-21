@@ -195,6 +195,63 @@ public class PaymentChannelConfigTests
         config.DomainEvents.Should().HaveCount(1);
     }
 
+    [Fact]
+    public void UpdateDescription_Valid_ShouldUpdateDescription()
+    {
+        // 安排
+        var config = CreateConfig();
+
+        // 行动
+        config.UpdateDescription("新的描述内容");
+
+        // 断言
+        config.Description.Should().Be("新的描述内容");
+        config.DomainEvents.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void UpdateDescription_Null_ShouldClearDescription()
+    {
+        // 安排
+        var config = CreateConfig();
+
+        // 行动
+        config.UpdateDescription(null);
+
+        // 断言
+        config.Description.Should().BeNull();
+        config.DomainEvents.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void UpdateDescription_Over500Chars_ShouldThrowException()
+    {
+        // 安排：超过 MaxDescriptionLength=500 字符
+        var config = CreateConfig();
+        var tooLongDescription = new string('a', 501);
+
+        // 行动
+        var act = () => config.UpdateDescription(tooLongDescription);
+
+        // 断言：应抛出 PaymentDomainException 防止绕过聚合封装
+        act.Should().Throw<PaymentDomainException>().WithMessage("*描述长度*");
+    }
+
+    [Fact]
+    public void UpdateDescription_Exactly500Chars_ShouldSucceed()
+    {
+        // 安排：恰好 MaxDescriptionLength=500 字符（边界值）
+        var config = CreateConfig();
+        var exactlyMaxDescription = new string('a', 500);
+
+        // 行动
+        config.UpdateDescription(exactlyMaxDescription);
+
+        // 断言
+        config.Description.Should().Be(exactlyMaxDescription);
+        config.DomainEvents.Should().HaveCount(1);
+    }
+
     private static PaymentChannelConfig CreateConfig()
     {
         return PaymentChannelConfig.Create(
