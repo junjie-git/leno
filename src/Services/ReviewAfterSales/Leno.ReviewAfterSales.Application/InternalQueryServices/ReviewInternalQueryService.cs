@@ -20,23 +20,20 @@ public sealed class ReviewInternalQueryService : IReviewInternalQueryService
     /// <inheritdoc />
     public async Task<ProductRatingDto?> GetProductRatingAsync(Guid spuId, CancellationToken ct = default)
     {
-        // 仅聚合 Approved 评价，与买家侧 GetReviewsBySpuAsync 视图一致
-        var reviews = await _reviewRepository.GetBySpuIdAsync(spuId, ReviewStatus.Approved, ct);
-        if (reviews is null || reviews.Count == 0)
+        // 合并审计 3.4：使用 SQL 聚合替代内存计算，避免加载全部 Approved 评价到内存。
+        // 仅聚合 Approved 评价，与买家侧 GetReviewsBySpuAsync 视图一致。
+        var snapshot = await _reviewRepository.GetRatingSnapshotAsync(spuId, ct);
+        if (snapshot is null)
         {
             return null;
         }
 
-        var totalCount = reviews.Count;
-        var positiveCount = reviews.Count(r => r.Rating >= 4);
-        var averageRating = reviews.Average(r => (double)r.Rating);
-
         return new ProductRatingDto
         {
-            SpuId = spuId,
-            AverageRating = averageRating,
-            TotalCount = totalCount,
-            PositiveCount = positiveCount
+            SpuId = snapshot.SpuId,
+            AverageRating = snapshot.AverageRating,
+            TotalCount = snapshot.TotalCount,
+            PositiveCount = snapshot.PositiveCount
         };
     }
 

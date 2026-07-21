@@ -46,6 +46,13 @@ public interface IReviewRepository : IRepository<ReviewAggregate>
     Task<List<ReviewAggregate>> GetBySpuIdAsync(Guid spuId, ReviewStatus? status = null, CancellationToken ct = default);
 
     /// <summary>
+    /// 按 SPU 标识查询评价聚合快照（合并审计 3.4：SQL 聚合替代内存计算）。
+    /// 仅聚合 Approved 状态评价；无可见评价返回 null。
+    /// </summary>
+    /// <param name="spuId">商品 SPU 标识。</param>
+    Task<ProductRatingSnapshot?> GetRatingSnapshotAsync(Guid spuId, CancellationToken ct = default);
+
+    /// <summary>
     /// 按订单标识查询全部评价（不分页，跨 BC 内部查询用）。
     /// 可选审核状态过滤；为空返回所有状态评价。
     /// </summary>

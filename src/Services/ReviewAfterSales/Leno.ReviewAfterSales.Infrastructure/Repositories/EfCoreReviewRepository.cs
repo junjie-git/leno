@@ -75,6 +75,27 @@ public sealed class EfCoreReviewRepository : IReviewRepository
     }
 
     /// <inheritdoc />
+    public async Task<ProductRatingSnapshot?> GetRatingSnapshotAsync(Guid spuId, CancellationToken ct = default)
+    {
+        // 合并审计 3.4：使用 SQL 聚合替代内存计算，避免加载全部 Approved 评价到内存。
+        // AsNoTracking + GroupBy + 单次查询返回 totalCount/averageRating/positiveCount 三个聚合值。
+        var snapshot = await _context.Reviews
+            .AsNoTracking()
+            .Where(r => r.SpuId == spuId && r.Status == ReviewStatus.Approved)
+            .GroupBy(r => r.SpuId)
+            .Select(g => new ProductRatingSnapshot
+            {
+                SpuId = g.Key,
+                TotalCount = g.Count(),
+                AverageRating = g.Average(r => (double)r.Rating),
+                PositiveCount = g.Count(r => r.Rating >= 4)
+            })
+            .FirstOrDefaultAsync(ct);
+
+        return snapshot;
+    }
+
+    /// <inheritdoc />
     public async Task<List<Review>> GetByOrderIdAsync(
         Guid orderId,
         ReviewStatus? status = null,
