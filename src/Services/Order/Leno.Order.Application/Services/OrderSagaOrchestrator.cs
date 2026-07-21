@@ -13,12 +13,17 @@ using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
 namespace Leno.Order.Application.Services;
 
 /// <summary>
-/// 多卖家拆单 Saga 编排器，按顺序执行每组（预占库存 → 冻结积分 → 保存订单），
-/// 任一组失败时对已成功组执行补偿（释放库存/积分/优惠券、移除未提交的订单聚合），最终抛原始异常。
-/// 全部组成功后在统一工作单元提交（<see cref="IUnitOfWork.SaveEntitiesAsync"/>），保证"要么全部持久化、要么全部不持久化"。
+/// 多卖家拆单 Saga 编排器，并行执行各组（预占库存 → 冻结积分 → 构建订单聚合），
+/// 任一组失败时对已成功组执行补偿（释放库存/积分/优惠券），最终抛原始异常。
+/// 全部组成功后顺序入仓储并统一提交工作单元（<see cref="IUnitOfWork.SaveEntitiesAsync"/>），保证"要么全部持久化、要么全部不持久化"。
+/// P1-T24：多卖家拆单由顺序执行改为 <see cref="Task.WhenAll"/> 并行 + <see cref="SemaphoreSlim"/> 限流（默认 5），
+/// 避免 N 个卖家下单延迟 = N × 单组延迟；EF Core DbContext 非线程安全，<see cref="IOrderRepository.AddAsync"/> 串行执行。
 /// </summary>
 public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
 {
+    /// <summary>生产环境默认并行度上限，防止 Redis 连接耗尽。</summary>
+    public const int ProductionMaxDegreeOfParallelism = 5;
+
     private readonly IOrderRepository _orderRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderNumberGenerator _orderNumberGenerator;
@@ -29,7 +34,11 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
     private readonly IPointsAntiCorruptionService _pointsAntiCorruption;
     private readonly IBus _bus;
     private readonly ILogger<OrderSagaOrchestrator> _logger;
+    private readonly SemaphoreSlim _semaphore;
 
+    /// <param name="maxDegreeOfParallelism">多卖家拆单并行度上限，默认 1（顺序执行）。
+    /// 旧测试构造器沿用默认 1 以兼容 <c>Moq.SetupSequence</c> 的非线程安全特性；
+    /// 生产环境经 DI 注册为 <see cref="ProductionMaxDegreeOfParallelism"/>（5）。</param>
     public OrderSagaOrchestrator(
         IOrderRepository orderRepository,
         IUnitOfWork unitOfWork,
@@ -40,7 +49,8 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
         IPromotionAntiCorruptionService promotionAntiCorruption,
         IPointsAntiCorruptionService pointsAntiCorruption,
         IBus bus,
-        ILogger<OrderSagaOrchestrator> logger)
+        ILogger<OrderSagaOrchestrator> logger,
+        int maxDegreeOfParallelism = 1)
     {
         _orderRepository = orderRepository;
         _unitOfWork = unitOfWork;
@@ -52,6 +62,8 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
         _pointsAntiCorruption = pointsAntiCorruption;
         _bus = bus;
         _logger = logger;
+        var dop = Math.Max(1, maxDegreeOfParallelism);
+        _semaphore = new SemaphoreSlim(dop, dop);
     }
 
     /// <inheritdoc />
@@ -59,19 +71,53 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var completed = new List<CompletedGroup>();
-        foreach (var group in context.Groups)
+        var groups = context.Groups;
+        var completedSlots = new CompletedGroup?[groups.Count];
+        Exception? firstException = null;
+
+        // P1-T24：多卖家拆单并行执行（Task.WhenAll + SemaphoreSlim 限流）
+        // 各组的预占库存/冻结积分/优惠计算/运费计算等 I/O 并行，缩短 N 个卖家下单延迟
+        var tasks = new List<Task>(groups.Count);
+        for (var i = 0; i < groups.Count; i++)
         {
-            try
+            var index = i;
+            var group = groups[i];
+            tasks.Add(ExecuteGroupThrottledAsync(
+                context.UserId, context.Address, group, index, completedSlots,
+                ex => Interlocked.CompareExchange(ref firstException, ex, null),
+                ct));
+        }
+
+        await Task.WhenAll(tasks);
+
+        // 任一组失败：对已成功组执行补偿（释放库存/积分/优惠券）后抛首个原始异常
+        if (firstException is not null)
+        {
+            var successful = new List<CompletedGroup>();
+            foreach (var slot in completedSlots)
             {
-                completed.Add(await ExecuteGroupAsync(context.UserId, context.Address, group, ct));
+                if (slot is not null)
+                {
+                    successful.Add(slot);
+                }
             }
-            catch (Exception)
+            await CompensateAsync(successful, CancellationToken.None);
+            throw firstException;
+        }
+
+        var completed = new List<CompletedGroup>(completedSlots.Length);
+        foreach (var slot in completedSlots)
+        {
+            if (slot is not null)
             {
-                // 任一组失败：补偿已成功组后向上抛原始异常（库存/积分/券/订单聚合回滚）
-                await CompensateAsync(completed, CancellationToken.None);
-                throw;
+                completed.Add(slot);
             }
+        }
+
+        // EF Core DbContext 非线程安全：并行阶段仅构建聚合不入库，全部成功后顺序 AddAsync
+        foreach (var g in completed)
+        {
+            await _orderRepository.AddAsync(g.Order, ct);
         }
 
         // 全部组成功 → 统一提交工作单元（订单聚合 + 发件箱集成事件同事务持久化）
@@ -96,8 +142,39 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
     }
 
     /// <summary>
-    /// 执行单组下单流程：构建明细 → 价格校验 → 优惠计算 → 运费 → 预占库存 → 冻结积分 → 创建订单聚合 → 入库追踪。
+    /// 限流包装的单组执行：经 <see cref="_semaphore"/> 限流后调用 <see cref="ExecuteGroupAsync"/>，
+    /// 结果写入 <paramref name="slots"/> 对应索引槽，异常经 <paramref name="onException"/> 回调上报首个异常。
+    /// </summary>
+    private async Task ExecuteGroupThrottledAsync(
+        Guid userId,
+        AddressSnapshot address,
+        OrderSagaGroupInput group,
+        int index,
+        CompletedGroup?[] slots,
+        Action<Exception> onException,
+        CancellationToken ct)
+    {
+        await _semaphore.WaitAsync(ct);
+        try
+        {
+            var completed = await ExecuteGroupAsync(userId, address, group, ct);
+            slots[index] = completed;
+        }
+        catch (Exception ex)
+        {
+            onException(ex);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    /// <summary>
+    /// 执行单组下单流程：构建明细 → 价格校验 → 优惠计算 → 运费 → 预占库存 → 冻结积分 → 创建订单聚合。
     /// 积分冻结失败时执行组内回滚（释放已预占库存）后向上抛（Task 8 单组原子回滚）。
+    /// P1-T24：不再在此处调用 <see cref="IOrderRepository.AddAsync"/>（EF Core DbContext 非线程安全），
+    /// 聚合仅构建返回，由 <see cref="ExecuteAsync"/> 在全部组成功后串行入仓储。
     /// 超时延迟消息调度由 <see cref="ExecuteAsync"/> 在 <see cref="IUnitOfWork.SaveEntitiesAsync"/> 成功后统一执行。
     /// </summary>
     private async Task<CompletedGroup> ExecuteGroupAsync(
@@ -196,9 +273,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
             order.ApplyPointsOffset(groupPointsOffset);
         }
 
-        // 入库追踪（未提交，待 Saga 全部成功后统一 SaveEntitiesAsync）
-        await _orderRepository.AddAsync(order, ct);
-
+        // P1-T24：聚合仅构建返回，不入仓储；由 ExecuteAsync 全部组成功后串行 AddAsync（DbContext 非线程安全）
         return new CompletedGroup
         {
             Order = order,
@@ -210,8 +285,10 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
     }
 
     /// <summary>
-    /// 对已成功组逆序执行补偿：释放优惠券 → 释放积分 → 释放库存 → 移除未提交的订单聚合。
+    /// 对已成功组逆序执行补偿：释放优惠券 → 释放积分 → 释放库存。
     /// 每个补偿动作独立 try/catch 收集失败，全部补偿后若有失败则抛 <see cref="SagaCompensationFailedException"/> 触发告警。
+    /// P1-T24：不再调用 <see cref="IOrderRepository.RemoveAsync"/>，因并行阶段聚合未入仓储（DbContext 非线程安全），
+    /// 失败时聚合仅存在于内存，无需从变更跟踪器移除。
     /// </summary>
     private async Task CompensateAsync(List<CompletedGroup> completed, CancellationToken ct)
     {
@@ -258,17 +335,6 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
             {
                 _logger.LogError(ex, "Saga 补偿：释放库存失败 OrderId={OrderId}", g.OrderId);
                 failures.Add(new CompensationFailure(g.OrderId, "ReleaseStock", ex.Message));
-            }
-
-            // 移除未提交的订单聚合（Saga 失败未统一提交，聚合仅在变更跟踪器中）
-            try
-            {
-                await _orderRepository.RemoveAsync(g.Order, ct);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Saga 补偿：移除订单聚合失败 OrderId={OrderId}", g.OrderId);
-                failures.Add(new CompensationFailure(g.OrderId, "RemoveOrder", ex.Message));
             }
         }
 

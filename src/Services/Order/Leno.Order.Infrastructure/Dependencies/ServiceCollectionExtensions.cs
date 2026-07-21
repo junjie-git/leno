@@ -218,8 +218,19 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOrderInternalQueryService, OrderInternalQueryService>();
         services.AddScoped<SeckillOrderCreationService>();
 
-        // 多卖家拆单 Saga 编排器
-        services.AddScoped<IOrderSagaOrchestrator, OrderSagaOrchestrator>();
+        // 多卖家拆单 Saga 编排器（P1-T24：生产环境并行度上限 = 5，缩短多卖家下单延迟）
+        services.AddScoped<IOrderSagaOrchestrator>(sp => new OrderSagaOrchestrator(
+            sp.GetRequiredService<IOrderRepository>(),
+            sp.GetRequiredService<IUnitOfWork>(),
+            sp.GetRequiredService<IOrderNumberGenerator>(),
+            sp.GetRequiredService<IStockReservationDomainService>(),
+            sp.GetRequiredService<IOrderPricingDomainService>(),
+            sp.GetRequiredService<IFreightCalculator>(),
+            sp.GetRequiredService<IPromotionAntiCorruptionService>(),
+            sp.GetRequiredService<IPointsAntiCorruptionService>(),
+            sp.GetRequiredService<IBus>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<OrderSagaOrchestrator>>(),
+            maxDegreeOfParallelism: OrderSagaOrchestrator.ProductionMaxDegreeOfParallelism));
 
         // FluentValidation 校验器
         services.AddValidatorsFromAssembly(typeof(IOrderAppService).Assembly);
