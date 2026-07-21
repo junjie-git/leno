@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Leno.UserAuth.Application.Abstractions;
 using Leno.UserAuth.Application.DTOs;
 using Leno.UserAuth.Application.Exceptions;
 using Leno.UserAuth.Domain.Aggregates;
@@ -12,20 +13,24 @@ namespace Leno.UserAuth.Application.Services;
 /// <summary>
 /// 用户管理后台应用服务实现，编排用户分页查询、角色分配与账户状态管理。
 /// 写操作在事务内写入审计日志（<see cref="AuditLog"/>），技术上下文（IP/UA/TraceId）由审计拦截器填充。
+/// 锁定/封禁操作同时撤销目标用户所有 RefreshToken，确保封禁立即生效。
 /// </summary>
 public sealed class UserAdminAppService : IUserAdminAppService
 {
     private readonly IUserRepository _userRepository;
     private readonly IAuditLogRepository _auditLogRepository;
+    private readonly IRefreshTokenStore _refreshTokenStore;
     private readonly IUnitOfWork _unitOfWork;
 
     public UserAdminAppService(
         IUserRepository userRepository,
         IAuditLogRepository auditLogRepository,
+        IRefreshTokenStore refreshTokenStore,
         IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
         _auditLogRepository = auditLogRepository;
+        _refreshTokenStore = refreshTokenStore;
         _unitOfWork = unitOfWork;
     }
 
@@ -103,6 +108,9 @@ public sealed class UserAdminAppService : IUserAdminAppService
         await _userRepository.UpdateAsync(user, ct);
         await WriteAuditAsync(operatorId, "UserSuspend", targetUserId, before, after, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+
+        // 撤销该用户所有 RefreshToken，封禁立即生效
+        await _refreshTokenStore.RevokeAllAsync(targetUserId, ct);
     }
 
     /// <inheritdoc />
