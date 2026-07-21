@@ -24,6 +24,14 @@ public interface IAfterSalesRepository : IRepository<AfterSalesAggregate>
     Task<bool> HasActiveByOrderLineAsync(Guid orderLineId, AfterSalesType type, CancellationToken ct = default);
 
     /// <summary>
+    /// 判断同订单（整单售后，orderLineId 为 null）是否存在进行中的同类型售后单。
+    /// 合并审计 3.3：补全整单售后重复申请校验。
+    /// </summary>
+    /// <param name="orderId">订单标识。</param>
+    /// <param name="type">售后类型。</param>
+    Task<bool> HasActiveByOrderAsync(Guid orderId, AfterSalesType type, CancellationToken ct = default);
+
+    /// <summary>
     /// 分页条件查询售后单列表。
     /// </summary>
     /// <param name="orderId">订单标识过滤，为空不过滤。</param>

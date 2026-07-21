@@ -70,6 +70,16 @@ public sealed class AfterSalesEligibilityChecker : IAfterSalesEligibilityChecker
                 throw new ReviewDomainException("该订单行已存在进行中的同类型售后单", "AFTERSALES_DUPLICATE");
             }
         }
+        else
+        {
+            // 合并审计 3.3：整单售后（orderLineId 为 null）也需做重复申请校验，
+            // 避免同订单重复提交整单售后造成重复退款。
+            var hasActiveOrder = await _afterSalesRepository.HasActiveByOrderAsync(orderId, type, ct);
+            if (hasActiveOrder)
+            {
+                throw new ReviewDomainException("该订单已存在进行中的同类型整单售后", "AFTERSALES_DUPLICATE");
+            }
+        }
 
         return order;
     }

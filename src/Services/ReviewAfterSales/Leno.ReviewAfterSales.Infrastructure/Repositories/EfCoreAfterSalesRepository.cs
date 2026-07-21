@@ -53,6 +53,25 @@ public sealed class EfCoreAfterSalesRepository : IAfterSalesRepository
     }
 
     /// <inheritdoc />
+    public async Task<bool> HasActiveByOrderAsync(Guid orderId, AfterSalesType type, CancellationToken ct = default)
+    {
+        // 整单售后（orderLineId 为 null）的重复申请校验：
+        // 仅匹配 OrderLineId == null 的整单售后记录，避免与按订单行的售后单混淆。
+        var activeStatuses = new List<AfterSalesStatus>
+        {
+            AfterSalesStatus.Pending,
+            AfterSalesStatus.Approved,
+            AfterSalesStatus.ReturnGoods,
+            AfterSalesStatus.ConfirmReturn,
+            AfterSalesStatus.Refunding
+        };
+
+        return await _context.AfterSales
+            .AsNoTracking()
+            .AnyAsync(a => a.OrderId == orderId && a.OrderLineId == null && a.Type == type && activeStatuses.Contains(a.Status), ct);
+    }
+
+    /// <inheritdoc />
     public async Task<List<AfterSales>> QueryAsync(
         Guid? orderId,
         Guid? userId,
