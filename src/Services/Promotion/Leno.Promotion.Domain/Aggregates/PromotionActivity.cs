@@ -26,10 +26,11 @@ public sealed class PromotionActivity : AggregateRoot
     public DateTime EndTime { get; private set; }
 
     /// <summary>
-    /// 满减规则集合（按门槛升序），仅经聚合根 AddRule/RemoveRule 维护。
-    /// 持久化为 JSON 列，故以可赋值 List 暴露给 EF Core，私有 setter 阻止外部整体替换。
+    /// 满减规则集合（按门槛升序，只读视图）。外部不可直接修改，须通过 AddRule/RemoveRule 维护不变量。
+    /// 持久化为 JSON 列，EF Core 通过 backing field <c>_rules</c> 反序列化写入。
     /// </summary>
-    public List<PromotionRule> Rules { get; private set; } = new();
+    private readonly List<PromotionRule> _rules = new();
+    public IReadOnlyList<PromotionRule> Rules => _rules.AsReadOnly();
 
     /// <summary>EF Core 无参构造。</summary>
     private PromotionActivity() { }
@@ -123,16 +124,16 @@ public sealed class PromotionActivity : AggregateRoot
     {
         var rule = new PromotionRule(thresholdAmount, discountAmount);
 
-        if (Rules.Any(r => r.ThresholdAmount == thresholdAmount))
+        if (_rules.Any(r => r.ThresholdAmount == thresholdAmount))
         {
             throw new PromotionDomainException(
                 $"门槛金额 {thresholdAmount} 的规则已存在",
                 "PROMOTION_RULE_DUPLICATE");
         }
 
-        Rules.Add(rule);
+        _rules.Add(rule);
         // 维护按门槛升序，便于命中最高档
-        Rules.Sort((a, b) => a.ThresholdAmount.CompareTo(b.ThresholdAmount));
+        _rules.Sort((a, b) => a.ThresholdAmount.CompareTo(b.ThresholdAmount));
     }
 
     /// <summary>
@@ -140,7 +141,7 @@ public sealed class PromotionActivity : AggregateRoot
     /// </summary>
     public void RemoveRule(decimal thresholdAmount)
     {
-        var rule = Rules.FirstOrDefault(r => r.ThresholdAmount == thresholdAmount);
+        var rule = _rules.FirstOrDefault(r => r.ThresholdAmount == thresholdAmount);
         if (rule is null)
         {
             throw new PromotionDomainException(
@@ -148,7 +149,7 @@ public sealed class PromotionActivity : AggregateRoot
                 "PROMOTION_RULE_NOT_FOUND");
         }
 
-        Rules.Remove(rule);
+        _rules.Remove(rule);
     }
 
     /// <summary>
@@ -168,7 +169,7 @@ public sealed class PromotionActivity : AggregateRoot
         }
 
         // 规则已按门槛升序，取满足条件的最高档
-        var matched = Rules.LastOrDefault(r => orderAmount >= r.ThresholdAmount);
+        var matched = _rules.LastOrDefault(r => orderAmount >= r.ThresholdAmount);
         return matched?.DiscountAmount ?? 0;
     }
 }

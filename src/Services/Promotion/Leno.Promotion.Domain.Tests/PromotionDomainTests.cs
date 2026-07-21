@@ -888,6 +888,20 @@ public class PromotionActivityTests
         discount.Should().Be(0);
     }
 
+    [Fact]
+    public void Rules_ShouldBeReadOnlyList_CannotMutateExternally()
+    {
+        var activity = CreateActivity();
+        activity.AddRule(100m, 10m);
+
+        // 关键断言：Rules 属性返回 IReadOnlyList<PromotionRule> 的只读包装，
+        // 外部代码不能调用 Add/Remove/Clear 直接修改集合
+        activity.Rules.Should().BeAssignableTo<IReadOnlyList<PromotionRule>>();
+        var act = () => ((List<PromotionRule>)activity.Rules).Add(new PromotionRule(200m, 20m));
+        act.Should().Throw<InvalidCastException>(
+            "因为 Rules 返回 IReadOnlyList<PromotionRule> 的只读包装，无法强转回 List<T>");
+    }
+
     private static PromotionActivity CreateActivity()
     {
         return PromotionActivity.Create(

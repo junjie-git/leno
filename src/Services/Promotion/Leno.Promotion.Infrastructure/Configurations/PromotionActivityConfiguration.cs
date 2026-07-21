@@ -29,13 +29,16 @@ public sealed class PromotionActivityConfiguration : IEntityTypeConfiguration<Pr
         builder.Property(a => a.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(a => a.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
 
-        // Rules 满减规则集合序列化为 JSON 列
+        // Rules 满减规则集合序列化为 JSON 列，通过 backing field _rules 访问（DDD 封装）
+        // Rules 属性为只读 IReadOnlyList 视图，EF Core 须经 backing field 读写
         builder.Property(a => a.Rules)
             .HasColumnName("rules")
             .HasConversion(
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
                 v => JsonSerializer.Deserialize<List<PromotionRule>>(v, (JsonSerializerOptions?)null)
-                     ?? new List<PromotionRule>());
+                     ?? new List<PromotionRule>())
+            .HasField("_rules")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(a => a.Status).HasDatabaseName("ix_promotion_activities_status");
     }
