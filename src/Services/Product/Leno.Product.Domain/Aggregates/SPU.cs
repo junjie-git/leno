@@ -285,6 +285,8 @@ public sealed class SPU : AggregateRoot
         Subtitle = string.IsNullOrWhiteSpace(subtitle) ? null : subtitle.Trim();
         BrandId = brandId == Guid.Empty ? null : brandId;
         Images = images.ToList();
+
+        AddDomainEvent(new ProductUpdatedDomainEvent(Id, ShopId, Title, MainImageUrl));
     }
 
     /// <summary>
@@ -295,6 +297,8 @@ public sealed class SPU : AggregateRoot
         EnsureEditable();
         ValidateSpecs(specs);
         Specs = specs.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()).ToList();
+
+        AddDomainEvent(new ProductUpdatedDomainEvent(Id, ShopId, Title, MainImageUrl));
     }
 
     /// <summary>
@@ -321,6 +325,8 @@ public sealed class SPU : AggregateRoot
         }
 
         _skus.Add(sku);
+
+        AddDomainEvent(new ProductUpdatedDomainEvent(Id, ShopId, Title, MainImageUrl));
     }
 
     /// <summary>

@@ -297,6 +297,48 @@ public class SPUTests
         act.Should().Throw<ProductDomainException>().WithMessage("*下架*");
     }
 
+    [Fact]
+    public void UpdateInfo_Should_Publish_ProductUpdatedDomainEvent()
+    {
+        // Arrange
+        var spu = CreateDraftSpu();
+        var newImages = new[] { ProductImage.Create("https://cdn.example.com/new.png", 0, true) };
+
+        // Act
+        spu.UpdateInfo(
+            title: "更新后的标题",
+            mainImageUrl: "https://cdn.example.com/new.png",
+            categoryId: CategoryId,
+            subtitle: "新副标题",
+            brandId: null,
+            images: newImages);
+
+        // Assert
+        var domainEvent = spu.DomainEvents.OfType<ProductUpdatedDomainEvent>().SingleOrDefault();
+        domainEvent.Should().NotBeNull();
+        domainEvent!.ProductId.Should().Be(spu.Id);
+        domainEvent.SellerId.Should().Be(spu.ShopId);
+        domainEvent.Title.Should().Be("更新后的标题");
+        domainEvent.MainImageUrl.Should().Be("https://cdn.example.com/new.png");
+    }
+
+    [Fact]
+    public void UpdateSpecs_Should_Publish_ProductUpdatedDomainEvent()
+    {
+        // Arrange
+        var spu = CreateDraftSpu();
+        var newSpecs = new[] { "颜色", "尺码" };
+
+        // Act
+        spu.UpdateSpecs(newSpecs);
+
+        // Assert
+        var domainEvent = spu.DomainEvents.OfType<ProductUpdatedDomainEvent>().SingleOrDefault();
+        domainEvent.Should().NotBeNull();
+        domainEvent!.ProductId.Should().Be(spu.Id);
+        domainEvent.SellerId.Should().Be(spu.ShopId);
+    }
+
     #endregion
 
     #region SKU Management
@@ -311,6 +353,24 @@ public class SPUTests
         spu.AddSku(sku);
 
         spu.SKUs.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void AddSku_Should_Publish_ProductUpdatedDomainEvent()
+    {
+        // Arrange
+        var spu = CreateDraftSpu();
+        var sku = SKU.Create(Guid.NewGuid(), spu.Id, "SKU-001",
+            Money.Create(99.99m, "CNY"), 100, SkuSpec.Create([SpecAttribute.Create("Color", "Red")]));
+
+        // Act
+        spu.AddSku(sku);
+
+        // Assert
+        var domainEvent = spu.DomainEvents.OfType<ProductUpdatedDomainEvent>().SingleOrDefault();
+        domainEvent.Should().NotBeNull();
+        domainEvent!.ProductId.Should().Be(spu.Id);
+        domainEvent.SellerId.Should().Be(spu.ShopId);
     }
 
     [Fact]
