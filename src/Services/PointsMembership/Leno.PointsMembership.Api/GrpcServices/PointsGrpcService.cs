@@ -32,9 +32,15 @@ public sealed class PointsGrpcService : PointsInternalService.PointsInternalServ
     public override async Task<TrialOffsetResponse> TrialOffset(
         TrialOffsetRequest request, ServerCallContext context)
     {
+        // PM-L05 修复：改用 Guid.TryParse 校验，非法格式时抛 RpcException(InvalidArgument)，与 Confirm/GetPointsBalance 一致
+        if (!Guid.TryParse(request.UserId, out var userId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid user id: {request.UserId}"));
+        }
+
         var input = new TrialOffsetDto
         {
-            UserId = new Guid(request.UserId),
+            UserId = userId,
             PointsToUse = request.PointsToUse
         };
 
@@ -50,10 +56,20 @@ public sealed class PointsGrpcService : PointsInternalService.PointsInternalServ
 
     public override async Task<FreezeResponse> Freeze(FreezeRequest request, ServerCallContext context)
     {
+        // PM-L05 修复：改用 Guid.TryParse 校验 UserId 与 OrderId，非法格式时抛 RpcException(InvalidArgument)
+        if (!Guid.TryParse(request.UserId, out var userId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid user id: {request.UserId}"));
+        }
+        if (!Guid.TryParse(request.OrderId, out var orderId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid order id: {request.OrderId}"));
+        }
+
         var input = new FreezePointsDto
         {
-            UserId = new Guid(request.UserId),
-            OrderId = new Guid(request.OrderId),
+            UserId = userId,
+            OrderId = orderId,
             PointsToUse = request.PointsToUse
         };
 
@@ -65,7 +81,13 @@ public sealed class PointsGrpcService : PointsInternalService.PointsInternalServ
 
     public override async Task<ReleaseResponse> Release(ReleaseRequest request, ServerCallContext context)
     {
-        var input = new ReleasePointsDto { OrderId = new Guid(request.OrderId) };
+        // PM-L05 修复：改用 Guid.TryParse 校验 OrderId，非法格式时抛 RpcException(InvalidArgument)
+        if (!Guid.TryParse(request.OrderId, out var orderId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid order id: {request.OrderId}"));
+        }
+
+        var input = new ReleasePointsDto { OrderId = orderId };
 
         await _internalAppService.ReleaseAsync(input, context.CancellationToken)
             .ConfigureAwait(false);
