@@ -1,16 +1,16 @@
 using Grpc.Core;
 using Leno.SharedContracts.Grpc.User.V1;
 using Leno.UserAuth.Application;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Leno.UserAuth.Api.GrpcServices;
 
 /// <summary>
 /// 用户域 gRPC 服务端（M4 双轨方案）。
 /// 复用 <see cref="IUserInternalQueryService"/> 业务逻辑，与 InternalUsersController HTTP 路径双轨。
-/// 鉴权由 GrpcInternalKeyInterceptor 拦截器统一处理（metadata x-internal-key）。
+/// 鉴权策略：gRPC 仅依赖 <c>GrpcInternalKeyInterceptor</c> 拦截器统一校验 metadata <c>x-internal-key</c>，
+/// 不依赖 JWT Bearer 鉴权管线（ASP.NET Core 默认未对 gRPC 启用 JWT Bearer）。
+/// 故移除 <c>[Authorize]</c> 特性避免误导，拦截器在 <c>Program.cs</c> 中先于 gRPC 服务映射注册。
 /// </summary>
-[Authorize]
 public sealed class UserAuthGrpcService : UserInternalService.UserInternalServiceBase
 {
     private readonly IUserInternalQueryService _queryService;
