@@ -29,6 +29,9 @@ public sealed class ChannelOption
     /// <summary>微信支付平台公钥（PEM 格式），V3 回调验签用。</summary>
     public string? PlatformPublicKey { get; set; }
 
+    /// <summary>支付宝公钥（PEM 格式），回调验签用。</summary>
+    public string? PublicKey { get; set; }
+
     /// <summary>双向证书路径（微信退款需客户端证书）。</summary>
     public string? CertPath { get; set; }
 

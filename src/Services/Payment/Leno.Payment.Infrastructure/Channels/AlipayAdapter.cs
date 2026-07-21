@@ -162,7 +162,7 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
 
         var config = await _configProvider.GetConfigAsync(PaymentChannel.Alipay, ct);
         var sign = GetField(dict, "sign");
-        var verified = Alipay.AlipaySignatureHelper.VerifySign(dict, config.ApiKey, sign);
+        var verified = Alipay.AlipaySignatureHelper.VerifySign(dict, config.PublicKey ?? string.Empty, sign);
 
         var tradeStatus = GetField(dict, "trade_status");
         var isPaid = string.Equals(tradeStatus, "TRADE_SUCCESS", StringComparison.OrdinalIgnoreCase)
