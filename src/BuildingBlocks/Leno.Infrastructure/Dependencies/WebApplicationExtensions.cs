@@ -74,6 +74,16 @@ public static class WebApplicationExtensions
         services.Configure<AntiCorruptionOptions>(configuration.GetSection("AntiCorruption"));
         var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
 
+        // T19：注册可重载的 Consul 配置提供者，使 IOptionsMonitor<AntiCorruptionOptions> 感知 KV 热更新。
+        // provider 作为单例同时注册到 DI（ConsulConfigWatcher 注入）与配置链（IOptionsMonitor 绑定源）。
+        // 加在链尾，确保 Consul KV 值覆盖 appsettings.json 等静态源。
+        var consulConfigProvider = new ConsulReloadableConfigurationProvider();
+        services.AddSingleton(consulConfigProvider);
+        if (configuration is IConfigurationBuilder configBuilder)
+        {
+            configBuilder.Add(new ConsulReloadableConfigurationSource(consulConfigProvider));
+        }
+
         // 初始化 AntiCorruptionMetrics 的 ObservableGauge（幂等，重复调用安全）
         AntiCorruptionMetrics.Initialize();
 

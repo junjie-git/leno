@@ -12,19 +12,54 @@ namespace Leno.Infrastructure.Configuration;
 /// 5 分钟超时阻塞（Consul 长轮询机制），异常重试 10 秒间隔。
 /// 配合 <see cref="Microsoft.Extensions.Options.IOptionsMonitor{TOptions}"/> 实现配置热更新到 AntiCorruptionDispatcher。
 /// </summary>
+/// <remarks>
+/// T19 修复：通过 <see cref="ConsulReloadableConfigurationProvider"/> 写入配置值并触发 <c>OnReload</c>，
+/// 使 <c>IOptionsMonitor&lt;AntiCorruptionOptions&gt;</c> 感知 KV 变更并重新绑定 CurrentValue。
+/// 不再直接 <c>_configuration["..."] = value</c>（不触发 IOptionsMonitor 重载）。
+/// </remarks>
 public sealed class ConsulConfigWatcher : BackgroundService
 {
     private const string UseGrpcKeyPrefix = "leno/anticorruption/use-grpc/";
+    private const string UseGrpcConfigKey = "AntiCorruption:UseGrpc";
     private static readonly TimeSpan WaitTime = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(10);
 
     private readonly IConsulClient _consul;
     private readonly IConfiguration _configuration;
+    private readonly ConsulReloadableConfigurationProvider? _consulProvider;
     private readonly ILogger<ConsulConfigWatcher> _logger;
     private readonly string _bcName;
     private readonly string _useGrpcKey;
 
+    /// <summary>
+    /// 主构造函数（DI 生产路径）：注入 <see cref="ConsulReloadableConfigurationProvider"/>，
+    /// KV 变更时通过 <see cref="ConsulReloadableConfigurationProvider.SetValue"/> 写入并触发 OnReload。
+    /// </summary>
     public ConsulConfigWatcher(
+        IConsulClient consul,
+        ConsulReloadableConfigurationProvider consulProvider,
+        IConfiguration configuration,
+        ILogger<ConsulConfigWatcher> logger)
+    {
+        ArgumentNullException.ThrowIfNull(consul);
+        ArgumentNullException.ThrowIfNull(consulProvider);
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _consul = consul;
+        _consulProvider = consulProvider;
+        _configuration = configuration;
+        _logger = logger;
+        _bcName = configuration["Service:Name"] ?? string.Empty;
+        _useGrpcKey = UseGrpcKeyPrefix + _bcName;
+    }
+
+    /// <summary>
+    /// 向后兼容构造函数（测试场景）：不注入 ConsulReloadableConfigurationProvider，
+    /// KV 变更时直接写 <see cref="IConfiguration"/> 索引器（依赖 MemoryConfigurationProvider 接受 Set）。
+    /// 此路径不触发 IOptionsMonitor 重载，仅用于既有测试兼容。
+    /// </summary>
+    internal ConsulConfigWatcher(
         IConsulClient consul,
         IConfiguration configuration,
         ILogger<ConsulConfigWatcher> logger)
@@ -34,6 +69,7 @@ public sealed class ConsulConfigWatcher : BackgroundService
         ArgumentNullException.ThrowIfNull(logger);
 
         _consul = consul;
+        _consulProvider = null;
         _configuration = configuration;
         _logger = logger;
         _bcName = configuration["Service:Name"] ?? string.Empty;
@@ -65,7 +101,17 @@ public sealed class ConsulConfigWatcher : BackgroundService
                 {
                     waitIndex = queryResult.LastIndex;
                     var newValue = Encoding.UTF8.GetString(queryResult.Response.Value);
-                    _configuration["AntiCorruption:UseGrpc"] = newValue;
+                    // T19：优先通过 ConsulReloadableConfigurationProvider 写入并触发 OnReload，
+                    // 使 IOptionsMonitor<AntiCorruptionOptions> 感知变更并重新绑定 CurrentValue。
+                    // 测试路径（_consulProvider 为 null）回退到直接写 IConfiguration 索引器。
+                    if (_consulProvider is not null)
+                    {
+                        _consulProvider.SetValue(UseGrpcConfigKey, newValue);
+                    }
+                    else
+                    {
+                        _configuration[UseGrpcConfigKey] = newValue;
+                    }
                     _logger.LogInformation("UseGrpc 配置热更新为 {Value}（BC={BC}）", newValue, _bcName);
                 }
             }
