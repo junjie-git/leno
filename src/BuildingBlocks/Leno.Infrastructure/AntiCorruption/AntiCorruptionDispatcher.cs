@@ -102,5 +102,18 @@ public sealed class AntiCorruptionDispatcher<TService> : IDisposable
     private static string ExtractReason(AntiCorruptionException ex)
         => ex.InnerException is RpcException rpc ? $"grpc_{rpc.StatusCode}" : "grpc_unknown";
 
-    public void Dispose() => _circuitBreaker?.Dispose();
+    /// <summary>
+    /// 释放 Dispatcher 资源。
+    /// <para>
+    /// 注意：<see cref="_circuitBreaker"/> 是通过 DI 容器解析的 KeyedSingleton，
+    /// 生命周期由 DI 容器统一管理。本 Dispatcher 注册为 Scoped，不应在 Dispose 时
+    /// 销毁共享的 KeyedSingleton，否则同进程中其他 Scope 的 Dispatcher 熔断器指标状态丢失。
+    /// </para>
+    /// </summary>
+    public void Dispose()
+    {
+        // 不 Dispose _circuitBreaker — 它是 KeyedSingleton，由 DI 容器管理生命周期。
+        // 仅清理 Dispatcher 自身拥有的非共享资源（当前无）。
+        GC.SuppressFinalize(this);
+    }
 }
