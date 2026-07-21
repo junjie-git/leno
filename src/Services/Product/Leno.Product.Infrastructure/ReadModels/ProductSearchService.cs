@@ -108,18 +108,27 @@ public sealed class ProductSearchService : IProductSearchService
 
         if (minPrice.HasValue || maxPrice.HasValue)
         {
-            var range = new NumberRangeQuery(Infer.Field<ProductReadModel>(f => f.MinPrice));
-            if (minPrice.HasValue)
-            {
-                range.Gte = (double)minPrice.Value;
-            }
-
+            // 修复审计 #6：使用区间相交逻辑替代单一 MinPrice range。
+            // 原实现仅过滤 MinPrice ∈ [minPrice, maxPrice]，遗漏了 MinPrice < minPrice 但 MaxPrice ≥ minPrice 的商品
+            // （其部分 SKU 价格落在用户筛选区间内）。
+            // 区间相交：product.MinPrice ≤ maxPrice AND product.MaxPrice ≥ minPrice
+            // 保证仅返回价格区间与用户筛选区间有交集的商品。
+            var minPriceRange = new NumberRangeQuery(Infer.Field<ProductReadModel>(f => f.MinPrice));
             if (maxPrice.HasValue)
             {
-                range.Lte = (double)maxPrice.Value;
+                minPriceRange.Lte = (double)maxPrice.Value;
             }
 
-            filters.Add(range);
+            var maxPriceRange = new NumberRangeQuery(Infer.Field<ProductReadModel>(f => f.MaxPrice));
+            if (minPrice.HasValue)
+            {
+                maxPriceRange.Gte = (double)minPrice.Value;
+            }
+
+            filters.Add(new BoolQuery
+            {
+                Must = new List<Query> { minPriceRange, maxPriceRange }
+            });
         }
 
         return filters;
