@@ -26,6 +26,12 @@ public interface ICartAppService
     /// <summary>获取购物车（附加实时价格与可售状态）。</summary>
     Task<CartDto> GetCartAsync(Guid userId, CancellationToken ct = default);
 
+    /// <summary>
+    /// 查询购物车（不创建）。购物车不存在返回 null，与 <see cref="GetCartAsync"/>（不存在则创建空购物车）语义区分。
+    /// 供跨 BC 内部查询（gRPC GetCartSnapshot）使用，避免误创建空购物车覆盖 NotFound 语义。
+    /// </summary>
+    Task<CartDto?> FindCartAsync(Guid userId, CancellationToken ct = default);
+
     /// <summary>结算预览（按卖家分组返回选中项）。</summary>
     Task<CheckoutPreviewDto> PreviewCheckoutAsync(Guid userId, CancellationToken ct = default);
 

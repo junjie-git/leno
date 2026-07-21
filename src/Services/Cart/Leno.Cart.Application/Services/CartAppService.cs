@@ -102,6 +102,20 @@ public sealed class CartAppService : ICartAppService
     }
 
     /// <inheritdoc />
+    public async Task<CartDto?> FindCartAsync(Guid userId, CancellationToken ct = default)
+    {
+        // P1-11：购物车不存在时返回 null（不创建），与 GetCartAsync（GetOrCreateCartAsync）语义区分。
+        // 供跨 BC 内部查询（gRPC GetCartSnapshot）使用，避免误创建空购物车覆盖 NotFound 语义。
+        var cart = await _cartRepository.GetByUserIdAsync(userId, ct);
+        if (cart is null)
+        {
+            return null;
+        }
+
+        return await BuildCartDtoAsync(cart, ct);
+    }
+
+    /// <inheritdoc />
     public async Task<CheckoutPreviewDto> PreviewCheckoutAsync(Guid userId, CancellationToken ct = default)
     {
         var cart = await RequireCartAsync(userId, ct);
