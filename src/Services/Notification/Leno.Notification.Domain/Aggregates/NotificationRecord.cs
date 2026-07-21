@@ -352,9 +352,19 @@ public sealed class NotificationRecord : AggregateRoot
         }
         else
         {
-            // 渠道回调确认失败，记录失败但保留当前状态
-            ErrorMessage = "渠道回执确认失败";
-            ErrorCode = "CHANNEL_RECEIPT_FAILED";
+            // P1-34：渠道回执确认失败时，将记录状态置为 Failed（可被 NotificationRetryJob 拾取重试），
+            // 而非仅记录错误信息并保留当前状态导致记录滞留。
+            // 仅 Sending 状态可安全转入 Failed；其他状态（如 Failed/Retried）保留现状仅更新错误信息，
+            // 避免破坏状态机不变量抛出异常。
+            if (Status == NotificationStatus.Sending)
+            {
+                MarkFailed("渠道回执确认失败", "CHANNEL_RECEIPT_FAILED");
+            }
+            else
+            {
+                ErrorMessage = "渠道回执确认失败";
+                ErrorCode = "CHANNEL_RECEIPT_FAILED";
+            }
         }
 
         ChannelReceipt = MaskSensitiveData(receiptPayload);
