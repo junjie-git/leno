@@ -42,6 +42,10 @@ public sealed class NotificationTemplateConfiguration : IEntityTypeConfiguration
         builder.Property(t => t.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(t => t.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
 
-        builder.HasIndex(t => new { t.Code, t.Channel }).HasDatabaseName("ix_notification_templates_code_channel");
+        // (Code, Channel) 唯一约束：防止同一 code+channel 存在多个 Enabled 模板，
+        // 避免 EfCoreNotificationTemplateRepository.FirstOrDefaultAsync 返回不确定。
+        builder.HasIndex(t => new { t.Code, t.Channel })
+            .IsUnique()
+            .HasDatabaseName("ix_notification_templates_code_channel");
     }
 }
