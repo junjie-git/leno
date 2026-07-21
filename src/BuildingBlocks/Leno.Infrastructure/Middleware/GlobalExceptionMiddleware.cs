@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Leno.Infrastructure.Auth;
 using Leno.SharedContracts.Responses;
 using Leno.SharedKernel.Exceptions;
 using Microsoft.AspNetCore.Http;
@@ -88,6 +89,10 @@ public sealed class GlobalExceptionMiddleware
 
             case UnauthorizedAccessException:
                 return (StatusCodes.Status401Unauthorized, "未授权", LogLevel.Warning);
+
+            case ForbiddenAccessException forbiddenEx:
+                // IDOR 越权防护：用户访问不属于自己的资源时返回 403 Forbidden
+                return (StatusCodes.Status403Forbidden, forbiddenEx.Message, LogLevel.Warning);
 
             case ArgumentException argEx:
                 return (StatusCodes.Status400BadRequest, argEx.Message, LogLevel.Warning);

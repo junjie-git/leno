@@ -89,6 +89,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpContextAccessor();
         services.AddSingleton<JwtTokenGenerator>();
         services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+        services.AddScoped<ResourceOwnershipChecker>();
     }
 
     private static void AddRedis(IServiceCollection services, IConfiguration configuration)

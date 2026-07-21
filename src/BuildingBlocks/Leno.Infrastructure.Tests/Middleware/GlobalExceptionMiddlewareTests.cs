@@ -2,6 +2,7 @@ using System.Net;
 using System.Reflection;
 using System.Text.Json;
 using FluentAssertions;
+using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.Middleware;
 using Leno.SharedContracts.Responses;
 using Leno.SharedKernel.Exceptions;
@@ -106,5 +107,17 @@ public class GlobalExceptionMiddlewareTests
 
         response.Should().NotBeNull();
         response!.Code.Should().Be((int)HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ForbiddenAccessException_ShouldReturn403()
+    {
+        var ex = new ForbiddenAccessException("ORDER");
+
+        var response = await InvokeMiddleware(ex);
+
+        response.Should().NotBeNull();
+        response!.Code.Should().Be((int)HttpStatusCode.Forbidden);
+        response.Message.Should().Contain("ORDER");
     }
 }
