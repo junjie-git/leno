@@ -1,26 +1,47 @@
 using System.Diagnostics;
 using Leno.SystemAdmin.Domain.Services;
 using Leno.SystemAdmin.Domain.ValueObjects;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.SystemAdmin.Infrastructure.Services;
 
 /// <summary>
 /// HTTP 模块健康探测实现，通过 HTTP GET 请求各模块的 /health 端点进行健康检查。
-/// 超时时间 3 秒，超时则标记为 Unhealthy。
+/// 超时时间通过配置 <c>HealthProbe:TimeoutSeconds</c> 指定（默认 5 秒），超时则标记为 Unhealthy。
 /// </summary>
 public sealed class HttpModuleHealthProbe : IModuleHealthProbe
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<HttpModuleHealthProbe> _logger;
-    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(3);
+    private readonly TimeSpan _probeTimeout;
 
-    public HttpModuleHealthProbe(HttpClient httpClient, ILogger<HttpModuleHealthProbe> logger)
+    /// <summary>
+    /// 获取当前配置的健康探测超时时长。
+    /// </summary>
+    internal TimeSpan ProbeTimeout => _probeTimeout;
+
+    public HttpModuleHealthProbe(
+        HttpClient httpClient,
+        IConfiguration configuration,
+        ILogger<HttpModuleHealthProbe> logger)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(logger);
         _httpClient = httpClient;
         _logger = logger;
+
+        // 读取配置化超时，默认 5 秒；配置无效时回退到 5 秒并告警
+        var timeoutSeconds = configuration["HealthProbe:TimeoutSeconds"];
+        if (string.IsNullOrWhiteSpace(timeoutSeconds) || !int.TryParse(timeoutSeconds, out var parsed) || parsed <= 0)
+        {
+            _probeTimeout = TimeSpan.FromSeconds(5);
+        }
+        else
+        {
+            _probeTimeout = TimeSpan.FromSeconds(parsed);
+        }
     }
 
     /// <inheritdoc />
@@ -34,7 +55,7 @@ public sealed class HttpModuleHealthProbe : IModuleHealthProbe
         try
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeoutCts.CancelAfter(ProbeTimeout);
+            timeoutCts.CancelAfter(_probeTimeout);
 
             var response = await _httpClient.GetAsync(moduleEndpoint, timeoutCts.Token);
             var elapsedMs = Stopwatch.GetElapsedTime(startTime).TotalMilliseconds;
@@ -54,11 +75,11 @@ public sealed class HttpModuleHealthProbe : IModuleHealthProbe
         {
             // 超时
             var elapsedMs = Stopwatch.GetElapsedTime(startTime).TotalMilliseconds;
-            _logger.LogError("模块 {Module} 健康检查超时（>{Timeout}s），标记为 Unhealthy", moduleName, ProbeTimeout.TotalSeconds);
+            _logger.LogError("模块 {Module} 健康检查超时（>{Timeout}s），标记为 Unhealthy", moduleName, _probeTimeout.TotalSeconds);
 
             return ModuleHealth.Unhealthy(
                 moduleName,
-                $"健康检查超时（>{ProbeTimeout.TotalSeconds}s）",
+                $"健康检查超时（>{_probeTimeout.TotalSeconds}s）",
                 responseTimeMs: -1);
         }
         catch (Exception ex)
