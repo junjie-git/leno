@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.Outbox;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,12 @@ public abstract class BaseDbContext : DbContext
     /// 发件箱消息集合，由基类统一暴露，各 BC 无需重复声明。
     /// </summary>
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
+    /// <summary>
+    /// 当前用户上下文，子类通过构造函数注入并覆盖此属性以填充审计字段 CreatedBy/UpdatedBy。
+    /// 为 null 时（如后台迁移工具、无 HttpContext 的控制台任务），审计字段填 "system"。
+    /// </summary>
+    protected virtual ICurrentUserContext? CurrentUserContext => null;
 
     protected BaseDbContext(DbContextOptions options) : base(options)
     {
@@ -81,7 +88,8 @@ public abstract class BaseDbContext : DbContext
     }
 
     /// <summary>
-    /// 保存变更前统一填充审计字段（CreatedAt/UpdatedAt）。
+    /// 保存变更前统一填充审计字段（CreatedAt/UpdatedAt 与 CreatedBy/UpdatedBy）。
+    /// 时间戳始终填充；用户标识由 <see cref="CurrentUserContext"/> 解析，未认证或缺失时填 "system"。
     /// </summary>
     public override int SaveChanges()
     {
@@ -98,6 +106,8 @@ public abstract class BaseDbContext : DbContext
     private void FillAuditableFields()
     {
         var now = DateTime.UtcNow;
+        var userIdentifier = ResolveUserIdentifier();
+
         foreach (var entry in ChangeTracker.Entries<IAuditable>())
         {
             switch (entry.State)
@@ -105,11 +115,29 @@ public abstract class BaseDbContext : DbContext
                 case EntityState.Added:
                     entry.Entity.CreatedAt = now;
                     entry.Entity.UpdatedAt = now;
+                    entry.Entity.CreatedBy = userIdentifier;
+                    entry.Entity.UpdatedBy = userIdentifier;
                     break;
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = now;
+                    entry.Entity.UpdatedBy = userIdentifier;
+                    // CreatedBy/CreatedAt 在修改时不应被覆盖，保留原始创建者信息
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// 解析当前用户标识符，用于审计字段 CreatedBy/UpdatedBy。
+    /// 已认证用户返回 UserId.ToString()；未认证、UserId 为 null 或无用户上下文时返回 "system"。
+    /// </summary>
+    private string ResolveUserIdentifier()
+    {
+        var userContext = CurrentUserContext;
+        if (userContext is null || !userContext.IsAuthenticated || userContext.UserId is null)
+        {
+            return "system";
+        }
+        return userContext.UserId.Value.ToString();
     }
 }
