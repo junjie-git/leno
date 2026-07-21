@@ -11,7 +11,7 @@ public sealed class SeckillPreOccupationRecordConfiguration : IEntityTypeConfigu
 {
     public void Configure(EntityTypeBuilder<SeckillPreOccupationRecord> builder)
     {
-        builder.ToTable("SeckillPreOccupationRecords");
+        builder.ToTable("seckill_pre_occupation_records");
 
         builder.HasKey(r => r.Id);
 
