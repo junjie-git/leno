@@ -54,6 +54,25 @@ public sealed class EfCoreCouponRepository : ICouponRepository
     }
 
     /// <inheritdoc />
+    public async Task<List<CouponAggregate>> GetByIdsAsync(
+        IEnumerable<Guid> ids,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        var idList = ids.Distinct().ToList();
+        if (idList.Count == 0)
+        {
+            return new List<CouponAggregate>();
+        }
+
+        // AsNoTracking：试算为只读场景，避免 DbContext Identity Map 缓存膨胀
+        return await _context.Coupons
+            .AsNoTracking()
+            .Where(c => idList.Contains(c.Id))
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
     public async Task AddAsync(CouponAggregate aggregate, CancellationToken ct = default)
         => await _context.Coupons.AddAsync(aggregate, ct);
 

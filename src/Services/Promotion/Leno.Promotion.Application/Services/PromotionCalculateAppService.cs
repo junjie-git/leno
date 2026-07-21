@@ -95,17 +95,26 @@ public sealed class PromotionCalculateAppService : IPromotionCalculateAppService
             return 0m;
         }
 
-        decimal best = 0m;
-        foreach (var userCoupon in userCoupons)
+        // 过滤已过期（防御性：聚合状态可能未及时同步为 Expired）
+        var effectiveUserCoupons = userCoupons
+            .Where(uc => !uc.IsExpiredAt(now))
+            .ToList();
+        if (effectiveUserCoupons.Count == 0)
         {
-            // 过滤已过期（防御性：聚合状态可能未及时同步为 Expired）
-            if (userCoupon.IsExpiredAt(now))
-            {
-                continue;
-            }
+            return 0m;
+        }
 
-            var coupon = await _couponRepository.GetByIdAsync(userCoupon.CouponId, ct);
-            if (coupon is null || coupon.Status != CouponTemplateStatus.Enabled)
+        // 一次性批量加载所有券模板，消除 N+1 DB 查询（原实现循环内逐个 GetByIdAsync）
+        var couponIds = effectiveUserCoupons.Select(uc => uc.CouponId).Distinct().ToList();
+        var coupons = await _couponRepository.GetByIdsAsync(couponIds, ct);
+        var couponMap = coupons
+            .Where(c => c.Status == CouponTemplateStatus.Enabled)
+            .ToDictionary(c => c.Id);
+
+        decimal best = 0m;
+        foreach (var userCoupon in effectiveUserCoupons)
+        {
+            if (!couponMap.TryGetValue(userCoupon.CouponId, out var coupon))
             {
                 continue;
             }
