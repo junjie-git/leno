@@ -172,7 +172,8 @@ public class CartProductSyncIntegrationTests : CrossBcIntegrationTestBase<CartDb
             var indexService = seedScope.ServiceProvider.GetRequiredService<ICartSkuIndexService>();
 
             var cart = CartAggregate.Create(cartId, userId);
-            cart.AddItem(skuId, "原标题", "https://cdn.example.com/origin.png", unitPrice: 99.9m, quantity: 1, sellerId);
+            cart.AddItem(skuId, quantity: 1, sellerId);
+            cart.RefreshDisplaySnapshot(skuId, "原标题", "https://cdn.example.com/origin.png");
             seedDb.Carts.Add(cart);
             await seedDb.SaveChangesAsync();
 

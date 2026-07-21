@@ -65,7 +65,7 @@ public sealed class CartItem : Entity
         SetQuantity(quantity);
         IsSelected = true;
         SourceCartItemId = Id;
-        IsValid = true;
+        // IsValid 由字段初始化器 = true 初始化，此处不重复赋值
     }
 
     /// <summary>设置数量，校验 1-99 范围。</summary>

@@ -74,8 +74,7 @@ public sealed class Cart : AggregateRoot
             throw new ArgumentException("SkuId 不可为空", nameof(skuId));
         }
 
-        var existing = _items.FirstOrDefault(i => i.SkuId == skuId);
-        if (existing is not null)
+        if (TryGetItem(skuId, out var existing))
         {
             // 合并数量，校验上限
             var merged = existing.Quantity + quantity;
@@ -97,23 +96,6 @@ public sealed class Cart : AggregateRoot
         var item = new CartItem(Guid.NewGuid(), Id, skuId, sellerId, quantity);
         _items.Add(item);
         AddDomainEvent(new SkuAddedToCartEvent(Id, skuId));
-    }
-
-    /// <summary>
-    /// 添加购物车项并设置展示快照（标题、主图），用于测试与初始化场景。
-    /// 同 SKU 合并数量并刷新展示快照；不同 SKU 新增并设置展示快照。
-    /// 注意：unitPrice 参数接受但不持久化，购物车项价格在查看时由价格防腐层实时查询。
-    /// </summary>
-    /// <param name="skuId">商品 SKU 标识。</param>
-    /// <param name="title">展示标题。</param>
-    /// <param name="mainImageUrl">主图 URL。</param>
-    /// <param name="unitPrice">单价（接受但不持久化，价格在查看时实时查询）。</param>
-    /// <param name="quantity">购买数量。</param>
-    /// <param name="sellerId">所属卖家标识。</param>
-    public void AddItem(Guid skuId, string title, string mainImageUrl, decimal unitPrice, int quantity, Guid sellerId)
-    {
-        AddItem(skuId, quantity, sellerId);
-        FindItem(skuId)?.RefreshDisplaySnapshot(title, mainImageUrl);
     }
 
     /// <summary>
@@ -197,6 +179,8 @@ public sealed class Cart : AggregateRoot
 
     /// <summary>
     /// 清空已选中项（订单创建后调用，提取 SourceCartItemId 用于事件关联）。
+    /// 每移除一项发布 <see cref="SkuRemovedFromCartEvent"/>，与 <see cref="RemoveItem"/> 行为一致，
+    /// 由基础设施层维护购物车-SKU 反向索引。
     /// 返回被清除项的来源标识列表。
     /// </summary>
     public IReadOnlyList<Guid> ClearSelectedItems()
@@ -207,6 +191,7 @@ public sealed class Cart : AggregateRoot
         foreach (var item in selected)
         {
             _items.Remove(item);
+            AddDomainEvent(new SkuRemovedFromCartEvent(Id, item.SkuId));
         }
 
         return sourceIds;
@@ -229,22 +214,22 @@ public sealed class Cart : AggregateRoot
 
     /// <summary>
     /// 合并匿名购物车：遍历匿名购物车项，逐项调用 AddItem 合并数量或新增。
+    /// 跳过无效项（<see cref="CartItem.IsValid"/>=false，例如商品已下架），不参与合并。
     /// 合并后校验：单 SKU 数量上限 99，品类上限 50。
     /// 选中状态：若任一来源选中则选中。
-    /// 返回合并项数量。
+    /// 返回合并项数量（仅计入有效项）。
     /// </summary>
     /// <param name="anonymousCart">匿名购物车聚合。</param>
-    /// <returns>合并的购物车项数量（以匿名购物车项数计）。</returns>
+    /// <returns>合并的购物车项数量（仅有效项，以匿名购物车项数计）。</returns>
     public int MergeFrom(Cart anonymousCart)
     {
         ArgumentNullException.ThrowIfNull(anonymousCart);
 
         var mergedCount = 0;
-        foreach (var item in anonymousCart.Items)
+        foreach (var item in anonymousCart.Items.Where(i => i.IsValid))
         {
             // 检查品类上限（新增项时）
-            var existing = FindItem(item.SkuId);
-            if (existing is null && _items.Count >= MaxVariety)
+            if (!TryGetItem(item.SkuId, out _) && _items.Count >= MaxVariety)
             {
                 throw new CartDomainException($"购物车品类数量已达上限 {MaxVariety}", "CART_VARIETY_LIMIT");
             }
@@ -252,10 +237,9 @@ public sealed class Cart : AggregateRoot
             AddItem(item.SkuId, item.Quantity, item.SellerId);
 
             // 选中状态：任一来源选中则选中
-            if (item.IsSelected)
+            if (item.IsSelected && TryGetItem(item.SkuId, out var merged))
             {
-                var merged = FindItem(item.SkuId);
-                merged?.Select();
+                merged.Select();
             }
 
             mergedCount++;
@@ -323,6 +307,27 @@ public sealed class Cart : AggregateRoot
         if (item is null) return;
 
         item.RefreshDisplaySnapshot(title, mainImageUrl);
+    }
+
+    /// <summary>
+    /// 按 SKU 标识查找购物车项，避免在 <see cref="AddItem"/>/<see cref="MergeFrom"/> 等场景重复扫描。
+    /// </summary>
+    /// <param name="skuId">商品 SKU 标识。</param>
+    /// <param name="item">匹配到的购物车项；未找到为 null。</param>
+    /// <returns>是否找到匹配项。</returns>
+    private bool TryGetItem(Guid skuId, out CartItem? item)
+    {
+        foreach (var i in _items)
+        {
+            if (i.SkuId == skuId)
+            {
+                item = i;
+                return true;
+            }
+        }
+
+        item = null;
+        return false;
     }
 
     private CartItem? FindItem(Guid skuId) => _items.FirstOrDefault(i => i.SkuId == skuId);
