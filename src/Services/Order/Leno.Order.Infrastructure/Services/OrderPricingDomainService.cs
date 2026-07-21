@@ -51,6 +51,21 @@ public sealed class OrderPricingDomainService : IOrderPricingDomainService
 
         // 无优惠或小计之和为 0 时，各 SKU 分摊为 0
         var sumSubtotals = itemSubtotals.Sum(x => x.Subtotal);
+
+        // 领域服务层前置校验：优惠金额不得超过商品总额，否则最后一项分摊将超过其 Subtotal
+        // 触发聚合根 ApplyDiscount 抛 ORDER_ITEM_DISCOUNT_INVALID，提前在领域服务层抛出更明确的错误码
+        if (totalDiscount < 0)
+        {
+            throw new OrderDomainException("优惠金额不可为负", "DISCOUNT_NEGATIVE");
+        }
+
+        if (totalDiscount > sumSubtotals)
+        {
+            throw new OrderDomainException(
+                $"优惠金额超过商品总额：优惠 {totalDiscount}，商品总额 {sumSubtotals}",
+                "DISCOUNT_EXCEED_ITEMS");
+        }
+
         if (totalDiscount == 0 || sumSubtotals == 0)
         {
             foreach (var (skuId, _) in itemSubtotals)
