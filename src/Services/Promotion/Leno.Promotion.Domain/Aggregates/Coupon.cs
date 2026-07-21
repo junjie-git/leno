@@ -90,7 +90,7 @@ public sealed class Coupon : AggregateRoot
 
         ValidateValidity(validityType, validFrom, validTo, validDays);
 
-        if (totalQty == 0)
+        if (totalQty < -1 || totalQty == 0)
         {
             throw new PromotionDomainException("发放总量须为正数或 -1（不限量）", "COUPON_TOTAL_QTY_INVALID");
         }
