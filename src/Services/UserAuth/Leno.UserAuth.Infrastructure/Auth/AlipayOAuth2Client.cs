@@ -200,9 +200,9 @@ public sealed class AlipayOAuth2Client : IExternalAuthService
 
         var avatar = responseData.TryGetProperty("avatar", out var av) ? av.GetString() : null;
         var nickName = responseData.TryGetProperty("nick_name", out var nn) ? nn.GetString() : null;
-        var email = $"{userId}@alipay.local";
 
-        return new ExternalLoginInfo(Provider, userId, email, nickName ?? "支付宝用户", avatar);
+        // 支付宝不返回邮箱，Email 传 null，避免伪邮箱入库污染下游集成事件
+        return new ExternalLoginInfo(Provider, userId, null, nickName ?? "支付宝用户", avatar);
     }
 
     /// <summary>

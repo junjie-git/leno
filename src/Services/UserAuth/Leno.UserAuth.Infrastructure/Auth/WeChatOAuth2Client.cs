@@ -122,10 +122,8 @@ public sealed class WeChatOAuth2Client : IExternalAuthService
         var nickname = doc.RootElement.TryGetProperty("nickname", out var nick) ? nick.GetString() : null;
         var headImgUrl = doc.RootElement.TryGetProperty("headimgurl", out var img) ? img.GetString() : null;
 
-        // 微信不返回邮箱，需用 openId 构造伪邮箱
-        var email = $"{openId}@wechat.local";
-
-        return new ExternalLoginInfo(Provider, unionId ?? openId, email, nickname ?? "微信用户", headImgUrl);
+        // 微信不返回邮箱，Email 传 null，避免伪邮箱入库污染下游集成事件
+        return new ExternalLoginInfo(Provider, unionId ?? openId, null, nickname ?? "微信用户", headImgUrl);
     }
 
     private string GetAppId()

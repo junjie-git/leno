@@ -441,10 +441,16 @@ public sealed partial class User : AggregateRoot
 
     /// <summary>
     /// 从邮箱前缀生成用户名，若冲突由应用层重试时追加后缀。
-    /// 处理保留字冲突、空前缀、短前缀与超长前缀。
+    /// 处理 null 邮箱（微信/支付宝）、保留字冲突、空前缀、短前缀与超长前缀。
     /// </summary>
-    private static string GenerateUsernameFromEmail(string email)
+    private static string GenerateUsernameFromEmail(string? email)
     {
+        // 微信/支付宝不返回邮箱，email 为 null，直接使用 GUID 前缀兜底
+        if (string.IsNullOrEmpty(email))
+        {
+            return $"u{Guid.NewGuid().ToString("N")[..7]}";
+        }
+
         var atIndex = email.IndexOf('@');
         var prefix = atIndex > 0 ? email[..atIndex] : email;
         var sanitized = new string(prefix.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray());
