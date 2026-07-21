@@ -45,6 +45,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INotificationRecordRepository, EfCoreNotificationRecordRepository>();
         services.AddScoped<INotificationTemplateRepository, EfCoreNotificationTemplateRepository>();
         services.AddScoped<INotificationPreferenceRepository, EfCoreNotificationPreferenceRepository>();
+        services.AddScoped<INotificationRateLimitConfigRepository, EfCoreNotificationRateLimitConfigRepository>();
 
         // 模板渲染器
         services.AddScoped<ITemplateRenderer, TemplateRenderer>();

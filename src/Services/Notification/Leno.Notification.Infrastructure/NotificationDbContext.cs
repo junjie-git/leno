@@ -22,4 +22,7 @@ public sealed class NotificationDbContext : BaseDbContext
 
     /// <summary>通知偏好聚合根。</summary>
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
+
+    /// <summary>通知限流配置聚合根。</summary>
+    public DbSet<NotificationRateLimitConfig> NotificationRateLimitConfigs => Set<NotificationRateLimitConfig>();
 }

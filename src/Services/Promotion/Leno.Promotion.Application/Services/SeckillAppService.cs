@@ -185,24 +185,31 @@ public sealed class SeckillAppService : ISeckillAppService
     public async Task<List<SeckillActivityDto>> GetActiveAsync(CancellationToken ct = default)
     {
         var activities = await _repository.GetActiveAsync(DateTime.UtcNow, ct);
-        var dtos = new List<SeckillActivityDto>(activities.Count);
-        foreach (var activity in activities)
+        if (activities.Count == 0)
         {
-            dtos.Add(await ToDtoAsync(activity, ct));
+            return new List<SeckillActivityDto>();
         }
-        return dtos;
+
+        // 并行调用 ToDtoAsync（内部含 Redis 往返），将 N 次串行改为 N 次并行，
+        // 利用 Redis 连接池并发能力降低列表查询累积延迟（N+1 → 并行 N）
+        var dtoTasks = activities.Select(a => ToDtoAsync(a, ct)).ToArray();
+        var dtos = await Task.WhenAll(dtoTasks);
+        return dtos.ToList();
     }
 
     /// <inheritdoc />
     public async Task<List<SeckillActivityDto>> QueryAsync(SeckillStatus? status, int page, int pageSize, CancellationToken ct = default)
     {
         var activities = await _repository.GetByStatusAsync(status, page, pageSize, ct);
-        var dtos = new List<SeckillActivityDto>(activities.Count);
-        foreach (var activity in activities)
+        if (activities.Count == 0)
         {
-            dtos.Add(await ToDtoAsync(activity, ct));
+            return new List<SeckillActivityDto>();
         }
-        return dtos;
+
+        // 并行调用 ToDtoAsync（内部含 Redis 往返），将 N 次串行改为 N 次并行
+        var dtoTasks = activities.Select(a => ToDtoAsync(a, ct)).ToArray();
+        var dtos = await Task.WhenAll(dtoTasks);
+        return dtos.ToList();
     }
 
     private async Task<SeckillActivityAggregate> RequireActivityAsync(Guid activityId, CancellationToken ct)
