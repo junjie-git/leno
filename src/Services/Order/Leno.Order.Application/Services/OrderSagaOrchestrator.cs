@@ -199,10 +199,12 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
 
     /// <summary>
     /// 对已成功组逆序执行补偿：释放优惠券 → 释放积分 → 释放库存 → 移除未提交的订单聚合。
-    /// 每个补偿动作独立 try/catch，单动作失败仅记录日志不阻止其它补偿（积分/促销防腐层在 Task 10/11 后远程失败会抛 <see cref="OrderDomainException"/>）。
+    /// 每个补偿动作独立 try/catch 收集失败，全部补偿后若有失败则抛 <see cref="SagaCompensationFailedException"/> 触发告警。
     /// </summary>
     private async Task CompensateAsync(List<CompletedGroup> completed, CancellationToken ct)
     {
+        var failures = new List<CompensationFailure>();
+
         for (var i = completed.Count - 1; i >= 0; i--)
         {
             var g = completed[i];
@@ -217,6 +219,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Saga 补偿：释放优惠券失败 OrderId={OrderId}", g.OrderId);
+                    failures.Add(new CompensationFailure(g.OrderId, "ReleaseCoupons", ex.Message));
                 }
             }
 
@@ -230,6 +233,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Saga 补偿：释放积分失败 OrderId={OrderId}", g.OrderId);
+                    failures.Add(new CompensationFailure(g.OrderId, "ReleasePoints", ex.Message));
                 }
             }
 
@@ -241,6 +245,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Saga 补偿：释放库存失败 OrderId={OrderId}", g.OrderId);
+                failures.Add(new CompensationFailure(g.OrderId, "ReleaseStock", ex.Message));
             }
 
             // 移除未提交的订单聚合（Saga 失败未统一提交，聚合仅在变更跟踪器中）
@@ -251,7 +256,14 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Saga 补偿：移除订单聚合失败 OrderId={OrderId}", g.OrderId);
+                failures.Add(new CompensationFailure(g.OrderId, "RemoveOrder", ex.Message));
             }
+        }
+
+        // 有补偿失败时抛异常触发告警（库存有 T18 补偿表兜底，但积分/优惠券无补偿表）
+        if (failures.Count > 0)
+        {
+            throw new SagaCompensationFailedException(failures);
         }
     }
 
