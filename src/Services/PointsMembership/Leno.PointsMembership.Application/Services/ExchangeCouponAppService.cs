@@ -1,9 +1,7 @@
 using Leno.PointsMembership.Application.DTOs;
 using Leno.PointsMembership.Domain.Exceptions;
 using Leno.PointsMembership.Domain.Repositories;
-using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
-using Leno.Infrastructure.Abstractions;
 using Microsoft.Extensions.Logging;
 using PointsAccountAggregate = Leno.PointsMembership.Domain.Aggregates.PointsAccount;
 
@@ -11,28 +9,26 @@ namespace Leno.PointsMembership.Application.Services;
 
 /// <summary>
 /// 积分兑换优惠券应用服务实现。
-/// 冻结积分后发布 PointsExchangeCouponRequestedEvent 给优惠券域。
+/// 调用 <see cref="PointsAccountAggregate.RequestExchangeCoupon"/> 在同一事务内冻结积分并追加领域事件，
+/// 由发件箱模式翻译为 <c>PointsExchangeCouponRequestedEvent</c> 集成事件给优惠券域，
+/// 保证冻结与事件发布的原子性（不再走 SaveEntities 之后的 IEventBus.PublishAsync 直发）。
 /// </summary>
 public sealed class ExchangeCouponAppService : IExchangeCouponAppService
 {
     private readonly IPointsAccountRepository _accountRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IEventBus _eventBus;
     private readonly ILogger<ExchangeCouponAppService> _logger;
 
     public ExchangeCouponAppService(
         IPointsAccountRepository accountRepository,
         IUnitOfWork unitOfWork,
-        IEventBus eventBus,
         ILogger<ExchangeCouponAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(accountRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
-        ArgumentNullException.ThrowIfNull(eventBus);
         ArgumentNullException.ThrowIfNull(logger);
         _accountRepository = accountRepository;
         _unitOfWork = unitOfWork;
-        _eventBus = eventBus;
         _logger = logger;
     }
 
@@ -52,14 +48,9 @@ public sealed class ExchangeCouponAppService : IExchangeCouponAppService
 
         var exchangeId = Guid.NewGuid();
 
-        // 冻结积分（使用兑换ID作为订单ID）
-        account.Freeze(input.PointsRequired, exchangeId);
+        // 聚合根内同事务：冻结积分 + 追加兑换请求领域事件（经 Outbox 翻译为集成事件）
+        account.RequestExchangeCoupon(input.PointsRequired, exchangeId, input.CouponTemplateId);
         await _unitOfWork.SaveEntitiesAsync(ct);
-
-        // 发布积分兑换优惠券请求事件
-        var evt = new PointsExchangeCouponRequestedEvent(
-            exchangeId, input.UserId, input.CouponTemplateId, input.PointsRequired);
-        await _eventBus.PublishAsync(evt, ct);
 
         _logger.LogInformation(
             "积分兑换优惠券请求已提交 ExchangeId={ExchangeId} UserId={UserId} Points={Points}",

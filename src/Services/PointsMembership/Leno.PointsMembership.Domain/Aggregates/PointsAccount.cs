@@ -261,6 +261,35 @@ public sealed class PointsAccount : AggregateRoot
             PointsSource.Activity, Guid.Empty, "积分过期清理", DateTime.UtcNow));
     }
 
+    /// <summary>
+    /// 请求兑换优惠券：冻结积分并发起兑换请求领域事件（经 Outbox 翻译为集成事件给优惠券域）。
+    /// 同事务保证：冻结成功与事件发布原子性，避免 SaveEntities 提交后再 Publish 失败导致冻结无事件。
+    /// </summary>
+    /// <param name="amount">兑换所需积分，须 &gt; 0。</param>
+    /// <param name="exchangeId">兑换业务标识（同时作为冻结订单 ID）。</param>
+    /// <param name="couponTemplateId">兑换目标优惠券模板标识。</param>
+    public void RequestExchangeCoupon(int amount, Guid exchangeId, Guid couponTemplateId)
+    {
+        if (amount <= 0)
+        {
+            throw new PointsDomainException("兑换积分数量须大于 0", "POINTS_EXCHANGE_AMOUNT_INVALID");
+        }
+
+        if (exchangeId == Guid.Empty)
+        {
+            throw new PointsDomainException("ExchangeId 不可为空", "POINTS_EXCHANGE_ID_EMPTY");
+        }
+
+        if (couponTemplateId == Guid.Empty)
+        {
+            throw new PointsDomainException("CouponTemplateId 不可为空", "POINTS_COUPON_TEMPLATE_EMPTY");
+        }
+
+        Freeze(amount, exchangeId);
+        AddDomainEvent(new PointsExchangeCouponRequestedDomainEvent(
+            exchangeId, UserId, couponTemplateId, amount));
+    }
+
     private PointsFrozenEntry FindFrozenEntry(Guid orderId)
     {
         var entry = FrozenEntries.FirstOrDefault(e => e.OrderId == orderId);

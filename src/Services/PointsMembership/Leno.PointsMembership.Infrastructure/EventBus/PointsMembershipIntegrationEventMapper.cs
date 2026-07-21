@@ -39,5 +39,10 @@ public class PointsMembershipIntegrationEventMapper : IntegrationEventMapperBase
         // MembershipActivatedEvent → PaidMemberSubscribedIntegrationEvent（消息通知域会员开通通知）
         RegisterHandler<MembershipActivatedEvent, PaidMemberSubscribedIntegrationEvent>(e =>
             new PaidMemberSubscribedIntegrationEvent(e.UserId, e.PackageId, e.Level, e.EndTime));
+
+        // PointsExchangeCouponRequestedDomainEvent → PointsExchangeCouponRequestedEvent（优惠券域）
+        // 由聚合根 RequestExchangeCoupon 内追加，经 Outbox 同事务发布给优惠券域创建优惠券
+        RegisterHandler<PointsExchangeCouponRequestedDomainEvent, PointsExchangeCouponRequestedEvent>(e =>
+            new PointsExchangeCouponRequestedEvent(e.ExchangeId, e.UserId, e.CouponTemplateId, e.PointsRequired));
     }
 }
