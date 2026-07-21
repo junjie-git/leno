@@ -100,7 +100,12 @@ public sealed class RedisBloomFilter : IBloomFilter
         for (var i = 0; i < _hashCount; i++)
         {
             var combinedHash = unchecked(hash1 + (long)i * hash2);
-            positions[i] = Math.Abs(combinedHash % _bitSize);
+            // 修复：Math.Abs(long.MinValue) 会溢出返回负数（long.MinValue），
+            // 导致 positions[i] 为负数，Redis StringSetBitAsync 对负偏移量行为未定义。
+            // 使用位掩码 & 0x7FFFFFFFFFFFFFFF 清除符号位，强制非负后再取模，
+            // 保证结果落在 [0, _bitSize - 1] 范围内。
+            var nonNegativeHash = combinedHash & 0x7FFFFFFFFFFFFFFF;
+            positions[i] = nonNegativeHash % _bitSize;
         }
 
         return positions;
