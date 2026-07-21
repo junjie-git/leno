@@ -13,7 +13,9 @@ message SellerInfo {
   string seller_id = 1;
   string name = 2;
   string status = 3;
-  int64 shop_id = 4;
+  int64 shop_id = 4 [deprecated = true];
+  // Guid→string 迁移新增 string ID 字段；新客户端优先读 shop_id_str
+  string shop_id_str = 5;
 }
 message GetShopInfoRequest {
   int64 shop_id = 1 [deprecated = true];

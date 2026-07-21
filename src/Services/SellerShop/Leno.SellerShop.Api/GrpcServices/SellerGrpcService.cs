@@ -95,18 +95,20 @@ public sealed class SellerGrpcService : SellerInternalService.SellerInternalServ
         SellerId = dto.SellerId.ToString(),
         Name = dto.Name,
         Status = dto.Status,
-        // POC 简化：Guid→int64 不可逆映射，生产化改为 proto 字段改 string
-        ShopId = (long)dto.ShopId.GetHashCode()
+        // deprecated：int64 字段保留固定值 0，不再使用 Guid.GetHashCode() 不可逆映射（存在哈希冲突且不可逆）
+        ShopId = 0L,
+        // 新增 string 字段（Guid→string 迁移，新客户端优先读 shop_id_str）
+        ShopIdStr = dto.ShopId.ToString()
     };
 
     private static ShopInfo MapToProto(ShopInfoDto dto) => new()
     {
-        // 既有 int64 字段（向后兼容，标记 deprecated）
-        ShopId = (long)dto.ShopId.GetHashCode(),
+        // deprecated：int64 字段保留固定值 0，不再使用 GetHashCode
+        ShopId = 0L,
         Name = dto.Name,
         Status = dto.Status,
         SellerId = dto.SellerId.ToString(),
-        // 新增 string 字段（Guid→string 迁移，新客户端优先读）
+        // string 字段（Guid→string 迁移，新客户端优先读）
         ShopIdStr = dto.ShopId.ToString()
     };
 }
