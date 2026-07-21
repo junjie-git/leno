@@ -146,10 +146,16 @@ public sealed partial class User : AggregateRoot
 
     /// <summary>
     /// 修改密码：校验旧密码后写入新哈希，附加 <see cref="UserPasswordChangedEvent"/>。
+    /// Disabled 状态不允许修改密码；Locked 状态允许（视为解锁流程的一部分）。
     /// </summary>
     public void ChangePassword(string oldPlainPassword, string newPlainPassword, IPasswordHasher hasher)
     {
         ArgumentNullException.ThrowIfNull(hasher);
+
+        if (Status == AccountStatus.Disabled)
+        {
+            throw new UserAuthDomainException("账户已禁用，不可修改密码", "USER_DISABLED");
+        }
 
         if (string.IsNullOrEmpty(PasswordHash))
         {
@@ -278,9 +284,14 @@ public sealed partial class User : AggregateRoot
         _roles.Remove(existing);
     }
 
-    /// <summary>更新昵称与头像。</summary>
+    /// <summary>更新昵称与头像。Disabled 状态不允许更新资料。</summary>
     public void UpdateProfile(string nickname, string? avatarUrl)
     {
+        if (Status == AccountStatus.Disabled)
+        {
+            throw new UserAuthDomainException("账户已禁用，不可更新资料", "USER_DISABLED");
+        }
+
         ValidateNickname(nickname);
         ValidateAvatarUrl(avatarUrl);
 
