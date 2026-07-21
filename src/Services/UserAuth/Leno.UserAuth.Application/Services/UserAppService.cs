@@ -227,6 +227,9 @@ public sealed class UserAppService : IUserAppService
         user.ChangePassword(dto.OldPassword, dto.NewPassword, _passwordHasher);
         await _userRepository.UpdateAsync(user, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+
+        // 撤销该用户所有 RefreshToken，强制重新登录
+        await _refreshTokenStore.RevokeAllAsync(user.Id, ct);
     }
 
     /// <inheritdoc />
@@ -516,6 +519,9 @@ public sealed class UserAppService : IUserAppService
 
         await _userRepository.UpdateAsync(user, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
+
+        // 撤销该用户所有 RefreshToken，防止旧令牌继续使用
+        await _refreshTokenStore.RevokeAllAsync(user.Id, ct);
     }
 
     private async Task<TokenDto> IssueTwoFactorRequiredTokenAsync(User user, CancellationToken ct)

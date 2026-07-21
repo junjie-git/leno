@@ -565,6 +565,63 @@ public class UserAppServiceTests
 
     #endregion
 
+    #region ChangePasswordAsync
+
+    [Fact]
+    public async Task ChangePasswordAsync_Should_Revoke_All_Refresh_Tokens()
+    {
+        // Arrange
+        var user = User.Create(
+            Guid.NewGuid(),
+            "alice",
+            "alice@example.com",
+            "+8613800138000",
+            _hasherMock.Object.Hash("OldPassword1"),
+            "Alice");
+        _userRepoMock.Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        // Act
+        await _sut.ChangePasswordAsync(user.Id, new ChangePasswordDto
+        {
+            OldPassword = "OldPassword1",
+            NewPassword = "NewPassword1"
+        }, CancellationToken.None);
+
+        // Assert
+        _refreshTokenMock.Verify(s => s.RevokeAllAsync(user.Id, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    #endregion
+
+    #region ResetPasswordAsync
+
+    [Fact]
+    public async Task ResetPasswordAsync_Should_Revoke_All_Refresh_Tokens()
+    {
+        // Arrange
+        var user = User.Create(
+            Guid.NewGuid(),
+            "alice",
+            "alice@example.com",
+            "+8613800138000",
+            _hasherMock.Object.Hash("OldPassword1"),
+            "Alice");
+        var token = "reset-token";
+        _databaseMock.Setup(r => r.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync((RedisValue)user.Id.ToString());
+        _userRepoMock.Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        // Act
+        await _sut.ResetPasswordAsync(new ResetPasswordDto { Token = token, NewPassword = "NewPassword1" }, CancellationToken.None);
+
+        // Assert
+        _refreshTokenMock.Verify(s => s.RevokeAllAsync(user.Id, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    #endregion
+
     private UserAppService BuildUserAppService(params IExternalAuthService[] externalAuthServices)
     {
         return new UserAppService(
