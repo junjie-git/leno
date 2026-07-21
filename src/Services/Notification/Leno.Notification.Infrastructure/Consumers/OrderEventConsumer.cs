@@ -102,10 +102,22 @@ public sealed class OrderEventConsumer :
         var evt = context.Message;
         _logger.LogInformation("消费订单取消事件 EventId={EventId} OrderId={OrderId}", evt.EventId, evt.OrderId);
 
+        // OrderCancelledEvent 契约当前未携带 BuyerId，使用事件中的 SellerId 作为通知接收人 fallback。
+        // 若 SellerId 也为 Guid.Empty（如会员订阅订单），记录警告并跳过发送，
+        // 避免 Guid.Empty 触发 NotificationRecord.Create 的 NOTIFICATION_USER_EMPTY 异常，
+        // 该异常会导致 MassTransit 重试 3 次后死信，整条事件链路失效。
+        if (evt.SellerId == Guid.Empty)
+        {
+            _logger.LogWarning(
+                "订单取消事件缺少接收人标识 EventId={EventId} OrderId={OrderId}，跳过通知发送",
+                evt.EventId, evt.OrderId);
+            return;
+        }
+
         var request = new NotificationRequest
         {
             TemplateCode = EventTemplateMapping.GetTemplateCode(nameof(OrderCancelledEvent))!,
-            UserId = Guid.Empty, // 通知发送给买家需通过订单查询，这里使用事件中的 sellerId 作为 fallback
+            UserId = evt.SellerId,
             IdempotencyKey = evt.EventId.ToString(),
             Variables = new Dictionary<string, string>
             {
