@@ -23,6 +23,13 @@ public interface IOperationLogRepository
     Task<OperationLog?> GetByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
+    /// 按来源事件标识获取操作日志，用于幂等去重。
+    /// </summary>
+    /// <param name="eventId">来源集成事件标识。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task<OperationLog?> GetByEventIdAsync(Guid eventId, CancellationToken ct = default);
+
+    /// <summary>
     /// 分页查询操作日志，支持运营人员、模块与时间区间过滤。
     /// </summary>
     /// <param name="operatorId">运营人员标识，可空表示不限。</param>

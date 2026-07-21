@@ -26,6 +26,10 @@ public sealed class EfCoreOperationLogRepository : IOperationLogRepository
         => _context.OperationLogs.FirstOrDefaultAsync(o => o.Id == id, ct);
 
     /// <inheritdoc />
+    public Task<OperationLog?> GetByEventIdAsync(Guid eventId, CancellationToken ct = default)
+        => _context.OperationLogs.FirstOrDefaultAsync(l => l.EventId == eventId, ct);
+
+    /// <inheritdoc />
     public async Task<List<OperationLog>> QueryAsync(Guid? operatorId, string? moduleName, DateTime? fromTime, DateTime? toTime, int page, int pageSize, CancellationToken ct = default)
     {
         var query = ApplyFilters(_context.OperationLogs.AsQueryable(), operatorId, moduleName, fromTime, toTime);

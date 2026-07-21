@@ -23,6 +23,7 @@ public sealed class OperationLogConfiguration : IEntityTypeConfiguration<Operati
         builder.Property(o => o.AfterSnapshot).HasColumnName("after_snapshot").HasMaxLength(4000);
         builder.Property(o => o.IpAddress).HasColumnName("ip_address").HasMaxLength(64);
         builder.Property(o => o.OccurredAt).HasColumnName("occurred_at");
+        builder.Property(o => o.EventId).HasColumnName("event_id");
 
         builder.Property(o => o.CreatedAt).HasColumnName("created_at");
         builder.Property(o => o.UpdatedAt).HasColumnName("updated_at");
@@ -31,5 +32,6 @@ public sealed class OperationLogConfiguration : IEntityTypeConfiguration<Operati
 
         builder.HasIndex(o => o.OperatorId).HasDatabaseName("ix_operation_logs_operator_id");
         builder.HasIndex(o => o.OccurredAt).HasDatabaseName("ix_operation_logs_occurred_at");
+        builder.HasIndex(o => o.EventId).HasDatabaseName("ix_operation_logs_event_id").IsUnique();
     }
 }

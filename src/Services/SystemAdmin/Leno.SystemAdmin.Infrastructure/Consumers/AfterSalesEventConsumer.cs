@@ -46,6 +46,14 @@ public sealed class AfterSalesEventConsumer :
             return;
         }
 
+        // 幂等去重：按 EventId 检查是否已处理
+        var existing = await _operationLogRepository.GetByEventIdAsync(evt.EventId, ct);
+        if (existing is not null)
+        {
+            _logger.LogDebug("操作日志已存在，跳过 EventId={EventId}", evt.EventId);
+            return;
+        }
+
         var log = OperationLog.Create(
             Guid.NewGuid(),
             evt.SellerId,
@@ -55,12 +63,43 @@ public sealed class AfterSalesEventConsumer :
             null,
             $"{{\"afterSalesId\":\"{evt.AfterSalesId}\",\"amount\":{evt.ApprovedAmount.ToString(CultureInfo.InvariantCulture)}}}",
             null,
-            evt.OccurredAt);
+            evt.OccurredAt,
+            evt.EventId);
 
-        await _operationLogRepository.AddAsync(log, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        try
+        {
+            await _operationLogRepository.AddAsync(log, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            _logger.LogWarning(ex,
+                "操作日志并发插入冲突，已按幂等处理 EventId={EventId}", evt.EventId);
+            return;
+        }
 
         _logger.LogInformation("操作日志已记录 EventId={EventId}", evt.EventId);
+    }
+
+    /// <summary>
+    /// 判断 DbUpdateException 是否为唯一约束冲突（SQL Server 错误码 2601/2627），
+    /// 兼容 PostgreSQL/MySQL 的错误消息。
+    /// </summary>
+    private static bool IsUniqueConstraintViolation(Microsoft.EntityFrameworkCore.DbUpdateException ex)
+    {
+        var inner = ex.InnerException;
+        if (inner is null)
+        {
+            return false;
+        }
+
+        var message = inner.Message ?? string.Empty;
+        return message.Contains("2601", StringComparison.Ordinal)
+            || message.Contains("2627", StringComparison.Ordinal)
+            || message.Contains("ix_operation_logs_event_id", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <inheritdoc />

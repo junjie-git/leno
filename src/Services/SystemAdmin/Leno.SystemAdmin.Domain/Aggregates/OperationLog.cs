@@ -42,6 +42,9 @@ public sealed class OperationLog : AggregateRoot
     /// <summary>操作发生时间（UTC）。</summary>
     public DateTime OccurredAt { get; private set; }
 
+    /// <summary>来源集成事件标识，用于幂等去重，可空（非事件驱动的操作日志为 null）。</summary>
+    public Guid? EventId { get; private set; }
+
     /// <summary>EF Core 无参构造。</summary>
     private OperationLog() { }
 
@@ -59,6 +62,7 @@ public sealed class OperationLog : AggregateRoot
     /// <param name="afterSnapshot">变更后快照，可空。</param>
     /// <param name="ipAddress">来源 IP 地址，可空。</param>
     /// <param name="occurredAt">操作发生时间（UTC）。</param>
+    /// <param name="eventId">来源集成事件标识，用于幂等去重，可空。</param>
     public static OperationLog Create(
         Guid logId,
         Guid operatorId,
@@ -68,7 +72,8 @@ public sealed class OperationLog : AggregateRoot
         string? beforeSnapshot,
         string? afterSnapshot,
         string? ipAddress,
-        DateTime occurredAt)
+        DateTime occurredAt,
+        Guid? eventId = null)
     {
         if (logId == Guid.Empty)
         {
@@ -101,7 +106,8 @@ public sealed class OperationLog : AggregateRoot
             BeforeSnapshot = NormalizeNullable(beforeSnapshot),
             AfterSnapshot = NormalizeNullable(afterSnapshot),
             IpAddress = NormalizeNullable(ipAddress),
-            OccurredAt = occurredAt
+            OccurredAt = occurredAt,
+            EventId = eventId
         };
     }
 

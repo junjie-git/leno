@@ -71,11 +71,6 @@ public sealed partial class AuditLogConsumer :
         var summary = MaskSensitiveData($"售后审核通过 金额={evt.ApprovedAmount.ToString(CultureInfo.InvariantCulture)} {evt.Currency}");
         await CreateAuditLogEntryAsync(evt.EventId, "AfterSalesApprovedEvent", evt.AggregateId, "AfterSales",
             "AfterSalesApprove", evt.SellerId, null, summary, evt.OccurredAt, null, ct);
-
-        var log = AuditLog.Create(Guid.NewGuid(), evt.SellerId, "AfterSalesApprove", "AfterSales",
-            evt.AfterSalesId.ToString(), summary, 200, null, evt.EventId.ToString(), evt.OccurredAt);
-        await _auditLogRepository.AddAsync(log, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
     #endregion
