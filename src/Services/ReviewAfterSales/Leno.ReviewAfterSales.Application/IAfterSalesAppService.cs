@@ -36,6 +36,12 @@ public interface IAfterSalesAppService
     /// <summary>买家端按订单查询售后单列表。</summary>
     Task<List<AfterSalesDto>> GetByOrderIdAsync(Guid orderId, CancellationToken ct = default);
 
+    /// <summary>
+    /// 买家端按订单查询售后单列表，校验当前用户为订单归属买家。
+    /// 通过订单域防腐层反查订单 UserId，非归属买家抛 <c>AFTERSALES_FORBIDDEN</c>。
+    /// </summary>
+    Task<List<AfterSalesDto>> GetByOrderIdForUserAsync(Guid orderId, Guid userId, CancellationToken ct = default);
+
     /// <summary>买家端分页查询我的售后单。</summary>
     Task<AfterSalesListResultDto> GetByUserAsync(Guid userId, int page, int pageSize, CancellationToken ct = default);
 

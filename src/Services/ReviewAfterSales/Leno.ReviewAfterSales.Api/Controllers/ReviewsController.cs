@@ -50,7 +50,8 @@ public sealed class ReviewsController : ReviewControllerBase
     [ProducesResponseType(typeof(ApiResponse<ReviewDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetReviewByOrderLineAsync(Guid orderLineId, CancellationToken ct)
     {
-        var result = await _reviewAppService.GetReviewByOrderLineAsync(orderLineId, ct);
+        var userId = GetCurrentUserId();
+        var result = await _reviewAppService.GetReviewByOrderLineForUserAsync(orderLineId, userId, ct);
         return Ok(ApiResponse.Success(result));
     }
 

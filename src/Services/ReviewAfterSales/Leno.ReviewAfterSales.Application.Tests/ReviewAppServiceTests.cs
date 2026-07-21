@@ -18,6 +18,7 @@ public class ReviewAppServiceTests
 {
     private readonly Mock<IReviewRepository> _reviewRepoMock = new();
     private readonly Mock<IReviewEligibilityChecker> _eligibilityMock = new();
+    private readonly Mock<IOrderStatusProvider> _orderStatusProviderMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly Mock<ILogger<ReviewAppService>> _loggerMock = new();
     private readonly ReviewAppService _sut;
@@ -36,6 +37,7 @@ public class ReviewAppServiceTests
         _sut = new ReviewAppService(
             _reviewRepoMock.Object,
             _eligibilityMock.Object,
+            _orderStatusProviderMock.Object,
             _uowMock.Object,
             _loggerMock.Object);
     }

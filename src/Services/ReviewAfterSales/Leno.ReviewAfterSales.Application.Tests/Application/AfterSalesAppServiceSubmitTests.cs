@@ -51,10 +51,11 @@ public sealed class AfterSalesAppServiceSubmitTests
         var uowMock = new Mock<IUnitOfWork>();
         var eventBusMock = new Mock<IEventBus>();
         var paymentMock = new Mock<IPaymentInfoQueryService>();
+        var orderStatusProviderMock = new Mock<IOrderStatusProvider>();
 
         var svc = new AfterSalesAppService(
             repoMock.Object, eligibilityMock.Object, paymentMock.Object,
-            eventBusMock.Object, uowMock.Object, NullLogger<AfterSalesAppService>.Instance);
+            orderStatusProviderMock.Object, eventBusMock.Object, uowMock.Object, NullLogger<AfterSalesAppService>.Instance);
 
         var dto = new SubmitAfterSalesDto
         {
@@ -89,10 +90,11 @@ public sealed class AfterSalesAppServiceSubmitTests
         var uowMock = new Mock<IUnitOfWork>();
         var eventBusMock = new Mock<IEventBus>();
         var paymentMock = new Mock<IPaymentInfoQueryService>();
+        var orderStatusProviderMock = new Mock<IOrderStatusProvider>();
 
         var svc = new AfterSalesAppService(
             repoMock.Object, eligibilityMock.Object, paymentMock.Object,
-            eventBusMock.Object, uowMock.Object, NullLogger<AfterSalesAppService>.Instance);
+            orderStatusProviderMock.Object, eventBusMock.Object, uowMock.Object, NullLogger<AfterSalesAppService>.Instance);
 
         var dto = new SubmitAfterSalesDto
         {

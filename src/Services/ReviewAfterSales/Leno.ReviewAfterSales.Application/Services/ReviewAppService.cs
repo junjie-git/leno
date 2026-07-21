@@ -1,5 +1,6 @@
 using Leno.ReviewAfterSales.Application.DTOs;
 using Leno.ReviewAfterSales.Domain.Aggregates;
+using Leno.ReviewAfterSales.Domain.Exceptions;
 using Leno.ReviewAfterSales.Domain.Repositories;
 using Leno.ReviewAfterSales.Domain.Services;
 using Leno.ReviewAfterSales.Domain.ValueObjects;
@@ -12,26 +13,31 @@ namespace Leno.ReviewAfterSales.Application.Services;
 /// <summary>
 /// 评价应用服务实现，编排评价提交、卖家回复、运营审核与查询用例。
 /// 提交前经 <see cref="IReviewEligibilityChecker"/> 校验订单完成且未评价。
+/// 买家按订单行查询评价时通过 <see cref="IOrderStatusProvider"/> 反查订单归属，防止越权查询他人评价。
 /// </summary>
 public sealed class ReviewAppService : IReviewAppService
 {
     private readonly IReviewRepository _reviewRepository;
     private readonly IReviewEligibilityChecker _eligibilityChecker;
+    private readonly IOrderStatusProvider _orderStatusProvider;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ReviewAppService> _logger;
 
     public ReviewAppService(
         IReviewRepository reviewRepository,
         IReviewEligibilityChecker eligibilityChecker,
+        IOrderStatusProvider orderStatusProvider,
         IUnitOfWork unitOfWork,
         ILogger<ReviewAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(reviewRepository);
         ArgumentNullException.ThrowIfNull(eligibilityChecker);
+        ArgumentNullException.ThrowIfNull(orderStatusProvider);
         ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(logger);
         _reviewRepository = reviewRepository;
         _eligibilityChecker = eligibilityChecker;
+        _orderStatusProvider = orderStatusProvider;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -101,6 +107,27 @@ public sealed class ReviewAppService : IReviewAppService
     {
         var review = await _reviewRepository.GetByOrderLineAsync(orderLineId, ct);
         return review is null ? null : ToDto(review);
+    }
+
+    /// <inheritdoc />
+    public async Task<ReviewDto?> GetReviewByOrderLineForUserAsync(Guid orderLineId, Guid userId, CancellationToken ct = default)
+    {
+        // 先按订单行查询评价聚合，从评价聚合取得 OrderId，再反查订单域校验当前用户是否为订单归属买家。
+        // 采用“评价仓储返回 OrderId 后调用 IOrderStatusProvider 校验归属”方案，避免修改订单域接口。
+        var review = await _reviewRepository.GetByOrderLineAsync(orderLineId, ct);
+        if (review is null)
+        {
+            return null;
+        }
+
+        var order = await _orderStatusProvider.GetOrderStatusAsync(review.OrderId, ct)
+            ?? throw new InvalidOperationException($"订单不存在 OrderId={review.OrderId}");
+        if (order.UserId != userId)
+        {
+            throw new ReviewDomainException("无权查询此评价", "REVIEW_FORBIDDEN");
+        }
+
+        return ToDto(review);
     }
 
     /// <inheritdoc />

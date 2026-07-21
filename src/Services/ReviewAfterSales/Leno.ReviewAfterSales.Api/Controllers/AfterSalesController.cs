@@ -72,7 +72,8 @@ public sealed class AfterSalesController : ReviewControllerBase
     [ProducesResponseType(typeof(ApiResponse<List<AfterSalesDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAfterSalesByOrderAsync(Guid orderId, CancellationToken ct)
     {
-        var result = await _afterSalesAppService.GetByOrderIdAsync(orderId, ct);
+        var userId = GetCurrentUserId();
+        var result = await _afterSalesAppService.GetByOrderIdForUserAsync(orderId, userId, ct);
         return Ok(ApiResponse.Success(result));
     }
 

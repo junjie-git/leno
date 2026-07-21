@@ -26,6 +26,12 @@ public interface IReviewAppService
     /// <summary>按订单行查询评价（买家端订单详情）。</summary>
     Task<ReviewDto?> GetReviewByOrderLineAsync(Guid orderLineId, CancellationToken ct = default);
 
+    /// <summary>
+    /// 买家端按订单行查询评价，校验当前用户为订单归属买家。
+    /// 通过评价聚合反查 OrderId，再经订单域防腐层校验 UserId，非归属买家抛 <c>REVIEW_FORBIDDEN</c>。
+    /// </summary>
+    Task<ReviewDto?> GetReviewByOrderLineForUserAsync(Guid orderLineId, Guid userId, CancellationToken ct = default);
+
     /// <summary>按用户分页查询评价（买家端我的评价）。</summary>
     Task<ReviewListResultDto> GetReviewsByUserAsync(Guid userId, int page, int pageSize, CancellationToken ct = default);
 

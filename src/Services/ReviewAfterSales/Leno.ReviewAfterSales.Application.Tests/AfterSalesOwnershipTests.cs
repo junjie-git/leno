@@ -21,6 +21,7 @@ public class AfterSalesOwnershipTests
     private readonly Mock<IAfterSalesRepository> _afterSalesRepoMock = new();
     private readonly Mock<IAfterSalesEligibilityChecker> _eligibilityMock = new();
     private readonly Mock<IPaymentInfoQueryService> _paymentInfoMock = new();
+    private readonly Mock<IOrderStatusProvider> _orderStatusProviderMock = new();
     private readonly Mock<IEventBus> _eventBusMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly Mock<ILogger<AfterSalesAppService>> _loggerMock = new();
@@ -34,7 +35,7 @@ public class AfterSalesOwnershipTests
     {
         _sut = new AfterSalesAppService(
             _afterSalesRepoMock.Object, _eligibilityMock.Object, _paymentInfoMock.Object,
-            _eventBusMock.Object, _uowMock.Object, _loggerMock.Object);
+            _orderStatusProviderMock.Object, _eventBusMock.Object, _uowMock.Object, _loggerMock.Object);
     }
 
     [Fact]

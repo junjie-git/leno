@@ -16,12 +16,14 @@ namespace Leno.ReviewAfterSales.Application.Services;
 /// 售后应用服务实现，编排售后申请、审核、撤销、退货、确认收货与查询用例。
 /// 审核通过时经 <see cref="IEventBus"/> 发布 <see cref="RefundRequestedIntegrationEvent"/> 请求支付域退款。
 /// 支付单标识与渠道通过 <see cref="IPaymentInfoQueryService"/> 防腐层查询。
+/// 买家按订单查询售后单时通过 <see cref="IOrderStatusProvider"/> 校验订单归属，防止越权查询他人售后单。
 /// </summary>
 public sealed class AfterSalesAppService : IAfterSalesAppService
 {
     private readonly IAfterSalesRepository _afterSalesRepository;
     private readonly IAfterSalesEligibilityChecker _eligibilityChecker;
     private readonly IPaymentInfoQueryService _paymentInfoQueryService;
+    private readonly IOrderStatusProvider _orderStatusProvider;
     private readonly IEventBus _eventBus;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<AfterSalesAppService> _logger;
@@ -30,6 +32,7 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
         IAfterSalesRepository afterSalesRepository,
         IAfterSalesEligibilityChecker eligibilityChecker,
         IPaymentInfoQueryService paymentInfoQueryService,
+        IOrderStatusProvider orderStatusProvider,
         IEventBus eventBus,
         IUnitOfWork unitOfWork,
         ILogger<AfterSalesAppService> logger)
@@ -37,12 +40,14 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
         ArgumentNullException.ThrowIfNull(afterSalesRepository);
         ArgumentNullException.ThrowIfNull(eligibilityChecker);
         ArgumentNullException.ThrowIfNull(paymentInfoQueryService);
+        ArgumentNullException.ThrowIfNull(orderStatusProvider);
         ArgumentNullException.ThrowIfNull(eventBus);
         ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(logger);
         _afterSalesRepository = afterSalesRepository;
         _eligibilityChecker = eligibilityChecker;
         _paymentInfoQueryService = paymentInfoQueryService;
+        _orderStatusProvider = orderStatusProvider;
         _eventBus = eventBus;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -215,6 +220,21 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
     /// <inheritdoc />
     public async Task<List<AfterSalesDto>> GetByOrderIdAsync(Guid orderId, CancellationToken ct = default)
     {
+        var items = await _afterSalesRepository.GetByOrderIdAsync(orderId, ct);
+        return items.ConvertAll(ToDto);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<AfterSalesDto>> GetByOrderIdForUserAsync(Guid orderId, Guid userId, CancellationToken ct = default)
+    {
+        // 通过订单域防腐层反查订单归属，防止买家 A 越权查询买家 B 的售后单
+        var order = await _orderStatusProvider.GetOrderStatusAsync(orderId, ct)
+            ?? throw new InvalidOperationException($"订单不存在 OrderId={orderId}");
+        if (order.UserId != userId)
+        {
+            throw new ReviewDomainException("无权查询此订单售后", "AFTERSALES_FORBIDDEN");
+        }
+
         var items = await _afterSalesRepository.GetByOrderIdAsync(orderId, ct);
         return items.ConvertAll(ToDto);
     }
