@@ -427,4 +427,75 @@ public class ReconciliationServiceTests
             diffs.Should().BeEmpty();
         }
     }
+
+    /// <summary>
+    /// P1-7 测试：验证 ReconciliationService.CalculateNextRunTime 计算
+    /// 下一次对账时间（UTC 18:00 = 北京时间次日 02:00）。
+    /// 旧实现 now.Date.AddHours(2).AddHours(8) 得到 UTC 10:00（错误），
+    /// 新实现 now.Date.AddHours(18) 得到 UTC 18:00（正确）。
+    /// </summary>
+    public class CalculateNextRunTimeTests
+    {
+        [Fact]
+        public void CalculateNextRunTime_WhenNowBeforeUtc18_ShouldReturnSameDayUtc18()
+        {
+            // 安排：当前 UTC 10:00（早于当天 18:00）
+            var now = new DateTime(2026, 7, 22, 10, 0, 0, DateTimeKind.Utc);
+
+            // 行动
+            var nextRun = ReconciliationService.CalculateNextRunTime(now);
+
+            // 断言：下次对账为当天 UTC 18:00（北京次日 02:00）
+            nextRun.Should().Be(new DateTime(2026, 7, 22, 18, 0, 0, DateTimeKind.Utc));
+            nextRun.Should().BeAfter(now);
+        }
+
+        [Fact]
+        public void CalculateNextRunTime_WhenNowAfterUtc18_ShouldReturnNextDayUtc18()
+        {
+            // 安排：当前 UTC 20:00（晚于当天 18:00）
+            var now = new DateTime(2026, 7, 22, 20, 0, 0, DateTimeKind.Utc);
+
+            // 行动
+            var nextRun = ReconciliationService.CalculateNextRunTime(now);
+
+            // 断言：下次对账为次日 UTC 18:00
+            nextRun.Should().Be(new DateTime(2026, 7, 23, 18, 0, 0, DateTimeKind.Utc));
+            nextRun.Should().BeAfter(now);
+        }
+
+        [Fact]
+        public void CalculateNextRunTime_WhenNowExactlyUtc18_ShouldReturnNextDayUtc18()
+        {
+            // 安排：当前 UTC 18:00 整点（nextRun <= now 触发加 1 天）
+            var now = new DateTime(2026, 7, 22, 18, 0, 0, DateTimeKind.Utc);
+
+            // 行动
+            var nextRun = ReconciliationService.CalculateNextRunTime(now);
+
+            // 断言：等价于 nextRun <= now，应顺延到次日
+            nextRun.Should().Be(new DateTime(2026, 7, 23, 18, 0, 0, DateTimeKind.Utc));
+        }
+
+        [Fact]
+        public void CalculateNextRunTime_ShouldAlwaysReturnUtc18OfSomeDay()
+        {
+            // 安排：随机多个时间点
+            var samples = new[]
+            {
+                new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                new DateTime(2026, 6, 15, 17, 59, 59, DateTimeKind.Utc),
+                new DateTime(2026, 12, 31, 23, 59, 59, DateTimeKind.Utc)
+            };
+
+            // 行动 / 断言：每次返回的时间点均为 18:00:00（小时/分/秒）
+            foreach (var now in samples)
+            {
+                var nextRun = ReconciliationService.CalculateNextRunTime(now);
+                nextRun.Hour.Should().Be(18);
+                nextRun.Minute.Should().Be(0);
+                nextRun.Second.Should().Be(0);
+            }
+        }
+    }
 }

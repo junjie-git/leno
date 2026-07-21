@@ -44,13 +44,9 @@ public sealed class ReconciliationService : BackgroundService, IReconciliationSe
         {
             try
             {
-                // 计算下次执行时间：每天凌晨 2:00（T+1 对账）
+                // 计算下次执行时间：每天凌晨 2:00 北京时间 = UTC 18:00（T+1 对账）
                 var now = DateTime.UtcNow;
-                var nextRun = now.Date.AddHours(2).AddHours(8); // UTC+8 凌晨 2:00 = UTC 18:00
-                if (nextRun <= now)
-                {
-                    nextRun = nextRun.AddDays(1);
-                }
+                var nextRun = CalculateNextRunTime(now);
 
                 var delay = nextRun - now;
                 _logger.LogInformation("下次对账时间：{NextRun}（{Delay} 后）", nextRun, delay);
@@ -133,6 +129,24 @@ public sealed class ReconciliationService : BackgroundService, IReconciliationSe
                 _logger.LogError(ex, "渠道 {Channel} 对账异常", channel);
             }
         }
+    }
+
+    /// <summary>
+    /// 计算下一次对账执行时间（UTC）。
+    /// 业务规则：每天北京时间凌晨 2:00 执行对账，对应 UTC 18:00。
+    /// 当当前 UTC 时间早于当天 18:00 时，下次执行为当天 18:00；
+    /// 当当前 UTC 时间已等于或晚于当天 18:00 时，下次执行为次日 18:00。
+    /// </summary>
+    /// <param name="now">当前 UTC 时间。</param>
+    /// <returns>下次对账执行的 UTC 时间。</returns>
+    internal static DateTime CalculateNextRunTime(DateTime now)
+    {
+        var nextRun = now.Date.AddHours(18); // UTC 18:00 = 北京时间次日 02:00
+        if (nextRun <= now)
+        {
+            nextRun = nextRun.AddDays(1);
+        }
+        return nextRun;
     }
 
     /// <summary>
