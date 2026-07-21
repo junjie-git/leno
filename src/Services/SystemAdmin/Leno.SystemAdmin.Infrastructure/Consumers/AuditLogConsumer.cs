@@ -5,6 +5,7 @@ using Leno.SharedKernel.Abstractions;
 using Leno.SystemAdmin.Domain.Aggregates;
 using Leno.SystemAdmin.Domain.Repositories;
 using MassTransit;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.SystemAdmin.Infrastructure.Consumers;
@@ -251,6 +252,8 @@ public sealed partial class AuditLogConsumer :
 
     /// <summary>
     /// 创建 AuditLogEntry 审计日志条目，支持幂等去重。
+    /// 先按 EventId 查询快速路径跳过；并发插入时由 EventId 唯一索引兜底，
+    /// 捕获 DbUpdateException 判定为唯一约束冲突则视为已存在并正常返回。
     /// </summary>
     private async Task CreateAuditLogEntryAsync(
         Guid eventId, string eventType, Guid aggregateId, string module,
@@ -258,7 +261,7 @@ public sealed partial class AuditLogConsumer :
         string? requestSummary, DateTime timestamp, string? ipAddress,
         CancellationToken ct)
     {
-        // 幂等去重：按 EventId 检查是否已存在
+        // 幂等去重：按 EventId 检查是否已存在（快速路径）
         var existing = await _auditLogEntryRepository.GetByEventIdAsync(eventId, ct);
         if (existing is not null)
         {
@@ -270,10 +273,44 @@ public sealed partial class AuditLogConsumer :
             Guid.NewGuid(), eventId, eventType, aggregateId, module,
             action, operatorId, operatorName, requestSummary, timestamp, ipAddress);
 
-        await _auditLogEntryRepository.AddAsync(entry, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        try
+        {
+            await _auditLogEntryRepository.AddAsync(entry, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
 
-        _logger.LogInformation("审计日志条目已记录 EventId={EventId} EventType={EventType}", eventId, eventType);
+            _logger.LogInformation("审计日志条目已记录 EventId={EventId} EventType={EventType}", eventId, eventType);
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // 并发插入导致唯一索引冲突，视为已存在，正常返回
+            _logger.LogWarning(ex,
+                "审计日志条目并发插入冲突，已按幂等处理 EventId={EventId}", eventId);
+        }
+    }
+
+    /// <summary>
+    /// 判断 DbUpdateException 是否为唯一约束冲突（SQL Server 错误码 2601/2627）。
+    /// 同时匹配索引名 ix_audit_log_entries_event_id 与通用关键字作为兜底，
+    /// 兼容 PostgreSQL/MySQL 等其他数据库的错误消息。
+    /// </summary>
+    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        var inner = ex.InnerException;
+        if (inner is null)
+        {
+            return false;
+        }
+
+        var message = inner.Message ?? string.Empty;
+        // SQL Server: 2601 (唯一键) / 2627 (违反约束)
+        // PostgreSQL: duplicate key value violates unique constraint
+        // MySQL: Duplicate entry
+        return message.Contains("2601", StringComparison.Ordinal)
+            || message.Contains("2627", StringComparison.Ordinal)
+            || message.Contains("ix_audit_log_entries_event_id", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
