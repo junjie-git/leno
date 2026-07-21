@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Leno.SharedKernel.Abstractions;
 using Leno.UserAuth.Domain.Events;
@@ -429,12 +430,30 @@ public sealed partial class User : AggregateRoot
         return user;
     }
 
-    /// <summary>从邮箱前缀生成用户名，若冲突由应用层重试时追加后缀。</summary>
+    /// <summary>
+    /// 用户名保留字集合，生成的用户名命中保留字时追加随机后缀避免冲突或冒充。
+    /// </summary>
+    private static readonly HashSet<string> UsernameReservedWords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "admin", "root", "system", "administrator", "leno", "support", "null", "undefined",
+        "api", "test", "guest", "user", "moderator", "superuser", "operator"
+    };
+
+    /// <summary>
+    /// 从邮箱前缀生成用户名，若冲突由应用层重试时追加后缀。
+    /// 处理保留字冲突、空前缀、短前缀与超长前缀。
+    /// </summary>
     private static string GenerateUsernameFromEmail(string email)
     {
         var atIndex = email.IndexOf('@');
         var prefix = atIndex > 0 ? email[..atIndex] : email;
         var sanitized = new string(prefix.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray());
+
+        // sanitize 后为空（如邮箱前缀全是特殊字符），使用 GUID 前 8 字符兜底
+        if (string.IsNullOrEmpty(sanitized))
+        {
+            sanitized = $"u{Guid.NewGuid().ToString("N")[..7]}";
+        }
 
         if (sanitized.Length < 3)
         {
@@ -444,6 +463,15 @@ public sealed partial class User : AggregateRoot
         if (sanitized.Length > 32)
         {
             sanitized = sanitized[..32];
+        }
+
+        // 保留字追加随机后缀避免冒充系统账号
+        if (UsernameReservedWords.Contains(sanitized))
+        {
+            var suffix = RandomNumberGenerator.GetInt32(1000, 9999)
+                .ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var candidate = $"{sanitized}_{suffix}";
+            sanitized = candidate.Length <= 32 ? candidate : candidate[..32];
         }
 
         return sanitized;
