@@ -261,6 +261,11 @@ public sealed class SeckillActivity : AggregateRoot
             throw new PromotionDomainException("Redis 剩余库存不可为负", "SECKILL_SYNC_REDIS_NEGATIVE");
         }
 
+        if (Status == SeckillStatus.Closed)
+        {
+            throw new PromotionDomainException("活动已关闭，不可同步库存", "SECKILL_SYNC_CLOSED");
+        }
+
         if (remainingStock < AvailableStock)
         {
             AvailableStock = remainingStock;
