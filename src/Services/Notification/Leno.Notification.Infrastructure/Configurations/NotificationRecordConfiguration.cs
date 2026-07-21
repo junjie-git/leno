@@ -49,5 +49,7 @@ public sealed class NotificationRecordConfiguration : IEntityTypeConfiguration<N
             .IsUnique()
             .HasFilter("[idempotency_key] IS NOT NULL")
             .HasDatabaseName("ix_notification_records_idempotency_key");
+        builder.HasIndex(n => n.ChannelMessageId)
+            .HasDatabaseName("ix_notification_records_channel_message_id");
     }
 }
