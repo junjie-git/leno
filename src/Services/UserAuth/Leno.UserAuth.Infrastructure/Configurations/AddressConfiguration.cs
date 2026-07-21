@@ -32,6 +32,11 @@ public sealed class AddressConfiguration : IEntityTypeConfiguration<Address>
         builder.Property(a => a.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(a => a.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
         builder.HasIndex(a => a.UserId).HasDatabaseName("ix_addresses_user_id");
-        builder.HasIndex(a => new { a.UserId, a.IsDefault }).HasDatabaseName("ix_addresses_user_default");
+        // 默认地址唯一不变量：每用户最多一条 is_default = 1，由唯一过滤索引在数据库层兜底
+        // 防止 AddressAppService.SetDefaultAsync 并发读改写场景下出现多条默认地址
+        builder.HasIndex(a => new { a.UserId, a.IsDefault })
+            .HasDatabaseName("ix_addresses_user_default")
+            .IsUnique()
+            .HasFilter("[is_default] = 1");
     }
 }
