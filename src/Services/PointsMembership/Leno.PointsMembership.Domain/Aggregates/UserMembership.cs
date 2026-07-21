@@ -32,6 +32,12 @@ public sealed class UserMembership : AggregateRoot
     /// <summary>触发权益的订单标识（支付成功后回填）。</summary>
     public Guid? OrderId { get; private set; }
 
+    /// <summary>
+    /// 乐观锁行版本号（PM-M04 修复）。
+    /// EF Core 映射为 row_version TIMESTAMP，并发更新时由数据库检测冲突并抛 DbUpdateConcurrencyException。
+    /// </summary>
+    public byte[]? RowVersion { get; private set; }
+
     /// <summary>EF Core 无参构造。</summary>
     private UserMembership() { }
 

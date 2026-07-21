@@ -29,6 +29,9 @@ public sealed class UserMembershipConfiguration : IEntityTypeConfiguration<UserM
         builder.Property(u => u.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(u => u.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
 
+        // PM-M04 修复：RowVersion 乐观锁，并发更新时由数据库检测冲突并抛 DbUpdateConcurrencyException
+        builder.Property(u => u.RowVersion).HasColumnName("row_version").IsRowVersion();
+
         builder.HasIndex(u => u.UserId).HasDatabaseName("ix_user_memberships_user_id");
         builder.HasIndex(u => u.OrderId).HasDatabaseName("ix_user_memberships_order_id");
     }

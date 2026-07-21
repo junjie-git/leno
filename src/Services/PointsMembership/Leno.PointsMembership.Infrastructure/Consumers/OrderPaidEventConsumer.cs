@@ -4,6 +4,7 @@ using Leno.PointsMembership.Domain.Repositories;
 using Leno.PointsMembership.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Leno.Infrastructure.Abstractions;
 
@@ -13,6 +14,7 @@ namespace Leno.PointsMembership.Infrastructure.Consumers;
 /// 订单支付成功事件消费者。
 /// 确认积分扣减（ConfirmDeduct）；若为会员订阅订单则激活 UserMembership。
 /// 通过 EventId 幂等去重。
+/// PM-M04 修复：捕获 DbUpdateConcurrencyException 视为已处理（并发更新已被另一实例完成），避免无意义重试。
 /// </summary>
 public sealed class OrderPaidEventConsumer : IntegrationEventConsumerBase<OrderPaidEvent>
 {
@@ -81,6 +83,17 @@ public sealed class OrderPaidEventConsumer : IntegrationEventConsumerBase<OrderP
             }
         }
 
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        // PM-M04 修复：捕获 DbUpdateConcurrencyException，视为并发更新已被另一实例完成，记录日志并正常返回
+        // 避免乐观锁冲突触发 MassTransit 无意义重试（重复事件场景下另一消费者已成功激活）
+        try
+        {
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            Logger.LogWarning(ex,
+                "订单 {OrderId} 保存时发生乐观锁冲突，视为并发实例已处理，跳过重试",
+                integrationEvent.OrderId);
+        }
     }
 }
