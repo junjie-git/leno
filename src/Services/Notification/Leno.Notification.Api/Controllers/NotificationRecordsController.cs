@@ -1,10 +1,7 @@
 using Leno.Infrastructure.Auth;
 using Leno.Notification.Application;
 using Leno.Notification.Application.DTOs;
-using Leno.Notification.Domain.Repositories;
-using Leno.Notification.Domain.Services;
 using Leno.Notification.Domain.ValueObjects;
-using Leno.SharedKernel.Abstractions;
 using Leno.SharedContracts.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,34 +11,23 @@ namespace Leno.Notification.Api.Controllers;
 
 /// <summary>
 /// 通知记录查询与投递统计控制器（管理员端）。
+/// P1-33：控制器只注入应用服务，不直接注入仓储/聚合/工作单元，避免越层访问。
 /// </summary>
 [ApiController]
 public sealed class NotificationRecordsController : NotificationControllerBase
 {
     private readonly INotificationRecordAppService _recordAppService;
-    private readonly INotificationRecordRepository _recordRepository;
-    private readonly IEnumerable<INotificationChannel> _channels;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<NotificationRecordsController> _logger;
 
     public NotificationRecordsController(
         ICurrentUserContext currentUser,
         INotificationRecordAppService recordAppService,
-        INotificationRecordRepository recordRepository,
-        IEnumerable<INotificationChannel> channels,
-        IUnitOfWork unitOfWork,
         ILogger<NotificationRecordsController> logger)
         : base(currentUser)
     {
         ArgumentNullException.ThrowIfNull(recordAppService);
-        ArgumentNullException.ThrowIfNull(recordRepository);
-        ArgumentNullException.ThrowIfNull(channels);
-        ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(logger);
         _recordAppService = recordAppService;
-        _recordRepository = recordRepository;
-        _channels = channels;
-        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
