@@ -25,6 +25,7 @@ public sealed class OrderAppService : IOrderAppService
     private readonly IStockReservationDomainService _stockService;
     private readonly IOrderPricingDomainService _pricingService;
     private readonly IOrderPricingPreviewService _pricingPreviewService;
+    private readonly IPointsAllocationService _pointsAllocationService;
     private readonly IFreightCalculator _freightCalculator;
     private readonly IProductAntiCorruptionService _productAntiCorruption;
     private readonly IPromotionAntiCorruptionService _promotionAntiCorruption;
@@ -42,6 +43,7 @@ public sealed class OrderAppService : IOrderAppService
         IStockReservationDomainService stockService,
         IOrderPricingDomainService pricingService,
         IOrderPricingPreviewService pricingPreviewService,
+        IPointsAllocationService pointsAllocationService,
         IFreightCalculator freightCalculator,
         IProductAntiCorruptionService productAntiCorruption,
         IPromotionAntiCorruptionService promotionAntiCorruption,
@@ -58,6 +60,7 @@ public sealed class OrderAppService : IOrderAppService
         _stockService = stockService;
         _pricingService = pricingService;
         _pricingPreviewService = pricingPreviewService ?? throw new ArgumentNullException(nameof(pricingPreviewService));
+        _pointsAllocationService = pointsAllocationService ?? throw new ArgumentNullException(nameof(pointsAllocationService));
         _freightCalculator = freightCalculator;
         _productAntiCorruption = productAntiCorruption;
         _promotionAntiCorruption = promotionAntiCorruption;
@@ -70,9 +73,9 @@ public sealed class OrderAppService : IOrderAppService
     }
 
     /// <summary>
-    /// 兼容旧测试的构造函数重载（P1-T18 之前无 IOrderPricingPreviewService 参数）。
+    /// 兼容旧测试的构造函数重载（P1-T18/P1-T19 之前无 IOrderPricingPreviewService / IPointsAllocationService 参数）。
     /// 内部以 NullObject 模式提供默认实现，避免既有测试构造签名变更。
-    /// 新代码应使用包含 <paramref name="pricingPreviewService"/> 的主构造函数。
+    /// 新代码应使用包含 <paramref name="pricingPreviewService"/> 与 <paramref name="pointsAllocationService"/> 的主构造函数。
     /// </summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public OrderAppService(
@@ -91,9 +94,9 @@ public sealed class OrderAppService : IOrderAppService
         IBus bus,
         IOrderSagaOrchestrator sagaOrchestrator)
         : this(orderRepository, unitOfWork, orderNumberGenerator, stockService, pricingService,
-               new InlineOrderPricingPreviewService(), freightCalculator, productAntiCorruption,
-               promotionAntiCorruption, pointsAntiCorruption, logisticsTrackingService,
-               logisticsCompanyRepository, eventBus, bus, sagaOrchestrator)
+               new InlineOrderPricingPreviewService(pricingService), new InlinePointsAllocationService(),
+               freightCalculator, productAntiCorruption, promotionAntiCorruption, pointsAntiCorruption,
+               logisticsTrackingService, logisticsCompanyRepository, eventBus, bus, sagaOrchestrator)
     {
     }
 
@@ -123,41 +126,31 @@ public sealed class OrderAppService : IOrderAppService
             .Select(g => new { SellerId = g.Key, Items = g.ToList() })
             .ToList();
 
-        // 总积分抵现金额与总商品金额，用于按比例分摊积分到各卖家订单
+        // 总积分抵现金额：上限为 MaxPointsOffsetAmount；积分上限裁剪（商品总额 - 优惠）交由 Saga 在优惠计算后执行
         var totalPointsOffset = dto.PointsToUse > 0 ? dto.PointsToUse / 100m : 0m;
         if (totalPointsOffset > OrderAggregate.MaxPointsOffsetAmount)
         {
             totalPointsOffset = OrderAggregate.MaxPointsOffsetAmount;
         }
-        var totalItemsAmount = dto.Items.Sum(i => skuInfos[i.SkuId].UnitPrice * i.Quantity);
 
-        // 构建各分组 Saga 输入：按比例分摊积分抵现（尾差归最后一组）；积分上限裁剪（商品总额 - 优惠）交由 Saga 在优惠计算后执行
-        var sagaGroups = new List<OrderSagaGroupInput>();
-        var pointsRemaining = totalPointsOffset;
-        for (var idx = 0; idx < groups.Count; idx++)
+        // 构建各分组卖家小计映射，委托 IPointsAllocationService 领域服务按卖家小计占比分摊积分抵现
+        // （P1-T19：尾差归最后一组、零金额与零总额处理下沉至领域服务，消除应用层重复实现）
+        var sellerSubtotals = groups.ToDictionary(
+            g => g.SellerId,
+            g => g.Items.Sum(i => skuInfos[i.SkuId].UnitPrice * i.Quantity));
+        var pointsAllocations = _pointsAllocationService.AllocateBySellerRatio(sellerSubtotals, totalPointsOffset);
+        var allocationBySeller = pointsAllocations.ToDictionary(a => a.SellerId, a => a.AllocatedPointsOffset);
+
+        // 构建各分组 Saga 输入：按卖家顺序应用分摊后的积分抵现金额
+        var sagaGroups = new List<OrderSagaGroupInput>(groups.Count);
+        foreach (var group in groups)
         {
-            var group = groups[idx];
-            var groupItemsAmount = group.Items.Sum(i => skuInfos[i.SkuId].UnitPrice * i.Quantity);
-
-            decimal groupPointsOffsetRaw;
-            if (idx == groups.Count - 1)
-            {
-                groupPointsOffsetRaw = pointsRemaining;
-            }
-            else
-            {
-                groupPointsOffsetRaw = totalItemsAmount > 0
-                    ? Math.Round(totalPointsOffset * (groupItemsAmount / totalItemsAmount), 2, MidpointRounding.ToEven)
-                    : 0m;
-                pointsRemaining -= groupPointsOffsetRaw;
-            }
-
             sagaGroups.Add(new OrderSagaGroupInput
             {
                 SellerId = group.SellerId,
                 Items = group.Items,
                 SkuInfos = skuInfos,
-                GroupPointsOffsetRaw = groupPointsOffsetRaw,
+                GroupPointsOffsetRaw = allocationBySeller.TryGetValue(group.SellerId, out var allocated) ? allocated : 0m,
                 UsePoints = dto.PointsToUse > 0
             });
         }
@@ -665,6 +658,73 @@ public sealed class OrderAppService : IOrderAppService
                 TotalAmount = totalAmount,
                 Items = itemDetails
             };
+        }
+    }
+
+    /// <summary>
+    /// 内联积分分摊服务（P1-T19 兼容旧测试）：将原 <see cref="CreateOrderAsync"/> 内联的"按卖家小计占比分摊、
+    /// 尾差归最后一组、零金额分摊为 0、总额为 0 时归最后一组"逻辑抽取为独立实现，使旧测试以 NullObject 模式注入。
+    /// 生产环境由 <c>PointsAllocationService</c>（Infrastructure 层）替代。
+    /// </summary>
+    private sealed class InlinePointsAllocationService : IPointsAllocationService
+    {
+        /// <inheritdoc />
+        public IReadOnlyList<(Guid SellerId, decimal AllocatedPointsOffset)> AllocateBySellerRatio(
+            IReadOnlyDictionary<Guid, decimal> sellerSubtotals,
+            decimal totalPointsOffset)
+        {
+            ArgumentNullException.ThrowIfNull(sellerSubtotals);
+
+            if (totalPointsOffset < 0)
+            {
+                throw new OrderDomainException("总积分抵现金额不可为负", "POINTS_OFFSET_NEGATIVE");
+            }
+
+            if (sellerSubtotals.Count == 0)
+            {
+                return Array.Empty<(Guid, decimal)>();
+            }
+
+            if (totalPointsOffset == 0)
+            {
+                return sellerSubtotals.Select(kv => (kv.Key, 0m)).ToArray();
+            }
+
+            var sellers = sellerSubtotals.ToList();
+            var sumSubtotals = sellers.Sum(kv => kv.Value);
+
+            // 全部卖家金额为 0 时，全部归最后一组（与原 CreateOrderAsync totalItemsAmount == 0 分支一致）
+            if (sumSubtotals == 0)
+            {
+                var zeroResult = sellers.Select(kv => (kv.Key, 0m)).ToList();
+                zeroResult[^1] = (sellers[^1].Key, totalPointsOffset);
+                return zeroResult;
+            }
+
+            var allocations = new List<(Guid SellerId, decimal AllocatedPointsOffset)>(sellers.Count);
+            decimal pointsRemaining = totalPointsOffset;
+            for (var idx = 0; idx < sellers.Count; idx++)
+            {
+                var (sellerId, subtotal) = sellers[idx];
+                decimal allocated;
+                if (idx == sellers.Count - 1)
+                {
+                    // 最后一组吸收尾差，保证分摊之和等于 totalPointsOffset
+                    allocated = pointsRemaining;
+                }
+                else
+                {
+                    // 按小计占比分摊，零金额卖家分摊为 0
+                    allocated = subtotal > 0
+                        ? Math.Round(totalPointsOffset * (subtotal / sumSubtotals), 2, MidpointRounding.ToEven)
+                        : 0m;
+                    pointsRemaining -= allocated;
+                }
+
+                allocations.Add((sellerId, allocated));
+            }
+
+            return allocations;
         }
     }
 }
