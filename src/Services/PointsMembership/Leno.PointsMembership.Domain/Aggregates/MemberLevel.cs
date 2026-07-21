@@ -92,16 +92,20 @@ public sealed class MemberLevel : AggregateRoot
 
     /// <summary>
     /// 根据成长值计算应达到的等级编号，从所有等级中选出最高匹配的等级。
+    /// PM-L03 修复：原先先 OrderBy(MinGrowthValue) 再遍历取最后一个匹配项，存在 O(n log n) 排序开销
+    /// 且语义依赖 MinGrowthValue 与 Level 正相关假设。改为单遍扫描，按 Level 编号取最大匹配项，
+    /// 消除排序开销并直接以 Level 为排名依据。
     /// </summary>
     /// <param name="growthValue">成长值。</param>
-    /// <param name="allLevels">全部等级定义，按等级编号升序排列。</param>
-    /// <returns>匹配的等级编号，若不足 V0 门槛则返回 0。</returns>
+    /// <param name="allLevels">全部等级定义。</param>
+    /// <returns>匹配的等级编号，若无任何等级门槛达标则返回 0。</returns>
     public static int EvaluateLevel(int growthValue, List<MemberLevel> allLevels)
     {
         MemberLevel? matched = null;
-        foreach (var level in allLevels.OrderBy(l => l.MinGrowthValue))
+        foreach (var level in allLevels)
         {
-            if (growthValue >= level.MinGrowthValue)
+            if (growthValue >= level.MinGrowthValue &&
+                (matched is null || level.Level > matched.Level))
             {
                 matched = level;
             }
