@@ -12,6 +12,16 @@ namespace Leno.Promotion.Infrastructure.Configurations;
 /// </summary>
 public sealed class PromotionActivityConfiguration : IEntityTypeConfiguration<PromotionActivity>
 {
+    /// <summary>
+    /// Rules JSON 列序列化/反序列化选项：snake_case 命名策略 + 大小写无关匹配。
+    /// PropertyNameCaseInsensitive=true 用于向后兼容历史 PascalCase 数据（容忍大小写差异）。
+    /// </summary>
+    private static readonly JsonSerializerOptions RuleJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        PropertyNameCaseInsensitive = true
+    };
+
     public void Configure(EntityTypeBuilder<PromotionActivity> builder)
     {
         builder.ToTable("promotion_activities");
@@ -34,8 +44,8 @@ public sealed class PromotionActivityConfiguration : IEntityTypeConfiguration<Pr
         builder.Property(a => a.Rules)
             .HasColumnName("rules")
             .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-                v => JsonSerializer.Deserialize<List<PromotionRule>>(v, (JsonSerializerOptions?)null)
+                v => JsonSerializer.Serialize(v, RuleJsonOptions),
+                v => JsonSerializer.Deserialize<List<PromotionRule>>(v, RuleJsonOptions)
                      ?? new List<PromotionRule>())
             .HasField("_rules")
             .UsePropertyAccessMode(PropertyAccessMode.Field);
