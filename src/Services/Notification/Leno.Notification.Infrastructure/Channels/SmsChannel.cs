@@ -83,7 +83,24 @@ public sealed class AliyunSmsProvider : ISmsProvider
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation("阿里云短信已发送 Phone={Phone}", phoneNumber);
-                return new ChannelSendResult(true, null, null, responseContent);
+
+                // 从响应 JSON 中解析 BizId 作为 ChannelMessageId，
+                // 替代将整个响应体作为 ChannelMessageId（被 HasMaxLength(128) 截断后与回执不匹配）
+                string? bizId = null;
+                try
+                {
+                    using var doc = JsonDocument.Parse(responseContent);
+                    if (doc.RootElement.TryGetProperty("BizId", out var bizIdElement))
+                    {
+                        bizId = bizIdElement.GetString();
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogWarning(ex, "解析阿里云短信响应失败，BizId 不可用 Response={Response}", responseContent);
+                }
+
+                return new ChannelSendResult(true, null, null, bizId);
             }
 
             _logger.LogWarning("阿里云短信发送失败 Phone={Phone} Status={Status} Response={Response}", phoneNumber, response.StatusCode, responseContent);
@@ -178,7 +195,24 @@ public sealed class TencentSmsProvider : ISmsProvider
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation("腾讯云短信已发送 Phone={Phone}", phoneNumber);
-                return new ChannelSendResult(true, null, null, responseContent);
+
+                // 从响应 JSON 中解析 SerialNo 作为 ChannelMessageId，
+                // 替代将整个响应体作为 ChannelMessageId（被 HasMaxLength(128) 截断后与回执不匹配）
+                string? serialNo = null;
+                try
+                {
+                    using var doc = JsonDocument.Parse(responseContent);
+                    if (doc.RootElement.TryGetProperty("SerialNo", out var serialNoElement))
+                    {
+                        serialNo = serialNoElement.GetString();
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogWarning(ex, "解析腾讯云短信响应失败，SerialNo 不可用 Response={Response}", responseContent);
+                }
+
+                return new ChannelSendResult(true, null, null, serialNo);
             }
 
             _logger.LogWarning("腾讯云短信发送失败 Phone={Phone} Status={Status} Response={Response}", phoneNumber, response.StatusCode, responseContent);
