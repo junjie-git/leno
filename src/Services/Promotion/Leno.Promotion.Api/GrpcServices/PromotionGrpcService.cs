@@ -53,9 +53,15 @@ public sealed class PromotionGrpcService : PromotionInternalService.PromotionInt
         var result = await _calculateService.CalculateDiscountAsync(input, context.CancellationToken)
             .ConfigureAwait(false);
 
+        var cents = result.TotalDiscountAmount * 100m;
+        if (cents > long.MaxValue || cents < long.MinValue)
+        {
+            throw new RpcException(new Status(StatusCode.Internal, "Discount amount overflow"));
+        }
+
         return new CalculateDiscountResponse
         {
-            DiscountCents = (long)(result.TotalDiscountAmount * 100)
+            DiscountCents = (long)cents
         };
     }
 
