@@ -18,6 +18,12 @@ public sealed class ReviewSubmittedEvent : IntegrationEventBase
     /// <summary>商品 SPU 标识。</summary>
     public Guid SpuId { get; init; }
 
+    /// <summary>
+    /// 店铺标识，由评价域在创建评价时从订单反查真实 ShopId 后填充。
+    /// 默认 Guid.Empty 保持向后兼容；SellerShop BC 消费时按此字段同步工作台统计。
+    /// </summary>
+    public Guid ShopId { get; init; }
+
     /// <summary>评分（1-5）。</summary>
     public int Rating { get; init; }
 
@@ -52,6 +58,19 @@ public sealed class ReviewSubmittedEvent : IntegrationEventBase
         NewScore = newScore;
         ReviewCount = reviewCount;
     }
+
+    /// <summary>带 ShopId 的构造重载，由评价域创建评价时发布。SchemaVersion 递增为 2。</summary>
+    public ReviewSubmittedEvent(Guid reviewId, Guid userId, Guid spuId, Guid shopId, int rating, double newScore, int reviewCount)
+        : base(eventId: null, occurredAt: null, idempotencyKey: null, schemaVersion: 2)
+    {
+        ReviewId = reviewId;
+        UserId = userId;
+        SpuId = spuId;
+        ShopId = shopId;
+        Rating = rating;
+        NewScore = newScore;
+        ReviewCount = reviewCount;
+    }
 }
 
 /// <summary>
@@ -69,6 +88,9 @@ public sealed class ReviewApprovedEvent : IntegrationEventBase
 
     /// <summary>商品 SPU 标识。</summary>
     public Guid SpuId { get; init; }
+
+    /// <summary>店铺标识，由评价域发布审核通过事件时填充。默认 Guid.Empty 保持向后兼容。</summary>
+    public Guid ShopId { get; init; }
 
     /// <summary>评分（1-5）。</summary>
     public int Rating { get; init; }
@@ -88,6 +110,17 @@ public sealed class ReviewApprovedEvent : IntegrationEventBase
         SpuId = spuId;
         Rating = rating;
     }
+
+    /// <summary>带 ShopId 的构造重载。SchemaVersion 递增为 2。</summary>
+    public ReviewApprovedEvent(Guid reviewId, Guid userId, Guid spuId, Guid shopId, int rating)
+        : base(eventId: null, occurredAt: null, idempotencyKey: null, schemaVersion: 2)
+    {
+        ReviewId = reviewId;
+        UserId = userId;
+        SpuId = spuId;
+        ShopId = shopId;
+        Rating = rating;
+    }
 }
 
 /// <summary>
@@ -102,6 +135,9 @@ public sealed class ReviewHiddenEvent : IntegrationEventBase
 
     /// <summary>商品 SPU 标识。</summary>
     public Guid SpuId { get; init; }
+
+    /// <summary>店铺标识，由评价域发布隐藏事件时填充。默认 Guid.Empty 保持向后兼容。</summary>
+    public Guid ShopId { get; init; }
 
     /// <summary>评分（1-5），用于商品域从评分统计中移除。</summary>
     public int Rating { get; init; }
@@ -118,6 +154,16 @@ public sealed class ReviewHiddenEvent : IntegrationEventBase
     {
         ReviewId = reviewId;
         SpuId = spuId;
+        Rating = rating;
+    }
+
+    /// <summary>带 ShopId 的构造重载。SchemaVersion 递增为 2。</summary>
+    public ReviewHiddenEvent(Guid reviewId, Guid spuId, Guid shopId, int rating)
+        : base(eventId: null, occurredAt: null, idempotencyKey: null, schemaVersion: 2)
+    {
+        ReviewId = reviewId;
+        SpuId = spuId;
+        ShopId = shopId;
         Rating = rating;
     }
 }
