@@ -55,11 +55,13 @@ public sealed class CouponExpiryService : BackgroundService
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
         var totalExpired = 0;
-        var skip = 0;
 
         while (!ct.IsCancellationRequested)
         {
-            var batch = await userCouponRepository.GetExpiredUnusedCouponsAsync(skip, BatchSize, ct);
+            // 始终 skip=0：依赖 WHERE Status IN (Unused, Locked) AND ExpiredAt < now 过滤淘汰已 Expire 的记录，
+            // 避免原 skip += BatchSize 在状态变更后跳页导致的漏处理（第一批 Expire 后，原 501-1000 号记录会被推到结果集首位，
+            // 若 skip=500 则永久跳过这批记录）
+            var batch = await userCouponRepository.GetExpiredUnusedCouponsAsync(0, BatchSize, ct);
 
             if (batch.Count == 0)
             {
@@ -69,12 +71,11 @@ public sealed class CouponExpiryService : BackgroundService
             foreach (var userCoupon in batch)
             {
                 userCoupon.Expire();
-                await userCouponRepository.UpdateAsync(userCoupon, ct);
             }
 
+            // 已 tracked 实体状态自动变 Modified，无需显式 UpdateAsync（P2-4.6 一并修复）
             await unitOfWork.SaveEntitiesAsync(ct);
             totalExpired += batch.Count;
-            skip += BatchSize;
 
             _logger.LogDebug("已处理一批过期优惠券，本批 {Count} 张，累计 {Total} 张", batch.Count, totalExpired);
         }
