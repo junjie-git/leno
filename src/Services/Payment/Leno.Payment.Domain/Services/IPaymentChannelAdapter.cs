@@ -73,6 +73,9 @@ public sealed class ChannelNotifyResult
     /// <summary>关联订单标识。</summary>
     public Guid OrderId { get; init; }
 
+    /// <summary>商户支付单号（out_trade_no），由渠道回调报文中解析。</summary>
+    public string? OutTradeNo { get; init; }
+
     /// <summary>第三方交易号。</summary>
     public string? ChannelTradeNo { get; init; }
 

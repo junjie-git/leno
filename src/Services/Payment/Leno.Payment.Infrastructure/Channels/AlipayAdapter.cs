@@ -190,6 +190,7 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
         {
             Verified = verified,
             OrderId = Guid.Empty,
+            OutTradeNo = GetField(dict, "out_trade_no"),
             ChannelTradeNo = GetField(dict, "trade_no"),
             IsPaid = isPaid,
             PaidAt = ParseAlipayTime(GetField(dict, "gmt_payment")),

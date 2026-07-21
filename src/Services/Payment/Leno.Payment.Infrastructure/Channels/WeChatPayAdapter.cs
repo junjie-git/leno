@@ -193,6 +193,7 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
 
         var isPaid = false;
         var isRefund = false;
+        string? outTradeNo = null;
         string? channelTradeNo = null;
         DateTime? paidAt = null;
         decimal? refundAmount = null;
@@ -203,6 +204,10 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
             try
             {
                 var dataRoot = JsonDocument.Parse(decryptData).RootElement;
+
+                // 提取 out_trade_no（商户支付单号），供 NotifyHandler 查找本地支付单
+                outTradeNo = dataRoot.TryGetProperty("out_trade_no", out var otn) ? otn.GetString() : null;
+
                 channelTradeNo = dataRoot.TryGetProperty("transaction_id", out var txnId) ? txnId.GetString() : null;
                 var tradeState = dataRoot.TryGetProperty("trade_state", out var state) ? state.GetString() : null;
                 isPaid = string.Equals(tradeState, "SUCCESS", StringComparison.OrdinalIgnoreCase);
@@ -239,6 +244,7 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
         {
             Verified = verified,
             OrderId = Guid.Empty,
+            OutTradeNo = outTradeNo,
             ChannelTradeNo = channelTradeNo,
             IsPaid = isPaid,
             PaidAt = paidAt,
