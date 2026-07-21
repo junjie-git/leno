@@ -45,6 +45,14 @@ public sealed class CacheService : ICacheService
     private const string LockPrefix = "leno:lock:";
 
     /// <summary>
+    /// T25：缓存 key 强制前缀。所有 CacheService 写入 Redis 的业务 key 均应携带此前缀，
+    /// 以区分缓存 key 与其他用途（锁、布隆过滤器、幂等键等）的 key。
+    /// InvalidatePatternAsync 内部强制拼接此前缀，避免传入裸 pattern（如 <c>user:*</c>）
+    /// 误删非缓存 key。
+    /// </summary>
+    private const string KeyPrefix = "leno:cache:";
+
+    /// <summary>
     /// 互斥锁超时时间。
     /// </summary>
     private static readonly TimeSpan LockTimeout = TimeSpan.FromSeconds(10);
@@ -298,18 +306,37 @@ public sealed class CacheService : ICacheService
     /// </list>
     /// </para>
     /// </summary>
-    /// <param name="pattern">glob 模式（如 <c>user:*</c>）。调用方负责包含必要的 key 前缀。</param>
+    /// <param name="pattern">glob 模式（如 <c>user:*</c> 或 <c>leno:cache:user:*</c>）。
+    /// 内部强制拼接 <see cref="KeyPrefix"/>（<c>leno:cache:</c>），调用方无需手动添加前缀；
+    /// 若传入 pattern 已以 <c>leno:cache:</c> 开头则不重复拼接。</param>
     /// <param name="ct">取消令牌。</param>
+    /// <exception cref="ArgumentException">pattern 包含 <c>..</c> 路径穿越片段或为空字符串。</exception>
     public async Task InvalidatePatternAsync(string pattern, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(pattern);
+        if (string.IsNullOrWhiteSpace(pattern))
+        {
+            throw new ArgumentException("pattern 不能为空字符串或仅空白字符", nameof(pattern));
+        }
+
+        // T25：拒绝路径穿越片段（虽 Redis key 不解析路径，但防止调用方误传文件系统语义 pattern）
+        if (pattern.Contains("..", StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "pattern 包含非法片段 \"..\"，拒绝执行以防误删", nameof(pattern));
+        }
+
+        // T25：强制拼接 KeyPrefix，确保只删除缓存 key，避免误删锁/幂等键/布隆过滤器等其他用途的 key
+        var effectivePattern = pattern.StartsWith(KeyPrefix, StringComparison.Ordinal)
+            ? pattern
+            : KeyPrefix + pattern;
 
         // 获取主节点（非副本），SCAN 必须在主节点上执行以保证一致性
         var servers = _redis.GetServers();
         var server = servers.FirstOrDefault(s => !s.IsReplica);
         if (server is null)
         {
-            _logger.LogWarning("无可用主 Redis 节点，跳过 Pattern 失效: {Pattern}", pattern);
+            _logger.LogWarning("无可用主 Redis 节点，跳过 Pattern 失效: {Pattern}", effectivePattern);
             return;
         }
 
@@ -323,7 +350,7 @@ public sealed class CacheService : ICacheService
         var deleted = 0L;
 
         // SCAN 游标迭代：StackExchange.Redis 的 KeysAsync 内部使用 SCAN，不会阻塞 Redis
-        await foreach (var key in server.KeysAsync(pattern: pattern).WithCancellation(ct))
+        await foreach (var key in server.KeysAsync(pattern: effectivePattern).WithCancellation(ct))
         {
             batch.Add(key);
             if (batch.Count >= batchSize)
@@ -341,7 +368,7 @@ public sealed class CacheService : ICacheService
 
         _logger.LogInformation(
             "Pattern 失效完成: 删除 {Count} 个匹配 key, Pattern={Pattern}",
-            deleted, pattern);
+            deleted, effectivePattern);
     }
 
     /// <summary>
