@@ -583,6 +583,46 @@ public sealed class Order : AggregateRoot
     }
 
     /// <summary>
+    /// 更新收货地址（P2-T33），仅秒杀订单在 <see cref="OrderStatus.PendingPayment"/> 状态下允许。
+    /// 秒杀下单时使用占位地址（"待补充"），用户支付前调用本方法补充真实地址；
+    /// 发布 <see cref="OrderAddressUpdatedDomainEvent"/> 通知下游域（物流域预热运费、搜索索引更新收货区域）。
+    /// 非秒杀订单或非待支付态调用抛 <see cref="OrderDomainException"/>，保证普通订单地址快照不可变性。
+    /// </summary>
+    /// <param name="newAddress">新收货地址快照，须非空且各字段已通过 <see cref="AddressSnapshot.Create"/> 校验。</param>
+    /// <param name="operatorId">操作人标识（买家 UserId），用于审计与权限校验。</param>
+    public void UpdateAddress(AddressSnapshot newAddress, Guid operatorId)
+    {
+        ArgumentNullException.ThrowIfNull(newAddress);
+
+        if (OrderType != OrderType.Seckill)
+        {
+            throw new OrderDomainException("仅秒杀订单支持支付前更新地址", "ORDER_ADDRESS_UPDATE_NOT_SECKILL");
+        }
+
+        if (Status != OrderStatus.PendingPayment)
+        {
+            throw new OrderDomainException("仅待支付状态秒杀订单可更新地址", "ORDER_ADDRESS_UPDATE_INVALID_STATUS");
+        }
+
+        if (operatorId == Guid.Empty)
+        {
+            throw new OrderDomainException("操作人标识不可为空", "OPERATOR_EMPTY");
+        }
+
+        if (operatorId != UserId)
+        {
+            throw new OrderDomainException("仅买家本人可更新订单地址", "ORDER_ADDRESS_UPDATE_FORBIDDEN");
+        }
+
+        AddressSnapshot = newAddress;
+        var updatedAt = DateTime.UtcNow;
+        AddDomainEvent(new OrderAddressUpdatedDomainEvent(
+            Id, operatorId, updatedAt,
+            newAddress.RecipientName, newAddress.RecipientPhone,
+            newAddress.Province, newAddress.City, newAddress.District, newAddress.Detail));
+    }
+
+    /// <summary>
     /// 重算订单总金额，强制金额不变量：TotalAmount = ItemsAmount - DiscountAmount - PointsOffsetAmount + FreightAmount。
     /// </summary>
     private void RecalculateTotal()
