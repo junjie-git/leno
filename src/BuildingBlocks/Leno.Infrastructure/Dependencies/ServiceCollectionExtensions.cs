@@ -95,12 +95,25 @@ public static class ServiceCollectionExtensions
     private static void AddRedis(IServiceCollection services, IConfiguration configuration)
     {
         var redisConfig = configuration["Redis:Configuration"] ?? "localhost:6379";
-        var multiplexer = ConnectionMultiplexer.Connect(redisConfig);
-        services.AddSingleton<IConnectionMultiplexer>(_ => multiplexer);
+
+        // T21：使用 Lazy<Task<IConnectionMultiplexer>> 延迟异步连接，避免应用启动时同步阻塞主线程。
+        // LazyThreadSafetyMode.ExecutionAndPublication 保证多线程下仅初始化一次。
+        // ConnectionMultiplexer.ConnectAsync 在首次解析 IConnectionMultiplexer 时触发（DI 工厂内 GetAwaiter().GetResult()），
+        // 相比原 ConnectionMultiplexer.Connect 同步阻塞注册阶段，连接推迟到首次实际使用。
+        var lazyMultiplexer = new Lazy<Task<IConnectionMultiplexer>>(
+            () => ConnectionMultiplexer.ConnectAsync(redisConfig),
+            LazyThreadSafetyMode.ExecutionAndPublication);
+
+        services.AddSingleton<IConnectionMultiplexer>(_ => lazyMultiplexer.Value.GetAwaiter().GetResult());
         // 集成事件消费幂等去重存储，基于 Redis SET NX + 24h TTL
         services.AddSingleton<IIdempotencyStore, RedisIdempotencyStore>();
         // 数据库迁移分布式锁提供者（基于 Redis SET NX EX，DistributedLock.Redis 实现）
-        services.AddSingleton<IDistributedLockProvider>(_ => new RedisDistributedSynchronizationProvider(multiplexer.GetDatabase()));
+        // 从 DI 解析 IConnectionMultiplexer（触发 Lazy 初始化），而非捕获局部变量
+        services.AddSingleton<IDistributedLockProvider>(sp =>
+        {
+            var multiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
+            return new RedisDistributedSynchronizationProvider(multiplexer.GetDatabase());
+        });
     }
 
     private static void AddElasticsearch(IServiceCollection services, IConfiguration configuration)
