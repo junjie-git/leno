@@ -18,17 +18,18 @@ public sealed class OAuthClientAppService : IOAuthClientAppService
     private readonly IOAuthClientRepository _repository;
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IClientSecretEncryptionService? _encryptionService;
+    private readonly IClientSecretEncryptionService _encryptionService;
 
     public OAuthClientAppService(
         IOAuthClientRepository repository,
         IAuditLogRepository auditLogRepository,
         IUnitOfWork unitOfWork,
-        IClientSecretEncryptionService? encryptionService = null)
+        IClientSecretEncryptionService encryptionService)
     {
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(auditLogRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
+        ArgumentNullException.ThrowIfNull(encryptionService);
         _repository = repository;
         _auditLogRepository = auditLogRepository;
         _unitOfWork = unitOfWork;
@@ -155,11 +156,8 @@ public sealed class OAuthClientAppService : IOAuthClientAppService
 
     private string GetEncryptedSecret(string plainSecret)
     {
-        if (_encryptionService is null)
-        {
-            throw new InvalidOperationException("AES 加密服务未配置，无法加密 ClientSecret。请配置 OAuth2:AesKey。");
-        }
-
+        // P2-12: 加密服务由构造函数强制注入（非空），启动期已 fail-fast 校验 AesKey 配置，
+        // 此处无需再判空。
         return _encryptionService.Encrypt(plainSecret);
     }
 

@@ -16,6 +16,9 @@ public sealed class ServiceCollectionExtensionsTests
 {
     private const string ConnectionString = "Server=localhost;Database=LenoUserAuth;Trusted_Connection=True;";
 
+    /// <summary>测试用 256 位 AES 密钥（32 字节全零的 Base64 编码），仅用于 DI 注册测试，无安全语义。</summary>
+    private const string TestAesKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
     [Fact]
     public void AddUserAuthInfrastructure_Should_Register_RedisRefreshTokenStore_By_Default()
     {
@@ -25,7 +28,8 @@ public sealed class ServiceCollectionExtensionsTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:UserAuthDb"] = ConnectionString,
-                ["RefreshToken:Provider"] = "Redis"
+                ["RefreshToken:Provider"] = "Redis",
+                ["OAuth2:AesKey"] = TestAesKey
             })
             .Build();
 
@@ -59,7 +63,8 @@ public sealed class ServiceCollectionExtensionsTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:UserAuthDb"] = ConnectionString,
-                ["RefreshToken:Provider"] = "InMemory"
+                ["RefreshToken:Provider"] = "InMemory",
+                ["OAuth2:AesKey"] = TestAesKey
             })
             .Build();
 
@@ -166,7 +171,8 @@ public sealed class ServiceCollectionExtensionsTests
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:UserAuthDb"] = ConnectionString
+                ["ConnectionStrings:UserAuthDb"] = ConnectionString,
+                ["OAuth2:AesKey"] = TestAesKey
             })
             .Build();
 

@@ -117,11 +117,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOAuth2ProviderResolver>(sp => sp.GetRequiredService<OAuth2ProviderResolver>());
 
         // AES-256 加密服务（用于 OAuth ClientSecret）
+        // P2-12: 启动期 fail-fast，AesKey 缺失时直接抛异常，
+        // 避免运行时静默跳过加密导致 OAuthClientAppService 写入明文 ClientSecret。
         var aesKey = configuration["OAuth2:AesKey"];
-        if (!string.IsNullOrWhiteSpace(aesKey))
+        if (string.IsNullOrWhiteSpace(aesKey))
         {
-            services.AddSingleton<IClientSecretEncryptionService>(new AesEncryptionService(aesKey));
+            throw new InvalidOperationException(
+                "OAuth2:AesKey 配置缺失，无法启动 UserAuth 服务。" +
+                "请在配置中提供 256 位 AES 密钥（Base64 编码 32 字节）。");
         }
+        services.AddSingleton<IClientSecretEncryptionService>(new AesEncryptionService(aesKey));
 
         // 应用服务
         services.AddScoped<IUserAppService, UserAppService>();
