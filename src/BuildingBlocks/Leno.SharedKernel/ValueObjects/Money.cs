@@ -10,9 +10,11 @@ public sealed record Money : IComparable<Money>
 {
     private const int Scale = 2;
 
-    public decimal Amount { get; private set; }
+    // T29：改为 init 以支持 EF Core 反序列化与 JSON 反序列化，
+    // 同时保持不可变性（init 仅在构造阶段可赋值，构造完成后对外只读）。
+    public decimal Amount { get; init; }
 
-    public string Currency { get; private set; } = default!;
+    public string Currency { get; init; } = default!;
 
     private Money() { }
 
@@ -35,7 +37,8 @@ public sealed record Money : IComparable<Money>
         }
 
         var normalized = currency.Trim().ToUpperInvariant();
-        if (normalized.Length is < 3 or > 3)
+        // T30：ISO 4217 币种码固定为 3 位大写字母，原 `is < 3 or > 3` 等价于 != 3 但可读性差。
+        if (normalized.Length != 3)
         {
             throw new ArgumentException("币种须为 3 位 ISO 4217 代码", nameof(currency));
         }
