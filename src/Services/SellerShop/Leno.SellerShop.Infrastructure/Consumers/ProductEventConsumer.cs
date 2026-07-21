@@ -74,7 +74,15 @@ public sealed class ProductTakenDownEventConsumer : IntegrationEventConsumerBase
             return;
         }
 
-        shop.DecrementProductCount();
+        var decremented = shop.DecrementProductCount();
+        if (!decremented)
+        {
+            // 商品数已为 0：可能为重复消费或事件乱序（先下架后上架未到达），记 Warning 便于运营观测
+            Logger.LogWarning(
+                "商品下架事件未触发递减：店铺商品数已为 0 ShopId={ShopId} ProductId={ProductId}",
+                integrationEvent.SellerId, integrationEvent.ProductId);
+        }
+
         await _shopRepository.UpdateAsync(shop, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
     }

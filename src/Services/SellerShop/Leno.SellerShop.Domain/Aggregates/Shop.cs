@@ -289,15 +289,19 @@ public sealed class Shop : AggregateRoot
 
     /// <summary>
     /// 商品下架时商品数 -1，由商品域 ProductTakenDownEvent 驱动，不可为负。
+    /// 返回 true 表示实际递减；false 表示当前商品数已为 0（无变化，保留幂等性）。
+    /// 调用方应在 false 时记 Warning + Metrics 计数，便于观测重复下架事件。
     /// </summary>
-    public void DecrementProductCount()
+    /// <returns>是否实际递减了商品数。</returns>
+    public bool DecrementProductCount()
     {
         if (ProductCount <= 0)
         {
-            return;
+            return false;
         }
 
         ProductCount--;
+        return true;
     }
 
     /// <summary>
