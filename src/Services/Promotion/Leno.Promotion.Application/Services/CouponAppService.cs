@@ -118,9 +118,10 @@ public sealed class CouponAppService : ICouponAppService
         {
             await _unitOfWork.SaveEntitiesAsync(ct);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
             // 并发领取：另一请求已先插入同一 (UserId, CouponId) 唯一索引记录，由数据库拒绝第二条插入
+            // 仅唯一索引/约束冲突转业务异常；其他 DbUpdateException（连接失败、其他约束冲突等）原样上抛
             throw new PromotionDomainException("已领取过该优惠券，不可重复领取", "COUPON_ALREADY_RECEIVED");
         }
 
@@ -144,7 +145,17 @@ public sealed class CouponAppService : ICouponAppService
         userCoupon.Lock(orderId);
 
         await _userCouponRepository.UpdateAsync(userCoupon, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        try
+        {
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // 乐观锁冲突：另一并发请求已先行修改该券（如已被其他订单 Lock），rowversion 不匹配
+            // 转业务异常避免 500，调用方可重试或回退
+            throw new PromotionDomainException(
+                "券已被并发订单锁定，请重试", "USER_COUPON_LOCK_INVALID");
+        }
     }
 
     /// <inheritdoc />
@@ -167,6 +178,28 @@ public sealed class CouponAppService : ICouponAppService
     private async Task<CouponAggregate> RequireCouponAsync(Guid couponId, CancellationToken ct)
         => await _couponRepository.GetByIdAsync(couponId, ct)
            ?? throw new PromotionDomainException($"优惠券 {couponId} 不存在", "COUPON_NOT_FOUND");
+
+    /// <summary>
+    /// 判断 <see cref="DbUpdateException"/> 是否为唯一约束/唯一索引冲突（SQL Server 错误码 2601/2627），
+    /// 兼容 PostgreSQL/MySQL 的错误消息关键字。仅此类冲突被视为"并发领取已存在"业务异常，
+    /// 其他 DbUpdateException（连接失败、其他约束冲突）原样上抛由调用方处理。
+    /// </summary>
+    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        var inner = ex.InnerException;
+        if (inner is null)
+        {
+            return false;
+        }
+
+        var message = inner.Message ?? string.Empty;
+        return message.Contains("2601", StringComparison.Ordinal)
+            || message.Contains("2627", StringComparison.Ordinal)
+            || message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("unique constraint", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <inheritdoc />
     public async Task<CouponDto?> GetByIdAsync(Guid couponId, CancellationToken ct = default)
