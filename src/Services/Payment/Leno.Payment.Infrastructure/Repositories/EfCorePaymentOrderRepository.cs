@@ -97,6 +97,24 @@ public sealed class EfCorePaymentOrderRepository : IPaymentOrderRepository
     }
 
     /// <inheritdoc />
+    public async Task<List<PaymentOrderAggregate>> GetExpiredOrdersAsync(
+        DateTime threshold,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var query = _context.PaymentOrders
+            .Where(o => o.ExpireAt <= threshold)
+            .Where(o => o.Status == PaymentStatus.Pending || o.Status == PaymentStatus.ChannelOrdered);
+
+        return await query
+            .OrderBy(o => o.ExpireAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
     public async Task AddAsync(PaymentOrderAggregate aggregate, CancellationToken ct = default)
         => await _context.PaymentOrders.AddAsync(aggregate, ct);
 

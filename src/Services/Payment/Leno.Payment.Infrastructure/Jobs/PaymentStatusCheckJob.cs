@@ -10,6 +10,8 @@ namespace Leno.Payment.Infrastructure.Jobs;
 /// <summary>
 /// 支付状态补偿任务，定期查询长时间停留在待支付/渠道已下单态的支付单。
 /// 超过 5 分钟仍未收到异步通知的支付单主动调用渠道查询接口，若已支付则标记成功。
+/// 同时对 <see cref="PaymentOrderAggregate.ExpireAt"/> 已过期的支付单主动调用 <see cref="PaymentOrderAggregate.MarkClosed"/>
+/// 关单，避免过期支付单堆积并被反复查询渠道。
 /// 由宿主（如 BackgroundService / Hangfire）定时调用 <see cref="ExecuteAsync"/>。
 /// </summary>
 public sealed class PaymentStatusCheckJob
@@ -19,13 +21,13 @@ public sealed class PaymentStatusCheckJob
 
     private readonly IPaymentOrderRepository _paymentOrderRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly PaymentChannelFactory _channelFactory;
+    private readonly IPaymentChannelFactory _channelFactory;
     private readonly ILogger<PaymentStatusCheckJob> _logger;
 
     public PaymentStatusCheckJob(
         IPaymentOrderRepository paymentOrderRepository,
         IUnitOfWork unitOfWork,
-        PaymentChannelFactory channelFactory,
+        IPaymentChannelFactory channelFactory,
         ILogger<PaymentStatusCheckJob> logger)
     {
         _paymentOrderRepository = paymentOrderRepository ?? throw new ArgumentNullException(nameof(paymentOrderRepository));
@@ -59,6 +61,60 @@ public sealed class PaymentStatusCheckJob
         foreach (var order in channelOrderedOrders)
         {
             await CheckAsync(order, ct);
+        }
+
+        // 过期关单：扫描 ExpireAt 已过期但仍处于 Pending/ChannelOrdered 态的支付单
+        await CloseExpiredOrdersAsync(ct);
+    }
+
+    /// <summary>
+    /// 扫描 ExpireAt 已过期的支付单并调用 <see cref="PaymentOrderAggregate.MarkClosed"/> 关单。
+    /// 跳过渠道查询，直接关单以释放资源。
+    /// </summary>
+    private async Task CloseExpiredOrdersAsync(CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var page = 1;
+        var closedCount = 0;
+
+        while (true)
+        {
+            var expiredOrders = await _paymentOrderRepository.GetExpiredOrdersAsync(
+                now, page, BatchSize, ct);
+
+            if (expiredOrders.Count == 0)
+            {
+                break;
+            }
+
+            foreach (var order in expiredOrders)
+            {
+                try
+                {
+                    order.MarkClosed("支付超时自动关闭");
+                    await _paymentOrderRepository.UpdateAsync(order, ct);
+                    closedCount++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "支付状态补偿：过期关单异常 OutTradeNo={OutTradeNo} PaymentId={PaymentId}",
+                        order.OutTradeNo, order.Id);
+                }
+            }
+
+            await _unitOfWork.SaveEntitiesAsync(ct);
+
+            if (expiredOrders.Count < BatchSize)
+            {
+                break;
+            }
+
+            page++;
+        }
+
+        if (closedCount > 0)
+        {
+            _logger.LogInformation("支付状态补偿：本次过期关单 {ClosedCount} 笔", closedCount);
         }
     }
 

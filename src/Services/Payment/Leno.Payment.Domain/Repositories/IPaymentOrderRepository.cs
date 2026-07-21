@@ -58,4 +58,19 @@ public interface IPaymentOrderRepository : IRepository<PaymentOrderAggregate>
         int page,
         int pageSize,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// 分页查询 <see cref="Aggregates.PaymentOrder.ExpireAt"/> 已过期但状态仍为
+    /// <see cref="ValueObjects.PaymentStatus.Pending"/> 或 <see cref="ValueObjects.PaymentStatus.ChannelOrdered"/>
+    /// 的支付单。用于支付状态补偿任务主动关单，避免过期支付单堆积并被反复查询渠道。
+    /// </summary>
+    /// <param name="threshold">ExpireAt 上界（含），通常为 <c>DateTime.UtcNow</c>。</param>
+    /// <param name="page">页码（从 1 起）。</param>
+    /// <param name="pageSize">每页大小。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task<List<PaymentOrderAggregate>> GetExpiredOrdersAsync(
+        DateTime threshold,
+        int page,
+        int pageSize,
+        CancellationToken ct = default);
 }
