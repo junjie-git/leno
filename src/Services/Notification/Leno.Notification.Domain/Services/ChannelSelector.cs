@@ -148,8 +148,17 @@ public sealed class ChannelSelector : IChannelSelector
 
     private static string NormalizeProvider(string provider)
     {
-        return provider.Trim();
+        if (string.IsNullOrWhiteSpace(provider))
+        {
+            return provider;
+        }
 
-        // Simple normalization: capitalize first letter
+        var trimmed = provider.Trim();
+        if (trimmed.Length == 1)
+        {
+            return trimmed.ToUpperInvariant();
+        }
+
+        return char.ToUpperInvariant(trimmed[0]) + trimmed[1..];
     }
 }
