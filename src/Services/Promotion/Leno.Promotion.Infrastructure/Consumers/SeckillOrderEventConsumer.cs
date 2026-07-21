@@ -44,11 +44,22 @@ public sealed class SeckillOrderCreationFailedEventConsumer : IntegrationEventCo
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
-        // 标记预占记录为已回退
+        // 标记预占记录为已回退；若补偿服务已先行回退（IsRolledBack=true），则幂等跳过，
+        // 避免 Redis/DB 双重复回退导致库存膨胀
         var record = await _preOccupationRecordRepository.GetByOrderIdAsync(integrationEvent.OrderId, ct);
-        if (record is not null && !record.IsRolledBack)
+        if (record is not null && record.IsRolledBack)
+        {
+            Logger.LogInformation("预占记录已回退 OrderId={OrderId}，幂等跳过库存回退", integrationEvent.OrderId);
+            return;
+        }
+
+        if (record is not null)
         {
             record.MarkRolledBack();
+        }
+        else
+        {
+            Logger.LogWarning("未找到预占记录 OrderId={OrderId}，仍按事件回退库存", integrationEvent.OrderId);
         }
 
         // 回退 Redis 库存
