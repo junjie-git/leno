@@ -102,6 +102,8 @@ public sealed class ReviewReadModelSyncConsumer :
             Images = review.Images.ToList(),
             Status = review.Status.ToString(),
             SellerReplyContent = review.SellerReplyContent,
+            SellerReplyBy = review.SellerReplyBy?.ToString(),
+            SellerReplyAt = review.SellerReplyAt,
             SubmittedAt = review.SubmittedAt
         };
     }

@@ -48,6 +48,10 @@ public sealed class ReviewDto
     public List<string> Images { get; set; } = [];
     public ReviewStatus Status { get; set; }
     public string? SellerReplyContent { get; set; }
+    /// <summary>卖家回复操作人标识，回复后填充，用于审计。</summary>
+    public Guid? SellerReplyBy { get; set; }
+    /// <summary>卖家回复时间（UTC），回复后填充。</summary>
+    public DateTime? SellerReplyAt { get; set; }
     public DateTime SubmittedAt { get; set; }
     public DateTime? AuditedAt { get; set; }
     public DateTime? HiddenAt { get; set; }

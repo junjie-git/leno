@@ -27,6 +27,9 @@ public sealed class Review : AggregateRoot
     /// <summary>评价人（买家）标识。</summary>
     public Guid UserId { get; private set; }
 
+    /// <summary>被评价商品归属卖家标识，由订单域防腐层查询填充，用于卖家回复归属校验。</summary>
+    public Guid SellerId { get; private set; }
+
     /// <summary>评分（1-5）。</summary>
     public int Rating { get; private set; }
 
@@ -45,6 +48,12 @@ public sealed class Review : AggregateRoot
 
     /// <summary>卖家回复内容，可空。</summary>
     public string? SellerReplyContent { get; private set; }
+
+    /// <summary>卖家回复操作人标识，回复后填充，用于审计。</summary>
+    public Guid? SellerReplyBy { get; private set; }
+
+    /// <summary>卖家回复时间（UTC），回复后填充。</summary>
+    public DateTime? SellerReplyAt { get; private set; }
 
     /// <summary>提交时间（UTC）。</summary>
     public DateTime SubmittedAt { get; private set; }
@@ -81,6 +90,7 @@ public sealed class Review : AggregateRoot
     /// <param name="rating">评分，须 1-5。</param>
     /// <param name="content">文字内容，1-500 字。</param>
     /// <param name="images">图片 URL 列表，最多 9 张。</param>
+    /// <param name="sellerId">被评价商品归属卖家标识，由订单域防腐层查询填充，用于卖家回复归属校验。</param>
     /// <param name="newScore">提交后商品的新加权平均分，由应用层计算后传入。</param>
     /// <param name="reviewCount">提交后商品的可见评价总数，由应用层计算后传入。</param>
     public static Review Create(
@@ -93,6 +103,7 @@ public sealed class Review : AggregateRoot
         int rating,
         string content,
         List<string> images,
+        Guid sellerId,
         double newScore = 0,
         int reviewCount = 0)
     {
@@ -126,6 +137,11 @@ public sealed class Review : AggregateRoot
             throw new ReviewDomainException("UserId 不可为空", "REVIEW_USER_EMPTY");
         }
 
+        if (sellerId == Guid.Empty)
+        {
+            throw new ReviewDomainException("SellerId 不可为空", "REVIEW_SELLER_EMPTY");
+        }
+
         if (rating < 1 || rating > 5)
         {
             throw new ReviewDomainException($"评分越界：{rating}，须 1-5", "REVIEW_RATING_INVALID");
@@ -154,6 +170,7 @@ public sealed class Review : AggregateRoot
             SpuId = spuId,
             SkuId = skuId,
             UserId = userId,
+            SellerId = sellerId,
             Rating = rating,
             Content = content,
             Status = ReviewStatus.Pending,
@@ -167,17 +184,28 @@ public sealed class Review : AggregateRoot
     }
 
     /// <summary>
-    /// 卖家回复评价，校验已通过态与回复内容长度，写入 <see cref="SellerReplyContent"/>。
-    /// 仅已通过评价可回复。
+    /// 卖家回复评价，校验已通过态、卖家归属与回复内容长度，写入 <see cref="SellerReplyContent"/>、<see cref="SellerReplyBy"/>、<see cref="SellerReplyAt"/>。
+    /// 仅已通过评价可回复，且仅归属卖家可回复（防止任意卖家回复他人商品评价）。
     /// </summary>
+    /// <param name="sellerId">回复卖家标识，须等于 <see cref="SellerId"/>。</param>
     /// <param name="content">回复内容，1-500 字。</param>
-    public void SellerReply(string content)
+    public void SellerReply(Guid sellerId, string content)
     {
         if (Status != ReviewStatus.Approved)
         {
             throw new ReviewDomainException(
                 $"当前状态 {Status} 不可回复，仅 Approved 可回复",
                 "REVIEW_REPLY_STATUS_INVALID");
+        }
+
+        if (sellerId == Guid.Empty)
+        {
+            throw new ReviewDomainException("SellerId 不可为空", "REVIEW_SELLER_EMPTY");
+        }
+
+        if (sellerId != SellerId)
+        {
+            throw new ReviewDomainException("无权回复此评价", "REVIEW_NOT_OWNED");
         }
 
         if (string.IsNullOrWhiteSpace(content))
@@ -191,6 +219,8 @@ public sealed class Review : AggregateRoot
         }
 
         SellerReplyContent = content;
+        SellerReplyBy = sellerId;
+        SellerReplyAt = DateTime.UtcNow;
     }
 
     /// <summary>

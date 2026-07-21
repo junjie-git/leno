@@ -14,6 +14,7 @@ public class ReviewTests
     private static readonly Guid ValidSpuId = Guid.Parse("44444444-4444-4444-4444-444444444444");
     private static readonly Guid ValidSkuId = Guid.Parse("55555555-5555-5555-5555-555555555555");
     private static readonly Guid ValidUserId = Guid.Parse("66666666-6666-6666-6666-666666666666");
+    private static readonly Guid ValidSellerId = Guid.Parse("99999999-9999-9999-9999-999999999999");
     private static readonly Guid ValidAuditorId = Guid.Parse("77777777-7777-7777-7777-777777777777");
     private static readonly Guid ValidOperatorId = Guid.Parse("88888888-8888-8888-8888-888888888888");
 
@@ -26,7 +27,7 @@ public class ReviewTests
         var review = Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            5, "Great product!", new List<string> { "img1.jpg", "img2.jpg" });
+            5, "Great product!", new List<string> { "img1.jpg", "img2.jpg" }, ValidSellerId);
 
         // Assert
         review.Id.Should().Be(ValidReviewId);
@@ -35,6 +36,7 @@ public class ReviewTests
         review.SpuId.Should().Be(ValidSpuId);
         review.SkuId.Should().Be(ValidSkuId);
         review.UserId.Should().Be(ValidUserId);
+        review.SellerId.Should().Be(ValidSellerId);
         review.Rating.Should().Be(5);
         review.Content.Should().Be("Great product!");
         review.Images.Should().HaveCount(2);
@@ -43,6 +45,8 @@ public class ReviewTests
         review.Status.Should().Be(ReviewStatus.Pending);
         review.SubmittedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
         review.SellerReplyContent.Should().BeNull();
+        review.SellerReplyBy.Should().BeNull();
+        review.SellerReplyAt.Should().BeNull();
         review.AuditedAt.Should().BeNull();
         review.AuditorId.Should().BeNull();
         review.HiddenAt.Should().BeNull();
@@ -57,7 +61,7 @@ public class ReviewTests
         var review = Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            3, "Decent product.", new List<string>());
+            3, "Decent product.", new List<string>(), ValidSellerId);
 
         // Assert
         review.DomainEvents.Should().HaveCount(1);
@@ -75,7 +79,7 @@ public class ReviewTests
         var review = Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            5, "Excellent!", new List<string>(),
+            5, "Excellent!", new List<string>(), ValidSellerId,
             newScore: 4.5, reviewCount: 10);
 
         // Assert
@@ -93,7 +97,7 @@ public class ReviewTests
         var review = Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            3, "Decent product.", new List<string>());
+            3, "Decent product.", new List<string>(), ValidSellerId);
 
         // Assert
         var domainEvent = review.DomainEvents.OfType<ReviewSubmittedDomainEvent>().Single();
@@ -108,7 +112,7 @@ public class ReviewTests
         var review = Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            1, "Minimum rating.", new List<string>());
+            1, "Minimum rating.", new List<string>(), ValidSellerId);
 
         // Assert
         review.Rating.Should().Be(1);
@@ -121,7 +125,7 @@ public class ReviewTests
         var review = Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            5, "Maximum rating.", new List<string>());
+            5, "Maximum rating.", new List<string>(), ValidSellerId);
 
         // Assert
         review.Rating.Should().Be(5);
@@ -137,7 +141,7 @@ public class ReviewTests
         var review = Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            4, content, new List<string>());
+            4, content, new List<string>(), ValidSellerId);
 
         // Assert
         review.Content.Should().Be(content);
@@ -154,7 +158,7 @@ public class ReviewTests
         var review = Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            4, "Valid content.", images);
+            4, "Valid content.", images, ValidSellerId);
 
         // Assert
         review.Images.Should().HaveCount(9);
@@ -167,7 +171,7 @@ public class ReviewTests
         var review = Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            4, "Valid content.", null!);
+            4, "Valid content.", null!, ValidSellerId);
 
         // Assert
         review.Images.Should().NotBeNull();
@@ -181,7 +185,7 @@ public class ReviewTests
         var review = Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            4, "Valid content.", new List<string>());
+            4, "Valid content.", new List<string>(), ValidSellerId);
 
         // Assert
         review.Images.Should().BeEmpty();
@@ -198,7 +202,7 @@ public class ReviewTests
         var act = () => Review.Create(
             Guid.Empty, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            4, "Valid content.", new List<string>());
+            4, "Valid content.", new List<string>(), ValidSellerId);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -212,7 +216,7 @@ public class ReviewTests
         var act = () => Review.Create(
             ValidReviewId, Guid.Empty, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            4, "Valid content.", new List<string>());
+            4, "Valid content.", new List<string>(), ValidSellerId);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -226,7 +230,7 @@ public class ReviewTests
         var act = () => Review.Create(
             ValidReviewId, ValidOrderId, Guid.Empty,
             ValidSpuId, ValidSkuId, ValidUserId,
-            4, "Valid content.", new List<string>());
+            4, "Valid content.", new List<string>(), ValidSellerId);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -240,7 +244,7 @@ public class ReviewTests
         var act = () => Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             Guid.Empty, ValidSkuId, ValidUserId,
-            4, "Valid content.", new List<string>());
+            4, "Valid content.", new List<string>(), ValidSellerId);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -254,7 +258,7 @@ public class ReviewTests
         var act = () => Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, Guid.Empty, ValidUserId,
-            4, "Valid content.", new List<string>());
+            4, "Valid content.", new List<string>(), ValidSellerId);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -268,11 +272,25 @@ public class ReviewTests
         var act = () => Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, Guid.Empty,
-            4, "Valid content.", new List<string>());
+            4, "Valid content.", new List<string>(), ValidSellerId);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
             .Where(e => e.ErrorCode == "REVIEW_USER_EMPTY");
+    }
+
+    [Fact]
+    public void Create_EmptySellerId_ShouldThrowWithCorrectErrorCode()
+    {
+        // Act
+        var act = () => Review.Create(
+            ValidReviewId, ValidOrderId, ValidOrderLineId,
+            ValidSpuId, ValidSkuId, ValidUserId,
+            4, "Valid content.", new List<string>(), Guid.Empty);
+
+        // Assert
+        act.Should().Throw<ReviewDomainException>()
+            .Where(e => e.ErrorCode == "REVIEW_SELLER_EMPTY");
     }
 
     [Fact]
@@ -282,7 +300,7 @@ public class ReviewTests
         var act = () => Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            0, "Valid content.", new List<string>());
+            0, "Valid content.", new List<string>(), ValidSellerId);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -296,7 +314,7 @@ public class ReviewTests
         var act = () => Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            6, "Valid content.", new List<string>());
+            6, "Valid content.", new List<string>(), ValidSellerId);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -310,7 +328,7 @@ public class ReviewTests
         var act = () => Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            -1, "Valid content.", new List<string>());
+            -1, "Valid content.", new List<string>(), ValidSellerId);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -324,7 +342,7 @@ public class ReviewTests
         var act = () => Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            4, "", new List<string>());
+            4, "", new List<string>(), ValidSellerId);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -338,7 +356,7 @@ public class ReviewTests
         var act = () => Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            4, "   ", new List<string>());
+            4, "   ", new List<string>(), ValidSellerId);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -355,7 +373,7 @@ public class ReviewTests
         var act = () => Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            4, content, new List<string>());
+            4, content, new List<string>(), ValidSellerId);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -372,7 +390,7 @@ public class ReviewTests
         var act = () => Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            4, "Valid content.", images);
+            4, "Valid content.", images, ValidSellerId);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -390,10 +408,12 @@ public class ReviewTests
         var review = CreateApprovedReview();
 
         // Act
-        review.SellerReply("Thank you for your review!");
+        review.SellerReply(ValidSellerId, "Thank you for your review!");
 
         // Assert
         review.SellerReplyContent.Should().Be("Thank you for your review!");
+        review.SellerReplyBy.Should().Be(ValidSellerId);
+        review.SellerReplyAt.Should().NotBeNull();
     }
 
     [Fact]
@@ -404,7 +424,7 @@ public class ReviewTests
         var reply = new string('C', 500);
 
         // Act
-        review.SellerReply(reply);
+        review.SellerReply(ValidSellerId, reply);
 
         // Assert
         review.SellerReplyContent.Should().Be(reply);
@@ -422,7 +442,7 @@ public class ReviewTests
         var review = CreatePendingReview();
 
         // Act
-        var act = () => review.SellerReply("Some reply");
+        var act = () => review.SellerReply(ValidSellerId, "Some reply");
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -436,11 +456,43 @@ public class ReviewTests
         var review = CreateHiddenReview();
 
         // Act
-        var act = () => review.SellerReply("Some reply");
+        var act = () => review.SellerReply(ValidSellerId, "Some reply");
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
             .Where(e => e.ErrorCode == "REVIEW_REPLY_STATUS_INVALID");
+    }
+
+    [Fact]
+    public void SellerReply_EmptySellerId_ShouldThrowWithCorrectErrorCode()
+    {
+        // Arrange
+        var review = CreateApprovedReview();
+
+        // Act
+        var act = () => review.SellerReply(Guid.Empty, "Some reply");
+
+        // Assert
+        act.Should().Throw<ReviewDomainException>()
+            .Where(e => e.ErrorCode == "REVIEW_SELLER_EMPTY");
+    }
+
+    [Fact]
+    public void SellerReply_NonOwnerSeller_ShouldThrowWithCorrectErrorCode()
+    {
+        // Arrange
+        var review = CreateApprovedReview();
+        var attacker = Guid.NewGuid();
+
+        // Act
+        var act = () => review.SellerReply(attacker, "Some reply");
+
+        // Assert
+        act.Should().Throw<ReviewDomainException>()
+            .Where(e => e.ErrorCode == "REVIEW_NOT_OWNED");
+        review.SellerReplyContent.Should().BeNull();
+        review.SellerReplyBy.Should().BeNull();
+        review.SellerReplyAt.Should().BeNull();
     }
 
     [Fact]
@@ -450,7 +502,7 @@ public class ReviewTests
         var review = CreateApprovedReview();
 
         // Act
-        var act = () => review.SellerReply("");
+        var act = () => review.SellerReply(ValidSellerId, "");
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -464,7 +516,7 @@ public class ReviewTests
         var review = CreateApprovedReview();
 
         // Act
-        var act = () => review.SellerReply("   ");
+        var act = () => review.SellerReply(ValidSellerId, "   ");
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -479,7 +531,7 @@ public class ReviewTests
         var reply = new string('D', 501);
 
         // Act
-        var act = () => review.SellerReply(reply);
+        var act = () => review.SellerReply(ValidSellerId, reply);
 
         // Assert
         act.Should().Throw<ReviewDomainException>()
@@ -742,15 +794,16 @@ public class ReviewTests
         review.Status.Should().Be(ReviewStatus.Approved);
 
         // Act - Seller reply
-        review.SellerReply("Thank you!");
+        review.SellerReply(ValidSellerId, "Thank you!");
         review.SellerReplyContent.Should().Be("Thank you!");
+        review.SellerReplyBy.Should().Be(ValidSellerId);
 
         // Act - Hide
         review.Hide(ValidOperatorId, "Violation");
         review.Status.Should().Be(ReviewStatus.Hidden);
 
         // Act - Seller reply should fail after hidden
-        var act = () => review.SellerReply("Another reply");
+        var act = () => review.SellerReply(ValidSellerId, "Another reply");
         act.Should().Throw<ReviewDomainException>()
             .Where(e => e.ErrorCode == "REVIEW_REPLY_STATUS_INVALID");
     }
@@ -798,7 +851,7 @@ public class ReviewTests
         return Review.Create(
             ValidReviewId, ValidOrderId, ValidOrderLineId,
             ValidSpuId, ValidSkuId, ValidUserId,
-            4, "A valid review content.", new List<string> { "img1.jpg" });
+            4, "A valid review content.", new List<string> { "img1.jpg" }, ValidSellerId);
     }
 
     private static Review CreateApprovedReview()

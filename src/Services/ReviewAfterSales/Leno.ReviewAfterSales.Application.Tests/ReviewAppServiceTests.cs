@@ -28,6 +28,7 @@ public class ReviewAppServiceTests
     private static readonly Guid SpuId = Guid.NewGuid();
     private static readonly Guid SkuId = Guid.NewGuid();
     private static readonly Guid UserId = Guid.NewGuid();
+    private static readonly Guid SellerId = Guid.NewGuid();
     private static readonly Guid AuditorId = Guid.NewGuid();
 
     public ReviewAppServiceTests()
@@ -44,9 +45,10 @@ public class ReviewAppServiceTests
     {
         // P0-2.2: EnsureEligibleAsync 返回携带真实 SpuId/SkuId 的订单行概要，
         // 应用层使用订单域返回的商品标识创建评价，忽略 dto 中的 SpuId/SkuId。
+        // P0-2.7: EnsureEligibleAsync 同时返回 SellerId，应用层透传给 Review.Create 用于卖家回复归属校验。
         _eligibilityMock
             .Setup(e => e.EnsureEligibleAsync(OrderId, OrderLineId, UserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new OrderItemStatusInfo { OrderLineId = OrderLineId, SkuId = SkuId, SpuId = SpuId, Quantity = 1 });
+            .ReturnsAsync(new OrderItemStatusInfo { OrderLineId = OrderLineId, SkuId = SkuId, SpuId = SpuId, SellerId = SellerId, Quantity = 1 });
 
         var dto = BuildSubmitDto();
 
@@ -86,7 +88,7 @@ public class ReviewAppServiceTests
             .Setup(r => r.GetByIdAsync(ReviewId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(review);
 
-        await _sut.SellerReplyAsync(ReviewId, "感谢评价，我们会持续改进");
+        await _sut.SellerReplyAsync(ReviewId, SellerId, "感谢评价，我们会持续改进");
 
         review.SellerReplyContent.Should().Be("感谢评价，我们会持续改进");
         _reviewRepoMock.Verify(r => r.UpdateAsync(review, It.IsAny<CancellationToken>()), Times.Once);
@@ -100,7 +102,7 @@ public class ReviewAppServiceTests
             .Setup(r => r.GetByIdAsync(ReviewId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ReviewAggregate?)null);
 
-        var act = () => _sut.SellerReplyAsync(ReviewId, "回复内容");
+        var act = () => _sut.SellerReplyAsync(ReviewId, SellerId, "回复内容");
 
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*评价不存在*");
         _reviewRepoMock.Verify(r => r.UpdateAsync(It.IsAny<ReviewAggregate>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -229,7 +231,7 @@ public class ReviewAppServiceTests
     };
 
     private static ReviewAggregate CreatePendingReview() =>
-        ReviewAggregate.Create(ReviewId, OrderId, OrderLineId, SpuId, SkuId, UserId, 5, "内容很好", []);
+        ReviewAggregate.Create(ReviewId, OrderId, OrderLineId, SpuId, SkuId, UserId, 5, "内容很好", [], SellerId);
 
     private static ReviewAggregate CreateApprovedReview()
     {

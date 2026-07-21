@@ -11,8 +11,8 @@ public interface IReviewAppService
     /// <summary>买家提交评价，校验资格后创建评价聚合。</summary>
     Task<ReviewDto> SubmitReviewAsync(Guid userId, SubmitReviewDto dto, CancellationToken ct = default);
 
-    /// <summary>卖家回复评价，仅已通过评价可回复。</summary>
-    Task SellerReplyAsync(Guid reviewId, string content, CancellationToken ct = default);
+    /// <summary>卖家回复评价，仅已通过评价可回复，且仅归属卖家可回复。</summary>
+    Task SellerReplyAsync(Guid reviewId, Guid sellerId, string content, CancellationToken ct = default);
 
     /// <summary>运营审核通过评价，将待审核态置为已通过态。</summary>
     Task ApproveReviewAsync(Guid reviewId, Guid auditorId, CancellationToken ct = default);

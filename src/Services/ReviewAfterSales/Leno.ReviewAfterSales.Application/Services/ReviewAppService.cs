@@ -46,7 +46,7 @@ public sealed class ReviewAppService : IReviewAppService
         var reviewId = Guid.NewGuid();
         var review = ReviewAggregate.Create(
             reviewId, dto.OrderId, dto.OrderLineId, lineItem.SpuId, lineItem.SkuId,
-            userId, dto.Rating, dto.Content, dto.Images);
+            userId, dto.Rating, dto.Content, dto.Images, lineItem.SellerId);
 
         await _reviewRepository.AddAsync(review, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
@@ -56,12 +56,12 @@ public sealed class ReviewAppService : IReviewAppService
     }
 
     /// <inheritdoc />
-    public async Task SellerReplyAsync(Guid reviewId, string content, CancellationToken ct = default)
+    public async Task SellerReplyAsync(Guid reviewId, Guid sellerId, string content, CancellationToken ct = default)
     {
         var review = await _reviewRepository.GetByIdAsync(reviewId, ct)
             ?? throw new InvalidOperationException($"评价不存在 ReviewId={reviewId}");
 
-        review.SellerReply(content);
+        review.SellerReply(sellerId, content);
         await _reviewRepository.UpdateAsync(review, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
@@ -134,6 +134,8 @@ public sealed class ReviewAppService : IReviewAppService
             Images = review.Images,
             Status = review.Status,
             SellerReplyContent = review.SellerReplyContent,
+            SellerReplyBy = review.SellerReplyBy,
+            SellerReplyAt = review.SellerReplyAt,
             SubmittedAt = review.SubmittedAt,
             AuditedAt = review.AuditedAt,
             HiddenAt = review.HiddenAt

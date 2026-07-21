@@ -26,6 +26,9 @@ public sealed class ReviewConfiguration : IEntityTypeConfiguration<Review>
         builder.Property(r => r.Content).HasColumnName("content").HasMaxLength(500).IsRequired();
         builder.Property(r => r.Status).HasColumnName("status").HasConversion<int>();
         builder.Property(r => r.SellerReplyContent).HasColumnName("seller_reply_content").HasMaxLength(500);
+        builder.Property(r => r.SellerReplyBy).HasColumnName("seller_reply_by");
+        builder.Property(r => r.SellerReplyAt).HasColumnName("seller_reply_at");
+        builder.Property(r => r.SellerId).HasColumnName("seller_id");
         builder.Property(r => r.SubmittedAt).HasColumnName("submitted_at");
         builder.Property(r => r.AuditedAt).HasColumnName("audited_at");
         builder.Property(r => r.AuditorId).HasColumnName("auditor_id");

@@ -59,13 +59,14 @@ public sealed class GrpcOrderStatusProvider
 
     private static OrderStatusInfo MapToInfo(OrderStatus proto)
     {
+        var sellerId = proto.HasSellerId && Guid.TryParse(proto.SellerId, out var sid) ? sid : Guid.Empty;
         var info = new OrderStatusInfo
         {
             // 注：proto OrderStatus.status 为 string，DTO 为 int，POC 简化用 int.Parse
             Status = int.TryParse(proto.Status, out var s) ? s : 0,
             UserId = proto.HasUserId && Guid.TryParse(proto.UserId, out var uid) ? uid : Guid.Empty,
             // 从订单域 proto 读取真实 SellerId，防止客户端伪造
-            SellerId = proto.HasSellerId && Guid.TryParse(proto.SellerId, out var sid) ? sid : Guid.Empty,
+            SellerId = sellerId,
             CompletedAt = proto.CompletedAt != 0
                 ? DateTimeOffset.FromUnixTimeSeconds(proto.CompletedAt).UtcDateTime
                 : default,
@@ -85,6 +86,8 @@ public sealed class GrpcOrderStatusProvider
                 SkuId = !string.IsNullOrEmpty(item.SkuIdStr) ? Guid.Parse(item.SkuIdStr) : Guid.Empty,
                 // 注：proto OrderItem 无 spu_id 字段，POC 简化为 Guid.Empty
                 SpuId = Guid.Empty,
+                // 从订单级别复制 SellerId 到行级别，供评价聚合创建时使用（P0-2.7）
+                SellerId = sellerId,
                 Quantity = item.Quantity,
                 AfterSalesStatus = 0  // proto 未提供
             });

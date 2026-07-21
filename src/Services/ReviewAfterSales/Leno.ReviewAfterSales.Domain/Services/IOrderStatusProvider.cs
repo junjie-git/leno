@@ -34,6 +34,8 @@ public sealed class OrderItemStatusInfo
     public Guid SkuId { get; init; }
     /// <summary>SPU 标识，由订单域防腐层查询填充，用于防止客户端伪造 SpuId。</summary>
     public Guid SpuId { get; init; }
+    /// <summary>订单归属卖家标识，由订单域防腐层查询填充（从订单级别复制到行级别），用于防止客户端伪造 SellerId。</summary>
+    public Guid SellerId { get; init; }
     public int Quantity { get; init; }
     public int AfterSalesStatus { get; init; }
 }

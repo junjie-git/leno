@@ -128,7 +128,8 @@ public sealed class ReviewsController : ReviewControllerBase
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> SellerReplyAsync(Guid id, [FromBody] SellerReplyDto dto, CancellationToken ct)
     {
-        await _reviewAppService.SellerReplyAsync(id, dto.Content, ct);
+        var sellerId = GetCurrentUserId();
+        await _reviewAppService.SellerReplyAsync(id, sellerId, dto.Content, ct);
         return Ok(ApiResponse.Success());
     }
 

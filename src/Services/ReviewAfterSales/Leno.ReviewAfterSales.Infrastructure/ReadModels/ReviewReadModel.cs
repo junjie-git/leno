@@ -36,6 +36,12 @@ public sealed class ReviewReadModel
     /// <summary>卖家回复内容，可空。</summary>
     public string? SellerReplyContent { get; set; }
 
+    /// <summary>卖家回复操作人标识（字符串形式），回复后填充，用于审计。</summary>
+    public string? SellerReplyBy { get; set; }
+
+    /// <summary>卖家回复时间（UTC），回复后填充。</summary>
+    public DateTime? SellerReplyAt { get; set; }
+
     /// <summary>提交时间（UTC）。</summary>
     public DateTime SubmittedAt { get; set; }
 }

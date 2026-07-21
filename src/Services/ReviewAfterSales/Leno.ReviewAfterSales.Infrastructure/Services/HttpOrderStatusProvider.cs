@@ -78,6 +78,8 @@ public sealed class HttpOrderStatusProvider : AntiCorruptionBase, IOrderStatusPr
             OrderLineId = i.OrderLineId,
             SkuId = i.SkuId,
             SpuId = i.SpuId,
+            // 从订单级别复制 SellerId 到行级别，供评价聚合创建时使用（P0-2.7）
+            SellerId = dto.SellerId,
             Quantity = i.Quantity,
             AfterSalesStatus = i.AfterSalesStatus
         }).ToList()
