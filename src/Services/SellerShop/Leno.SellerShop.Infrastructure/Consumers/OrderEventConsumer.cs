@@ -40,7 +40,10 @@ public sealed class OrderCompletedEventConsumer : IntegrationEventConsumerBase<O
             ? integrationEvent.OccurredAt
             : integrationEvent.CompletedAt;
         var date = DateOnly.FromDateTime(completedAt);
-        var currency = string.IsNullOrWhiteSpace(integrationEvent.Currency) ? "CNY" : integrationEvent.Currency;
+        // 币种统一 ToUpperInvariant，与 ShopMetrics/Money 一致，避免大小写不匹配触发 METRICS_CURRENCY_MISMATCH
+        var currency = string.IsNullOrWhiteSpace(integrationEvent.Currency)
+            ? "CNY"
+            : integrationEvent.Currency.Trim().ToUpperInvariant();
 
         var metrics = await _metricsRepository.GetByShopIdAsync(integrationEvent.SellerId, date, ct);
         if (metrics is null)

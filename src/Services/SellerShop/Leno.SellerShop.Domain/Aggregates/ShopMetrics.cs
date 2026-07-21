@@ -90,13 +90,14 @@ public sealed class ShopMetrics : AggregateRoot
     /// <summary>
     /// 记录一笔已完成订单，累加订单数与销售额。
     /// 幂等：同一订单重复记录由调用方按 EventId 去重，此处只做增量。
+    /// 币种比较使用 OrdinalIgnoreCase，兼容大小写差异（防御 Money 经非 Create 路径构造的兜底场景）。
     /// </summary>
     /// <param name="salesAmount">订单销售额。</param>
     public void RecordOrder(Money salesAmount)
     {
         ArgumentNullException.ThrowIfNull(salesAmount);
 
-        if (SalesAmount.Currency != salesAmount.Currency)
+        if (!string.Equals(SalesAmount.Currency, salesAmount.Currency, StringComparison.OrdinalIgnoreCase))
         {
             throw new SellerShopDomainException(
                 $"币种不匹配: {SalesAmount.Currency} vs {salesAmount.Currency}", "METRICS_CURRENCY_MISMATCH");
@@ -148,13 +149,14 @@ public sealed class ShopMetrics : AggregateRoot
     /// <summary>
     /// 记录一笔售后退款金额，累加售后数与退款金额。
     /// 幂等：同一售后重复记录由调用方按 EventId 去重，此处只做增量。
+    /// 币种比较使用 OrdinalIgnoreCase，兼容大小写差异。
     /// </summary>
     /// <param name="refundAmount">退款金额。</param>
     public void RecordRefund(Money refundAmount)
     {
         ArgumentNullException.ThrowIfNull(refundAmount);
 
-        if (RefundAmount.Currency != refundAmount.Currency)
+        if (!string.Equals(RefundAmount.Currency, refundAmount.Currency, StringComparison.OrdinalIgnoreCase))
         {
             throw new SellerShopDomainException(
                 $"币种不匹配: {RefundAmount.Currency} vs {refundAmount.Currency}", "METRICS_CURRENCY_MISMATCH");
