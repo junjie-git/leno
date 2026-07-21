@@ -20,6 +20,15 @@ namespace Leno.UserAuth.Application.Services;
 /// </summary>
 public sealed class UserAppService : IUserAppService
 {
+    /// <summary>
+    /// 用于账号枚举时序对齐的预生成 bcrypt 哈希。
+    /// 账号不存在分支会执行一次 dummy verify，使响应时间与真实路径一致，
+    /// 防止攻击者通过响应时间差异枚举有效账户（INV-18）。
+    /// 该哈希由 "leno-dummy-password-for-timing-equalization" 经 bcrypt cost 12 生成，无任何登录语义。
+    /// </summary>
+    private const string DummyPasswordHash =
+        "$2a$12$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IUserUniquenessChecker _uniquenessChecker;
@@ -109,9 +118,11 @@ public sealed class UserAppService : IUserAppService
 
         var user = await FindByAccountAsync(dto.Account, ct);
 
-        // 账号不存在统一返回账号或密码错误，防账号枚举（INV-18）
+        // 账号不存在统一返回账号或密码错误，防账号枚举（INV-18）。
+        // 同时执行一次 dummy bcrypt verify 对齐响应时间，避免攻击者通过响应时间差异枚举有效账户。
         if (user is null)
         {
+            _ = _passwordHasher.Verify("\x00", DummyPasswordHash);
             throw new UnauthorizedAccessException("账号或密码错误");
         }
 
