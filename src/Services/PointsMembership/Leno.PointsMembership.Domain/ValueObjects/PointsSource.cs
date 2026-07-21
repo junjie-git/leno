@@ -60,5 +60,8 @@ public enum PointsTxType
     Revert = 6,
 
     /// <summary>积分兑换优惠券。</summary>
-    CouponExchange = 7
+    CouponExchange = 7,
+
+    /// <summary>积分过期清理。</summary>
+    Expire = 8
 }

@@ -33,6 +33,12 @@ public sealed class PointsAccountConfiguration : IEntityTypeConfiguration<Points
             .HasForeignKey("PointsAccountId")
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Ledgers 积分流水集合，外键为影子属性 points_account_id，删除账户级联删除流水。
+        builder.HasMany(a => a.Ledgers)
+            .WithOne()
+            .HasForeignKey("PointsAccountId")
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.HasIndex(a => a.UserId).IsUnique().HasDatabaseName("ix_points_accounts_user_id");
     }
 }

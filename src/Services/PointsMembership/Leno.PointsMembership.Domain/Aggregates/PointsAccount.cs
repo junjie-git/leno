@@ -36,6 +36,12 @@ public sealed class PointsAccount : AggregateRoot
     /// </summary>
     public List<PointsFrozenEntry> FrozenEntries { get; private set; } = new();
 
+    /// <summary>
+    /// 积分流水集合，记录账户每笔变动明细，由聚合根状态变更方法同事务追加，EF Core 跟踪自动落库。
+    /// 私有 setter 阻止外部整体替换，仅可经聚合根方法内 Ledgers.Add 追加。
+    /// </summary>
+    public List<PointsLedger> Ledgers { get; private set; } = new();
+
     /// <summary>EF Core 无参构造。</summary>
     private PointsAccount() { }
 
@@ -79,6 +85,8 @@ public sealed class PointsAccount : AggregateRoot
         Balance += amount;
         TotalEarned += amount;
         AddDomainEvent(new PointsEarnedEvent(Id, UserId, amount, source.ToString()));
+        Ledgers.Add(PointsLedger.Create(
+            Guid.NewGuid(), Id, PointsTxType.Earn, amount, Balance, source, Guid.Empty, reason, DateTime.UtcNow));
     }
 
     /// <summary>
@@ -126,6 +134,9 @@ public sealed class PointsAccount : AggregateRoot
         FrozenBalance += amount;
         FrozenEntries.Add(PointsFrozenEntry.Create(orderId, amount));
         AddDomainEvent(new PointsFrozenEvent(Id, UserId, amount, orderId));
+        Ledgers.Add(PointsLedger.Create(
+            Guid.NewGuid(), Id, PointsTxType.Freeze, amount, Balance,
+            PointsSource.Offset, orderId, $"冻结-订单{orderId}", DateTime.UtcNow));
     }
 
     /// <summary>
@@ -145,6 +156,9 @@ public sealed class PointsAccount : AggregateRoot
         FrozenBalance -= entry.Amount;
         TotalSpent += entry.Amount;
         AddDomainEvent(new PointsConfirmedEvent(Id, UserId, entry.Amount, orderId));
+        Ledgers.Add(PointsLedger.Create(
+            Guid.NewGuid(), Id, PointsTxType.Consume, entry.Amount, Balance,
+            PointsSource.Offset, orderId, $"确认扣减-订单{orderId}", DateTime.UtcNow));
     }
 
     /// <summary>
@@ -164,6 +178,9 @@ public sealed class PointsAccount : AggregateRoot
         FrozenBalance -= entry.Amount;
         Balance += entry.Amount;
         AddDomainEvent(new PointsReleasedEvent(Id, UserId, entry.Amount, orderId));
+        Ledgers.Add(PointsLedger.Create(
+            Guid.NewGuid(), Id, PointsTxType.Release, entry.Amount, Balance,
+            PointsSource.Offset, orderId, $"释放-订单{orderId}", DateTime.UtcNow));
     }
 
     /// <summary>
@@ -191,6 +208,9 @@ public sealed class PointsAccount : AggregateRoot
         Balance -= amount;
         TotalSpent += amount;
         AddDomainEvent(new PointsConsumedEvent(Id, UserId, amount, referenceId, reason));
+        Ledgers.Add(PointsLedger.Create(
+            Guid.NewGuid(), Id, PointsTxType.Consume, amount, Balance,
+            PointsSource.Offset, referenceId, reason, DateTime.UtcNow));
     }
 
     /// <summary>
@@ -210,6 +230,9 @@ public sealed class PointsAccount : AggregateRoot
         Balance -= amount;
         TotalSpent += amount;
         AddDomainEvent(new PointsRevertedEvent(Id, UserId, amount, referenceId, reason));
+        Ledgers.Add(PointsLedger.Create(
+            Guid.NewGuid(), Id, PointsTxType.Revert, amount, Balance,
+            PointsSource.Refund, referenceId, reason, DateTime.UtcNow));
     }
 
     /// <summary>
@@ -233,6 +256,9 @@ public sealed class PointsAccount : AggregateRoot
 
         Balance -= points;
         AddDomainEvent(new PointsExpiredEvent(UserId, points, DateTime.UtcNow));
+        Ledgers.Add(PointsLedger.Create(
+            Guid.NewGuid(), Id, PointsTxType.Expire, points, Balance,
+            PointsSource.Activity, Guid.Empty, "积分过期清理", DateTime.UtcNow));
     }
 
     private PointsFrozenEntry FindFrozenEntry(Guid orderId)
