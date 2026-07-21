@@ -324,6 +324,143 @@ public class AuditLogTests
 
     #endregion
 
+    #region Enrich
+
+    [Fact]
+    public void Enrich_WhenFieldsAreNull_ShouldSetAllProvidedValues()
+    {
+        var auditLog = AuditLog.Create(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "UserBan",
+            "User",
+            "user-123",
+            null,
+            null,
+            null,
+            null,
+            null);
+
+        auditLog.Enrich("10.0.0.1", "curl/8.0", "trace-abc");
+
+        auditLog.Ip.Should().Be("10.0.0.1");
+        auditLog.UserAgent.Should().Be("curl/8.0");
+        auditLog.TraceId.Should().Be("trace-abc");
+    }
+
+    [Fact]
+    public void Enrich_WhenFieldsAlreadySet_ShouldNotOverwriteExistingValues()
+    {
+        var auditLog = AuditLog.Create(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "UserBan",
+            "User",
+            "user-123",
+            null,
+            null,
+            "192.168.1.1",
+            "Mozilla/5.0",
+            "trace-456");
+
+        auditLog.Enrich("10.0.0.1", "curl/8.0", "trace-abc");
+
+        auditLog.Ip.Should().Be("192.168.1.1");
+        auditLog.UserAgent.Should().Be("Mozilla/5.0");
+        auditLog.TraceId.Should().Be("trace-456");
+    }
+
+    [Fact]
+    public void Enrich_WithNullArguments_ShouldNotThrowAndShouldNotChangeFields()
+    {
+        var auditLog = AuditLog.Create(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "UserBan",
+            "User",
+            "user-123",
+            null,
+            null,
+            null,
+            null,
+            null);
+
+        auditLog.Enrich(null, null, null);
+
+        auditLog.Ip.Should().BeNull();
+        auditLog.UserAgent.Should().BeNull();
+        auditLog.TraceId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Enrich_WithWhitespaceArguments_ShouldBeTreatedAsNull()
+    {
+        var auditLog = AuditLog.Create(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "UserBan",
+            "User",
+            "user-123",
+            null,
+            null,
+            null,
+            null,
+            null);
+
+        auditLog.Enrich("   ", "  ", "   ");
+
+        auditLog.Ip.Should().BeNull();
+        auditLog.UserAgent.Should().BeNull();
+        auditLog.TraceId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Enrich_WithWhitespaceArguments_ShouldTrimValues()
+    {
+        var auditLog = AuditLog.Create(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "UserBan",
+            "User",
+            "user-123",
+            null,
+            null,
+            null,
+            null,
+            null);
+
+        auditLog.Enrich("  10.0.0.1  ", "  curl/8.0  ", "  trace-abc  ");
+
+        auditLog.Ip.Should().Be("10.0.0.1");
+        auditLog.UserAgent.Should().Be("curl/8.0");
+        auditLog.TraceId.Should().Be("trace-abc");
+    }
+
+    [Fact]
+    public void Enrich_CalledMultipleTimes_ShouldOnlySetFieldsOnFirstCall()
+    {
+        var auditLog = AuditLog.Create(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "UserBan",
+            "User",
+            "user-123",
+            null,
+            null,
+            null,
+            null,
+            null);
+
+        auditLog.Enrich("10.0.0.1", "curl/8.0", "trace-abc");
+        auditLog.Enrich("20.0.0.2", "Mozilla/5.0", "trace-xyz");
+
+        auditLog.Ip.Should().Be("10.0.0.1");
+        auditLog.UserAgent.Should().Be("curl/8.0");
+        auditLog.TraceId.Should().Be("trace-abc");
+    }
+
+    #endregion
+
     #region Immutability
 
     [Fact]

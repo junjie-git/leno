@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Leno.SharedKernel.Abstractions;
 using Leno.UserAuth.Domain.Exceptions;
 
@@ -93,5 +94,29 @@ public sealed class AuditLog : AggregateRoot
             UserAgent = string.IsNullOrWhiteSpace(userAgent) ? null : userAgent.Trim(),
             TraceId = string.IsNullOrWhiteSpace(traceId) ? null : traceId.Trim()
         };
+    }
+
+    /// <summary>
+    /// 在保存变更前由 <c>AuditLogInterceptor</c> 调用，从当前 HTTP 上下文补充技术字段（IP / UA / TraceId）。
+    /// 仅当字段为空时写入，不覆盖应用服务已显式设置的值。
+    /// 标注 <see cref="EditorBrowsableState.Never"/> 以避免被业务代码误用，仅基础设施层调用。
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public void Enrich(string? ip, string? userAgent, string? traceId)
+    {
+        if (Ip is null && !string.IsNullOrWhiteSpace(ip))
+        {
+            Ip = ip.Trim();
+        }
+
+        if (UserAgent is null && !string.IsNullOrWhiteSpace(userAgent))
+        {
+            UserAgent = userAgent.Trim();
+        }
+
+        if (TraceId is null && !string.IsNullOrWhiteSpace(traceId))
+        {
+            TraceId = traceId.Trim();
+        }
     }
 }

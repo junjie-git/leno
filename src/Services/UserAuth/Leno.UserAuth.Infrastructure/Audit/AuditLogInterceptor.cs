@@ -8,8 +8,8 @@ namespace Leno.UserAuth.Infrastructure.Audit;
 
 /// <summary>
 /// 审计日志拦截器，在保存变更前从当前 HTTP 请求上下文填充 IP、User-Agent、TraceId 等技术上下文。
-/// 应用服务创建 <see cref="AuditLog"/> 时仅写入业务字段，技术上下文由此拦截器统一注入，
-/// 经 EF Core 属性访问器写入 <c>private set</c> 字段。
+/// 应用服务创建 <see cref="AuditLog"/> 时仅写入业务字段，技术上下文由此拦截器统一通过
+/// <see cref="AuditLog.Enrich(string?, string?, string?)"/> 聚合方法注入，避免直接操作 EF 元数据 API。
 /// </summary>
 public sealed class AuditLogInterceptor : SaveChangesInterceptor
 {
@@ -55,20 +55,9 @@ public sealed class AuditLogInterceptor : SaveChangesInterceptor
                 continue;
             }
 
-            if (entry.Property(nameof(AuditLog.Ip)).CurrentValue is null)
-            {
-                entry.Property(nameof(AuditLog.Ip)).CurrentValue = ip;
-            }
-
-            if (entry.Property(nameof(AuditLog.UserAgent)).CurrentValue is null)
-            {
-                entry.Property(nameof(AuditLog.UserAgent)).CurrentValue = userAgent;
-            }
-
-            if (entry.Property(nameof(AuditLog.TraceId)).CurrentValue is null)
-            {
-                entry.Property(nameof(AuditLog.TraceId)).CurrentValue = traceId;
-            }
+            // 调用聚合根的 Enrich 行为方法，由聚合自身决定是否写入字段（仅当字段为空时填充），
+            // 不再直接操作 EF Property().CurrentValue，保持聚合封装完整性。
+            entry.Entity.Enrich(ip, userAgent, traceId);
         }
     }
 
