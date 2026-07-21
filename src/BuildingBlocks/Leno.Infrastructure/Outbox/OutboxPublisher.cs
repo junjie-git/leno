@@ -290,14 +290,30 @@ public class OutboxPublisher<TDbContext> : BackgroundService
             return;
         }
 
-        // 阶段 3：置 Processed 并提交
-        message.MarkAsProcessed();
+        // 阶段 3：条件更新置 Processed（T11：WHERE Status = Publishing 保证原子性，只有持有 Publishing 锁的实例能标记 Processed）
+        // 使用 ExecuteUpdateAsync 绕过 ChangeTracker 直接条件更新 DB，避免加载实体到 tracked state
         try
         {
-            await context.SaveChangesAsync(stoppingToken);
-            // M5.3：记录成功发布计数（按 BC 维度，使用 DbContext 类型名作为标签）
-            OutboxMetrics.RecordPublished(typeof(TDbContext).Name);
-            _logger.LogInformation("发件箱消息已发布 Id={MessageId} Type={Type}", message.Id, eventType.Name);
+            var updatedRows = await context.Set<OutboxMessage>()
+                .Where(m => m.Id == message.Id && m.Status == OutboxMessageStatus.Publishing)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(m => m.Status, OutboxMessageStatus.Processed)
+                    .SetProperty(m => m.ProcessedAt, DateTime.UtcNow)
+                    .SetProperty(m => m.PublishingStartedAt, (DateTime?)null)
+                    .SetProperty(m => m.Error, (string?)null),
+                    stoppingToken);
+
+            if (updatedRows > 0)
+            {
+                // M5.3：记录成功发布计数（按 BC 维度，使用 DbContext 类型名作为标签）
+                OutboxMetrics.RecordPublished(typeof(TDbContext).Name);
+                _logger.LogInformation("发件箱消息已发布 Id={MessageId} Type={Type}", message.Id, eventType.Name);
+            }
+            else
+            {
+                // 条件更新不命中：消息状态已被其他实例重置为 Pending（如 RecoverStalePublishing 回退），依赖下游幂等兜底
+                _logger.LogWarning("发件箱消息条件更新未命中 Id={MessageId}，状态可能已被其他实例重置，依赖下游幂等兜底", message.Id);
+            }
         }
         catch (Exception ex)
         {
@@ -305,8 +321,13 @@ public class OutboxPublisher<TDbContext> : BackgroundService
             _logger.LogWarning(ex,
                 "发件箱消息发布成功但 Processed 标记失败 Id={MessageId}，将由 Publishing 超时扫描回退 Pending，依赖下游幂等兜底",
                 message.Id);
-            // 注意：不在此抛出，避免上层循环中断；消息保留 Publishing 状态等待 RecoverStalePublishingAsync 处理
-            // ChangeTracker 中残留的修改状态由下一次 SaveChangesAsync 重置，此处不做手动清理以避免遮蔽真实异常
+        }
+        finally
+        {
+            // T12：清理 ChangeTracker 中残留的 stale tracked entity
+            // stage 1 加载的 message entity 其 Status 仍为 Publishing（ExecuteUpdateAsync 绕过 ChangeTracker 直接更新 DB），
+            // tracked entity 与 DB 状态不一致。清理后避免残留实体在 context 复用时被意外持久化
+            context.ChangeTracker.Clear();
         }
     }
 
