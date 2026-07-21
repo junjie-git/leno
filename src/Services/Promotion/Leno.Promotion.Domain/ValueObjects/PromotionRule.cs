@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Leno.Promotion.Domain.ValueObjects;
 
 /// <summary>
@@ -12,9 +14,12 @@ public sealed record PromotionRule
     /// <summary>减免金额（须 &gt; 0 且 ≤ 门槛金额）。</summary>
     public decimal DiscountAmount { get; init; }
 
-    /// <summary>供 EF Core 与反序列化使用的无参构造。</summary>
-    public PromotionRule() { }
-
+    /// <summary>
+    /// 唯一构造，由 <see cref="JsonConstructorAttribute"/> 标注，
+    /// 让 System.Text.Json 与 EF Core 10 JSON 列反序列化均走此构造路径，
+    /// 保证 init setter 不可绕过、不变量校验统一生效。
+    /// </summary>
+    [JsonConstructor]
     public PromotionRule(decimal thresholdAmount, decimal discountAmount)
     {
         if (thresholdAmount < 0)
