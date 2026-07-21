@@ -105,6 +105,67 @@ public class OrderSagaOrchestratorTests
             .Should().ThrowAsync<SagaCompensationFailedException>();
     }
 
+    [Fact]
+    public async Task ExecuteAsync_WithPointsAndDiscount_Should_Use_Aggregate_Invariants()
+    {
+        // Arrange：积分抵现 + 优惠，验证 TotalAmount 不为负
+        var sut = CreateSut(out var orderRepoMock, out var uowMock, out var orderNoGenMock,
+            out var stockServiceMock, out var pricingMock, out var freightMock,
+            out var promotionMock, out var pointsMock, out var busMock, out var loggerMock);
+
+        var skuInfo = CreateSkuInfo(unitPrice: 100m);
+        var checkoutItem = new CheckoutItemDto { SkuId = skuInfo.SkuId, Quantity = 1 };
+
+        stockServiceMock.Setup(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        pointsMock.Setup(p => p.FreezeAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        promotionMock.Setup(p => p.CalculateDiscountAsync(It.IsAny<Guid>(), It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(80m); // 优惠 80 元
+        pricingMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        pricingMock.Setup(p => p.CalculateAndAllocateAsync(It.IsAny<decimal>(), It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<(Guid, decimal)> { (skuInfo.SkuId, 80m) });
+        freightMock.Setup(f => f.CalculateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(10m);
+        orderNoGenMock.Setup(g => g.GenerateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync("ORD-001");
+        uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // 积分抵现原始金额 50 元（超过 ItemsAmount - Discount = 100 - 80 = 20，应被聚合裁剪到 20）
+        var context = new OrderSagaContext
+        {
+            UserId = Guid.NewGuid(),
+            Address = CreateTestAddress(),
+            Groups = new List<OrderSagaGroupInput>
+            {
+                new()
+                {
+                    SellerId = Guid.NewGuid(),
+                    Items = new List<CheckoutItemDto> { checkoutItem },
+                    SkuInfos = new Dictionary<Guid, SkuInfo> { { skuInfo.SkuId, skuInfo } },
+                    GroupPointsOffsetRaw = 50m,
+                    UsePoints = true
+                }
+            }
+        };
+
+        OrderAggregate capturedOrder = null!;
+        orderRepoMock.Setup(r => r.AddAsync(It.IsAny<OrderAggregate>(), It.IsAny<CancellationToken>()))
+            .Callback<OrderAggregate, CancellationToken>((o, _) => capturedOrder = o)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await sut.ExecuteAsync(context, CancellationToken.None);
+
+        // Assert：积分抵现应被聚合根裁剪到 ItemsAmount - DiscountAmount = 20
+        capturedOrder.PointsOffsetAmount.Should().Be(20m);
+        capturedOrder.DiscountAmount.Should().Be(80m);
+        // TotalAmount = 100 - 80 - 20 + 10 = 10，不为负
+        capturedOrder.TotalAmount.Should().Be(10m);
+    }
+
     /// <summary>
     /// 构造 OrderSagaOrchestrator 被测对象，并通过 out 参数返回各依赖 Mock。
     /// </summary>
@@ -218,5 +279,32 @@ public class OrderSagaOrchestratorTests
             Address = address,
             Groups = groups
         };
+    }
+
+    /// <summary>
+    /// 构造指定单价的 SkuInfo，自动生成 SkuId/SpuId/SellerId。
+    /// </summary>
+    private static SkuInfo CreateSkuInfo(decimal unitPrice)
+    {
+        return new SkuInfo
+        {
+            SkuId = Guid.NewGuid(),
+            SpuId = Guid.NewGuid(),
+            SellerId = Guid.NewGuid(),
+            ProductName = "测试商品",
+            SkuName = "默认规格",
+            MainImage = null,
+            UnitPrice = unitPrice,
+            AvailableQty = 100,
+            IsOnSale = true
+        };
+    }
+
+    /// <summary>
+    /// 构造测试用收货地址快照。
+    /// </summary>
+    private static AddressSnapshot CreateTestAddress()
+    {
+        return AddressSnapshot.Create("测试用户", "13800138000", "广东", "深圳", "南山区", "科技园路1号");
     }
 }

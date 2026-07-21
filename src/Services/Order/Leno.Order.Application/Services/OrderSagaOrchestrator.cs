@@ -164,16 +164,23 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
             }
         }
 
-        // 生成订单编号并创建订单聚合
+        // 生成订单编号并创建订单聚合（积分抵现初始为 0，由 ApplyPointsOffset 校验不变量）
         var orderNo = await _orderNumberGenerator.GenerateAsync(ct);
         var order = OrderAggregate.Create(
             orderId, orderNo, OrderType.Normal, userId, group.SellerId,
-            orderItems, address, freight, groupPointsOffset, DateTime.UtcNow.AddMinutes(30));
+            orderItems, address, freight, pointsOffsetAmount: 0m, DateTime.UtcNow.AddMinutes(30));
 
-        // 应用优惠分摊
+        // 应用优惠分摊（聚合根校验分摊总和与单项上限）
         if (discount > 0 && allocations.Count > 0)
         {
             order.ApplyDiscount(discount, allocations);
+        }
+
+        // 应用积分抵现（聚合根校验 0 ≤ pointsOffset ≤ ItemsAmount - DiscountAmount）
+        // Saga 已按 maxOffset = groupItemsAmount - discount 裁剪，ApplyPointsOffset 会再次校验
+        if (groupPointsOffset > 0)
+        {
+            order.ApplyPointsOffset(groupPointsOffset);
         }
 
         // 入库追踪（未提交，待 Saga 全部成功后统一 SaveEntitiesAsync）
