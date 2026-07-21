@@ -127,6 +127,13 @@ public sealed class RefundCompletedEvent : IntegrationEventBase
     /// <summary>关联售后单标识，默认 Guid.Empty（兼容旧版消费方）。</summary>
     public Guid AfterSalesId { get; init; }
 
+    /// <summary>
+    /// 第三方支付渠道返回的退款流水号（如微信 refund_id、支付宝 trade_no）。
+    /// 默认 string.Empty 保持向后兼容；旧版消费方无需修改即可工作。
+    /// 新版消费方按需读取用于财务对账与运营查询。
+    /// </summary>
+    public string ChannelRefundNo { get; init; } = string.Empty;
+
     /// <summary>聚合根标识，用于发件箱归类。</summary>
     public Guid AggregateId => RefundId;
 
@@ -159,6 +166,23 @@ public sealed class RefundCompletedEvent : IntegrationEventBase
         RefundAmount = refundAmount;
         Currency = string.IsNullOrWhiteSpace(currency) ? "CNY" : currency;
         CompletedAt = completedAt;
+    }
+
+    /// <summary>
+    /// 带渠道退款流水号与售后单标识的构造重载，由支付域退款成功时发布。
+    /// SchemaVersion 递增为 2 以标识新契约。
+    /// </summary>
+    public RefundCompletedEvent(Guid orderId, Guid userId, Guid refundId, Guid afterSalesId, decimal refundAmount, string currency, DateTime completedAt, string channelRefundNo)
+        : base(eventId: null, occurredAt: null, idempotencyKey: null, schemaVersion: 2)
+    {
+        OrderId = orderId;
+        UserId = userId;
+        RefundId = refundId;
+        AfterSalesId = afterSalesId;
+        RefundAmount = refundAmount;
+        Currency = string.IsNullOrWhiteSpace(currency) ? "CNY" : currency;
+        CompletedAt = completedAt;
+        ChannelRefundNo = channelRefundNo ?? string.Empty;
     }
 }
 

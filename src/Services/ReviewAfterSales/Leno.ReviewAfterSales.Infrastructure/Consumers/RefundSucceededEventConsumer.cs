@@ -64,7 +64,10 @@ public sealed class RefundSucceededEventConsumer : IntegrationEventConsumerBase<
             return;
         }
 
-        afterSales.MarkRefundCompleted(integrationEvent.RefundId, integrationEvent.RefundAmount, channelRefundNo: null);
+        afterSales.MarkRefundCompleted(
+            integrationEvent.RefundId,
+            integrationEvent.RefundAmount,
+            channelRefundNo: integrationEvent.ChannelRefundNo);
 
         await _afterSalesRepository.UpdateAsync(afterSales, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
