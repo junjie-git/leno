@@ -21,14 +21,21 @@ public sealed class ReviewsController : ReviewControllerBase
 {
     private readonly IReviewAppService _reviewAppService;
     private readonly IFileStorageService _fileStorage;
+    private readonly IFileSignatureDetector _fileSignatureDetector;
 
-    public ReviewsController(ICurrentUserContext currentUser, IReviewAppService reviewAppService, IFileStorageService fileStorage)
+    public ReviewsController(
+        ICurrentUserContext currentUser,
+        IReviewAppService reviewAppService,
+        IFileStorageService fileStorage,
+        IFileSignatureDetector fileSignatureDetector)
         : base(currentUser)
     {
         ArgumentNullException.ThrowIfNull(reviewAppService);
         ArgumentNullException.ThrowIfNull(fileStorage);
+        ArgumentNullException.ThrowIfNull(fileSignatureDetector);
         _reviewAppService = reviewAppService;
         _fileStorage = fileStorage;
+        _fileSignatureDetector = fileSignatureDetector;
     }
 
     // ========== 买家端 ==========
@@ -114,7 +121,15 @@ public sealed class ReviewsController : ReviewControllerBase
                 return BadRequest(ApiResponse.Fail(400, $"文件 {file.FileName} 格式不支持，仅支持 JPG/PNG/WebP"));
             }
 
-            var result = await _fileStorage.UploadAsync(file.OpenReadStream(), file.FileName, file.ContentType, "review", ct);
+            // 审计 3.10：上传图片流显式 using，避免依赖框架兜底造成句柄泄漏
+            // 审计 3.11：扩展名校验后追加 Magic Number 校验，防止伪装扩展名上传非图片文件
+            await using var stream = file.OpenReadStream();
+            if (!_fileSignatureDetector.IsValidImageSignature(stream, extension))
+            {
+                return BadRequest(ApiResponse.Fail(400, $"文件 {file.FileName} 内容与扩展名不符，疑似伪装文件"));
+            }
+
+            var result = await _fileStorage.UploadAsync(stream, file.FileName, file.ContentType, "review", ct);
             urls.Add(result.Url);
         }
 

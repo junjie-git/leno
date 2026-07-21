@@ -1,8 +1,10 @@
 using AppServices = Leno.ReviewAfterSales.Application.Services;
 using InfraServices = Leno.ReviewAfterSales.Infrastructure.Services;
+using Leno.Infrastructure.Abstractions;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
+using Leno.Infrastructure.Storage;
 using Leno.ReviewAfterSales.Application;
 using Leno.ReviewAfterSales.Application.InternalQueryServices;
 using Leno.ReviewAfterSales.Application.Services;
@@ -48,6 +50,9 @@ public static class ServiceCollectionExtensions
 
         // 注册 ReviewAfterSales BC 领域事件到集成事件翻译器
         services.AddSingleton<IIntegrationEventMapper, ReviewAfterSalesIntegrationEventMapper>();
+
+        // 审计 3.11：文件签名校验器，防止伪装扩展名上传非图片文件
+        services.AddSingleton<IFileSignatureDetector, FileSignatureDetector>();
 
         services.AddScoped<IReviewRepository, EfCoreReviewRepository>();
         services.AddScoped<IAfterSalesRepository, EfCoreAfterSalesRepository>();
