@@ -172,8 +172,12 @@ public sealed class ObjectStorageService : IFileStorageService
         {
             return false;
         }
-        catch
+        catch (Exception ex)
         {
+            // 修复 T36：原 catch 块静默吞异常返回 false，运维无法排查文件存在性检查失败原因。
+            // 现记录 Warning 日志包含异常信息与 ObjectName，便于定位 MinIO 连接/权限等问题。
+            _logger.LogWarning(ex, "MinIO 文件存在性检查失败 ObjectName={ObjectName} FileUrl={FileUrl}",
+                objectName, fileUrl);
             return false;
         }
     }
