@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+using System.IO.Hashing;
 using System.Text;
 using Leno.SharedKernel.Abstractions;
 using Leno.Infrastructure.Abstractions;
@@ -20,6 +20,18 @@ public sealed class RedisBloomFilter : IBloomFilter
     private readonly string _redisKey;
     private readonly int _bitSize;
     private readonly int _hashCount;
+
+    /// <summary>
+    /// Lua 脚本：批量设置多个 bit，将多次 StringSetBitAsync 合并为单次网络往返。
+    /// KEYS[1] = Redis bitmap key，ARGV[1..N] = bit 偏移量。
+    /// 返回设置的 bit 数量。
+    /// </summary>
+    private static readonly string _batchSetBitsScript = @"
+for i = 1, #ARGV do
+    redis.call('SETBIT', KEYS[1], ARGV[i], 1)
+end
+return #ARGV
+";
 
     /// <summary>
     /// 默认参数：1000 万元素，1% 误判率
@@ -58,14 +70,14 @@ public sealed class RedisBloomFilter : IBloomFilter
 
         var positions = GetHashPositions(key);
 
-        var tasks = new List<Task<bool>>(positions.Length);
-
-        foreach (var position in positions)
-        {
-            tasks.Add(_database.StringSetBitAsync(_redisKey, position, true));
-        }
-
-        await Task.WhenAll(tasks);
+        // 修复 T38：使用 Lua 脚本批量设置 bit，将 N 次 StringSetBitAsync 合并为 1 次网络往返。
+        // 原实现循环调用 StringSetBitAsync（默认 7 次），即使 Task.WhenAll 允许管道化，
+        // 仍有多次网络往返开销；Lua 脚本保证单次往返且原子执行。
+        var args = positions.Select(p => (RedisValue)p).ToArray();
+        await _database.ScriptEvaluateAsync(
+            _batchSetBitsScript,
+            new RedisKey[] { _redisKey },
+            args).ConfigureAwait(false);
 
         _logger.LogDebug("BloomFilter 添加 key: {Key}, Positions: {Positions}", key, string.Join(",", positions));
     }
@@ -113,14 +125,10 @@ public sealed class RedisBloomFilter : IBloomFilter
 
     private static long GetHash64(byte[] data, int seed)
     {
-        // 使用 SHA256 结合种子生成 64 位哈希
-        var seedBytes = BitConverter.GetBytes(seed);
-        var input = new byte[data.Length + seedBytes.Length];
-        Buffer.BlockCopy(data, 0, input, 0, data.Length);
-        Buffer.BlockCopy(seedBytes, 0, input, data.Length, seedBytes.Length);
-
-        var hash = SHA256.HashData(input);
-        return BitConverter.ToInt64(hash, 0);
+        // 修复 T37：SHA256 是加密级哈希，对布隆过滤器非必要且性能开销大（~10x 慢于非加密哈希）。
+        // 替换为 XxHash64（.NET 8+ 内置 System.IO.Hashing），非加密哈希，分布均匀，速度快。
+        // 使用 seed 参数直接作为哈希种子，无需拼接 seedBytes，进一步减少分配。
+        return (long)XxHash64.HashToUInt64(data, seed);
     }
 
     private static int CalculateBitSize(int expectedElements, double falsePositiveRate)
