@@ -144,6 +144,30 @@ public sealed class ScheduledTask : AggregateRoot
         LastRunAt = runAt;
     }
 
+    /// <summary>
+    /// 原子地完成"开始运行 + 记录执行结果"两步状态变更，
+    /// 用于在单次 <c>SaveEntitiesAsync</c> 事务内持久化整个执行周期，避免 RunNow 与 RecordExecution 分两次提交导致中途失败状态卡在 Running。
+    /// </summary>
+    /// <param name="status">最终运行状态（Success/Failed）。</param>
+    /// <param name="executedAt">执行时间（UTC），同时作为 LastRunAt。</param>
+    /// <param name="errorMessage">错误信息，仅 Failed 时使用，领域层忽略（保留参数以兼容调用方）。</param>
+    public void RunAndRecord(TaskRunStatus status, DateTime executedAt, string? errorMessage)
+    {
+        if (!Enum.IsDefined(status))
+        {
+            throw new SystemAdminDomainException("运行状态取值非法", "TASK_RUN_STATUS_INVALID");
+        }
+
+        if (executedAt == default)
+        {
+            throw new SystemAdminDomainException("运行时间不可为空", "TASK_RUN_AT_EMPTY");
+        }
+
+        // 原子地设置 LastRunAt 与最终状态，不经过 Running 中间态
+        LastRunAt = executedAt;
+        LastRunStatus = status;
+    }
+
     private static string? NormalizeNullable(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static void ValidateName(string name)

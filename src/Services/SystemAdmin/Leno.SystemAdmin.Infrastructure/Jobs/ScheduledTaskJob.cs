@@ -48,11 +48,9 @@ public sealed class ScheduledTaskJob : IJob
 
         try
         {
-            task.RunNow();
-            await repository.UpdateAsync(task, ct);
-            await unitOfWork.SaveEntitiesAsync(ct);
-
-            task.RecordExecution(TaskRunStatus.Success, DateTime.UtcNow, null);
+            // 原子地完成"开始运行 + 记录成功"两步状态变更，单次 SaveEntitiesAsync 提交事务
+            // 避免原先 RunNow + SaveEntitiesAsync + RecordExecution + SaveEntitiesAsync 中途失败导致任务卡在 Running 状态
+            task.RunAndRecord(TaskRunStatus.Success, DateTime.UtcNow, null);
             await repository.UpdateAsync(task, ct);
             await unitOfWork.SaveEntitiesAsync(ct);
 
@@ -63,7 +61,8 @@ public sealed class ScheduledTaskJob : IJob
             logger.LogError(ex, "定时任务执行失败 TaskId={TaskId}", taskId);
             try
             {
-                task.RecordExecution(TaskRunStatus.Failed, DateTime.UtcNow, null);
+                // 失败分支同样使用 RunAndRecord 单次事务，记录 Failed 状态
+                task.RunAndRecord(TaskRunStatus.Failed, DateTime.UtcNow, ex.Message);
                 await repository.UpdateAsync(task, ct);
                 await unitOfWork.SaveEntitiesAsync(ct);
             }
