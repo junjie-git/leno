@@ -1,5 +1,6 @@
 ﻿using Leno.Infrastructure.EventBus;
 using Leno.Promotion.Domain.Repositories;
+using Leno.Promotion.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -88,6 +89,25 @@ public sealed class OrderCancelledEventConsumer : IntegrationEventConsumerBase<O
         if (userCoupon is null)
         {
             Logger.LogInformation("订单 {OrderId} 未绑定优惠券，跳过退还", integrationEvent.OrderId);
+            return;
+        }
+
+        // 状态前置检查：券已核销（Used）说明订单已支付后又被取消（如退款流程触发取消事件），
+        // 应由 RefundCompletedEventConsumer 走 Return 流程退还，此处不应调 Release（会抛 USER_COUPON_RELEASE_INVALID 进死信）
+        if (userCoupon.Status == CouponStatus.Used)
+        {
+            Logger.LogInformation(
+                "订单 {OrderId} 的券 {UserCouponId} 已核销（Used），跳过 Release（应由 RefundCompleted 退还）",
+                integrationEvent.OrderId, userCoupon.Id);
+            return;
+        }
+
+        // 防御性：其他非 Locked 状态（如已 Expired）幂等跳过，避免 MassTransit 死信
+        if (userCoupon.Status != CouponStatus.Locked)
+        {
+            Logger.LogInformation(
+                "订单 {OrderId} 券状态 {Status} 非 Locked，幂等跳过",
+                integrationEvent.OrderId, userCoupon.Status);
             return;
         }
 
