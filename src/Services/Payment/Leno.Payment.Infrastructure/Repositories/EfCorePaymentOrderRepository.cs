@@ -72,6 +72,31 @@ public sealed class EfCorePaymentOrderRepository : IPaymentOrderRepository
     }
 
     /// <inheritdoc />
+    public async Task<List<PaymentOrderAggregate>> QueryPaidByPaidAtAsync(
+        PaymentChannel? channel,
+        DateTime paidStart,
+        DateTime paidEnd,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var query = _context.PaymentOrders
+            .Where(o => o.Status == PaymentStatus.Paid)
+            .Where(o => o.PaidAt != null && o.PaidAt >= paidStart && o.PaidAt <= paidEnd);
+
+        if (channel.HasValue)
+        {
+            query = query.Where(o => o.Channel == channel.Value);
+        }
+
+        return await query
+            .OrderByDescending(o => o.PaidAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
     public async Task AddAsync(PaymentOrderAggregate aggregate, CancellationToken ct = default)
         => await _context.PaymentOrders.AddAsync(aggregate, ct);
 

@@ -153,6 +153,7 @@ public sealed class ReconciliationService : BackgroundService, IReconciliationSe
     /// 分页循环加载系统支付单并构建索引字典。
     /// 循环退出条件：返回 0 条（无更多数据）或返回不足一页（batch.Count &lt; PageSize）。
     /// 当 batch.Count == PageSize 时必须继续查询下一页，确认无更多数据。
+    /// 按 PaidAt 过滤（非 CreatedAt），避免跨日支付（23:50 创建、次日 00:10 支付成功）漏对账。
     /// </summary>
     private async Task<(Dictionary<string, PaymentOrder> byOutTradeNo,
                         Dictionary<string, PaymentOrder> byChannelTradeNo)> LoadSystemOrdersPagedAsync(
@@ -163,14 +164,15 @@ public sealed class ReconciliationService : BackgroundService, IReconciliationSe
     {
         var byOutTradeNo = new Dictionary<string, PaymentOrder>();
         var byChannelTradeNo = new Dictionary<string, PaymentOrder>();
-        var endDateExclusive = billDate.AddDays(1).AddTicks(-1);
+        // 对账日范围：[billDate 00:00:00, billDate 23:59:59.9999999]
+        var paidStart = billDate.Date;
+        var paidEnd = billDate.Date.AddDays(1).AddTicks(-1);
 
         var page = 1;
         while (true)
         {
-            var batch = await paymentRepo.QueryAsync(
-                null, channel, PaymentStatus.Paid,
-                billDate, endDateExclusive,
+            var batch = await paymentRepo.QueryPaidByPaidAtAsync(
+                channel, paidStart, paidEnd,
                 page, ReconciliationPageSize, ct).ConfigureAwait(false);
 
             if (batch.Count == 0)

@@ -93,12 +93,10 @@ public class ReconciliationServiceTests
         private void SetupMultiPageSequence(PaymentChannel channel)
         {
             _paymentRepoMock
-                .SetupSequence(r => r.QueryAsync(
-                    It.IsAny<Guid?>(),
+                .SetupSequence(r => r.QueryPaidByPaidAtAsync(
                     channel,
-                    It.IsAny<PaymentStatus?>(),
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>(),
                     It.IsAny<int>(),
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()))
@@ -125,23 +123,19 @@ public class ReconciliationServiceTests
 
             // 断言：每渠道调用 4 次
             _paymentRepoMock.Verify(
-                r => r.QueryAsync(
-                    It.IsAny<Guid?>(),
+                r => r.QueryPaidByPaidAtAsync(
                     PaymentChannel.WeChatPay,
-                    It.IsAny<PaymentStatus?>(),
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>(),
                     It.IsAny<int>(),
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()),
                 Times.Exactly(4));
             _paymentRepoMock.Verify(
-                r => r.QueryAsync(
-                    It.IsAny<Guid?>(),
+                r => r.QueryPaidByPaidAtAsync(
                     PaymentChannel.Alipay,
-                    It.IsAny<PaymentStatus?>(),
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>(),
                     It.IsAny<int>(),
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()),
@@ -157,23 +151,19 @@ public class ReconciliationServiceTests
         {
             // 安排：每渠道只返回 100 条
             _paymentRepoMock
-                .SetupSequence(r => r.QueryAsync(
-                    It.IsAny<Guid?>(),
+                .SetupSequence(r => r.QueryPaidByPaidAtAsync(
                     PaymentChannel.WeChatPay,
-                    It.IsAny<PaymentStatus?>(),
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>(),
                     It.IsAny<int>(),
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(CreateOrders(100, PaymentChannel.WeChatPay));
             _paymentRepoMock
-                .SetupSequence(r => r.QueryAsync(
-                    It.IsAny<Guid?>(),
+                .SetupSequence(r => r.QueryPaidByPaidAtAsync(
                     PaymentChannel.Alipay,
-                    It.IsAny<PaymentStatus?>(),
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>(),
                     It.IsAny<int>(),
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()))
@@ -184,23 +174,19 @@ public class ReconciliationServiceTests
 
             // 断言：每渠道调用 1 次
             _paymentRepoMock.Verify(
-                r => r.QueryAsync(
-                    It.IsAny<Guid?>(),
+                r => r.QueryPaidByPaidAtAsync(
                     PaymentChannel.WeChatPay,
-                    It.IsAny<PaymentStatus?>(),
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>(),
                     It.IsAny<int>(),
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()),
                 Times.Once);
             _paymentRepoMock.Verify(
-                r => r.QueryAsync(
-                    It.IsAny<Guid?>(),
+                r => r.QueryPaidByPaidAtAsync(
                     PaymentChannel.Alipay,
-                    It.IsAny<PaymentStatus?>(),
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>(),
                     It.IsAny<int>(),
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()),
@@ -217,24 +203,20 @@ public class ReconciliationServiceTests
         {
             // 安排：每渠道 500+空
             _paymentRepoMock
-                .SetupSequence(r => r.QueryAsync(
-                    It.IsAny<Guid?>(),
+                .SetupSequence(r => r.QueryPaidByPaidAtAsync(
                     PaymentChannel.WeChatPay,
-                    It.IsAny<PaymentStatus?>(),
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>(),
                     It.IsAny<int>(),
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(CreateOrders(500, PaymentChannel.WeChatPay))
                 .ReturnsAsync(new List<PaymentOrder>());
             _paymentRepoMock
-                .SetupSequence(r => r.QueryAsync(
-                    It.IsAny<Guid?>(),
+                .SetupSequence(r => r.QueryPaidByPaidAtAsync(
                     PaymentChannel.Alipay,
-                    It.IsAny<PaymentStatus?>(),
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>(),
                     It.IsAny<int>(),
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()))
@@ -246,23 +228,19 @@ public class ReconciliationServiceTests
 
             // 断言：每渠道调用 2 次
             _paymentRepoMock.Verify(
-                r => r.QueryAsync(
-                    It.IsAny<Guid?>(),
+                r => r.QueryPaidByPaidAtAsync(
                     PaymentChannel.WeChatPay,
-                    It.IsAny<PaymentStatus?>(),
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>(),
                     It.IsAny<int>(),
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()),
                 Times.Exactly(2));
             _paymentRepoMock.Verify(
-                r => r.QueryAsync(
-                    It.IsAny<Guid?>(),
+                r => r.QueryPaidByPaidAtAsync(
                     PaymentChannel.Alipay,
-                    It.IsAny<PaymentStatus?>(),
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>(),
                     It.IsAny<int>(),
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()),
@@ -425,6 +403,122 @@ public class ReconciliationServiceTests
 
             // 断言：无差异
             diffs.Should().BeEmpty();
+        }
+    }
+
+    /// <summary>
+    /// P1-8 测试：验证对账查询按 PaidAt（非 CreatedAt）过滤，跨日支付不会漏对账。
+    /// 通过捕获 QueryPaidByPaidAtAsync 入参，断言 paidStart/paidEnd 为对账日全天范围。
+    /// </summary>
+    public class CrossDayReconciliationTests
+    {
+        private readonly Mock<IPaymentOrderRepository> _paymentRepoMock = new();
+        private readonly Mock<IReconciliationDiffRepository> _diffRepoMock = new();
+        private readonly Mock<IUnitOfWork> _uowMock = new();
+        private readonly ReconciliationService _sut;
+
+        public CrossDayReconciliationTests()
+        {
+            var serviceProviderMock = new Mock<IServiceProvider>();
+            serviceProviderMock
+                .Setup(sp => sp.GetService(typeof(IPaymentOrderRepository)))
+                .Returns(_paymentRepoMock.Object);
+            serviceProviderMock
+                .Setup(sp => sp.GetService(typeof(IReconciliationDiffRepository)))
+                .Returns(_diffRepoMock.Object);
+            serviceProviderMock
+                .Setup(sp => sp.GetService(typeof(IUnitOfWork)))
+                .Returns(_uowMock.Object);
+
+            var scopeMock = new Mock<IServiceScope>();
+            scopeMock.SetupGet(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
+
+            var scopeFactoryMock = new Mock<IServiceScopeFactory>();
+            scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
+
+            var loggerMock = new Mock<ILogger<ReconciliationService>>();
+            _sut = new ReconciliationService(scopeFactoryMock.Object, loggerMock.Object);
+
+            _diffRepoMock
+                .Setup(d => d.AddAsync(It.IsAny<ReconciliationDiff>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            _uowMock
+                .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            // 默认返回空，使对账快速退出
+            _paymentRepoMock
+                .Setup(r => r.QueryPaidByPaidAtAsync(
+                    It.IsAny<PaymentChannel?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<int>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<PaymentOrder>());
+        }
+
+        [Fact]
+        public async Task ReconcileAsync_ShouldFilterByPaidAt_FullDayRange()
+        {
+            // 安排：对账日 2026-07-19
+            var billDate = new DateTime(2026, 7, 19);
+
+            // 捕获传入的 paidStart / paidEnd
+            DateTime? capturedStart = null;
+            DateTime? capturedEnd = null;
+            _paymentRepoMock
+                .Setup(r => r.QueryPaidByPaidAtAsync(
+                    It.IsAny<PaymentChannel?>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<DateTime>(),
+                    It.IsAny<int>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback<PaymentChannel?, DateTime, DateTime, int, int, CancellationToken>(
+                    (_, start, end, _, _, _) =>
+                    {
+                        // Moq 在多次调用时，Callback 只会捕获最后一次值，这里捕获任一调用即可
+                        capturedStart = start;
+                        capturedEnd = end;
+                    })
+                .ReturnsAsync(new List<PaymentOrder>());
+
+            // 行动
+            await _sut.ReconcileAsync(billDate, CancellationToken.None);
+
+            // 断言：paidStart / paidEnd 应为 2026-07-19 全天范围 [00:00:00, 23:59:59.9999999]
+            // 跨日支付（23:50 创建次日 00:10 支付成功）按 PaidAt 归入实际支付日
+            capturedStart.Should().NotBeNull();
+            capturedEnd.Should().NotBeNull();
+            capturedStart!.Value.Date.Should().Be(billDate.Date);
+            capturedStart!.Value.TimeOfDay.Should().Be(TimeSpan.Zero);
+            // paidEnd = billDate.Date.AddDays(1).AddTicks(-1) = 23:59:59.9999999
+            capturedEnd!.Value.Date.Should().Be(billDate.Date);
+            capturedEnd!.Value.Should().Be(billDate.Date.AddDays(1).AddTicks(-1));
+        }
+
+        [Fact]
+        public async Task ReconcileAsync_ShouldNotCallQueryAsync_ByCreatedAt()
+        {
+            // 安排
+            var billDate = new DateTime(2026, 7, 19);
+
+            // 行动
+            await _sut.ReconcileAsync(billDate, CancellationToken.None);
+
+            // 断言：对账不应再调用按 CreatedAt 过滤的旧 QueryAsync
+            _paymentRepoMock.Verify(
+                r => r.QueryAsync(
+                    It.IsAny<Guid?>(),
+                    It.IsAny<PaymentChannel?>(),
+                    It.IsAny<PaymentStatus?>(),
+                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime?>(),
+                    It.IsAny<int>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
         }
     }
 
