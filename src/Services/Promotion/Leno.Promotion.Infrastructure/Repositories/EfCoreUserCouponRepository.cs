@@ -73,6 +73,12 @@ public sealed class EfCoreUserCouponRepository : IUserCouponRepository
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// 方法名保持 <c>GetExpiredUnusedCouponsAsync</c> 以避免破坏调用方签名，
+    /// 语义扩展为"过期且未核销（Unused 或 Locked）"：
+    /// UserCoupon.Expire 允许从 Locked 转 Expired（订单长时间挂起导致 Locked+Expired 券被永久占位），
+    /// 扫描必须同时覆盖两态，否则 Locked+Expired 券永远不会被触及。
+    /// </remarks>
     public async Task<List<UserCouponAggregate>> GetExpiredUnusedCouponsAsync(
         int skip,
         int take,
@@ -80,7 +86,8 @@ public sealed class EfCoreUserCouponRepository : IUserCouponRepository
     {
         var now = DateTime.UtcNow;
         return await _context.UserCoupons
-            .Where(u => u.Status == CouponStatus.Unused && u.ExpiredAt.HasValue && u.ExpiredAt.Value < now)
+            .Where(u => (u.Status == CouponStatus.Unused || u.Status == CouponStatus.Locked)
+                        && u.ExpiredAt.HasValue && u.ExpiredAt.Value < now)
             .OrderBy(u => u.ExpiredAt)
             .Skip(skip)
             .Take(take)

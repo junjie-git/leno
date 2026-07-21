@@ -55,6 +55,28 @@ public class CouponExpiryServiceTests
             Times.Never);
     }
 
+    [Fact]
+    public async Task GetExpiredUnusedCouponsAsync_ShouldIncludeLockedExpiredCoupons()
+    {
+        // 此测试验证 CouponExpiryService 的契约：仓储返回的 Locked 态过期券应能被 Expire() 处理
+        // （UserCoupon.Expire 已允许 Locked → Expired 转换，原 bug 在仓储 WHERE 仅过滤 Unused 导致 Locked+Expired 永不被扫描到）
+        // 仓储实现层（EfCoreUserCouponRepository）的 SQL 已扩展为 (Unused || Locked) AND ExpiredAt < now
+        var unusedCoupon = UserCoupon.Receive(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Manual", DateTime.UtcNow.AddDays(30));
+        var lockedCoupon = UserCoupon.Receive(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Manual", DateTime.UtcNow.AddDays(30));
+        lockedCoupon.Lock(Guid.NewGuid());
+
+        _userCouponRepoMock.Setup(r => r.GetExpiredUnusedCouponsAsync(0, 500, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<UserCoupon> { unusedCoupon, lockedCoupon });
+        _unitOfWorkMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        await InvokeProcessExpiredCouponsAsync();
+
+        // 关键断言：仓储应返回 Locked 态过期券，CouponExpiryService 应能调用 Expire() 处理之
+        // UserCoupon.Expire 已允许 Locked → Expired 转换
+        unusedCoupon.Status.Should().Be(CouponStatus.Expired);
+        lockedCoupon.Status.Should().Be(CouponStatus.Expired);
+    }
+
     private async Task InvokeProcessExpiredCouponsAsync()
     {
         var scopeFactory = new ServiceCollection()
