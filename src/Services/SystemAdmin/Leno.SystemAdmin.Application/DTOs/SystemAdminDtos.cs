@@ -3,6 +3,49 @@ using Leno.SystemAdmin.Domain.ValueObjects;
 namespace Leno.SystemAdmin.Application.DTOs;
 
 /// <summary>
+/// 运营数据指标项 DTO，对应领域值对象 <see cref="MetricItem"/> 的对外投影。
+/// </summary>
+public sealed class MetricItemDto
+{
+    /// <summary>指标键，如 "total_gmv", "success_rate"。</summary>
+    public string Key { get; set; } = string.Empty;
+
+    /// <summary>指标数值。</summary>
+    public decimal Value { get; set; }
+
+    /// <summary>指标单位，如 "CNY", "%", "次"。</summary>
+    public string Unit { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// 运营数据看板报表 DTO，对应 <see cref="Leno.SystemAdmin.Domain.Aggregates.DashboardReport"/> 聚合根的对外投影。
+/// 仅暴露对外契约字段，不泄露聚合内部结构（Period/DataVersion 等内部字段不暴露）。
+/// </summary>
+public sealed class DashboardReportDto
+{
+    /// <summary>报表标识。</summary>
+    public Guid ReportId { get; set; }
+
+    /// <summary>报表类型。</summary>
+    public ReportType ReportType { get; set; }
+
+    /// <summary>统计粒度：hourly / daily / weekly。</summary>
+    public string Granularity { get; set; } = string.Empty;
+
+    /// <summary>报表生成时间（UTC）。</summary>
+    public DateTime GeneratedAt { get; set; }
+
+    /// <summary>报表覆盖的开始时间（UTC）。</summary>
+    public DateTime PeriodStart { get; set; }
+
+    /// <summary>报表覆盖的结束时间（UTC）。</summary>
+    public DateTime PeriodEnd { get; set; }
+
+    /// <summary>指标项列表。</summary>
+    public List<MetricItemDto> Metrics { get; set; } = [];
+}
+
+/// <summary>
 /// 运营人员 DTO。
 /// </summary>
 public sealed class OperatorDto
