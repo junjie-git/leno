@@ -26,6 +26,13 @@ public sealed class ShopDashboardDataConfiguration : IEntityTypeConfiguration<Sh
         builder.Property(d => d.Currency).HasColumnName("currency").HasMaxLength(3).IsRequired();
         builder.Property(d => d.LastUpdatedAt).HasColumnName("last_updated_at");
 
+        // 审计字段（基类 AggregateRoot 继承自 Entity，包含 CreatedAt/UpdatedAt/CreatedBy/UpdatedBy）。
+        // 显式 snake_case 列映射 + CreatedBy/UpdatedBy 长度收窄至 64，避免默认 nvarchar(max) 与命名不一致。
+        builder.Property(d => d.CreatedAt).HasColumnName("created_at");
+        builder.Property(d => d.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(d => d.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
+        builder.Property(d => d.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
+
         builder.HasIndex(d => d.ShopId).HasDatabaseName("ix_shop_dashboard_data_shop_id").IsUnique();
     }
 }
