@@ -51,5 +51,9 @@ public sealed class NotificationRecordConfiguration : IEntityTypeConfiguration<N
             .HasDatabaseName("ix_notification_records_idempotency_key");
         builder.HasIndex(n => n.ChannelMessageId)
             .HasDatabaseName("ix_notification_records_channel_message_id");
+        builder.HasIndex(n => new { n.Status, n.NextRetryAt })
+            .HasDatabaseName("ix_notification_records_status_next_retry_at");
+        builder.HasIndex(n => new { n.Status, n.RetryCount })
+            .HasDatabaseName("ix_notification_records_status_retry_count");
     }
 }
