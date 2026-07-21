@@ -77,6 +77,17 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
         // 全部组成功 → 统一提交工作单元（订单聚合 + 发件箱集成事件同事务持久化）
         await _unitOfWork.SaveEntitiesAsync(ct);
 
+        // SaveEntitiesAsync 成功后统一调度超时延迟消息（保证订单已持久化，避免 Saga 失败回滚后产生幽灵延迟消息）
+        foreach (var g in completed)
+        {
+            var scheduler = _bus.CreateMessageScheduler();
+            await scheduler.ScheduleSend(
+                new Uri("queue:order-timeout"),
+                g.Order.ExpireAt,
+                new OrderTimeoutMessage(g.OrderId),
+                ct);
+        }
+
         return new OrderSagaResult
         {
             FirstOrder = completed[0].Order,
@@ -85,8 +96,9 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
     }
 
     /// <summary>
-    /// 执行单组下单流程：构建明细 → 价格校验 → 优惠计算 → 运费 → 预占库存 → 冻结积分 → 创建订单聚合 → 入库追踪 → 调度超时。
+    /// 执行单组下单流程：构建明细 → 价格校验 → 优惠计算 → 运费 → 预占库存 → 冻结积分 → 创建订单聚合 → 入库追踪。
     /// 积分冻结失败时执行组内回滚（释放已预占库存）后向上抛（Task 8 单组原子回滚）。
+    /// 超时延迟消息调度由 <see cref="ExecuteAsync"/> 在 <see cref="IUnitOfWork.SaveEntitiesAsync"/> 成功后统一执行。
     /// </summary>
     private async Task<CompletedGroup> ExecuteGroupAsync(
         Guid userId,
@@ -186,14 +198,6 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
 
         // 入库追踪（未提交，待 Saga 全部成功后统一 SaveEntitiesAsync）
         await _orderRepository.AddAsync(order, ct);
-
-        // 调度支付超时取消延迟消息（30 分钟）
-        var scheduler = _bus.CreateMessageScheduler();
-        await scheduler.ScheduleSend(
-            new Uri("queue:order-timeout"),
-            order.ExpireAt,
-            new OrderTimeoutMessage(orderId),
-            ct);
 
         return new CompletedGroup
         {
