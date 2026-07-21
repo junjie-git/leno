@@ -154,31 +154,40 @@ return 0";
     /// <inheritdoc />
     public async Task WriteBackToDbAsync(Guid activityId, CancellationToken ct = default)
     {
-        var allStocks = await GetAllStocksAsync(activityId, ct);
-
-        foreach (var (skuId, remainingStock) in allStocks)
+        // 显式按 activityId 加载聚合，避免原实现按 SkuId 查询 Active 态活动
+        // 原实现依赖 EF Core Identity Map：外层 CloseActivityWithStockWriteBackAsync 已在内存中
+        // 将 activity.Status 改为 Closed，依赖同一 tracked 实例返回；
+        // 一旦仓储改用 AsNoTracking 或不同 DbContext 实例即失效。
+        // 现改为按 ID 显式加载，配合 P0-2.8 单 SKU 契约，直接取 activity.SkuId 对应 Redis 库存
+        var activity = await _repository.GetByIdAsync(activityId, ct);
+        if (activity is null)
         {
-            // 通过 SKU 查询进行中的活动，更新库存基线
-            var activity = await _repository.GetActiveBySkuIdAsync(skuId, DateTime.UtcNow, ct);
-            if (activity is null)
-            {
-                _logger.LogWarning("WriteBackToDb: SKU {SkuId} 未找到进行中的活动", skuId);
-                continue;
-            }
+            _logger.LogWarning("WriteBackToDb: 未找到活动 {ActivityId}", activityId);
+            return;
+        }
 
-            // 以 Redis 剩余库存同步 DB 基线（聚合内仅当 Redis < DB 时更新，避免并发回写覆盖）
-            var before = activity.AvailableStock;
-            activity.SyncFromRedis(remainingStock);
+        var allStocks = await GetAllStocksAsync(activityId, ct);
+        if (!allStocks.TryGetValue(activity.SkuId, out var remainingStock))
+        {
+            _logger.LogWarning(
+                "WriteBackToDb: Redis 未找到 ActivityId={ActivityId} SkuId={SkuId} 的库存",
+                activityId, activity.SkuId);
+            return;
+        }
 
-            if (activity.AvailableStock != before)
-            {
-                _logger.LogInformation(
-                    "WriteBackToDb: ActivityId={ActivityId} SkuId={SkuId} DB 库存由 {Before} 同步为 {After}（Redis={Redis}）",
-                    activityId, skuId, before, activity.AvailableStock, remainingStock);
-            }
+        // 以 Redis 剩余库存同步 DB 基线（聚合内仅当 Redis < DB 时更新，避免并发回写覆盖）
+        var before = activity.AvailableStock;
+        activity.SyncFromRedis(remainingStock);
+
+        if (activity.AvailableStock != before)
+        {
+            _logger.LogInformation(
+                "WriteBackToDb: ActivityId={ActivityId} SkuId={SkuId} DB 库存由 {Before} 同步为 {After}（Redis={Redis}）",
+                activityId, activity.SkuId, before, activity.AvailableStock, remainingStock);
         }
 
         // 经 UnitOfWork 保存聚合变更与发件箱事件（EF Core 乐观锁由聚合并发标记列保障）
+        // 调用方 CloseActivityWithStockWriteBackAsync 已用事务包裹
         await _unitOfWork.SaveEntitiesAsync(ct);
         _logger.LogInformation("秒杀活动 {ActivityId} Redis 库存已回写 DB", activityId);
     }
