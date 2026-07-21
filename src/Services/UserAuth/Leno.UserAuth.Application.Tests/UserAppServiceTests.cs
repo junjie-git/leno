@@ -563,6 +563,51 @@ public class UserAppServiceTests
         _userRepoMock.Verify(r => r.AddAsync(It.Is<User>(u => !string.IsNullOrEmpty(u.Username)), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task HandleOAuthCallbackAsync_Should_Reject_When_State_Provider_Mismatch_Callback_Provider()
+    {
+        // Arrange：state 中存 google，但回调 provider=wechat
+        _databaseMock.Setup(r => r.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync((RedisValue)"google|https://app.leno.com/cb");
+
+        var service = BuildUserAppService();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<UserAuthDomainException>(() =>
+            service.HandleOAuthCallbackAsync("wechat", "code", "state", "https://app.leno.com/cb", CancellationToken.None));
+        Assert.Equal("OAUTH_STATE_PROVIDER_MISMATCH", ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task HandleOAuthCallbackAsync_Should_Reject_When_State_Parts_Length_Not_Two()
+    {
+        // Arrange：state 中无 redirectUri（只有 provider，无分隔符或只 1 段）
+        _databaseMock.Setup(r => r.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync((RedisValue)"google");
+
+        var service = BuildUserAppService();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<UserAuthDomainException>(() =>
+            service.HandleOAuthCallbackAsync("google", "code", "state", "https://app.leno.com/cb", CancellationToken.None));
+        Assert.Equal("OAUTH_STATE_INVALID", ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task HandleOAuthCallbackAsync_Should_Reject_When_State_RedirectUri_Mismatch()
+    {
+        // Arrange：state 中 redirectUri 与回调不一致
+        _databaseMock.Setup(r => r.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync((RedisValue)"google|https://app.leno.com/original-cb");
+
+        var service = BuildUserAppService();
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<UserAuthDomainException>(() =>
+            service.HandleOAuthCallbackAsync("google", "code", "state", "https://evil.example.com/cb", CancellationToken.None));
+        Assert.Equal("OAUTH_REDIRECT_URI_MISMATCH", ex.ErrorCode);
+    }
+
     #endregion
 
     #region ChangePasswordAsync

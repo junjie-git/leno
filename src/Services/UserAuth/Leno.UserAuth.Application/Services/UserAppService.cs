@@ -272,12 +272,25 @@ public sealed class UserAppService : IUserAppService
         await _redis.KeyDeleteAsync(redisKey);
 
         var parts = redisValue.ToString().Split('|');
-        if (parts.Length < 1)
+        if (parts.Length != 2)
         {
             throw new UserAuthDomainException("State 数据无效", "OAUTH_STATE_INVALID");
         }
 
         var stateProvider = parts[0];
+        var stateRedirectUri = parts[1];
+
+        // 校验 state 内 provider 与 callback provider 一致，防止跨 OAuth 提供方的 CSRF
+        if (!string.Equals(stateProvider, provider.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UserAuthDomainException("State 与 provider 不匹配", "OAUTH_STATE_PROVIDER_MISMATCH");
+        }
+
+        // 校验 state 内 redirectUri 与 callback redirectUri 一致，防止开放重定向
+        if (!string.Equals(stateRedirectUri, redirectUri, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UserAuthDomainException("State 内 redirectUri 与回调不匹配", "OAUTH_REDIRECT_URI_MISMATCH");
+        }
 
         var authService = ResolveAuthService(provider);
 
