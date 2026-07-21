@@ -187,11 +187,13 @@ public sealed class OAuthClientAppService : IOAuthClientAppService
 
     private static string MaskSecret(string secret)
     {
-        if (string.IsNullOrEmpty(secret))
+        // 短密钥（含空值与小于 8 字符）无足够信息量可保留，统一返回 "****" 防止泄露部分字符被猜测。
+        // 长密钥保留前 4 与后 4 字符，便于管理员核对配置但不暴露完整密钥。
+        if (string.IsNullOrEmpty(secret) || secret.Length < 8)
         {
             return "****";
         }
 
-        return "****";
+        return $"{secret[..4]}****{secret[^4..]}";
     }
 }
