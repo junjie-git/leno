@@ -131,7 +131,7 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
         // 越权校验：仅归属卖家可确认退货
         RequireOwnedAfterSales(afterSales, operatorId);
 
-        afterSales.ConfirmReturn();
+        afterSales.ConfirmReturn(operatorId);
         afterSales.MarkRefunding();
 
         // 查询支付单信息，经发件箱模式发布退款请求集成事件
@@ -305,7 +305,11 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
             RejectReason = afterSales.RejectReason,
             FailReason = afterSales.FailReason,
             CancelledAt = afterSales.CancelledAt,
-            CancelReason = afterSales.CancelReason
+            CancelReason = afterSales.CancelReason,
+            ReturnedAt = afterSales.ReturnedAt,
+            TrackingNo = afterSales.TrackingNo,
+            ReturnConfirmedAt = afterSales.ReturnConfirmedAt,
+            ReturnConfirmedBy = afterSales.ReturnConfirmedBy
         };
     }
 }

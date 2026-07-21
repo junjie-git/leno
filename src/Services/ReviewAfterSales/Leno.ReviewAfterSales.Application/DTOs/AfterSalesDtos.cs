@@ -79,6 +79,10 @@ public sealed class AfterSalesDto
     public string? FailReason { get; set; }
     public DateTime? CancelledAt { get; set; }
     public string? CancelReason { get; set; }
+    public DateTime? ReturnedAt { get; set; }
+    public string? TrackingNo { get; set; }
+    public DateTime? ReturnConfirmedAt { get; set; }
+    public Guid? ReturnConfirmedBy { get; set; }
 }
 
 /// <summary>

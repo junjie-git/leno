@@ -482,7 +482,7 @@ public class AfterSalesTests
     {
         var afterSales = CreateReturnedReturnRefund();
 
-        afterSales.ConfirmReturn();
+        afterSales.ConfirmReturn(ValidOperatorId);
 
         afterSales.Status.Should().Be(AfterSalesStatus.ConfirmReturn);
         afterSales.ReturnConfirmedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
@@ -494,7 +494,7 @@ public class AfterSalesTests
         var afterSales = CreateReturnedReturnRefund();
         afterSales.ClearDomainEvents();
 
-        afterSales.ConfirmReturn();
+        afterSales.ConfirmReturn(ValidOperatorId);
 
         afterSales.DomainEvents.Should().HaveCount(1);
         var evt = afterSales.DomainEvents.Single().Should().BeOfType<AfterSalesReturnConfirmedDomainEvent>().Subject;
@@ -510,7 +510,7 @@ public class AfterSalesTests
     public void ConfirmReturn_WhenApproved_ShouldThrow()
     {
         var afterSales = CreateApprovedReturnRefund();
-        var act = () => afterSales.ConfirmReturn();
+        var act = () => afterSales.ConfirmReturn(ValidOperatorId);
 
         act.Should().Throw<ReviewDomainException>()
             .Where(e => e.ErrorCode == "AFTERSALES_CONFIRM_RETURN_STATUS_INVALID");
@@ -520,7 +520,7 @@ public class AfterSalesTests
     public void ConfirmReturn_WhenPending_ShouldThrow()
     {
         var afterSales = CreatePendingReturnRefund();
-        var act = () => afterSales.ConfirmReturn();
+        var act = () => afterSales.ConfirmReturn(ValidOperatorId);
 
         act.Should().Throw<ReviewDomainException>()
             .Where(e => e.ErrorCode == "AFTERSALES_CONFIRM_RETURN_STATUS_INVALID");
@@ -530,7 +530,7 @@ public class AfterSalesTests
     public void ConfirmReturn_WhenAlreadyConfirmed_ShouldThrow()
     {
         var afterSales = CreateConfirmedReturnRefund();
-        var act = () => afterSales.ConfirmReturn();
+        var act = () => afterSales.ConfirmReturn(ValidOperatorId);
 
         act.Should().Throw<ReviewDomainException>()
             .Where(e => e.ErrorCode == "AFTERSALES_CONFIRM_RETURN_STATUS_INVALID");
@@ -840,7 +840,7 @@ public class AfterSalesTests
         afterSales.ReturnGoods("SF1234567890");
         afterSales.Status.Should().Be(AfterSalesStatus.ReturnGoods);
 
-        afterSales.ConfirmReturn();
+        afterSales.ConfirmReturn(ValidOperatorId);
         afterSales.Status.Should().Be(AfterSalesStatus.ConfirmReturn);
 
         afterSales.MarkRefunding();
@@ -858,7 +858,7 @@ public class AfterSalesTests
 
         afterSales.Approve(ValidOperatorId, 80m);
         afterSales.ReturnGoods("SF1234567890");
-        afterSales.ConfirmReturn();
+        afterSales.ConfirmReturn(ValidOperatorId);
         afterSales.MarkRefunding();
         afterSales.MarkRefundCompleted(Guid.NewGuid(), 80m, "CH123");
 
@@ -953,7 +953,7 @@ public class AfterSalesTests
     public void CannotSkipFromPendingToConfirmReturn()
     {
         var afterSales = CreatePendingReturnRefund();
-        var act = () => afterSales.ConfirmReturn();
+        var act = () => afterSales.ConfirmReturn(ValidOperatorId);
 
         act.Should().Throw<ReviewDomainException>()
             .Where(e => e.ErrorCode == "AFTERSALES_CONFIRM_RETURN_STATUS_INVALID");
@@ -1046,7 +1046,7 @@ public class AfterSalesTests
     private static AfterSales CreateConfirmedReturnRefund()
     {
         var afterSales = CreateReturnedReturnRefund();
-        afterSales.ConfirmReturn();
+        afterSales.ConfirmReturn(ValidOperatorId);
         return afterSales;
     }
 

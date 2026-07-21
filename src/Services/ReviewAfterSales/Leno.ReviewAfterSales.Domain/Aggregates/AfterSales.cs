@@ -97,6 +97,9 @@ public sealed class AfterSales : AggregateRoot
     /// <summary>卖家确认收货时间（UTC）。</summary>
     public DateTime? ReturnConfirmedAt { get; private set; }
 
+    /// <summary>卖家确认收货操作人标识（合并审计 3.2：审计字段）。</summary>
+    public Guid? ReturnConfirmedBy { get; private set; }
+
     /// <summary>EF Core 无参构造。</summary>
     private AfterSales() { }
 
@@ -312,9 +315,11 @@ public sealed class AfterSales : AggregateRoot
     }
 
     /// <summary>
-    /// 卖家确认收货，校验已退货态，置已确认收货态并发布 <see cref="AfterSalesReturnConfirmedDomainEvent"/>。
+    /// 卖家确认收货，校验已退货态与操作人非空，置已确认收货态并发布 <see cref="AfterSalesReturnConfirmedDomainEvent"/>。
+    /// 合并审计 3.2：记录操作人 ReturnConfirmedBy 用于审计追溯。
     /// </summary>
-    public void ConfirmReturn()
+    /// <param name="operatorId">操作人标识（卖家），不可为空。</param>
+    public void ConfirmReturn(Guid operatorId)
     {
         if (Status != AfterSalesStatus.ReturnGoods)
         {
@@ -323,8 +328,14 @@ public sealed class AfterSales : AggregateRoot
                 "AFTERSALES_CONFIRM_RETURN_STATUS_INVALID");
         }
 
+        if (operatorId == Guid.Empty)
+        {
+            throw new ReviewDomainException("OperatorId 不可为空", "AFTERSALES_OPERATOR_EMPTY");
+        }
+
         Status = AfterSalesStatus.ConfirmReturn;
         ReturnConfirmedAt = DateTime.UtcNow;
+        ReturnConfirmedBy = operatorId;
         AddDomainEvent(new AfterSalesReturnConfirmedDomainEvent(
             Id, OrderId, UserId, ApprovedAmount ?? RequestedAmount));
     }
