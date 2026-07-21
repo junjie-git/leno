@@ -102,34 +102,29 @@ public sealed class NotificationRecordsController : NotificationControllerBase
     [HttpPost("api/admin/notifications/records/{id:guid}/resend")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ResendRecordAsync(Guid id, CancellationToken ct)
     {
-        var record = await _recordRepository.GetByIdAsync(id, ct);
-        if (record is null)
+        // 修复 P0-7：委托应用服务处理，将状态置为 Pending 让 DispatchJob 接管实际发送，
+        // 而非原实现直接调用 MarkResend() 置为 Sending 导致记录永久卡死。
+        var operatorId = GetCurrentUserId();
+
+        try
+        {
+            await _recordAppService.ResendRecordAsync(id, operatorId, ct);
+        }
+        catch (ArgumentException ex) when (ex.ParamName == nameof(id))
         {
             return NotFound(ApiResponse.Fail(404, $"通知记录 {id} 不存在"));
         }
-
-        if (record.Status != NotificationStatus.DeadLettered)
+        catch (InvalidOperationException ex)
         {
-            return BadRequest(ApiResponse.Fail(400, $"记录 {id} 非死信状态，无法重发"));
+            return BadRequest(ApiResponse.Fail(400, ex.Message));
         }
 
-        var channel = _channels.FirstOrDefault(c => c.Channel == record.Channel);
-        if (channel is null)
-        {
-            return BadRequest(ApiResponse.Fail(400, $"找不到渠道 {record.Channel} 的实现"));
-        }
-
-        // 重发
-        record.MarkResend();
-        await _recordRepository.UpdateAsync(record, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
-
-        var operatorId = GetCurrentUserId();
         _logger.LogInformation("操作员 {OperatorId} 手工重发死信 RecordId={RecordId}", operatorId, id);
 
-        return Ok(ApiResponse.Success("死信已重新发送"));
+        return Ok(ApiResponse.Success("死信已重新排队，等待 DispatchJob 拾取发送"));
     }
 
     /// <summary>获取送达率统计。</summary>

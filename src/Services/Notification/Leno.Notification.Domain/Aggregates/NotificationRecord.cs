@@ -252,6 +252,11 @@ public sealed class NotificationRecord : AggregateRoot
     /// <summary>
     /// 从死信状态手工重发。DeadLettered → Sending，重置重试计数与错误信息。
     /// </summary>
+    /// <remarks>
+    /// 注意：此方法将状态置为 Sending，但没有任何 Job 拾取 Sending 状态记录，
+    /// 会导致记录永久卡死。建议使用 <see cref="RequeueForSend"/> 将状态置为 Pending
+    /// 让 NotificationDispatchJob 接管实际发送。
+    /// </remarks>
     public void MarkResend()
     {
         if (Status != NotificationStatus.DeadLettered)
@@ -261,6 +266,27 @@ public sealed class NotificationRecord : AggregateRoot
         }
 
         Status = NotificationStatus.Sending;
+        RetryCount = 0;
+        ErrorMessage = null;
+        ErrorCode = null;
+        FailedAt = null;
+        NextRetryAt = null;
+    }
+
+    /// <summary>
+    /// 重新排队发送。DeadLettered → Pending，让 NotificationDispatchJob 重新拾取实际发送。
+    /// 相比 <see cref="MarkResend"/>（置为 Sending 无 Job 拾取），此方法置为 Pending
+    /// 可被 DispatchJob 正常接管，避免记录卡死在 Sending 状态。
+    /// </summary>
+    public void RequeueForSend()
+    {
+        if (Status != NotificationStatus.DeadLettered)
+        {
+            throw new NotificationDomainException(
+                $"当前状态 {Status} 不可重新排队，仅 DeadLettered 状态可转入 Pending", "NOTIFICATION_REQUEUE_STATUS_INVALID");
+        }
+
+        Status = NotificationStatus.Pending;
         RetryCount = 0;
         ErrorMessage = null;
         ErrorCode = null;

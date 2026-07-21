@@ -2,6 +2,7 @@ using Leno.Notification.Application.DTOs;
 using Leno.Notification.Domain.Aggregates;
 using Leno.Notification.Domain.Repositories;
 using Leno.Notification.Domain.ValueObjects;
+using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.Notification.Application.Services;
@@ -12,15 +13,19 @@ namespace Leno.Notification.Application.Services;
 public sealed class NotificationRecordAppService : INotificationRecordAppService
 {
     private readonly INotificationRecordRepository _recordRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<NotificationRecordAppService> _logger;
 
     public NotificationRecordAppService(
         INotificationRecordRepository recordRepository,
+        IUnitOfWork unitOfWork,
         ILogger<NotificationRecordAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(recordRepository);
+        ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(logger);
         _recordRepository = recordRepository;
+        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
@@ -83,6 +88,36 @@ public sealed class NotificationRecordAppService : INotificationRecordAppService
             From = fromTime,
             To = toTime
         };
+    }
+
+    /// <inheritdoc />
+    public async Task ResendRecordAsync(Guid recordId, Guid operatorId, CancellationToken ct = default)
+    {
+        if (recordId == Guid.Empty)
+        {
+            throw new ArgumentException("通知记录标识不可为空", nameof(recordId));
+        }
+
+        var record = await _recordRepository.GetByIdAsync(recordId, ct);
+        if (record is null)
+        {
+            throw new ArgumentException($"通知记录 {recordId} 不存在", nameof(recordId));
+        }
+
+        if (record.Status != NotificationStatus.DeadLettered)
+        {
+            throw new InvalidOperationException($"记录 {recordId} 当前状态为 {record.Status}，非死信状态无法重发");
+        }
+
+        // 修复 P0-7：将状态置为 Pending 而非 Sending，让 NotificationDispatchJob 接管实际发送。
+        // 原实现调用 MarkResend() 置为 Sending，但没有任何 Job 拾取 Sending 状态记录，导致永久卡死。
+        record.RequeueForSend();
+        await _recordRepository.UpdateAsync(record, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "操作员 {OperatorId} 重发死信记录 RecordId={RecordId} 已重新置为 Pending 等待 DispatchJob 拾取",
+            operatorId, recordId);
     }
 
     private static NotificationRecordListItemDto ToListItemDto(NotificationRecord record)
