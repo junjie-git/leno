@@ -224,9 +224,11 @@ public sealed class SeckillActivity : AggregateRoot
             throw new PromotionDomainException("回退数量须大于 0", "SECKILL_RESTORE_QTY_INVALID");
         }
 
-        if (Status == SeckillStatus.Closed)
+        if (Status != SeckillStatus.Active && Status != SeckillStatus.Ended)
         {
-            throw new PromotionDomainException("活动已关闭，不可回退库存", "SECKILL_RESTORE_CLOSED");
+            throw new PromotionDomainException(
+                $"当前状态 {Status} 不可回退库存，仅 Active/Ended 可回退",
+                "SECKILL_RESTORE_INVALID_STATUS");
         }
 
         var restored = AvailableStock + quantity;
