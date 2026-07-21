@@ -109,9 +109,14 @@ public sealed class ShopAppService : IShopAppService
         await ValidateAsync(_updateShopValidator, dto, ct);
         var shop = await RequireShopAsync(shopId, ct);
 
-        shop.UpdateInfo(dto.ShopName, dto.Description, dto.Address);
-        shop.UpdateLogo(dto.Logo);
-        shop.UpdateContact(dto.ContactPhone, dto.ContactEmail);
+        // 原子化更新：所有字段校验通过后再统一赋值，避免三步独立 Update 产生半更新状态
+        shop.UpdateAllInfo(
+            dto.ShopName,
+            dto.Description,
+            dto.Address,
+            dto.Logo,
+            dto.ContactPhone,
+            dto.ContactEmail);
 
         await _shopRepository.UpdateAsync(shop, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);

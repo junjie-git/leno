@@ -280,6 +280,43 @@ public sealed class Shop : AggregateRoot
     }
 
     /// <summary>
+    /// 原子化更新店铺全部基础信息（名称、描述、地址、Logo、客服电话、客服邮箱）。
+    /// 所有校验通过后再统一赋值，避免三步独立 Update 产生半更新状态（任一校验失败聚合状态不变）。
+    /// 替代 <see cref="UpdateInfo"/> + <see cref="UpdateLogo"/> + <see cref="UpdateContact"/> 的连续调用模式。
+    /// </summary>
+    /// <param name="shopName">店铺名称（2-32 字）。</param>
+    /// <param name="description">店铺描述（≤1000 字），可空。</param>
+    /// <param name="address">经营地址（≤256 字），可空。</param>
+    /// <param name="logo">Logo URL（≤512 字），可空。</param>
+    /// <param name="contactPhone">客服电话（≤20 字）。</param>
+    /// <param name="contactEmail">客服邮箱（≤256 字），可空。</param>
+    public void UpdateAllInfo(
+        string shopName,
+        string? description,
+        string? address,
+        string? logo,
+        string contactPhone,
+        string? contactEmail)
+    {
+        EnsureNotClosed();
+
+        // 先全部校验，再统一赋值（避免任一字段校验失败导致聚合处于半更新状态）
+        ValidateShopName(shopName);
+        ValidateDescription(description);
+        ValidateAddress(address);
+        ValidateLogo(logo);
+        ValidatePhone(contactPhone);
+        ValidateEmail(contactEmail);
+
+        ShopName = shopName.Trim();
+        Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        Address = string.IsNullOrWhiteSpace(address) ? null : address.Trim();
+        Logo = string.IsNullOrWhiteSpace(logo) ? null : logo.Trim();
+        ContactPhone = contactPhone.Trim();
+        ContactEmail = string.IsNullOrWhiteSpace(contactEmail) ? null : contactEmail.Trim();
+    }
+
+    /// <summary>
     /// 商品上架时商品数 +1，由商品域 ProductPublishedEvent 驱动。
     /// </summary>
     public void IncrementProductCount()
