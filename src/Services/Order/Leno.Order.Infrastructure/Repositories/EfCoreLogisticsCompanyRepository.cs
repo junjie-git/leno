@@ -31,6 +31,19 @@ public sealed class EfCoreLogisticsCompanyRepository : ILogisticsCompanyReposito
             .ToListAsync(ct);
 
     /// <inheritdoc />
+    public async Task<LogisticsCompany?> GetByCodeAsync(string code, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return null;
+        }
+
+        return await _context.LogisticsCompanies
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Code == code, ct);
+    }
+
+    /// <inheritdoc />
     public async Task AddAsync(LogisticsCompany aggregate, CancellationToken ct = default)
         => await _context.LogisticsCompanies.AddAsync(aggregate, ct);
 

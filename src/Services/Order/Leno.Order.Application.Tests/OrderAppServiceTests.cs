@@ -555,11 +555,8 @@ public class OrderAppServiceTests
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
-        _logisticsCompanyRepoMock.Setup(r => r.ListAsync(1, 100, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<LogisticsCompany>
-            {
-                LogisticsCompany.Create(Guid.NewGuid(), "顺丰", "SF", null, false)
-            });
+        _logisticsCompanyRepoMock.Setup(r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(LogisticsCompany.Create(Guid.NewGuid(), "顺丰", "SF", null, false));
 
         var result = await _sut.GetLogisticsTraceAsync(OrderId);
 
@@ -578,8 +575,8 @@ public class OrderAppServiceTests
             .ReturnsAsync(order);
         var company = LogisticsCompany.Create(Guid.NewGuid(), "顺丰", "SF", null, true);
         company.Disable();
-        _logisticsCompanyRepoMock.Setup(r => r.ListAsync(1, 100, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<LogisticsCompany> { company });
+        _logisticsCompanyRepoMock.Setup(r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(company);
 
         var result = await _sut.GetLogisticsTraceAsync(OrderId);
 
@@ -596,11 +593,8 @@ public class OrderAppServiceTests
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
-        _logisticsCompanyRepoMock.Setup(r => r.ListAsync(1, 100, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<LogisticsCompany>
-            {
-                LogisticsCompany.Create(Guid.NewGuid(), "顺丰", "SF", null, true)
-            });
+        _logisticsCompanyRepoMock.Setup(r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(LogisticsCompany.Create(Guid.NewGuid(), "顺丰", "SF", null, true));
         _logisticsTrackingMock.Setup(t => t.QueryTraceAsync("SF123", "SF", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new LogisticsTraceResult("SF123", "SF", new List<LogisticsTraceNode>
             {
@@ -625,11 +619,8 @@ public class OrderAppServiceTests
         order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
-        _logisticsCompanyRepoMock.Setup(r => r.ListAsync(1, 100, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<LogisticsCompany>
-            {
-                LogisticsCompany.Create(Guid.NewGuid(), "顺丰", "SF", null, true)
-            });
+        _logisticsCompanyRepoMock.Setup(r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(LogisticsCompany.Create(Guid.NewGuid(), "顺丰", "SF", null, true));
         _logisticsTrackingMock.Setup(t => t.QueryTraceAsync("SF123", "SF", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new LogisticsTraceResult("SF123", "SF", new List<LogisticsTraceNode>
             {

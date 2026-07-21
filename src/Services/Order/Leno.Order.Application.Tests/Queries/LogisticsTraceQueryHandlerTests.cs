@@ -94,8 +94,8 @@ public class LogisticsTraceQueryHandlerTests
         var company = LogisticsCompany.Create(
             Guid.NewGuid(), "顺丰速运", "SF", "95338", supportTracking: true);
         _logisticsCompanyRepoMock
-            .Setup(r => r.ListAsync(1, 100, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<LogisticsCompany> { company });
+            .Setup(r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(company);
 
         var occurredAt = new DateTime(2026, 7, 19, 8, 30, 0, DateTimeKind.Utc);
         var traceResult = new DomainLogisticsTraceResult(
@@ -141,6 +141,48 @@ public class LogisticsTraceQueryHandlerTests
         var act = () => _sut.HandleAsync(null!);
 
         await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task HandleAsync_Should_Use_GetByCodeAsync_Not_ListAsync()
+    {
+        // Arrange：订单已发货，使用 GetByCodeAsync 精确查询物流公司
+        var order = CreateOrder();
+        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
+        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "TRADE-001", order.TotalAmount);
+        order.Ship("SF-1234567890", "SF", DateTime.UtcNow, SellerId);
+
+        var query = new LogisticsTraceQuery { OrderId = OrderId };
+
+        _orderRepoMock
+            .Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        var company = LogisticsCompany.Create(
+            Guid.NewGuid(), "顺丰速运", "SF", "95338", supportTracking: true);
+        _logisticsCompanyRepoMock
+            .Setup(r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(company);
+
+        _logisticsTrackingMock
+            .Setup(s => s.QueryTraceAsync("SF-1234567890", "SF", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DomainLogisticsTraceResult(
+                "SF-1234567890",
+                "SF",
+                new List<DomainLogisticsTraceNode>(),
+                isFromCache: false));
+
+        // Act
+        var result = await _sut.HandleAsync(query);
+
+        // Assert：应调用 GetByCodeAsync 而非 ListAsync
+        _logisticsCompanyRepoMock.Verify(
+            r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()),
+            Times.Once);
+        _logisticsCompanyRepoMock.Verify(
+            r => r.ListAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        result.Should().NotBeNull();
     }
 
     private static OrderAggregate CreateOrder()

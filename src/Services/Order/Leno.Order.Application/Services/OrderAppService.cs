@@ -426,14 +426,13 @@ public sealed class OrderAppService : IOrderAppService
             };
         }
 
-        // 校验物流公司是否支持轨迹查询
-        // 通过查询所有已启用的物流公司来匹配 Code
-        var companies = await _logisticsCompanyRepository.ListAsync(1, 100, ct);
-        var company = companies.FirstOrDefault(c =>
-            string.Equals(c.Code, order.LogisticsCompanyCode, StringComparison.OrdinalIgnoreCase) &&
-            c.Status == LogisticsCompanyStatus.Enabled);
+        // 校验物流公司是否支持轨迹查询（按 Code 精确查询，利用唯一索引）
+        var company = await _logisticsCompanyRepository.GetByCodeAsync(order.LogisticsCompanyCode, ct);
+        var companyEnabled = company is not null &&
+            company.Status == LogisticsCompanyStatus.Enabled &&
+            company.SupportTracking;
 
-        if (company is null || !company.SupportTracking)
+        if (!companyEnabled)
         {
             return new LogisticsTrackingDto
             {
