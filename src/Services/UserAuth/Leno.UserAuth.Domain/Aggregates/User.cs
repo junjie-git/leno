@@ -661,7 +661,7 @@ public sealed partial class User : AggregateRoot
             throw new UserAuthDomainException("用户名长度须为 3-32 字符", "USER_USERNAME_LENGTH");
         }
 
-        if (!ValidUsernamePattern().IsMatch(trimmed))
+        if (!UsernamePattern.GetRegex().IsMatch(trimmed))
         {
             throw new UserAuthDomainException("用户名仅允许字母、数字与下划线", "USER_USERNAME_FORMAT");
         }
@@ -674,7 +674,7 @@ public sealed partial class User : AggregateRoot
             return;
         }
 
-        if (!ValidEmailPattern().IsMatch(email.Trim()))
+        if (!EmailPattern.GetRegex().IsMatch(email.Trim()))
         {
             throw new UserAuthDomainException("邮箱格式不正确", "USER_EMAIL_FORMAT");
         }
@@ -687,7 +687,7 @@ public sealed partial class User : AggregateRoot
             return;
         }
 
-        if (!ValidPhonePattern().IsMatch(phone.Trim()))
+        if (!PhonePattern.GetRegex().IsMatch(phone.Trim()))
         {
             throw new UserAuthDomainException("手机号须为 E.164 格式（如 +8613800138000）", "USER_PHONE_FORMAT");
         }
@@ -750,13 +750,4 @@ public sealed partial class User : AggregateRoot
             throw new UserAuthDomainException("密码须至少包含字母与数字", "USER_PASSWORD_STRENGTH");
         }
     }
-
-    [GeneratedRegex(@"^[a-zA-Z0-9_]{3,32}$", RegexOptions.CultureInvariant)]
-    private static partial Regex ValidUsernamePattern();
-
-    [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
-    private static partial Regex ValidEmailPattern();
-
-    [GeneratedRegex(@"^\+[1-9]\d{1,14}$", RegexOptions.CultureInvariant)]
-    private static partial Regex ValidPhonePattern();
 }

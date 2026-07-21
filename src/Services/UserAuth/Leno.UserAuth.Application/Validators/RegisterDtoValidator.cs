@@ -1,23 +1,19 @@
-using System.Text.RegularExpressions;
 using FluentValidation;
 using Leno.UserAuth.Application.DTOs;
+using Leno.UserAuth.Domain.ValueObjects;
 
 namespace Leno.UserAuth.Application.Validators;
 
 /// <summary>
-/// 注册请求校验器。
+/// 注册请求校验器。用户名/邮箱/手机号正则复用领域共享模式（P2-7）。
 /// </summary>
 public sealed class RegisterDtoValidator : AbstractValidator<RegisterDto>
 {
-    private static readonly Regex UsernameRegex = new("^[a-zA-Z0-9_]{3,32}$", RegexOptions.Compiled);
-    private static readonly Regex PhoneRegex = new(@"^\+[1-9]\d{1,14}$", RegexOptions.Compiled);
-    private static readonly Regex EmailRegex = new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
     public RegisterDtoValidator()
     {
         RuleFor(x => x.Username)
             .NotEmpty().WithMessage("用户名不可为空")
-            .Must(v => UsernameRegex.IsMatch(v)).WithMessage("用户名仅允许字母、数字与下划线，长度 3-32");
+            .Matches(UsernamePattern.PatternStr).WithMessage(UsernamePattern.ErrorMessage);
 
         RuleFor(x => x.Password)
             .NotEmpty().WithMessage("密码不可为空")
@@ -29,10 +25,10 @@ public sealed class RegisterDtoValidator : AbstractValidator<RegisterDto>
             .MaximumLength(32).WithMessage("昵称长度不可超过 32 字符");
 
         RuleFor(x => x.Email)
-            .Must(BeOptionalValidEmail).WithMessage("邮箱格式不正确");
+            .Must(BeOptionalValidEmail).WithMessage(EmailPattern.ErrorMessage);
 
         RuleFor(x => x.PhoneNumber)
-            .Must(BeOptionalValidPhone).WithMessage("手机号须为 E.164 格式");
+            .Must(BeOptionalValidPhone).WithMessage(PhonePattern.ErrorMessage);
 
         RuleFor(x => x.AvatarUrl)
             .Must(BeOptionalHttpsUrl).WithMessage("头像 URL 必须为 HTTPS");
@@ -56,10 +52,10 @@ public sealed class RegisterDtoValidator : AbstractValidator<RegisterDto>
     }
 
     private static bool BeOptionalValidEmail(string? email)
-        => string.IsNullOrWhiteSpace(email) || EmailRegex.IsMatch(email);
+        => string.IsNullOrWhiteSpace(email) || EmailPattern.GetRegex().IsMatch(email);
 
     private static bool BeOptionalValidPhone(string? phone)
-        => string.IsNullOrWhiteSpace(phone) || PhoneRegex.IsMatch(phone);
+        => string.IsNullOrWhiteSpace(phone) || PhonePattern.GetRegex().IsMatch(phone);
 
     private static bool BeOptionalHttpsUrl(string? url)
         => string.IsNullOrWhiteSpace(url)
