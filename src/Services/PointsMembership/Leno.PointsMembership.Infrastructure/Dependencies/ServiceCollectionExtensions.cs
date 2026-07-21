@@ -40,6 +40,9 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<PointsMembershipDbContext>>();
 
+        // PM-L02 修复：集中管理硬编码业务阈值与时区设置，从 appsettings.json PointsMembership 节绑定
+        services.Configure<PointsMembershipOptions>(configuration.GetSection("PointsMembership"));
+
         // 注册 PointsMembership BC 领域事件到集成事件翻译器
         services.AddSingleton<IIntegrationEventMapper, PointsMembershipIntegrationEventMapper>();
 

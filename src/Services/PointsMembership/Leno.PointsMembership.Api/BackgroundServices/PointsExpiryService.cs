@@ -1,8 +1,10 @@
+using Leno.PointsMembership.Application;
 using Leno.PointsMembership.Domain.Aggregates;
 using Leno.PointsMembership.Domain.Repositories;
 using Leno.PointsMembership.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Leno.PointsMembership.Api.BackgroundServices;
 
@@ -13,24 +15,26 @@ namespace Leno.PointsMembership.Api.BackgroundServices;
 public sealed class PointsExpiryService : BackgroundService
 {
     private const int BatchSize = 500;
-    private const int ExpiryMonths = 12;
     private static readonly TimeSpan ScanInterval = TimeSpan.FromDays(1);
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<PointsExpiryService> _logger;
+    private readonly PointsMembershipOptions _options;
 
     public PointsExpiryService(
         IServiceScopeFactory scopeFactory,
-        ILogger<PointsExpiryService> logger)
+        ILogger<PointsExpiryService> logger,
+        IOptions<PointsMembershipOptions> options)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _options = options.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("PointsExpiryService 启动，扫描间隔 {Interval}，过期阈值 {Months} 个月",
-            ScanInterval, ExpiryMonths);
+            ScanInterval, _options.ExpiryMonths);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -57,7 +61,7 @@ public sealed class PointsExpiryService : BackgroundService
         var accountRepository = scope.ServiceProvider.GetRequiredService<IPointsAccountRepository>();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-        var expiryThreshold = DateTime.UtcNow.AddMonths(-ExpiryMonths);
+        var expiryThreshold = DateTime.UtcNow.AddMonths(-_options.ExpiryMonths);
         var totalAccounts = 0;
         var totalExpired = 0;
         var skip = 0;
