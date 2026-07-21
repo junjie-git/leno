@@ -8,11 +8,16 @@ namespace Leno.Payment.Application.Services;
 public sealed class PaymentInternalQueryService : IPaymentInternalQueryService
 {
     private readonly IPaymentOrderRepository _paymentOrderRepository;
+    private readonly IRefundOrderRepository _refundOrderRepository;
 
-    public PaymentInternalQueryService(IPaymentOrderRepository paymentOrderRepository)
+    public PaymentInternalQueryService(
+        IPaymentOrderRepository paymentOrderRepository,
+        IRefundOrderRepository refundOrderRepository)
     {
         ArgumentNullException.ThrowIfNull(paymentOrderRepository);
+        ArgumentNullException.ThrowIfNull(refundOrderRepository);
         _paymentOrderRepository = paymentOrderRepository;
+        _refundOrderRepository = refundOrderRepository;
     }
 
     /// <inheritdoc />
@@ -24,12 +29,21 @@ public sealed class PaymentInternalQueryService : IPaymentInternalQueryService
             return null;
         }
 
+        // 查询已成功退款记录，汇总已退款金额
+        var successfulRefunds = await _refundOrderRepository.GetSuccessfulRefundsByPaymentIdAsync(payment.Id, ct);
+        var refundedAmount = successfulRefunds.Sum(r => r.RefundAmount);
+
         return new PaymentInfoResultDto
         {
             PaymentId = payment.Id,
             Channel = (int)payment.Channel,
             OrderId = payment.OrderId,
-            Status = (int)payment.Status
+            Status = (int)payment.Status,
+            Amount = payment.Amount,
+            Currency = payment.Currency,
+            PaidAt = payment.PaidAt,
+            TradeNo = payment.ChannelTradeNo,
+            RefundedAmount = refundedAmount
         };
     }
 }

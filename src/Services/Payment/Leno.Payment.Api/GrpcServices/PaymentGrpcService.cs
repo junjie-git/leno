@@ -47,18 +47,21 @@ public sealed class PaymentGrpcService : PaymentInternalService.PaymentInternalS
 
     private static PaymentInfo MapToProto(PaymentInfoResultDto dto)
     {
-        // 注：PaymentInfoResultDto 仅含 PaymentId/Channel(int)/OrderId/Status(int)
-        // proto PaymentInfo 含 amount_cents/status(string)/paid_at/channel(string)/transaction_id/refunded_amount_cents
-        // 当前 DTO 未提供 amount/paid_at/transaction_id/refunded_amount，留默认值
+        // DTO 已提供 Amount/Currency/PaidAt/TradeNo/RefundedAmount，
+        // 转换为 proto 语义：金额转分（避免浮点精度损失），时间转 ISO 8601 字符串
         // Channel/Status: int → string（POC 简化，生产化需统一映射）
         return new PaymentInfo
         {
             PaymentId = dto.PaymentId.ToString(),
             OrderId = dto.OrderId.ToString(),
-            AmountCents = 0L,  // DTO 未提供
+            AmountCents = (long)Math.Round(dto.Amount * 100m),
             Status = dto.Status.ToString(),
-            PaidAt = string.Empty,  // DTO 未提供
-            Channel = MapChannelToString(dto.Channel)
+            PaidAt = dto.PaidAt.HasValue
+                ? dto.PaidAt.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)
+                : string.Empty,
+            Channel = MapChannelToString(dto.Channel),
+            TransactionId = dto.TradeNo ?? string.Empty,
+            RefundedAmountCents = (long)Math.Round(dto.RefundedAmount * 100m)
         };
     }
 

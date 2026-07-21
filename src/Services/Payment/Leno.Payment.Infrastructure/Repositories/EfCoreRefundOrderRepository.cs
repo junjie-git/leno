@@ -68,6 +68,17 @@ public sealed class EfCoreRefundOrderRepository : IRefundOrderRepository
     }
 
     /// <inheritdoc />
+    public async Task<List<RefundOrderAggregate>> GetSuccessfulRefundsByPaymentIdAsync(
+        Guid paymentId,
+        CancellationToken ct = default)
+    {
+        return await _context.RefundOrders
+            .Where(r => r.PaymentId == paymentId && r.Status == RefundStatus.Succeeded)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
     public async Task AddAsync(RefundOrderAggregate aggregate, CancellationToken ct = default)
         => await _context.RefundOrders.AddAsync(aggregate, ct);
 

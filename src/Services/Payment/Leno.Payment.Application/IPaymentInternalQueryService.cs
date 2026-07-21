@@ -24,4 +24,19 @@ public sealed class PaymentInfoResultDto
 
     // PaymentStatus as int
     public int Status { get; set; }
+
+    /// <summary>支付金额（元）。</summary>
+    public decimal Amount { get; set; }
+
+    /// <summary>币种（ISO 4217），默认 CNY。</summary>
+    public string Currency { get; set; } = "CNY";
+
+    /// <summary>支付时间（UTC），未支付时为 null。</summary>
+    public DateTime? PaidAt { get; set; }
+
+    /// <summary>第三方交易号，未支付时为 null。</summary>
+    public string? TradeNo { get; set; }
+
+    /// <summary>已退款总金额（元），无退款时为 0。</summary>
+    public decimal RefundedAmount { get; set; }
 }

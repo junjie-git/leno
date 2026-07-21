@@ -41,4 +41,12 @@ public interface IRefundOrderRepository : IRepository<RefundOrderAggregate>
     /// 条件查询退款单总数（配合 <see cref="QueryAsync"/> 分页）。
     /// </summary>
     Task<int> CountAsync(Guid? orderId, RefundStatus? status, CancellationToken ct = default);
+
+    /// <summary>
+    /// 查询指定支付单关联的已退款成功（<see cref="RefundStatus.Succeeded"/>）的退款单列表。
+    /// 用于内部查询服务汇总已退款金额。
+    /// </summary>
+    /// <param name="paymentId">关联支付单标识。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task<List<RefundOrderAggregate>> GetSuccessfulRefundsByPaymentIdAsync(Guid paymentId, CancellationToken ct = default);
 }
