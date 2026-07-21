@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics.Metrics;
 
 namespace Leno.Infrastructure.AntiCorruption;
@@ -52,7 +53,8 @@ public static class AntiCorruptionMetrics
             description: "gRPC 调用延迟分布（按 service/status_code 维度统计）");
 
     /// <summary>熔断器状态值回调表（service -> 1=Open / 0=Closed|HalfOpen）。由 CircuitBreakerState 维护。</summary>
-    private static readonly Dictionary<string, int> _circuitOpenStates = new();
+    /// <remarks>使用 ConcurrentDictionary 保证多 BC 并发写入与 OTLP 枚举的线程安全。</remarks>
+    private static readonly ConcurrentDictionary<string, int> _circuitOpenStates = new();
 
     /// <summary>初始化 ObservableGauge（启动时调用一次即可，重复调用幂等）。</summary>
     public static void Initialize()
