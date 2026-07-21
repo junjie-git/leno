@@ -4,7 +4,6 @@ using Leno.Infrastructure.Persistence;
 using Leno.PointsMembership.Application;
 using Leno.PointsMembership.Application.Services;
 using Leno.PointsMembership.Domain.Repositories;
-using Leno.PointsMembership.Domain.Services;
 using Leno.PointsMembership.Infrastructure.EventBus;
 using Leno.PointsMembership.Infrastructure.ReadModels;
 using Leno.PointsMembership.Infrastructure.Repositories;
@@ -55,9 +54,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMemberLevelRepository, EfCoreMemberLevelRepository>();
         services.AddScoped<ITaskRepository, EfCoreTaskRepository>();
         services.AddScoped<IUserTaskRepository, EfCoreUserTaskRepository>();
-
-        // 积分抵扣防腐层实现位于应用层
-        services.AddScoped<IPointsOffsetAppService, PointsOffsetAppService>();
 
         // 应用服务
         services.AddScoped<IPointsAppService, PointsAppService>();
