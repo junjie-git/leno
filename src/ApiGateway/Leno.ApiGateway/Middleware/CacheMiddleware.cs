@@ -27,6 +27,22 @@ public sealed class CacheMiddleware
     private static readonly HashSet<string> CacheableMethods =
         new(StringComparer.OrdinalIgnoreCase) { "GET", "HEAD" };
 
+    /// <summary>
+    /// T17：可缓存响应状态码集合。
+    /// 包含 200(OK)、203(Non-Authoritative)、204(No Content)、206(Partial Content)、
+    /// 300(Multiple Choices)、301(Moved Permanently)、
+    /// 405(Method Not Allowed)、410(Gone)、414(URI Too Long)、501(Not Implemented)。
+    /// 参照 RFC 7234 §5.2.2 与 Nginx proxy_cache_valid 常见配置。
+    /// <para>
+    /// 注意：404(Not Found) 负缓存因既有测试 <c>IsCacheableResponse_With404_ReturnsFalse</c>
+    /// 断言 404 不可缓存而暂未包含，标记为 [SKIPPED-CONFLICT]。
+    /// </para>
+    /// </summary>
+    internal static readonly HashSet<int> CacheableStatusCodes = new()
+    {
+        200, 203, 204, 206, 300, 301, 405, 410, 414, 501
+    };
+
     public CacheMiddleware(
         RequestDelegate next,
         IConnectionMultiplexer redis,
@@ -103,13 +119,17 @@ public sealed class CacheMiddleware
     }
 
     /// <summary>
-    /// 判断响应是否可缓存：状态码 200 且无 <c>Cache-Control: no-store</c> 指令。
+    /// 判断响应是否可缓存：状态码在 <see cref="CacheableStatusCodes"/> 集合中且无 <c>Cache-Control: no-store</c> 指令。
+    /// <para>
+    /// T17：扩展可缓存状态码，除 200 外还包括 203/204/206/300/301（重定向）、
+    /// 405/410/414/501，提升缓存命中率。
+    /// </para>
     /// </summary>
     internal static bool IsCacheableResponse(HttpResponse response)
     {
         ArgumentNullException.ThrowIfNull(response);
 
-        if (response.StatusCode != 200)
+        if (!CacheableStatusCodes.Contains(response.StatusCode))
         {
             return false;
         }

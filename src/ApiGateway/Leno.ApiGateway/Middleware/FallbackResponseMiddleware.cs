@@ -88,8 +88,15 @@ public sealed class FallbackResponseMiddleware
             context.Request.Path,
             context.Response.StatusCode);
 
+        // T18：清除原响应的编码头，避免降级响应体（明文 JSON）与残留头不一致导致客户端解析失败
+        // Transfer-Encoding: chunked 与 Content-Encoding: gzip 等头属于原始响应，
+        // 降级响应体已重写为明文，必须清除这些头
+        context.Response.Headers.Remove("Transfer-Encoding");
+        context.Response.Headers.Remove("Content-Encoding");
+
         // 清除原始 headers 中可能与 body 不一致的字段
         context.Response.ContentType = FallbackContentType;
+        // T18：重新计算 Content-Length 为降级响应体长度
         context.Response.ContentLength = FallbackBody.Length;
 
         // 清空缓冲区并写入降级 JSON
