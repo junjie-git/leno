@@ -79,7 +79,17 @@ public sealed class SPUAppService : ISPUAppService
             images);
 
         await _spuRepository.AddAsync(spu, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        try
+        {
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (
+            ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx &&
+            sqlEx.Number == 2601) // 唯一约束违反
+        {
+            throw new ProductDomainException("商品标题在同店铺内已存在或 SKU 编码已存在",
+                "SPU_UNIQUE_CONSTRAINT_VIOLATION");
+        }
 
         return ToProductDto(spu);
     }
@@ -129,7 +139,17 @@ public sealed class SPUAppService : ISPUAppService
         spu.AddSku(sku);
 
         await _spuRepository.UpdateAsync(spu, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        try
+        {
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (
+            ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx &&
+            sqlEx.Number == 2601)
+        {
+            throw new ProductDomainException("SKU 编码全局已存在",
+                "SPU_SKU_CODE_GLOBAL_DUPLICATE");
+        }
 
         return ToProductDto(spu);
     }

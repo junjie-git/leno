@@ -67,5 +67,9 @@ public sealed class SPUConfiguration : IEntityTypeConfiguration<SPU>
         builder.HasIndex(s => s.ShopId).HasDatabaseName("ix_spus_shop_id");
         builder.HasIndex(s => s.Status).HasDatabaseName("ix_spus_status");
         builder.HasIndex(s => s.CategoryId).HasDatabaseName("ix_spus_category_id");
+        // 同店铺内标题唯一复合索引（修复审计 #2：TOCTOU 竞态下并发请求可同时通过唯一性检查然后双双 Insert）
+        builder.HasIndex(s => new { s.ShopId, s.Title })
+            .HasDatabaseName("ix_spus_shop_id_title")
+            .IsUnique();
     }
 }

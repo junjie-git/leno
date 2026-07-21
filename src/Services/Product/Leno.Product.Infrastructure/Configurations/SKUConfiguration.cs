@@ -45,6 +45,7 @@ public sealed class SKUConfiguration : IEntityTypeConfiguration<SKU>
                     ?? new List<SpecAttribute>()));
 
         builder.HasIndex(s => s.SpuId).HasDatabaseName("ix_skus_spu_id");
-        builder.HasIndex(s => s.SkuCode).HasDatabaseName("ix_skus_sku_code");
+        // SkuCode 全局唯一索引（修复审计 #2：原为非唯一索引，TOCTOU 竞态下并发请求可双双 Insert）
+        builder.HasIndex(s => s.SkuCode).HasDatabaseName("ix_skus_sku_code").IsUnique();
     }
 }
