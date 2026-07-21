@@ -35,22 +35,37 @@ public abstract class IntegrationEventConsumerBase<T> : IConsumer<T>
         ArgumentNullException.ThrowIfNull(context);
         var evt = context.Message;
 
+        // 前置校验：EventId 不能为 Guid.Empty，否则幂等去重失效
+        if (evt.EventId == Guid.Empty)
+        {
+            Logger.LogWarning("集成事件 EventId 为 Guid.Empty，拒绝消费 Type={EventType}", typeof(T).Name);
+            throw new InvalidOperationException(
+                $"集成事件 {typeof(T).Name} 的 EventId 为 Guid.Empty，无法保证幂等性");
+        }
+
+        // IdempotencyKey 为空时回退到 EventId（向后兼容旧版事件 JSON 缺字段场景）
+        var effectiveKey = string.IsNullOrEmpty(evt.IdempotencyKey)
+            ? evt.EventId.ToString()
+            : evt.IdempotencyKey;
+        Logger.LogDebug("消费集成事件 EventId={EventId} IdempotencyKey={Key} Type={EventType}",
+            evt.EventId, effectiveKey, typeof(T).Name);
+
         if (await IsProcessedAsync(evt.EventId, context.CancellationToken))
         {
-            Logger.LogInformation("事件已处理，跳过重复消费 EventId={EventId} Type={EventType}",
-                evt.EventId, typeof(T).Name);
+            Logger.LogInformation("事件已处理，跳过重复消费 EventId={EventId} IdempotencyKey={Key} Type={EventType}",
+                evt.EventId, effectiveKey, typeof(T).Name);
             return;
         }
 
-        Logger.LogInformation("开始消费集成事件 EventId={EventId} Type={EventType}",
-            evt.EventId, typeof(T).Name);
+        Logger.LogInformation("开始消费集成事件 EventId={EventId} IdempotencyKey={Key} Type={EventType}",
+            evt.EventId, effectiveKey, typeof(T).Name);
 
         await HandleAsync(evt, context.CancellationToken);
 
         await MarkAsProcessedAsync(evt.EventId, context.CancellationToken);
 
-        Logger.LogInformation("集成事件消费完成 EventId={EventId} Type={EventType}",
-            evt.EventId, typeof(T).Name);
+        Logger.LogInformation("集成事件消费完成 EventId={EventId} IdempotencyKey={Key} Type={EventType}",
+            evt.EventId, effectiveKey, typeof(T).Name);
     }
 
     /// <summary>
