@@ -219,7 +219,7 @@ Leno 电商平台在 **DDD 分层架构、CQRS 端口设计、Outbox + 幂等基
 
 **修复建议**：
 1. 将 `Entity.Id` 改为 `init`（参见 Shared 报告问题 31 修复建议）。
-2. 评估是否将 `IAuditable` / `ISoftDeletable` 抽取到 `Leno.Infrastructure.Abstractions/` 中，让领域层不再感知持久化关注（争议点，可保留现状但需文档说明）。
+2. 将 `IAuditable` / `ISoftDeletable` 抽取到 `Leno.Infrastructure.Abstractions/` 中，让领域层不再感知持久化关注。
 
 ---
 
@@ -338,9 +338,8 @@ Leno 电商平台在 **DDD 分层架构、CQRS 端口设计、Outbox + 幂等基
 
 **影响**：Consul KV 修改 `UseGrpc` 后，`AntiCorruptionDispatcher` 不切换 gRPC/HTTP；运维需重启服务才生效。这与 ACL 双轨方案的核心价值（运行时动态切换）相悖。
 
-**修复建议**（Shared 报告问题 19 修复建议）：
-1. 使用 `IOptionsMonitor<AntiCorruptionOptions>` + 自定义 `IOptionsChangeTokenSource<AntiCorruptionOptions>`，ConsulConfigWatcher 触发 change token。
-2. 或 `ConsulConfigWatcher` 直接持有 `AntiCorruptionDispatcher` 引用，调用方法更新内部状态。
+**修复建议**（Shared 报告问题 19 修复建议）：使用 `IOptionsMonitor<AntiCorruptionOptions>` + 自定义 `IOptionsChangeTokenSource<AntiCorruptionOptions>`，ConsulConfigWatcher 触发 change token。
+
 
 ---
 
