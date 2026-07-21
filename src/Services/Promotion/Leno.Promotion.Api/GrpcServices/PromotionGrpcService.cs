@@ -31,11 +31,16 @@ public sealed class PromotionGrpcService : PromotionInternalService.PromotionInt
     public override async Task<CalculateDiscountResponse> CalculateDiscount(
         CalculateDiscountRequest request, ServerCallContext context)
     {
+        if (!Guid.TryParse(request.UserId, out var userId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid user_id: {request.UserId}"));
+        }
+
         // OrderItem.sku_id 优先读 string（Guid.ToString()），回退到 int64（向后兼容旧客户端）
         // 注：int64→Guid 反向不可靠（GetHashCode 单向），回退时仅用 Guid.Empty 占位
         var input = new CalculateDiscountDto
         {
-            UserId = new Guid(request.UserId),
+            UserId = userId,
             Items = request.Items.Select(i => new DiscountItemInput
             {
                 SkuId = !string.IsNullOrEmpty(i.SkuIdStr)
