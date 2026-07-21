@@ -298,6 +298,7 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
             Status = afterSales.Status,
             AppliedAt = afterSales.AppliedAt,
             ApprovedAt = afterSales.ApprovedAt,
+            RejectedAt = afterSales.RejectedAt,
             ApproverId = afterSales.ApproverId,
             RefundedAt = afterSales.RefundedAt,
             ChannelRefundNo = afterSales.ChannelRefundNo,

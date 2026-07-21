@@ -61,8 +61,11 @@ public sealed class AfterSales : AggregateRoot
     /// <summary>申请时间（UTC）。</summary>
     public DateTime AppliedAt { get; private set; }
 
-    /// <summary>审核时间（UTC）。</summary>
+    /// <summary>审核同意时间（UTC），仅在 Approve 路径下填充。</summary>
     public DateTime? ApprovedAt { get; private set; }
+
+    /// <summary>审核驳回时间（UTC），仅在 Reject 路径下填充，与 ApprovedAt 互斥以区分审核语义。</summary>
+    public DateTime? RejectedAt { get; private set; }
 
     /// <summary>审核人标识（卖家或运营）。</summary>
     public Guid? ApproverId { get; private set; }
@@ -268,7 +271,7 @@ public sealed class AfterSales : AggregateRoot
         Status = AfterSalesStatus.Rejected;
         RejectReason = reason;
         ApproverId = operatorId;
-        ApprovedAt = DateTime.UtcNow;
+        RejectedAt = DateTime.UtcNow;
         AddDomainEvent(new AfterSalesRejectedDomainEvent(Id, OrderId, UserId, reason));
     }
 

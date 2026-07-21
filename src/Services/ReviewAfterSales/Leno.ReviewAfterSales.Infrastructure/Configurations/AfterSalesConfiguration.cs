@@ -32,6 +32,7 @@ public sealed class AfterSalesConfiguration : IEntityTypeConfiguration<AfterSale
         builder.Property(a => a.Status).HasColumnName("status").HasConversion<int>();
         builder.Property(a => a.AppliedAt).HasColumnName("applied_at");
         builder.Property(a => a.ApprovedAt).HasColumnName("approved_at");
+        builder.Property(a => a.RejectedAt).HasColumnName("rejected_at");
         builder.Property(a => a.ApproverId).HasColumnName("approver_id");
         builder.Property(a => a.RefundedAt).HasColumnName("refunded_at");
         builder.Property(a => a.ChannelRefundNo).HasColumnName("channel_refund_no").HasMaxLength(128);

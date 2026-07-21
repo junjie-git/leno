@@ -71,6 +71,7 @@ public sealed class AfterSalesDto
     public AfterSalesStatus Status { get; set; }
     public DateTime AppliedAt { get; set; }
     public DateTime? ApprovedAt { get; set; }
+    public DateTime? RejectedAt { get; set; }
     public Guid? ApproverId { get; set; }
     public DateTime? RefundedAt { get; set; }
     public string? ChannelRefundNo { get; set; }
