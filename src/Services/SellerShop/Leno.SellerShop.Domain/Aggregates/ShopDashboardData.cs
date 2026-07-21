@@ -19,8 +19,14 @@ public sealed class ShopDashboardData : AggregateRoot
     /// <summary>待处理订单数（待发货/待支付）。</summary>
     public int PendingOrders { get; private set; }
 
+    /// <summary>已确认订单数（已支付待发货），由订单支付成功事件驱动维护。</summary>
+    public int ConfirmedOrders { get; private set; }
+
     /// <summary>已完成订单数。</summary>
     public int CompletedOrders { get; private set; }
+
+    /// <summary>已取消订单数，由订单取消事件驱动维护。</summary>
+    public int CancelledOrders { get; private set; }
 
     /// <summary>累计销售收入。</summary>
     public decimal TotalRevenue { get; private set; }
@@ -51,7 +57,9 @@ public sealed class ShopDashboardData : AggregateRoot
             ShopId = shopId,
             TotalOrders = 0,
             PendingOrders = 0,
+            ConfirmedOrders = 0,
             CompletedOrders = 0,
+            CancelledOrders = 0,
             TotalRevenue = 0m,
             Currency = "CNY",
             LastUpdatedAt = DateTime.UtcNow
@@ -69,7 +77,7 @@ public sealed class ShopDashboardData : AggregateRoot
     }
 
     /// <summary>
-    /// 订单支付成功时：累计收入增加。
+    /// 订单支付成功时：累计收入增加，已确认订单数 +1。
     /// </summary>
     public void OnOrderPaid(decimal amount)
     {
@@ -79,11 +87,12 @@ public sealed class ShopDashboardData : AggregateRoot
         }
 
         TotalRevenue += amount;
+        ConfirmedOrders++;
         LastUpdatedAt = DateTime.UtcNow;
     }
 
     /// <summary>
-    /// 订单取消时：待处理订单数 -1（不可为负）。
+    /// 订单取消时：待处理订单数 -1（不可为负），已取消订单数 +1。
     /// </summary>
     public void OnOrderCancelled()
     {
@@ -92,6 +101,7 @@ public sealed class ShopDashboardData : AggregateRoot
             PendingOrders--;
         }
 
+        CancelledOrders++;
         LastUpdatedAt = DateTime.UtcNow;
     }
 

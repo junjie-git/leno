@@ -5,6 +5,7 @@ option csharp_namespace = "Leno.SharedContracts.Grpc.Review.V1";
 service ReviewInternalService {
   rpc GetProductRating(GetProductRatingRequest) returns (ProductRating);
   rpc GetOrderReviews(GetOrderReviewsRequest) returns (OrderReviews);
+  rpc GetShopReviewStatistics(GetShopReviewStatisticsRequest) returns (ShopReviewStatistics);
 }
 
 message GetProductRatingRequest {
@@ -29,4 +30,20 @@ message ReviewSummary {
   string created_at = 5;
   // Guid→string 迁移新增 string ID 字段
   string spu_id_str = 6;
+}
+message GetShopReviewStatisticsRequest {
+  // 店铺标识（Guid.ToString()）
+  string shop_id = 1;
+}
+message ShopReviewStatistics {
+  // 店铺标识（Guid.ToString()）
+  string shop_id = 1;
+  // 累计评价总数
+  int32 total_reviews = 2;
+  // 平均评分（1-5）
+  double average_rating = 3;
+  // 五星评价数
+  int32 five_star_reviews = 4;
+  // 一星评价数
+  int32 one_star_reviews = 5;
 }

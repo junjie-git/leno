@@ -53,6 +53,10 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Review.V1.GetOrderReviewsRequest> __Marshaller_leno_review_v1_GetOrderReviewsRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Review.V1.GetOrderReviewsRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Review.V1.OrderReviews> __Marshaller_leno_review_v1_OrderReviews = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Review.V1.OrderReviews.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Review.V1.GetShopReviewStatisticsRequest> __Marshaller_leno_review_v1_GetShopReviewStatisticsRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Review.V1.GetShopReviewStatisticsRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Review.V1.ShopReviewStatistics> __Marshaller_leno_review_v1_ShopReviewStatistics = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Review.V1.ShopReviewStatistics.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::Leno.SharedContracts.Grpc.Review.V1.GetProductRatingRequest, global::Leno.SharedContracts.Grpc.Review.V1.ProductRating> __Method_GetProductRating = new grpc::Method<global::Leno.SharedContracts.Grpc.Review.V1.GetProductRatingRequest, global::Leno.SharedContracts.Grpc.Review.V1.ProductRating>(
@@ -69,6 +73,14 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
         "GetOrderReviews",
         __Marshaller_leno_review_v1_GetOrderReviewsRequest,
         __Marshaller_leno_review_v1_OrderReviews);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::Leno.SharedContracts.Grpc.Review.V1.GetShopReviewStatisticsRequest, global::Leno.SharedContracts.Grpc.Review.V1.ShopReviewStatistics> __Method_GetShopReviewStatistics = new grpc::Method<global::Leno.SharedContracts.Grpc.Review.V1.GetShopReviewStatisticsRequest, global::Leno.SharedContracts.Grpc.Review.V1.ShopReviewStatistics>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "GetShopReviewStatistics",
+        __Marshaller_leno_review_v1_GetShopReviewStatisticsRequest,
+        __Marshaller_leno_review_v1_ShopReviewStatistics);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -88,6 +100,12 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::Leno.SharedContracts.Grpc.Review.V1.OrderReviews> GetOrderReviews(global::Leno.SharedContracts.Grpc.Review.V1.GetOrderReviewsRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::Leno.SharedContracts.Grpc.Review.V1.ShopReviewStatistics> GetShopReviewStatistics(global::Leno.SharedContracts.Grpc.Review.V1.GetShopReviewStatisticsRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -161,6 +179,26 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_GetOrderReviews, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::Leno.SharedContracts.Grpc.Review.V1.ShopReviewStatistics GetShopReviewStatistics(global::Leno.SharedContracts.Grpc.Review.V1.GetShopReviewStatisticsRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetShopReviewStatistics(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::Leno.SharedContracts.Grpc.Review.V1.ShopReviewStatistics GetShopReviewStatistics(global::Leno.SharedContracts.Grpc.Review.V1.GetShopReviewStatisticsRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_GetShopReviewStatistics, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::Leno.SharedContracts.Grpc.Review.V1.ShopReviewStatistics> GetShopReviewStatisticsAsync(global::Leno.SharedContracts.Grpc.Review.V1.GetShopReviewStatisticsRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetShopReviewStatisticsAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::Leno.SharedContracts.Grpc.Review.V1.ShopReviewStatistics> GetShopReviewStatisticsAsync(global::Leno.SharedContracts.Grpc.Review.V1.GetShopReviewStatisticsRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_GetShopReviewStatistics, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override ReviewInternalServiceClient NewInstance(ClientBaseConfiguration configuration)
@@ -176,7 +214,8 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_GetProductRating, serviceImpl.GetProductRating)
-          .AddMethod(__Method_GetOrderReviews, serviceImpl.GetOrderReviews).Build();
+          .AddMethod(__Method_GetOrderReviews, serviceImpl.GetOrderReviews)
+          .AddMethod(__Method_GetShopReviewStatistics, serviceImpl.GetShopReviewStatistics).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -188,6 +227,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     {
       serviceBinder.AddMethod(__Method_GetProductRating, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Review.V1.GetProductRatingRequest, global::Leno.SharedContracts.Grpc.Review.V1.ProductRating>(serviceImpl.GetProductRating));
       serviceBinder.AddMethod(__Method_GetOrderReviews, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Review.V1.GetOrderReviewsRequest, global::Leno.SharedContracts.Grpc.Review.V1.OrderReviews>(serviceImpl.GetOrderReviews));
+      serviceBinder.AddMethod(__Method_GetShopReviewStatistics, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Review.V1.GetShopReviewStatisticsRequest, global::Leno.SharedContracts.Grpc.Review.V1.ShopReviewStatistics>(serviceImpl.GetShopReviewStatistics));
     }
 
   }

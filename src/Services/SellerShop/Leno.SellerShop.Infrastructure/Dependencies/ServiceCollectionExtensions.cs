@@ -18,6 +18,7 @@ using Leno.SellerShop.Infrastructure.Services;
 using Leno.SellerShop.Infrastructure.Services.Grpc;
 using Leno.SharedContracts.Grpc.Order.V1;
 using Leno.SharedContracts.Grpc.Product.V1;
+using Leno.SharedContracts.Grpc.Review.V1;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -76,6 +77,7 @@ public static class ServiceCollectionExtensions
         var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
         var productGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Product") ?? "http://localhost:5150";
         var orderGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Order") ?? "http://localhost:5154";
+        var reviewGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Review") ?? "http://localhost:5152";
 
         services.AddGrpcClient<ProductInternalService.ProductInternalServiceClient>(options =>
         {
@@ -85,9 +87,14 @@ public static class ServiceCollectionExtensions
         {
             options.Address = new Uri(orderGrpcEndpoint);
         });
+        services.AddGrpcClient<ReviewInternalService.ReviewInternalServiceClient>(options =>
+        {
+            options.Address = new Uri(reviewGrpcEndpoint);
+        });
 
         services.AddScoped<IProductAntiCorruptionService, GrpcProductAntiCorruptionClient>();
         services.AddScoped<IOrderAntiCorruptionService, GrpcOrderAntiCorruptionClient>();
+        services.AddScoped<IReviewAntiCorruptionService, GrpcReviewAntiCorruptionClient>();
 
         // ES 读模型同步：店铺工作台读模型构建器（被 3 个 ShopDashboard 同步消费者共用）
         services.AddScoped<IShopDashboardReadModelBuilder, ShopDashboardReadModelBuilder>();
