@@ -21,11 +21,15 @@ public sealed class EfCoreShopRepository : IShopRepository
 
     /// <inheritdoc />
     public Task<Shop?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => _context.Shops.FirstOrDefaultAsync(s => s.Id == id, ct);
+        => _context.Shops
+            .Include(s => s.Qualifications)
+            .FirstOrDefaultAsync(s => s.Id == id, ct);
 
     /// <inheritdoc />
     public Task<Shop?> GetBySellerIdAsync(Guid sellerId, CancellationToken ct = default)
-        => _context.Shops.FirstOrDefaultAsync(s => s.SellerId == sellerId, ct);
+        => _context.Shops
+            .Include(s => s.Qualifications)
+            .FirstOrDefaultAsync(s => s.SellerId == sellerId, ct);
 
     /// <inheritdoc />
     public async Task<(IReadOnlyList<Shop> Items, int Total)> QueryAsync(
