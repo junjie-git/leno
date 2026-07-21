@@ -112,7 +112,7 @@ public sealed class Member : AggregateRoot
             var oldLevel = CurrentLevel;
             CurrentLevel = matched.Level;
             LevelUpgradedAt = DateTime.UtcNow;
-            AddDomainEvent(new MemberLevelUpgradedEvent(UserId, oldLevel, CurrentLevel, LevelUpgradedAt));
+            AddDomainEvent(new MemberLevelUpgradedEvent(Id, UserId, oldLevel, CurrentLevel, LevelUpgradedAt));
         }
     }
 

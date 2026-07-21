@@ -32,9 +32,11 @@ public class PointsMembershipIntegrationEventMapper : IntegrationEventMapperBase
         RegisterHandler<MemberLevelChangedEvent, MemberLevelChangedIntegrationEvent>(e =>
             new MemberLevelChangedIntegrationEvent(e.UserId, e.OldLevel, e.NewLevel, e.GrowthValue));
 
-        // DomainMemberLevelUpgradedEvent → MemberLevelChangedIntegrationEvent（消息通知域等级升级通知，复用统一等级变更集成事件）
-        RegisterHandler<DomainMemberLevelUpgradedEvent, MemberLevelChangedIntegrationEvent>(e =>
-            new MemberLevelChangedIntegrationEvent(e.UserId, e.OldLevel, e.NewLevel, 0));
+        // PM-M05 修复：DomainMemberLevelUpgradedEvent → MemberLevelUpgradedEvent（集成事件版，会员等级升级读模型同步）
+        // 原先映射到 MemberLevelChangedIntegrationEvent 导致 MemberLevelUpgradedReadModelSyncConsumer 订阅的事件永不抵达
+        // 现在翻译为集成事件版 MemberLevelUpgradedEvent（含 MemberId），读模型同步消费者正常触发
+        RegisterHandler<DomainMemberLevelUpgradedEvent, MemberLevelUpgradedEvent>(e =>
+            new MemberLevelUpgradedEvent(e.MemberId, e.NewLevel, e.UpgradedAt));
 
         // MembershipActivatedEvent → PaidMemberSubscribedIntegrationEvent（消息通知域会员开通通知）
         RegisterHandler<MembershipActivatedEvent, PaidMemberSubscribedIntegrationEvent>(e =>
