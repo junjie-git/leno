@@ -33,14 +33,22 @@ public sealed class EfCoreAfterSalesRepository : IAfterSalesRepository
     /// <inheritdoc />
     public async Task<bool> HasActiveByOrderLineAsync(Guid orderLineId, AfterSalesType type, CancellationToken ct = default)
     {
+        // 活跃状态包含全部进行中状态：
+        // - Pending/Approved：等待审核或已同意未进入下一阶段
+        // - ReturnGoods/ConfirmReturn：退货退款流程中（已退货/已确认收货，待退款）
+        // - Refunding：退款处理中
+        // 遗漏 ReturnGoods/ConfirmReturn 会允许同订单行在退货流程中重复提交售后单。
         var activeStatuses = new List<AfterSalesStatus>
         {
             AfterSalesStatus.Pending,
             AfterSalesStatus.Approved,
+            AfterSalesStatus.ReturnGoods,
+            AfterSalesStatus.ConfirmReturn,
             AfterSalesStatus.Refunding
         };
 
         return await _context.AfterSales
+            .AsNoTracking()
             .AnyAsync(a => a.OrderLineId == orderLineId && a.Type == type && activeStatuses.Contains(a.Status), ct);
     }
 
