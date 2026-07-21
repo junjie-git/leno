@@ -28,6 +28,20 @@ public sealed class EfCoreNotificationRecordRepository : INotificationRecordRepo
         => _context.NotificationRecords.AnyAsync(n => n.EventId == eventId, ct);
 
     /// <inheritdoc />
+    public async Task<List<NotificationRecord>> GetByIdsAsync(List<Guid> ids, CancellationToken ct = default)
+    {
+        if (ids is null || ids.Count == 0)
+        {
+            return new List<NotificationRecord>();
+        }
+
+        // 使用 Contains 翻译为 IN 查询，一次性加载所有匹配记录
+        return await _context.NotificationRecords
+            .Where(n => ids.Contains(n.Id))
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
     public async Task<List<NotificationRecord>> QueryByUserAsync(Guid userId, bool? isRead, int page, int pageSize, CancellationToken ct = default)
     {
         var query = _context.NotificationRecords

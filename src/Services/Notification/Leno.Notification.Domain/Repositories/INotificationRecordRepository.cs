@@ -12,6 +12,9 @@ public interface INotificationRecordRepository : IRepository<NotificationRecordA
     /// <summary>按事件标识查询是否已存在通知记录（幂等去重）。</summary>
     Task<bool> ExistsByEventIdAsync(Guid eventId, CancellationToken ct = default);
 
+    /// <summary>按 ID 列表批量查询通知记录，避免 N+1 查询。</summary>
+    Task<List<NotificationRecordAggregate>> GetByIdsAsync(List<Guid> ids, CancellationToken ct = default);
+
     /// <summary>按用户分页查询站内信（仅 InApp 渠道）。</summary>
     Task<List<NotificationRecordAggregate>> QueryByUserAsync(Guid userId, bool? isRead, int page, int pageSize, CancellationToken ct = default);
 

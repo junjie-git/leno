@@ -49,10 +49,16 @@ public sealed class NotificationAppService : INotificationAppService
     /// <inheritdoc />
     public async Task MarkAsReadAsync(Guid userId, List<Guid> recordIds, CancellationToken ct = default)
     {
-        foreach (var recordId in recordIds)
+        if (recordIds is null || recordIds.Count == 0)
         {
-            var record = await _recordRepository.GetByIdAsync(recordId, ct);
-            if (record is null || record.UserId != userId)
+            return;
+        }
+
+        // 批量查询所有记录，避免 N+1（1 次 SELECT + 1 次 UPDATE）
+        var records = await _recordRepository.GetByIdsAsync(recordIds, ct);
+        foreach (var record in records)
+        {
+            if (record.UserId != userId)
             {
                 continue;
             }
