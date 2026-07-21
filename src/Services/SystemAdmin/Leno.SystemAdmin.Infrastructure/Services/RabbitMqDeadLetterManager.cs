@@ -169,10 +169,10 @@ public sealed class RabbitMqDeadLetterManager : IDeadLetterQueueManager
         // 真正重投：反序列化原始集成事件并通过事件总线重新发布到 MQ
         await DeadLetterRepublishHelper.RepublishViaEventBusAsync(_eventBus, message, _logger, ct);
 
-        // 重投成功后标记消息状态为 Retried
+        // 重投成功后标记消息状态为 Retried（经发件箱投递领域事件）
         message.Retry("system");
         await _repository.UpdateAsync(message, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
 
         _logger.LogInformation("死信消息 {MessageId} 已通过事件总线重投", messageId);
     }
@@ -191,7 +191,7 @@ public sealed class RabbitMqDeadLetterManager : IDeadLetterQueueManager
         }
 
         await _repository.AddAsync(message, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
 
         _logger.LogInformation("死信消息 {MessageId}（OriginalMessageId={OriginalMessageId}）已入库副本",
             message.MessageId, message.OriginalMessageId);

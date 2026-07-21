@@ -45,7 +45,7 @@ public class DeadLetterQueueManagerTests
         mockRepo.Verify(
             r => r.UpdateAsync(It.Is<DeadLetterMessage>(m => m.Status == DeadLetterStatus.Retried), It.IsAny<CancellationToken>()),
             Times.Once);
-        mockUnitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class DeadLetterQueueManagerTests
             b => b.PublishAsync(It.IsAny<IIntegrationEvent>(), It.IsAny<CancellationToken>()),
             Times.Never);
         mockRepo.Verify(r => r.UpdateAsync(It.IsAny<DeadLetterMessage>(), It.IsAny<CancellationToken>()), Times.Never);
-        mockUnitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

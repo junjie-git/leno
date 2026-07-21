@@ -49,7 +49,7 @@ public class RabbitMqDeadLetterManagerTests
         mockRepo.Verify(
             r => r.UpdateAsync(It.Is<DeadLetterMessage>(m => m.Status == DeadLetterStatus.Retried), It.IsAny<CancellationToken>()),
             Times.Once);
-        mockUnitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class RabbitMqDeadLetterManagerTests
         mockRepo.Verify(
             r => r.AddAsync(It.IsAny<DeadLetterMessage>(), It.IsAny<CancellationToken>()),
             Times.Once);
-        mockUnitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -152,8 +152,8 @@ public class RabbitMqDeadLetterManagerTests
         mockRepo.Verify(
             r => r.AddAsync(It.IsAny<DeadLetterMessage>(), It.IsAny<CancellationToken>()),
             Times.Once);
-        // SaveChanges 不应被调用（AddAsync 已抛异常）
-        mockUnitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        // SaveEntities 不应被调用（AddAsync 已抛异常）
+        mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -180,7 +180,7 @@ public class RabbitMqDeadLetterManagerTests
         mockRepo.Verify(
             r => r.AddAsync(It.IsAny<DeadLetterMessage>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        mockUnitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static RabbitMqDeadLetterManager CreateManager(
