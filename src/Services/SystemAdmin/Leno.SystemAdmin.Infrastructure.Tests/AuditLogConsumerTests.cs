@@ -24,9 +24,8 @@ public class AuditLogConsumerTests
         mockAuditLogEntryRepo.Setup(r => r.GetByEventIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((AuditLogEntry?)null);
 
-        var mockAuditLogRepo = new Mock<IAuditLogRepository>();
         var mockUnitOfWork = new Mock<IUnitOfWork>();
-        var consumer = CreateConsumer(mockAuditLogRepo, mockAuditLogEntryRepo, mockUnitOfWork);
+        var consumer = CreateConsumer(mockAuditLogEntryRepo, mockUnitOfWork);
 
         var evt = new OrderCreatedEvent
         {
@@ -61,9 +60,8 @@ public class AuditLogConsumerTests
         mockAuditLogEntryRepo.Setup(r => r.GetByEventIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingEntry);
 
-        var mockAuditLogRepo = new Mock<IAuditLogRepository>();
         var mockUnitOfWork = new Mock<IUnitOfWork>();
-        var consumer = CreateConsumer(mockAuditLogRepo, mockAuditLogEntryRepo, mockUnitOfWork);
+        var consumer = CreateConsumer(mockAuditLogEntryRepo, mockUnitOfWork);
 
         var evt = new OrderCreatedEvent
         {
@@ -94,9 +92,8 @@ public class AuditLogConsumerTests
         mockAuditLogEntryRepo.Setup(r => r.GetByEventIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("数据库连接失败"));
 
-        var mockAuditLogRepo = new Mock<IAuditLogRepository>();
         var mockUnitOfWork = new Mock<IUnitOfWork>();
-        var consumer = CreateConsumer(mockAuditLogRepo, mockAuditLogEntryRepo, mockUnitOfWork);
+        var consumer = CreateConsumer(mockAuditLogEntryRepo, mockUnitOfWork);
 
         var evt = new OrderCreatedEvent
         {
@@ -120,13 +117,12 @@ public class AuditLogConsumerTests
     }
 
     private static AuditLogConsumer CreateConsumer(
-        Mock<IAuditLogRepository> mockAuditLogRepo,
         Mock<IAuditLogEntryRepository> mockAuditLogEntryRepo,
         Mock<IUnitOfWork> mockUnitOfWork)
     {
         var mockLogger = new Mock<ILogger<AuditLogConsumer>>();
         return new AuditLogConsumer(
-            mockAuditLogRepo.Object, mockAuditLogEntryRepo.Object, mockUnitOfWork.Object, mockLogger.Object);
+            mockAuditLogEntryRepo.Object, mockUnitOfWork.Object, mockLogger.Object);
     }
 
     private static ConsumeContext<T> CreateContext<T>(T message) where T : class

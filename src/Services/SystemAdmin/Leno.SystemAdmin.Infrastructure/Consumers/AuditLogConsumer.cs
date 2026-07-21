@@ -12,7 +12,7 @@ namespace Leno.SystemAdmin.Infrastructure.Consumers;
 
 /// <summary>
 /// 跨域审计日志消费者，消费各领域集成事件，生成 AuditLogEntry 审计日志条目。
-/// 同时保留原有 AuditLog 操作审计日志写入。
+/// AuditLog（操作审计日志）由 API 中间件写入，本消费者仅负责 AuditLogEntry。
 /// 支持幂等去重：按 EventId 检查已存在的 AuditLogEntry。
 /// </summary>
 public sealed partial class AuditLogConsumer :
@@ -34,22 +34,18 @@ public sealed partial class AuditLogConsumer :
     IConsumer<ReviewSubmittedEvent>,
     IConsumer<ReviewApprovedEvent>
 {
-    private readonly IAuditLogRepository _auditLogRepository;
     private readonly IAuditLogEntryRepository _auditLogEntryRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<AuditLogConsumer> _logger;
 
     public AuditLogConsumer(
-        IAuditLogRepository auditLogRepository,
         IAuditLogEntryRepository auditLogEntryRepository,
         IUnitOfWork unitOfWork,
         ILogger<AuditLogConsumer> logger)
     {
-        ArgumentNullException.ThrowIfNull(auditLogRepository);
         ArgumentNullException.ThrowIfNull(auditLogEntryRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(logger);
-        _auditLogRepository = auditLogRepository;
         _auditLogEntryRepository = auditLogEntryRepository;
         _unitOfWork = unitOfWork;
         _logger = logger;

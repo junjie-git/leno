@@ -18,7 +18,6 @@ namespace Leno.SystemAdmin.Infrastructure.Tests.Consumers;
 /// </summary>
 public sealed class AuditLogConsumerIdempotencyTests
 {
-    private readonly Mock<IAuditLogRepository> _auditLogRepoMock = new();
     private readonly Mock<IAuditLogEntryRepository> _entryRepoMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly AuditLogConsumer _consumer;
@@ -26,7 +25,6 @@ public sealed class AuditLogConsumerIdempotencyTests
     public AuditLogConsumerIdempotencyTests()
     {
         _consumer = new AuditLogConsumer(
-            _auditLogRepoMock.Object,
             _entryRepoMock.Object,
             _unitOfWorkMock.Object,
             NullLogger<AuditLogConsumer>.Instance);
