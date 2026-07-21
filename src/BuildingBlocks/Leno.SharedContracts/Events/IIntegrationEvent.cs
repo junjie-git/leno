@@ -12,6 +12,10 @@ public interface IIntegrationEvent
     /// <summary>事件发生时间（UTC）。</summary>
     DateTime OccurredAt { get; }
 
-    /// <summary>幂等键，消费方据此避免重复处理（默认与 EventId 一致）。</summary>
-    string IdempotencyKey { get; }
+    /// <summary>
+    /// 幂等键，消费方据此避免重复处理（默认与 EventId 一致）。
+    /// 可为 null：旧版事件 JSON 缺该字段或显式为 null 时反序列化为 null，
+    /// 消费方应使用 <see cref="string.IsNullOrEmpty"/> 校验并回退到 <see cref="EventId"/> 作为幂等键。
+    /// </summary>
+    string? IdempotencyKey { get; }
 }
