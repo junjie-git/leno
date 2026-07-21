@@ -125,6 +125,8 @@ public sealed class EfCoreAfterSalesRepository : IAfterSalesRepository
 
     /// <summary>
     /// 统一应用查询过滤条件，供 QueryAsync 与 CountAsync 复用。
+    /// 审计 4.6：用 <c>is not null</c> 模式匹配替代 <c>HasValue</c>/<c>Value</c> 冗余判断，
+    /// EF Core 翻译 <c>a.OrderId == orderId</c>（orderId 为 Guid?）时会自动展开为参数化等值比较。
     /// </summary>
     private static IQueryable<AfterSales> ApplyFilters(
         IQueryable<AfterSales> query,
@@ -133,24 +135,24 @@ public sealed class EfCoreAfterSalesRepository : IAfterSalesRepository
         Guid? sellerId,
         AfterSalesStatus? status)
     {
-        if (orderId.HasValue)
+        if (orderId is not null)
         {
-            query = query.Where(a => a.OrderId == orderId.Value);
+            query = query.Where(a => a.OrderId == orderId);
         }
 
-        if (userId.HasValue)
+        if (userId is not null)
         {
-            query = query.Where(a => a.UserId == userId.Value);
+            query = query.Where(a => a.UserId == userId);
         }
 
-        if (sellerId.HasValue)
+        if (sellerId is not null)
         {
-            query = query.Where(a => a.SellerId == sellerId.Value);
+            query = query.Where(a => a.SellerId == sellerId);
         }
 
-        if (status.HasValue)
+        if (status is not null)
         {
-            query = query.Where(a => a.Status == status.Value);
+            query = query.Where(a => a.Status == status);
         }
 
         return query;

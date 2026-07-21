@@ -73,9 +73,9 @@ public sealed class EfCoreReviewRepository : IReviewRepository
         CancellationToken ct = default)
     {
         var query = _context.Reviews.AsNoTracking().Where(r => r.SpuId == spuId);
-        if (status.HasValue)
+        if (status is not null)
         {
-            query = query.Where(r => r.Status == status.Value);
+            query = query.Where(r => r.Status == status);
         }
         return await query.OrderByDescending(r => r.CreatedAt).ToListAsync(ct);
     }
@@ -108,9 +108,9 @@ public sealed class EfCoreReviewRepository : IReviewRepository
         CancellationToken ct = default)
     {
         var query = _context.Reviews.AsNoTracking().Where(r => r.OrderId == orderId);
-        if (status.HasValue)
+        if (status is not null)
         {
-            query = query.Where(r => r.Status == status.Value);
+            query = query.Where(r => r.Status == status);
         }
         return await query.OrderByDescending(r => r.CreatedAt).ToListAsync(ct);
     }
@@ -135,6 +135,8 @@ public sealed class EfCoreReviewRepository : IReviewRepository
 
     /// <summary>
     /// 统一应用查询过滤条件，供 QueryAsync 与 CountAsync 复用。
+    /// 审计 4.6：用 <c>is not null</c> 模式匹配替代 <c>HasValue</c>/<c>Value</c> 冗余判断，
+    /// EF Core 翻译 <c>r.SpuId == spuId</c>（spuId 为 Guid?）时会自动展开为参数化等值比较。
     /// </summary>
     private static IQueryable<Review> ApplyFilters(
         IQueryable<Review> query,
@@ -142,19 +144,19 @@ public sealed class EfCoreReviewRepository : IReviewRepository
         Guid? userId,
         ReviewStatus? status)
     {
-        if (spuId.HasValue)
+        if (spuId is not null)
         {
-            query = query.Where(r => r.SpuId == spuId.Value);
+            query = query.Where(r => r.SpuId == spuId);
         }
 
-        if (userId.HasValue)
+        if (userId is not null)
         {
-            query = query.Where(r => r.UserId == userId.Value);
+            query = query.Where(r => r.UserId == userId);
         }
 
-        if (status.HasValue)
+        if (status is not null)
         {
-            query = query.Where(r => r.Status == status.Value);
+            query = query.Where(r => r.Status == status);
         }
 
         return query;
