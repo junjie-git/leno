@@ -248,9 +248,24 @@ public sealed class Coupon : AggregateRoot
     /// <param name="receivedAt">领取时间（UTC）。</param>
     public DateTime ComputeExpiredAt(DateTime receivedAt)
     {
-        return ValidityType == CouponValidityType.FixedPeriod
-            ? ValidTo!.Value
-            : receivedAt.AddDays(ValidDays!.Value);
+        if (ValidityType == CouponValidityType.FixedPeriod)
+        {
+            if (ValidTo is null)
+            {
+                throw new PromotionDomainException(
+                    "FixedPeriod 券模板 ValidTo 不可为空", "COUPON_VALID_TO_NULL");
+            }
+
+            return ValidTo.Value;
+        }
+
+        if (ValidDays is null)
+        {
+            throw new PromotionDomainException(
+                "RelativeDays 券模板 ValidDays 不可为空", "COUPON_VALID_DAYS_NULL");
+        }
+
+        return receivedAt.AddDays(ValidDays.Value);
     }
 
     /// <summary>判断券模板当前是否可被领取（启用且未过期）。</summary>
