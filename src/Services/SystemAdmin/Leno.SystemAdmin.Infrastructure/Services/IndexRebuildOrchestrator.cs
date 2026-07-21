@@ -54,10 +54,13 @@ public sealed class IndexRebuildOrchestrator : IIndexRebuildOrchestrator
         await _repository.AddAsync(task, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
 
-        // 触发底层索引重建操作；失败时标记任务为 Failed 并持久化
+        // 触发底层索引重建操作；成功时回写 EsTaskId 并持久化，失败时标记任务为 Failed 并持久化
         try
         {
-            await _trigger.StartAsync(taskId, targetContext, indexName, ct);
+            var esTaskId = await _trigger.StartAsync(taskId, targetContext, indexName, ct);
+            task.RecordEsTaskId(esTaskId);
+            await _repository.UpdateAsync(task, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
         }
         catch (Exception ex)
         {
@@ -115,7 +118,10 @@ public sealed class IndexRebuildOrchestrator : IIndexRebuildOrchestrator
 
         try
         {
-            await _trigger.StartAsync(taskId, task.TargetContext, task.IndexName, ct);
+            var esTaskId = await _trigger.StartAsync(taskId, task.TargetContext, task.IndexName, ct);
+            task.RecordEsTaskId(esTaskId);
+            await _repository.UpdateAsync(task, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
         }
         catch (Exception ex)
         {

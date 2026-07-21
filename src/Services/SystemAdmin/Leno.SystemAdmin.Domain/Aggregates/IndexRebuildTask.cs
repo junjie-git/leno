@@ -36,6 +36,13 @@ public sealed class IndexRebuildTask : AggregateRoot
     /// <summary>重建进度，0-100。</summary>
     public int Progress { get; private set; }
 
+    /// <summary>
+    /// 底层搜索引擎（如 Elasticsearch）返回的任务标识，用于直接查询重建进度。
+    /// 可空：任务尚未触发或底层引擎未返回任务标识时为 null。
+    /// 进度查询亦可通过 dest 索引名 <c>{sourceIndex}_reindex_{taskId:N}</c> 在 description 中关联匹配。
+    /// </summary>
+    public string? EsTaskId { get; private set; }
+
     /// <summary>错误信息，≤2000 字，可空。</summary>
     public string? ErrorMessage { get; private set; }
 
@@ -84,12 +91,33 @@ public sealed class IndexRebuildTask : AggregateRoot
             TriggeredBy = triggeredBy.Trim(),
             Status = RebuildTaskStatus.Created,
             Progress = 0,
+            EsTaskId = null,
             RetryCount = 0,
             ErrorMessage = null,
             CreatedAt = DateTime.UtcNow,
             StartedAt = null,
             CompletedAt = null
         };
+    }
+
+    /// <summary>
+    /// 记录底层搜索引擎返回的任务标识，用于后续直接查询重建进度。
+    /// 幂等：仅允许在 Running 状态下设置一次，避免重复触发覆盖已有标识。
+    /// </summary>
+    /// <param name="esTaskId">底层引擎任务标识，可空（引擎未返回时为 null）。</param>
+    public void RecordEsTaskId(string? esTaskId)
+    {
+        if (Status != RebuildTaskStatus.Running)
+        {
+            throw new SystemAdminDomainException("只有运行中的任务可以记录底层引擎任务标识", "REBUILD_TASK_ES_TASK_ID_INVALID_STATUS");
+        }
+
+        if (string.IsNullOrWhiteSpace(esTaskId))
+        {
+            return;
+        }
+
+        EsTaskId = esTaskId.Trim();
     }
 
     /// <summary>
@@ -181,6 +209,7 @@ public sealed class IndexRebuildTask : AggregateRoot
         Status = RebuildTaskStatus.Created;
         TriggeredBy = triggeredBy.Trim();
         Progress = 0;
+        EsTaskId = null;
         ErrorMessage = null;
         RetryCount++;
         StartedAt = null;

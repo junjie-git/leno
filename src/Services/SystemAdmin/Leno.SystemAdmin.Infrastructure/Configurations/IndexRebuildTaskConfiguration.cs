@@ -21,6 +21,7 @@ public sealed class IndexRebuildTaskConfiguration : IEntityTypeConfiguration<Ind
         builder.Property(t => t.Status).HasColumnName("status").HasConversion<int>();
         builder.Property(t => t.TriggeredBy).HasColumnName("triggered_by").HasMaxLength(64).IsRequired();
         builder.Property(t => t.Progress).HasColumnName("progress");
+        builder.Property(t => t.EsTaskId).HasColumnName("es_task_id").HasMaxLength(256);
         builder.Property(t => t.ErrorMessage).HasColumnName("error_message").HasMaxLength(2000);
         builder.Property(t => t.RetryCount).HasColumnName("retry_count");
         builder.Property(t => t.CreatedAt).HasColumnName("created_at");

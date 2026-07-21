@@ -25,6 +25,7 @@ public class IndexRebuildTaskTests
         task.TriggeredBy.Should().Be(ValidTriggeredBy);
         task.Status.Should().Be(RebuildTaskStatus.Created);
         task.Progress.Should().Be(0);
+        task.EsTaskId.Should().BeNull();
         task.RetryCount.Should().Be(0);
         task.ErrorMessage.Should().BeNull();
         task.StartedAt.Should().BeNull();
@@ -453,6 +454,7 @@ public class IndexRebuildTaskTests
         task.Status.Should().Be(RebuildTaskStatus.Created);
         task.TriggeredBy.Should().Be("operator-002");
         task.Progress.Should().Be(0);
+        task.EsTaskId.Should().BeNull();
         task.ErrorMessage.Should().BeNull();
         task.RetryCount.Should().Be(1);
         task.StartedAt.Should().BeNull();
@@ -506,6 +508,91 @@ public class IndexRebuildTaskTests
 
         act.Should().Throw<SystemAdminDomainException>()
             .Which.ErrorCode.Should().Be("REBUILD_TASK_TRIGGERED_BY_EMPTY");
+    }
+
+    #endregion
+
+    #region RecordEsTaskId
+
+    [Fact]
+    public void RecordEsTaskId_WhenRunning_ShouldSetEsTaskId()
+    {
+        var task = CreateTask();
+        task.Start();
+
+        task.RecordEsTaskId("node1:12345");
+
+        task.EsTaskId.Should().Be("node1:12345");
+    }
+
+    [Fact]
+    public void RecordEsTaskId_WhenCreated_ShouldThrowInvalidStatus()
+    {
+        var task = CreateTask();
+
+        var act = () => task.RecordEsTaskId("node1:12345");
+
+        act.Should().Throw<SystemAdminDomainException>()
+            .Which.ErrorCode.Should().Be("REBUILD_TASK_ES_TASK_ID_INVALID_STATUS");
+    }
+
+    [Fact]
+    public void RecordEsTaskId_WhenCompleted_ShouldThrowInvalidStatus()
+    {
+        var task = CreateTask();
+        task.Start();
+        task.Complete();
+
+        var act = () => task.RecordEsTaskId("node1:12345");
+
+        act.Should().Throw<SystemAdminDomainException>()
+            .Which.ErrorCode.Should().Be("REBUILD_TASK_ES_TASK_ID_INVALID_STATUS");
+    }
+
+    [Fact]
+    public void RecordEsTaskId_WithNull_ShouldRemainNull()
+    {
+        var task = CreateTask();
+        task.Start();
+
+        task.RecordEsTaskId(null);
+
+        task.EsTaskId.Should().BeNull();
+    }
+
+    [Fact]
+    public void RecordEsTaskId_WithEmptyString_ShouldRemainNull()
+    {
+        var task = CreateTask();
+        task.Start();
+
+        task.RecordEsTaskId("");
+
+        task.EsTaskId.Should().BeNull();
+    }
+
+    [Fact]
+    public void RecordEsTaskId_ShouldTrimValue()
+    {
+        var task = CreateTask();
+        task.Start();
+
+        task.RecordEsTaskId("  node1:12345  ");
+
+        task.EsTaskId.Should().Be("node1:12345");
+    }
+
+    [Fact]
+    public void Retry_ShouldResetEsTaskIdToNull()
+    {
+        var task = CreateTask();
+        task.Start();
+        task.RecordEsTaskId("node1:12345");
+        task.Fail("error");
+
+        task.Retry("operator-002");
+
+        task.EsTaskId.Should().BeNull();
     }
 
     #endregion

@@ -35,19 +35,21 @@ public sealed class IndexRebuildOrchestratorTests
     }
 
     [Fact]
-    public async Task TriggerAsync_Should_Call_SaveEntitiesAsync_Once_Not_Three_Times()
+    public async Task TriggerAsync_Should_Call_SaveEntitiesAsync_Twice_On_Success_With_EsTaskId()
     {
         _repoMock.Setup(r => r.GetRunningByIndexAsync("Product", "products", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IndexRebuildTask?)null);
         _unitOfWorkMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _triggerMock.Setup(t => t.StartAsync(It.IsAny<Guid>(), "Product", "products", It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync("node1:12345");
 
         var task = await _orchestrator.TriggerAsync("Product", "products", "admin", CancellationToken.None);
 
         Assert.Equal(RebuildTaskStatus.Running, task.Status);
-        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal("node1:12345", task.EsTaskId);
+        // 1st save: Create+Start 持久化；2nd save: 回写 EsTaskId 持久化
+        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]
@@ -87,7 +89,7 @@ public sealed class IndexRebuildOrchestratorTests
     }
 
     [Fact]
-    public async Task RetryAsync_Should_Call_SaveEntitiesAsync_Once_When_No_Concurrent_Task()
+    public async Task RetryAsync_Should_Call_SaveEntitiesAsync_Twice_On_Success_With_EsTaskId()
     {
         var taskId = Guid.NewGuid();
         var existingTask = IndexRebuildTask.Create(taskId, "Product", "products", "admin");
@@ -101,12 +103,14 @@ public sealed class IndexRebuildOrchestratorTests
         _unitOfWorkMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _triggerMock.Setup(t => t.StartAsync(taskId, "Product", "products", It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync("node1:67890");
 
         var task = await _orchestrator.RetryAsync(taskId, "admin", CancellationToken.None);
 
         Assert.Equal(RebuildTaskStatus.Running, task.Status);
-        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal("node1:67890", task.EsTaskId);
+        // 1st save: Retry+Start 持久化；2nd save: 回写 EsTaskId 持久化
+        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]

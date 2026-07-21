@@ -9,17 +9,19 @@ public interface IIndexRebuildTrigger
     /// <summary>
     /// 启动索引重建操作。
     /// </summary>
-    /// <param name="taskId">任务标识。</param>
+    /// <param name="taskId">任务标识，用于关联 dest 索引名 <c>{sourceIndex}_reindex_{taskId:N}</c>。</param>
     /// <param name="targetContext">目标上下文。</param>
     /// <param name="indexName">索引名称。</param>
     /// <param name="ct">取消令牌。</param>
-    Task StartAsync(Guid taskId, string targetContext, string indexName, CancellationToken ct);
+    /// <returns>底层搜索引擎返回的任务标识（如 ES task 节点），可空（引擎未返回时为 null）。</returns>
+    Task<string?> StartAsync(Guid taskId, string targetContext, string indexName, CancellationToken ct);
 
     /// <summary>
-    /// 获取重建进度。
+    /// 获取重建进度。实现方须通过 <paramref name="taskId"/> 关联匹配对应的底层重建任务，
+    /// 避免返回其他不相关任务的进度。
     /// </summary>
-    /// <param name="taskId">任务标识。</param>
+    /// <param name="taskId">任务标识，用于匹配 dest 索引名 <c>{sourceIndex}_reindex_{taskId:N}</c>。</param>
     /// <param name="ct">取消令牌。</param>
-    /// <returns>进度值，0-100。</returns>
+    /// <returns>进度值，0-100。当底层任务已完成（不再存在于任务列表）时返回 100。</returns>
     Task<int> GetProgressAsync(Guid taskId, CancellationToken ct);
 }

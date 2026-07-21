@@ -35,7 +35,7 @@ public sealed class ElasticsearchRebuildTrigger : IIndexRebuildTrigger
     }
 
     /// <inheritdoc />
-    public async Task StartAsync(Guid taskId, string targetContext, string indexName, CancellationToken ct)
+    public async Task<string?> StartAsync(Guid taskId, string targetContext, string indexName, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(targetContext);
         ArgumentNullException.ThrowIfNull(indexName);
@@ -82,13 +82,20 @@ public sealed class ElasticsearchRebuildTrigger : IIndexRebuildTrigger
             _logger.LogInformation(
                 "ES reindex 任务已提交：TaskId={TaskId}, EsTaskId={EsTaskId}",
                 taskId, esTaskId);
+            return esTaskId;
         }
+
+        return null;
     }
 
     /// <inheritdoc />
     public async Task<int> GetProgressAsync(Guid taskId, CancellationToken ct)
     {
         var baseUrl = GetElasticsearchBaseUrl();
+
+        // taskId 以 N 格式（32 位十六进制无连字符）嵌入 dest 索引名 {sourceIndex}_reindex_{taskId:N}，
+        // 用于在 ES _tasks 响应的 description 中精确匹配本任务对应的 reindex，避免误返回其他任务的进度。
+        var taskIdToken = taskId.ToString("N");
 
         // 查询所有运行中的 reindex 任务
         var tasksUrl = $"{baseUrl}/_tasks?actions=*reindex&detailed=true";
@@ -107,10 +114,12 @@ public sealed class ElasticsearchRebuildTrigger : IIndexRebuildTrigger
 
             if (!doc.RootElement.TryGetProperty("nodes", out var nodes))
             {
-                return 0;
+                // 无节点响应：任务可能已完成，返回 100 避免进度卡在 0
+                _logger.LogInformation("ES _tasks 无节点响应，任务视为已完成 TaskId={TaskId}", taskId);
+                return 100;
             }
 
-            // 遍历所有节点查找匹配的 reindex 任务
+            // 遍历所有节点查找匹配本 taskId 的 reindex 任务
             foreach (var nodeProp in nodes.EnumerateObject())
             {
                 if (!nodeProp.Value.TryGetProperty("tasks", out var tasks))
@@ -121,6 +130,18 @@ public sealed class ElasticsearchRebuildTrigger : IIndexRebuildTrigger
                 foreach (var taskProp in tasks.EnumerateObject())
                 {
                     var task = taskProp.Value;
+
+                    // 通过 description 字段匹配 dest 索引名中的 {taskId:N} 标记，
+                    // 仅返回属于本任务的进度，不误返回其他并发重建任务的进度
+                    var description = task.TryGetProperty("description", out var descNode)
+                        ? descNode.GetString() ?? string.Empty
+                        : string.Empty;
+
+                    if (!description.Contains(taskIdToken, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
                     if (!task.TryGetProperty("status", out var status))
                     {
                         continue;
@@ -139,7 +160,11 @@ public sealed class ElasticsearchRebuildTrigger : IIndexRebuildTrigger
                 }
             }
 
-            return 0;
+            // 未找到匹配 taskId 的运行中任务：reindex 已完成，返回 100 而非 0
+            _logger.LogInformation(
+                "ES _tasks 未找到匹配的 reindex 任务，视为已完成 TaskId={TaskId} TaskToken={TaskToken}",
+                taskId, taskIdToken);
+            return 100;
         }
         catch (Exception ex)
         {
