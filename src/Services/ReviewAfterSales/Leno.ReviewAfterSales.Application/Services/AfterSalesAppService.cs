@@ -84,28 +84,36 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
 
         afterSales.Approve(operatorId, approvedAmount);
 
-        // 仅退款类型直接进入退款流程，经发件箱模式发布退款请求集成事件
+        // 仅退款类型直接进入退款流程
         if (afterSales.Type == AfterSalesType.RefundOnly)
         {
             afterSales.MarkRefunding();
 
+            // 合并审计 3.7：拆分事务避免长事务持锁。
+            // 第一次事务：状态机推进到 Refunding，立即提交，释放行锁。
+            await _afterSalesRepository.UpdateAsync(afterSales, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+
+            // 事务外：远程查询支付单信息（不持有 DB 锁）
             var paymentInfo = await _paymentInfoQueryService.GetByOrderIdAsync(afterSales.OrderId, ct)
                 ?? throw new InvalidOperationException($"订单支付信息不存在 OrderId={afterSales.OrderId}");
 
+            // 第二次事务：仅追加退款请求事件到发件箱
             var refundId = Guid.NewGuid();
             afterSales.AddRefundRequestedEvent(
                 refundId, paymentInfo.PaymentId, approvedAmount,
                 paymentInfo.Channel, afterSales.Reason);
+            await _afterSalesRepository.UpdateAsync(afterSales, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
 
             _logger.LogInformation("卖家审核通过仅退款售后并已入发件箱 AfterSalesId={AfterSalesId} RefundId={RefundId}", afterSalesId, refundId);
         }
         else
         {
             _logger.LogInformation("售后审核通过（退货退款，等待买家退货） AfterSalesId={AfterSalesId} ApprovedAmount={ApprovedAmount}", afterSalesId, approvedAmount);
+            await _afterSalesRepository.UpdateAsync(afterSales, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
         }
-
-        await _afterSalesRepository.UpdateAsync(afterSales, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
     /// <inheritdoc />
@@ -134,16 +142,21 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
         afterSales.ConfirmReturn(operatorId);
         afterSales.MarkRefunding();
 
-        // 查询支付单信息，经发件箱模式发布退款请求集成事件
+        // 合并审计 3.7：拆分事务避免长事务持锁。
+        // 第一次事务：状态机推进到 Refunding，立即提交，释放行锁。
+        await _afterSalesRepository.UpdateAsync(afterSales, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        // 事务外：远程查询支付单信息（不持有 DB 锁）
         var paymentInfo = await _paymentInfoQueryService.GetByOrderIdAsync(afterSales.OrderId, ct)
             ?? throw new InvalidOperationException($"订单支付信息不存在 OrderId={afterSales.OrderId}");
 
+        // 第二次事务：追加退款请求事件到发件箱
         var refundId = Guid.NewGuid();
         var refundAmount = afterSales.ApprovedAmount ?? afterSales.RequestedAmount;
         afterSales.AddRefundRequestedEvent(
             refundId, paymentInfo.PaymentId, refundAmount,
             paymentInfo.Channel, afterSales.Reason);
-
         await _afterSalesRepository.UpdateAsync(afterSales, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
 
@@ -158,22 +171,33 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
 
         afterSales.Approve(operatorId, approvedAmount);
 
-        // 仅退款类型直接进入退款流程，经发件箱模式发布退款请求集成事件
+        // 仅退款类型直接进入退款流程
         if (afterSales.Type == AfterSalesType.RefundOnly)
         {
             afterSales.MarkRefunding();
 
+            // 合并审计 3.7：拆分事务避免长事务持锁。
+            // 第一次事务：状态机推进到 Refunding，立即提交，释放行锁。
+            await _afterSalesRepository.UpdateAsync(afterSales, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+
+            // 事务外：远程查询支付单信息（不持有 DB 锁）
             var paymentInfo = await _paymentInfoQueryService.GetByOrderIdAsync(afterSales.OrderId, ct)
                 ?? throw new InvalidOperationException($"订单支付信息不存在 OrderId={afterSales.OrderId}");
 
+            // 第二次事务：追加退款请求事件到发件箱
             var refundId = Guid.NewGuid();
             afterSales.AddRefundRequestedEvent(
                 refundId, paymentInfo.PaymentId, approvedAmount,
                 paymentInfo.Channel, afterSales.Reason);
+            await _afterSalesRepository.UpdateAsync(afterSales, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
         }
-
-        await _afterSalesRepository.UpdateAsync(afterSales, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        else
+        {
+            await _afterSalesRepository.UpdateAsync(afterSales, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
 
         _logger.LogInformation("运营审核通过售后 AfterSalesId={AfterSalesId} ApprovedAmount={ApprovedAmount}", afterSalesId, approvedAmount);
     }

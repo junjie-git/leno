@@ -84,7 +84,8 @@ public class AfterSalesOwnershipTests
         await _sut.ApproveAfterSalesAsync(AfterSalesId, OwnerSellerId, 100m, CancellationToken.None);
 
         // Assert
-        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        // 合并审计 3.7：拆分事务后 SaveEntitiesAsync 调用 2 次（仅退款类型）
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]

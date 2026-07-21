@@ -128,8 +128,9 @@ public class AfterSalesAppServiceTests
         afterSales.ApprovedAmount.Should().Be(50m);
         afterSales.DomainEvents.OfType<RefundRequestedIntegrationEvent>().Should().HaveCount(1);
         _paymentInfoMock.Verify(p => p.GetByOrderIdAsync(OrderId, It.IsAny<CancellationToken>()), Times.Once);
-        _afterSalesRepoMock.Verify(r => r.UpdateAsync(afterSales, It.IsAny<CancellationToken>()), Times.Once);
-        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        // 合并审计 3.7：拆分事务后 UpdateAsync 与 SaveEntitiesAsync 各调用 2 次（状态机推进 + 事件追加）
+        _afterSalesRepoMock.Verify(r => r.UpdateAsync(afterSales, It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]
