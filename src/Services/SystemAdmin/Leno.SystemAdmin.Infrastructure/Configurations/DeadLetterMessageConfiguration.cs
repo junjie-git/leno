@@ -32,7 +32,9 @@ public sealed class DeadLetterMessageConfiguration : IEntityTypeConfiguration<De
         builder.Property(m => m.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(m => m.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
 
-        builder.HasIndex(m => m.OriginalMessageId).HasDatabaseName("ix_dead_letter_messages_original_message_id");
+        // 唯一索引：消除 PersistDeadLetterCopyAsync 的 check-then-insert TOCTOU 竞态，
+        // 并发拉取入库时由数据库唯一约束兜底，应用层捕获 DbUpdateException 按幂等处理。
+        builder.HasIndex(m => m.OriginalMessageId).HasDatabaseName("ix_dead_letter_messages_original_message_id").IsUnique();
         builder.HasIndex(m => m.SourceContext).HasDatabaseName("ix_dead_letter_messages_source_context");
         builder.HasIndex(m => m.Status).HasDatabaseName("ix_dead_letter_messages_status");
     }

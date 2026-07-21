@@ -7,6 +7,7 @@ using Leno.SystemAdmin.Domain.Aggregates;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.Services;
 using Leno.SystemAdmin.Domain.ValueObjects;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -180,6 +181,8 @@ public sealed class RabbitMqDeadLetterManager : IDeadLetterQueueManager
     /// <summary>
     /// 入库死信副本：按 OriginalMessageId 去重，已存在则跳过。
     /// 入库失败抛异常，由调用方感知；因 ack_requeue_true 消息已回 DLQ，下次拉取仍能拿到，不丢失。
+    /// 并发拉取时由 OriginalMessageId 唯一索引兜底：捕获 DbUpdateException 判定为唯一约束冲突则视为已入库正常返回，
+    /// 消除 check-then-insert 的 TOCTOU 竞态。
     /// </summary>
     private async Task PersistDeadLetterCopyAsync(DeadLetterMessage message, CancellationToken ct)
     {
@@ -190,11 +193,45 @@ public sealed class RabbitMqDeadLetterManager : IDeadLetterQueueManager
             return;
         }
 
-        await _repository.AddAsync(message, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
+        try
+        {
+            await _repository.AddAsync(message, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
 
-        _logger.LogInformation("死信消息 {MessageId}（OriginalMessageId={OriginalMessageId}）已入库副本",
-            message.MessageId, message.OriginalMessageId);
+            _logger.LogInformation("死信消息 {MessageId}（OriginalMessageId={OriginalMessageId}）已入库副本",
+                message.MessageId, message.OriginalMessageId);
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // 并发插入导致唯一索引冲突，视为已入库，正常返回
+            _logger.LogWarning(ex,
+                "死信消息 OriginalMessageId={OriginalMessageId} 并发插入冲突，已按幂等处理", message.OriginalMessageId);
+        }
+    }
+
+    /// <summary>
+    /// 判断 DbUpdateException 是否为唯一约束冲突（SQL Server 错误码 2601/2627），
+    /// 同时匹配索引名 ix_dead_letter_messages_original_message_id 与通用关键字作为兜底，
+    /// 兼容 PostgreSQL/MySQL 等其他数据库的错误消息。
+    /// </summary>
+    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        var inner = ex.InnerException;
+        if (inner is null)
+        {
+            return false;
+        }
+
+        var message = inner.Message ?? string.Empty;
+        // SQL Server: 2601 (唯一键) / 2627 (违反约束)
+        // PostgreSQL: duplicate key value violates unique constraint
+        // MySQL: Duplicate entry
+        return message.Contains("2601", StringComparison.Ordinal)
+            || message.Contains("2627", StringComparison.Ordinal)
+            || message.Contains("ix_dead_letter_messages_original_message_id", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase);
     }
 
     private void ConfigureHttpClient()
