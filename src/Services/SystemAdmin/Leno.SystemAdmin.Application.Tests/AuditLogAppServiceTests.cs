@@ -89,8 +89,8 @@ public class AuditLogAppServiceTests
     {
         var logs = new List<AuditLog> { CreateAuditLog() };
         _auditLogRepoMock
-            .Setup(r => r.QueryAsync(null, null, null, null, 1, int.MaxValue, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(logs);
+            .Setup(r => r.StreamAsync(null, null, null, null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(CreateAsyncEnumerable(logs));
 
         var csv = await _sut.ExportAuditLogsAsync(null, null, null, null);
 
@@ -104,8 +104,8 @@ public class AuditLogAppServiceTests
     public async Task ExportAuditLogsAsync_EmptyResult_ShouldReturnHeaderOnly()
     {
         _auditLogRepoMock
-            .Setup(r => r.QueryAsync(null, null, null, null, 1, int.MaxValue, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<AuditLog>());
+            .Setup(r => r.StreamAsync(null, null, null, null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(CreateAsyncEnumerable(new List<AuditLog>()));
 
         var csv = await _sut.ExportAuditLogsAsync(null, null, null, null);
 
@@ -119,12 +119,46 @@ public class AuditLogAppServiceTests
         var log = AuditLog.Create(
             LogId, OperatorId, "create,order", "Order", "ORD-1", "summary", 200, "127.0.0.1", "trace-1", DateTime.UtcNow);
         _auditLogRepoMock
-            .Setup(r => r.QueryAsync(null, null, null, null, 1, int.MaxValue, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<AuditLog> { log });
+            .Setup(r => r.StreamAsync(null, null, null, null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(CreateAsyncEnumerable(new List<AuditLog> { log }));
 
         var csv = await _sut.ExportAuditLogsAsync(null, null, null, null);
 
         csv.Should().Contain("\"create,order\"");
+    }
+
+    [Fact]
+    public async Task ExportAuditLogsAsync_ShouldCapAt100000RowsAndLogWarning()
+    {
+        // 模拟数据源返回超过 10 万条，验证导出截断为 10 万条并记录告警
+        var largeLogs = Enumerable.Range(0, 100_001)
+            .Select(_ => CreateAuditLog())
+            .ToList();
+        _auditLogRepoMock
+            .Setup(r => r.StreamAsync(null, null, null, null, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(CreateAsyncEnumerable(largeLogs));
+
+        var csv = await _sut.ExportAuditLogsAsync(null, null, null, null);
+
+        // 表头 + 100000 行 + 末尾换行
+        csv.Split('\n').Should().HaveCountGreaterOrEqualTo(100_002);
+        _loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("已达到上限", StringComparison.Ordinal)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    private static async IAsyncEnumerable<AuditLog> CreateAsyncEnumerable(List<AuditLog> logs)
+    {
+        foreach (var log in logs)
+        {
+            yield return log;
+            await Task.Yield();
+        }
     }
 
     private static AuditLog CreateAuditLog() =>

@@ -43,6 +43,30 @@ public sealed class EfCoreAuditLogRepository : IAuditLogRepository
         return await query.CountAsync(ct);
     }
 
+    /// <inheritdoc />
+    public async IAsyncEnumerable<AuditLog> StreamAsync(
+        Guid? operatorId,
+        string? resourceType,
+        DateTime? fromTime,
+        DateTime? toTime,
+        int maxCount = 100_000,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    {
+        if (maxCount <= 0)
+        {
+            yield break;
+        }
+
+        var query = ApplyFilters(_context.AuditLogs.AsNoTracking(), operatorId, resourceType, fromTime, toTime)
+            .OrderByDescending(a => a.OccurredAt)
+            .Take(maxCount);
+
+        await foreach (var log in query.AsAsyncEnumerable().WithCancellation(ct))
+        {
+            yield return log;
+        }
+    }
+
     private static IQueryable<AuditLog> ApplyFilters(
         IQueryable<AuditLog> query,
         Guid? operatorId,

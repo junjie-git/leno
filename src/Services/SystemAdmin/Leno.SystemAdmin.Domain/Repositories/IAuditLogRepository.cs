@@ -43,4 +43,23 @@ public interface IAuditLogRepository
     /// <param name="toTime">截止时间（UTC），可空表示不限。</param>
     /// <param name="ct">取消令牌。</param>
     Task<int> CountAsync(Guid? operatorId, string? resourceType, DateTime? fromTime, DateTime? toTime, CancellationToken ct = default);
+
+    /// <summary>
+    /// 流式拉取审计日志，按时间倒序。
+    /// 使用 <c>AsNoTracking().AsAsyncEnumerable()</c> 避免一次性加载到内存导致 OOM。
+    /// 调用方应限制最大条数（例如 10 万），超出部分应分批导出。
+    /// </summary>
+    /// <param name="operatorId">运营人员标识，可空表示不限。</param>
+    /// <param name="resourceType">资源类型，可空表示不限。</param>
+    /// <param name="fromTime">起始时间（UTC），可空表示不限。</param>
+    /// <param name="toTime">截止时间（UTC），可空表示不限。</param>
+    /// <param name="maxCount">最大返回条数，超出部分不返回，调用方应分批导出。默认 10 万。</param>
+    /// <param name="ct">取消令牌。</param>
+    IAsyncEnumerable<AuditLog> StreamAsync(
+        Guid? operatorId,
+        string? resourceType,
+        DateTime? fromTime,
+        DateTime? toTime,
+        int maxCount = 100_000,
+        CancellationToken ct = default);
 }

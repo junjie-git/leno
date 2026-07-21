@@ -126,6 +126,12 @@ public sealed class SystemConfigAppService : ISystemConfigAppService
         };
     }
 
+    /// <inheritdoc />
+    public async Task<List<string>> GetDistinctGroupsAsync(CancellationToken ct = default)
+    {
+        return await _repository.GetDistinctGroupsAsync(ct);
+    }
+
     private async Task<SystemConfig> RequireConfigAsync(Guid configId, CancellationToken ct)
         => await _repository.GetByIdAsync(configId, ct)
            ?? throw new InvalidOperationException($"系统配置 {configId} 不存在");

@@ -28,4 +28,7 @@ public interface ISystemConfigAppService
 
     /// <summary>分页查询配置，支持键、分组、状态过滤。</summary>
     Task<SystemConfigListResultDto> QueryAsync(string? key, string? group, ConfigStatus? status, int page, int pageSize, CancellationToken ct = default);
+
+    /// <summary>获取全部已存在的配置分组（去重），SQL 层 SELECT DISTINCT Group。</summary>
+    Task<List<string>> GetDistinctGroupsAsync(CancellationToken ct = default);
 }

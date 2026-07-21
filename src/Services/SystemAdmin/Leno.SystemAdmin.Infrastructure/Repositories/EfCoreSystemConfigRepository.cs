@@ -57,6 +57,17 @@ public sealed class EfCoreSystemConfigRepository : ISystemConfigRepository
     }
 
     /// <inheritdoc />
+    public async Task<List<string>> GetDistinctGroupsAsync(CancellationToken ct = default)
+    {
+        // SQL 层 SELECT DISTINCT Group，避免加载全部配置后内存 Distinct
+        return await _context.SystemConfigs
+            .Select(c => c.Group)
+            .Distinct()
+            .OrderBy(g => g)
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
     public async Task AddAsync(SystemConfig aggregate, CancellationToken ct = default)
         => await _context.SystemConfigs.AddAsync(aggregate, ct);
 

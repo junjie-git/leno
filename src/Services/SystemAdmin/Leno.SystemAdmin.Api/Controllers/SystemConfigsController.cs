@@ -39,13 +39,12 @@ public sealed class SystemConfigsController : SystemAdminControllerBase
         return Ok(ApiResponse.Success(result));
     }
 
-    /// <summary>获取全部配置分组（去重）。</summary>
+    /// <summary>获取全部配置分组（去重），SQL 层 SELECT DISTINCT Group。</summary>
     [HttpGet("api/admin/system-configs/groups")]
     [ProducesResponseType(typeof(ApiResponse<List<string>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetGroupsAsync(CancellationToken ct)
     {
-        var result = await _configAppService.QueryAsync(null, null, null, 1, int.MaxValue, ct);
-        var groups = result.Items.Select(c => c.Group).Distinct().ToList();
+        var groups = await _configAppService.GetDistinctGroupsAsync(ct);
         return Ok(ApiResponse.Success(groups));
     }
 

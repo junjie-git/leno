@@ -65,13 +65,23 @@ public sealed class AuditLogAppService : IAuditLogAppService
     /// <inheritdoc />
     public async Task<string> ExportAuditLogsAsync(Guid? operatorId, string? resourceType, DateTime? fromTime, DateTime? toTime, CancellationToken ct = default)
     {
-        var logs = await _auditLogRepository.QueryAsync(operatorId, resourceType, fromTime, toTime, 1, int.MaxValue, ct);
+        // 流式拉取审计日志，限制单次最大导出 10 万条，超出部分应分批导出
+        const int maxExportCount = 100_000;
 
         var sb = new StringBuilder();
         sb.Append(AuditLogCsvHeader).Append('\n');
 
-        foreach (var log in logs)
+        var exported = 0;
+        await foreach (var log in _auditLogRepository.StreamAsync(operatorId, resourceType, fromTime, toTime, maxExportCount + 1, ct))
         {
+            if (exported >= maxExportCount)
+            {
+                _logger.LogWarning(
+                    "审计日志导出已达到上限 {MaxCount} 条，超出部分请缩小时间范围分批导出 OperatorId={OperatorId} ResourceType={ResourceType}",
+                    maxExportCount, operatorId, resourceType);
+                break;
+            }
+
             sb.Append(log.LogId.ToString());
             sb.Append(',');
             sb.Append(log.OperatorId.ToString());
@@ -86,9 +96,11 @@ public sealed class AuditLogAppService : IAuditLogAppService
             sb.Append(',');
             sb.Append(log.OccurredAt.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture));
             sb.Append('\n');
+
+            exported++;
         }
 
-        _logger.LogInformation("审计日志已导出：{Count} 条", logs.Count);
+        _logger.LogInformation("审计日志已导出：{Count} 条", exported);
         return sb.ToString();
     }
 
