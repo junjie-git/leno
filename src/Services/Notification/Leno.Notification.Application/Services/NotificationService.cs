@@ -50,111 +50,93 @@ public sealed class NotificationService : INotificationService
     /// <inheritdoc />
     public async Task<NotificationSendResult> SendAsync(NotificationRequest request, CancellationToken ct = default)
     {
-        NotificationRecord? record = null;
-        var recordId = Guid.Empty;
-        NotificationTemplate? template = null;
-        IUnitOfWorkTransaction? tx = null;
-        var useIdempotencyTx = !string.IsNullOrWhiteSpace(request.IdempotencyKey);
+        // 1. Idempotency check
+        if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
+        {
+            var existing = await _recordRepository.GetByIdempotencyKeyAsync(request.IdempotencyKey, ct);
+            if (existing is not null)
+            {
+                _logger.LogInformation("幂等命中 IdempotencyKey={Key} RecordId={RecordId}", request.IdempotencyKey, existing.Id);
+                return new NotificationSendResult
+                {
+                    Succeeded = existing.Status == NotificationStatus.Succeeded,
+                    RecordId = existing.Id,
+                    ErrorCode = existing.ErrorCode,
+                    ErrorMessage = existing.ErrorMessage
+                };
+            }
+        }
 
+        // 2. Template lookup
+        var template = await _templateRepository.GetEnabledByCodeAsync(request.TemplateCode, ct);
+        if (template is null)
+        {
+            _logger.LogWarning("未找到启用模板 TemplateCode={Code}", request.TemplateCode);
+            return new NotificationSendResult
+            {
+                Succeeded = false,
+                ErrorCode = "TEMPLATE_NOT_FOUND",
+                ErrorMessage = $"模板 {request.TemplateCode} 不存在或未启用"
+            };
+        }
+
+        // 3. Template rendering
+        string title;
+        string content;
         try
         {
-            // 1. Idempotency check + create wrapped in transaction（避免并发两步检查窗口产生重复记录）
-            if (useIdempotencyTx)
-            {
-                tx = await _unitOfWork.BeginTransactionAsync(ct);
-                var existing = await _recordRepository.GetByIdempotencyKeyAsync(request.IdempotencyKey!, ct);
-                if (existing is not null)
-                {
-                    await tx.RollbackAsync(ct);
-                    _logger.LogInformation("幂等命中 IdempotencyKey={Key} RecordId={RecordId}", request.IdempotencyKey, existing.Id);
-                    return new NotificationSendResult
-                    {
-                        Succeeded = existing.Status == NotificationStatus.Succeeded,
-                        RecordId = existing.Id,
-                        ErrorCode = existing.ErrorCode,
-                        ErrorMessage = existing.ErrorMessage
-                    };
-                }
-            }
-
-            // 2. Template lookup
-            template = await _templateRepository.GetEnabledByCodeAsync(request.TemplateCode, ct);
-            if (template is null)
-            {
-                if (tx is not null) await tx.RollbackAsync(ct);
-                _logger.LogWarning("未找到启用模板 TemplateCode={Code}", request.TemplateCode);
-                return new NotificationSendResult
-                {
-                    Succeeded = false,
-                    ErrorCode = "TEMPLATE_NOT_FOUND",
-                    ErrorMessage = $"模板 {request.TemplateCode} 不存在或未启用"
-                };
-            }
-
-            // 3. Template rendering
-            string title;
-            string content;
-            try
-            {
-                (title, content) = _renderer.Render(template, request.Variables);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "模板渲染失败 TemplateCode={Code}", request.TemplateCode);
-                if (tx is not null) await tx.RollbackAsync(ct);
-                return new NotificationSendResult
-                {
-                    Succeeded = false,
-                    ErrorCode = "TEMPLATE_RENDER_FAILED",
-                    ErrorMessage = $"模板渲染失败：{ex.Message}"
-                };
-            }
-
-            // 4. Create NotificationRecord（与幂等检查同事务提交，确保唯一索引生效）
-            recordId = Guid.NewGuid();
-            record = NotificationRecord.Create(
-                recordId,
-                request.UserId,
-                request.TemplateCode,
-                eventId: null,
-                template.Channel,
-                title,
-                content,
-                businessRef: string.IsNullOrWhiteSpace(request.BusinessRef) ? null : request.BusinessRef,
-                idempotencyKey: string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey);
-
-            await _recordRepository.AddAsync(record, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
-            if (tx is not null) await tx.CommitAsync(ct);
+            (title, content) = _renderer.Render(template, request.Variables);
         }
-        finally
+        catch (Exception ex)
         {
-            tx?.Dispose();
+            _logger.LogError(ex, "模板渲染失败 TemplateCode={Code}", request.TemplateCode);
+            return new NotificationSendResult
+            {
+                Succeeded = false,
+                ErrorCode = "TEMPLATE_RENDER_FAILED",
+                ErrorMessage = $"模板渲染失败：{ex.Message}"
+            };
         }
 
-        // 5. Get the right channel（事务已释放，发送阶段不再持有数据库事务）
-        var channel = _channels.FirstOrDefault(c => c.Channel == template!.Channel);
+        // 4. Create NotificationRecord
+        var recordId = Guid.NewGuid();
+        var record = NotificationRecord.Create(
+            recordId,
+            request.UserId,
+            request.TemplateCode,
+            eventId: null,
+            template.Channel,
+            title,
+            content,
+            businessRef: string.IsNullOrWhiteSpace(request.BusinessRef) ? null : request.BusinessRef,
+            idempotencyKey: string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey);
+
+        await _recordRepository.AddAsync(record, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        // 5. Get the right channel
+        var channel = _channels.FirstOrDefault(c => c.Channel == template.Channel);
         if (channel is null)
         {
-            _logger.LogWarning("未找到渠道实现 Channel={Channel}", template!.Channel);
+            _logger.LogWarning("未找到渠道实现 Channel={Channel}", template.Channel);
             return new NotificationSendResult
             {
                 Succeeded = false,
                 RecordId = recordId,
                 ErrorCode = "CHANNEL_NOT_FOUND",
-                ErrorMessage = $"未找到渠道 {template!.Channel} 的实现"
+                ErrorMessage = $"未找到渠道 {template.Channel} 的实现"
             };
         }
 
         // 6. Channel send with 3s timeout
-        record!.MarkSending();
+        record.MarkSending();
 
         using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(SendTimeoutSeconds));
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
 
         try
         {
-            var sendRequest = await BuildChannelSendRequestAsync(record, template!, linkedCts.Token);
+            var sendRequest = await BuildChannelSendRequestAsync(record, template, linkedCts.Token);
             var result = await channel.SendAsync(sendRequest, linkedCts.Token);
             if (result.Succeeded)
             {
@@ -170,7 +152,7 @@ public sealed class NotificationService : INotificationService
             // 7. Timeout: 标记为 Failed 让 NotificationRetryJob 后续处理，
             //    而非滞留在 Sending 状态（无 Job 拾取 Sending 状态记录，导致永久卡死）。
             _logger.LogWarning("通知发送超时 RecordId={RecordId} TemplateCode={Code} Channel={Channel}",
-                recordId, request.TemplateCode, template!.Channel);
+                recordId, request.TemplateCode, template.Channel);
 
             record.MarkFailed("发送超时", "ACCEPTED_TIMEOUT");
             await _recordRepository.UpdateAsync(record, ct);
@@ -186,7 +168,7 @@ public sealed class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "通知发送异常 RecordId={RecordId} Channel={Channel}", recordId, template!.Channel);
+            _logger.LogError(ex, "通知发送异常 RecordId={RecordId} Channel={Channel}", recordId, template.Channel);
             record.MarkFailed(ex.Message, "SEND_EXCEPTION");
         }
 
