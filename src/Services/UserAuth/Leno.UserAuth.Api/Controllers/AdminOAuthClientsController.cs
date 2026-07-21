@@ -34,9 +34,23 @@ public sealed class AdminOAuthClientsController : UserAuthControllerBase
         return Ok(ApiResponse.Success(clients));
     }
 
-    /// <summary>更新指定提供方的 OAuth 客户端配置（不存在则创建）。</summary>
+    /// <summary>
+    /// 新建 OAuth 客户端配置（默认 Enabled=false，需显式调用 /enable 启用）。
+    /// provider 已存在时返回 409。
+    /// </summary>
+    [HttpPost("{provider}")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreateAsync(string provider, [FromBody] UpdateOAuthClientDto dto, CancellationToken ct)
+    {
+        await _oauthClientAppService.CreateAsync(provider, dto, GetCurrentUserId(), ct);
+        return Ok(ApiResponse.Success("OAuth 客户端配置已创建（默认禁用，需显式启用）"));
+    }
+
+    /// <summary>更新指定提供方的 OAuth 客户端配置（不存在返回 404，不自动创建）。</summary>
     [HttpPut("{provider}")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateAsync(string provider, [FromBody] UpdateOAuthClientDto dto, CancellationToken ct)
     {
         await _oauthClientAppService.UpdateAsync(provider, dto, GetCurrentUserId(), ct);

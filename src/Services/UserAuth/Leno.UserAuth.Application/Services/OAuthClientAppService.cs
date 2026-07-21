@@ -41,6 +41,35 @@ public sealed class OAuthClientAppService : IOAuthClientAppService
         return clients.Select(MapToDto).ToList();
     }
 
+    public async Task CreateAsync(string provider, UpdateOAuthClientDto dto, Guid operatorId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(provider))
+        {
+            throw new UserAuthDomainException("OAuth2 提供方不可为空", "OAUTH_PROVIDER_EMPTY");
+        }
+
+        var normalizedProvider = provider.Trim().ToLowerInvariant();
+        var existing = await _repository.GetByProviderAsync(normalizedProvider, ct);
+        if (existing is not null)
+        {
+            throw new UserAuthDomainException(
+                $"OAuth2 提供方 {provider} 已存在", "OAUTH_CLIENT_ALREADY_EXISTS");
+        }
+
+        var encryptedSecret = GetEncryptedSecret(dto.ClientSecret);
+        // 新建默认 Enabled=false，避免误传未校验的 provider 自动启用污染 OAuth 解析器。
+        var client = OAuthClient.Create(
+            Guid.NewGuid(),
+            normalizedProvider,
+            dto.ClientId,
+            encryptedSecret,
+            dto.RedirectUri,
+            enabled: false);
+        await _repository.AddAsync(client, ct);
+        await WriteAuditAsync("OAuthClientCreate", operatorId, client.Id, null, Snapshot(client), ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
     public async Task UpdateAsync(string provider, UpdateOAuthClientDto dto, Guid operatorId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(provider))
@@ -50,33 +79,19 @@ public sealed class OAuthClientAppService : IOAuthClientAppService
 
         var normalizedProvider = provider.Trim().ToLowerInvariant();
         var client = await _repository.GetByProviderAsync(normalizedProvider, ct);
-
-        string? beforeSnapshot = null;
-        Guid clientId;
-
         if (client is null)
         {
-            // 不存在则创建
-            var encryptedSecret = GetEncryptedSecret(dto.ClientSecret);
-            client = OAuthClient.Create(
-                Guid.NewGuid(),
-                normalizedProvider,
-                dto.ClientId,
-                encryptedSecret,
-                dto.RedirectUri);
-            clientId = client.Id;
-            await _repository.AddAsync(client, ct);
-        }
-        else
-        {
-            beforeSnapshot = Snapshot(client);
-            var encryptedSecret = GetEncryptedSecret(dto.ClientSecret);
-            client.Update(dto.ClientId, encryptedSecret, dto.RedirectUri);
-            clientId = client.Id;
-            await _repository.UpdateAsync(client, ct);
+            // PUT 严格幂等：不存在则抛异常，不自动创建
+            throw new UserAuthDomainException(
+                $"OAuth2 提供方 {provider} 未配置，请先调用 CreateAsync", "OAUTH_CLIENT_NOT_FOUND");
         }
 
-        await WriteAuditAsync("OAuthClientUpdate", operatorId, clientId, beforeSnapshot, Snapshot(client), ct);
+        var beforeSnapshot = Snapshot(client);
+        var encryptedSecret = GetEncryptedSecret(dto.ClientSecret);
+        client.Update(dto.ClientId, encryptedSecret, dto.RedirectUri);
+        await _repository.UpdateAsync(client, ct);
+
+        await WriteAuditAsync("OAuthClientUpdate", operatorId, client.Id, beforeSnapshot, Snapshot(client), ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
