@@ -41,6 +41,11 @@ public interface ICouponAppService
 
     Task<List<CouponDto>> QueryAsync(CouponTemplateStatus? status, int page, int pageSize, CancellationToken ct = default);
 
+    /// <summary>
+    /// 按券模板标识查询详情（gRPC/REST 单条查询用）。
+    /// </summary>
+    Task<CouponDto?> GetByIdAsync(Guid couponId, CancellationToken ct = default);
+
     // 买家端
     Task<List<CouponDto>> GetReceivableAsync(CancellationToken ct = default);
 

@@ -168,6 +168,13 @@ public sealed class CouponAppService : ICouponAppService
         => await _couponRepository.GetByIdAsync(couponId, ct)
            ?? throw new PromotionDomainException($"优惠券 {couponId} 不存在", "COUPON_NOT_FOUND");
 
+    /// <inheritdoc />
+    public async Task<CouponDto?> GetByIdAsync(Guid couponId, CancellationToken ct = default)
+    {
+        var coupon = await _couponRepository.GetByIdAsync(couponId, ct);
+        return coupon is null ? null : ToDto(coupon);
+    }
+
     private static CouponDto ToDto(CouponAggregate coupon)
         => new()
         {

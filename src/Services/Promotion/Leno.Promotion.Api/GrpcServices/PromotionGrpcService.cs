@@ -1,6 +1,5 @@
 using Grpc.Core;
 using Leno.Promotion.Application;
-using Leno.Promotion.Domain.Repositories;
 using Leno.SharedContracts.Grpc.Promotion.V1;
 using Microsoft.AspNetCore.Authorization;
 
@@ -8,7 +7,7 @@ namespace Leno.Promotion.Api.GrpcServices;
 
 /// <summary>
 /// 促销域 gRPC 服务端（M4 双轨方案）。
-/// 复用 <see cref="IPromotionCalculateAppService"/> 与 <see cref="ICouponRepository"/> 业务逻辑，
+/// 复用 <see cref="IPromotionCalculateAppService"/> 与 <see cref="ICouponAppService"/> 应用层逻辑，
 /// 与 InternalPromotionController HTTP 路径双轨。
 /// 鉴权由 GrpcInternalKeyInterceptor 拦截器统一处理（metadata x-internal-key）。
 /// </summary>
@@ -16,18 +15,15 @@ namespace Leno.Promotion.Api.GrpcServices;
 public sealed class PromotionGrpcService : PromotionInternalService.PromotionInternalServiceBase
 {
     private readonly IPromotionCalculateAppService _calculateService;
-    private readonly ICouponRepository _couponRepository;
     private readonly ICouponAppService _couponAppService;
     private readonly ILogger<PromotionGrpcService> _logger;
 
     public PromotionGrpcService(
         IPromotionCalculateAppService calculateService,
-        ICouponRepository couponRepository,
         ICouponAppService couponAppService,
         ILogger<PromotionGrpcService> logger)
     {
         _calculateService = calculateService;
-        _couponRepository = couponRepository;
         _couponAppService = couponAppService;
         _logger = logger;
     }
@@ -99,20 +95,20 @@ public sealed class PromotionGrpcService : PromotionInternalService.PromotionInt
             throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid coupon id: {request.CouponId}"));
         }
 
-        var coupon = await _couponRepository.GetByIdAsync(couponId, context.CancellationToken)
+        var dto = await _couponAppService.GetByIdAsync(couponId, context.CancellationToken)
             .ConfigureAwait(false);
 
-        if (coupon is null)
+        if (dto is null)
         {
             throw new RpcException(new Status(StatusCode.NotFound, $"Coupon {request.CouponId} not found"));
         }
 
         return new CouponInfo
         {
-            CouponId = coupon.Id.ToString(),
-            Title = coupon.Name,
-            DiscountCents = (long)(coupon.FaceValue * 100),
-            Status = coupon.Status.ToString()
+            CouponId = dto.Id.ToString(),
+            Title = dto.Name,
+            DiscountCents = (long)(dto.FaceValue * 100),
+            Status = dto.Status.ToString()
         };
     }
 }

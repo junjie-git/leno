@@ -1,7 +1,6 @@
 using Grpc.Core;
 using Leno.Promotion.Api.GrpcServices;
 using Leno.Promotion.Application;
-using Leno.Promotion.Domain.Repositories;
 using Leno.SharedContracts.Grpc.Promotion.V1;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -24,7 +23,6 @@ public class PromotionGrpcServiceTests
         var couponAppServiceMock = new Mock<ICouponAppService>();
         var sut = new PromotionGrpcService(
             Mock.Of<IPromotionCalculateAppService>(),
-            Mock.Of<ICouponRepository>(),
             couponAppServiceMock.Object,
             NullLogger<PromotionGrpcService>.Instance);
 
@@ -49,7 +47,6 @@ public class PromotionGrpcServiceTests
         var couponAppServiceMock = new Mock<ICouponAppService>(MockBehavior.Strict);
         var sut = new PromotionGrpcService(
             Mock.Of<IPromotionCalculateAppService>(),
-            Mock.Of<ICouponRepository>(),
             couponAppServiceMock.Object,
             NullLogger<PromotionGrpcService>.Instance);
 
@@ -75,7 +72,6 @@ public class PromotionGrpcServiceTests
         var couponAppServiceMock = new Mock<ICouponAppService>(MockBehavior.Strict);
         var sut = new PromotionGrpcService(
             Mock.Of<IPromotionCalculateAppService>(),
-            Mock.Of<ICouponRepository>(),
             couponAppServiceMock.Object,
             NullLogger<PromotionGrpcService>.Instance);
 
@@ -101,7 +97,6 @@ public class PromotionGrpcServiceTests
         var couponAppServiceMock = new Mock<ICouponAppService>();
         var sut = new PromotionGrpcService(
             Mock.Of<IPromotionCalculateAppService>(),
-            Mock.Of<ICouponRepository>(),
             couponAppServiceMock.Object,
             NullLogger<PromotionGrpcService>.Instance);
 
@@ -124,7 +119,6 @@ public class PromotionGrpcServiceTests
         var couponAppServiceMock = new Mock<ICouponAppService>(MockBehavior.Strict);
         var sut = new PromotionGrpcService(
             Mock.Of<IPromotionCalculateAppService>(),
-            Mock.Of<ICouponRepository>(),
             couponAppServiceMock.Object,
             NullLogger<PromotionGrpcService>.Instance);
 
