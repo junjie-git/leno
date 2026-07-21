@@ -51,4 +51,15 @@ public sealed class InternalPointsController : ControllerBase
         await _service.ReleaseAsync(input, ct);
         return Ok(ApiResponse.Success());
     }
+
+    /// <summary>确认扣减冻结积分（订单支付成功后核销）。</summary>
+    [HttpPost("internal/v1/points/confirm")]
+    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
+    [HttpPost("internal/points/confirm")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ConfirmAsync([FromBody] ConfirmPointsDto input, CancellationToken ct)
+    {
+        await _service.ConfirmAsync(input, ct);
+        return Ok(ApiResponse.Success());
+    }
 }
