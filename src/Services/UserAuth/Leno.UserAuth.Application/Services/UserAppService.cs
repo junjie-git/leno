@@ -298,29 +298,27 @@ public sealed class UserAppService : IUserAppService
             }
         }
 
-        // 创建新账户
+        // 创建新账户（一次性创建，冲突时通过 Rename 重试，不重建聚合）
         var newUser = User.CreateFromExternal(Guid.NewGuid(), externalLoginInfo);
 
-        // 确保用户名唯一（冲突时追加随机后缀）
+        // 确保用户名唯一（冲突时调用聚合 Rename 方法追加随机后缀，不通过反射绕过封装）
         var baseUsername = newUser.Username;
         var retry = 0;
         while (!await _uniquenessChecker.IsUsernameUniqueAsync(newUser.Username, null, ct))
         {
             retry++;
-            newUser = User.CreateFromExternal(Guid.NewGuid(), externalLoginInfo);
-            // 重试追加后缀
+            if (retry > 10)
+            {
+                throw new UserAuthDomainException("无法生成唯一用户名，请稍后重试", "USER_USERNAME_CONFLICT");
+            }
+
             var suffix = Random.Shared.Next(1000, 9999).ToString(System.Globalization.CultureInfo.InvariantCulture);
             var candidate = baseUsername.Length + suffix.Length <= 32
                 ? baseUsername + suffix
                 : baseUsername[..(32 - suffix.Length)] + suffix;
 
-            // Use reflection to set the username since CreateFromExternal generates it
-            typeof(User).GetProperty(nameof(User.Username))!.SetValue(newUser, candidate);
-
-            if (retry > 10)
-            {
-                throw new UserAuthDomainException("无法生成唯一用户名，请稍后重试", "USER_USERNAME_CONFLICT");
-            }
+            // 通过聚合行为方法修改用户名，复用 ValidateUsername 校验
+            newUser.Rename(candidate);
         }
 
         await _userRepository.AddAsync(newUser, ct);

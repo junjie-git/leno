@@ -409,6 +409,49 @@ public class UserAppServiceTests
         _userRepoMock.Verify(r => r.UpdateAsync(existingUser, It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task HandleOAuthCallbackAsync_Should_Rename_Instead_Of_Reflection_When_Username_Conflicts()
+    {
+        // Arrange
+        var externalInfo = new ExternalLoginInfo("google", "g-1", "newbie@example.com", "Newbie", null);
+        var firstCall = true;
+        _uniquenessMock
+            .Setup(c => c.IsUsernameUniqueAsync(It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string username, Guid? _, CancellationToken _) =>
+            {
+                if (firstCall)
+                {
+                    firstCall = false;
+                    return false; // 第一次冲突
+                }
+                return true;
+            });
+
+        _databaseMock
+            .Setup(d => d.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
+            .ReturnsAsync((RedisValue)"google|https://app.leno.com/callback");
+
+        var authServiceMock = new Mock<IExternalAuthService>();
+        authServiceMock.SetupGet(s => s.Provider).Returns("google");
+        authServiceMock
+            .Setup(s => s.ExchangeCodeAsync("code", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(externalInfo);
+
+        _userRepoMock.Setup(r => r.FindByExternalLoginAsync("google", "g-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+        _userRepoMock.Setup(r => r.GetByEmailAsync("newbie@example.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+
+        var service = BuildUserAppService(authServiceMock.Object);
+
+        // Act
+        var token = await service.HandleOAuthCallbackAsync("google", "code", "state", "https://app.leno.com/callback", CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(token);
+        _userRepoMock.Verify(r => r.AddAsync(It.Is<User>(u => !string.IsNullOrEmpty(u.Username)), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     #endregion
 
     private UserAppService BuildUserAppService(params IExternalAuthService[] externalAuthServices)

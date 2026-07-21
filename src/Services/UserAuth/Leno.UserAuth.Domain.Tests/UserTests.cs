@@ -455,6 +455,65 @@ public class UserTests
 
     #endregion
 
+    #region Rename
+
+    [Fact]
+    public void Rename_Should_Update_Username_With_Validation()
+    {
+        // Arrange
+        var user = User.Create(
+            Guid.NewGuid(),
+            "oldname",
+            "user@example.com",
+            "+8613800138000",
+            _hasherMock.Object.Hash("Password123"),
+            "Nick");
+
+        // Act
+        user.Rename("newname");
+
+        // Assert
+        user.Username.Should().Be("newname");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("ab")]
+    [InlineData("this_username_is_way_too_long_for_validation_xxxxxxx")]
+    [InlineData("invalid chars!")]
+    public void Rename_Should_Throw_When_Username_Invalid(string invalid)
+    {
+        var user = User.Create(
+            Guid.NewGuid(),
+            "oldname",
+            "user@example.com",
+            "+8613800138000",
+            _hasherMock.Object.Hash("Password123"),
+            "Nick");
+
+        var act = () => user.Rename(invalid);
+
+        act.Should().Throw<UserAuthDomainException>();
+    }
+
+    [Fact]
+    public void Rename_Should_Trim_Username()
+    {
+        var user = User.Create(
+            Guid.NewGuid(),
+            "oldname",
+            "user@example.com",
+            "+8613800138000",
+            _hasherMock.Object.Hash("Password123"),
+            "Nick");
+
+        user.Rename("  newname  ");
+
+        user.Username.Should().Be("newname");
+    }
+
+    #endregion
+
     private User CreateUser(string? passwordHash = null)
     {
         return User.Create(

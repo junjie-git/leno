@@ -285,6 +285,17 @@ public sealed partial class User : AggregateRoot
         AvatarUrl = avatarUrl;
     }
 
+    /// <summary>
+    /// 重命名用户名（OAuth 注册时由应用层在用户名冲突后调用），内部复用 <see cref="ValidateUsername"/> 校验。
+    /// 不允许外部直接 set Username 字段，所有用户名变更须经此方法。
+    /// </summary>
+    /// <param name="newUsername">新用户名，需满足 3-32 字符且仅包含字母、数字与下划线。</param>
+    public void Rename(string newUsername)
+    {
+        ValidateUsername(newUsername);
+        Username = newUsername.Trim();
+    }
+
     /// <summary>更新默认收货地址引用。</summary>
     public void SetDefaultAddress(Guid? addressId)
     {
