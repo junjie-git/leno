@@ -107,10 +107,13 @@ public sealed class ShopAppService : IShopAppService
     }
 
     /// <inheritdoc />
-    public async Task<ShopDto> UpdateShopInfoAsync(Guid shopId, UpdateShopInfoDto dto, CancellationToken ct = default)
+    public async Task<ShopDto> UpdateShopInfoAsync(Guid shopId, Guid userId, UpdateShopInfoDto dto, CancellationToken ct = default)
     {
         await ValidateAsync(_updateShopValidator, dto, ct);
-        var shop = await RequireShopAsync(shopId, ct);
+        EnsureNonEmptyUser(userId);
+
+        // 归属校验：通过 userId 加载卖家所属店铺，校验 shopId 一致，防止跨卖家越权操作
+        var shop = await RequireOwnedShopAsync(shopId, userId, ct);
 
         // 原子化更新：所有字段校验通过后再统一赋值，避免三步独立 Update 产生半更新状态
         shop.UpdateAllInfo(
@@ -221,9 +224,12 @@ public sealed class ShopAppService : IShopAppService
     }
 
     /// <inheritdoc />
-    public async Task<QualificationDto> SubmitQualificationAsync(Guid shopId, SubmitQualificationDto dto, Stream fileStream, string fileName, string contentType, CancellationToken ct = default)
+    public async Task<QualificationDto> SubmitQualificationAsync(Guid shopId, Guid userId, SubmitQualificationDto dto, Stream fileStream, string fileName, string contentType, CancellationToken ct = default)
     {
-        var shop = await RequireShopAsync(shopId, ct);
+        EnsureNonEmptyUser(userId);
+
+        // 归属校验：通过 userId 加载卖家所属店铺，校验 shopId 一致，防止跨卖家越权操作
+        var shop = await RequireOwnedShopAsync(shopId, userId, ct);
 
         var qualification = await CreateAndUploadQualificationAsync(shop, shopId, dto, fileStream, fileName, contentType, ct);
 
@@ -333,6 +339,23 @@ public sealed class ShopAppService : IShopAppService
         if (shop is null)
         {
             throw new SellerShopDomainException("店铺不存在", "SHOP_NOT_FOUND");
+        }
+
+        return shop;
+    }
+
+    /// <summary>
+    /// 加载 userId 对应卖家拥有的店铺，并校验 shopId 归属一致。
+    /// 若店铺不存在或 shopId 与卖家所属店铺不匹配，抛 SHOP_OWNERSHIP_MISMATCH 防越权。
+    /// </summary>
+    private async Task<Shop> RequireOwnedShopAsync(Guid shopId, Guid userId, CancellationToken ct)
+    {
+        var shop = await _shopRepository.GetBySellerIdAsync(userId, ct);
+        if (shop is null || shop.Id != shopId)
+        {
+            throw new SellerShopDomainException(
+                "店铺归属校验失败，当前卖家无权操作该店铺",
+                "SHOP_OWNERSHIP_MISMATCH");
         }
 
         return shop;

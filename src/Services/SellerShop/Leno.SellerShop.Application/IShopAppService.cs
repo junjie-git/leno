@@ -18,8 +18,11 @@ public interface IShopAppService
     /// <summary>运营驳回店铺入驻申请。</summary>
     Task RejectShopApplicationAsync(Guid shopId, Guid reviewedBy, ActionReasonDto dto, CancellationToken ct = default);
 
-    /// <summary>卖家更新店铺基础信息、Logo 与联系方式。</summary>
-    Task<ShopDto> UpdateShopInfoAsync(Guid shopId, UpdateShopInfoDto dto, CancellationToken ct = default);
+    /// <summary>
+    /// 更新指定店铺的基础信息、Logo 与联系方式。
+    /// 需传入操作者 userId 做归属校验，仅当 userId 对应的卖家拥有该 shopId 时允许更新。
+    /// </summary>
+    Task<ShopDto> UpdateShopInfoAsync(Guid shopId, Guid userId, UpdateShopInfoDto dto, CancellationToken ct = default);
 
     /// <summary>
     /// 卖家更新当前账号所属店铺的基础信息、Logo 与联系方式。
@@ -45,8 +48,11 @@ public interface IShopAppService
     /// <summary>运营端分页查询店铺列表。</summary>
     Task<PageResult<ShopDto>> QueryShopsAsync(AdminShopQueryDto query, CancellationToken ct = default);
 
-    /// <summary>卖家上传店铺资质。</summary>
-    Task<QualificationDto> SubmitQualificationAsync(Guid shopId, SubmitQualificationDto dto, Stream fileStream, string fileName, string contentType, CancellationToken ct = default);
+    /// <summary>
+    /// 为指定店铺上传资质。
+    /// 需传入操作者 userId 做归属校验，仅当 userId 对应的卖家拥有该 shopId 时允许提交。
+    /// </summary>
+    Task<QualificationDto> SubmitQualificationAsync(Guid shopId, Guid userId, SubmitQualificationDto dto, Stream fileStream, string fileName, string contentType, CancellationToken ct = default);
 
     /// <summary>
     /// 卖家为当前账号所属店铺上传资质。

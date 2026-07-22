@@ -170,10 +170,10 @@ public class ShopAppServiceTests
     {
         var shop = CreateActiveShop();
         _shopRepoMock
-            .Setup(r => r.GetByIdAsync(ShopId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetBySellerIdAsync(SellerId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(shop);
 
-        var result = await _sut.UpdateShopInfoAsync(ShopId, new UpdateShopInfoDto
+        var result = await _sut.UpdateShopInfoAsync(ShopId, SellerId, new UpdateShopInfoDto
         {
             ShopName = "新店名",
             Description = "新描述",
@@ -187,6 +187,26 @@ public class ShopAppServiceTests
         shop.ShopName.Should().Be("新店名");
         shop.Description.Should().Be("新描述");
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateShopInfoAsync_OwnershipMismatch_ShouldThrowDomainException()
+    {
+        var otherSellerShop = Shop.Create(Guid.NewGuid(), Guid.NewGuid(), "他人店铺", "13800000000");
+        otherSellerShop.Approve(ReviewerId);
+        _shopRepoMock
+            .Setup(r => r.GetBySellerIdAsync(SellerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(otherSellerShop);
+
+        var act = () => _sut.UpdateShopInfoAsync(ShopId, SellerId, new UpdateShopInfoDto
+        {
+            ShopName = "新店名",
+            ContactPhone = "13900000000"
+        });
+
+        await act.Should().ThrowAsync<SellerShopDomainException>().WithMessage("*归属校验失败*");
+        _shopRepoMock.Verify(r => r.UpdateAsync(It.IsAny<Shop>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
