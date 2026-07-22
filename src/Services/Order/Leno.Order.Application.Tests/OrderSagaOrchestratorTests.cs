@@ -40,7 +40,7 @@ public class OrderSagaOrchestratorTests
             .Returns(Task.CompletedTask);
         orderNoGenMock.Setup(g => g.GenerateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync("ORD-001");
-        pricingMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<IReadOnlyDictionary<Guid, decimal>>>(), It.IsAny<CancellationToken>()))
+        pricingMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<IReadOnlyDictionary<Guid, decimal>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         promotionMock.Setup(p => p.CalculateDiscountAsync(It.IsAny<Guid>(), It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(0m);
@@ -84,7 +84,7 @@ public class OrderSagaOrchestratorTests
             .ThrowsAsync(new InvalidOperationException("points service down"));
         orderNoGenMock.Setup(g => g.GenerateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync("ORD-001");
-        pricingMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<IReadOnlyDictionary<Guid, decimal>>>(), It.IsAny<CancellationToken>()))
+        pricingMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<IReadOnlyDictionary<Guid, decimal>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         promotionMock.Setup(p => p.CalculateDiscountAsync(It.IsAny<Guid>(), It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(0m);
@@ -123,7 +123,7 @@ public class OrderSagaOrchestratorTests
             .Returns(Task.CompletedTask);
         promotionMock.Setup(p => p.CalculateDiscountAsync(It.IsAny<Guid>(), It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(80m); // 优惠 80 元
-        pricingMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<IReadOnlyDictionary<Guid, decimal>>>(), It.IsAny<CancellationToken>()))
+        pricingMock.Setup(p => p.ValidatePricesAsync(It.IsAny<List<(Guid, decimal)>>(), It.IsAny<IReadOnlyDictionary<Guid, decimal>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         pricingMock.Setup(p => p.CalculateAndAllocateAsync(It.IsAny<decimal>(), It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<(Guid, decimal)> { (skuInfo.SkuId, 80m) });
