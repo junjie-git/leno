@@ -98,6 +98,9 @@ csharp_new_line_before_finally = true
 dotnet_diagnostic.CA1707.severity = warning
 dotnet_diagnostic.CA1062.severity = none
 dotnet_diagnostic.CA2007.severity = none
+# BannedApiAnalyzers（D4.1 part2）：禁用 API 调用升级为编译错误，
+# 配合各项目 BannedSymbols.txt 强制禁止旁路 Outbox 直接调用 SaveChangesAsync。
+dotnet_diagnostic.RS0030.severity = error
 # 编码规范统一使用 _logger.LogXxx 直接调用（见编码规范.md Serilog/日志章节示例），
 # 故关闭要求 LoggerMessage 源生成器的 CA1848 及其伴随的 CA1873，以与规范保持一致。
 dotnet_diagnostic.CA1848.severity = none

@@ -10,6 +10,11 @@
     <InternalsVisibleTo Include="Leno.Infrastructure.Tests" />
   </ItemGroup>
 
+  <!-- BannedApiAnalyzers（D4.1 part2）：显式将禁用 API 规则文件作为分析器附加输入。 -->
+  <ItemGroup>
+    <AdditionalFiles Include="BannedSymbols.txt" />
+  </ItemGroup>
+
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>

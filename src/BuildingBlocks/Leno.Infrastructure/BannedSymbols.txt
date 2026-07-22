@@ -1,0 +1,16 @@
+; BannedSymbols.txt（D4.1 part2）
+; 禁止在业务代码中直接调用 BaseDbContext 的 SaveChanges / SaveChangesAsync 旁路 Outbox。
+;
+; 设计说明（为何禁 BaseDbContext 而非 DbContext）：
+;   1) Outbox 合法保存路径 OutboxDbContextExtensions.SaveChangesWithOutboxAsync 内部以
+;      `DbContext` 静态类型调用 context.SaveChangesAsync（绑定到 DbContext.SaveChangesAsync），
+;      若禁 DbContext.SaveChangesAsync 会同时阻断合法的 Outbox 保存，破坏现有编译。
+;   2) BaseDbContext 自身的 override 通过 base.SaveChangesAsync 委托到 DbContext.SaveChangesAsync
+;      （绑定到 DbContext.SaveChangesAsync），禁 BaseDbContext.SaveChangesAsync 不会误伤该 base 调用。
+;   3) 业务上下文（OrderDbContext 等，均派生自 BaseDbContext）在 BC 代码中被直接调用
+;      dbContext.SaveChangesAsync 时，编译期绑定到 BaseDbContext.SaveChangesAsync 重写——
+;      这正是“旁路 Outbox”的实际符号，禁之即可强制改走 IUnitOfWork.SaveEntitiesAsync。
+;   4) 本规则当前仅在 Leno.Infrastructure 项目内生效（BannedSymbols.txt 按项目作用域）；
+;      各 BC 如需同等强制，可复制本文件至对应项目目录。
+M:Leno.Infrastructure.Persistence.BaseDbContext.SaveChangesAsync(System.Threading.CancellationToken);Don't call BaseDbContext.SaveChangesAsync directly — it bypasses the outbox and loses domain events. Use IUnitOfWork.SaveEntitiesAsync (or DbContext.SaveChangesWithOutboxAsync) to persist aggregates and outbox messages atomically.
+M:Leno.Infrastructure.Persistence.BaseDbContext.SaveChanges;Don't call BaseDbContext.SaveChanges directly — it bypasses the outbox and loses domain events. Use IUnitOfWork.SaveEntitiesAsync (or DbContext.SaveChangesWithOutboxAsync) to persist aggregates and outbox messages atomically.

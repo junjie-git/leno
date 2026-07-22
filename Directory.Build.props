@@ -36,4 +36,14 @@
     <EntityFrameworkCoreVersion>10.0.0</EntityFrameworkCoreVersion>
   </PropertyGroup>
 
+  <!--
+    BannedApiAnalyzers（D4.1 part2）：为所有项目启用禁用 API 分析器。
+    配合各项目下的 BannedSymbols.txt，将 RS0030 警告升级为编译错误，
+    强制禁止开发者调用 DbContext.Save* 旁路 Outbox（详见 .editorconfig 中 RS0030=error）。
+    PrivateAssets=all 避免该分析器包作为传递依赖泄漏到消费方。
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
+  </ItemGroup>
+
 </Project>
