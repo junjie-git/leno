@@ -48,7 +48,9 @@ public sealed class NotifyController : ControllerBase
     public async Task<IActionResult> WeChatPayNotifyAsync(CancellationToken ct)
     {
         Request.EnableBuffering();
-        var rawBody = await new StreamReader(Request.Body).ReadToEndAsync(ct);
+        // P2-17：StreamReader 有内部缓冲区，需 using 显式释放，避免 GC 延迟回收导致缓冲区残留。
+        using var reader = new StreamReader(Request.Body);
+        var rawBody = await reader.ReadToEndAsync(ct);
         Request.Body.Position = 0;
 
         var headers = new Dictionary<string, string>();
@@ -81,7 +83,9 @@ public sealed class NotifyController : ControllerBase
     public async Task<IActionResult> AlipayNotifyAsync(CancellationToken ct)
     {
         Request.EnableBuffering();
-        var rawBody = await new StreamReader(Request.Body).ReadToEndAsync(ct);
+        // P2-17：StreamReader 有内部缓冲区，需 using 显式释放，避免 GC 延迟回收导致缓冲区残留。
+        using var reader = new StreamReader(Request.Body);
+        var rawBody = await reader.ReadToEndAsync(ct);
         Request.Body.Position = 0;
 
         var form = await Request.ReadFormAsync(ct);
