@@ -1,5 +1,6 @@
 using AppServices = Leno.Notification.Application.Services;
 using Leno.Infrastructure.AntiCorruption;
+using Leno.Infrastructure.Configuration;
 using Leno.Infrastructure.Persistence;
 using Leno.Notification.Application;
 using Leno.Notification.Domain.Repositories;
@@ -46,6 +47,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INotificationTemplateRepository, EfCoreNotificationTemplateRepository>();
         services.AddScoped<INotificationPreferenceRepository, EfCoreNotificationPreferenceRepository>();
         services.AddScoped<INotificationRateLimitConfigRepository, EfCoreNotificationRateLimitConfigRepository>();
+        services.AddScoped<INotificationConfigRepository, EfCoreNotificationConfigRepository>();
 
         // 模板渲染器
         services.AddScoped<ITemplateRenderer, TemplateRenderer>();

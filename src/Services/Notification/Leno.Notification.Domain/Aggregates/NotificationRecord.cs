@@ -147,6 +147,97 @@ public sealed class NotificationRecord : AggregateRoot
     }
 
     /// <summary>
+    /// 工厂方法，直接创建 Failed 状态的通知记录。
+    /// <para>
+    /// 用于模板渲染失败等"未进入 Sending 阶段即失败"的场景：
+    /// 渲染异常时无法获得最终 title/content，但仍需创建记录以便管理后台查询失败原因。
+    /// 直接置为 Failed 状态绕过 Pending → Sending → Failed 状态机，
+    /// 因为渲染失败属于不可重试错误（错误码 TEMPLATE_RENDER_FAILED 已在 RetryPolicy 黑名单），
+    /// 不会进入重试流程。
+    /// </para>
+    /// </summary>
+    /// <param name="recordId">记录标识。</param>
+    /// <param name="userId">接收用户标识。</param>
+    /// <param name="templateCode">模板编码。</param>
+    /// <param name="eventId">触发事件标识，可空。</param>
+    /// <param name="channel">通知渠道。</param>
+    /// <param name="title">标题（建议传入原始模板 Subject 作为占位）。</param>
+    /// <param name="content">内容（建议传入原始模板 Body 作为占位）。</param>
+    /// <param name="errorMessage">错误信息。</param>
+    /// <param name="errorCode">错误码。</param>
+    /// <param name="businessRef">业务引用标识，可空。</param>
+    /// <param name="idempotencyKey">幂等键，可空。</param>
+    /// <param name="maxRetry">最大重试次数。</param>
+    public static NotificationRecord CreateFailed(
+        Guid recordId,
+        Guid userId,
+        string templateCode,
+        Guid? eventId,
+        NotificationChannel channel,
+        string title,
+        string content,
+        string errorMessage,
+        string? errorCode = null,
+        string? businessRef = null,
+        string? idempotencyKey = null,
+        int maxRetry = DefaultMaxRetry)
+    {
+        if (recordId == Guid.Empty)
+        {
+            throw new NotificationDomainException("RecordId 不可为空", "NOTIFICATION_RECORD_ID_EMPTY");
+        }
+
+        if (userId == Guid.Empty)
+        {
+            throw new NotificationDomainException("UserId 不可为空", "NOTIFICATION_USER_EMPTY");
+        }
+
+        if (string.IsNullOrWhiteSpace(templateCode))
+        {
+            throw new NotificationDomainException("TemplateCode 不可为空", "NOTIFICATION_TEMPLATE_CODE_EMPTY");
+        }
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new NotificationDomainException("标题不可为空", "NOTIFICATION_TITLE_EMPTY");
+        }
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            throw new NotificationDomainException("内容不可为空", "NOTIFICATION_CONTENT_EMPTY");
+        }
+
+        if (!Enum.IsDefined(channel))
+        {
+            throw new NotificationDomainException($"通知渠道非法：{channel}", "NOTIFICATION_CHANNEL_INVALID");
+        }
+
+        if (maxRetry < 0)
+        {
+            throw new NotificationDomainException("最大重试次数不可为负", "NOTIFICATION_MAX_RETRY_INVALID");
+        }
+
+        return new NotificationRecord(recordId)
+        {
+            UserId = userId,
+            TemplateCode = templateCode,
+            EventId = eventId,
+            Channel = channel,
+            Title = title,
+            Content = content,
+            Status = NotificationStatus.Failed,
+            RetryCount = 0,
+            MaxRetry = maxRetry,
+            IsRead = false,
+            BusinessRef = businessRef,
+            IdempotencyKey = idempotencyKey,
+            ErrorMessage = string.IsNullOrWhiteSpace(errorMessage) ? "未知错误" : errorMessage,
+            ErrorCode = errorCode,
+            FailedAt = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
     /// 标记发送中。Pending → Sending，或 Retried → Sending（重试场景）。
     /// </summary>
     public void MarkSending()

@@ -279,6 +279,174 @@ public class NotificationRecordTests
 
     #endregion
 
+    #region CreateFailed - 工厂方法直接创建 Failed 状态记录（P1-37）
+
+    [Fact]
+    public void CreateFailed_ValidParameters_ShouldCreateFailedRecord()
+    {
+        // Act
+        var record = NotificationRecord.CreateFailed(
+            ValidRecordId, ValidUserId, ValidTemplateCode, ValidEventId,
+            ValidChannel, ValidTitle, ValidContent,
+            "模板渲染失败：变量缺失", "TEMPLATE_RENDER_FAILED",
+            "ORD-123", "idem-key-456");
+
+        // Assert
+        record.Id.Should().Be(ValidRecordId);
+        record.UserId.Should().Be(ValidUserId);
+        record.TemplateCode.Should().Be(ValidTemplateCode);
+        record.EventId.Should().Be(ValidEventId);
+        record.Channel.Should().Be(ValidChannel);
+        record.Title.Should().Be(ValidTitle);
+        record.Content.Should().Be(ValidContent);
+        record.Status.Should().Be(NotificationStatus.Failed);
+        record.RetryCount.Should().Be(0);
+        record.MaxRetry.Should().Be(NotificationRecord.DefaultMaxRetry);
+        record.IsRead.Should().BeFalse();
+        record.SentAt.Should().BeNull();
+        record.FailedAt.Should().NotBeNull();
+        record.ErrorMessage.Should().Be("模板渲染失败：变量缺失");
+        record.ErrorCode.Should().Be("TEMPLATE_RENDER_FAILED");
+        record.BusinessRef.Should().Be("ORD-123");
+        record.IdempotencyKey.Should().Be("idem-key-456");
+    }
+
+    [Fact]
+    public void CreateFailed_NullEventId_ShouldCreateFailedRecord()
+    {
+        // Act
+        var record = NotificationRecord.CreateFailed(
+            ValidRecordId, ValidUserId, ValidTemplateCode, null,
+            ValidChannel, ValidTitle, ValidContent,
+            "渲染失败", "TEMPLATE_RENDER_FAILED");
+
+        // Assert
+        record.EventId.Should().BeNull();
+        record.Status.Should().Be(NotificationStatus.Failed);
+        record.FailedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void CreateFailed_EmptyErrorMessage_ShouldDefaultToUnknownError()
+    {
+        // Act
+        var record = NotificationRecord.CreateFailed(
+            ValidRecordId, ValidUserId, ValidTemplateCode, ValidEventId,
+            ValidChannel, ValidTitle, ValidContent,
+            "", "TEMPLATE_RENDER_FAILED");
+
+        // Assert - 空错误信息被默认值 "未知错误" 替换
+        record.ErrorMessage.Should().Be("未知错误");
+        record.ErrorCode.Should().Be("TEMPLATE_RENDER_FAILED");
+    }
+
+    [Fact]
+    public void CreateFailed_WhitespaceErrorMessage_ShouldDefaultToUnknownError()
+    {
+        // Act
+        var record = NotificationRecord.CreateFailed(
+            ValidRecordId, ValidUserId, ValidTemplateCode, ValidEventId,
+            ValidChannel, ValidTitle, ValidContent,
+            "   ", "TEMPLATE_RENDER_FAILED");
+
+        // Assert
+        record.ErrorMessage.Should().Be("未知错误");
+    }
+
+    [Fact]
+    public void CreateFailed_NullErrorCode_ShouldKeepNullErrorCode()
+    {
+        // Act
+        var record = NotificationRecord.CreateFailed(
+            ValidRecordId, ValidUserId, ValidTemplateCode, ValidEventId,
+            ValidChannel, ValidTitle, ValidContent,
+            "渲染失败", errorCode: null);
+
+        // Assert - errorCode 允许为 null
+        record.ErrorCode.Should().BeNull();
+        record.Status.Should().Be(NotificationStatus.Failed);
+    }
+
+    [Fact]
+    public void CreateFailed_EmptyRecordId_ShouldThrowNotificationDomainException()
+    {
+        var act = () => NotificationRecord.CreateFailed(
+            Guid.Empty, ValidUserId, ValidTemplateCode, ValidEventId,
+            ValidChannel, ValidTitle, ValidContent, "错误", "TEMPLATE_RENDER_FAILED");
+
+        act.Should().Throw<NotificationDomainException>()
+            .And.ErrorCode.Should().Be("NOTIFICATION_RECORD_ID_EMPTY");
+    }
+
+    [Fact]
+    public void CreateFailed_EmptyUserId_ShouldThrowNotificationDomainException()
+    {
+        var act = () => NotificationRecord.CreateFailed(
+            ValidRecordId, Guid.Empty, ValidTemplateCode, ValidEventId,
+            ValidChannel, ValidTitle, ValidContent, "错误", "TEMPLATE_RENDER_FAILED");
+
+        act.Should().Throw<NotificationDomainException>()
+            .And.ErrorCode.Should().Be("NOTIFICATION_USER_EMPTY");
+    }
+
+    [Fact]
+    public void CreateFailed_EmptyTemplateCode_ShouldThrowNotificationDomainException()
+    {
+        var act = () => NotificationRecord.CreateFailed(
+            ValidRecordId, ValidUserId, "", ValidEventId,
+            ValidChannel, ValidTitle, ValidContent, "错误", "TEMPLATE_RENDER_FAILED");
+
+        act.Should().Throw<NotificationDomainException>()
+            .And.ErrorCode.Should().Be("NOTIFICATION_TEMPLATE_CODE_EMPTY");
+    }
+
+    [Fact]
+    public void CreateFailed_EmptyTitle_ShouldThrowNotificationDomainException()
+    {
+        var act = () => NotificationRecord.CreateFailed(
+            ValidRecordId, ValidUserId, ValidTemplateCode, ValidEventId,
+            ValidChannel, "", ValidContent, "错误", "TEMPLATE_RENDER_FAILED");
+
+        act.Should().Throw<NotificationDomainException>()
+            .And.ErrorCode.Should().Be("NOTIFICATION_TITLE_EMPTY");
+    }
+
+    [Fact]
+    public void CreateFailed_EmptyContent_ShouldThrowNotificationDomainException()
+    {
+        var act = () => NotificationRecord.CreateFailed(
+            ValidRecordId, ValidUserId, ValidTemplateCode, ValidEventId,
+            ValidChannel, ValidTitle, "", "错误", "TEMPLATE_RENDER_FAILED");
+
+        act.Should().Throw<NotificationDomainException>()
+            .And.ErrorCode.Should().Be("NOTIFICATION_CONTENT_EMPTY");
+    }
+
+    [Fact]
+    public void CreateFailed_InvalidChannel_ShouldThrowNotificationDomainException()
+    {
+        var act = () => NotificationRecord.CreateFailed(
+            ValidRecordId, ValidUserId, ValidTemplateCode, ValidEventId,
+            (NotificationChannel)999, ValidTitle, ValidContent, "错误", "TEMPLATE_RENDER_FAILED");
+
+        act.Should().Throw<NotificationDomainException>()
+            .And.ErrorCode.Should().Be("NOTIFICATION_CHANNEL_INVALID");
+    }
+
+    [Fact]
+    public void CreateFailed_NegativeMaxRetry_ShouldThrowNotificationDomainException()
+    {
+        var act = () => NotificationRecord.CreateFailed(
+            ValidRecordId, ValidUserId, ValidTemplateCode, ValidEventId,
+            ValidChannel, ValidTitle, ValidContent, "错误", "TEMPLATE_RENDER_FAILED",
+            maxRetry: -1);
+
+        act.Should().Throw<NotificationDomainException>()
+            .And.ErrorCode.Should().Be("NOTIFICATION_MAX_RETRY_INVALID");
+    }
+
+    #endregion
+
     #region MarkSending
 
     [Fact]

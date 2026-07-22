@@ -1,8 +1,12 @@
+using Leno.Infrastructure.Configuration;
 using Leno.Notification.Application;
 using Leno.Notification.Application.DTOs;
+using Leno.Notification.Domain.Aggregates;
+using Leno.Notification.Domain.Repositories;
 using Leno.Notification.Domain.Services;
 using Leno.Notification.Domain.ValueObjects;
 using Leno.Notification.Infrastructure.Channels;
+using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -10,33 +14,51 @@ namespace Leno.Notification.Infrastructure.Services;
 
 /// <summary>
 /// 通知渠道配置管理应用服务实现。
-/// 
+///
 /// 敏感参数加密存储，显示时脱敏为 ******。
-/// 配置变更后通过 IOptionsMonitor 热重载适配器实例。
+/// 配置变更后通过 <see cref="ConsulReloadableConfigurationProvider"/> 触发 IOptionsMonitor 热重载：
 /// 进行中的发送使用旧实例，新发送使用新实例。
 /// </summary>
 public sealed class NotificationConfigAppService : INotificationConfigAppService
 {
     private const string MaskedValue = "******";
 
+    private static readonly IReadOnlyDictionary<NotificationChannel, string> ChannelConfigPrefix = new Dictionary<NotificationChannel, string>
+    {
+        [NotificationChannel.Email] = "Notification:Email",
+        [NotificationChannel.Sms] = "Notification:Sms"
+    };
+
     private readonly IOptionsMonitor<EmailChannelOptions> _emailOptions;
     private readonly IOptionsMonitor<SmsChannelOptions> _smsOptions;
     private readonly IEnumerable<INotificationChannel> _channels;
+    private readonly INotificationConfigRepository _configRepository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ConsulReloadableConfigurationProvider _configReloadProvider;
     private readonly ILogger<NotificationConfigAppService> _logger;
 
     public NotificationConfigAppService(
         IOptionsMonitor<EmailChannelOptions> emailOptions,
         IOptionsMonitor<SmsChannelOptions> smsOptions,
         IEnumerable<INotificationChannel> channels,
+        INotificationConfigRepository configRepository,
+        IUnitOfWork unitOfWork,
+        ConsulReloadableConfigurationProvider configReloadProvider,
         ILogger<NotificationConfigAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(emailOptions);
         ArgumentNullException.ThrowIfNull(smsOptions);
         ArgumentNullException.ThrowIfNull(channels);
+        ArgumentNullException.ThrowIfNull(configRepository);
+        ArgumentNullException.ThrowIfNull(unitOfWork);
+        ArgumentNullException.ThrowIfNull(configReloadProvider);
         ArgumentNullException.ThrowIfNull(logger);
         _emailOptions = emailOptions;
         _smsOptions = smsOptions;
         _channels = channels;
+        _configRepository = configRepository;
+        _unitOfWork = unitOfWork;
+        _configReloadProvider = configReloadProvider;
         _logger = logger;
     }
 
@@ -54,33 +76,69 @@ public sealed class NotificationConfigAppService : INotificationConfigAppService
     }
 
     /// <inheritdoc />
-    public Task UpdateConfigAsync(Guid operatorId, NotificationChannel channel, SaveNotificationConfigDto dto, CancellationToken ct = default)
+    public async Task UpdateConfigAsync(Guid operatorId, NotificationChannel channel, SaveNotificationConfigDto dto, CancellationToken ct = default)
     {
-        // 注意：Options 模式中 IOptionsMonitor 不直接支持运行时修改。
-        // 实际生产中应通过配置中心（如 Consul、Etcd）或数据库存储配置，
-        // 然后通过 IOptionsMonitor 的 OnChange 回调热重载。
-        // 这里提供一个实现框架，具体存储由基础设施层完成。
+        ArgumentNullException.ThrowIfNull(dto);
 
         // 审计日志：记录配置变更
         _logger.LogWarning("AUDIT: 操作员 {OperatorId} 更新了渠道 {Channel} 的配置", operatorId, channel);
 
+        // 收集需要持久化 + 热重载的配置项 (ConfigKey, ConfigValue, IsSensitive)
+        var changes = BuildChangeSet(channel, dto);
+
         // 记录变更详情（敏感字段脱敏）
-        var changes = new List<string>();
-        if (dto.Enabled.HasValue) changes.Add($"Enabled={dto.Enabled}");
-        if (dto.SmtpHost is not null) changes.Add($"SmtpHost={dto.SmtpHost}");
-        if (dto.SmtpPort.HasValue) changes.Add($"SmtpPort={dto.SmtpPort}");
-        if (dto.SmtpUsername is not null) changes.Add($"SmtpUsername={dto.SmtpUsername}");
-        if (dto.SmtpPassword is not null) changes.Add("SmtpPassword=******");
-        if (dto.FromAddress is not null) changes.Add($"FromAddress={dto.FromAddress}");
-        if (dto.UseSsl.HasValue) changes.Add($"UseSsl={dto.UseSsl}");
-        if (dto.SmsProvider is not null) changes.Add($"SmsProvider={dto.SmsProvider}");
-        if (dto.AccessKeyId is not null) changes.Add($"AccessKeyId={dto.AccessKeyId}");
-        if (dto.AccessKeySecret is not null) changes.Add("AccessKeySecret=******");
-        if (dto.SmsSignName is not null) changes.Add($"SmsSignName={dto.SmsSignName}");
+        if (changes.Count > 0)
+        {
+            var maskedSummary = string.Join(", ", changes.Select(c => $"{c.ConfigKey}={(c.IsSensitive ? MaskedValue : c.ConfigValue)}"));
+            _logger.LogWarning("AUDIT: 配置变更详情 Channel={Channel} Changes={Changes}", channel, maskedSummary);
+        }
+        else
+        {
+            _logger.LogWarning("AUDIT: 配置变更详情 Channel={Channel} Changes=（无字段更新）", channel);
+        }
 
-        _logger.LogWarning("AUDIT: 配置变更详情 Channel={Channel} Changes={Changes}", channel, string.Join(", ", changes));
+        // 持久化到数据库（按 Channel + ConfigKey 业务唯一键 upsert）
+        foreach (var change in changes)
+        {
+            var existing = await _configRepository.GetAsync(channel, change.ConfigKey, ct);
+            if (existing is null)
+            {
+                var config = NotificationConfig.Create(
+                    Guid.NewGuid(),
+                    channel,
+                    change.ConfigKey,
+                    change.ConfigValue,
+                    description: null,
+                    isSensitive: change.IsSensitive);
+                await _configRepository.AddAsync(config, ct);
+            }
+            else
+            {
+                existing.UpdateValue(change.ConfigValue);
+                await _configRepository.UpdateAsync(existing, ct);
+            }
+        }
 
-        return Task.CompletedTask;
+        // 同一事务内保存聚合变更与领域事件
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        // 触发 IOptionsMonitor 热重载：将变更值写入 ConsulReloadableConfigurationProvider
+        // 使 EmailChannelOptions / SmsChannelOptions 的 IOptionsMonitor 监听到 ReloadToken 变化并重绑。
+        // Enabled 字段不属于 IOptionsMonitor 绑定路径，仅持久化用于运营端展示，跳过热重载。
+        if (ChannelConfigPrefix.TryGetValue(channel, out var configPrefix))
+        {
+            foreach (var change in changes)
+            {
+                if (string.Equals(change.ConfigKey, "Enabled", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                _configReloadProvider.SetValue($"{configPrefix}:{change.ConfigKey}", change.ConfigValue);
+            }
+        }
+
+        _logger.LogInformation("配置已持久化并触发热重载 Channel={Channel} OperatorId={OperatorId}", channel, operatorId);
     }
 
     /// <inheritdoc />
@@ -144,4 +202,70 @@ public sealed class NotificationConfigAppService : INotificationConfigAppService
             SmsSignName = options.SignName
         };
     }
+
+    /// <summary>
+    /// 根据渠道与 DTO 字段构建变更集，仅纳入 DTO 中显式赋值的字段。
+    /// </summary>
+    private static List<ConfigChange> BuildChangeSet(NotificationChannel channel, SaveNotificationConfigDto dto)
+    {
+        var changes = new List<ConfigChange>();
+
+        if (dto.Enabled.HasValue)
+        {
+            changes.Add(new ConfigChange("Enabled", dto.Enabled.Value.ToString(), IsSensitive: false));
+        }
+
+        switch (channel)
+        {
+            case NotificationChannel.Email:
+                if (dto.SmtpHost is not null)
+                {
+                    changes.Add(new ConfigChange("Host", dto.SmtpHost, IsSensitive: false));
+                }
+                if (dto.SmtpPort.HasValue)
+                {
+                    changes.Add(new ConfigChange("Port", dto.SmtpPort.Value.ToString(), IsSensitive: false));
+                }
+                if (dto.SmtpUsername is not null)
+                {
+                    changes.Add(new ConfigChange("Username", dto.SmtpUsername, IsSensitive: false));
+                }
+                if (dto.SmtpPassword is not null)
+                {
+                    changes.Add(new ConfigChange("Password", dto.SmtpPassword, IsSensitive: true));
+                }
+                if (dto.FromAddress is not null)
+                {
+                    changes.Add(new ConfigChange("From", dto.FromAddress, IsSensitive: false));
+                }
+                if (dto.UseSsl.HasValue)
+                {
+                    changes.Add(new ConfigChange("UseSsl", dto.UseSsl.Value.ToString(), IsSensitive: false));
+                }
+                break;
+
+            case NotificationChannel.Sms:
+                if (dto.SmsProvider is not null)
+                {
+                    changes.Add(new ConfigChange("Provider", dto.SmsProvider, IsSensitive: false));
+                }
+                if (dto.AccessKeyId is not null)
+                {
+                    changes.Add(new ConfigChange("AccessKeyId", dto.AccessKeyId, IsSensitive: false));
+                }
+                if (dto.AccessKeySecret is not null)
+                {
+                    changes.Add(new ConfigChange("AccessKeySecret", dto.AccessKeySecret, IsSensitive: true));
+                }
+                if (dto.SmsSignName is not null)
+                {
+                    changes.Add(new ConfigChange("SignName", dto.SmsSignName, IsSensitive: false));
+                }
+                break;
+        }
+
+        return changes;
+    }
+
+    private sealed record ConfigChange(string ConfigKey, string ConfigValue, bool IsSensitive);
 }

@@ -25,4 +25,7 @@ public sealed class NotificationDbContext : BaseDbContext
 
     /// <summary>通知限流配置聚合根。</summary>
     public DbSet<NotificationRateLimitConfig> NotificationRateLimitConfigs => Set<NotificationRateLimitConfig>();
+
+    /// <summary>通知渠道配置聚合根（运营端动态配置）。</summary>
+    public DbSet<NotificationConfig> NotificationConfigs => Set<NotificationConfig>();
 }

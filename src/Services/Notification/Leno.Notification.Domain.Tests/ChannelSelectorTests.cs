@@ -356,8 +356,9 @@ public class ChannelSelectorTests
     }
 
     [Fact]
-    public void IsRetryableError_NullErrorCode_ShouldReturnTrue()
+    public void IsRetryableError_NullErrorCode_ShouldReturnFalse()
     {
+        // P2-42：未知/空错误码默认不可重试，与 RetryPolicy.ShouldRetry 行为对齐
         // Arrange
         var selector = new ChannelSelector();
 
@@ -365,12 +366,13 @@ public class ChannelSelectorTests
         var result = selector.IsRetryableError(null);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().BeFalse();
     }
 
     [Fact]
-    public void IsRetryableError_EmptyErrorCode_ShouldReturnTrue()
+    public void IsRetryableError_EmptyErrorCode_ShouldReturnFalse()
     {
+        // P2-42：未知/空错误码默认不可重试，与 RetryPolicy.ShouldRetry 行为对齐
         // Arrange
         var selector = new ChannelSelector();
 
@@ -378,12 +380,13 @@ public class ChannelSelectorTests
         var result = selector.IsRetryableError("");
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().BeFalse();
     }
 
     [Fact]
-    public void IsRetryableError_WhitespaceErrorCode_ShouldReturnTrue()
+    public void IsRetryableError_WhitespaceErrorCode_ShouldReturnFalse()
     {
+        // P2-42：未知/空错误码默认不可重试，与 RetryPolicy.ShouldRetry 行为对齐
         // Arrange
         var selector = new ChannelSelector();
 
@@ -391,7 +394,21 @@ public class ChannelSelectorTests
         var result = selector.IsRetryableError("   ");
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsRetryableError_UnknownErrorCode_ShouldReturnFalse()
+    {
+        // P2-42：未在白名单内的未知错误码默认不可重试，不触发 failover
+        // Arrange
+        var selector = new ChannelSelector();
+
+        // Act
+        var result = selector.IsRetryableError("UNKNOWN_ERROR_CODE");
+
+        // Assert
+        result.Should().BeFalse();
     }
 
     #endregion

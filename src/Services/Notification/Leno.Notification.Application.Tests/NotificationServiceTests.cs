@@ -342,9 +342,10 @@ public class NotificationServiceTests
     #region SendAsync - Render Failure
 
     [Fact]
-    public async Task SendAsync_RenderThrows_ShouldReturnError()
+    public async Task SendAsync_RenderThrows_ShouldCreateFailedRecordAndReturnError()
     {
-        // Arrange
+        // Arrange - P1-37：渲染失败时仍创建 NotificationRecord（状态 Failed），
+        // 让管理后台可查询到该失败记录
         var template = CreateEnabledTemplate();
         SetupTemplateLookup(template);
         SetupIdempotencyCheck(null);
@@ -353,15 +354,42 @@ public class NotificationServiceTests
             .Setup(r => r.Render(It.IsAny<NotificationTemplate>(), It.IsAny<Dictionary<string, string>>()))
             .Throws(new InvalidOperationException("Variable 'OrderId' is required but not provided"));
 
+        NotificationRecord? capturedRecord = null;
+        _recordRepoMock
+            .Setup(r => r.AddAsync(It.IsAny<NotificationRecord>(), It.IsAny<CancellationToken>()))
+            .Callback<NotificationRecord, CancellationToken>((r, _) => capturedRecord = r)
+            .Returns(Task.CompletedTask);
+        _unitOfWorkMock
+            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
         var request = CreateValidRequest();
 
         // Act
         var result = await _sut.SendAsync(request);
 
-        // Assert
+        // Assert - 返回结果携带 RecordId
         result.Succeeded.Should().BeFalse();
         result.ErrorCode.Should().Be("TEMPLATE_RENDER_FAILED");
         result.ErrorMessage.Should().Contain("Variable 'OrderId' is required");
+        result.RecordId.Should().NotBeNull();
+        result.RecordId.Should().NotBe(Guid.Empty);
+
+        // Assert - 失败记录已持久化，状态为 Failed，错误码与错误信息正确
+        capturedRecord.Should().NotBeNull();
+        capturedRecord!.Status.Should().Be(NotificationStatus.Failed);
+        capturedRecord.ErrorCode.Should().Be("TEMPLATE_RENDER_FAILED");
+        capturedRecord.ErrorMessage.Should().Contain("Variable 'OrderId' is required");
+        capturedRecord.UserId.Should().Be(ValidUserId);
+        capturedRecord.TemplateCode.Should().Be(ValidTemplateCode);
+        capturedRecord.Channel.Should().Be(template.Channel);
+        capturedRecord.BusinessRef.Should().Be(ValidBusinessRef);
+        capturedRecord.IdempotencyKey.Should().Be(ValidIdempotencyKey);
+        capturedRecord.FailedAt.Should().NotBeNull();
+
+        // Assert - 持久化方法被调用
+        _recordRepoMock.Verify(r => r.AddAsync(It.IsAny<NotificationRecord>(), It.IsAny<CancellationToken>()), Times.Once);
+        _unitOfWorkMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion

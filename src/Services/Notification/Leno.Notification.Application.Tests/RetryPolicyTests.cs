@@ -42,24 +42,27 @@ public class RetryPolicyTests
     }
 
     [Fact]
-    public void ShouldRetry_NullErrorCode_ShouldReturnTrue()
+    public void ShouldRetry_NullErrorCode_ShouldReturnFalse()
     {
+        // P2-42：未知/空错误码默认不重试，直接进入死信
         var result = _policy.ShouldRetry(null);
-        result.Should().BeTrue();
+        result.Should().BeFalse();
     }
 
     [Fact]
-    public void ShouldRetry_EmptyErrorCode_ShouldReturnTrue()
+    public void ShouldRetry_EmptyErrorCode_ShouldReturnFalse()
     {
+        // P2-42：未知/空错误码默认不重试，直接进入死信
         var result = _policy.ShouldRetry("");
-        result.Should().BeTrue();
+        result.Should().BeFalse();
     }
 
     [Fact]
-    public void ShouldRetry_WhitespaceErrorCode_ShouldReturnTrue()
+    public void ShouldRetry_WhitespaceErrorCode_ShouldReturnFalse()
     {
+        // P2-42：未知/空错误码默认不重试，直接进入死信
         var result = _policy.ShouldRetry("   ");
-        result.Should().BeTrue();
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -70,10 +73,11 @@ public class RetryPolicyTests
     }
 
     [Fact]
-    public void ShouldRetry_UnknownErrorCode_ShouldReturnTrue()
+    public void ShouldRetry_UnknownErrorCode_ShouldReturnFalse()
     {
+        // P2-42：未在白名单内的未知错误码默认不重试，直接进入死信
         var result = _policy.ShouldRetry("UNKNOWN_ERROR_CODE");
-        result.Should().BeTrue();
+        result.Should().BeFalse();
     }
 
     #endregion

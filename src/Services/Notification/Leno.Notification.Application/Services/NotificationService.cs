@@ -119,10 +119,33 @@ public sealed class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
+            // P1-37：模板渲染失败时仍创建 NotificationRecord（状态 Failed），
+            // 让管理后台可查询到该失败记录，避免渲染异常丢失审计踪迹。
+            // 直接以 Failed 状态创建（绕过 Pending → Sending → Failed 状态机），
+            // 因为 TEMPLATE_RENDER_FAILED 属于不可重试错误，不会进入重试流程。
             _logger.LogError(ex, "模板渲染失败 TemplateCode={Code}", request.TemplateCode);
+
+            var failedRecordId = Guid.NewGuid();
+            var failedRecord = NotificationRecord.CreateFailed(
+                failedRecordId,
+                request.UserId,
+                request.TemplateCode,
+                eventId: null,
+                template.Channel,
+                title: template.Subject,
+                content: template.Body,
+                errorMessage: $"模板渲染失败：{ex.Message}",
+                errorCode: "TEMPLATE_RENDER_FAILED",
+                businessRef: string.IsNullOrWhiteSpace(request.BusinessRef) ? null : request.BusinessRef,
+                idempotencyKey: string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey);
+
+            await _recordRepository.AddAsync(failedRecord, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+
             return new NotificationSendResult
             {
                 Succeeded = false,
+                RecordId = failedRecordId,
                 ErrorCode = "TEMPLATE_RENDER_FAILED",
                 ErrorMessage = $"模板渲染失败：{ex.Message}"
             };

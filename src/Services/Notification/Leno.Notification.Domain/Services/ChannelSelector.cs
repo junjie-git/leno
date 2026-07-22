@@ -5,20 +5,23 @@ namespace Leno.Notification.Domain.Services;
 
 /// <summary>
 /// 渠道选择器领域服务实现，管理主备适配器选择与 failover 决策。
-/// 
+///
 /// 规则：
 /// - Email 渠道仅 SMTP，无备选
 /// - SMS 渠道根据 Provider 配置选择 Aliyun 或 Tencent 作为主适配器，另一家为备选
 /// - 仅可重试错误触发同渠道内 failover，不可跨渠道
 /// - 所有适配器不可用时记录失败并告警
-/// 
+///
 /// 可重试错误码（允许 failover）：
 ///   SMTP_RETRYABLE, SMTP_CONNECT_TIMEOUT, SMS_TIMEOUT,
 ///   EMAIL_EXCEPTION, SMS_EXCEPTION, SEND_EXCEPTION, ACCEPTED_TIMEOUT
-/// 
+///
 /// 不可重试错误码（不触发 failover）：
 ///   SMTP_NON_RETRYABLE, EMAIL_EMPTY, EMAIL_CONFIG_MISSING,
 ///   SMS_PHONE_EMPTY, SMS_CONFIG_MISSING, SMS_HTTP_ERROR
+///
+/// P2-42：未知错误码默认不可重试（不触发 failover），与 RetryPolicy.ShouldRetry 行为对齐。
+///       如需对特定错误码 failover，应显式加入 RetryableErrorCodes 白名单。
 /// </summary>
 public sealed class ChannelSelector : IChannelSelector
 {
@@ -100,7 +103,8 @@ public sealed class ChannelSelector : IChannelSelector
     {
         if (string.IsNullOrWhiteSpace(errorCode))
         {
-            return true; // Unknown errors are conservatively retryable
+            // P2-42：未知/空错误码默认不可重试，与 RetryPolicy.ShouldRetry 行为对齐
+            return false;
         }
 
         if (NonRetryableErrorCodes.Contains(errorCode))
@@ -113,14 +117,14 @@ public sealed class ChannelSelector : IChannelSelector
             return true;
         }
 
-        // 5xx series errors are retryable
+        // 5xx 类错误码（如 SMTP 5xx、HTTP 5xx）→ 服务端错误，可重试
         if (errorCode.StartsWith('5'))
         {
             return true;
         }
 
-        // Default conservative: retryable
-        return true;
+        // P2-42：未在白名单内的未知错误码默认不可重试，不触发 failover
+        return false;
     }
 
     /// <inheritdoc />
