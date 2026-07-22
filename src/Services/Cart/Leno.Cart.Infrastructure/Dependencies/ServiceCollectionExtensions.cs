@@ -82,13 +82,11 @@ public static class ServiceCollectionExtensions
 
             services.AddKeyedSingleton<CircuitBreakerState>("product", (sp, _) =>
             {
-                var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
-                var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
-                return new CircuitBreakerState(
-                    "product",
-                    cbOpts.FailureThreshold,
-                    cbOpts.SuccessThreshold,
-                    TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
+                // P1-13：注入 IOptionsMonitor 引用而非构造时读取 CurrentValue，
+                // 使 CircuitBreakerState 每次状态判定时从 CurrentValue.CircuitBreaker 读取最新阈值，
+                // 支持 Consul KV 热更新（原实现构造时冻结阈值，热更新不生效）
+                var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                return new CircuitBreakerState("product", optionsMonitor);
             });
 
             services.AddScoped<AntiCorruptionDispatcher<ICartPriceService>>(sp =>
