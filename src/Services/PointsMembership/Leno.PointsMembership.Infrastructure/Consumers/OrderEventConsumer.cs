@@ -1,7 +1,6 @@
 using Leno.Infrastructure.EventBus;
 using Leno.PointsMembership.Domain.Aggregates;
 using Leno.PointsMembership.Domain.Repositories;
-using Leno.PointsMembership.Domain.Services;
 using Leno.PointsMembership.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
