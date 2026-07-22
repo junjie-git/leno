@@ -1,5 +1,6 @@
 using Leno.SellerShop.Domain.Aggregates;
 using Leno.SellerShop.Domain.Repositories;
+using Leno.SharedKernel.Abstractions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Leno.SellerShop.Infrastructure.Repositories;
@@ -85,14 +86,32 @@ public sealed class EfCoreShopMetricsRepository : IShopMetricsRepository
 
         if (existing is null)
         {
+            // 新建聚合：直接 Add，审计拦截器在 SaveChangesAsync 时填充 CreatedAt/CreatedBy/UpdatedAt/UpdatedBy
             _context.ShopMetrics.Add(metrics);
+            return;
         }
-        else
+
+        // 同 (ShopId, Date) 已存在：以既有聚合为准，仅复制新聚合的业务字段到既有聚合，
+        // 保留既有 Id（init 不可变）与审计链（CreatedAt/CreatedBy），避免 EntityState.Modified 直接覆盖。
+        // UpdatedAt/UpdatedBy 由审计拦截器在 SaveChangesAsync 时自动刷新。
+        // 既有聚合已在 FirstOrDefaultAsync 时被变更跟踪器跟踪，业务字段变更会自动标记为 Modified。
+        var existingEntry = _context.Entry(existing);
+        var newEntry = _context.Entry(metrics);
+
+        foreach (var property in existingEntry.Metadata.GetProperties())
         {
-            // 同 (ShopId, Date) 已存在：以既有聚合为准，新聚合字段不可直接覆盖（保留既有 Id 与审计链）。
-            // 调用方应优先经 GetByShopIdAsync 加载既有聚合后再增量更新。
-            _context.ShopMetrics.Attach(metrics);
-            _context.Entry(metrics).State = EntityState.Modified;
+            // 跳过主键与审计字段，保留既有值（CreatedAt/CreatedBy 不被新聚合的默认值覆盖）
+            if (property.IsPrimaryKey()
+                || property.Name == nameof(Entity.CreatedAt)
+                || property.Name == nameof(Entity.CreatedBy)
+                || property.Name == nameof(Entity.UpdatedAt)
+                || property.Name == nameof(Entity.UpdatedBy))
+            {
+                continue;
+            }
+
+            existingEntry.Property(property.Name).CurrentValue =
+                newEntry.Property(property.Name).CurrentValue;
         }
     }
 }

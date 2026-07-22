@@ -21,7 +21,9 @@ public interface IShopMetricsRepository : IRepository<ShopMetrics>
 
     /// <summary>
     /// 新增或更新指标。已跟踪的聚合（经 GetByShopIdAsync 加载并修改）无需调用；
-    /// 新建的聚合经此方法写入。同一 (ShopId, Date) 已存在时按更新处理。
+    /// 新建的聚合经此方法写入。同一 (ShopId, Date) 已存在时按更新处理：
+    /// 仅复制新聚合的业务字段到既有聚合，保留既有 Id 与审计链（CreatedAt/CreatedBy），
+    /// 避免直接 EntityState.Modified 覆盖审计字段。UpdatedAt/UpdatedBy 由审计拦截器自动刷新。
     /// </summary>
     Task UpsertAsync(ShopMetrics metrics, CancellationToken ct = default);
 }
