@@ -3,7 +3,7 @@ using Leno.SystemAdmin.Domain.Aggregates;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.Services;
 using Leno.SystemAdmin.Domain.ValueObjects;
-using Leno.SystemAdmin.Infrastructure.Cache;
+using Leno.SystemAdmin.Application.Abstractions;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -20,14 +20,14 @@ public sealed class FeatureFlagAppService : IFeatureFlagAppService
     private readonly IFeatureFlagRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IFeatureFlagEvaluator _evaluator;
-    private readonly FeatureFlagCache _cache;
+    private readonly IFeatureFlagCache _cache;
     private readonly ILogger<FeatureFlagAppService> _logger;
 
     public FeatureFlagAppService(
         IFeatureFlagRepository repository,
         IUnitOfWork unitOfWork,
         IFeatureFlagEvaluator evaluator,
-        FeatureFlagCache cache,
+        IFeatureFlagCache cache,
         ILogger<FeatureFlagAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(repository);
