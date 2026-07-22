@@ -30,6 +30,12 @@ public sealed class PaymentOrder : AggregateRoot
     /// <summary>支付渠道。</summary>
     public PaymentChannel Channel { get; private set; }
 
+    /// <summary>
+    /// 支付交易类型（P2-19），对应第三方渠道的 trade_type。
+    /// 默认 <see cref="TradeType.Native"/>（扫码支付），保持向后兼容。
+    /// </summary>
+    public TradeType TradeType { get; private set; }
+
     /// <summary>第三方交易号（渠道返回）。</summary>
     public string? ChannelTradeNo { get; private set; }
 
@@ -75,13 +81,15 @@ public sealed class PaymentOrder : AggregateRoot
     /// <param name="amount">支付金额，须 &gt; 0。</param>
     /// <param name="currency">币种，为空默认 CNY。</param>
     /// <param name="channel">支付渠道。</param>
+    /// <param name="tradeType">支付交易类型，默认 <see cref="TradeType.Native"/>（扫码支付）。</param>
     public static PaymentOrder Create(
         Guid paymentId,
         Guid orderId,
         Guid userId,
         decimal amount,
         string currency,
-        PaymentChannel channel)
+        PaymentChannel channel,
+        TradeType tradeType = TradeType.Native)
     {
         if (paymentId == Guid.Empty)
         {
@@ -114,6 +122,7 @@ public sealed class PaymentOrder : AggregateRoot
             Amount = amount,
             Currency = string.IsNullOrWhiteSpace(currency) ? "CNY" : currency,
             Channel = channel,
+            TradeType = tradeType,
             Status = PaymentStatus.Pending,
             ExpireAt = DateTime.UtcNow.AddHours(2)
         };

@@ -79,3 +79,22 @@ public enum ReconciliationDiffStatus
     /// <summary>已忽略。</summary>
     Ignored = 2
 }
+
+/// <summary>
+/// 支付交易类型枚举，对应第三方渠道的 trade_type。
+/// P2-19：从 WeChatPayAdapter 硬编码 "NATIVE" 提取为聚合根属性，支持 H5/JSAPI/APP 场景。
+/// </summary>
+public enum TradeType
+{
+    /// <summary>扫码支付（微信 Native / 支付宝当面付），默认值保持向后兼容。</summary>
+    Native = 0,
+
+    /// <summary>H5 支付（手机浏览器唤起支付）。</summary>
+    H5 = 1,
+
+    /// <summary>JSAPI 支付（微信公众号/小程序内支付）。</summary>
+    JsApi = 2,
+
+    /// <summary>APP 支付（原生 App 唤起支付）。</summary>
+    App = 3
+}

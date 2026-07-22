@@ -21,6 +21,7 @@ public sealed class PaymentOrderConfiguration : IEntityTypeConfiguration<Payment
         builder.Property(o => o.Amount).HasColumnName("amount");
         builder.Property(o => o.Currency).HasColumnName("currency").HasMaxLength(8).IsRequired();
         builder.Property(o => o.Channel).HasColumnName("channel").HasConversion<int>();
+        builder.Property(o => o.TradeType).HasColumnName("trade_type").HasConversion<int>();
         builder.Property(o => o.ChannelTradeNo).HasColumnName("channel_trade_no").HasMaxLength(128);
         builder.Property(o => o.Status).HasColumnName("status").HasConversion<int>();
         builder.Property(o => o.PrepayId).HasColumnName("prepay_id").HasMaxLength(128);

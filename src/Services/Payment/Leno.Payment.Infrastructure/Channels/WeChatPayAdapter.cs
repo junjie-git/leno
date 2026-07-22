@@ -39,8 +39,8 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
         var totalFee = (int)Math.Round(paymentOrder.Amount * 100m);
         var description = $"订单 {paymentOrder.OrderId} 微信支付";
 
-        // 默认 Native 扫码支付
-        const string tradeType = "NATIVE";
+        // P2-19：tradeType 由硬编码 "NATIVE" 改为从聚合根 TradeType 属性读取，支持 H5/JSAPI/APP 场景。
+        var tradeType = MapTradeType(paymentOrder.TradeType);
         var result = await _client.UnifiedOrderAsync(config, paymentOrder.OutTradeNo, totalFee, description, tradeType, ct);
 
         if (!result.IsSuccess)
@@ -263,6 +263,18 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
             Amount = amount
         };
     }
+
+    /// <summary>
+    /// 将 <see cref="TradeType"/> 枚举映射为微信支付 V3 API 的 trade_type 字符串。
+    /// </summary>
+    private static string MapTradeType(TradeType tradeType) => tradeType switch
+    {
+        TradeType.Native => "NATIVE",
+        TradeType.H5 => "H5",
+        TradeType.JsApi => "JSAPI",
+        TradeType.App => "APP",
+        _ => "NATIVE"
+    };
 
     private static string? GetHeader(Dictionary<string, string> headers, string key)
         => headers.TryGetValue(key, out var v) ? v : null;

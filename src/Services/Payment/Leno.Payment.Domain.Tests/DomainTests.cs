@@ -33,6 +33,28 @@ public class PaymentOrderTests
     }
 
     [Fact]
+    public void Create_DefaultTradeType_ShouldBeNative()
+    {
+        // P2-19：未显式传入 tradeType 时默认 Native，保持向后兼容
+        var payment = PaymentOrder.Create(Guid.NewGuid(), OrderId, UserId, 100m, "CNY", PaymentChannel.WeChatPay);
+
+        payment.TradeType.Should().Be(TradeType.Native);
+    }
+
+    [Fact]
+    public void Create_ExplicitTradeType_ShouldAssignFromParameter()
+    {
+        // P2-19：显式传入 H5/JsApi/App 时应正确赋值到聚合根
+        var h5Payment = PaymentOrder.Create(Guid.NewGuid(), OrderId, UserId, 100m, "CNY", PaymentChannel.WeChatPay, TradeType.H5);
+        var jsApiPayment = PaymentOrder.Create(Guid.NewGuid(), OrderId, UserId, 100m, "CNY", PaymentChannel.WeChatPay, TradeType.JsApi);
+        var appPayment = PaymentOrder.Create(Guid.NewGuid(), OrderId, UserId, 100m, "CNY", PaymentChannel.WeChatPay, TradeType.App);
+
+        h5Payment.TradeType.Should().Be(TradeType.H5);
+        jsApiPayment.TradeType.Should().Be(TradeType.JsApi);
+        appPayment.TradeType.Should().Be(TradeType.App);
+    }
+
+    [Fact]
     public void Create_EmptyPaymentId_ShouldThrowException()
     {
         var act = () => PaymentOrder.Create(Guid.Empty, OrderId, UserId, 100m, "CNY", PaymentChannel.WeChatPay);
