@@ -35,7 +35,7 @@ public class RedisAnonymousCartRepositoryTests
 
         await act.Should().ThrowAsync<CartInfrastructureException>()
             .WithMessage("*匿名购物车暂不可用*")
-            .WithInnerException<RedisConnectionException>();
+            .WithInnerException<CartInfrastructureException, RedisConnectionException>();
     }
 
     [Fact]

@@ -53,7 +53,7 @@ public class CartSkuIndexServiceTests
         var act = () => sut.AddAsync(Guid.NewGuid(), Guid.NewGuid());
 
         await act.Should().ThrowAsync<CartInfrastructureException>()
-            .WithInnerException<RedisConnectionException>();
+            .WithInnerException<CartInfrastructureException, RedisConnectionException>();
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public class CartSkuIndexServiceTests
         var act = () => sut.RemoveAsync(Guid.NewGuid(), Guid.NewGuid());
 
         await act.Should().ThrowAsync<CartInfrastructureException>()
-            .WithInnerException<RedisConnectionException>();
+            .WithInnerException<CartInfrastructureException, RedisConnectionException>();
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class CartSkuIndexServiceTests
         var act = () => sut.GetCartIdsBySkuAsync(Guid.NewGuid());
 
         await act.Should().ThrowAsync<CartInfrastructureException>()
-            .WithInnerException<RedisConnectionException>();
+            .WithInnerException<CartInfrastructureException, RedisConnectionException>();
     }
 
     [Fact]
