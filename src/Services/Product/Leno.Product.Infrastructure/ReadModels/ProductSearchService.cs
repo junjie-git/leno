@@ -5,6 +5,7 @@ using Leno.Product.Application;
 using Leno.Product.Application.DTOs;
 using Leno.SharedContracts.Responses;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Leno.Product.Infrastructure.ReadModels;
 

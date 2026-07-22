@@ -3,6 +3,7 @@ using Leno.Payment.Domain.Services;
 using Leno.Payment.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using StackExchange.Redis;
 
 namespace Leno.Payment.Infrastructure.Notify;
@@ -40,7 +41,7 @@ public sealed class WeChatPayNotifyHandler
         _refundOrderRepository = refundOrderRepository ?? throw new ArgumentNullException(nameof(refundOrderRepository));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _redis = redis;
-        _logger = logger ?? InternalNullLoggerFactory.CreateLogger<WeChatPayNotifyHandler>();
+        _logger = logger ?? NullLogger<WeChatPayNotifyHandler>.Instance;
     }
 
     /// <summary>

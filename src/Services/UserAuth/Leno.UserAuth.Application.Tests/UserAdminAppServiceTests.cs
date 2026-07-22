@@ -32,6 +32,7 @@ public class UserAdminAppServiceTests
             _userRepositoryMock.Object,
             _auditLogRepositoryMock.Object,
             _refreshTokenStoreMock.Object,
+            Mock.Of<IJwtRevocationService>(),
             _unitOfWorkMock.Object);
     }
 

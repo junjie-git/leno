@@ -309,7 +309,7 @@ public class UserAppServiceTests
                 {
                     throw new DbUpdateConcurrencyException("RowVersion mismatch");
                 }
-                return Task.CompletedTask;
+                return Task.FromResult(true);
             });
 
         // Act：登录失败一次（密码错误），第一次 Save 抛并发异常，应自动重试
@@ -527,7 +527,7 @@ public class UserAppServiceTests
             .Returns(Task.CompletedTask);
         _uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
             .Callback(() => callOrder.Add("SaveEntitiesAsync"))
-            .Returns(Task.CompletedTask);
+            .Returns(Task.FromResult(true));
 
         // Act
         await _sut.ForgotPasswordAsync(new ForgotPasswordDto { Account = "alice@example.com" }, CancellationToken.None);

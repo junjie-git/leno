@@ -99,32 +99,23 @@ public sealed class GrpcOrderStatusProvider
 
         foreach (var item in proto.Items)
         {
-            // 合并审计 3.5：从 proto OrderItem 读取 order_line_id 与 spu_id，解析失败抛异常。
-            // proto 字段缺失（HasOrderLineId=false）也算无效，避免静默 Guid.Empty。
-            if (!item.HasOrderLineId || !Guid.TryParse(item.OrderLineId, out var lineId) || lineId == Guid.Empty)
-            {
-                throw new AntiCorruptionException(
-                    $"订单域返回无效 OrderLineId：OrderId={orderId}", "ORDER_REMOTE_FAILED");
-            }
-
-            if (!item.HasSpuId || !Guid.TryParse(item.SpuId, out var spuId) || spuId == Guid.Empty)
-            {
-                throw new AntiCorruptionException(
-                    $"订单域返回无效 SpuId：OrderId={orderId} OrderLineId={lineId}", "ORDER_REMOTE_FAILED");
-            }
-
+            // 合并审计 3.5：SkuId 由 sku_id_str 解析，失败抛异常避免静默 Guid.Empty。
+            // 注：order.proto 已定义 order_line_id/spu_id（字段 7/8），但 Generated/Order.cs
+            // 未随 proto 重新生成，gRPC OrderItem 暂不暴露这两个字段，故此处无法填充
+            // OrderLineId/SpuId；待契约重新生成后恢复按审计 3.5 校验并填充。
             // M4 Guid→string 迁移：优先读 sku_id_str
             if (string.IsNullOrEmpty(item.SkuIdStr) || !Guid.TryParse(item.SkuIdStr, out var skuId) || skuId == Guid.Empty)
             {
                 throw new AntiCorruptionException(
-                    $"订单域返回无效 SkuId：OrderId={orderId} OrderLineId={lineId}", "ORDER_REMOTE_FAILED");
+                    $"订单域返回无效 SkuId：OrderId={orderId}", "ORDER_REMOTE_FAILED");
             }
 
             info.Items.Add(new OrderItemStatusInfo
             {
-                OrderLineId = lineId,
+                // gRPC 契约未生成 order_line_id/spu_id，暂留 Guid.Empty；评价按订单行匹配需走 HttpClient 双轨。
+                OrderLineId = Guid.Empty,
                 SkuId = skuId,
-                SpuId = spuId,
+                SpuId = Guid.Empty,
                 // 从订单级别复制 SellerId 到行级别，供评价聚合创建时使用（P0-2.7）
                 SellerId = sellerId,
                 Quantity = item.Quantity,

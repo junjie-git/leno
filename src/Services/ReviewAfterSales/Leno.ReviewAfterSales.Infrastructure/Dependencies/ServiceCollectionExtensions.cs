@@ -112,7 +112,7 @@ public static class ServiceCollectionExtensions
             {
                 // 降级到 HttpClient 模式：注册启动时告警 HostedService，再注册 HttpClient 实现作为唯一实现。
                 services.AddHostedService(sp => new GrpcDegradationWarningHostedService(
-                    sp.GetRequiredService<ILogger<ServiceCollectionExtensions>>(),
+                    sp.GetRequiredService<ILogger<GrpcDegradationWarningHostedService>>(),
                     "Payment",
                     "AntiCorruption:GrpcEndpoints:Payment"));
                 services.AddScoped<IPaymentInfoQueryService>(sp =>
@@ -158,7 +158,7 @@ public static class ServiceCollectionExtensions
             {
                 // 降级到 HttpClient 模式：注册启动时告警 HostedService，再注册 HttpClient 实现作为唯一实现。
                 services.AddHostedService(sp => new GrpcDegradationWarningHostedService(
-                    sp.GetRequiredService<ILogger<ServiceCollectionExtensions>>(),
+                    sp.GetRequiredService<ILogger<GrpcDegradationWarningHostedService>>(),
                     "Order",
                     "AntiCorruption:GrpcEndpoints:Order"));
                 services.AddScoped<IOrderStatusProvider>(sp =>

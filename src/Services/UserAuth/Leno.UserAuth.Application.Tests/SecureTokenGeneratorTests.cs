@@ -32,7 +32,7 @@ public class SecureTokenGeneratorTests
             var token = UserAppService.GenerateSecureToken(32);
             foreach (var c in token)
             {
-                AllowedChars.Should().Contain(c,
+                AllowedChars.Should().Contain(c.ToString(),
                     $"令牌应仅包含 Base64url 字母表字符，但发现非法字符 '{c}'");
             }
         }

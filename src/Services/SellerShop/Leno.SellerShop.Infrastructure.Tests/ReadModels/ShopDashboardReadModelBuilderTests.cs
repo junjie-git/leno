@@ -2,6 +2,7 @@ using Leno.SellerShop.Application.Services;
 using Leno.SellerShop.Domain.Aggregates;
 using Leno.SellerShop.Domain.Repositories;
 using Leno.SellerShop.Infrastructure.ReadModels;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
