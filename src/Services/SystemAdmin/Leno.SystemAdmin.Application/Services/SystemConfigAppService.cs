@@ -2,7 +2,7 @@ using Leno.SystemAdmin.Application.DTOs;
 using Leno.SystemAdmin.Domain.Aggregates;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.ValueObjects;
-using Leno.SystemAdmin.Infrastructure.Cache;
+using Leno.SystemAdmin.Application.Abstractions;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -20,13 +20,13 @@ public sealed class SystemConfigAppService : ISystemConfigAppService
 
     private readonly ISystemConfigRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly SystemConfigCache _cache;
+    private readonly ISystemConfigCache _cache;
     private readonly ILogger<SystemConfigAppService> _logger;
 
     public SystemConfigAppService(
         ISystemConfigRepository repository,
         IUnitOfWork unitOfWork,
-        SystemConfigCache cache,
+        ISystemConfigCache cache,
         ILogger<SystemConfigAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(repository);
