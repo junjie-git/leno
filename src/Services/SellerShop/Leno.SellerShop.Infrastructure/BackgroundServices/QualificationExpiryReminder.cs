@@ -1,34 +1,41 @@
 using Leno.Infrastructure.Outbox;
 using Leno.SharedContracts.Events;
 using Leno.SellerShop.Domain.ValueObjects;
+using Leno.SellerShop.Infrastructure.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Leno.SellerShop.Infrastructure.BackgroundServices;
 
 /// <summary>
-/// 资质到期提醒后台服务，每日扫描即将到期的已通过资质（30/7/1 天），
-/// 发布 <see cref="QualificationExpiringIntegrationEvent"/> 集成事件经发件箱供通知域消费。
+/// 资质到期提醒后台服务，按配置的扫描间隔检查即将到期的已通过资质，
+/// 在距到期日 <see cref="QualificationReminderOptions.ReminderDays"/> 天时发布
+/// <see cref="QualificationExpiringIntegrationEvent"/> 集成事件经发件箱供通知域消费。
 /// </summary>
 public sealed class QualificationExpiryReminder : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<QualificationExpiryReminder> _logger;
-    private static readonly int[] ReminderDays = [30, 7, 1];
+    private readonly QualificationReminderOptions _options;
 
     public QualificationExpiryReminder(
         IServiceScopeFactory scopeFactory,
-        ILogger<QualificationExpiryReminder> logger)
+        ILogger<QualificationExpiryReminder> logger,
+        IOptions<QualificationReminderOptions> options)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _options = options.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("资质到期提醒服务已启动");
+        var intervalHours = _options.ScanIntervalHours > 0 ? _options.ScanIntervalHours : 24;
+        _logger.LogInformation("资质到期提醒服务已启动，扫描间隔 {IntervalHours} 小时，提醒天数 {ReminderDays}",
+            intervalHours, string.Join(",", _options.ReminderDays));
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -41,7 +48,7 @@ public sealed class QualificationExpiryReminder : BackgroundService
                 _logger.LogError(ex, "资质到期扫描异常");
             }
 
-            await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
+            await Task.Delay(TimeSpan.FromHours(intervalHours), stoppingToken);
         }
     }
 
@@ -52,7 +59,7 @@ public sealed class QualificationExpiryReminder : BackgroundService
 
         var utcNow = DateTime.UtcNow;
 
-        foreach (var days in ReminderDays)
+        foreach (var days in _options.ReminderDays)
         {
             var targetDate = utcNow.AddDays(days);
             var startOfDay = targetDate.Date;

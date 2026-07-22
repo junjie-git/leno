@@ -10,6 +10,7 @@ using Leno.SellerShop.Application.Services;
 using Leno.SellerShop.Domain.Repositories;
 using Leno.SellerShop.Domain.Services;
 using Leno.SellerShop.Infrastructure.BackgroundServices;
+using Leno.SellerShop.Infrastructure.Configuration;
 using Leno.SellerShop.Infrastructure.Consumers;
 using Leno.SellerShop.Infrastructure.EventBus;
 using Leno.SellerShop.Infrastructure.ReadModels;
@@ -106,6 +107,10 @@ public static class ServiceCollectionExtensions
 
         // CQRS 读侧：扫描 Application 程序集注册所有 IQueryHandler<TQuery, TResult>
         services.AddQueryHandlers(typeof(ShopDashboardQueryHandler).Assembly);
+
+        // P2-18: 资质到期提醒配置绑定，扫描间隔与提醒天数阈值按环境（测试/生产）灵活配置
+        services.Configure<QualificationReminderOptions>(
+            configuration.GetSection(QualificationReminderOptions.SectionName));
 
         services.AddHostedService<QualificationExpiryReminder>();
 
