@@ -105,7 +105,10 @@ public sealed class PaymentOrder : AggregateRoot
 
         return new PaymentOrder(paymentId)
         {
-            OutTradeNo = $"PAY{DateTime.UtcNow:yyyyMMddHHmmss}{Random.Shared.Next(100000, 999999)}",
+            // P2-16：原时间戳+6位随机数在高并发同秒内碰撞概率 1/900000，
+            // 改为时间戳+GUID(N 格式 32 位)，由 GUID 全局唯一性消除碰撞。
+            // 总长 3+14+32=49，不超过 out_trade_no 列 MaxLength=64。
+            OutTradeNo = $"PAY{DateTime.UtcNow:yyyyMMddHHmmss}{Guid.NewGuid():N}",
             OrderId = orderId,
             UserId = userId,
             Amount = amount,

@@ -248,6 +248,33 @@ public class PaymentOrderTests
         act.Should().Throw<PaymentDomainException>().WithMessage("*状态*");
     }
 
+    [Fact]
+    public void Create_Concurrent10000_ShouldHaveNoOutTradeNoCollision()
+    {
+        // P2-16：原时间戳+6位随机数在同秒内碰撞概率 1/900000，改为时间戳+GUID 后应无碰撞。
+        const int count = 10000;
+        var results = new string[count];
+        Parallel.For(0, count, i =>
+        {
+            var payment = PaymentOrder.Create(Guid.NewGuid(), OrderId, UserId, 100m, "CNY", PaymentChannel.WeChatPay);
+            results[i] = payment.OutTradeNo;
+        });
+
+        var distinctCount = results.Distinct().Count();
+        distinctCount.Should().Be(count, "10000 次并发生成 OutTradeNo 不应有碰撞");
+    }
+
+    [Fact]
+    public void Create_OutTradeNo_ShouldStartWithPayAndFitWithin64Chars()
+    {
+        // P2-16：验证 OutTradeNo 格式：PAY 前缀 + 14 位时间戳 + 32 位 GUID(N) = 49 字符，不超过 MaxLength=64
+        var payment = PaymentOrder.Create(Guid.NewGuid(), OrderId, UserId, 100m, "CNY", PaymentChannel.WeChatPay);
+
+        payment.OutTradeNo.Should().StartWith("PAY");
+        payment.OutTradeNo.Length.Should().BeLessThanOrEqualTo(64);
+        payment.OutTradeNo.Length.Should().Be(3 + 14 + 32, "PAY(3) + 时间戳(14) + GUID.N(32) = 49");
+    }
+
     private static PaymentOrder CreatePayment()
     {
         return PaymentOrder.Create(Guid.NewGuid(), OrderId, UserId, 100m, "CNY", PaymentChannel.WeChatPay);
@@ -368,6 +395,37 @@ public class RefundOrderTests
         var act = () => refund.MarkFailed("再次失败");
 
         act.Should().Throw<PaymentDomainException>().WithMessage("*状态*");
+    }
+
+    [Fact]
+    public void Create_Concurrent10000_ShouldHaveNoOutRefundNoCollision()
+    {
+        // P2-16：原时间戳+6位随机数在同秒内碰撞概率 1/900000，改为时间戳+GUID 后应无碰撞。
+        const int count = 10000;
+        var results = new string[count];
+        Parallel.For(0, count, i =>
+        {
+            var refund = RefundOrder.Create(
+                Guid.NewGuid(), PaymentId, OrderId, UserId, AfterSalesId,
+                50m, "CNY", "PAY20260701000001", PaymentChannel.WeChatPay);
+            results[i] = refund.OutRefundNo;
+        });
+
+        var distinctCount = results.Distinct().Count();
+        distinctCount.Should().Be(count, "10000 次并发生成 OutRefundNo 不应有碰撞");
+    }
+
+    [Fact]
+    public void Create_OutRefundNo_ShouldStartWithRfdAndFitWithin64Chars()
+    {
+        // P2-16：验证 OutRefundNo 格式：RFD 前缀 + 14 位时间戳 + 32 位 GUID(N) = 49 字符，不超过 MaxLength=64
+        var refund = RefundOrder.Create(
+            Guid.NewGuid(), PaymentId, OrderId, UserId, AfterSalesId,
+            50m, "CNY", "PAY20260701000001", PaymentChannel.WeChatPay);
+
+        refund.OutRefundNo.Should().StartWith("RFD");
+        refund.OutRefundNo.Length.Should().BeLessThanOrEqualTo(64);
+        refund.OutRefundNo.Length.Should().Be(3 + 14 + 32, "RFD(3) + 时间戳(14) + GUID.N(32) = 49");
     }
 
     private static RefundOrder CreateRefund()
