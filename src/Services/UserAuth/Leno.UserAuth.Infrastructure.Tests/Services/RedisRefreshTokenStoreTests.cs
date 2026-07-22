@@ -34,9 +34,9 @@ public sealed class RedisRefreshTokenStoreTests
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
                 It.IsAny<TimeSpan?>(),
-                It.IsAny<bool>(),
+                It.IsAny<When>(),
                 It.IsAny<CommandFlags>()))
-            .Callback<RedisKey, RedisValue, TimeSpan?, bool, CommandFlags>((k, v, ttl, _, _) =>
+            .Callback<RedisKey, RedisValue, TimeSpan?, When, CommandFlags>((k, v, ttl, _, _) =>
             {
                 capturedKey = k.ToString();
                 capturedTtl = ttl;
@@ -54,7 +54,7 @@ public sealed class RedisRefreshTokenStoreTests
             It.IsAny<RedisKey>(),
             It.IsAny<RedisValue>(),
             DefaultTtl,
-            It.IsAny<bool>(),
+            It.IsAny<When>(),
             It.IsAny<CommandFlags>()), Times.Once);
     }
 
@@ -72,7 +72,7 @@ public sealed class RedisRefreshTokenStoreTests
                 It.IsAny<RedisKey>(),
                 It.IsAny<RedisValue>(),
                 It.IsAny<TimeSpan?>(),
-                It.IsAny<bool>(),
+                It.IsAny<When>(),
                 It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
 
