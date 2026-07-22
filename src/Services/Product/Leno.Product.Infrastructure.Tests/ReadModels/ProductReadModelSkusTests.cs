@@ -3,6 +3,7 @@ using Leno.Infrastructure.ReadModel;
 using Leno.Product.Application.Queries;
 using Leno.Product.Domain.Aggregates;
 using Leno.Product.Domain.Repositories;
+using Leno.Product.Domain.ValueObjects;
 using Leno.Product.Infrastructure.ReadModels;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.ValueObjects;
