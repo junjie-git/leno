@@ -1,3 +1,4 @@
+using Leno.SystemAdmin.Application.Abstractions;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -7,7 +8,7 @@ namespace Leno.SystemAdmin.Infrastructure.Cache;
 /// 系统配置 Redis 缓存，读写穿透策略，TTL 30 分钟。
 /// 供应用层读侧加速，缓存缺失时回源数据库读取；写侧以 EF Core 持久化为主。
 /// </summary>
-public sealed class SystemConfigCache
+public sealed class SystemConfigCache : ISystemConfigCache
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(30);
 
