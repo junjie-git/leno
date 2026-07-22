@@ -20,6 +20,7 @@ public class UserAdminAppServiceTests
     private readonly Mock<IRefreshTokenStore> _refreshTokenStoreMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly Mock<IPasswordHasher> _hasherMock = new();
+    private readonly Mock<IJwtRevocationService> _jwtRevocationMock = new();
 
     public UserAdminAppServiceTests()
     {
@@ -32,6 +33,7 @@ public class UserAdminAppServiceTests
             _userRepositoryMock.Object,
             _auditLogRepositoryMock.Object,
             _refreshTokenStoreMock.Object,
+            _jwtRevocationMock.Object,
             _unitOfWorkMock.Object);
     }
 
