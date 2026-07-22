@@ -2,6 +2,7 @@ using Leno.Infrastructure.Auth;
 using Leno.UserAuth.Application.Abstractions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 
 namespace Leno.UserAuth.Infrastructure.Services;
 
@@ -16,6 +17,7 @@ public sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
 {
     private readonly JwtTokenGenerator _generator;
     private readonly MemoryCache _store;
+    private readonly ConcurrentDictionary<string, Guid> _tokenIndex = new();
     private readonly ILogger<InMemoryRefreshTokenStore> _logger;
 
     public InMemoryRefreshTokenStore(JwtTokenGenerator generator, ILogger<InMemoryRefreshTokenStore> logger)
@@ -42,6 +44,7 @@ public sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
                 AbsoluteExpirationRelativeToNow = _generator.RefreshTokenExpiry,
                 Priority = CacheItemPriority.Normal
             });
+        _tokenIndex[token] = userId;
         return Task.FromResult(token);
     }
 
@@ -57,6 +60,7 @@ public sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
         if (_store.TryGetValue(refreshToken, out var userIdObj) && userIdObj is Guid userId)
         {
             _store.Remove(refreshToken);
+            _tokenIndex.TryRemove(refreshToken, out _);
             return Task.FromResult<Guid?>(userId);
         }
 
@@ -66,19 +70,16 @@ public sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
     /// <inheritdoc />
     public Task RevokeAllAsync(Guid userId, CancellationToken ct = default)
     {
-        // MemoryCache 枚举当前驻留的键值对快照，按 userId 过滤后逐个移除。
-        var keysToRemove = new List<object>();
-        foreach (var kvp in _store)
-        {
-            if (kvp.Value is Guid uid && uid == userId)
-            {
-                keysToRemove.Add(kvp.Key);
-            }
-        }
+        // 通过 _tokenIndex 按 userId 检索令牌并逐个移除，避免枚举 MemoryCache 快照。
+        var keysToRemove = _tokenIndex
+            .Where(kvp => kvp.Value == userId)
+            .Select(kvp => kvp.Key)
+            .ToList();
 
         foreach (var key in keysToRemove)
         {
             _store.Remove(key);
+            _tokenIndex.TryRemove(key, out _);
         }
 
         return Task.CompletedTask;
