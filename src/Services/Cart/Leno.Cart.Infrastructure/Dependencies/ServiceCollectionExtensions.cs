@@ -56,6 +56,9 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ICartRepository, EfCoreCartRepository>();
 
+        // P1-1：匿名购物车合并记录仓储，防止跨存储非原子操作导致重复合并
+        services.AddScoped<ICartMergeRecordRepository, CartMergeRecordRepository>();
+
         // 价格防腐层 HttpClient 实现（保留作为降级备份）：BaseAddress 来自 ServiceUrls:ProductApi
         services.AddHttpClient<CartPriceService>(client =>
         {

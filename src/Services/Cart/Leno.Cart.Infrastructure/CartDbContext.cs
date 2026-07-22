@@ -18,4 +18,7 @@ public sealed class CartDbContext : BaseDbContext
 
     /// <summary>购物车聚合根。</summary>
     public DbSet<CartAggregate> Carts => Set<CartAggregate>();
+
+    /// <summary>匿名购物车合并记录（P1-1：防止跨存储非原子操作导致重复合并）。</summary>
+    public DbSet<CartMergeRecord> CartMergeRecords => Set<CartMergeRecord>();
 }

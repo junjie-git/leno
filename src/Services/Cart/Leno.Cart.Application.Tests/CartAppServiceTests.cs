@@ -4,7 +4,6 @@ using Leno.Cart.Domain.Aggregates;
 using Leno.Cart.Domain.Exceptions;
 using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
-using Leno.Infrastructure.Abstractions;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -18,7 +17,7 @@ public class CartAppServiceTests
     private readonly Mock<ICartPriceService> _priceServiceMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly Mock<IAnonymousCartRepository> _anonymousCartRepoMock = new();
-    private readonly Mock<IEventBus> _eventBusMock = new();
+    private readonly Mock<ICartMergeRecordRepository> _cartMergeRecordRepoMock = new();
     private readonly Mock<ILogger<CartAppService>> _loggerMock = new();
     private readonly CartAppService _sut;
 
@@ -33,7 +32,7 @@ public class CartAppServiceTests
             _priceServiceMock.Object,
             _uowMock.Object,
             _anonymousCartRepoMock.Object,
-            _eventBusMock.Object,
+            _cartMergeRecordRepoMock.Object,
             _loggerMock.Object);
     }
 

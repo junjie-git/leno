@@ -20,6 +20,7 @@ public sealed class CartAppService : ICartAppService
     private readonly ICartPriceService _priceService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAnonymousCartRepository _anonymousCartRepository;
+    private readonly ICartMergeRecordRepository _cartMergeRecordRepository;
     private readonly ILogger<CartAppService> _logger;
 
     public CartAppService(
@@ -27,17 +28,20 @@ public sealed class CartAppService : ICartAppService
         ICartPriceService priceService,
         IUnitOfWork unitOfWork,
         IAnonymousCartRepository anonymousCartRepository,
+        ICartMergeRecordRepository cartMergeRecordRepository,
         ILogger<CartAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(cartRepository);
         ArgumentNullException.ThrowIfNull(priceService);
         ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(anonymousCartRepository);
+        ArgumentNullException.ThrowIfNull(cartMergeRecordRepository);
         ArgumentNullException.ThrowIfNull(logger);
         _cartRepository = cartRepository;
         _priceService = priceService;
         _unitOfWork = unitOfWork;
         _anonymousCartRepository = anonymousCartRepository;
+        _cartMergeRecordRepository = cartMergeRecordRepository;
         _logger = logger;
     }
 
@@ -191,6 +195,16 @@ public sealed class CartAppService : ICartAppService
             throw new CartDomainException("匿名会话标识不可为空", "CART_ANONYMOUS_ID_REQUIRED");
         }
 
+        // P1-1：先查询合并记录，已合并则跳过 MergeFrom，避免跨存储非原子操作导致重复合并数量翻倍。
+        // 合并记录以 anonymousId 为主键，依赖 DB 唯一约束兜底并发场景。
+        var alreadyMerged = await _cartMergeRecordRepository.ExistsAsync(anonymousId, ct);
+        if (alreadyMerged)
+        {
+            _logger.LogInformation("匿名购物车已合并，跳过重复合并 AnonymousId={AnonymousId} UserId={UserId}", anonymousId, userId);
+            var existingCart = await GetOrCreateCartAsync(userId, ct);
+            return await BuildCartDtoAsync(existingCart, ct);
+        }
+
         // 加载匿名购物车
         var anonymousCart = await _anonymousCartRepository.GetAsync(anonymousId, ct);
         if (anonymousCart is null)
@@ -209,11 +223,30 @@ public sealed class CartAppService : ICartAppService
         // 收集合并领域事件，由 UnitOfWork 的发件箱经 IIntegrationEventMapper 翻译为 CartMergedEvent 集成事件对外发布
         userCart.RecordMergedEvent(anonymousId, mergedCount);
 
-        // 保存用户购物车（含发件箱事件落库）
+        // P1-1：在事务内插入合并记录，与 SaveEntitiesAsync 同事务提交。
+        // 依赖 anonymousId 主键唯一约束：并发插入时第二个事务抛 DbUpdateException，由调用方重试或告警。
+        await _cartMergeRecordRepository.AddAsync(new CartMergeRecord
+        {
+            AnonymousId = anonymousId,
+            UserId = userId,
+            MergedAt = DateTime.UtcNow,
+            MergedCount = mergedCount
+        }, ct);
+
+        // 保存用户购物车 + 合并记录 + 发件箱事件（同事务原子提交）
         await _unitOfWork.SaveEntitiesAsync(ct);
 
-        // 删除匿名购物车
-        await _anonymousCartRepository.RemoveAsync(anonymousId, ct);
+        // P1-1：删除匿名购物车为最终一致步骤，失败时仅记录日志不回滚事务。
+        // 合并记录已入库，下次同 anonymousId 触发合并会被 ExistsAsync 跳过；
+        // 匿名购物车 Redis Key 7 天 TTL 自动过期，不会造成数据重复。
+        try
+        {
+            await _anonymousCartRepository.RemoveAsync(anonymousId, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "删除匿名购物车失败，依赖合并记录幂等兜底 AnonymousId={AnonymousId}", anonymousId);
+        }
 
         return await BuildCartDtoAsync(userCart, ct);
     }

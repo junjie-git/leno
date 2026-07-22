@@ -22,6 +22,7 @@ public class CartAppServiceAntiCorruptionDegradeTests
     private readonly Mock<ICartPriceService> _priceServiceMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly Mock<IAnonymousCartRepository> _anonymousCartRepoMock = new();
+    private readonly Mock<ICartMergeRecordRepository> _cartMergeRecordRepoMock = new();
     private readonly Mock<ILogger<CartAppService>> _loggerMock = new();
     private readonly CartAppService _sut;
 
@@ -36,6 +37,7 @@ public class CartAppServiceAntiCorruptionDegradeTests
             _priceServiceMock.Object,
             _uowMock.Object,
             _anonymousCartRepoMock.Object,
+            _cartMergeRecordRepoMock.Object,
             _loggerMock.Object);
     }
 
