@@ -169,9 +169,11 @@ public sealed class ReviewHiddenEvent : IntegrationEventBase
 }
 
 /// <summary>
-/// 评价审核结果集成事件，评价与售后域在运营审核（通过/隐藏）后发布。
+/// 评价审核结果集成事件，评价与售后域在运营审核（通过/隐藏/申诉恢复）后发布。
 /// 消费方：商品域（重算评分摘要）、消息通知域。
 /// Status 为 int 而非枚举，因共享契约层不可引用领域层枚举；发布方按 (int)ReviewStatus 转换。
+/// Action 取值：approve（审核通过，评分计入摘要）、reject/hide（驳回/隐藏，评分从摘要移除）、
+/// appeal（申诉恢复，评分重新计入摘要）。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
 public sealed class ReviewModeratedEvent : IntegrationEventBase
@@ -182,8 +184,20 @@ public sealed class ReviewModeratedEvent : IntegrationEventBase
     /// <summary>审核后状态（ReviewStatus 枚举的 int 值：1=Approved, 2=Hidden）。</summary>
     public int Status { get; init; }
 
-    /// <summary>审核动作（approve 通过 / hide 隐藏）。</summary>
+    /// <summary>审核动作（approve 通过 / reject 驳回 / hide 隐藏 / appeal 申诉恢复）。</summary>
     public string Action { get; init; } = string.Empty;
+
+    /// <summary>
+    /// 商品 SPU 标识。修复审计 #10：原 schema 缺少 SpuId，商品域无法定位读模型。
+    /// 默认 Guid.Empty 保持向后兼容；发布方应填充。
+    /// </summary>
+    public Guid SpuId { get; init; }
+
+    /// <summary>
+    /// 评分（1-5）。修复审计 #10：原 schema 缺少 Rating，商品域无法增量更新评分摘要。
+    /// 默认 0 保持向后兼容；发布方应填充。
+    /// </summary>
+    public int Rating { get; init; }
 
     /// <summary>聚合根标识，用于发件箱归类。</summary>
     public Guid AggregateId => ReviewId;
@@ -198,5 +212,16 @@ public sealed class ReviewModeratedEvent : IntegrationEventBase
         ReviewId = reviewId;
         Status = status;
         Action = action ?? string.Empty;
+    }
+
+    /// <summary>带 SpuId 与 Rating 的构造重载，由评价域发布审核事件时填充。SchemaVersion 递增为 2。</summary>
+    public ReviewModeratedEvent(Guid reviewId, int status, string action, Guid spuId, int rating)
+        : base(eventId: null, occurredAt: null, idempotencyKey: null, schemaVersion: 2)
+    {
+        ReviewId = reviewId;
+        Status = status;
+        Action = action ?? string.Empty;
+        SpuId = spuId;
+        Rating = rating;
     }
 }

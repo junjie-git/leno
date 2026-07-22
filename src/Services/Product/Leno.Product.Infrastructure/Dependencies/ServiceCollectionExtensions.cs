@@ -91,6 +91,7 @@ public static class ServiceCollectionExtensions
         // 评价评分增量同步到 ES 读模型（不再回写 SPU 聚合）
         configurator.AddConsumer<SpuReviewSubmittedSummaryConsumer>();
         configurator.AddConsumer<SpuReviewHiddenSummaryConsumer>();
+        configurator.AddConsumer<SpuReviewModeratedSummaryConsumer>();
 
         // ES 读模型同步
         configurator.AddConsumer<ProductPublishedReadModelSyncConsumer>();

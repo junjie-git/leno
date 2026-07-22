@@ -153,7 +153,117 @@ public sealed class SpuReviewHiddenSummaryConsumer : IntegrationEventConsumerBas
     }
 }
 
-// TODO: ReviewModeratedEvent 当前未实现评分同步消费者。
-// 该事件仅含 ReviewId/Status/Action，缺少 SpuId 与 Rating，
-// 需评价与售后域补全字段或商品域查询评价仓储后才能增量更新读模型。
-// 暂由 SpuReviewSubmittedSummaryConsumer 与 SpuReviewHiddenSummaryConsumer 覆盖主流程。
+/// <summary>
+/// 评价审核评分摘要消费者：消费 <see cref="ReviewModeratedEvent"/>，
+/// 根据审核动作（approve/reject/hide/appeal）增量更新 ES <see cref="ProductReadModel"/> 评分摘要。
+/// <para>
+/// 动作语义：
+/// <list type="bullet">
+/// <item>approve（审核通过）：评分计入摘要，TotalScore += Rating、ReviewCount += 1。</item>
+/// <item>appeal（申诉恢复）：评分重新计入摘要，TotalScore += Rating、ReviewCount += 1。</item>
+/// <item>reject（驳回）/ hide（隐藏）：评分从摘要移除，TotalScore -= Rating、ReviewCount -= 1。</item>
+/// </list>
+/// </para>
+/// 修复审计 #10：原实现仅有 TODO 占位，审核驳回后商品评分读模型仍包含被驳回评价。
+/// 现与评价域对齐 schema（SpuId + Rating），实现增量更新消费者。
+/// 幂等：通过 EventId + Redis SET NX 去重；ES 索引以商品标识为 _id，重复索引为覆盖更新。
+/// </summary>
+public sealed class SpuReviewModeratedSummaryConsumer : IntegrationEventConsumerBase<ReviewModeratedEvent>
+{
+    private readonly IEsReadModelRepository<ProductReadModel> _repository;
+
+    public SpuReviewModeratedSummaryConsumer(
+        IEsReadModelRepository<ProductReadModel> repository,
+        ILogger<SpuReviewModeratedSummaryConsumer> logger,
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
+    {
+        ArgumentNullException.ThrowIfNull(repository);
+        _repository = repository;
+    }
+
+    /// <inheritdoc />
+    protected override async Task HandleAsync(ReviewModeratedEvent integrationEvent, CancellationToken ct)
+    {
+        if (integrationEvent.SpuId == Guid.Empty)
+        {
+            Logger.LogWarning("ReviewModeratedEvent 缺少 SpuId，跳过读模型更新 ReviewId={ReviewId}",
+                integrationEvent.ReviewId);
+            return;
+        }
+
+        if (integrationEvent.Rating is < 1 or > 5)
+        {
+            Logger.LogWarning("评分越界，跳过读模型更新 SpuId={SpuId} Rating={Rating}",
+                integrationEvent.SpuId, integrationEvent.Rating);
+            return;
+        }
+
+        var action = (integrationEvent.Action ?? string.Empty).Trim().ToLowerInvariant();
+        var isAdditive = action is "approve" or "appeal";
+        var isRemoval = action is "reject" or "hide";
+        if (!isAdditive && !isRemoval)
+        {
+            Logger.LogWarning("未知的审核动作，跳过读模型更新 SpuId={SpuId} Action={Action}",
+                integrationEvent.SpuId, integrationEvent.Action);
+            return;
+        }
+
+        var existing = await _repository.GetByIdAsync(
+            integrationEvent.SpuId.ToString(),
+            ProductSearchService.ProductIndexName,
+            ct);
+
+        if (existing is null)
+        {
+            Logger.LogInformation("ES 读模型不存在，跳过评分更新 SpuId={SpuId} ReviewId={ReviewId}",
+                integrationEvent.SpuId, integrationEvent.ReviewId);
+            return;
+        }
+
+        if (isRemoval)
+        {
+            if (existing.ReviewCount <= 0)
+            {
+                Logger.LogInformation("读模型评价数为 0，跳过移除 SpuId={SpuId}", integrationEvent.SpuId);
+                return;
+            }
+
+            if (existing.ReviewCount == 1)
+            {
+                existing.TotalScore = 0;
+                existing.Score = 0;
+                existing.ReviewCount = 0;
+            }
+            else
+            {
+                existing.TotalScore -= integrationEvent.Rating;
+                existing.ReviewCount -= 1;
+                existing.Score = Math.Round(existing.TotalScore / existing.ReviewCount, 2);
+            }
+        }
+        else
+        {
+            // isAdditive（approve / appeal）
+            existing.TotalScore += integrationEvent.Rating;
+            existing.ReviewCount += 1;
+            existing.Score = Math.Round(existing.TotalScore / existing.ReviewCount, 2);
+        }
+
+        existing.ScoreUpdatedAt = DateTime.UtcNow;
+
+        var success = await _repository.IndexAsync(
+            existing,
+            integrationEvent.SpuId.ToString(),
+            ProductSearchService.ProductIndexName,
+            ct);
+
+        if (!success)
+        {
+            throw new InvalidOperationException($"ES 读模型评分更新失败 SpuId={integrationEvent.SpuId} Action={action}");
+        }
+
+        Logger.LogInformation("商品评分读模型已按审核动作更新 SpuId={SpuId} Action={Action} Score={Score} ReviewCount={ReviewCount}",
+            integrationEvent.SpuId, action, existing.Score, existing.ReviewCount);
+    }
+}
