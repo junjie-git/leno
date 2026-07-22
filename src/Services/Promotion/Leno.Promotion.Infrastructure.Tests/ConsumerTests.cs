@@ -227,6 +227,7 @@ public class PointsExchangeConsumerTests
 {
     private readonly Mock<ICouponRepository> _couponRepoMock = new();
     private readonly Mock<IUserCouponRepository> _userCouponRepoMock = new();
+    private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly Mock<ILogger<PointsExchangeConsumer>> _loggerMock = new();
     private readonly Mock<IIdempotencyStore> _idempotencyStoreMock = new();
 
@@ -234,6 +235,48 @@ public class PointsExchangeConsumerTests
     {
         _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         _idempotencyStoreMock.Setup(s => s.MarkAsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        // 默认：ExchangeId 未被处理（幂等防御检查通过）
+        _userCouponRepoMock.Setup(r => r.GetByExchangeIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((UserCoupon?)null);
+    }
+
+    private PointsExchangeConsumer CreateSut()
+        => new(_couponRepoMock.Object, _userCouponRepoMock.Object, _uowMock.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
+
+    [Fact]
+    public async Task Consume_ValidCoupon_ShouldCreateUserCouponAndSave()
+    {
+        var couponId = Guid.NewGuid();
+        var coupon = Coupon.Create(couponId, "points", CouponType.FixedAmount, 10m, 0m,
+            CouponValidityType.RelativeDays, null, null, 7, 1000);
+        _couponRepoMock.Setup(r => r.GetByIdAsync(couponId, It.IsAny<CancellationToken>())).ReturnsAsync(coupon);
+
+        var consumer = CreateSut();
+        var evt = new PointsExchangeCouponRequestedEvent(Guid.NewGuid(), Guid.NewGuid(), couponId, 100);
+        await consumer.Consume(CreateConsumeContext(evt));
+
+        _userCouponRepoMock.Verify(r => r.AddAsync(It.IsAny<UserCoupon>(), It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Consume_AlreadyProcessedByExchangeId_ShouldSkip()
+    {
+        // 幂等防御：ExchangeId 已有对应用户券，跳过重复兑换
+        var exchangeId = Guid.NewGuid();
+        var existing = UserCoupon.Receive(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "PointsExchange",
+            DateTime.UtcNow.AddDays(7), exchangeId);
+        _userCouponRepoMock.Setup(r => r.GetByExchangeIdAsync(exchangeId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var consumer = CreateSut();
+        var evt = new PointsExchangeCouponRequestedEvent(exchangeId, Guid.NewGuid(), Guid.NewGuid(), 100);
+        await consumer.Consume(CreateConsumeContext(evt));
+
+        _couponRepoMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        _userCouponRepoMock.Verify(r => r.AddAsync(It.IsAny<UserCoupon>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -242,14 +285,12 @@ public class PointsExchangeConsumerTests
         var couponId = Guid.NewGuid();
         _couponRepoMock.Setup(r => r.GetByIdAsync(couponId, It.IsAny<CancellationToken>())).ReturnsAsync((Coupon?)null);
 
-        var mockDb = new Mock<PromotionDbContext>(new DbContextOptions<PromotionDbContext>());
-        var consumer = new PointsExchangeConsumer(
-            _couponRepoMock.Object, _userCouponRepoMock.Object, mockDb.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
-
+        var consumer = CreateSut();
         var evt = new PointsExchangeCouponRequestedEvent(Guid.NewGuid(), Guid.NewGuid(), couponId, 100);
         await consumer.Consume(CreateConsumeContext(evt));
 
         _userCouponRepoMock.Verify(r => r.AddAsync(It.IsAny<UserCoupon>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -261,14 +302,12 @@ public class PointsExchangeConsumerTests
         coupon.Disable();
         _couponRepoMock.Setup(r => r.GetByIdAsync(couponId, It.IsAny<CancellationToken>())).ReturnsAsync(coupon);
 
-        var mockDb = new Mock<PromotionDbContext>(new DbContextOptions<PromotionDbContext>());
-        var consumer = new PointsExchangeConsumer(
-            _couponRepoMock.Object, _userCouponRepoMock.Object, mockDb.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
-
+        var consumer = CreateSut();
         var evt = new PointsExchangeCouponRequestedEvent(Guid.NewGuid(), Guid.NewGuid(), couponId, 100);
         await consumer.Consume(CreateConsumeContext(evt));
 
         _userCouponRepoMock.Verify(r => r.AddAsync(It.IsAny<UserCoupon>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -280,14 +319,12 @@ public class PointsExchangeConsumerTests
         coupon.Issue(1);
         _couponRepoMock.Setup(r => r.GetByIdAsync(couponId, It.IsAny<CancellationToken>())).ReturnsAsync(coupon);
 
-        var mockDb = new Mock<PromotionDbContext>(new DbContextOptions<PromotionDbContext>());
-        var consumer = new PointsExchangeConsumer(
-            _couponRepoMock.Object, _userCouponRepoMock.Object, mockDb.Object, _loggerMock.Object, _idempotencyStoreMock.Object);
-
+        var consumer = CreateSut();
         var evt = new PointsExchangeCouponRequestedEvent(Guid.NewGuid(), Guid.NewGuid(), couponId, 100);
         await consumer.Consume(CreateConsumeContext(evt));
 
         _userCouponRepoMock.Verify(r => r.AddAsync(It.IsAny<UserCoupon>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static ConsumeContext<T> CreateConsumeContext<T>(T message) where T : class

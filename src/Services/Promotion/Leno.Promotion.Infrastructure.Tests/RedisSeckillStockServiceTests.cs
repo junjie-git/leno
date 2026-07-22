@@ -53,7 +53,7 @@ public class RedisSeckillStockServiceTests
         // Arrange：DB 基线 100，Redis 剩余 80 → 应同步为 80
         var activity = CreateActiveActivity(100);
         SetupRedisStock(activity.Id, activity.SkuId, remainingStock: 80);
-        _repoMock.Setup(r => r.GetActiveBySkuIdAsync(activity.SkuId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+        _repoMock.Setup(r => r.GetByIdAsync(activity.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(activity);
 
         // Act
@@ -75,7 +75,7 @@ public class RedisSeckillStockServiceTests
         var activity = CreateActiveActivity(100);
         activity.DeductStock(Guid.NewGuid(), 20); // AvailableStock = 80
         SetupRedisStock(activity.Id, activity.SkuId, remainingStock: 80);
-        _repoMock.Setup(r => r.GetActiveBySkuIdAsync(activity.SkuId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+        _repoMock.Setup(r => r.GetByIdAsync(activity.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(activity);
 
         // Act
@@ -88,23 +88,44 @@ public class RedisSeckillStockServiceTests
 
     #endregion
 
-    #region 未找到进行中活动 → 跳过该 SKU
+    #region 活动 Close 后仍能按 ID 加载并回写库存（P1-3.8 核心修复）
 
     [Fact]
-    public async Task WriteBackToDbAsync_NoActiveActivity_ShouldSkipSkuAndNotThrow()
+    public async Task WriteBackToDbAsync_ClosedActivity_ShouldStillSyncStock()
+    {
+        // 原 bug：按 SkuId + Active 过滤，活动 Close 后返回 null 跳过同步
+        // 修复后：按 activityId 加载，Closed 态仍能回写 DB 库存基线
+        var activity = CreateActiveActivity(100);
+        activity.Close(); // Status = Closed
+        SetupRedisStock(activity.Id, activity.SkuId, remainingStock: 80);
+        _repoMock.Setup(r => r.GetByIdAsync(activity.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(activity);
+
+        // Act
+        await _sut.WriteBackToDbAsync(activity.Id, CancellationToken.None);
+
+        // Assert：Closed 态下仍同步库存
+        activity.AvailableStock.Should().Be(80);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    #endregion
+
+    #region 活动不存在 → 跳过并不抛异常
+
+    [Fact]
+    public async Task WriteBackToDbAsync_ActivityNotFound_ShouldSkipAndNotSave()
     {
         // Arrange
         var activityId = Guid.NewGuid();
-        var skuId = Guid.NewGuid();
-        SetupRedisStock(activityId, skuId, remainingStock: 80);
-        _repoMock.Setup(r => r.GetActiveBySkuIdAsync(skuId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+        _repoMock.Setup(r => r.GetByIdAsync(activityId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((SeckillActivity?)null);
 
         // Act
         await _sut.WriteBackToDbAsync(activityId, CancellationToken.None);
 
-        // Assert：不抛异常
-        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        // Assert：活动不存在，不保存
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion
@@ -114,18 +135,18 @@ public class RedisSeckillStockServiceTests
     [Fact]
     public async Task WriteBackToDbAsync_EmptyRedisStock_ShouldNotThrow()
     {
-        // Arrange
-        var activityId = Guid.NewGuid();
+        // Arrange：活动存在但 Redis 无库存数据
+        var activity = CreateActiveActivity(100);
+        _repoMock.Setup(r => r.GetByIdAsync(activity.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(activity);
         _dbMock.Setup(d => d.HashGetAllAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(Array.Empty<HashEntry>());
 
         // Act
-        await _sut.WriteBackToDbAsync(activityId, CancellationToken.None);
+        await _sut.WriteBackToDbAsync(activity.Id, CancellationToken.None);
 
-        // Assert：无 SKU 可回写，仍完成调用
-        _repoMock.Verify(
-            r => r.GetActiveBySkuIdAsync(It.IsAny<Guid>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+        // Assert：无 SKU 可回写，仍完成调用并保存
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion
@@ -186,6 +207,23 @@ public class SeckillActivitySyncFromRedisTests
         var act = () => activity.SyncFromRedis(-1);
 
         act.Should().Throw<PromotionDomainException>();
+    }
+
+    #endregion
+
+    #region Closed 态同步 → 允许（CloseActivityWithStockWriteBackAsync 调用链所需）
+
+    [Fact]
+    public void SyncFromRedis_ClosedActivity_ShouldStillSync()
+    {
+        // CloseActivityWithStockWriteBackAsync 先 Close() 再回写库存，
+        // SyncFromRedis 须在 Closed 态下允许同步（DeductStock 已禁 Closed 态扣减，同步单调递减安全）
+        var activity = CreateActiveActivity(100);
+        activity.Close();
+
+        activity.SyncFromRedis(80);
+
+        activity.AvailableStock.Should().Be(80);
     }
 
     #endregion

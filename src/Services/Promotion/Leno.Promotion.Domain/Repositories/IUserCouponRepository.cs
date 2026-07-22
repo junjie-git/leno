@@ -44,6 +44,13 @@ public interface IUserCouponRepository : IRepository<UserCouponAggregate>
     Task<UserCouponAggregate?> GetByUsedOrderIdAsync(Guid orderId, CancellationToken ct = default);
 
     /// <summary>
+    /// 按积分兑换请求标识查询用户券（积分兑换消费者幂等去重）。
+    /// 仅积分兑换来源券持有 ExchangeId，非兑换券返回 null。
+    /// </summary>
+    /// <param name="exchangeId">积分兑换请求标识。</param>
+    Task<UserCouponAggregate?> GetByExchangeIdAsync(Guid exchangeId, CancellationToken ct = default);
+
+    /// <summary>
     /// 分页查询已领取但未使用且已过期的用户券，用于定时任务批量标记过期。
     /// </summary>
     /// <param name="skip">跳过的记录数。</param>

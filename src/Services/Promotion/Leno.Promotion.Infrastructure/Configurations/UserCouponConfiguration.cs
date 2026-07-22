@@ -25,6 +25,7 @@ public sealed class UserCouponConfiguration : IEntityTypeConfiguration<UserCoupo
         builder.Property(u => u.UsedOrderId).HasColumnName("used_order_id");
         builder.Property(u => u.LockedOrderId).HasColumnName("locked_order_id");
         builder.Property(u => u.ExpiredAt).HasColumnName("expired_at");
+        builder.Property(u => u.ExchangeId).HasColumnName("exchange_id");
 
         builder.Property(u => u.CreatedAt).HasColumnName("created_at");
         builder.Property(u => u.UpdatedAt).HasColumnName("updated_at");
@@ -34,6 +35,13 @@ public sealed class UserCouponConfiguration : IEntityTypeConfiguration<UserCoupo
         builder.HasIndex(u => u.UserId).HasDatabaseName("ix_user_coupons_user_id");
         builder.HasIndex(u => u.CouponId).HasDatabaseName("ix_user_coupons_coupon_id");
         builder.HasIndex(u => u.LockedOrderId).HasDatabaseName("ix_user_coupons_locked_order_id");
+
+        // 积分兑换幂等索引：同一 ExchangeId 仅可创建一张用户券，数据库层兜底防重复兑换。
+        // 过滤 NULL 值：非积分兑换券 ExchangeId 为 NULL，不参与唯一性约束（SQL Server 唯一索引默认仅允许单个 NULL）。
+        builder.HasIndex(u => u.ExchangeId)
+            .IsUnique()
+            .HasFilter("[exchange_id] IS NOT NULL")
+            .HasDatabaseName("ux_user_coupons_exchange_id");
 
         // 优惠券领取并发安全（Task 4）：同一买家对同一券模板仅可领取一张，
         // 唯一索引在并发领取时由数据库拒绝第二条插入，应用层捕获冲突返回"已领取"。

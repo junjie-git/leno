@@ -174,15 +174,25 @@ return 0";
     /// <inheritdoc />
     public async Task WriteBackToDbAsync(Guid activityId, CancellationToken ct = default)
     {
+        // 直接按 ID 加载聚合，不过滤状态：活动 Close 后仍需回写 DB 库存基线。
+        // 原实现按 SkuId + Active 过滤，活动 Close 后返回 null 导致跳过同步（P1-3.8 修复）。
+        var activity = await _repository.GetByIdAsync(activityId, ct);
+        if (activity is null)
+        {
+            _logger.LogWarning("WriteBackToDb: 活动 {ActivityId} 不存在", activityId);
+            return;
+        }
+
         var allStocks = await GetAllStocksAsync(activityId, ct);
 
         foreach (var (skuId, remainingStock) in allStocks)
         {
-            // 通过 SKU 查询进行中的活动，更新库存基线
-            var activity = await _repository.GetActiveBySkuIdAsync(skuId, DateTime.UtcNow, ct);
-            if (activity is null)
+            // 单 SKU 契约：仅同步活动绑定的 SkuId（Redis 中可能残留历史多 SKU 数据，忽略）
+            if (skuId != activity.SkuId)
             {
-                _logger.LogWarning("WriteBackToDb: SKU {SkuId} 未找到进行中的活动", skuId);
+                _logger.LogWarning(
+                    "WriteBackToDb: ActivityId={ActivityId} 跳过非绑定 SkuId={SkuId}（活动绑定 {BoundSkuId}）",
+                    activityId, skuId, activity.SkuId);
                 continue;
             }
 

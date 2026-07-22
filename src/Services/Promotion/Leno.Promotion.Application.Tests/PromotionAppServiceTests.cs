@@ -323,19 +323,19 @@ public class SeckillAppServiceTests
     }
 
     [Fact]
-    public async Task PlaceOrderAsync_WithExplicitSkuId_ShouldUseProvidedSkuId()
+    public async Task PlaceOrderAsync_WithExplicitSkuId_ShouldUseActivitySkuId()
     {
+        // 单 SKU 契约：调用方传入与活动一致的 SkuId 时正常下单，使用 activity.SkuId
         var activity = CreateActivity();
         activity.Activate();
-        var otherSkuId = Guid.NewGuid();
         _repoMock.Setup(r => r.GetByIdAsync(ActivityId, It.IsAny<CancellationToken>())).ReturnsAsync(activity);
-        _stockServiceMock.Setup(s => s.TryDeductAsync(ActivityId, otherSkuId, UserId, 1, 1, It.IsAny<CancellationToken>()))
+        _stockServiceMock.Setup(s => s.TryDeductAsync(ActivityId, SkuId, UserId, 1, 1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(0);
 
-        var result = await _sut.PlaceOrderAsync(ActivityId, UserId, new SeckillPlaceOrderDto { SkuId = otherSkuId, Quantity = 1 });
+        var result = await _sut.PlaceOrderAsync(ActivityId, UserId, new SeckillPlaceOrderDto { SkuId = SkuId, Quantity = 1 });
 
         result.Should().NotBeNull();
-        _stockServiceMock.Verify(s => s.TryDeductAsync(ActivityId, otherSkuId, UserId, 1, 1, It.IsAny<CancellationToken>()), Times.Once);
+        _stockServiceMock.Verify(s => s.TryDeductAsync(ActivityId, SkuId, UserId, 1, 1, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

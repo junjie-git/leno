@@ -17,6 +17,12 @@ public sealed class UserCoupon : AggregateRoot
     public Guid? LockedOrderId { get; private set; }
     public DateTime? ExpiredAt { get; private set; }
 
+    /// <summary>
+    /// 积分兑换请求标识（仅积分兑换来源券非空），用于幂等去重与 <see cref="GetByExchangeIdAsync"/> 查询。
+    /// 非积分兑换来源券为 null。
+    /// </summary>
+    public Guid? ExchangeId { get; private set; }
+
     private UserCoupon() { }
     private UserCoupon(Guid id) : base(id) { }
 
@@ -38,6 +44,31 @@ public sealed class UserCoupon : AggregateRoot
             ReceivedAt = now, ExpiredAt = expiredAt
         };
         userCoupon.AddDomainEvent(new CouponIssuedEvent(userCouponId2, couponId, userId, now));
+        return userCoupon;
+    }
+
+    /// <summary>
+    /// 工厂方法（积分兑换专用），创建用户券并绑定兑换标识，同时发布兑换成功领域事件。
+    /// 领域事件经发件箱翻译为 <see cref="Leno.SharedContracts.Events.CouponExchangeSucceededEvent"/> 集成事件对外发布，
+    /// 消费方：积分域正式扣减积分。
+    /// </summary>
+    /// <param name="userCouponId">用户券标识。</param>
+    /// <param name="userId">用户标识。</param>
+    /// <param name="couponId">券模板标识。</param>
+    /// <param name="source">来源标记。</param>
+    /// <param name="expiredAt">过期时间。</param>
+    /// <param name="exchangeId">积分兑换请求标识，用于幂等去重与事件关联。</param>
+    public static UserCoupon Receive(
+        Guid userCouponId, Guid userId, Guid couponId, string source, DateTime expiredAt, Guid exchangeId)
+    {
+        if (exchangeId == Guid.Empty)
+        {
+            throw new PromotionDomainException("ExchangeId 不可为空", "USER_COUPON_EXCHANGE_EMPTY");
+        }
+
+        var userCoupon = Receive(userCouponId, userId, couponId, source, expiredAt);
+        userCoupon.ExchangeId = exchangeId;
+        userCoupon.RecordExchangeSucceeded(exchangeId);
         return userCoupon;
     }
 
@@ -103,12 +134,22 @@ public sealed class UserCoupon : AggregateRoot
         UsedOrderId = null;
         UsedAt = null;
         LockedOrderId = null;
-    }    public void RecordExchangeSucceeded(Guid exchangeId)
-    {
-        AddDomainEvent(new CouponExchangeSucceededDomainEvent(exchangeId, UserId, Id));
     }
 
+    /// <summary>
+    /// 记录积分兑换成功领域事件（由积分兑换工厂 <see cref="Receive(Guid, Guid, Guid, string, DateTime, Guid)"/> 内部调用）。
+    /// 事件经发件箱翻译为 CouponExchangeSucceededEvent 集成事件对外发布。
+    /// </summary>
+    /// <param name="exchangeId">积分兑换请求标识。</param>
+    public void RecordExchangeSucceeded(Guid exchangeId)
+    {
+        if (exchangeId == Guid.Empty)
+        {
+            throw new PromotionDomainException("ExchangeId 不可为空", "USER_COUPON_EXCHANGE_EMPTY");
+        }
 
+        AddDomainEvent(new CouponExchangeSucceededDomainEvent(exchangeId, UserId, Id));
+    }
 
     public bool IsExpiredAt(DateTime now) => ExpiredAt.HasValue && now >= ExpiredAt.Value;
 

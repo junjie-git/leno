@@ -12,7 +12,7 @@ namespace Leno.Promotion.Application.Services;
 /// <summary>
 /// 秒杀应用服务实现。
 /// 秒杀下单采用"Redis 预扣 + 异步创建订单"模式，保证高并发下的库存安全与最终一致性。
-/// 支持多 SKU 库存管理，Redis 使用 Hash 结构存储。
+/// 每个秒杀活动绑定单一 SkuId（聚合不变量），Redis 使用 Hash 结构存储活动库存。
 /// </summary>
 public sealed class SeckillAppService : ISeckillAppService
 {
@@ -124,10 +124,19 @@ public sealed class SeckillAppService : ISeckillAppService
 
         var activity = await RequireActivityAsync(activityId, ct);
 
-        // 使用请求中的 SkuId，若未指定则使用活动的默认 SkuId（向后兼容）
-        var skuId = dto.SkuId != Guid.Empty ? dto.SkuId : activity.SkuId;
+        // 单 SKU 契约：SeckillActivity 聚合仅持有单一 SkuId，
+        // 调用方传入非默认 SkuId 且与活动 SkuId 不一致时拒绝下单，避免 Redis 扣减与 DB 基线错位
+        if (dto.SkuId != Guid.Empty && dto.SkuId != activity.SkuId)
+        {
+            throw new PromotionDomainException(
+                $"SkuId {dto.SkuId} 与活动 {activityId} 的 SkuId {activity.SkuId} 不一致",
+                "SECKILL_SKU_MISMATCH");
+        }
 
-        // 1. Redis 原子预扣库存 + 限购校验（高频热路径，支持多 SKU）
+        // 调用方未传 SkuId 时使用活动 SkuId（向后兼容）
+        var skuId = activity.SkuId;
+
+        // 1. Redis 原子预扣库存 + 限购校验（高频热路径）
         var deductResult = await _stockService.TryDeductAsync(
             activity.Id, skuId, userId, dto.Quantity, activity.LimitPerUser, ct);
 
