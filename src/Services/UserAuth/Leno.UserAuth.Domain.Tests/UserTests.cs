@@ -132,7 +132,7 @@ public class UserTests
 
         result.Should().BeFalse();
         user.FailedLoginCount.Should().Be(0);
-        _hasherMock.Verify(h => h.Verify("AnyPassword123", It.Is<string>(s => s.StartsWith("$2a$12$")), Times.Once));
+        _hasherMock.Verify(h => h.Verify("AnyPassword123", It.Is<string>(s => s.StartsWith("$2a$12$"))), Times.Once);
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public class UserTests
         var result = user.VerifyPassword("", _hasherMock.Object);
 
         result.Should().BeFalse();
-        _hasherMock.Verify(h => h.Verify("\x00", It.Is<string>(s => s.StartsWith("$2a$12$")), Times.Once));
+        _hasherMock.Verify(h => h.Verify("\x00", It.Is<string>(s => s.StartsWith("$2a$12$"))), Times.Once);
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public class UserTests
         var result = user.VerifyPassword(null!, _hasherMock.Object);
 
         result.Should().BeFalse();
-        _hasherMock.Verify(h => h.Verify("\x00", It.Is<string>(s => s.StartsWith("$2a$12$")), Times.Once));
+        _hasherMock.Verify(h => h.Verify("\x00", It.Is<string>(s => s.StartsWith("$2a$12$"))), Times.Once);
     }
 
     #endregion
