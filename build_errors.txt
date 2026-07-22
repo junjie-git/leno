@@ -1,0 +1,3 @@
+
+C:\Users\Junjie\.trae-cn\worktrees\Leno\fix-dotnet-build-test-Wy8iaX\src\Services\Payment\Leno.Payment.Api.Tests\Controllers\PaymentsControllerIdorTests.cs(27,20): error CS0246: 未能找到类型或命名空间名“PaymentsController”(是否缺少 using 指令或程序集引用?) [C:\Users\Junjie\.trae-cn\worktrees\Leno\fix-dotnet-build-test-Wy8iaX\src\Services\Payment\Leno.Payment.Api.Tests\Leno.Payment.Api.Tests.csproj]
+
