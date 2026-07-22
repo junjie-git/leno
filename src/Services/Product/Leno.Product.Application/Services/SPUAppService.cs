@@ -390,6 +390,8 @@ public sealed class SPUAppService : ISPUAppService
             SkuId = history.SkuId.ToString(),
             OldPrice = history.OldPrice,
             NewPrice = history.NewPrice,
+            // 修复审计 #19：映射币种，原 DTO 缺少此字段导致多币种价格变更记录无法区分
+            Currency = history.Currency,
             ChangedAt = history.ChangedAt,
             // 修复审计 #13：返回真实变更人，替代硬编码 string.Empty
             ChangedBy = history.ChangedBy,

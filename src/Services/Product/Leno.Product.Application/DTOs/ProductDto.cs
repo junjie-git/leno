@@ -105,6 +105,12 @@ public sealed class PriceChangeRecordDto
 
     public decimal NewPrice { get; init; }
 
+    /// <summary>
+    /// 币种（ISO 4217）。修复审计 #19：原 DTO 缺少此字段，PriceHistory 持有 Currency
+    /// 但 ToPriceChangeRecordDto 未映射，导致 API 响应无法区分多币种价格变更记录。
+    /// </summary>
+    public string Currency { get; init; } = "CNY";
+
     public DateTime ChangedAt { get; init; }
 
     public string ChangedBy { get; init; } = string.Empty;
