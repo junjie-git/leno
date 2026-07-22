@@ -42,17 +42,18 @@ public class CartProductSyncIntegrationTests : CrossBcIntegrationTestBase<CartDb
         services.AddScoped<ICartSkuIndexService, CartSkuIndexService>();
         services.AddSingleton<ILogger<CartSkuIndexService>>(LoggerFactory.Create(b => b.AddDebug()).CreateLogger<CartSkuIndexService>());
 
-        // 商品快照防腐层 Mock：ProductUpdatedEventConsumer 调用 GetSkuSnapshotAsync 刷新展示
+        // 商品快照防腐层 Mock：ProductUpdatedEventConsumer 调用 GetSkuSnapshotsAsync 批量刷新展示（P1-3）
         var snapshotAcMock = new Mock<IProductSnapshotAntiCorruption>();
-        snapshotAcMock.Setup(x => x.GetSkuSnapshotAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Guid skuId, CancellationToken _) => new SkuSnapshotDto
-            {
-                SkuId = skuId,
-                Title = "更新后的标题",
-                MainImageUrl = "https://cdn.example.com/updated.png",
-                UnitPrice = 88.8m,
-                IsOnSale = true
-            });
+        snapshotAcMock.Setup(x => x.GetSkuSnapshotsAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyCollection<Guid> skuIds, CancellationToken _) =>
+                skuIds.Select(skuId => new SkuSnapshotDto
+                {
+                    SkuId = skuId,
+                    Title = "更新后的标题",
+                    MainImageUrl = "https://cdn.example.com/updated.png",
+                    UnitPrice = 88.8m,
+                    IsOnSale = true
+                }).ToList());
         services.AddScoped(_ => snapshotAcMock.Object);
 
         // 消费器日志

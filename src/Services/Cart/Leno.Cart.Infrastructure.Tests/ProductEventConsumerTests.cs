@@ -2,9 +2,11 @@ using System.Reflection;
 using Leno.Cart.Application.Abstractions;
 using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
+using Leno.Cart.Infrastructure;
 using Leno.Cart.Infrastructure.Consumers;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Leno.Infrastructure.Abstractions;
 using Moq;
@@ -92,7 +94,7 @@ public class ProductEventConsumerTests
 
         var consumer = new ProductTakenDownEventConsumer(
             mockCartRepo.Object, mockUnitOfWork.Object, mockIndexService.Object,
-            mockLogger.Object, mockIdempotencyStore.Object);
+            CreateDbContext(), mockLogger.Object, mockIdempotencyStore.Object);
         return (consumer, mockUnitOfWork);
     }
 
@@ -106,7 +108,7 @@ public class ProductEventConsumerTests
 
         var consumer = new ProductPublishedEventConsumer(
             mockCartRepo.Object, mockUnitOfWork.Object, mockIndexService.Object,
-            mockLogger.Object, mockIdempotencyStore.Object);
+            CreateDbContext(), mockLogger.Object, mockIdempotencyStore.Object);
         return (consumer, mockUnitOfWork);
     }
 
@@ -121,8 +123,21 @@ public class ProductEventConsumerTests
 
         var consumer = new ProductUpdatedEventConsumer(
             mockCartRepo.Object, mockUnitOfWork.Object, mockIndexService.Object,
-            mockSnapshotAc.Object, mockLogger.Object, mockIdempotencyStore.Object);
+            mockSnapshotAc.Object, CreateDbContext(), mockLogger.Object, mockIdempotencyStore.Object);
         return (consumer, mockUnitOfWork);
+    }
+
+    /// <summary>
+    /// 创建用于单元测试的 CartDbContext 实例（不连接真实数据库）。
+    /// 消费者构造函数要求 CartDbContext 用于 ChangeTracker.Clear()，但本组测试使用空 SkuIds 提前返回，
+    /// 不会执行数据库查询或 SaveChanges，因此使用 SQL Server 选项构造即可（惰性连接）。
+    /// </summary>
+    private static CartDbContext CreateDbContext()
+    {
+        var options = new DbContextOptionsBuilder<CartDbContext>()
+            .UseSqlServer("Server=localhost;Database=CartUnitTest;User Id=sa;Password=Dummy;TrustServerCertificate=True")
+            .Options;
+        return new CartDbContext(options);
     }
 
     private static async Task InvokeHandleAsync<TConsumer, TEvent>(TConsumer consumer, TEvent integrationEvent)

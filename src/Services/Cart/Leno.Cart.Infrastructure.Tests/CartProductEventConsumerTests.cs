@@ -4,10 +4,12 @@ using Leno.Cart.Application.DTOs;
 using Leno.Cart.Domain.Aggregates;
 using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
+using Leno.Cart.Infrastructure;
 using Leno.Cart.Infrastructure.Consumers;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Leno.Infrastructure.Abstractions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using CartAggregate = Leno.Cart.Domain.Aggregates.Cart;
@@ -30,6 +32,7 @@ public class CartProductEventConsumerTests
     private readonly Mock<ILogger<ProductPublishedEventConsumer>> _publishedLoggerMock = new();
     private readonly Mock<ILogger<ProductUpdatedEventConsumer>> _updatedLoggerMock = new();
     private readonly Mock<IIdempotencyStore> _idempotencyMock = new();
+    private readonly CartDbContext _dbContext = CreateDbContext();
 
     private static readonly Guid SkuId = Guid.NewGuid();
     private static readonly Guid ProductId = Guid.NewGuid();
@@ -45,12 +48,13 @@ public class CartProductEventConsumerTests
 
         var cart1 = CreateCartWithSku(CartId1, SkuId);
         var cart2 = CreateCartWithSku(CartId2, SkuId);
-        _cartRepoMock.Setup(r => r.GetByIdAsync(CartId1, It.IsAny<CancellationToken>())).ReturnsAsync(cart1);
-        _cartRepoMock.Setup(r => r.GetByIdAsync(CartId2, It.IsAny<CancellationToken>())).ReturnsAsync(cart2);
+        // P1-2：消费者改用 GetByIdsAsync 批量加载替代 N+1 GetByIdAsync
+        _cartRepoMock.Setup(r => r.GetByIdsAsync(It.Is<IReadOnlyCollection<Guid>>(c => c.Contains(CartId1) && c.Contains(CartId2)), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CartAggregate> { cart1, cart2 });
 
         var consumer = new ProductTakenDownEventConsumer(
             _cartRepoMock.Object, _uowMock.Object, _indexSvcMock.Object,
-            _takenDownLoggerMock.Object, _idempotencyMock.Object);
+            _dbContext, _takenDownLoggerMock.Object, _idempotencyMock.Object);
 
         var evt = new ProductTakenDownEvent
         {
@@ -77,7 +81,7 @@ public class CartProductEventConsumerTests
 
         var consumer = new ProductTakenDownEventConsumer(
             _cartRepoMock.Object, _uowMock.Object, _indexSvcMock.Object,
-            _takenDownLoggerMock.Object, _idempotencyMock.Object);
+            _dbContext, _takenDownLoggerMock.Object, _idempotencyMock.Object);
 
         var evt = new ProductTakenDownEvent
         {
@@ -90,7 +94,7 @@ public class CartProductEventConsumerTests
         await InvokeHandleAsync(consumer, evt);
 
         // Assert: 不调用仓储与 UnitOfWork
-        _cartRepoMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        _cartRepoMock.Verify(r => r.GetByIdsAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()), Times.Never);
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -102,11 +106,12 @@ public class CartProductEventConsumerTests
             .ReturnsAsync(new List<Guid> { CartId1 });
 
         var cart = CreateCartWithInvalidSku(CartId1, SkuId);
-        _cartRepoMock.Setup(r => r.GetByIdAsync(CartId1, It.IsAny<CancellationToken>())).ReturnsAsync(cart);
+        _cartRepoMock.Setup(r => r.GetByIdsAsync(It.Is<IReadOnlyCollection<Guid>>(c => c.Contains(CartId1)), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CartAggregate> { cart });
 
         var consumer = new ProductPublishedEventConsumer(
             _cartRepoMock.Object, _uowMock.Object, _indexSvcMock.Object,
-            _publishedLoggerMock.Object, _idempotencyMock.Object);
+            _dbContext, _publishedLoggerMock.Object, _idempotencyMock.Object);
 
         var evt = new ProductPublishedEvent
         {
@@ -130,16 +135,18 @@ public class CartProductEventConsumerTests
         _indexSvcMock.Setup(s => s.GetCartIdsBySkuAsync(SkuId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Guid> { CartId1 });
 
-        var newSnapshot = new SkuSnapshotDto { Title = "新标题", MainImageUrl = "new.jpg", UnitPrice = 199m };
-        _snapshotAcMock.Setup(a => a.GetSkuSnapshotAsync(SkuId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(newSnapshot);
+        // P1-3：消费者改用 GetSkuSnapshotsAsync 批量查询替代逐 SKU GetSkuSnapshotAsync
+        var newSnapshot = new SkuSnapshotDto { SkuId = SkuId, Title = "新标题", MainImageUrl = "new.jpg", UnitPrice = 199m };
+        _snapshotAcMock.Setup(a => a.GetSkuSnapshotsAsync(It.Is<IReadOnlyCollection<Guid>>(c => c.Contains(SkuId)), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<SkuSnapshotDto> { newSnapshot });
 
         var cart = CreateCartWithSku(CartId1, SkuId);
-        _cartRepoMock.Setup(r => r.GetByIdAsync(CartId1, It.IsAny<CancellationToken>())).ReturnsAsync(cart);
+        _cartRepoMock.Setup(r => r.GetByIdsAsync(It.Is<IReadOnlyCollection<Guid>>(c => c.Contains(CartId1)), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CartAggregate> { cart });
 
         var consumer = new ProductUpdatedEventConsumer(
             _cartRepoMock.Object, _uowMock.Object, _indexSvcMock.Object, _snapshotAcMock.Object,
-            _updatedLoggerMock.Object, _idempotencyMock.Object);
+            _dbContext, _updatedLoggerMock.Object, _idempotencyMock.Object);
 
         var evt = new ProductUpdatedEvent
         {
@@ -160,7 +167,9 @@ public class CartProductEventConsumerTests
     private static CartAggregate CreateCartWithSku(Guid cartId, Guid skuId)
     {
         var cart = CartAggregate.Create(cartId, Guid.NewGuid());
-        cart.AddItem(skuId, "原标题", "old.jpg", 99m, 1, Guid.NewGuid());
+        // P1-9：六参数 AddItem 已删除，改用三参数 + RefreshDisplaySnapshot 设置展示快照
+        cart.AddItem(skuId, 1, Guid.NewGuid());
+        cart.RefreshDisplaySnapshot(skuId, "原标题", "old.jpg");
         return cart;
     }
 
@@ -169,6 +178,19 @@ public class CartProductEventConsumerTests
         var cart = CreateCartWithSku(cartId, skuId);
         cart.MarkInvalid(skuId, "商品下架");
         return cart;
+    }
+
+    /// <summary>
+    /// 创建用于单元测试的 CartDbContext 实例（不连接真实数据库）。
+    /// 消费者构造函数要求 CartDbContext 用于每批 SaveEntitiesAsync 后 ChangeTracker.Clear()，
+    /// 但仓储与 UnitOfWork 均 Mock，不会执行真实数据库查询或 SaveChanges。
+    /// </summary>
+    private static CartDbContext CreateDbContext()
+    {
+        var options = new DbContextOptionsBuilder<CartDbContext>()
+            .UseSqlServer("Server=localhost;Database=CartUnitTest;User Id=sa;Password=Dummy;TrustServerCertificate=True")
+            .Options;
+        return new CartDbContext(options);
     }
 
     private static async Task InvokeHandleAsync<TConsumer, TEvent>(TConsumer consumer, TEvent integrationEvent)

@@ -54,6 +54,49 @@ public sealed class GrpcProductSnapshotAntiCorruptionClient
         return MapToDto(proto, skuId);
     }, ct);
 
+    /// <inheritdoc />
+    public Task<IReadOnlyList<SkuSnapshotDto>> GetSkuSnapshotsAsync(IReadOnlyCollection<Guid> skuIds, CancellationToken ct = default)
+        => ExecuteAsync("get_sku_snapshots_batch", async token =>
+        {
+            ArgumentNullException.ThrowIfNull(skuIds);
+            if (skuIds.Count == 0)
+            {
+                return (IReadOnlyList<SkuSnapshotDto>)Array.Empty<SkuSnapshotDto>();
+            }
+
+            var ids = skuIds.ToList();
+            // M4 Guid→string 迁移：请求同时填充 int64（向后兼容）+ string
+            var request = new BatchGetSkuInfoRequest();
+            request.SkuIds.AddRange(ids.Select(id => (long)id.GetHashCode()));
+            request.SkuIdsStr.AddRange(ids.Select(id => id.ToString()));
+
+            var metadata = BuildMetadata();
+            var response = await _client.BatchGetSkuInfoAsync(request, metadata, cancellationToken: token)
+                .ConfigureAwait(false);
+
+            // 响应映射：优先用 SkuIdStr 建立 Guid 映射，回退到 int64 GetHashCode 映射（向后兼容旧服务端）
+            var skuMapByStr = ids.ToDictionary(id => id.ToString(), id => id);
+            var skuMapByHash = ids.ToDictionary(id => (long)id.GetHashCode(), id => id);
+            var result = new List<SkuSnapshotDto>(response.Skus.Count);
+            foreach (var proto in response.Skus)
+            {
+                Guid guid;
+                if (!string.IsNullOrEmpty(proto.SkuIdStr))
+                {
+                    if (!skuMapByStr.TryGetValue(proto.SkuIdStr, out guid))
+                    {
+                        continue;
+                    }
+                }
+                else if (!skuMapByHash.TryGetValue(proto.SkuId, out guid))
+                {
+                    continue;
+                }
+                result.Add(MapToDto(proto, guid));
+            }
+            return (IReadOnlyList<SkuSnapshotDto>)result;
+        }, ct);
+
     private Metadata BuildMetadata()
     {
         var metadata = new Metadata();

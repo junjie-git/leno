@@ -21,4 +21,8 @@ public sealed class ProductSnapshotDispatcherAdapter : IProductSnapshotAntiCorru
     /// <inheritdoc />
     public Task<SkuSnapshotDto> GetSkuSnapshotAsync(Guid skuId, CancellationToken ct = default)
         => _dispatcher.ExecuteAsync(s => s.GetSkuSnapshotAsync(skuId, ct), ct);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<SkuSnapshotDto>> GetSkuSnapshotsAsync(IReadOnlyCollection<Guid> skuIds, CancellationToken ct = default)
+        => _dispatcher.ExecuteAsync(s => s.GetSkuSnapshotsAsync(skuIds, ct), ct);
 }
