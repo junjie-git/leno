@@ -1,6 +1,7 @@
 using Leno.Infrastructure.Abstractions;
 using Leno.Infrastructure.EventBus;
 using Leno.SharedContracts.Events;
+using MassTransit;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Collections.Concurrent;
