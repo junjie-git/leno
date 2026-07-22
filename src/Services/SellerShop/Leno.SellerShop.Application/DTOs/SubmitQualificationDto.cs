@@ -18,4 +18,11 @@ public sealed class SubmitQualificationDto
 
     /// <summary>有效期截止（UTC）。</summary>
     public DateTime ValidTo { get; init; }
+
+    /// <summary>
+    /// 幂等键（可选），由客户端生成的 UUID。
+    /// 相同 IdempotencyKey 的重复提交将被识别并跳过，避免网络重试导致重复创建资质。
+    /// 未提供时按普通流程处理，不做幂等保护。
+    /// </summary>
+    public Guid? IdempotencyKey { get; init; }
 }

@@ -24,6 +24,7 @@ public class ShopAppServiceTests
     private readonly Mock<IValidator<SubmitShopApplicationDto>> _submitValidatorMock = new();
     private readonly Mock<IValidator<UpdateShopInfoDto>> _updateValidatorMock = new();
     private readonly Mock<IValidator<ActionReasonDto>> _actionReasonValidatorMock = new();
+    private readonly Mock<IIdempotencyStore> _idempotencyStoreMock = new();
     private readonly ShopAppService _sut;
 
     private static readonly Guid ShopId = Guid.NewGuid();
@@ -49,7 +50,8 @@ public class ShopAppServiceTests
             _fileStorageMock.Object,
             _submitValidatorMock.Object,
             _updateValidatorMock.Object,
-            _actionReasonValidatorMock.Object);
+            _actionReasonValidatorMock.Object,
+            _idempotencyStoreMock.Object);
     }
 
     [Fact]

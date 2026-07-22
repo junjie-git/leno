@@ -26,6 +26,7 @@ public sealed class ShopAppService : IShopAppService
     private readonly IValidator<SubmitShopApplicationDto> _submitValidator;
     private readonly IValidator<UpdateShopInfoDto> _updateShopValidator;
     private readonly IValidator<ActionReasonDto> _actionReasonValidator;
+    private readonly IIdempotencyStore _idempotencyStore;
 
     public ShopAppService(
         IShopRepository shopRepository,
@@ -34,7 +35,8 @@ public sealed class ShopAppService : IShopAppService
         IFileStorageService fileStorageService,
         IValidator<SubmitShopApplicationDto> submitValidator,
         IValidator<UpdateShopInfoDto> updateShopValidator,
-        IValidator<ActionReasonDto> actionReasonValidator)
+        IValidator<ActionReasonDto> actionReasonValidator,
+        IIdempotencyStore idempotencyStore)
     {
         _shopRepository = shopRepository;
         _sellerProfileRepository = sellerProfileRepository;
@@ -43,6 +45,7 @@ public sealed class ShopAppService : IShopAppService
         _submitValidator = submitValidator;
         _updateShopValidator = updateShopValidator;
         _actionReasonValidator = actionReasonValidator;
+        _idempotencyStore = idempotencyStore;
     }
 
     /// <inheritdoc />
@@ -110,6 +113,29 @@ public sealed class ShopAppService : IShopAppService
         var shop = await RequireShopAsync(shopId, ct);
 
         // 原子化更新：所有字段校验通过后再统一赋值，避免三步独立 Update 产生半更新状态
+        shop.UpdateAllInfo(
+            dto.ShopName,
+            dto.Description,
+            dto.Address,
+            dto.Logo,
+            dto.ContactPhone,
+            dto.ContactEmail);
+
+        await _shopRepository.UpdateAsync(shop, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        return ToShopDto(shop);
+    }
+
+    /// <inheritdoc />
+    public async Task<ShopDto> UpdateMyShopInfoAsync(Guid userId, UpdateShopInfoDto dto, CancellationToken ct = default)
+    {
+        await ValidateAsync(_updateShopValidator, dto, ct);
+        EnsureNonEmptyUser(userId);
+
+        // 通过 sellerId 加载店铺，单次事务内完成更新与持久化，消除控制器两步操作
+        var shop = await RequireShopBySellerAsync(userId, ct);
+
         shop.UpdateAllInfo(
             dto.ShopName,
             dto.Description,
@@ -199,9 +225,62 @@ public sealed class ShopAppService : IShopAppService
     {
         var shop = await RequireShopAsync(shopId, ct);
 
+        var qualification = await CreateAndUploadQualificationAsync(shop, shopId, dto, fileStream, fileName, contentType, ct);
+
+        shop.AddQualification(qualification);
+        await _shopRepository.UpdateAsync(shop, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        return ToQualificationDto(qualification);
+    }
+
+    /// <inheritdoc />
+    public async Task<QualificationDto> SubmitMyQualificationAsync(Guid userId, SubmitQualificationDto dto, Stream fileStream, string fileName, string contentType, CancellationToken ct = default)
+    {
+        EnsureNonEmptyUser(userId);
+
+        // 通过 sellerId 加载店铺，单次事务内完成资质创建与持久化，消除控制器两步操作
+        var shop = await RequireShopBySellerAsync(userId, ct);
+
+        // 幂等保护：若客户端提供了 IdempotencyKey，检查是否已处理，避免网络重试导致重复创建资质
+        if (dto.IdempotencyKey.HasValue && dto.IdempotencyKey.Value != Guid.Empty)
+        {
+            var alreadyProcessed = await _idempotencyStore.IsProcessedAsync(dto.IdempotencyKey.Value, ct);
+            if (alreadyProcessed)
+            {
+                throw new SellerShopDomainException(
+                    "检测到重复提交，该资质申请正在或已完成处理，请勿重复操作",
+                    "QUALIFICATION_DUPLICATE_SUBMISSION");
+            }
+        }
+
+        var qualification = await CreateAndUploadQualificationAsync(shop, shop.Id, dto, fileStream, fileName, contentType, ct);
+
+        shop.AddQualification(qualification);
+        await _shopRepository.UpdateAsync(shop, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        // 业务处理成功后标记幂等键，后续相同 IdempotencyKey 的提交将被识别为重复
+        if (dto.IdempotencyKey.HasValue && dto.IdempotencyKey.Value != Guid.Empty)
+        {
+            await _idempotencyStore.MarkAsProcessedAsync(dto.IdempotencyKey.Value, ct);
+        }
+
+        return ToQualificationDto(qualification);
+    }
+
+    private async Task<ShopQualification> CreateAndUploadQualificationAsync(
+        Shop shop,
+        Guid shopId,
+        SubmitQualificationDto dto,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken ct)
+    {
         var uploadResult = await _fileStorageService.UploadAsync(fileStream, fileName, contentType, "qualifications", ct);
 
-        var qualification = ShopQualification.Create(
+        return ShopQualification.Create(
             Guid.NewGuid(),
             shopId,
             dto.Type,
@@ -209,12 +288,6 @@ public sealed class ShopAppService : IShopAppService
             uploadResult.Url,
             dto.ValidFrom,
             dto.ValidTo);
-
-        shop.AddQualification(qualification);
-        await _shopRepository.UpdateAsync(shop, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
-
-        return ToQualificationDto(qualification);
     }
 
     /// <inheritdoc />
@@ -246,6 +319,17 @@ public sealed class ShopAppService : IShopAppService
     private async Task<Shop> RequireShopAsync(Guid shopId, CancellationToken ct)
     {
         var shop = await _shopRepository.GetByIdAsync(shopId, ct);
+        if (shop is null)
+        {
+            throw new SellerShopDomainException("店铺不存在", "SHOP_NOT_FOUND");
+        }
+
+        return shop;
+    }
+
+    private async Task<Shop> RequireShopBySellerAsync(Guid sellerId, CancellationToken ct)
+    {
+        var shop = await _shopRepository.GetBySellerIdAsync(sellerId, ct);
         if (shop is null)
         {
             throw new SellerShopDomainException("店铺不存在", "SHOP_NOT_FOUND");

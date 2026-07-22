@@ -48,8 +48,7 @@ public sealed class ShopsController : SellerShopControllerBase
     [ProducesResponseType(typeof(ApiResponse<ShopDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateMyShopAsync([FromBody] UpdateShopInfoDto dto, CancellationToken ct)
     {
-        var shop = await _shopAppService.GetMyShopAsync(GetCurrentUserId(), ct);
-        var updated = await _shopAppService.UpdateShopInfoAsync(shop.Id, dto, ct);
+        var updated = await _shopAppService.UpdateMyShopInfoAsync(GetCurrentUserId(), dto, ct);
         return Ok(ApiResponse.Success(updated));
     }
 
@@ -66,11 +65,9 @@ public sealed class ShopsController : SellerShopControllerBase
             return BadRequest(ApiResponse.Fail(400, "资质文件不可为空"));
         }
 
-        var shop = await _shopAppService.GetMyShopAsync(GetCurrentUserId(), ct);
-
         using var stream = file.OpenReadStream();
-        var qualification = await _shopAppService.SubmitQualificationAsync(
-            shop.Id, dto, stream, file.FileName, file.ContentType, ct);
+        var qualification = await _shopAppService.SubmitMyQualificationAsync(
+            GetCurrentUserId(), dto, stream, file.FileName, file.ContentType, ct);
         return Ok(ApiResponse.Success(qualification));
     }
 }

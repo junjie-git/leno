@@ -21,6 +21,12 @@ public interface IShopAppService
     /// <summary>卖家更新店铺基础信息、Logo 与联系方式。</summary>
     Task<ShopDto> UpdateShopInfoAsync(Guid shopId, UpdateShopInfoDto dto, CancellationToken ct = default);
 
+    /// <summary>
+    /// 卖家更新当前账号所属店铺的基础信息、Logo 与联系方式。
+    /// 内部通过 sellerId 加载店铺并完成更新与持久化，统一事务边界，消除控制器两步操作。
+    /// </summary>
+    Task<ShopDto> UpdateMyShopInfoAsync(Guid userId, UpdateShopInfoDto dto, CancellationToken ct = default);
+
     /// <summary>运营暂停店铺营业。</summary>
     Task SuspendShopAsync(Guid shopId, ActionReasonDto dto, CancellationToken ct = default);
 
@@ -41,6 +47,13 @@ public interface IShopAppService
 
     /// <summary>卖家上传店铺资质。</summary>
     Task<QualificationDto> SubmitQualificationAsync(Guid shopId, SubmitQualificationDto dto, Stream fileStream, string fileName, string contentType, CancellationToken ct = default);
+
+    /// <summary>
+    /// 卖家为当前账号所属店铺上传资质。
+    /// 内部通过 sellerId 加载店铺并完成文件上传、资质创建与持久化，统一事务边界。
+    /// 若 DTO 提供了 <see cref="SubmitQualificationDto.IdempotencyKey"/>，将基于幂等存储查重跳过重复提交。
+    /// </summary>
+    Task<QualificationDto> SubmitMyQualificationAsync(Guid userId, SubmitQualificationDto dto, Stream fileStream, string fileName, string contentType, CancellationToken ct = default);
 
     /// <summary>运营查询店铺资质列表。</summary>
     Task<List<QualificationDto>> GetQualificationsAsync(Guid shopId, CancellationToken ct = default);
