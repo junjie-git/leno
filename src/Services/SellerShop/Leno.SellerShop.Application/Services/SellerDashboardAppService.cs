@@ -25,7 +25,10 @@ public sealed class SellerDashboardAppService : ISellerDashboardAppService
     }
 
     /// <inheritdoc />
-    [Obsolete("请使用 IQueryHandler<ShopDashboardQuery, ShopDashboardResult>，将在 2026-08-01 移除")]
+    [Obsolete("请使用 IQueryHandler<ShopDashboardQuery, ShopDashboardResult> 读 ES 读模型，将在 2026-10-01 移除。" +
+              "迁移步骤：(1) P0-2/P0-3 修复后 ES 读模型数据完整；(2) 开启 Dashboard:EnableComparison 双发对比验证数据一致性；" +
+              "(3) 切换 Dashboard:UseReadModel=true 灰度到 ES；(4) 观察 1 周无差异后移除本方法。" +
+              "调用方：SellerDashboardController.GetDashboardAsync（Feature Flag 关闭时调用）。")]
     public async Task<SellerDashboardDto> GetDashboardAsync(Guid sellerId, CancellationToken ct = default)
     {
         if (sellerId == Guid.Empty)
