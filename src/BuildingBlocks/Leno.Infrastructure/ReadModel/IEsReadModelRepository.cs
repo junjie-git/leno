@@ -26,6 +26,19 @@ public interface IEsReadModelRepository<T> where T : class
         int size,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// 搜索文档（带请求配置回调，支持排序等扩展）。
+    /// <paramref name="query"/> 为 null 时匹配全部；<paramref name="configure"/> 为 null 时不附加额外配置（等价于无回调重载）。
+    /// </summary>
+    /// <param name="configure">搜索请求配置回调，可在搜索描述符上追加排序、聚合等。可为 null。</param>
+    Task<(IReadOnlyList<T> Items, long Total)> SearchAsync(
+        string indexName,
+        Func<QueryDescriptor<T>, Query>? query,
+        Action<SearchRequestDescriptor<T>>? configure,
+        int from,
+        int size,
+        CancellationToken ct = default);
+
     /// <summary>按 Id 删除文档。</summary>
     Task<bool> DeleteByIdAsync(string id, string indexName, CancellationToken ct = default);
 }

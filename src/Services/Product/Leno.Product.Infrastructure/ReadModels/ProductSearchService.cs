@@ -4,6 +4,7 @@ using Leno.Infrastructure.ReadModel;
 using Leno.Product.Application;
 using Leno.Product.Application.DTOs;
 using Leno.SharedContracts.Responses;
+using Microsoft.Extensions.Logging;
 
 namespace Leno.Product.Infrastructure.ReadModels;
 
@@ -18,11 +19,15 @@ public sealed class ProductSearchService : IProductSearchService
     public const string ProductIndexName = "leno_products";
 
     private readonly IEsReadModelRepository<ProductReadModel> _repository;
+    private readonly ILogger<ProductSearchService> _logger;
 
-    public ProductSearchService(IEsReadModelRepository<ProductReadModel> repository)
+    public ProductSearchService(
+        IEsReadModelRepository<ProductReadModel> repository,
+        ILogger<ProductSearchService>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(repository);
         _repository = repository;
+        _logger = logger ?? NullLogger<ProductSearchService>.Instance;
     }
 
     /// <inheritdoc />
@@ -37,21 +42,77 @@ public sealed class ProductSearchService : IProductSearchService
         int pageSize,
         CancellationToken ct = default)
     {
-        _ = sort; // 排序由读模型仓储默认相关性得分；预留扩展点
-
         var safePage = page < 1 ? 1 : page;
         var safePageSize = pageSize is <= 0 or > 100 ? 20 : pageSize;
         var from = (safePage - 1) * safePageSize;
 
-        var (items, total) = await _repository.SearchAsync(
-            ProductIndexName,
-            _ => BuildQuery(keyword, categoryId, brandId, minPrice, maxPrice),
-            from,
-            safePageSize,
-            ct);
+        // 修复审计 #7：sort 参数原被 _ = sort; 静默丢弃。
+        // 现根据 sort 值构建 ES 排序配置回调：price_asc/price_desc 按 MinPrice 升/降序；
+        // relevance/default/null/空 保持默认相关性得分；无效值记录警告并回退。
+        var configure = BuildSortConfigure(sort);
+
+        IReadOnlyList<ProductReadModel> items;
+        long total;
+        if (configure is null)
+        {
+            (items, total) = await _repository.SearchAsync(
+                ProductIndexName,
+                _ => BuildQuery(keyword, categoryId, brandId, minPrice, maxPrice),
+                from,
+                safePageSize,
+                ct);
+        }
+        else
+        {
+            (items, total) = await _repository.SearchAsync(
+                ProductIndexName,
+                _ => BuildQuery(keyword, categoryId, brandId, minPrice, maxPrice),
+                configure,
+                from,
+                safePageSize,
+                ct);
+        }
 
         var dtos = items.Select(ToDto).ToList();
         return new PageResult<ProductSearchResultDto>(dtos, (int)total, safePage, safePageSize);
+    }
+
+    /// <summary>
+    /// 根据 sort 参数构建 ES 搜索请求配置回调。
+    /// 返回 null 表示无需额外配置（走默认相关性得分排序）；非 null 表示需在搜索描述符上追加排序。
+    /// 无效排序值或读模型不支持的排序字段（如 sales_desc）记录警告并回退到相关性排序。
+    /// </summary>
+    private Action<SearchRequestDescriptor<ProductReadModel>>? BuildSortConfigure(string? sort)
+    {
+        var normalized = sort?.Trim().ToLowerInvariant();
+
+        switch (normalized)
+        {
+            case null:
+            case "":
+            case "relevance":
+            case "default":
+                return null;
+
+            case "price_asc":
+                return descriptor => descriptor.Sort(s => s.Field(
+                    Infer.Field<ProductReadModel>(p => p.MinPrice),
+                    o => o.Order(SortOrder.Asc)));
+
+            case "price_desc":
+                return descriptor => descriptor.Sort(s => s.Field(
+                    Infer.Field<ProductReadModel>(p => p.MinPrice),
+                    o => o.Order(SortOrder.Desc)));
+
+            case "sales_desc":
+                // 读模型当前无 SalesCount 字段，暂回退到相关性排序
+                _logger.LogWarning("排序值 Sort={Sort} 对应的销量字段在读模型中不存在，回退到相关性排序", sort);
+                return null;
+
+            default:
+                _logger.LogWarning("无效的排序值 Sort={Sort}，回退到相关性排序", sort);
+                return null;
+        }
     }
 
     private static Query BuildQuery(
