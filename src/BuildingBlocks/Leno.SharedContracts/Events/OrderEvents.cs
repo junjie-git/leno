@@ -168,9 +168,9 @@ public sealed class OrderPaidEvent : IntegrationEventBase
 }
 
 /// <summary>
-/// 订单取消集成事件，订单域在待支付态取消时发布（买家主动取消或支付超时自动取消）。
+/// 订单取消集成事件，订单域在待支付态或已支付态取消时发布（买家主动取消、支付超时自动取消或售后退款取消）。
 /// 消费方：促销域（退还锁定优惠券）、积分与会员域（释放冻结抵现积分）、
-/// 库存（释放预占）、消息通知域（取消通知）。
+/// 库存（释放预占）、消息通知域（取消通知）、卖家与店铺管理域（已支付取消回滚收入）。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
 public sealed class OrderCancelledEvent : IntegrationEventBase
@@ -192,6 +192,19 @@ public sealed class OrderCancelledEvent : IntegrationEventBase
 
     /// <summary>需释放的冻结积分（供积分域回退），0 表示无冻结。</summary>
     public int PointsToRelease { get; init; }
+
+    /// <summary>
+    /// 是否为已支付订单的取消（退款）。true 表示订单已支付，消费方应回滚已计入的收入；
+    /// false（默认）表示未支付订单的取消，仅做待处理订单数 -1。
+    /// 旧版发布方未填充时默认 false，保持向后兼容。
+    /// </summary>
+    public bool WasPaid { get; init; }
+
+    /// <summary>
+    /// 退款金额（仅当 <see cref="WasPaid"/> 为 true 时有意义），用于卖家域回滚 TotalRevenue。
+    /// 默认 0；旧版发布方未填充时为 0，消费方在 WasPaid=true 但 RefundAmount=0 时不回滚收入。
+    /// </summary>
+    public decimal RefundAmount { get; init; }
 
     /// <summary>聚合根标识，用于发件箱归类。</summary>
     public Guid AggregateId => OrderId;
@@ -215,6 +228,38 @@ public sealed class OrderCancelledEvent : IntegrationEventBase
         CancelledAt = cancelledAt;
         CancelledBy = cancelledBy ?? string.Empty;
         PointsToRelease = pointsToRelease;
+    }
+
+    /// <summary>
+    /// 构造函数（含已支付取消字段）。
+    /// 订单域在已支付订单取消/退款时使用此构造函数填充 WasPaid=true 与 RefundAmount。
+    /// </summary>
+    /// <param name="orderId">订单标识。</param>
+    /// <param name="sellerId">卖家（店铺）标识。</param>
+    /// <param name="cancelReason">取消原因。</param>
+    /// <param name="cancelledAt">取消时间（UTC）。</param>
+    /// <param name="cancelledBy">取消方（Buyer/System）。</param>
+    /// <param name="pointsToRelease">需释放的冻结积分。</param>
+    /// <param name="wasPaid">是否为已支付订单的取消（退款）。</param>
+    /// <param name="refundAmount">退款金额（已支付取消时填入实际退款金额）。</param>
+    public OrderCancelledEvent(
+        Guid orderId,
+        Guid sellerId,
+        string cancelReason,
+        DateTime cancelledAt,
+        string cancelledBy,
+        int pointsToRelease,
+        bool wasPaid,
+        decimal refundAmount) : base()
+    {
+        OrderId = orderId;
+        SellerId = sellerId;
+        CancelReason = cancelReason ?? string.Empty;
+        CancelledAt = cancelledAt;
+        CancelledBy = cancelledBy ?? string.Empty;
+        PointsToRelease = pointsToRelease;
+        WasPaid = wasPaid;
+        RefundAmount = refundAmount;
     }
 }
 

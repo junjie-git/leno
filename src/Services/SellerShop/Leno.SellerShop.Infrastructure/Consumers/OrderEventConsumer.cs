@@ -171,7 +171,12 @@ public sealed class OrderPaidEventConsumer : IntegrationEventConsumerBase<OrderP
 /// <summary>
 /// 订单取消事件消费者：维护店铺经营数据的待处理订单数。
 /// 事件契约 OrderCancelledEvent.SellerId 语义等同卖家与店铺管理域的 ShopId。
-/// 幂等：经 IntegrationEventConsumerBase 以 EventId 去重；OnOrderCancelled 已防负。
+/// 区分未支付/已支付取消：
+/// <list type="bullet">
+/// <item>未支付取消（<c>WasPaid=false</c>，旧版发布方默认值）：仅 <c>PendingOrders--</c>、<c>CancelledOrders++</c>。</item>
+/// <item>已支付取消（<c>WasPaid=true</c> 且 <c>RefundAmount&gt;0</c>）：额外回滚 <c>TotalRevenue</c>、累加 <c>RefundedAmount</c>。</item>
+/// </list>
+/// 幂等：经 IntegrationEventConsumerBase 以 EventId 去重；OnOrderCancelled / OnOrderRefunded 已防负。
 /// </summary>
 public sealed class OrderCancelledEventConsumer : IntegrationEventConsumerBase<OrderCancelledEvent>
 {
@@ -193,12 +198,30 @@ public sealed class OrderCancelledEventConsumer : IntegrationEventConsumerBase<O
     protected override async Task HandleAsync(OrderCancelledEvent integrationEvent, CancellationToken ct)
     {
         var dashboard = await GetOrCreateDashboardAsync(integrationEvent.SellerId, ct);
-        dashboard.OnOrderCancelled();
-        await _dashboardRepository.UpdateAsync(dashboard, ct);
-        await _unitOfWork.SaveEntitiesAsync(ct);
 
-        Logger.LogInformation("订单取消事件已处理 ShopId={ShopId} OrderId={OrderId} PendingOrders={PendingOrders}",
-            integrationEvent.SellerId, integrationEvent.OrderId, dashboard.PendingOrders);
+        if (integrationEvent.WasPaid && integrationEvent.RefundAmount > 0)
+        {
+            // 已支付订单取消/退款：回滚 TotalRevenue，累加 RefundedAmount
+            dashboard.OnOrderRefunded(integrationEvent.RefundAmount);
+            await _dashboardRepository.UpdateAsync(dashboard, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+
+            Logger.LogInformation(
+                "订单取消事件已处理（已支付退款）ShopId={ShopId} OrderId={OrderId} RefundAmount={RefundAmount} " +
+                "TotalRevenue={TotalRevenue} RefundedAmount={RefundedAmount} NetRevenue={NetRevenue}",
+                integrationEvent.SellerId, integrationEvent.OrderId, integrationEvent.RefundAmount,
+                dashboard.TotalRevenue, dashboard.RefundedAmount, dashboard.NetRevenue);
+        }
+        else
+        {
+            // 未支付订单取消：仅维护订单数
+            dashboard.OnOrderCancelled();
+            await _dashboardRepository.UpdateAsync(dashboard, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+
+            Logger.LogInformation("订单取消事件已处理 ShopId={ShopId} OrderId={OrderId} PendingOrders={PendingOrders}",
+                integrationEvent.SellerId, integrationEvent.OrderId, dashboard.PendingOrders);
+        }
     }
 
     private async Task<ShopDashboardData> GetOrCreateDashboardAsync(Guid shopId, CancellationToken ct)
