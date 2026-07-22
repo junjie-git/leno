@@ -119,16 +119,17 @@ public sealed class StockBaseline : AggregateRoot
         var delta = deductedQty - DeductedQty;
         if (delta > 0)
         {
-            AvailableQty -= delta;
+            // 修复审计 #14：先计算新值并校验，再赋值，避免异常抛出后聚合状态已被修改
+            var newAvailable = AvailableQty - delta;
+            if (newAvailable < 0)
+            {
+                throw new ProductDomainException("可用库存不可为负", "STOCK_AVAILABLE_NEGATIVE");
+            }
+            AvailableQty = newAvailable;
             ReservedQty = Math.Max(0, ReservedQty - delta);
         }
 
         DeductedQty = deductedQty;
-
-        if (AvailableQty < 0)
-        {
-            throw new ProductDomainException("可用库存不可为负", "STOCK_AVAILABLE_NEGATIVE");
-        }
     }
 
     /// <summary>
