@@ -66,7 +66,7 @@ public sealed class OrderAfterSalesWindowClosedEventConsumerGrowthTests
 
         var uowMock = new Mock<IUnitOfWork>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         var consumer = new OrderAfterSalesWindowClosedEventConsumer(
             accountRepoMock.Object,
@@ -101,7 +101,7 @@ public sealed class OrderAfterSalesWindowClosedEventConsumerGrowthTests
 
         var uowMock = new Mock<IUnitOfWork>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         var consumer = new OrderAfterSalesWindowClosedEventConsumer(
             new Mock<IPointsAccountRepository>().Object,
@@ -139,7 +139,7 @@ public sealed class OrderAfterSalesWindowClosedEventConsumerGrowthTests
 
         var uowMock = new Mock<IUnitOfWork>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         var consumer = new OrderAfterSalesWindowClosedEventConsumer(
             accountRepoMock.Object,

@@ -86,7 +86,7 @@ public sealed class OrderPaidEventConsumerPackageNullTests
 
         var uowMock = new Mock<IUnitOfWork>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         var consumer = new OrderPaidEventConsumer(
             accountRepoMock.Object,
@@ -138,7 +138,7 @@ public sealed class OrderPaidEventConsumerPackageNullTests
 
         var uowMock = new Mock<IUnitOfWork>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         var consumer = new OrderPaidEventConsumer(
             accountRepoMock.Object,
@@ -180,7 +180,7 @@ public sealed class OrderPaidEventConsumerPackageNullTests
 
         var uowMock = new Mock<IUnitOfWork>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         var consumer = new OrderPaidEventConsumer(
             accountRepoMock.Object,
@@ -223,7 +223,7 @@ public sealed class OrderPaidEventConsumerPackageNullTests
 
         var uowMock = new Mock<IUnitOfWork>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         var consumer = new OrderPaidEventConsumer(
             accountRepoMock.Object,

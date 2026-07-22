@@ -67,7 +67,7 @@ public sealed class OrderCompletedNoDoublePointsTests
 
         var uowMock = new Mock<IUnitOfWork>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         var consumer = new OrderCompletedEventConsumer(
             accountRepoMock.Object,
@@ -113,7 +113,7 @@ public sealed class OrderCompletedNoDoublePointsTests
 
         var uowMock = new Mock<IUnitOfWork>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         var consumer = new OrderAfterSalesWindowClosedEventConsumer(
             accountRepoMock.Object,

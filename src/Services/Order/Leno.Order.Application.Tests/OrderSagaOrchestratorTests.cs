@@ -51,7 +51,7 @@ public class OrderSagaOrchestratorTests
         orderRepoMock.Setup(r => r.RemoveAsync(It.IsAny<OrderAggregate>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         // 补偿时释放库存失败（模拟 redis 宕机）
         stockServiceMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
@@ -95,7 +95,7 @@ public class OrderSagaOrchestratorTests
         orderRepoMock.Setup(r => r.RemoveAsync(It.IsAny<OrderAggregate>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
         stockServiceMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -132,7 +132,7 @@ public class OrderSagaOrchestratorTests
         orderNoGenMock.Setup(g => g.GenerateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync("ORD-001");
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         // 积分抵现原始金额 50 元（超过 ItemsAmount - Discount = 100 - 80 = 20，应被聚合裁剪到 20）
         var context = new OrderSagaContext
