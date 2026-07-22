@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using Leno.Cart.Api.GrpcServices;
 using Leno.Cart.Infrastructure;
 using Leno.Cart.Infrastructure.Dependencies;
@@ -6,6 +7,7 @@ using Leno.Infrastructure.Dependencies;
 using Leno.Infrastructure.Persistence;
 using Leno.Infrastructure.ServiceDiscovery;
 using Leno.Infrastructure.Telemetry;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +22,22 @@ builder.Services.AddLenoApi<CartDbContext>(
     "leno-cart-api",
     cfg => cfg.AddCartConsumers(),
     s => s.AddCartInfrastructure(builder.Configuration));
+
+// P1-7：匿名购物车接口限流策略（IP 维度，10 次/分钟），防止未认证接口滥用
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("anonymous-cart", httpContext =>
+    {
+        var remoteIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(remoteIp, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        });
+    });
+});
 
 // 启用 Consul KV 配置中心
 builder.AddLenoConsulConfig();
@@ -38,6 +56,10 @@ if (!app.Configuration.ValidateSensitiveConfig())
         throw new InvalidOperationException($"敏感配置缺失：{string.Join(", ", missing)}");
     }
 }
+
+// P1-7：限流中间件需在端点路由之后、控制器执行之前生效，以读取 [EnableRateLimiting] 元数据
+app.UseRouting();
+app.UseRateLimiter();
 
 // 一站式中间件管线：OpenAPI + 全局异常 + 内部 API Key + 鉴权 + 健康检查端点 + Controllers
 app.UseLenoPipeline();
