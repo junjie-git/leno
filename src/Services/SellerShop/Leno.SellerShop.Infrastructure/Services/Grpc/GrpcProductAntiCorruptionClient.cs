@@ -59,6 +59,9 @@ public sealed class GrpcProductAntiCorruptionClient
         catch (AntiCorruptionException ex)
         {
             // fail-closed：跨域调用失败时返回 null，由 SellerInternalQueryService 判 false
+            // 基类 ExecuteAsync 已记录 "grpc" path 的失败，此处补充记录 "fail-closed" path 的降级触发，
+            // 供告警规则按 path=fail-closed 统计降级频率（ACL 失败率 > 5% 触发告警）
+            AntiCorruptionMetrics.RecordFailure(ServiceName, "get_spu_seller", "fail-closed");
             _logger.LogWarning(ex, "商品域 GetSpuSellerId 调用失败，fail-closed 返回 null SpuId={SpuId}", spuId);
             return null;
         }
