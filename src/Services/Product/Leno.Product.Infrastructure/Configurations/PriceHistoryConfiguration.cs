@@ -22,6 +22,7 @@ public sealed class PriceHistoryConfiguration : IEntityTypeConfiguration<PriceHi
         builder.Property(p => p.NewPrice).HasColumnName("new_price").HasPrecision(18, 2);
         builder.Property(p => p.Currency).HasColumnName("currency").HasMaxLength(3).IsRequired();
         builder.Property(p => p.Reason).HasColumnName("reason").HasMaxLength(200);
+        builder.Property(p => p.ChangedBy).HasColumnName("changed_by").HasMaxLength(64);
         builder.Property(p => p.ChangedAt).HasColumnName("changed_at");
 
         builder.Property(p => p.CreatedAt).HasColumnName("created_at");

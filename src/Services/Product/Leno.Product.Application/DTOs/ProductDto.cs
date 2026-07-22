@@ -108,6 +108,9 @@ public sealed class PriceChangeRecordDto
     public DateTime ChangedAt { get; init; }
 
     public string ChangedBy { get; init; } = string.Empty;
+
+    /// <summary>变更原因，可空。修复审计 #13/#19：原 DTO 缺少此字段。</summary>
+    public string? Reason { get; init; }
 }
 
 /// <summary>库存操作记录 DTO。</summary>
@@ -132,6 +135,9 @@ public sealed class AdjustPriceDto
 
     /// <summary>币种，默认 CNY。</summary>
     public string Currency { get; init; } = "CNY";
+
+    /// <summary>变更原因，可空但鼓励填写，用于价格审计。修复审计 #13。</summary>
+    public string? Reason { get; init; }
 }
 
 /// <summary>库存调整 DTO。</summary>

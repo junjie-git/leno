@@ -27,6 +27,12 @@ public sealed class PriceHistory : AggregateRoot
     /// <summary>变更原因，可空。</summary>
     public string? Reason { get; private set; }
 
+    /// <summary>
+    /// 变更人标识。修复审计 #13：原 Create 不接受 changedBy，ToPriceChangeRecordDto 硬编码 string.Empty。
+    /// 应用层（SPUAppService.AdjustPriceAsync）已校验非空后透传。
+    /// </summary>
+    public string ChangedBy { get; private set; } = string.Empty;
+
     /// <summary>变更时间（UTC）。</summary>
     public DateTime ChangedAt { get; private set; }
 
@@ -44,13 +50,15 @@ public sealed class PriceHistory : AggregateRoot
     /// <param name="newPrice">变更后价格，须 ≥ 0。</param>
     /// <param name="reason">变更原因，可空。</param>
     /// <param name="currency">币种，默认 CNY。</param>
+    /// <param name="changedBy">变更人标识，应用层校验非空后透传。默认空字符串保持向后兼容。</param>
     public static PriceHistory Create(
         Guid spuId,
         Guid skuId,
         decimal oldPrice,
         decimal newPrice,
         string? reason = null,
-        string currency = "CNY")
+        string currency = "CNY",
+        string changedBy = "")
     {
         if (spuId == Guid.Empty)
         {
@@ -80,6 +88,7 @@ public sealed class PriceHistory : AggregateRoot
             NewPrice = newPrice,
             Currency = currency,
             Reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim(),
+            ChangedBy = string.IsNullOrWhiteSpace(changedBy) ? string.Empty : changedBy.Trim(),
             ChangedAt = DateTime.UtcNow
         };
     }

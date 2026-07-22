@@ -254,7 +254,8 @@ public sealed class SPUAppService : ISPUAppService
         var oldPrice = spu.AdjustPrice(skuId, price, changedBy);
 
         // 创建独立的 PriceHistory 聚合记录价格变更（从 SPU 拆分）
-        var history = PriceHistory.Create(spuId, skuId, oldPrice, dto.Price, reason: null, dto.Currency);
+        // 修复审计 #13：透传 dto.Reason 与 changedBy，替代原 reason: null
+        var history = PriceHistory.Create(spuId, skuId, oldPrice, dto.Price, dto.Reason, dto.Currency, changedBy);
         await _priceHistoryRepository.AddAsync(history, ct);
 
         await _spuRepository.UpdateAsync(spu, ct);
@@ -390,6 +391,9 @@ public sealed class SPUAppService : ISPUAppService
             OldPrice = history.OldPrice,
             NewPrice = history.NewPrice,
             ChangedAt = history.ChangedAt,
-            ChangedBy = string.Empty
+            // 修复审计 #13：返回真实变更人，替代硬编码 string.Empty
+            ChangedBy = history.ChangedBy,
+            // 修复审计 #19：返回变更原因
+            Reason = history.Reason
         };
 }
