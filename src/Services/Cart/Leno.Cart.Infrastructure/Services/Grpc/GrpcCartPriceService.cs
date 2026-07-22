@@ -55,8 +55,7 @@ public sealed class GrpcCartPriceService
             request.SkuIdsStr.AddRange(ids.Select(id => id.ToString()));
 
             var metadata = BuildMetadata();
-            var response = await _client.BatchGetSkuInfoAsync(request, metadata, cancellationToken: token)
-                .ConfigureAwait(false);
+            var response = await _client.BatchGetSkuInfoAsync(request, metadata, cancellationToken: token);
 
             // 响应映射：优先用 SkuIdStr 建立 Guid 映射，回退到 int64 GetHashCode 映射（向后兼容旧服务端）
             var skuMapByStr = ids.ToDictionary(id => id.ToString(), id => id);

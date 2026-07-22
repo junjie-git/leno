@@ -32,8 +32,7 @@ public sealed class CartGrpcService : CartInternalService.CartInternalServiceBas
             throw new RpcException(new Status(StatusCode.InvalidArgument, $"UserId 格式无效：{request.UserId}"));
         }
 
-        var dto = await _queryService.GetCartSnapshotAsync(userId, context.CancellationToken)
-            .ConfigureAwait(false);
+        var dto = await _queryService.GetCartSnapshotAsync(userId, context.CancellationToken);
 
         if (dto is null)
         {
@@ -51,8 +50,7 @@ public sealed class CartGrpcService : CartInternalService.CartInternalServiceBas
             throw new RpcException(new Status(StatusCode.InvalidArgument, $"UserId 格式无效：{request.UserId}"));
         }
 
-        var dto = await _queryService.GetCheckoutPreviewAsync(userId, context.CancellationToken)
-            .ConfigureAwait(false);
+        var dto = await _queryService.GetCheckoutPreviewAsync(userId, context.CancellationToken);
 
         if (dto is null)
         {
