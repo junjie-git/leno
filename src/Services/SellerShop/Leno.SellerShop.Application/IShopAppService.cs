@@ -42,8 +42,20 @@ public interface IShopAppService
     /// <summary>按店铺标识查询店铺信息。</summary>
     Task<ShopDto> GetShopInfoAsync(Guid shopId, CancellationToken ct = default);
 
+    /// <summary>
+    /// 尝试按店铺标识查询店铺信息，不存在时返回 null 而非抛异常。
+    /// 供内部查询服务使用，避免 try/catch 控制流程。
+    /// </summary>
+    Task<ShopDto?> TryGetShopByIdAsync(Guid shopId, CancellationToken ct = default);
+
     /// <summary>按卖家账号标识（用户域 UserId）查询其店铺。</summary>
     Task<ShopDto> GetMyShopAsync(Guid sellerId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 尝试按卖家账号标识查询其店铺，不存在时返回 null 而非抛异常。
+    /// 供内部查询服务使用，避免 try/catch 控制流程。
+    /// </summary>
+    Task<ShopDto?> TryGetShopBySellerIdAsync(Guid sellerId, CancellationToken ct = default);
 
     /// <summary>运营端分页查询店铺列表。</summary>
     Task<PageResult<ShopDto>> QueryShopsAsync(AdminShopQueryDto query, CancellationToken ct = default);

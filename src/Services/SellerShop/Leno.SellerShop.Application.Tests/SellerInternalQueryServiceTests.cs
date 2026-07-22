@@ -20,7 +20,7 @@ public class SellerInternalQueryServiceTests
     public async Task ValidateOwnership_ShopOwned_ReturnsTrue()
     {
         var shopAppService = new Mock<IShopAppService>();
-        shopAppService.Setup(s => s.GetMyShopAsync(SellerId, It.IsAny<CancellationToken>()))
+        shopAppService.Setup(s => s.TryGetShopBySellerIdAsync(SellerId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ShopDto { Id = ResourceId, SellerId = SellerId });
         var sut = CreateService(shopAppService: shopAppService.Object);
 
@@ -33,7 +33,7 @@ public class SellerInternalQueryServiceTests
     public async Task ValidateOwnership_ShopNotOwned_ReturnsFalse()
     {
         var shopAppService = new Mock<IShopAppService>();
-        shopAppService.Setup(s => s.GetMyShopAsync(SellerId, It.IsAny<CancellationToken>()))
+        shopAppService.Setup(s => s.TryGetShopBySellerIdAsync(SellerId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ShopDto { Id = Guid.NewGuid(), SellerId = SellerId });
         var sut = CreateService(shopAppService: shopAppService.Object);
 
@@ -43,12 +43,12 @@ public class SellerInternalQueryServiceTests
     }
 
     [Fact]
-    public async Task ValidateOwnership_ShopMissing_ThrowsShopNotFound_ReturnsFalse()
+    public async Task ValidateOwnership_ShopMissing_ReturnsNull_ReturnsFalse()
     {
-        // 卖家未关联店铺时 IShopAppService.GetMyShopAsync 抛 SHOP_NOT_FOUND，应判 false（fail-closed）
+        // 卖家未关联店铺时 TryGetShopBySellerIdAsync 返回 null，应判 false（fail-closed）
         var shopAppService = new Mock<IShopAppService>();
-        shopAppService.Setup(s => s.GetMyShopAsync(SellerId, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new SellerShopDomainException("店铺不存在", "SHOP_NOT_FOUND"));
+        shopAppService.Setup(s => s.TryGetShopBySellerIdAsync(SellerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ShopDto?)null);
         var sut = CreateService(shopAppService: shopAppService.Object);
 
         var result = await sut.ValidateOwnershipAsync(SellerId, "shop", ResourceId, CancellationToken.None);

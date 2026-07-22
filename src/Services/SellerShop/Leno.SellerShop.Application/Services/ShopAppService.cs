@@ -190,6 +190,13 @@ public sealed class ShopAppService : IShopAppService
     }
 
     /// <inheritdoc />
+    public async Task<ShopDto?> TryGetShopByIdAsync(Guid shopId, CancellationToken ct = default)
+    {
+        var shop = await _shopRepository.GetByIdAsync(shopId, ct);
+        return shop is null ? null : ToShopDto(shop);
+    }
+
+    /// <inheritdoc />
     public async Task<ShopDto> GetMyShopAsync(Guid sellerId, CancellationToken ct = default)
     {
         EnsureNonEmptyUser(sellerId);
@@ -200,6 +207,14 @@ public sealed class ShopAppService : IShopAppService
         }
 
         return ToShopDto(shop);
+    }
+
+    /// <inheritdoc />
+    public async Task<ShopDto?> TryGetShopBySellerIdAsync(Guid sellerId, CancellationToken ct = default)
+    {
+        EnsureNonEmptyUser(sellerId);
+        var shop = await _shopRepository.GetBySellerIdAsync(sellerId, ct);
+        return shop is null ? null : ToShopDto(shop);
     }
 
     /// <inheritdoc />

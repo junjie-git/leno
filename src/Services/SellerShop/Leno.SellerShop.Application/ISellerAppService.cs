@@ -16,6 +16,12 @@ public interface ISellerAppService
     /// <summary>按卖家账号标识查询卖家档案。</summary>
     Task<SellerProfileDto> GetSellerProfileAsync(Guid userId, CancellationToken ct = default);
 
+    /// <summary>
+    /// 尝试按卖家账号标识查询卖家档案，不存在时返回 null 而非抛异常。
+    /// 供内部查询服务使用，避免 try/catch 控制流程。
+    /// </summary>
+    Task<SellerProfileDto?> TryGetSellerProfileAsync(Guid userId, CancellationToken ct = default);
+
     /// <summary>运营审核通过卖家档案。</summary>
     Task ApproveSellerProfileAsync(Guid profileId, Guid reviewedBy, CancellationToken ct = default);
 

@@ -84,6 +84,14 @@ public sealed class SellerAppService : ISellerAppService
     }
 
     /// <inheritdoc />
+    public async Task<SellerProfileDto?> TryGetSellerProfileAsync(Guid userId, CancellationToken ct = default)
+    {
+        EnsureNonEmptyUser(userId);
+        var profile = await _profileRepository.GetByUserIdAsync(userId, ct);
+        return profile is null ? null : ToProfileDto(profile);
+    }
+
+    /// <inheritdoc />
     public async Task ApproveSellerProfileAsync(Guid profileId, Guid reviewedBy, CancellationToken ct = default)
     {
         var profile = await RequireProfileByIdAsync(profileId, ct);
