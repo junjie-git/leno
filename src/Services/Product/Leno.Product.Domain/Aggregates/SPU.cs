@@ -416,7 +416,12 @@ public sealed class SPU : AggregateRoot
         }
 
         ArgumentNullException.ThrowIfNull(newPrice);
-        if (newPrice.Amount <= 0)
+        // 修复审计 #11：委托 Money.RequirePositive() 校验金额 > 0，保持 ProductDomainException 语义。
+        try
+        {
+            newPrice.RequirePositive();
+        }
+        catch (ArgumentException)
         {
             throw new ProductDomainException("SKU 价格须大于 0", "SKU_PRICE_INVALID");
         }

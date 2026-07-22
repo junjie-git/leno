@@ -48,6 +48,22 @@ public sealed record Money : IComparable<Money>
 
     public static Money Zero(string currency) => Create(0, currency);
 
+    /// <summary>
+    /// 断言金额为正数（> 0）。
+    /// 修复审计 #11：Money.Create 允许 amount=0（语义为"免费/赠品"），各 BC 自行决定是否拒绝 0。
+    /// 调用此方法显式要求金额必须为正，不满足时抛 <see cref="ArgumentException"/>。
+    /// </summary>
+    /// <returns>当前 Money 实例（便于链式调用）。</returns>
+    /// <exception cref="ArgumentException">Amount ≤ 0 时抛出。</exception>
+    public Money RequirePositive()
+    {
+        if (Amount <= 0)
+        {
+            throw new ArgumentException("金额必须为正数", nameof(Amount));
+        }
+        return this;
+    }
+
     public Money Add(Money other)
     {
         AssertSameCurrency(other);

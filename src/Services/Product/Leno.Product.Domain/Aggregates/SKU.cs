@@ -135,7 +135,12 @@ public sealed class SKU : Entity
     private static void ValidatePrice(Money price)
     {
         ArgumentNullException.ThrowIfNull(price);
-        if (price.Amount <= 0)
+        // 修复审计 #11：委托 Money.RequirePositive() 校验金额 > 0，保持 ProductDomainException 语义。
+        try
+        {
+            price.RequirePositive();
+        }
+        catch (ArgumentException)
         {
             throw new ProductDomainException("SKU 价格须大于 0", "SKU_PRICE_INVALID");
         }
