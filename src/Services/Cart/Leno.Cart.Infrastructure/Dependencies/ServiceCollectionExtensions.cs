@@ -5,7 +5,6 @@ using Leno.Cart.Application.InternalQueryServices;
 using Leno.Cart.Application.Services;
 using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
-using Leno.Cart.Infrastructure.Caching;
 using Leno.Cart.Infrastructure.Consumers;
 using Leno.Cart.Infrastructure.EventBus;
 using Leno.Cart.Infrastructure.Repositories;
@@ -149,8 +148,6 @@ public static class ServiceCollectionExtensions
 
         // 购物车-SKU 反向索引：基于 Redis Set，商品事件消费时定位受影响购物车
         services.AddScoped<ICartSkuIndexService, CartSkuIndexService>();
-
-        services.AddSingleton<RedisCartCache>();
 
         // 匿名购物车：Redis 仓储 + 应用服务
         services.AddSingleton<IAnonymousCartRepository, RedisAnonymousCartRepository>();
