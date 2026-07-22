@@ -49,6 +49,13 @@ public sealed class ProductReadModel
     /// </summary>
     public IReadOnlyList<string> Currencies { get; init; } = Array.Empty<string>();
 
+    /// <summary>
+    /// SKU 嵌套文档列表。修复审计 #18：原读模型仅含 MinPrice/MaxPrice 价格区间，
+    /// 买家端商品详情页走 CQRS 读侧无法展示 SKU 选择器，读侧 vs 写侧信息丢失。
+    /// 现维护完整 SKU 列表，由 <see cref="ProductPublishedReadModelSyncConsumer"/> 投影填充。
+    /// </summary>
+    public IReadOnlyList<SkuReadModel> Skus { get; init; } = Array.Empty<SkuReadModel>();
+
     /// <summary>索引时间（UTC）。</summary>
     public DateTime IndexedAt { get; init; }
 

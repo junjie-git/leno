@@ -42,6 +42,22 @@ public sealed class ProductPublishedReadModelSyncConsumer : ReadModelSyncConsume
         // 修复审计 #15：维护完整币种集合而非仅取首个 SKU 币种或硬编码 "CNY"
         var currencies = spu.SKUs.Select(s => s.Price.Currency).Distinct().ToList();
         var currency = currencies.Count != 0 ? currencies[0] : "CNY";
+        // 修复审计 #18：投影完整 SKU 列表到嵌套文档，买家端详情页读侧可渲染 SKU 选择器
+        var skus = spu.SKUs.Select(s => new SkuReadModel
+        {
+            SkuId = s.Id,
+            SkuCode = s.SkuCode,
+            Price = s.Price.Amount,
+            Currency = s.Price.Currency,
+            StockQty = s.StockQty,
+            Status = s.Status.ToString(),
+            ImageUrl = s.ImageUrl,
+            SpecAttributes = s.SpecAttributes.Attributes.Select(a => new SkuSpecAttributeReadModel
+            {
+                Name = a.Name,
+                Value = a.Value
+            }).ToList()
+        }).ToList();
 
         var readModel = new ProductReadModel
         {
@@ -58,6 +74,7 @@ public sealed class ProductPublishedReadModelSyncConsumer : ReadModelSyncConsume
             MaxPrice = maxPrice,
             Currency = currency,
             Currencies = currencies,
+            Skus = skus,
             IndexedAt = DateTime.UtcNow
         };
 

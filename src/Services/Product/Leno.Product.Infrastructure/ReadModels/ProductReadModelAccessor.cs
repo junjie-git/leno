@@ -44,6 +44,22 @@ public sealed class ProductReadModelAccessor : IProductReadModelAccessor
             MinPrice = model.MinPrice,
             MaxPrice = model.MaxPrice,
             Currency = model.Currency,
+            // 修复审计 #18：映射 SKU 嵌套文档到读侧结果，供买家端详情页渲染 SKU 选择器
+            Skus = model.Skus.Select(s => new SkuDetailResult
+            {
+                SkuId = s.SkuId,
+                SkuCode = s.SkuCode,
+                Price = s.Price,
+                Currency = s.Currency,
+                StockQty = s.StockQty,
+                Status = s.Status,
+                ImageUrl = s.ImageUrl,
+                SpecAttributes = s.SpecAttributes.Select(a => new SkuSpecAttributeResult
+                {
+                    Name = a.Name,
+                    Value = a.Value
+                }).ToList()
+            }).ToList(),
             Score = model.Score,
             ReviewCount = model.ReviewCount,
             IndexedAt = model.IndexedAt
