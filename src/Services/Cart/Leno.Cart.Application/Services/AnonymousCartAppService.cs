@@ -44,8 +44,9 @@ public sealed class AnonymousCartAppService : IAnonymousCartAppService
     /// <inheritdoc />
     public async Task<CartDto> GetCartAsync(string sessionId, CancellationToken ct = default)
     {
+        // P2-8：读操作不刷新 TTL，避免攻击者定时 GET 让匿名购物车永久驻留；
+        // 仅写操作（Add/Update/Remove/Select/Preview）刷新 TTL，鼓励用户活跃操作。
         var cart = await GetOrCreateCartAsync(sessionId, ct);
-        await _cartRepository.RefreshTtlAsync(sessionId, ct);
         return await BuildCartDtoAsync(cart, ct);
     }
 
