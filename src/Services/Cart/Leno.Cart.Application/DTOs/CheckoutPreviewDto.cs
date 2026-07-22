@@ -24,11 +24,20 @@ public sealed class CheckoutPreviewDto
 {
     public IReadOnlyList<CheckoutGroupDto> Groups { get; init; } = Array.Empty<CheckoutGroupDto>();
 
-    /// <summary>合计金额。</summary>
+    /// <summary>
+    /// 合计金额。仅在单币种时填充；混币种时为 0，调用方按 <see cref="SubtotalsByCurrency"/> 展示。
+    /// </summary>
     public decimal TotalAmount { get; init; }
 
     public string Currency { get; init; } = "CNY";
 
     /// <summary>选中项总数。</summary>
     public int TotalCount { get; init; }
+
+    /// <summary>
+    /// 按币种分组的选中项小计（仅含价格可用项）。
+    /// 单币种时仅 1 个条目且与 <see cref="TotalAmount"/> 一致；
+    /// 混币种时多个条目，前端按此字段分别展示各币种金额。
+    /// </summary>
+    public IReadOnlyDictionary<string, decimal> SubtotalsByCurrency { get; init; } = new Dictionary<string, decimal>();
 }

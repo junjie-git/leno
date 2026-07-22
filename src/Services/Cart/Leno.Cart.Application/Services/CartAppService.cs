@@ -150,12 +150,31 @@ public sealed class CartAppService : ICartAppService
             throw new CartDomainException("部分商品价格加载失败，暂不可结算", "CART_PRICE_UNAVAILABLE");
         }
 
+        // P1-14：按币种分组聚合小计，混币种场景抛 CART_MIXED_CURRENCY 阻止结算，
+        // 前端依据异常提示用户拆单，并可通过 GetCartAsync 返回的 SubtotalsByCurrency 分别展示。
+        var subtotalsByCurrency = groups
+            .SelectMany(g => g.Items)
+            .GroupBy(i => i.Currency)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Subtotal));
+
+        if (subtotalsByCurrency.Count > 1)
+        {
+            throw new CartDomainException(
+                "选中项包含多种币种，暂不支持跨币种合并结算，请按币种拆分下单",
+                "CART_MIXED_CURRENCY");
+        }
+
+        var singleCurrency = subtotalsByCurrency.Count == 1
+            ? subtotalsByCurrency.Single()
+            : new KeyValuePair<string, decimal>("CNY", 0m);
+
         return new CheckoutPreviewDto
         {
             Groups = groups,
-            TotalAmount = groups.Sum(g => g.SubtotalAmount),
-            Currency = groups.FirstOrDefault()?.Currency ?? "CNY",
-            TotalCount = selectedItems.Sum(i => i.Quantity)
+            TotalAmount = singleCurrency.Value,
+            Currency = singleCurrency.Key,
+            TotalCount = selectedItems.Sum(i => i.Quantity),
+            SubtotalsByCurrency = subtotalsByCurrency
         };
     }
 
@@ -251,10 +270,28 @@ public sealed class CartAppService : ICartAppService
             .Select(i => BuildItemDto(i, priceMap, priceServiceUnavailable))
             .ToList();
 
-        // 选中项总金额仅累计价格可用项，避免把价格加载失败项以 0 元计入可结算金额
-        var selectedTotalAmount = itemDtos
+        // P1-14：按币种分组聚合选中且价格可用项的小计，避免混币种时把不同币种金额相加。
+        // 单币种时 SelectedTotalAmount 与 SubtotalsByCurrency 唯一条目一致；
+        // 混币种时 SelectedTotalAmount 置 0（前端按 SubtotalsByCurrency 分别展示），Currency 回退默认 CNY。
+        var subtotalsByCurrency = itemDtos
             .Where(i => i.IsSelected && !i.PriceUnavailable)
-            .Sum(i => i.Subtotal);
+            .GroupBy(i => i.Currency)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Subtotal));
+
+        decimal selectedTotalAmount;
+        string currency;
+        if (subtotalsByCurrency.Count == 1)
+        {
+            var single = subtotalsByCurrency.Single();
+            selectedTotalAmount = single.Value;
+            currency = single.Key;
+        }
+        else
+        {
+            // 0 种（无选中或全缺价）或多币种：SelectedTotalAmount 不再作为可结算依据
+            selectedTotalAmount = 0m;
+            currency = "CNY";
+        }
 
         return new CartDto
         {
@@ -262,8 +299,9 @@ public sealed class CartAppService : ICartAppService
             UserId = cart.UserId,
             Items = itemDtos,
             SelectedTotalAmount = selectedTotalAmount,
-            Currency = itemDtos.FirstOrDefault()?.Currency ?? "CNY",
-            TotalCount = itemDtos.Sum(i => i.Quantity)
+            Currency = currency,
+            TotalCount = itemDtos.Sum(i => i.Quantity),
+            SubtotalsByCurrency = subtotalsByCurrency
         };
     }
 

@@ -52,11 +52,20 @@ public sealed class CartDto
 
     public IReadOnlyList<CartItemDto> Items { get; init; } = Array.Empty<CartItemDto>();
 
-    /// <summary>选中项总金额。</summary>
+    /// <summary>
+    /// 选中项总金额。仅在单币种时填充；混币种时为 0，前端按 <see cref="SubtotalsByCurrency"/> 展示。
+    /// </summary>
     public decimal SelectedTotalAmount { get; init; }
 
     public string Currency { get; init; } = "CNY";
 
     /// <summary>购物车项总数。</summary>
     public int TotalCount { get; init; }
+
+    /// <summary>
+    /// 按币种分组的选中项小计（仅含价格可用项）。
+    /// 单币种时仅 1 个条目且与 <see cref="SelectedTotalAmount"/> 一致；
+    /// 混币种时多个条目，前端按此字段分别展示各币种金额。
+    /// </summary>
+    public IReadOnlyDictionary<string, decimal> SubtotalsByCurrency { get; init; } = new Dictionary<string, decimal>();
 }
