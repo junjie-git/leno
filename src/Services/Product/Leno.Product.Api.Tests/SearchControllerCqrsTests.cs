@@ -2,6 +2,7 @@ using Leno.Infrastructure.Abstractions.Cqrs;
 using Leno.Infrastructure.Auth;
 using Leno.Product.Application.DTOs;
 using Leno.Product.Application.Queries;
+using Leno.Product.Api.Controllers;
 using Leno.SharedContracts.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
