@@ -40,8 +40,14 @@ public sealed class ProductReadModel
     /// <summary>最高 SKU 价格（价格区间上界）。</summary>
     public decimal MaxPrice { get; init; }
 
-    /// <summary>币种（ISO 4217）。</summary>
+    /// <summary>币种（ISO 4217），取首个 SKU 币种作为默认展示，向后兼容。</summary>
     public string Currency { get; init; } = "CNY";
+
+    /// <summary>
+    /// 所有 SKU 的币种集合（去重）。修复审计 #15：原实现仅取首个 SKU 币种或硬编码 "CNY"，
+    /// 多币种店铺无法正确展示。现维护完整币种集合，支持跨境交易场景。
+    /// </summary>
+    public IReadOnlyList<string> Currencies { get; init; } = Array.Empty<string>();
 
     /// <summary>索引时间（UTC）。</summary>
     public DateTime IndexedAt { get; init; }

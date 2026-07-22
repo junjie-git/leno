@@ -39,7 +39,9 @@ public sealed class ProductPublishedReadModelSyncConsumer : ReadModelSyncConsume
         var prices = spu.SKUs.Select(s => s.Price.Amount).ToList();
         var minPrice = prices.Count != 0 ? prices.Min() : 0m;
         var maxPrice = prices.Count != 0 ? prices.Max() : 0m;
-        var currency = spu.SKUs.FirstOrDefault()?.Price.Currency ?? "CNY";
+        // 修复审计 #15：维护完整币种集合而非仅取首个 SKU 币种或硬编码 "CNY"
+        var currencies = spu.SKUs.Select(s => s.Price.Currency).Distinct().ToList();
+        var currency = currencies.Count != 0 ? currencies[0] : "CNY";
 
         var readModel = new ProductReadModel
         {
@@ -55,6 +57,7 @@ public sealed class ProductPublishedReadModelSyncConsumer : ReadModelSyncConsume
             MinPrice = minPrice,
             MaxPrice = maxPrice,
             Currency = currency,
+            Currencies = currencies,
             IndexedAt = DateTime.UtcNow
         };
 
