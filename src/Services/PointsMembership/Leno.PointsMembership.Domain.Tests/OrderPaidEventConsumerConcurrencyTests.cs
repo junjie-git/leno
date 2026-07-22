@@ -52,9 +52,9 @@ public sealed class OrderPaidEventConsumerConcurrencyTests
             .ThrowsAsync(new DbUpdateConcurrencyException("并发冲突"));
 
         var idempotencyMock = new Mock<IIdempotencyStore>();
-        idempotencyMock.Setup(s => s.IsProcessedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        idempotencyMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
-        idempotencyMock.Setup(s => s.MarkAsProcessedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        idempotencyMock.Setup(s => s.MarkAsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var consumer = new OrderPaidEventConsumer(
@@ -65,7 +65,16 @@ public sealed class OrderPaidEventConsumerConcurrencyTests
             NullLogger<OrderPaidEventConsumer>.Instance,
             idempotencyMock.Object);
 
-        var evt = new OrderPaidEvent(OrderId, UserId, DateTime.UtcNow, 100m);
+        var evt = new OrderPaidEvent(
+            orderId: OrderId,
+            userId: UserId,
+            sellerId: Guid.NewGuid(),
+            paymentId: Guid.NewGuid(),
+            channel: "alipay",
+            paidAt: DateTime.UtcNow,
+            tradeNo: "TRADE001",
+            amount: 100m,
+            currency: "CNY");
 
         // 不应抛出 DbUpdateConcurrencyException，应被捕获
         await InvokeHandleAsync(consumer, evt);
