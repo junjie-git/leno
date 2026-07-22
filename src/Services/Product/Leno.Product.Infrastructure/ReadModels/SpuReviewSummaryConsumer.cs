@@ -49,10 +49,12 @@ public sealed class SpuReviewSubmittedSummaryConsumer : IntegrationEventConsumer
             return;
         }
 
-        // 加权平均增量更新：((Score * Count) + Rating) / (Count + 1)
-        var totalScore = existing.Score * existing.ReviewCount + integrationEvent.Rating;
+        // 修复审计 #9：原实现 (Score * Count + Rating) / (Count + 1) 每次回写 Math.Round(Score, 2)，
+        // 加权累计值不等于真实总评分，千次评价后漂移 ±0.05。
+        // 现维护原始累计 TotalScore，增量时 TotalScore += Rating，展示时 Score = Round(TotalScore / Count, 2)。
+        existing.TotalScore += integrationEvent.Rating;
         existing.ReviewCount += 1;
-        existing.Score = Math.Round(totalScore / existing.ReviewCount, 2);
+        existing.Score = Math.Round(existing.TotalScore / existing.ReviewCount, 2);
         existing.ScoreUpdatedAt = DateTime.UtcNow;
 
         var success = await _repository.IndexAsync(
@@ -120,14 +122,17 @@ public sealed class SpuReviewHiddenSummaryConsumer : IntegrationEventConsumerBas
 
         if (existing.ReviewCount == 1)
         {
+            // 修复审计 #9：同步重置 TotalScore，与 ReviewCount=0 保持一致
+            existing.TotalScore = 0;
             existing.Score = 0;
             existing.ReviewCount = 0;
         }
         else
         {
-            var totalScore = existing.Score * existing.ReviewCount - integrationEvent.Rating;
+            // 修复审计 #9：使用原始累计 TotalScore 减去 Rating，消除回写 round 导致的漂移
+            existing.TotalScore -= integrationEvent.Rating;
             existing.ReviewCount -= 1;
-            existing.Score = Math.Round(totalScore / existing.ReviewCount, 2);
+            existing.Score = Math.Round(existing.TotalScore / existing.ReviewCount, 2);
         }
 
         existing.ScoreUpdatedAt = DateTime.UtcNow;

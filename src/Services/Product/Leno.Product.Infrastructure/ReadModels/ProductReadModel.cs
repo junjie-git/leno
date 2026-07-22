@@ -49,6 +49,13 @@ public sealed class ProductReadModel
     /// <summary>当前加权平均评分（基于所有可见评价计算），由评价评分消费者增量维护。</summary>
     public double Score { get; set; }
 
+    /// <summary>
+    /// 累计原始总评分（未 round），由评价评分消费者增量维护。
+    /// 修复审计 #9：原实现每次增量后 Math.Round(Score, 2) 存回，千次评价后浮点漂移 ±0.05。
+    /// 现维护原始累计值，展示时按 TotalScore / ReviewCount 计算 Score，消除漂移。
+    /// </summary>
+    public double TotalScore { get; set; }
+
     /// <summary>可见评价总数，由评价评分消费者增量维护。</summary>
     public int ReviewCount { get; set; }
 
