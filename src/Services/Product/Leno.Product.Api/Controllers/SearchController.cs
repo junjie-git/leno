@@ -1,6 +1,7 @@
+using Leno.Infrastructure.Abstractions.Cqrs;
 using Leno.Infrastructure.Auth;
-using Leno.Product.Application;
 using Leno.Product.Application.DTOs;
+using Leno.Product.Application.Queries;
 using Leno.SharedContracts.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,32 +17,41 @@ namespace Leno.Product.Api.Controllers;
 [Route("api/products/search")]
 public sealed class SearchController : ProductControllerBase
 {
-    private readonly IProductSearchService _searchService;
+    private readonly IQueryHandler<ProductSearchQuery, ProductSearchResult> _queryHandler;
 
-    public SearchController(ICurrentUserContext currentUser, IProductSearchService searchService)
+    public SearchController(
+        ICurrentUserContext currentUser,
+        IQueryHandler<ProductSearchQuery, ProductSearchResult> queryHandler)
         : base(currentUser)
     {
-        ArgumentNullException.ThrowIfNull(searchService);
-        _searchService = searchService;
+        ArgumentNullException.ThrowIfNull(queryHandler);
+        _queryHandler = queryHandler;
     }
 
     /// <summary>
     /// 全文搜索在售商品，支持关键词、分类、品牌、价格区间过滤与排序分页。
+    /// 修复审计 #17：原实现绕过 CQRS QueryHandler 直接调用 IProductSearchService，
+    /// 现统一经由 <see cref="IQueryHandler{TQuery, TResult}"/> 读侧入口，保持 CQRS 职责分层一致。
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<PageResult<ProductSearchResultDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ProductSearchResult>), StatusCodes.Status200OK)]
     public async Task<IActionResult> SearchAsync([FromQuery] ProductSearchQueryDto query, CancellationToken ct)
     {
-        var result = await _searchService.SearchAsync(
-            keyword: query.Keyword,
-            categoryId: query.CategoryId,
-            brandId: query.BrandId,
-            minPrice: query.MinPrice,
-            maxPrice: query.MaxPrice,
-            sort: query.Sort,
-            page: query.Page,
-            pageSize: query.PageSize,
-            ct);
+        // ProductSearchQueryDto.Page 从 1 起；ProductSearchQuery.PageIndex 从 0 起，需做转换。
+        var pageIndex = query.Page < 1 ? 0 : query.Page - 1;
+        var cqrsQuery = new ProductSearchQuery
+        {
+            Keyword = query.Keyword,
+            CategoryId = query.CategoryId,
+            BrandId = query.BrandId,
+            MinPrice = query.MinPrice,
+            MaxPrice = query.MaxPrice,
+            SortBy = query.Sort,
+            PageIndex = pageIndex,
+            PageSize = query.PageSize
+        };
+
+        var result = await _queryHandler.HandleAsync(cqrsQuery, ct);
         return Ok(ApiResponse.Success(result));
     }
 }
