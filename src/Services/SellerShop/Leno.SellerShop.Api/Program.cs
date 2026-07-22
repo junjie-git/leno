@@ -6,6 +6,7 @@ using Leno.Infrastructure.Telemetry;
 using Leno.SellerShop.Api.GrpcServices;
 using Leno.SellerShop.Infrastructure;
 using Leno.SellerShop.Infrastructure.Dependencies;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,5 +50,32 @@ if (builder.Configuration.GetValue<bool>("AntiCorruption:UseGrpc"))
 }
 
 // 启动时执行 EF Core 迁移（带 Redis 分布式锁，避免多实例并发冲突）
-await app.Services.MigrateWithLockAsync<SellerShopDbContext>();
+// P2-17: 增加 Redis 不可用降级与 30 秒启动超时，避免 Redis 故障阻塞启动
+var migrateLogger = app.Services.GetRequiredService<ILogger<Program>>();
+using var migrateCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+try
+{
+    await app.Services.MigrateWithLockAsync<SellerShopDbContext>(ct: migrateCts.Token);
+}
+catch (Exception ex) when (IsRedisUnavailable(ex))
+{
+    migrateLogger.LogError(ex, "Redis 分布式锁不可用，降级为无锁迁移（依赖 DB 自身的迁移锁）");
+    using var fallbackScope = app.Services.CreateScope();
+    var fallbackDb = fallbackScope.ServiceProvider.GetRequiredService<SellerShopDbContext>();
+    await fallbackDb.Database.MigrateAsync(migrateCts.Token);
+}
+catch (OperationCanceledException) when (migrateCts.IsCancellationRequested)
+{
+    migrateLogger.LogCritical("数据库迁移超时（30 秒），退出启动让 K8s 重启");
+    throw;
+}
+
 app.Run();
+
+static bool IsRedisUnavailable(Exception ex)
+{
+    return ex.GetType().FullName?.Contains("RedisConnectionException", StringComparison.OrdinalIgnoreCase) == true
+        || ex is System.Net.Sockets.SocketException
+        || ex.Message.Contains("redis", StringComparison.OrdinalIgnoreCase)
+        || ex.Message.Contains("Connection refused", StringComparison.OrdinalIgnoreCase);
+}
