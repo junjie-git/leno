@@ -1,39 +1,44 @@
 using Leno.Payment.Domain.Repositories;
 using Leno.Payment.Domain.ValueObjects;
 using Leno.Payment.Infrastructure.Channels;
+using Leno.Payment.Infrastructure.Config;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using PaymentOrderAggregate = Leno.Payment.Domain.Aggregates.PaymentOrder;
 
 namespace Leno.Payment.Infrastructure.Jobs;
 
 /// <summary>
 /// 支付状态补偿任务，定期查询长时间停留在待支付/渠道已下单态的支付单。
-/// 超过 5 分钟仍未收到异步通知的支付单主动调用渠道查询接口，若已支付则标记成功。
+/// 超过 <see cref="PaymentJobOptions.ThresholdMinutes"/> 分钟仍未收到异步通知的支付单主动调用渠道查询接口，若已支付则标记成功。
 /// 同时对 <see cref="PaymentOrderAggregate.ExpireAt"/> 已过期的支付单主动调用 <see cref="PaymentOrderAggregate.MarkClosed"/>
 /// 关单，避免过期支付单堆积并被反复查询渠道。
 /// 由宿主（如 BackgroundService / Hangfire）定时调用 <see cref="ExecuteAsync"/>。
+/// 扫描阈值与批次大小通过 <see cref="PaymentJobOptions"/>（绑定 appsettings 中 <c>Payment:Jobs</c> 节）配置；
+/// 未提供配置时回退到默认值（ThresholdMinutes=5，BatchSize=100），与原硬编码常量保持一致。
 /// </summary>
 public sealed class PaymentStatusCheckJob
 {
-    private const int ThresholdMinutes = 5;
-    private const int BatchSize = 100;
-
     private readonly IPaymentOrderRepository _paymentOrderRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPaymentChannelFactory _channelFactory;
     private readonly ILogger<PaymentStatusCheckJob> _logger;
+    private readonly PaymentJobOptions _jobOptions;
 
     public PaymentStatusCheckJob(
         IPaymentOrderRepository paymentOrderRepository,
         IUnitOfWork unitOfWork,
         IPaymentChannelFactory channelFactory,
-        ILogger<PaymentStatusCheckJob> logger)
+        ILogger<PaymentStatusCheckJob> logger,
+        IOptions<PaymentJobOptions>? options = null)
     {
         _paymentOrderRepository = paymentOrderRepository ?? throw new ArgumentNullException(nameof(paymentOrderRepository));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _channelFactory = channelFactory ?? throw new ArgumentNullException(nameof(channelFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        // DI 注册了 IOptions<PaymentJobOptions> 时注入配置值；直接构造（如单元测试）未传 options 时回退到默认值。
+        _jobOptions = options?.Value ?? new PaymentJobOptions();
     }
 
     /// <summary>
@@ -42,13 +47,13 @@ public sealed class PaymentStatusCheckJob
     /// <param name="ct">取消令牌。</param>
     public async Task ExecuteAsync(CancellationToken ct = default)
     {
-        var threshold = DateTime.UtcNow.AddMinutes(-ThresholdMinutes);
+        var threshold = DateTime.UtcNow.AddMinutes(-_jobOptions.ThresholdMinutes);
 
         var pendingOrders = await _paymentOrderRepository.QueryAsync(
-            null, null, PaymentStatus.Pending, null, threshold, 1, BatchSize, ct);
+            null, null, PaymentStatus.Pending, null, threshold, 1, _jobOptions.BatchSize, ct);
 
         var channelOrderedOrders = await _paymentOrderRepository.QueryAsync(
-            null, null, PaymentStatus.ChannelOrdered, null, threshold, 1, BatchSize, ct);
+            null, null, PaymentStatus.ChannelOrdered, null, threshold, 1, _jobOptions.BatchSize, ct);
 
         _logger.LogInformation("支付状态补偿：待查支付单 {PendingCount} 笔（待支付）+ {ChannelOrderedCount} 笔（渠道已下单）",
             pendingOrders.Count, channelOrderedOrders.Count);
@@ -80,7 +85,7 @@ public sealed class PaymentStatusCheckJob
         while (true)
         {
             var expiredOrders = await _paymentOrderRepository.GetExpiredOrdersAsync(
-                now, page, BatchSize, ct);
+                now, page, _jobOptions.BatchSize, ct);
 
             if (expiredOrders.Count == 0)
             {
@@ -104,7 +109,7 @@ public sealed class PaymentStatusCheckJob
 
             await _unitOfWork.SaveEntitiesAsync(ct);
 
-            if (expiredOrders.Count < BatchSize)
+            if (expiredOrders.Count < _jobOptions.BatchSize)
             {
                 break;
             }

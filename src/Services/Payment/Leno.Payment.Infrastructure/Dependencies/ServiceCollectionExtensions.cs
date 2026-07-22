@@ -58,6 +58,8 @@ public static class ServiceCollectionExtensions
         services.Configure<PaymentChannelOptions>(configuration.GetSection("Payment:Channels"));
         services.Configure<AlipayOptions>(configuration.GetSection("Payment:Alipay"));
         services.Configure<WeChatPayOptions>(configuration.GetSection("Payment:WeChatPayV3"));
+        // 补偿任务配置（P2-20）：绑定 Payment:Jobs 节，允许按环境调整 ThresholdMinutes/BatchSize
+        services.Configure<PaymentJobOptions>(configuration.GetSection("Payment:Jobs"));
         services.AddSingleton<IChannelConfigProvider, ChannelConfigProvider>();
 
         // 渠道 HTTP 客户端（通过 IHttpClientFactory 注入 HttpClient）
