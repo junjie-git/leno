@@ -86,7 +86,7 @@ public class MemberReadModelSyncConsumerTests
             NullLogger<MemberLevelUpgradedReadModelSyncConsumer>.Instance);
 
         var upgradedAt = DateTime.UtcNow;
-        var evt = new MemberLevelUpgradedEvent(memberId, newLevel: 3, upgradedAt);
+        var evt = new MemberLevelUpgradedIntegrationEvent(memberId, newLevel: 3, upgradedAt);
 
         // Act
         await consumer.Consume(CreateConsumeContext(evt));
@@ -132,7 +132,7 @@ public class MemberReadModelSyncConsumerTests
             memberRepoMock.Object,
             NullLogger<MemberLevelUpgradedReadModelSyncConsumer>.Instance);
 
-        var evt = new MemberLevelUpgradedEvent(memberId, newLevel: 3, DateTime.UtcNow);
+        var evt = new MemberLevelUpgradedIntegrationEvent(memberId, newLevel: 3, DateTime.UtcNow);
 
         // Act
         await consumer.Consume(CreateConsumeContext(evt));

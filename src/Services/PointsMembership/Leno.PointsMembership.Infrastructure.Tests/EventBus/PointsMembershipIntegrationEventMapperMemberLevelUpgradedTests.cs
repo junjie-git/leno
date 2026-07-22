@@ -6,9 +6,10 @@ namespace Leno.PointsMembership.Infrastructure.Tests.EventBus;
 /// <summary>
 /// 验证 <see cref="PointsMembershipIntegrationEventMapper"/> 将领域事件版
 /// <see cref="Leno.PointsMembership.Domain.Events.MemberLevelUpgradedEvent"/> 翻译为集成事件版
-/// <see cref="Leno.SharedContracts.Events.MemberLevelUpgradedEvent"/>（含 MemberId），
+/// <see cref="Leno.SharedContracts.Events.MemberLevelUpgradedIntegrationEvent"/>（含 MemberId），
 /// 供 <c>MemberLevelUpgradedReadModelSyncConsumer</c> 重建 ES 读模型。
-/// 关联审计 PM-M05：原映射到 <c>MemberLevelChangedIntegrationEvent</c> 导致读模型同步消费者订阅不到事件。
+/// 关联审计 PM-M05 + D1.3：原映射到 <c>MemberLevelChangedIntegrationEvent</c> 导致读模型同步消费者订阅不到事件；
+/// D1.3 将集成事件重命名为 <c>MemberLevelUpgradedIntegrationEvent</c> 消除与领域事件同名混淆。
 /// </summary>
 public sealed class PointsMembershipIntegrationEventMapperMemberLevelUpgradedTests
 {
@@ -26,10 +27,10 @@ public sealed class PointsMembershipIntegrationEventMapperMemberLevelUpgradedTes
         // Act
         var integrationEvent = mapper.Map(domainEvent);
 
-        // Assert：翻译结果必须是集成事件版 MemberLevelUpgradedEvent（非 MemberLevelChangedIntegrationEvent）
+        // Assert：翻译结果必须是集成事件版 MemberLevelUpgradedIntegrationEvent（非 MemberLevelChangedIntegrationEvent）
         integrationEvent.Should().NotBeNull();
-        integrationEvent.Should().BeOfType<Leno.SharedContracts.Events.MemberLevelUpgradedEvent>();
-        var upgraded = (Leno.SharedContracts.Events.MemberLevelUpgradedEvent)integrationEvent!;
+        integrationEvent.Should().BeOfType<Leno.SharedContracts.Events.MemberLevelUpgradedIntegrationEvent>();
+        var upgraded = (Leno.SharedContracts.Events.MemberLevelUpgradedIntegrationEvent)integrationEvent!;
         upgraded.MemberId.Should().Be(memberId);
         upgraded.NewLevel.Should().Be(3);
         upgraded.UpgradedAt.Should().Be(upgradedAt);
@@ -71,9 +72,9 @@ public sealed class PointsMembershipIntegrationEventMapperMemberLevelUpgradedTes
         var evt2 = mapper.Map(domainEvent2);
 
         // Assert
-        evt1.Should().BeOfType<Leno.SharedContracts.Events.MemberLevelUpgradedEvent>();
-        evt2.Should().BeOfType<Leno.SharedContracts.Events.MemberLevelUpgradedEvent>();
-        ((Leno.SharedContracts.Events.MemberLevelUpgradedEvent)evt1!).MemberId.Should().Be(memberId1);
-        ((Leno.SharedContracts.Events.MemberLevelUpgradedEvent)evt2!).MemberId.Should().Be(memberId2);
+        evt1.Should().BeOfType<Leno.SharedContracts.Events.MemberLevelUpgradedIntegrationEvent>();
+        evt2.Should().BeOfType<Leno.SharedContracts.Events.MemberLevelUpgradedIntegrationEvent>();
+        ((Leno.SharedContracts.Events.MemberLevelUpgradedIntegrationEvent)evt1!).MemberId.Should().Be(memberId1);
+        ((Leno.SharedContracts.Events.MemberLevelUpgradedIntegrationEvent)evt2!).MemberId.Should().Be(memberId2);
     }
 }

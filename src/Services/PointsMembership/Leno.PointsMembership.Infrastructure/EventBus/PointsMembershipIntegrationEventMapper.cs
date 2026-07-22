@@ -9,8 +9,9 @@ namespace Leno.PointsMembership.Infrastructure.EventBus;
 /// PointsMembership BC 领域事件到集成事件的翻译器。
 /// 将积分账户与会员聚合收集的领域事件翻译为 SharedContracts 中的集成事件对外发布。
 /// PointsReleasedEvent/PointsFrozenEvent/PointsExpiredEvent/PointsConfirmedEvent 当前无跨上下文消费方，仅本上下文内消费，不在此注册翻译。
-/// 注意：Leno.PointsMembership.Domain.Events.MemberLevelUpgradedEvent 与 Leno.SharedContracts.Events.MemberLevelUpgradedEvent
-/// 同名（前者为领域事件、后者为读模型同步专用集成事件）。本翻译器引用领域事件版本，故使用别名 DomainMemberLevelUpgradedEvent 消歧。
+/// D1.3：集成事件 MemberLevelUpgradedEvent 已重命名为 MemberLevelUpgradedIntegrationEvent，
+/// 消除与领域事件 Leno.PointsMembership.Domain.Events.MemberLevelUpgradedEvent 同名混淆。
+/// 本翻译器引用领域事件版本，使用别名 DomainMemberLevelUpgradedEvent 消歧。
 /// </summary>
 public class PointsMembershipIntegrationEventMapper : IntegrationEventMapperBase
 {
@@ -32,11 +33,11 @@ public class PointsMembershipIntegrationEventMapper : IntegrationEventMapperBase
         RegisterHandler<MemberLevelChangedEvent, MemberLevelChangedIntegrationEvent>(e =>
             new MemberLevelChangedIntegrationEvent(e.UserId, e.OldLevel, e.NewLevel, e.GrowthValue));
 
-        // PM-M05 修复：DomainMemberLevelUpgradedEvent → MemberLevelUpgradedEvent（集成事件版，会员等级升级读模型同步）
+        // PM-M05 修复 + D1.3：DomainMemberLevelUpgradedEvent → MemberLevelUpgradedIntegrationEvent
         // 原先映射到 MemberLevelChangedIntegrationEvent 导致 MemberLevelUpgradedReadModelSyncConsumer 订阅的事件永不抵达
-        // 现在翻译为集成事件版 MemberLevelUpgradedEvent（含 MemberId），读模型同步消费者正常触发
-        RegisterHandler<DomainMemberLevelUpgradedEvent, MemberLevelUpgradedEvent>(e =>
-            new MemberLevelUpgradedEvent(e.MemberId, e.NewLevel, e.UpgradedAt));
+        // D1.3 将集成事件重命名为 MemberLevelUpgradedIntegrationEvent 消除与领域事件同名混淆
+        RegisterHandler<DomainMemberLevelUpgradedEvent, MemberLevelUpgradedIntegrationEvent>(e =>
+            new MemberLevelUpgradedIntegrationEvent(e.MemberId, e.NewLevel, e.UpgradedAt));
 
         // MembershipActivatedEvent → PaidMemberSubscribedIntegrationEvent（消息通知域会员开通通知）
         RegisterHandler<MembershipActivatedEvent, PaidMemberSubscribedIntegrationEvent>(e =>

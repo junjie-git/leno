@@ -292,7 +292,7 @@ public sealed class MemberRegisteredEvent : IntegrationEventBase
 /// 消费方：积分与会员域读模型同步（按最新聚合根重建 ES leno_members 文档，触发 IndexAsync 而非删除）。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class MemberLevelUpgradedEvent : IntegrationEventBase
+public sealed class MemberLevelUpgradedIntegrationEvent : IntegrationEventBase
 {
     /// <summary>会员标识。</summary>
     public Guid MemberId { get; init; }
@@ -307,15 +307,30 @@ public sealed class MemberLevelUpgradedEvent : IntegrationEventBase
     public Guid AggregateId => MemberId;
 
     /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
-    public MemberLevelUpgradedEvent() : base()
+    public MemberLevelUpgradedIntegrationEvent() : base()
     {
     }
 
-    public MemberLevelUpgradedEvent(Guid memberId, int newLevel, DateTime upgradedAt)
+    public MemberLevelUpgradedIntegrationEvent(Guid memberId, int newLevel, DateTime upgradedAt)
         : base()
     {
         MemberId = memberId;
         NewLevel = newLevel;
         UpgradedAt = upgradedAt;
     }
+}
+
+/// <summary>
+/// 已弃用：请使用 <see cref="MemberLevelUpgradedIntegrationEvent"/>。
+/// 保留此类名仅为向后兼容，D1.3 修复后重命名消除与领域事件
+/// <c>Leno.PointsMembership.Domain.Events.MemberLevelUpgradedEvent</c> 同名混淆。
+/// 将于 2026-10-01 移除。
+/// </summary>
+[Obsolete("Use MemberLevelUpgradedIntegrationEvent instead. 将于 2026-10-01 移除。", DiagnosticId = "LENO_PM010")]
+public sealed class MemberLevelUpgradedEvent : MemberLevelUpgradedIntegrationEvent
+{
+    public MemberLevelUpgradedEvent() : base() { }
+
+    public MemberLevelUpgradedEvent(Guid memberId, int newLevel, DateTime upgradedAt)
+        : base(memberId, newLevel, upgradedAt) { }
 }

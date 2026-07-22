@@ -5,9 +5,10 @@ namespace Leno.PointsMembership.Domain.Events;
 /// <summary>
 /// 会员等级升级领域事件，会员累计消费达门槛触发升级时发布。
 /// 经发件箱模式在同一事务内持久化，由 IntegrationEventMapper 翻译为集成事件版
-/// <see cref="Leno.SharedContracts.Events.MemberLevelUpgradedEvent"/> 对外发布，
+/// <see cref="Leno.SharedContracts.Events.MemberLevelUpgradedIntegrationEvent"/> 对外发布，
 /// 供 <c>MemberLevelUpgradedReadModelSyncConsumer</c> 重建 ES 读模型。
 /// PM-M05 修复：新增 MemberId 字段，供 mapper 填充集成事件的 MemberId。
+/// D1.3：集成事件已重命名为 MemberLevelUpgradedIntegrationEvent，消除与本领域事件同名混淆。
 /// </summary>
 public sealed class MemberLevelUpgradedEvent : DomainEventBase
 {

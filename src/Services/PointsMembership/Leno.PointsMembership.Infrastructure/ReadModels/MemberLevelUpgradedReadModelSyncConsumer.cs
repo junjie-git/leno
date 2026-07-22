@@ -6,14 +6,14 @@ using Microsoft.Extensions.Logging;
 namespace Leno.PointsMembership.Infrastructure.ReadModels;
 
 /// <summary>
-/// 会员等级升级读模型同步消费者：消费 <see cref="MemberLevelUpgradedEvent"/>，
+/// 会员等级升级读模型同步消费者：消费 <see cref="MemberLevelUpgradedIntegrationEvent"/>，
 /// 注入 <see cref="IMemberRepository"/> 查询最新会员聚合根，重建 <see cref="MemberReadModel"/>
 /// 并通过 IndexAsync 覆盖更新到 Elasticsearch（不删除）。
 /// 索引失败抛出异常以触发 MassTransit 重试与死信队列；聚合根不存在时跳过同步。
 /// 幂等：ES 索引以会员标识为 _id，重复索引为覆盖更新。
 /// </summary>
 public sealed class MemberLevelUpgradedReadModelSyncConsumer
-    : ReadModelSyncConsumerBase<MemberLevelUpgradedEvent, MemberReadModel>
+    : ReadModelSyncConsumerBase<MemberLevelUpgradedIntegrationEvent, MemberReadModel>
 {
     private readonly IMemberRepository _memberRepository;
 
@@ -29,7 +29,7 @@ public sealed class MemberLevelUpgradedReadModelSyncConsumer
     /// <inheritdoc />
     /// <remarks>等级升级事件触发索引重建（按最新聚合根快照），不触发删除。</remarks>
     protected override async Task<(string Id, string IndexName, MemberReadModel? ReadModel)> BuildReadModelAsync(
-        MemberLevelUpgradedEvent integrationEvent, CancellationToken ct)
+        MemberLevelUpgradedIntegrationEvent integrationEvent, CancellationToken ct)
     {
         var member = await _memberRepository.GetByIdAsync(integrationEvent.MemberId, ct);
         if (member is null)
@@ -59,6 +59,6 @@ public sealed class MemberLevelUpgradedReadModelSyncConsumer
     /// <inheritdoc />
     /// <remarks>等级升级事件仅触发索引重建，不删除读模型。</remarks>
     protected override Task<(string Id, string IndexName)?> BuildDeleteActionAsync(
-        MemberLevelUpgradedEvent integrationEvent, CancellationToken ct)
+        MemberLevelUpgradedIntegrationEvent integrationEvent, CancellationToken ct)
         => Task.FromResult<(string, string)?>(null);
 }
