@@ -76,6 +76,33 @@ public sealed class RedisAnonymousCartRepository : IAnonymousCartRepository
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// P2-10：使用 Redis <c>SET NX</c>（<see cref="When.NotExists"/>）原子创建，
+    /// 仅当 Key 不存在时写入。并发场景下两个请求同时遇 <c>GetAsync</c> 返回 null，
+    /// 仅一个 <c>TrySaveAsync</c> 返回 <c>true</c>，另一个返回 <c>false</c> 后由调用方重新 <see cref="GetAsync"/> 读取。
+    /// </remarks>
+    public async Task<bool> TrySaveAsync(string sessionId, CartAggregate cart, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+        ArgumentNullException.ThrowIfNull(cart);
+        try
+        {
+            // 与 SaveAsync 对齐：序列化前清理领域事件
+            cart.ClearDomainEvents();
+            var db = _redis.GetDatabase();
+            var key = BuildKey(sessionId);
+            var value = JsonSerializer.Serialize(cart, JsonOptions);
+            // SET NX：仅当 Key 不存在时写入，原子操作避免并发覆盖
+            return await db.StringSetAsync(key, value, Ttl, When.NotExists);
+        }
+        catch (Exception ex) when (ex is not CartInfrastructureException)
+        {
+            _logger.LogError(ex, "原子创建匿名购物车失败 SessionId={SessionId}", sessionId);
+            throw new CartInfrastructureException("匿名购物车暂不可用", ex, "CART_REDIS_UNAVAILABLE");
+        }
+    }
+
+    /// <inheritdoc />
     public async Task RemoveAsync(string sessionId, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);

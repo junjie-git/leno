@@ -166,8 +166,20 @@ public sealed class AnonymousCartAppService : IAnonymousCartAppService
         var cart = await _cartRepository.GetAsync(sessionId, ct);
         if (cart is null)
         {
+            // P2-10：使用 Redis SET NX 原子创建，避免并发请求同时遇 null 都创建并覆盖后者丢失。
+            // TrySaveAsync 返回 false 表示并发请求已创建，重新读取已存在的购物车。
             cart = CartAggregate.CreateAnonymous(Guid.NewGuid());
-            await _cartRepository.SaveAsync(sessionId, cart, ct);
+            var created = await _cartRepository.TrySaveAsync(sessionId, cart, ct);
+            if (!created)
+            {
+                // 并发请求已写入，重新读取以获取已存在的购物车
+                var existing = await _cartRepository.GetAsync(sessionId, ct);
+                if (existing is not null)
+                {
+                    cart = existing;
+                }
+                // 极端情况：并发删除后仍为 null，回退使用本次创建的空购物车（无业务损失）
+            }
         }
 
         return cart;
