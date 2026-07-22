@@ -61,7 +61,7 @@ public class CartSkuIndexServiceTests
     {
         _dbMock
             .Setup(d => d.SetAddAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(1);
+            .ReturnsAsync(true);
         _dbMock
             .Setup(d => d.KeyExpireAsync(It.IsAny<RedisKey>(), It.IsAny<TimeSpan?>(), It.IsAny<CommandFlags>()))
             .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.SocketFailure, "redis down"));
