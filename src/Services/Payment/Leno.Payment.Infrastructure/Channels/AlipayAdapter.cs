@@ -186,11 +186,18 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
             amount = totalAmount;
         }
 
+        // P1-15：退款通知时，OutTradeNo 语义重载为商户退款单号（out_request_no），
+        // 供 Handler 通过 OutRefundNo 查找退款单；ChannelTradeNo 在退款通知中为退款交易号（trade_no）。
+        // 支付通知保持原语义：OutTradeNo = out_trade_no，ChannelTradeNo = trade_no（支付交易号）。
+        var outTradeNoForResult = isRefund
+            ? outRequestNo
+            : GetField(dict, "out_trade_no");
+
         return new ChannelNotifyResult
         {
             Verified = verified,
             OrderId = Guid.Empty,
-            OutTradeNo = GetField(dict, "out_trade_no"),
+            OutTradeNo = outTradeNoForResult,
             ChannelTradeNo = GetField(dict, "trade_no"),
             IsPaid = isPaid,
             PaidAt = ParseAlipayTime(GetField(dict, "gmt_payment")),

@@ -77,7 +77,7 @@ public sealed class AlipayNotifyHandler
 
             if (result.IsRefund)
             {
-                return await HandleRefundNotifyAsync(formFields);
+                return await HandleRefundNotifyAsync(result);
             }
 
             _logger.LogInformation("支付宝通知：非支付/退款通知，忽略");
@@ -137,9 +137,11 @@ public sealed class AlipayNotifyHandler
         return "success";
     }
 
-    private async Task<string> HandleRefundNotifyAsync(Dictionary<string, string> fields)
+    private async Task<string> HandleRefundNotifyAsync(ChannelNotifyResult result)
     {
-        var outRefundNo = GetField(fields, "out_request_no");
+        // P1-15：VerifyNotifyAsync 已将 out_request_no 映射到 OutTradeNo（退款上下文），
+        // trade_no 映射到 ChannelTradeNo（退款交易号）。直接使用 result 字段，不再重复解析表单。
+        var outRefundNo = result.OutTradeNo ?? string.Empty;
         var refund = await _refundOrderRepository.GetByOutRefundNoAsync(outRefundNo);
         if (refund is null)
         {
@@ -160,7 +162,9 @@ public sealed class AlipayNotifyHandler
             return "success";
         }
 
-        var channelRefundNo = GetField(fields, "trade_no");
+        // trade_no 在退款通知中为退款交易号（渠道退款单号），由 VerifyNotifyAsync 映射到 ChannelTradeNo。
+        // 若渠道未返回（理论不应发生），回退到商户退款单号保证不抛 REFUND_CHANNEL_NO_EMPTY。
+        var channelRefundNo = result.ChannelTradeNo;
         if (string.IsNullOrEmpty(channelRefundNo))
         {
             channelRefundNo = refund.OutRefundNo;
