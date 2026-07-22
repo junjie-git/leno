@@ -20,9 +20,8 @@ public sealed class InternalPaymentsController : ControllerBase
     }
 
     /// <summary>按订单标识查询支付单概要信息（内部接口）。</summary>
+    // P2-18：移除旧路由 internal/payments/{orderId}/info 与 [Obsolete] 标注，双路由过渡期已结束，统一使用 v1 路由。
     [HttpGet("internal/v1/payments/{orderId:guid}/info")]
-    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
-    [HttpGet("internal/payments/{orderId:guid}/info")]
     [ProducesResponseType(typeof(ApiResponse<PaymentInfoResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPaymentInfoAsync(Guid orderId, CancellationToken ct)

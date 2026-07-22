@@ -298,7 +298,7 @@ public class PaymentApiTests : IClassFixture<WebApplicationFactory<Program>>
         _internalQueryServiceMock.Setup(s => s.GetPaymentInfoByOrderIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(dto);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/internal/payments/{OrderId}/info");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/internal/v1/payments/{OrderId}/info");
         request.Headers.Add("X-Internal-Key", TestInternalKey);
 
         var response = await _client.SendAsync(request);
@@ -315,7 +315,7 @@ public class PaymentApiTests : IClassFixture<WebApplicationFactory<Program>>
         _internalQueryServiceMock.Setup(s => s.GetPaymentInfoByOrderIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PaymentInfoResultDto?)null);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/internal/payments/{OrderId}/info");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/internal/v1/payments/{OrderId}/info");
         request.Headers.Add("X-Internal-Key", TestInternalKey);
 
         var response = await _client.SendAsync(request);
