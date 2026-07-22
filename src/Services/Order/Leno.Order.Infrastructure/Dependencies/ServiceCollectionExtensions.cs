@@ -259,6 +259,10 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configurator);
 
         configurator.AddConsumer<PaymentSucceededEventConsumer>();
+        // T4：库存确认与积分确认拆分为独立消费者，与订单状态变更隔离，
+        // 通过独立队列 + 独立幂等键（stock-confirm-/points-confirm-{PaymentId}）实现任一失败不影响其他
+        configurator.AddConsumer<StockConfirmConsumer>();
+        configurator.AddConsumer<PointsConfirmConsumer>();
         configurator.AddConsumer<PaymentFailedEventConsumer>();
         configurator.AddConsumer<OrderTimeoutDelayMessageConsumer>();
         configurator.AddConsumer<AfterSalesWindowConsumer>();

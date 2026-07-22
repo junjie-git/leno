@@ -44,7 +44,7 @@ public static class ErrorCodeMapping
         ArgumentException.ThrowIfNullOrWhiteSpace(errorCode);
         _explicit.Set(errorCode, statusCode, new MemoryCacheEntryOptions
         {
-            SizeValue = 1,
+            Size = 1,
             Priority = CacheItemPriority.NeverRemove
         });
     }

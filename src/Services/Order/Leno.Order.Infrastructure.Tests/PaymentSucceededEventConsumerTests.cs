@@ -1,9 +1,7 @@
 using System.Reflection;
 using Leno.Infrastructure.EventBus;
-using Leno.Order.Application.Services;
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Repositories;
-using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
 using Leno.Order.Infrastructure.Consumers;
 using Leno.SharedContracts.Events;
@@ -15,6 +13,11 @@ using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
 
 namespace Leno.Order.Infrastructure.Tests;
 
+/// <summary>
+/// 支付成功事件消费者测试。
+/// T4 拆分后，本消费者仅负责订单状态变更（MarkAsPaid）与本地事务保存，
+/// 库存确认与积分确认已迁移至独立的 <see cref="StockConfirmConsumer"/> / <see cref="PointsConfirmConsumer"/>。
+/// </summary>
 public class PaymentSucceededEventConsumerTests
 {
     private static readonly Guid UserId = Guid.NewGuid();
@@ -26,25 +29,23 @@ public class PaymentSucceededEventConsumerTests
     private static readonly Guid PaymentId = Guid.NewGuid();
 
     [Fact]
-    public async Task HandleAsync_PaymentSucceeded_ShouldConfirmStockAfterMarkAsPaid()
+    public async Task HandleAsync_PaymentSucceeded_ShouldMarkAsPaidAndSave()
     {
         // Arrange
         var order = CreateOrderWithTwoSkus();
+        // 模拟支付已发起，使订单进入 PendingPayment 状态，方可被 MarkAsPaid 标记为已支付
+        order.MarkPaymentInitiated(PaymentMethod.Alipay);
         var mockOrderRepo = new Mock<IOrderRepository>();
         mockOrderRepo.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
 
         var mockUnitOfWork = new Mock<IUnitOfWork>();
-        var mockStockService = new Mock<IStockReservationDomainService>();
-        var mockPointsAc = new Mock<IPointsAntiCorruptionService>();
         var mockLogger = new Mock<ILogger<PaymentSucceededEventConsumer>>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new PaymentSucceededEventConsumer(
             mockOrderRepo.Object,
             mockUnitOfWork.Object,
-            mockStockService.Object,
-            mockPointsAc.Object,
             mockLogger.Object,
             mockIdempotencyStore.Object);
 
@@ -56,10 +57,11 @@ public class PaymentSucceededEventConsumerTests
             UserId = UserId,
             Channel = "alipay",
             TradeNo = "2024071200001",
-            PaidAt = DateTime.UtcNow
+            PaidAt = DateTime.UtcNow,
+            Amount = order.TotalAmount
         };
 
-        // Act - invoke protected HandleAsync via reflection
+        // Act - 通过反射调用受保护的 HandleAsync
         var handleMethod = typeof(PaymentSucceededEventConsumer)
             .GetMethod("HandleAsync", BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.NotNull(handleMethod);
@@ -67,33 +69,17 @@ public class PaymentSucceededEventConsumerTests
         await (Task)handleMethod!.Invoke(consumer, [integrationEvent, CancellationToken.None])!;
 
         // Assert
-        // 1. Order should be marked as paid
+        // 1. 订单应被标记为已支付
         Assert.Equal(OrderStatus.Paid, order.Status);
         Assert.Equal(PaymentId, order.PaymentId);
 
-        // 2. ConfirmBatchAsync should be called with correct sku quantities
-        mockStockService.Verify(
-            s => s.ConfirmBatchAsync(
-                OrderId,
-                It.Is<Dictionary<Guid, int>>(d =>
-                    d.Count == 2 &&
-                    d[SkuId1] == 3 &&
-                    d[SkuId2] == 5),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        // 3. ConfirmDeductionAsync should be called for points
-        mockPointsAc.Verify(
-            p => p.ConfirmDeductionAsync(OrderId, It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        // 4. Order should be updated and saved
+        // 2. 订单应被更新并保存（含 Outbox 领域事件持久化）
         mockOrderRepo.Verify(r => r.UpdateAsync(order, It.IsAny<CancellationToken>()), Times.Once);
         mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task HandleAsync_OrderNotFound_ShouldSkipAndNotConfirmStock()
+    public async Task HandleAsync_OrderNotFound_ShouldSkipAndNotSave()
     {
         // Arrange
         var mockOrderRepo = new Mock<IOrderRepository>();
@@ -101,16 +87,12 @@ public class PaymentSucceededEventConsumerTests
             .ReturnsAsync((OrderAggregate?)null);
 
         var mockUnitOfWork = new Mock<IUnitOfWork>();
-        var mockStockService = new Mock<IStockReservationDomainService>();
-        var mockPointsAc = new Mock<IPointsAntiCorruptionService>();
         var mockLogger = new Mock<ILogger<PaymentSucceededEventConsumer>>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new PaymentSucceededEventConsumer(
             mockOrderRepo.Object,
             mockUnitOfWork.Object,
-            mockStockService.Object,
-            mockPointsAc.Object,
             mockLogger.Object,
             mockIdempotencyStore.Object);
 
@@ -133,15 +115,12 @@ public class PaymentSucceededEventConsumerTests
         await (Task)handleMethod!.Invoke(consumer, [integrationEvent, CancellationToken.None])!;
 
         // Assert
-        mockStockService.Verify(
-            s => s.ConfirmBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
-            Times.Never);
         mockOrderRepo.Verify(r => r.UpdateAsync(It.IsAny<OrderAggregate>(), It.IsAny<CancellationToken>()), Times.Never);
         mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task HandleAsync_OrderNotPendingPayment_ShouldSkipAndNotConfirmStock()
+    public async Task HandleAsync_OrderNotPendingPayment_ShouldSkipAndNotSave()
     {
         // Arrange
         var order = CreateOrderWithTwoSkus();
@@ -154,16 +133,12 @@ public class PaymentSucceededEventConsumerTests
             .ReturnsAsync(order);
 
         var mockUnitOfWork = new Mock<IUnitOfWork>();
-        var mockStockService = new Mock<IStockReservationDomainService>();
-        var mockPointsAc = new Mock<IPointsAntiCorruptionService>();
         var mockLogger = new Mock<ILogger<PaymentSucceededEventConsumer>>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new PaymentSucceededEventConsumer(
             mockOrderRepo.Object,
             mockUnitOfWork.Object,
-            mockStockService.Object,
-            mockPointsAc.Object,
             mockLogger.Object,
             mockIdempotencyStore.Object);
 
@@ -186,9 +161,8 @@ public class PaymentSucceededEventConsumerTests
         await (Task)handleMethod!.Invoke(consumer, [integrationEvent, CancellationToken.None])!;
 
         // Assert
-        mockStockService.Verify(
-            s => s.ConfirmBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
-            Times.Never);
+        mockOrderRepo.Verify(r => r.UpdateAsync(It.IsAny<OrderAggregate>(), It.IsAny<CancellationToken>()), Times.Never);
+        mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
 
@@ -197,21 +171,19 @@ public class PaymentSucceededEventConsumerTests
     {
         // Arrange
         var order = CreateMembershipOrder();
+        // 模拟支付已发起，使订单进入 PendingPayment 状态，方可被 MarkAsPaid 标记为已支付
+        order.MarkPaymentInitiated(PaymentMethod.Alipay);
         var mockOrderRepo = new Mock<IOrderRepository>();
         mockOrderRepo.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
 
         var mockUnitOfWork = new Mock<IUnitOfWork>();
-        var mockStockService = new Mock<IStockReservationDomainService>();
-        var mockPointsAc = new Mock<IPointsAntiCorruptionService>();
         var mockLogger = new Mock<ILogger<PaymentSucceededEventConsumer>>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
         var consumer = new PaymentSucceededEventConsumer(
             mockOrderRepo.Object,
             mockUnitOfWork.Object,
-            mockStockService.Object,
-            mockPointsAc.Object,
             mockLogger.Object,
             mockIdempotencyStore.Object);
 
@@ -223,7 +195,8 @@ public class PaymentSucceededEventConsumerTests
             UserId = UserId,
             Channel = "alipay",
             TradeNo = "2024071200001",
-            PaidAt = DateTime.UtcNow
+            PaidAt = DateTime.UtcNow,
+            Amount = order.TotalAmount
         };
 
         // Act
@@ -234,16 +207,11 @@ public class PaymentSucceededEventConsumerTests
         await (Task)handleMethod!.Invoke(consumer, [integrationEvent, CancellationToken.None])!;
 
         // Assert
-        // 1. Order should be marked as paid
+        // 1. 会员订单应被标记为已支付并自动完成
         Assert.Equal(OrderStatus.Completed, order.Status);
         Assert.Equal(PaymentId, order.PaymentId);
 
-        // 2. Stock should NOT be confirmed (membership orders skip stock)
-        mockStockService.Verify(
-            s => s.ConfirmBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-
-        // 3. Order should be updated and saved
+        // 2. 订单应被更新并保存
         mockOrderRepo.Verify(r => r.UpdateAsync(order, It.IsAny<CancellationToken>()), Times.Once);
         mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -265,7 +233,9 @@ public class PaymentSucceededEventConsumerTests
             freightAmount: 0m,
             pointsOffsetAmount: 0m,
             DateTime.UtcNow.AddHours(2));
-    }    private static OrderAggregate CreateOrderWithTwoSkus()
+    }
+
+    private static OrderAggregate CreateOrderWithTwoSkus()
     {
         var skuId1 = SkuId1;
         var skuId2 = SkuId2;

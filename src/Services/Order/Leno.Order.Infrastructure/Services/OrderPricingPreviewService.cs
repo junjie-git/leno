@@ -1,6 +1,8 @@
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Exceptions;
 using Leno.Order.Domain.Services;
+using Leno.Order.Domain.ValueObjects;
+using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
 
 namespace Leno.Order.Infrastructure.Services;
 
@@ -60,7 +62,7 @@ public sealed class OrderPricingPreviewService : IOrderPricingPreviewService
             : new List<(Guid SkuId, decimal Allocation)>(0);
 
         // 3. 临时聚合：使用 Membership 类型绕过 sellerId 非空校验；积分初始为 0，由 ApplyPointsOffset 校验裁剪
-        var previewOrder = Order.Create(
+        var previewOrder = OrderAggregate.Create(
             orderId: Guid.NewGuid(),
             orderNo: "PREVIEW",
             orderType: OrderType.Membership,

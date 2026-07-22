@@ -96,15 +96,15 @@ public static class ServiceCollectionExtensions
     {
         var redisConfig = configuration["Redis:Configuration"] ?? "localhost:6379";
 
-        // T21：使用 Lazy<Task<IConnectionMultiplexer>> 延迟异步连接，避免应用启动时同步阻塞主线程。
+        // T21：使用 Lazy<IConnectionMultiplexer> 延迟连接，避免应用启动时同步阻塞主线程。
         // LazyThreadSafetyMode.ExecutionAndPublication 保证多线程下仅初始化一次。
-        // ConnectionMultiplexer.ConnectAsync 在首次解析 IConnectionMultiplexer 时触发（DI 工厂内 GetAwaiter().GetResult()），
-        // 相比原 ConnectionMultiplexer.Connect 同步阻塞注册阶段，连接推迟到首次实际使用。
-        var lazyMultiplexer = new Lazy<Task<IConnectionMultiplexer>>(
-            () => ConnectionMultiplexer.ConnectAsync(redisConfig),
+        // ConnectionMultiplexer.Connect 在首次解析 IConnectionMultiplexer 时触发（DI 工厂内），
+        // 连接推迟到首次实际使用。
+        var lazyMultiplexer = new Lazy<IConnectionMultiplexer>(
+            () => ConnectionMultiplexer.Connect(redisConfig),
             LazyThreadSafetyMode.ExecutionAndPublication);
 
-        services.AddSingleton<IConnectionMultiplexer>(_ => lazyMultiplexer.Value.GetAwaiter().GetResult());
+        services.AddSingleton<IConnectionMultiplexer>(_ => lazyMultiplexer.Value);
         // 集成事件消费幂等去重存储，基于 Redis SET NX + 24h TTL
         services.AddSingleton<IIdempotencyStore, RedisIdempotencyStore>();
         // 数据库迁移分布式锁提供者（基于 Redis SET NX EX，DistributedLock.Redis 实现）

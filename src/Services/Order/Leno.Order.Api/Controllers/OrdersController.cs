@@ -1,6 +1,8 @@
+using Leno.Infrastructure.Abstractions.Cqrs;
 using Leno.Infrastructure.Auth;
 using Leno.Order.Application;
 using Leno.Order.Application.DTOs;
+using Leno.Order.Application.Queries;
 using Leno.Order.Domain.ValueObjects;
 using Leno.SharedContracts.Responses;
 using Microsoft.AspNetCore.Authorization;
@@ -13,17 +15,28 @@ namespace Leno.Order.Api.Controllers;
 /// 买家端（/api/orders）：下单、立即购买、预览、列表、详情、确认收货、取消，需 Buyer 角色。
 /// 卖家端（/api/seller/orders）：发货，需 Seller 角色。
 /// 运营端（/api/admin/orders）：全量订单查询、强制取消，需 Operator/Admin 角色。
+/// 读操作（详情、列表）已迁移至 CQRS QueryHandler，走 ES 读模型；写操作仍走 IOrderAppService。
 /// </summary>
 [ApiController]
 public sealed class OrdersController : OrderControllerBase
 {
     private readonly IOrderAppService _orderAppService;
+    private readonly IQueryHandler<OrderDetailQuery, OrderDetailResult?> _orderDetailQueryHandler;
+    private readonly IQueryHandler<OrderListQuery, OrderListResult> _orderListQueryHandler;
 
-    public OrdersController(ICurrentUserContext currentUser, IOrderAppService orderAppService)
+    public OrdersController(
+        ICurrentUserContext currentUser,
+        IOrderAppService orderAppService,
+        IQueryHandler<OrderDetailQuery, OrderDetailResult?> orderDetailQueryHandler,
+        IQueryHandler<OrderListQuery, OrderListResult> orderListQueryHandler)
         : base(currentUser)
     {
         ArgumentNullException.ThrowIfNull(orderAppService);
+        ArgumentNullException.ThrowIfNull(orderDetailQueryHandler);
+        ArgumentNullException.ThrowIfNull(orderListQueryHandler);
         _orderAppService = orderAppService;
+        _orderDetailQueryHandler = orderDetailQueryHandler;
+        _orderListQueryHandler = orderListQueryHandler;
     }
 
     // ========== 买家端 ==========
@@ -58,24 +71,36 @@ public sealed class OrdersController : OrderControllerBase
         return Ok(ApiResponse.Success(preview));
     }
 
-    /// <summary>分页查询当前用户的订单（按状态可选过滤）。</summary>
+    /// <summary>分页查询当前用户的订单（按状态可选过滤）。走 CQRS 读侧 ES 读模型。</summary>
     [Authorize(Roles = "Buyer")]
     [HttpGet("api/orders")]
-    [ProducesResponseType(typeof(ApiResponse<OrderListResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<OrderListResult>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListMineAsync([FromQuery] OrderStatus? status, [FromQuery] int page = 0, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
-        var result = await _orderAppService.QueryAsync(GetCurrentUserId(), null, status, page, pageSize, ct);
+        var query = new OrderListQuery
+        {
+            UserId = GetCurrentUserId(),
+            Status = status?.ToString(),
+            PageIndex = page,
+            PageSize = pageSize
+        };
+        var result = await _orderListQueryHandler.HandleAsync(query, ct);
         return Ok(ApiResponse.Success(result));
     }
 
-    /// <summary>获取订单详情。</summary>
+    /// <summary>获取订单详情。走 CQRS 读侧 ES 读模型，按当前用户做权限校验。</summary>
     [Authorize(Roles = "Buyer")]
     [HttpGet("api/orders/{id:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<OrderDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<OrderDetailResult?>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByIdAsync(Guid id, CancellationToken ct)
     {
-        var order = await _orderAppService.GetByIdAsync(id, ct);
-        return Ok(ApiResponse.Success(order));
+        var query = new OrderDetailQuery
+        {
+            OrderId = id,
+            CurrentUserId = GetCurrentUserId()
+        };
+        var result = await _orderDetailQueryHandler.HandleAsync(query, ct);
+        return Ok(ApiResponse.Success(result));
     }
 
     /// <summary>确认收货。</summary>
@@ -112,13 +137,21 @@ public sealed class OrdersController : OrderControllerBase
 
     // ========== 运营端 ==========
 
-    /// <summary>分页查询全部订单（按用户、卖家、状态可选过滤）。</summary>
+    /// <summary>分页查询全部订单（按用户、卖家、状态可选过滤）。走 CQRS 读侧 ES 读模型。</summary>
     [Authorize(Roles = "Operator,Admin")]
     [HttpGet("api/admin/orders")]
-    [ProducesResponseType(typeof(ApiResponse<OrderListResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<OrderListResult>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListAsync([FromQuery] Guid? userId, [FromQuery] Guid? sellerId, [FromQuery] OrderStatus? status, [FromQuery] int page = 0, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
-        var result = await _orderAppService.QueryAsync(userId, sellerId, status, page, pageSize, ct);
+        var query = new OrderListQuery
+        {
+            UserId = userId,
+            SellerId = sellerId,
+            Status = status?.ToString(),
+            PageIndex = page,
+            PageSize = pageSize
+        };
+        var result = await _orderListQueryHandler.HandleAsync(query, ct);
         return Ok(ApiResponse.Success(result));
     }
 

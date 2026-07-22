@@ -1,4 +1,5 @@
 using System.Reflection;
+using Leno.Infrastructure.Abstractions;
 using Leno.Order.Application.Messages;
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Repositories;
@@ -16,6 +17,7 @@ public class AfterSalesWindowConsumerTests
 {
     private readonly Mock<IOrderRepository> _orderRepoMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
+    private readonly Mock<IIdempotencyStore> _idempotencyStoreMock = new();
     private readonly Mock<ILogger<AfterSalesWindowConsumer>> _loggerMock = new();
     private readonly AfterSalesWindowConsumer _sut;
 
@@ -26,9 +28,14 @@ public class AfterSalesWindowConsumerTests
 
     public AfterSalesWindowConsumerTests()
     {
+        // 默认未处理，允许消费者执行业务逻辑
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
         _sut = new AfterSalesWindowConsumer(
             _orderRepoMock.Object,
             _uowMock.Object,
+            _idempotencyStoreMock.Object,
             _loggerMock.Object);
     }
 
@@ -118,6 +125,25 @@ public class AfterSalesWindowConsumerTests
         await _sut.Consume(context.Object);
 
         // Assert
+        _orderRepoMock.Verify(r => r.UpdateAsync(It.IsAny<OrderAggregate>(), It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Consume_AlreadyProcessed_ShouldSkipBusinessLogic()
+    {
+        // Arrange —— 幂等存储返回已处理
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var msg = new AfterSalesWindowMessage(OrderId);
+        var context = CreateConsumeContext(msg);
+
+        // Act
+        await _sut.Consume(context.Object);
+
+        // Assert —— 不应加载订单、不应更新、不应保存
+        _orderRepoMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         _orderRepoMock.Verify(r => r.UpdateAsync(It.IsAny<OrderAggregate>(), It.IsAny<CancellationToken>()), Times.Never);
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }

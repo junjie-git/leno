@@ -1,3 +1,4 @@
+using Leno.Infrastructure.Abstractions;
 using Leno.Order.Application.Messages;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Aggregates;
@@ -20,6 +21,7 @@ public class OrderTimeoutDelayMessageConsumerTests
     private readonly Mock<IStockReservationDomainService> _stockServiceMock = new();
     private readonly Mock<IPointsAntiCorruptionService> _pointsAcMock = new();
     private readonly Mock<IPromotionAntiCorruptionService> _promotionAcMock = new();
+    private readonly Mock<IIdempotencyStore> _idempotencyStoreMock = new();
     private readonly Mock<ILogger<OrderTimeoutDelayMessageConsumer>> _loggerMock = new();
     private readonly OrderTimeoutDelayMessageConsumer _sut;
 
@@ -30,12 +32,17 @@ public class OrderTimeoutDelayMessageConsumerTests
 
     public OrderTimeoutDelayMessageConsumerTests()
     {
+        // 默认未处理，允许消费者执行业务逻辑
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
         _sut = new OrderTimeoutDelayMessageConsumer(
             _orderRepoMock.Object,
             _uowMock.Object,
             _stockServiceMock.Object,
             _pointsAcMock.Object,
             _promotionAcMock.Object,
+            _idempotencyStoreMock.Object,
             _loggerMock.Object);
     }
 
@@ -247,6 +254,37 @@ public class OrderTimeoutDelayMessageConsumerTests
         _promotionAcMock.Verify(
             p => p.ReleaseCouponsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    #endregion
+
+    #region 幂等去重：已处理则跳过
+
+    [Fact]
+    public async Task Consume_AlreadyProcessed_ShouldSkipBusinessLogic()
+    {
+        // Arrange —— 幂等存储返回已处理
+        _idempotencyStoreMock.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var msg = new OrderTimeoutMessage(OrderId);
+        var context = CreateConsumeContext(msg);
+
+        // Act
+        await _sut.Consume(context.Object);
+
+        // Assert —— 不应加载订单、不应释放库存/积分/优惠券、不应保存
+        _orderRepoMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        _stockServiceMock.Verify(
+            s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _pointsAcMock.Verify(
+            p => p.ReleaseAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _promotionAcMock.Verify(
+            p => p.ReleaseCouponsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion

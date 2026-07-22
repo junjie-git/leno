@@ -45,13 +45,12 @@ public sealed class ConsulReloadableConfigurationProvider : ConfigurationProvide
     }
 
     /// <summary>
-    /// 重写 TrySet 使其支持通过 IConfiguration 索引器写入并触发重载。
+    /// 重写 Set 使其支持通过 IConfiguration 索引器写入并触发重载。
     /// 保留默认 Set 行为的同时增加 OnReload 通知。
     /// </summary>
-    public override bool TrySet(string key, string? value)
+    public override void Set(string key, string? value)
     {
         SetValue(key, value);
-        return true;
     }
 }
 

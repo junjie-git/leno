@@ -1,43 +1,36 @@
+using Leno.Infrastructure.Abstractions;
 using Leno.Infrastructure.EventBus;
-using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
-using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
-using Leno.Infrastructure.Abstractions;
 
 namespace Leno.Order.Infrastructure.Consumers;
 
 /// <summary>
-/// 支付成功事件消费者，将待支付订单标记为已支付。
+/// 支付成功事件消费者，仅负责将待支付订单标记为已支付（订单状态变更）与本地事务保存。
+/// 库存确认（预占 → 真实扣减）与积分确认（冻结 → 正式扣减）已拆分至
+/// <see cref="StockConfirmConsumer"/> 与 <see cref="PointsConfirmConsumer"/> 独立消费，
+/// 三者通过独立队列 + 独立幂等键隔离，任一操作失败不影响其他已成功的操作。
 /// 通过 EventId 幂等去重；订单非待支付态时跳过（已处理或状态非法）。
 /// </summary>
 public sealed class PaymentSucceededEventConsumer : IntegrationEventConsumerBase<PaymentSucceededEvent>
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IStockReservationDomainService _stockService;
-    private readonly IPointsAntiCorruptionService _pointsAntiCorruption;
 
     public PaymentSucceededEventConsumer(
         IOrderRepository orderRepository,
         IUnitOfWork unitOfWork,
-        IStockReservationDomainService stockService,
-        IPointsAntiCorruptionService pointsAntiCorruption,
         ILogger<PaymentSucceededEventConsumer> logger,
         IIdempotencyStore idempotencyStore)
         : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(orderRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
-        ArgumentNullException.ThrowIfNull(stockService);
-        ArgumentNullException.ThrowIfNull(pointsAntiCorruption);
         _orderRepository = orderRepository;
         _unitOfWork = unitOfWork;
-        _stockService = stockService;
-        _pointsAntiCorruption = pointsAntiCorruption;
     }
 
     /// <inheritdoc />
@@ -73,15 +66,8 @@ public sealed class PaymentSucceededEventConsumer : IntegrationEventConsumerBase
             return;
         }
 
-        // 确认库存扣减（预占 → 真实扣减）
-        var skuQuantities = order.Items
-            .GroupBy(i => i.SkuId)
-            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
-        await _stockService.ConfirmBatchAsync(order.Id, skuQuantities, ct);
-
-        // 确认积分扣减（冻结 → 正式扣减）
-        await _pointsAntiCorruption.ConfirmDeductionAsync(order.Id, ct);
-
+        // 库存确认与积分确认由独立的 StockConfirmConsumer / PointsConfirmConsumer 异步处理，
+        // 本消费者仅负责订单状态变更与本地事务保存（含 Outbox 领域事件持久化）。
         await _orderRepository.UpdateAsync(order, ct);
         await _unitOfWork.SaveEntitiesAsync(ct);
 

@@ -79,7 +79,7 @@ public sealed class OrderGrpcService : OrderInternalService.OrderInternalService
             // P1-T27：原 (long)GetHashCode() 是 32 位 int 转 long，2^32 哈希碰撞率不可接受。
             // 改用 BitConverter.ToInt64(sellerId.ToByteArray(), 0) 取 Guid 前 8 字节作为 long，
             // 碰撞率降至 2^64，远低于 GetHashCode 的 2^32，作为 string 字段迁移完成前的向后兼容兜底。
-            SellerId = BitConverter.ToInt64(sellerId.ToByteArray(), 0),
+            SellerId = BitConverter.ToInt64(sellerId.Value.ToByteArray(), 0),
             SellerIdStr = sellerId.ToString()
         };
     }

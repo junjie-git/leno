@@ -56,6 +56,7 @@ public class OrderPricingDomainServiceTests
 
         // Act & Assert：期望单价与预查当前售价不一致时抛 OrderDomainException（错误码 ORDER_PRICE_CHANGED）
         var act = () => sut.ValidatePricesAsync(skuPrices, skuCurrentPrices, CancellationToken.None);
-        await act.Should().ThrowAsync<OrderDomainException>().Which.ErrorCode.Should().Be("ORDER_PRICE_CHANGED");
+        var thrown = await act.Should().ThrowAsync<OrderDomainException>();
+        thrown.Which.ErrorCode.Should().Be("ORDER_PRICE_CHANGED");
     }
 }

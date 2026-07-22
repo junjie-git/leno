@@ -1,3 +1,4 @@
+using Leno.Infrastructure.Abstractions;
 using Leno.Order.Application.Messages;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
@@ -11,7 +12,9 @@ namespace Leno.Order.Infrastructure.Consumers;
 
 /// <summary>
 /// 订单超时延迟消息消费者，检查待支付订单是否已超时，超时则自动取消。
-/// 非 IntegrationEventConsumerBase，因 OrderTimeoutMessage 不是 IIntegrationEvent。
+/// 非 IntegrationEventConsumerBase，因 OrderTimeoutMessage 不是 IIntegrationEvent，
+/// 故通过 <see cref="IIdempotencyStore"/> 基于 <c>order-timeout-{OrderId}</c> 幂等键独立去重，
+/// 避免延迟消息重投递导致重复取消与重复释放库存/积分/优惠券。
 /// </summary>
 public sealed class OrderTimeoutDelayMessageConsumer : IConsumer<OrderTimeoutMessage>
 {
@@ -20,6 +23,7 @@ public sealed class OrderTimeoutDelayMessageConsumer : IConsumer<OrderTimeoutMes
     private readonly IStockReservationDomainService _stockService;
     private readonly IPointsAntiCorruptionService _pointsAntiCorruption;
     private readonly IPromotionAntiCorruptionService _promotionAntiCorruption;
+    private readonly IIdempotencyStore _idempotencyStore;
     private readonly ILogger<OrderTimeoutDelayMessageConsumer> _logger;
 
     public OrderTimeoutDelayMessageConsumer(
@@ -28,6 +32,7 @@ public sealed class OrderTimeoutDelayMessageConsumer : IConsumer<OrderTimeoutMes
         IStockReservationDomainService stockService,
         IPointsAntiCorruptionService pointsAntiCorruption,
         IPromotionAntiCorruptionService promotionAntiCorruption,
+        IIdempotencyStore idempotencyStore,
         ILogger<OrderTimeoutDelayMessageConsumer> logger)
     {
         ArgumentNullException.ThrowIfNull(orderRepository);
@@ -35,12 +40,14 @@ public sealed class OrderTimeoutDelayMessageConsumer : IConsumer<OrderTimeoutMes
         ArgumentNullException.ThrowIfNull(stockService);
         ArgumentNullException.ThrowIfNull(pointsAntiCorruption);
         ArgumentNullException.ThrowIfNull(promotionAntiCorruption);
+        ArgumentNullException.ThrowIfNull(idempotencyStore);
         ArgumentNullException.ThrowIfNull(logger);
         _orderRepository = orderRepository;
         _unitOfWork = unitOfWork;
         _stockService = stockService;
         _pointsAntiCorruption = pointsAntiCorruption;
         _promotionAntiCorruption = promotionAntiCorruption;
+        _idempotencyStore = idempotencyStore;
         _logger = logger;
     }
 
@@ -49,8 +56,50 @@ public sealed class OrderTimeoutDelayMessageConsumer : IConsumer<OrderTimeoutMes
     {
         ArgumentNullException.ThrowIfNull(context);
         var msg = context.Message;
+        var ct = context.CancellationToken;
 
-        var order = await _orderRepository.GetByIdAsync(msg.OrderId, context.CancellationToken);
+        // 幂等键：基于 OrderId 唯一标识超时取消操作，避免延迟消息重投递导致重复取消。
+        var idempotencyId = IdempotencyKeyHelper.ToDeterministicGuid($"order-timeout-{msg.OrderId}");
+
+        if (await _idempotencyStore.IsProcessedAsync(idempotencyId, ct))
+        {
+            _logger.LogInformation("超时取消已处理，跳过重复消费 OrderId={OrderId}", msg.OrderId);
+            return;
+        }
+
+        // 原子获取处理权（若 store 支持 SET NX），消除并发穿透
+        if (_idempotencyStore.SupportsAtomicProcessing
+            && !await _idempotencyStore.TryMarkAsProcessingAsync(idempotencyId, ct))
+        {
+            _logger.LogInformation("超时取消被其他消费者占用或已处理，跳过 OrderId={OrderId}", msg.OrderId);
+            return;
+        }
+
+        try
+        {
+            await CancelOrderIfTimeoutAsync(msg, ct);
+        }
+        catch
+        {
+            // 处理失败：释放处理锁，允许 MassTransit 后续重试
+            if (_idempotencyStore.SupportsAtomicProcessing)
+            {
+                await _idempotencyStore.ReleaseProcessingLockAsync(idempotencyId, ct);
+            }
+            throw;
+        }
+
+        await _idempotencyStore.MarkAsProcessedAsync(idempotencyId, ct);
+        _logger.LogInformation("订单 {OrderId} 超时取消处理完成", msg.OrderId);
+    }
+
+    /// <summary>
+    /// 加载订单并校验超时条件后执行取消：先持久化订单状态变更（含 OrderCancelledDomainEvent 经 Outbox），
+    /// 再释放预占库存、冻结积分与优惠券（可独立重试）。
+    /// </summary>
+    private async Task CancelOrderIfTimeoutAsync(OrderTimeoutMessage msg, CancellationToken ct)
+    {
+        var order = await _orderRepository.GetByIdAsync(msg.OrderId, ct);
         if (order is null)
         {
             _logger.LogInformation("超时取消：订单不存在 OrderId={OrderId}，跳过", msg.OrderId);
@@ -75,16 +124,16 @@ public sealed class OrderTimeoutDelayMessageConsumer : IConsumer<OrderTimeoutMes
 
         // 先持久化订单状态变更与 OrderCancelledDomainEvent（经 Outbox 同事务），避免 SaveEntitiesAsync
         // 失败后库存/积分/优惠券已释放但订单状态未变更的不一致
-        await _orderRepository.UpdateAsync(order, context.CancellationToken);
-        await _unitOfWork.SaveEntitiesAsync(context.CancellationToken);
+        await _orderRepository.UpdateAsync(order, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
 
         // 持久化成功后再释放预占库存、冻结积分与优惠券（可独立重试）
         var skuQuantities = order.Items
             .GroupBy(i => i.SkuId)
             .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
-        await _stockService.ReleaseBatchAsync(order.Id, skuQuantities, context.CancellationToken);
-        await _pointsAntiCorruption.ReleaseAsync(order.Id, context.CancellationToken);
-        await _promotionAntiCorruption.ReleaseCouponsAsync(order.Id, context.CancellationToken);
+        await _stockService.ReleaseBatchAsync(order.Id, skuQuantities, ct);
+        await _pointsAntiCorruption.ReleaseAsync(order.Id, ct);
+        await _promotionAntiCorruption.ReleaseCouponsAsync(order.Id, ct);
 
         _logger.LogInformation("订单 {OrderId} 因支付超时已自动取消", msg.OrderId);
     }

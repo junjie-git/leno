@@ -2,6 +2,7 @@ using Leno.Order.Domain.Aggregates;
 using Leno.Order.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
 
 namespace Leno.Order.Infrastructure.Tests;
 
@@ -15,11 +16,11 @@ public class OrderConfigurationTests
             .UseInMemoryDatabase(databaseName: "order_concurrency_test_" + Guid.NewGuid())
             .Options;
         using var context = new OrderDbContext(options);
-        var entityType = context.Model.FindEntityType(typeof(Order));
+        var entityType = context.Model.FindEntityType(typeof(OrderAggregate));
 
         // Assert：RowVersion 属性应被配置为并发令牌
         var rowVersionProperty = entityType!.GetProperties()
-            .FirstOrDefault(p => p.Name == nameof(Order.RowVersion));
+            .FirstOrDefault(p => p.Name == nameof(OrderAggregate.RowVersion));
         rowVersionProperty.Should().NotBeNull();
         rowVersionProperty!.IsConcurrencyToken.Should().BeTrue();
         rowVersionProperty.ValueGenerated.Should().Be(ValueGenerated.OnAddOrUpdate);

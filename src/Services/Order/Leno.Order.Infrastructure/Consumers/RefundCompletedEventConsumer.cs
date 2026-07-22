@@ -2,6 +2,7 @@ using Leno.Infrastructure.EventBus;
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
+using Leno.Order.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Microsoft.Extensions.Logging;
 using Leno.Infrastructure.Abstractions;

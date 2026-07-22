@@ -292,7 +292,7 @@ public sealed class MemberRegisteredEvent : IntegrationEventBase
 /// 消费方：积分与会员域读模型同步（按最新聚合根重建 ES leno_members 文档，触发 IndexAsync 而非删除）。
 /// 事件契约定义在共享层，变更需所有消费方协商。
 /// </summary>
-public sealed class MemberLevelUpgradedIntegrationEvent : IntegrationEventBase
+public class MemberLevelUpgradedIntegrationEvent : IntegrationEventBase
 {
     /// <summary>会员标识。</summary>
     public Guid MemberId { get; init; }

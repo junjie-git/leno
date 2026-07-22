@@ -2,9 +2,11 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using Leno.Infrastructure.Abstractions.Cqrs;
 using Leno.Infrastructure.Auth;
 using Leno.Order.Application;
 using Leno.Order.Application.DTOs;
+using Leno.Order.Application.Queries;
 using Leno.Order.Domain.ValueObjects;
 using Leno.SharedContracts.Responses;
 using Microsoft.AspNetCore.Authentication;
@@ -22,6 +24,8 @@ public class OrderApiTests : IClassFixture<WebApplicationFactory<Program>>
     private readonly HttpClient _client;
     private readonly Mock<IOrderAppService> _orderAppServiceMock = new();
     private readonly Mock<ICurrentUserContext> _currentUserMock = new();
+    private readonly Mock<IQueryHandler<OrderDetailQuery, OrderDetailResult?>> _orderDetailQueryHandlerMock = new();
+    private readonly Mock<IQueryHandler<OrderListQuery, OrderListResult>> _orderListQueryHandlerMock = new();
 
     private static readonly Guid UserId = Guid.NewGuid();
     private static readonly Guid OrderId = Guid.NewGuid();
@@ -36,6 +40,8 @@ public class OrderApiTests : IClassFixture<WebApplicationFactory<Program>>
             {
                 services.AddSingleton(_orderAppServiceMock.Object);
                 services.AddSingleton(_currentUserMock.Object);
+                services.AddSingleton(_orderDetailQueryHandlerMock.Object);
+                services.AddSingleton(_orderListQueryHandlerMock.Object);
 
                 RemoveMassTransitServices(services);
                 RemoveElasticsearchServices(services);
@@ -97,23 +103,30 @@ public class OrderApiTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task GetOrderById_ShouldReturnOrder()
     {
         SetupBuyerAuth();
-        var dto = CreateOrderDto();
-        _orderAppServiceMock.Setup(s => s.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(dto);
+        var result = CreateOrderDetailResult();
+        _orderDetailQueryHandlerMock.Setup(h => h.HandleAsync(It.Is<OrderDetailQuery>(q => q.OrderId == OrderId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
 
         var response = await _client.GetAsync($"/api/orders/{OrderId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<ApiResponse<OrderDto>>();
-        body!.Data!.Id.Should().Be(OrderId);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<OrderDetailResult>>();
+        body!.Data!.OrderId.Should().Be(OrderId);
     }
 
     [Fact]
     public async Task ListMine_ShouldReturnPagedResult()
     {
         SetupBuyerAuth();
-        _orderAppServiceMock.Setup(s => s.QueryAsync(UserId, null, null, 1, 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new OrderListResultDto { Items = new List<OrderDto>(), Total = 0, Page = 1, PageSize = 20 });
+        var result = new OrderListResult
+        {
+            Items = new List<OrderSummaryDto>(),
+            TotalCount = 0,
+            PageIndex = 1,
+            PageSize = 20
+        };
+        _orderListQueryHandlerMock.Setup(h => h.HandleAsync(It.IsAny<OrderListQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
 
         var response = await _client.GetAsync("/api/orders");
 
@@ -173,8 +186,15 @@ public class OrderApiTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task AdminList_ShouldReturnPagedResult()
     {
         SetupAdminAuth();
-        _orderAppServiceMock.Setup(s => s.QueryAsync(null, null, null, 1, 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new OrderListResultDto { Items = new List<OrderDto>(), Total = 0, Page = 1, PageSize = 20 });
+        var result = new OrderListResult
+        {
+            Items = new List<OrderSummaryDto>(),
+            TotalCount = 0,
+            PageIndex = 1,
+            PageSize = 20
+        };
+        _orderListQueryHandlerMock.Setup(h => h.HandleAsync(It.IsAny<OrderListQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
 
         var response = await _client.GetAsync("/api/admin/orders");
 
@@ -232,6 +252,25 @@ public class OrderApiTests : IClassFixture<WebApplicationFactory<Program>>
             TotalAmount = 109.99m,
             FreightAmount = 10m,
             CreatedAt = DateTime.UtcNow
+        };
+    }
+
+    private static OrderDetailResult CreateOrderDetailResult()
+    {
+        return new OrderDetailResult
+        {
+            OrderId = OrderId,
+            OrderNo = "ORD-001",
+            UserId = UserId,
+            SellerId = Guid.NewGuid(),
+            OrderType = "Normal",
+            ItemsAmount = 99.99m,
+            TotalAmount = 109.99m,
+            FreightAmount = 10m,
+            Currency = "CNY",
+            Status = "PendingPayment",
+            CreatedAt = DateTime.UtcNow,
+            Items = Array.Empty<Leno.Order.Application.Queries.OrderItemDto>()
         };
     }
 }
