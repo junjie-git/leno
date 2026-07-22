@@ -52,14 +52,25 @@ public sealed class ProductInternalQueryService : IProductInternalQueryService
     public async Task<List<SkuInfoResultDto>> GetSkuInfosBatchAsync(List<Guid> skuIds, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(skuIds);
+        if (skuIds.Count == 0)
+        {
+            return new List<SkuInfoResultDto>();
+        }
+
+        // 修复审计 #8：原实现遍历 skuIds 逐条调用 GetSkuInfoAsync（N+1 查询，100 个 SKU 触发 100 次 DB round-trip）。
+        // 现改为单次批量查询 GetBySkuIdsAsync，内存中匹配 SKU 映射 DTO。
+        var skuIdSet = skuIds.Distinct().ToHashSet();
+        var spus = await _spuRepository.GetBySkuIdsAsync(skuIdSet, ct);
 
         var results = new List<SkuInfoResultDto>();
-        foreach (var skuId in skuIds)
+        foreach (var spu in spus)
         {
-            var dto = await GetSkuInfoAsync(skuId, ct);
-            if (dto is not null)
+            foreach (var sku in spu.SKUs)
             {
-                results.Add(dto);
+                if (skuIdSet.Contains(sku.Id))
+                {
+                    results.Add(ToSkuInfoResultDto(spu, sku));
+                }
             }
         }
 

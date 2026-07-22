@@ -17,6 +17,15 @@ public interface ISPURepository : IRepository<SPU>
     Task<SPU?> GetBySkuIdAsync(Guid skuId, CancellationToken ct = default);
 
     /// <summary>
+    /// 按 SKU 标识集合批量查询其所属 SPU（含 SKU 集合），单次 SQL 查询替代逐条调用。
+    /// 用于消除 N+1 查询：调用方传入多个 skuId，仓储以 <c>WHERE EXISTS (SELECT 1 FROM SKU WHERE SKU.SpuId = SPU.Id AND SKU.Id IN @skuIds)</c> 单次返回。
+    /// </summary>
+    /// <param name="skuIds">SKU 标识集合，空集合返回空列表。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>包含任一指定 SKU 的 SPU 列表（去重，只读查询）。</returns>
+    Task<IReadOnlyList<SPU>> GetBySkuIdsAsync(IReadOnlyCollection<Guid> skuIds, CancellationToken ct = default);
+
+    /// <summary>
     /// 分页查询商品列表，支持按店铺、卖家、状态、分类过滤与关键词模糊匹配。
     /// </summary>
     /// <param name="shopId">店铺过滤，可空表示不限。</param>

@@ -42,6 +42,28 @@ public sealed class EfCoreSPURepository : ISPURepository
             .FirstOrDefaultAsync(s => s.SKUs.Any(sk => sk.Id == skuId), ct);
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<SPU>> GetBySkuIdsAsync(
+        IReadOnlyCollection<Guid> skuIds,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(skuIds);
+        if (skuIds.Count == 0)
+        {
+            return Array.Empty<SPU>();
+        }
+
+        // 修复审计 #8：单次 SQL 批量查询替代逐条 GetBySkuIdAsync（N+1 → 1）。
+        // EF Core 将 Contains 翻译为 SQL IN 子句：WHERE EXISTS (SELECT 1 FROM SKU WHERE SKU.SpuId = SPU.Id AND SKU.Id IN @skuIds)
+        var items = await _context.SPUs
+            .Include(s => s.SKUs)
+            .AsNoTracking()
+            .Where(s => s.SKUs.Any(sk => skuIds.Contains(sk.Id)))
+            .ToListAsync(ct);
+
+        return items;
+    }
+
+    /// <inheritdoc />
     public async Task<(IReadOnlyList<SPU> Items, int Total)> QueryAsync(
         Guid? shopId = null,
         Guid? sellerId = null,
