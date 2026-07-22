@@ -77,8 +77,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IRateLimitCounter, RedisRateLimitCounter>();
 
         services.AddSingleton<SystemConfigCache>();
-        services.AddSingleton<FeatureFlagCache>();
         services.AddSingleton<ISystemConfigCache>(sp => sp.GetRequiredService<SystemConfigCache>());
+        services.AddSingleton<FeatureFlagCache>();
         services.AddSingleton<IFeatureFlagCache>(sp => sp.GetRequiredService<FeatureFlagCache>());
 
         services.AddQuartz(q =>

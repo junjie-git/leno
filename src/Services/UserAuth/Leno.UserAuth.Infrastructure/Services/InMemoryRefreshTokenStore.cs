@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Leno.Infrastructure.Auth;
 using Leno.UserAuth.Application.Abstractions;
 using Microsoft.Extensions.Caching.Memory;
@@ -17,7 +18,7 @@ public sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
 {
     private readonly JwtTokenGenerator _generator;
     private readonly MemoryCache _store;
-    private readonly ConcurrentDictionary<string, Guid> _tokenIndex = new();
+    private readonly ConcurrentDictionary<string, Guid> _tokens;
     private readonly ILogger<InMemoryRefreshTokenStore> _logger;
 
     public InMemoryRefreshTokenStore(JwtTokenGenerator generator, ILogger<InMemoryRefreshTokenStore> logger)
@@ -27,6 +28,7 @@ public sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
         _generator = generator;
         _logger = logger;
         _store = new MemoryCache(new MemoryCacheOptions());
+        _tokens = new ConcurrentDictionary<string, Guid>();
         _logger.LogWarning(
             "InMemoryRefreshTokenStore 已启用：刷新令牌仅存储于当前进程内存，水平扩容或进程重启后失效。" +
             "生产环境必须配置 RefreshToken:Provider=Redis 与 Redis:Connection。");
@@ -36,15 +38,15 @@ public sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
     public Task<string> IssueAsync(Guid userId, CancellationToken ct = default)
     {
         var token = JwtTokenGenerator.GenerateRefreshToken();
-        _store.Set(
-            token,
-            userId,
-            new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = _generator.RefreshTokenExpiry,
-                Priority = CacheItemPriority.Normal
-            });
-        _tokenIndex[token] = userId;
+        var options = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = _generator.RefreshTokenExpiry,
+            Priority = CacheItemPriority.Normal
+        };
+        // 注册驱逐回调：MemoryCache 过期或被显式移除时同步清理键索引，避免索引无限增长。
+        options.RegisterPostEvictionCallback(OnEntryEvicted);
+        _store.Set(token, userId, options);
+        _tokens[token] = userId;
         return Task.FromResult(token);
     }
 
@@ -60,7 +62,7 @@ public sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
         if (_store.TryGetValue(refreshToken, out var userIdObj) && userIdObj is Guid userId)
         {
             _store.Remove(refreshToken);
-            _tokenIndex.TryRemove(refreshToken, out _);
+            _tokens.TryRemove(refreshToken, out _);
             return Task.FromResult<Guid?>(userId);
         }
 
@@ -70,18 +72,32 @@ public sealed class InMemoryRefreshTokenStore : IRefreshTokenStore
     /// <inheritdoc />
     public Task RevokeAllAsync(Guid userId, CancellationToken ct = default)
     {
-        // 通过 _tokenIndex 按 userId 检索令牌并逐个移除，避免枚举 MemoryCache 快照。
-        var keysToRemove = _tokenIndex
-            .Where(kvp => kvp.Value == userId)
-            .Select(kvp => kvp.Key)
-            .ToList();
-
-        foreach (var key in keysToRemove)
+        // MemoryCache 不可枚举，因此通过 ConcurrentDictionary 维护已签发令牌的键索引。
+        // 遍历索引快照，按 userId 过滤；对仍存活于 MemoryCache 的条目执行移除，
+        // 过期条目已由 AbsoluteExpiration 驱逐并经 OnEntryEvicted 回调清理索引，此处 TryGetValue 二次确认避免误判。
+        foreach (var kvp in _tokens)
         {
-            _store.Remove(key);
-            _tokenIndex.TryRemove(key, out _);
+            if (kvp.Value != userId)
+            {
+                continue;
+            }
+
+            if (_store.TryGetValue(kvp.Key, out var boundUserId) && boundUserId is Guid uid && uid == userId)
+            {
+                _store.Remove(kvp.Key);
+            }
+
+            _tokens.TryRemove(kvp.Key, out _);
         }
 
         return Task.CompletedTask;
+    }
+
+    private void OnEntryEvicted(object key, object? value, EvictionReason reason, object? state)
+    {
+        if (key is string tokenKey)
+        {
+            _tokens.TryRemove(tokenKey, out _);
+        }
     }
 }

@@ -7,6 +7,7 @@ namespace Leno.SystemAdmin.Infrastructure.Cache;
 /// <summary>
 /// 特性开关 Redis 缓存，读写穿透策略，TTL 30 分钟。
 /// 供应用层读侧加速，缓存缺失时回源数据库读取；写侧以 EF Core 持久化为主。
+/// 实现 <see cref="IFeatureFlagCache"/> 以向应用层暴露缓存失效能力。
 /// </summary>
 public sealed class FeatureFlagCache : IFeatureFlagCache
 {
