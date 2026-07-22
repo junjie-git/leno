@@ -1,4 +1,5 @@
 using Leno.Infrastructure.Auth;
+using Leno.Payment.Api.Controllers;
 using Leno.Payment.Application;
 using Leno.Payment.Application.DTOs;
 using Leno.Payment.Domain.ValueObjects;

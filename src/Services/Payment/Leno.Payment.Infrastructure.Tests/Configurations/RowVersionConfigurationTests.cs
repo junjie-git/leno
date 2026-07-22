@@ -2,6 +2,7 @@ using System.Reflection;
 using Leno.Payment.Domain.Aggregates;
 using Leno.Payment.Infrastructure.Configurations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Xunit;
 
