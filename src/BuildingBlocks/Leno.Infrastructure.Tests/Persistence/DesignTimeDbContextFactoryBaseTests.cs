@@ -50,7 +50,7 @@ public class DesignTimeDbContextFactoryBaseTests
 
         // Act & Assert — 未配置时应抛异常并给出明确提示
         var act = () => DesignTimeDbContextFactoryBase<TestDbContext>.ResolveConnectionString("LenoTest");
-        var ex = act.Should().Throw<InvalidOperationException>().Subject;
+        var ex = act.Should().Throw<InvalidOperationException>().Subject.Single();
         ex.Message.Should().Contain("LENO_DESIGNTIME_CONNECTION_STRING",
             "异常消息应提示需要设置环境变量");
         ex.Message.Should().NotContain("Leno@SqlServer2019",
