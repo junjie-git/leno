@@ -5,6 +5,7 @@ using Leno.Cart.Infrastructure;
 using Leno.Cart.Infrastructure.Repositories;
 using Leno.Cart.Infrastructure.Services;
 using Leno.Infrastructure.EventBus;
+using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
