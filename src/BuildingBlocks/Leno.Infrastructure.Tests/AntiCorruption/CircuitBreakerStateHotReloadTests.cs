@@ -25,6 +25,8 @@ public class CircuitBreakerStateHotReloadTests
             CurrentValue = initial;
         }
 
+        public AntiCorruptionOptions Get(string? name) => CurrentValue;
+
         public IDisposable? OnChange(Action<AntiCorruptionOptions, string?> listener) => null;
     }
 
