@@ -54,6 +54,13 @@ public sealed class PaymentOrder : AggregateRoot
     /// <summary>失败原因。</summary>
     public string? FailReason { get; private set; }
 
+    /// <summary>
+    /// 乐观并发令牌（rowversion），由数据库自动维护。
+    /// EF Core 通过 <c>IsRowVersion()</c> 标记为并发令牌，更新时校验版本号，
+    /// 防止异步通知与补偿任务并发更新同一支付单时发生覆盖。
+    /// </summary>
+    public byte[]? RowVersion { get; private set; }
+
     /// <summary>EF Core 无参构造。</summary>
     private PaymentOrder() { }
 

@@ -35,6 +35,10 @@ public sealed class PaymentOrderConfiguration : IEntityTypeConfiguration<Payment
         builder.Property(o => o.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(o => o.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
 
+        // 乐观并发令牌：EF Core 在 UPDATE 时 WHERE row_version = @old_row_version，
+        // 并发更新抛出 DbUpdateConcurrencyException，防止异步通知与补偿任务覆盖。
+        builder.Property(o => o.RowVersion).HasColumnName("row_version").IsRowVersion();
+
         builder.HasIndex(o => o.OutTradeNo).IsUnique().HasDatabaseName("ix_payment_orders_out_trade_no");
         builder.HasIndex(o => o.OrderId).HasDatabaseName("ix_payment_orders_order_id");
         builder.HasIndex(o => o.UserId).HasDatabaseName("ix_payment_orders_user_id");

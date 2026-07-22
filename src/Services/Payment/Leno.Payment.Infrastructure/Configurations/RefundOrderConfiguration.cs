@@ -34,6 +34,10 @@ public sealed class RefundOrderConfiguration : IEntityTypeConfiguration<RefundOr
         builder.Property(r => r.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(r => r.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
 
+        // 乐观并发令牌：EF Core 在 UPDATE 时 WHERE row_version = @old_row_version，
+        // 并发更新抛出 DbUpdateConcurrencyException，防止异步通知与补偿任务覆盖。
+        builder.Property(r => r.RowVersion).HasColumnName("row_version").IsRowVersion();
+
         builder.HasIndex(r => r.OutRefundNo).IsUnique().HasDatabaseName("ix_refund_orders_out_refund_no");
         builder.HasIndex(r => r.PaymentId).HasDatabaseName("ix_refund_orders_payment_id");
         builder.HasIndex(r => r.OrderId).HasDatabaseName("ix_refund_orders_order_id");
