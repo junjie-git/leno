@@ -2,6 +2,7 @@ using Leno.ApiGateway.Middleware;
 using Leno.ApiGateway.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using MicrosoftOptions = Microsoft.Extensions.Options.Options;
 using Moq;
 using StackExchange.Redis;
 
@@ -21,7 +22,7 @@ public class CacheMiddlewareBodyRestoreTests
         redisMock.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(dbMock.Object);
         // 缓存未命中
         dbMock.Setup(x => x.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(RedisValue.NullValue);
+            .ReturnsAsync(RedisValue.Null);
         // StringSetAsync 默认返回 true（缓存写入）
         dbMock.Setup(x => x.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<bool>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
@@ -30,7 +31,7 @@ public class CacheMiddlewareBodyRestoreTests
 
     private static CacheMiddleware CreateMiddleware(RequestDelegate next, Mock<IConnectionMultiplexer> redisMock)
     {
-        var options = Options.Create(new CacheOptions { Enabled = true });
+        var options = MicrosoftOptions.Create(new CacheOptions { Enabled = true });
         return new CacheMiddleware(next, redisMock.Object, options);
     }
 

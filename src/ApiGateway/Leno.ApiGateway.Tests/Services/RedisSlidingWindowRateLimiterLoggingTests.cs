@@ -65,7 +65,7 @@ public class RedisSlidingWindowRateLimiterLoggingTests
             It.IsAny<RedisKey[]>(),
             It.IsAny<RedisValue[]>(),
             It.IsAny<CommandFlags>()))
-            .ThrowsAsync(new RedisTimeoutException("timeout"));
+            .ThrowsAsync(new RedisTimeoutException("timeout", CommandStatus.Unknown));
 
         var loggerMock = new Mock<ILogger<RedisSlidingWindowRateLimiter>>();
         string? loggedMessage = null;
@@ -237,7 +237,7 @@ public class RedisSlidingWindowRateLimiterLoggingTests
         cts.Cancel();
 
         // Act
-        var act = () => limiter.AcquireAsync(1, cts.Token);
+        Func<Task> act = async () => await limiter.AcquireAsync(1, cts.Token);
 
         // Assert：OperationCanceledException 向上抛出，不记录 warning
         await act.Should().ThrowAsync<OperationCanceledException>();
