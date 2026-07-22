@@ -154,16 +154,17 @@ public class GrpcProductSnapshotBatchTests
     }
 
     [Fact]
-    public async Task GetSkuSnapshotsAsync_StrFieldEmpty_FallbackToInt64HashMapping()
+    public async Task GetSkuSnapshotsAsync_StrFieldEmpty_FallbackToInt64StableMapping()
     {
         var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
         var skuId = Guid.NewGuid();
 
-        // 旧服务端不返回 SkuIdStr，仅返回 int64（GetHashCode）
+        // 旧服务端不返回 SkuIdStr，仅返回 int64（稳定算法：BitConverter.ToInt64(guid.ToByteArray(), 0)）
+        var stableInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
         var response = new BatchGetSkuInfoResponse();
         response.Skus.Add(new SkuInfo
         {
-            SkuId = (long)skuId.GetHashCode(),
+            SkuId = stableInt64,
             Title = "Legacy",
             MainImage = "http://legacy",
             PriceCents = 999,

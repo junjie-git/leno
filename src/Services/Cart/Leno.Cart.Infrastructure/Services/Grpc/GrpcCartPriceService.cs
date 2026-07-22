@@ -49,17 +49,17 @@ public sealed class GrpcCartPriceService
                 return (IReadOnlyList<SkuPriceSnapshotDomain>)Array.Empty<SkuPriceSnapshotDomain>();
             }
 
-            // M4 Guid→string 迁移：请求同时填充 int64（向后兼容）+ string
+            // M4 Guid→string 迁移：请求同时填充 int64（稳定算法，向后兼容）+ string（GuidProtoConverter）
             var request = new BatchGetSkuInfoRequest();
-            request.SkuIds.AddRange(ids.Select(id => (long)id.GetHashCode()));
-            request.SkuIdsStr.AddRange(ids.Select(id => id.ToString()));
+            request.SkuIds.AddRange(ids.Select(id => BitConverter.ToInt64(id.ToByteArray(), 0)));
+            request.SkuIdsStr.AddRange(ids.Select(id => GuidProtoConverter.ToString(id)));
 
             var metadata = BuildMetadata();
             var response = await _client.BatchGetSkuInfoAsync(request, metadata, cancellationToken: token);
 
-            // 响应映射：优先用 SkuIdStr 建立 Guid 映射，回退到 int64 GetHashCode 映射（向后兼容旧服务端）
-            var skuMapByStr = ids.ToDictionary(id => id.ToString(), id => id);
-            var skuMapByHash = ids.ToDictionary(id => (long)id.GetHashCode(), id => id);
+            // 响应映射：优先用 SkuIdStr 建立 Guid 映射，回退到 int64 稳定算法映射（向后兼容旧服务端）
+            var skuMapByStr = ids.ToDictionary(id => GuidProtoConverter.ToString(id), id => id);
+            var skuMapByHash = ids.ToDictionary(id => BitConverter.ToInt64(id.ToByteArray(), 0), id => id);
             var result = new List<SkuPriceSnapshotDomain>(response.Skus.Count);
             foreach (var proto in response.Skus)
             {

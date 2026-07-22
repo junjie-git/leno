@@ -171,4 +171,50 @@ public class GrpcProductAntiCorruptionClientTests
         var thrown = (await act.Should().ThrowAsync<AntiCorruptionException>()).Which;
         thrown.ErrorCode.Should().Be("PRODUCT_REMOTE_FAILED");
     }
+
+    [Fact]
+    public async Task GetSkuInfo_Request_ShouldUseStableInt64_NotGetHashCode()
+    {
+        // 验证请求 int64 字段使用稳定算法（BitConverter.ToInt64），而非 GetHashCode（32 位碰撞率高）
+        var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
+        var skuId = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef");
+        var expectedInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
+
+        var skuInfoProto = new SkuInfo
+        {
+            SkuId = expectedInt64,
+            SkuIdStr = GuidProtoConverter.ToString(skuId),
+            Title = "Stable",
+            PriceCents = 100,
+            Currency = "CNY",
+            Salable = true,
+            Stock = 10
+        };
+
+        GetSkuInfoRequest? capturedRequest = null;
+        clientMock.Setup(c => c.GetSkuInfoAsync(
+                It.IsAny<GetSkuInfoRequest>(),
+                It.IsAny<Metadata>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<GetSkuInfoRequest, Metadata, DateTime?, CancellationToken>((req, _, _, _) => capturedRequest = req)
+            .Returns(new AsyncUnaryCall<SkuInfo>(
+                Task.FromResult(skuInfoProto),
+                Task.FromResult(new Metadata()),
+                () => Status.DefaultSuccess,
+                () => new Metadata(),
+                () => { }));
+
+        var client = new GrpcProductAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+            NullLogger<GrpcProductAntiCorruptionClient>.Instance);
+
+        await client.GetSkuInfoAsync(skuId);
+
+        capturedRequest.Should().NotBeNull();
+        capturedRequest!.SkuId.Should().Be(expectedInt64);
+        // 确保不再使用 GetHashCode（32 位碰撞率高）
+        capturedRequest.SkuId.Should().NotBe((long)skuId.GetHashCode());
+        // 验证 string 字段使用 GuidProtoConverter.ToString（D 格式）
+        capturedRequest.SkuIdStr.Should().Be(GuidProtoConverter.ToString(skuId));
+    }
 }

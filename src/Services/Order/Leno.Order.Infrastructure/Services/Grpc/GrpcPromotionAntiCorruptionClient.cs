@@ -45,9 +45,10 @@ public sealed class GrpcPromotionAntiCorruptionClient
             };
             request.Items.AddRange(items.Select(i => new OrderItem
             {
-                // M4 Guid→string 迁移：同时填充 int64（向后兼容）+ string
-                SkuId = (long)i.SkuId.GetHashCode(),
-                SkuIdStr = i.SkuId.ToString(),
+                // M4 Guid→string 迁移：同时填充 int64（稳定算法，向后兼容）+ string（GuidProtoConverter）
+                // 修复审计 #5：使用稳定算法替代 GetHashCode()（32 位碰撞率高），确保相同 Guid 始终映射到相同 int64
+                SkuId = BitConverter.ToInt64(i.SkuId.ToByteArray(), 0),
+                SkuIdStr = GuidProtoConverter.ToString(i.SkuId),
                 SubtotalCents = (long)(i.Subtotal * 100)
             }));
             var metadata = BuildMetadata();

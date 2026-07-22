@@ -30,10 +30,12 @@ public class GrpcCartPriceServiceTests
         var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
         var skuId = Guid.NewGuid();
         var sellerId = Guid.NewGuid();
+        // 稳定算法：BitConverter.ToInt64(guid.ToByteArray(), 0)，替代 GetHashCode()（32 位碰撞率高）
+        var stableSkuInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
         var batchResponse = new BatchGetSkuInfoResponse();
         batchResponse.Skus.Add(new SkuInfo
         {
-            SkuId = (long)skuId.GetHashCode(),
+            SkuId = stableSkuInt64,
             Title = "Test SKU",
             PriceCents = 9999,
             Currency = "CNY",
@@ -41,8 +43,8 @@ public class GrpcCartPriceServiceTests
             Stock = 100,
             MainImage = "http://img",
             // M4 Guid→string 迁移：服务端填充 string 字段（修复 SellerId 映射验证）
-            SkuIdStr = skuId.ToString(),
-            SellerIdStr = sellerId.ToString()
+            SkuIdStr = GuidProtoConverter.ToString(skuId),
+            SellerIdStr = GuidProtoConverter.ToString(sellerId)
         });
 
         clientMock.Setup(c => c.BatchGetSkuInfoAsync(
@@ -89,8 +91,8 @@ public class GrpcCartPriceServiceTests
             Salable = true,
             Stock = 50,
             MainImage = "http://img2",
-            SkuIdStr = skuId.ToString(),
-            SellerIdStr = sellerId.ToString()
+            SkuIdStr = GuidProtoConverter.ToString(skuId),
+            SellerIdStr = GuidProtoConverter.ToString(sellerId)
         });
 
         clientMock.Setup(c => c.BatchGetSkuInfoAsync(
@@ -116,6 +118,54 @@ public class GrpcCartPriceServiceTests
         result[0].SellerId.Should().Be(sellerId);
         result[0].Title.Should().Be("New Server SKU");
         result[0].Price.Should().Be(50m);
+    }
+
+    [Fact]
+    public async Task GetSkuPrices_Request_ShouldUseStableInt64_NotGetHashCode()
+    {
+        // 验证请求 int64 字段使用稳定算法（BitConverter.ToInt64），而非 GetHashCode（32 位碰撞率高）
+        var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
+        var skuId = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef");
+        var expectedInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
+
+        var batchResponse = new BatchGetSkuInfoResponse();
+        batchResponse.Skus.Add(new SkuInfo
+        {
+            SkuId = expectedInt64,
+            SkuIdStr = GuidProtoConverter.ToString(skuId),
+            Title = "Stable",
+            PriceCents = 100,
+            Currency = "CNY",
+            Salable = true
+        });
+
+        BatchGetSkuInfoRequest? capturedRequest = null;
+        clientMock.Setup(c => c.BatchGetSkuInfoAsync(
+                It.IsAny<BatchGetSkuInfoRequest>(),
+                It.IsAny<Metadata>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<BatchGetSkuInfoRequest, Metadata, DateTime?, CancellationToken>((req, _, _, _) => capturedRequest = req)
+            .Returns(new AsyncUnaryCall<BatchGetSkuInfoResponse>(
+                Task.FromResult(batchResponse),
+                Task.FromResult(new Metadata()),
+                () => Status.DefaultSuccess,
+                () => new Metadata(),
+                () => { }));
+
+        var client = new GrpcCartPriceService(clientMock.Object, CreateOptionsMonitor(),
+            NullLogger<GrpcCartPriceService>.Instance);
+
+        await client.GetSkuPricesAsync(new[] { skuId });
+
+        capturedRequest.Should().NotBeNull();
+        capturedRequest!.SkuIds.Should().ContainSingle();
+        capturedRequest.SkuIds[0].Should().Be(expectedInt64);
+        // 确保不再使用 GetHashCode（32 位碰撞率高）
+        capturedRequest.SkuIds[0].Should().NotBe((long)skuId.GetHashCode());
+        // 验证 string 字段使用 GuidProtoConverter.ToString（D 格式）
+        capturedRequest.SkuIdsStr.Should().ContainSingle();
+        capturedRequest.SkuIdsStr[0].Should().Be(GuidProtoConverter.ToString(skuId));
     }
 
     [Fact]

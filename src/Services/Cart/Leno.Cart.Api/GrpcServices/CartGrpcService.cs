@@ -1,5 +1,6 @@
 using Grpc.Core;
 using Leno.Cart.Application;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.SharedContracts.Grpc.Cart.V1;
 using Microsoft.AspNetCore.Authorization;
 
@@ -69,11 +70,13 @@ public sealed class CartGrpcService : CartInternalService.CartInternalServiceBas
         };
         foreach (var item in dto.Items)
         {
-            // 双写：既有 int64 字段（GetHashCode，向后兼容）+ 新增 string 字段（Guid.ToString()）
+            // 双写：既有 int64 字段（稳定算法，向后兼容）+ 新增 string 字段（GuidProtoConverter）
             proto.Items.Add(new CartItem
             {
-                SkuId = (long)item.SkuId.GetHashCode(),
-                SkuIdStr = item.SkuId.ToString(),
+                // 修复审计 #5：使用稳定算法替代 GetHashCode()（32 位碰撞率高），确保相同 Guid 始终映射到相同 int64
+                SkuId = BitConverter.ToInt64(item.SkuId.ToByteArray(), 0),
+                // Guid→string 迁移：使用 GuidProtoConverter 统一转换
+                SkuIdStr = GuidProtoConverter.ToString(item.SkuId),
                 Quantity = item.Quantity,
                 UnitPriceCents = item.UnitPriceCents
             });

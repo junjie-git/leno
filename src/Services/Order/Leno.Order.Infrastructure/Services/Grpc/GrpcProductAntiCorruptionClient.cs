@@ -41,11 +41,12 @@ public sealed class GrpcProductAntiCorruptionClient
     public Task<SkuInfoDto?> GetSkuInfoAsync(Guid skuId, CancellationToken ct = default)
         => ExecuteAsync("get_sku_info", async token =>
         {
-            // 请求构造同时填充 int64（向后兼容）+ string（M4 Guid→string 迁移）
+            // 请求构造同时填充 int64（稳定算法，向后兼容）+ string（M4 Guid→string 迁移，GuidProtoConverter）
             var request = new GetSkuInfoRequest
             {
-                SkuId = (long)skuId.GetHashCode(),
-                SkuIdStr = skuId.ToString()
+                // 修复审计 #5：使用稳定算法替代 GetHashCode()（32 位碰撞率高），确保相同 Guid 始终映射到相同 int64
+                SkuId = BitConverter.ToInt64(skuId.ToByteArray(), 0),
+                SkuIdStr = GuidProtoConverter.ToString(skuId)
             };
             var metadata = BuildMetadata();
             var response = await _client.GetSkuInfoAsync(request, metadata, cancellationToken: token)

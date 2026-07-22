@@ -28,9 +28,11 @@ public class GrpcProductSnapshotAntiCorruptionClientTests
     {
         var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
         var skuId = Guid.NewGuid();
+        // 稳定算法：BitConverter.ToInt64(guid.ToByteArray(), 0)，替代 GetHashCode()（32 位碰撞率高）
+        var stableSkuInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
         var skuInfo = new SkuInfo
         {
-            SkuId = (long)skuId.GetHashCode(),
+            SkuId = stableSkuInt64,
             Title = "Test SKU",
             MainImage = "http://img",
             PriceCents = 12999,
@@ -62,6 +64,51 @@ public class GrpcProductSnapshotAntiCorruptionClientTests
         result.MainImageUrl.Should().Be("http://img");
         result.UnitPrice.Should().Be(129.99m);
         result.IsOnSale.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetSkuSnapshot_Request_ShouldUseStableInt64_NotGetHashCode()
+    {
+        // 验证请求 int64 字段使用稳定算法（BitConverter.ToInt64），而非 GetHashCode（32 位碰撞率高）
+        var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
+        var skuId = Guid.Parse("abcdef01-2345-6789-abcd-ef0123456789");
+        var expectedInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
+
+        var skuInfo = new SkuInfo
+        {
+            SkuId = expectedInt64,
+            SkuIdStr = GuidProtoConverter.ToString(skuId),
+            Title = "Stable",
+            PriceCents = 100,
+            Currency = "CNY",
+            Salable = true
+        };
+
+        GetSkuInfoRequest? capturedRequest = null;
+        clientMock.Setup(c => c.GetSkuInfoAsync(
+                It.IsAny<GetSkuInfoRequest>(),
+                It.IsAny<Metadata>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<GetSkuInfoRequest, Metadata, DateTime?, CancellationToken>((req, _, _, _) => capturedRequest = req)
+            .Returns(new AsyncUnaryCall<SkuInfo>(
+                Task.FromResult(skuInfo),
+                Task.FromResult(new Metadata()),
+                () => Status.DefaultSuccess,
+                () => new Metadata(),
+                () => { }));
+
+        var client = new GrpcProductSnapshotAntiCorruptionClient(clientMock.Object, CreateOptionsMonitor(),
+            NullLogger<GrpcProductSnapshotAntiCorruptionClient>.Instance);
+
+        await client.GetSkuSnapshotAsync(skuId);
+
+        capturedRequest.Should().NotBeNull();
+        capturedRequest!.SkuId.Should().Be(expectedInt64);
+        // 确保不再使用 GetHashCode（32 位碰撞率高）
+        capturedRequest.SkuId.Should().NotBe((long)skuId.GetHashCode());
+        // 验证 string 字段使用 GuidProtoConverter.ToString（D 格式）
+        capturedRequest.SkuIdStr.Should().Be(GuidProtoConverter.ToString(skuId));
     }
 
     [Fact]

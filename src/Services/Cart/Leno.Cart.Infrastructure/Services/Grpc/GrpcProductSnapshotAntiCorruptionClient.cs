@@ -40,11 +40,12 @@ public sealed class GrpcProductSnapshotAntiCorruptionClient
     public Task<SkuSnapshotDto> GetSkuSnapshotAsync(Guid skuId, CancellationToken ct = default)
         => ExecuteAsync("get_sku_snapshot", async token =>
     {
-        // M4 Guid→string 迁移：请求同时填充 int64（向后兼容）+ string
+        // M4 Guid→string 迁移：请求同时填充 int64（稳定算法，向后兼容）+ string（GuidProtoConverter）
         var request = new GetSkuInfoRequest
         {
-            SkuId = (long)skuId.GetHashCode(),
-            SkuIdStr = skuId.ToString()
+            // 修复审计 #5：使用稳定算法替代 GetHashCode()（32 位碰撞率高），确保相同 Guid 始终映射到相同 int64
+            SkuId = BitConverter.ToInt64(skuId.ToByteArray(), 0),
+            SkuIdStr = GuidProtoConverter.ToString(skuId)
         };
 
         var metadata = BuildMetadata();
@@ -64,17 +65,17 @@ public sealed class GrpcProductSnapshotAntiCorruptionClient
             }
 
             var ids = skuIds.ToList();
-            // M4 Guid→string 迁移：请求同时填充 int64（向后兼容）+ string
+            // M4 Guid→string 迁移：请求同时填充 int64（稳定算法，向后兼容）+ string（GuidProtoConverter）
             var request = new BatchGetSkuInfoRequest();
-            request.SkuIds.AddRange(ids.Select(id => (long)id.GetHashCode()));
-            request.SkuIdsStr.AddRange(ids.Select(id => id.ToString()));
+            request.SkuIds.AddRange(ids.Select(id => BitConverter.ToInt64(id.ToByteArray(), 0)));
+            request.SkuIdsStr.AddRange(ids.Select(id => GuidProtoConverter.ToString(id)));
 
             var metadata = BuildMetadata();
             var response = await _client.BatchGetSkuInfoAsync(request, metadata, cancellationToken: token);
 
-            // 响应映射：优先用 SkuIdStr 建立 Guid 映射，回退到 int64 GetHashCode 映射（向后兼容旧服务端）
-            var skuMapByStr = ids.ToDictionary(id => id.ToString(), id => id);
-            var skuMapByHash = ids.ToDictionary(id => (long)id.GetHashCode(), id => id);
+            // 响应映射：优先用 SkuIdStr 建立 Guid 映射，回退到 int64 稳定算法映射（向后兼容旧服务端）
+            var skuMapByStr = ids.ToDictionary(id => GuidProtoConverter.ToString(id), id => id);
+            var skuMapByHash = ids.ToDictionary(id => BitConverter.ToInt64(id.ToByteArray(), 0), id => id);
             var result = new List<SkuSnapshotDto>(response.Skus.Count);
             foreach (var proto in response.Skus)
             {
