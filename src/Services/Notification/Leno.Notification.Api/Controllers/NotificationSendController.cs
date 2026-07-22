@@ -45,9 +45,9 @@ public sealed class NotificationSendController : ControllerBase
     }
 
     /// <summary>
-    /// 发送通知（旧路由，双路由期保留，1 周后下线，请使用 <see cref="SendAsync"/>）。
+    /// 发送通知（旧路由，双路由期保留，将于 2026-09-15 下线，请使用 <see cref="SendAsync"/>）。
     /// </summary>
-    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/notifications/send 路由")]
+    [Obsolete("双路由期保留，将于 2026-09-15 下线，请使用 internal/v1/notifications/send 路由", DiagnosticId = "LENO_NOTIF001")]
     [HttpPost(LegacyRoute)]
     [ProducesResponseType(typeof(ApiResponse<SendNotificationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<SendNotificationResponse>), StatusCodes.Status400BadRequest)]
@@ -57,7 +57,7 @@ public sealed class NotificationSendController : ControllerBase
         var caller = HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
         var templateCode = request?.TemplateCode ?? "<null>";
         _logger.LogWarning(
-            "已弃用路由被调用 Route={Route} Caller={Caller} TemplateCode={TemplateCode} IdempotencyKey={IdempotencyKey}；请迁移至 {CurrentRoute}，1 周后旧路由将被移除",
+            "已弃用路由被调用 Route={Route} Caller={Caller} TemplateCode={TemplateCode} IdempotencyKey={IdempotencyKey}；请迁移至 {CurrentRoute}，旧路由将于 2026-09-15 移除",
             LegacyRoute,
             caller,
             templateCode,

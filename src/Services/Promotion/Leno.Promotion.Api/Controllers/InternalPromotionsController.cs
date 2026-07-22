@@ -26,7 +26,7 @@ public sealed class InternalPromotionsController : ControllerBase
 
     /// <summary>试算用户当前订单可用的优惠总金额。</summary>
     [HttpPost("internal/v1/promotions/calculate")]
-    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
+    [Obsolete("双路由期保留，将于 2026-09-15 下线，请使用 internal/v1/promotions/calculate 路由", DiagnosticId = "LENO_PROMO001")]
     [HttpPost("internal/promotions/calculate")]
     [ProducesResponseType(typeof(ApiResponse<DiscountResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CalculateAsync([FromBody] CalculateDiscountDto input, CancellationToken ct)
@@ -40,7 +40,7 @@ public sealed class InternalPromotionsController : ControllerBase
     /// 券不存在返回 404，券已被并发订单占用（非 Unused）返回业务错误码 USER_COUPON_LOCK_INVALID。
     /// </summary>
     [HttpPost("internal/v1/promotions/lock-coupon")]
-    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
+    [Obsolete("双路由期保留，将于 2026-09-15 下线，请使用 internal/v1/promotions/lock-coupon 路由", DiagnosticId = "LENO_PROMO002")]
     [HttpPost("internal/promotions/lock-coupon")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> LockCouponAsync([FromBody] LockCouponRequestDto input, CancellationToken ct)
