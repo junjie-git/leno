@@ -4,6 +4,7 @@ using Leno.Cart.Infrastructure.Repositories;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using StackExchange.Redis;
+using CartAggregate = global::Leno.Cart.Domain.Aggregates.Cart;
 
 namespace Leno.Cart.Infrastructure.Tests;
 
@@ -58,7 +59,7 @@ public class RedisAnonymousCartRepositoryTests
             .Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<bool>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
             .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.SocketFailure, "redis down"));
         var sut = new RedisAnonymousCartRepository(_redisMock.Object, NullLogger<RedisAnonymousCartRepository>.Instance);
-        var cart = Cart.CreateAnonymous(Guid.NewGuid());
+        var cart = CartAggregate.CreateAnonymous(Guid.NewGuid());
 
         var act = () => sut.SaveAsync("session-1", cart);
 
@@ -116,7 +117,7 @@ public class RedisAnonymousCartRepositoryTests
             .Callback<RedisKey, RedisValue, TimeSpan?, bool, When, CommandFlags>((_, v, _, _, _, _) => captured = (string)v!)
             .ReturnsAsync(true);
         var sut = new RedisAnonymousCartRepository(_redisMock.Object, NullLogger<RedisAnonymousCartRepository>.Instance);
-        var cart = Cart.CreateAnonymous(Guid.NewGuid());
+        var cart = CartAggregate.CreateAnonymous(Guid.NewGuid());
         // AddItem 会发布 SkuAddedToCartEvent，构造有领域事件的状态
         cart.AddItem(Guid.NewGuid(), 1, Guid.NewGuid());
         cart.DomainEvents.Should().NotBeEmpty("预置：发布 SkuAddedToCartEvent 后应有领域事件");

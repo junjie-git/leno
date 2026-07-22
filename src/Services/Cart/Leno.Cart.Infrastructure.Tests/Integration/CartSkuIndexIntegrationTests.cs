@@ -9,6 +9,7 @@ using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using CartAggregate = global::Leno.Cart.Domain.Aggregates.Cart;
 
 namespace Leno.Cart.Infrastructure.Tests.Integration;
 
@@ -38,7 +39,7 @@ public class CartSkuIndexIntegrationTests
         var cartRepo = new EfCoreCartRepository(context);
 
         var userId = Guid.NewGuid();
-        var cart = Cart.Create(Guid.NewGuid(), userId);
+        var cart = CartAggregate.Create(Guid.NewGuid(), userId);
         await cartRepo.AddAsync(cart, default);
         await context.SaveChangesAsync(default);
 
@@ -69,7 +70,7 @@ public class CartSkuIndexIntegrationTests
 
         var userId = Guid.NewGuid();
         var skuId = Guid.NewGuid();
-        var cart = Cart.Create(Guid.NewGuid(), userId);
+        var cart = CartAggregate.Create(Guid.NewGuid(), userId);
         cart.AddItem(skuId, 1, Guid.NewGuid());
         await cartRepo.AddAsync(cart, default);
         await context.SaveChangesAsync(default);
