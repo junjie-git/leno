@@ -23,6 +23,7 @@ public sealed class ShopDashboardDataConfiguration : IEntityTypeConfiguration<Sh
         builder.Property(d => d.CompletedOrders).HasColumnName("completed_orders");
         builder.Property(d => d.CancelledOrders).HasColumnName("cancelled_orders");
         builder.Property(d => d.TotalRevenue).HasColumnName("total_revenue").HasPrecision(18, 2);
+        builder.Property(d => d.RefundedAmount).HasColumnName("refunded_amount").HasPrecision(18, 2);
         builder.Property(d => d.Currency).HasColumnName("currency").HasMaxLength(3).IsRequired();
         builder.Property(d => d.LastUpdatedAt).HasColumnName("last_updated_at");
 

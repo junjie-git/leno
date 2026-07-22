@@ -40,6 +40,12 @@ public sealed class ShopDashboardResult
     /// <summary>累计销售收入。</summary>
     public decimal TotalSales { get; init; }
 
+    /// <summary>累计已退款金额（已支付订单取消时累加）。</summary>
+    public decimal RefundedAmount { get; init; }
+
+    /// <summary>净销售收入 = <see cref="TotalSales"/> - <see cref="RefundedAmount"/>，供工作台展示真实经营收入。</summary>
+    public decimal NetSales { get; init; }
+
     /// <summary>币种（ISO 4217）。</summary>
     public string Currency { get; init; } = "CNY";
 

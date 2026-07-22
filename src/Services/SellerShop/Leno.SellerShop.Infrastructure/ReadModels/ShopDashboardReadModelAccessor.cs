@@ -49,6 +49,8 @@ public sealed class ShopDashboardReadModelAccessor : IShopDashboardReadModelAcce
             FiveStarReviews = model.FiveStarReviews,
             OneStarReviews = model.OneStarReviews,
             TotalSales = model.TotalSales,
+            RefundedAmount = model.RefundedAmount,
+            NetSales = model.NetSales,
             Currency = model.Currency,
             LastUpdatedAt = model.LastUpdatedAt,
             IndexedAt = model.IndexedAt

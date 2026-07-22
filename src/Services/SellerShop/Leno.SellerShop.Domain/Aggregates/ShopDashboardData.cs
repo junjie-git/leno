@@ -31,6 +31,17 @@ public sealed class ShopDashboardData : AggregateRoot
     /// <summary>累计销售收入。</summary>
     public decimal TotalRevenue { get; private set; }
 
+    /// <summary>
+    /// 累计已退款金额（已支付订单取消/退款时累加），用于计算 <see cref="NetRevenue"/>。
+    /// 与 <see cref="TotalRevenue"/> 同币种，由 <see cref="OnOrderRefunded"/> 维护。
+    /// </summary>
+    public decimal RefundedAmount { get; private set; }
+
+    /// <summary>
+    /// 净销售收入 = 累计收入 - 累计退款，供工作台展示真实经营收入。
+    /// </summary>
+    public decimal NetRevenue => TotalRevenue - RefundedAmount;
+
     /// <summary>币种（ISO 4217）。</summary>
     public string Currency { get; private set; } = "CNY";
 
@@ -61,6 +72,7 @@ public sealed class ShopDashboardData : AggregateRoot
             CompletedOrders = 0,
             CancelledOrders = 0,
             TotalRevenue = 0m,
+            RefundedAmount = 0m,
             Currency = "CNY",
             LastUpdatedAt = DateTime.UtcNow
         };
@@ -93,9 +105,34 @@ public sealed class ShopDashboardData : AggregateRoot
 
     /// <summary>
     /// 订单取消时：待处理订单数 -1（不可为负），已取消订单数 +1。
+    /// 仅用于未支付订单的取消；已支付订单的取消应调用 <see cref="OnOrderRefunded"/>。
     /// </summary>
     public void OnOrderCancelled()
     {
+        if (PendingOrders > 0)
+        {
+            PendingOrders--;
+        }
+
+        CancelledOrders++;
+        LastUpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// 已支付订单取消/退款时：累计退款金额增加，累计收入回滚相应金额，
+    /// 待处理订单数 -1（不可为负），已取消订单数 +1。
+    /// 与 <see cref="OnOrderCancelled"/> 区别：会回滚 <see cref="TotalRevenue"/> 并累加 <see cref="RefundedAmount"/>。
+    /// </summary>
+    /// <param name="amount">退款金额，须大于 0。</param>
+    public void OnOrderRefunded(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new SellerShopDomainException("退款金额须大于 0", "DASHBOARD_REFUND_AMOUNT_INVALID");
+        }
+
+        RefundedAmount += amount;
+        TotalRevenue -= amount;
         if (PendingOrders > 0)
         {
             PendingOrders--;

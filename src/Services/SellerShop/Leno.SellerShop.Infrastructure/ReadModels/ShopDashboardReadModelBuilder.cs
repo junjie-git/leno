@@ -71,10 +71,12 @@ public sealed class ShopDashboardReadModelBuilder : IShopDashboardReadModelBuild
             FiveStarReviews = reviewStats?.FiveStarReviews ?? 0,
             OneStarReviews = reviewStats?.OneStarReviews ?? 0,
             TotalSales = dashboard?.TotalRevenue ?? 0m,
+            RefundedAmount = dashboard?.RefundedAmount ?? 0m,
+            NetSales = dashboard?.NetRevenue ?? 0m,
             Currency = dashboard?.Currency ?? "CNY",
             LastUpdatedAt = dashboard?.LastUpdatedAt ?? now,
             IndexedAt = now,
-            SchemaVersion = 2
+            SchemaVersion = 3
         };
 
         return readModel;
