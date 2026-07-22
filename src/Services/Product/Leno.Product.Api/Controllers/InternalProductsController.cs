@@ -21,7 +21,7 @@ public sealed class InternalProductsController : ControllerBase
 
     /// <summary>按 SKU 标识查询其概要信息。</summary>
     [HttpGet("internal/v1/products/skus/{skuId:guid}")]
-    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
+    [Obsolete("双路由期保留，2026-08-15 下线旧路由 internal/products/skus/...，请使用 internal/v1/... 路由")]
     [HttpGet("internal/products/skus/{skuId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<SkuInfoResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
@@ -38,7 +38,7 @@ public sealed class InternalProductsController : ControllerBase
 
     /// <summary>批量查询 SKU 概要信息，跳过不存在的 SKU。</summary>
     [HttpPost("internal/v1/products/skus/batch")]
-    [Obsolete("双路由期保留，1 周后下线，请使用 internal/v1/... 路由")]
+    [Obsolete("双路由期保留，2026-08-15 下线旧路由 internal/products/skus/...，请使用 internal/v1/... 路由")]
     [HttpPost("internal/products/skus/batch")]
     [ProducesResponseType(typeof(ApiResponse<List<SkuInfoResultDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSkuInfosBatchAsync([FromBody] List<Guid> skuIds, CancellationToken ct)
