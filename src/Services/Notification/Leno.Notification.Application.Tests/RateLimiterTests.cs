@@ -1,7 +1,9 @@
 using Leno.Notification.Domain.Services;
 using Leno.Notification.Domain.ValueObjects;
+using Leno.Notification.Infrastructure.Options;
 using Leno.Notification.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using StackExchange.Redis;
 
@@ -12,11 +14,13 @@ public class RateLimiterTests
     private readonly Mock<IConnectionMultiplexer> _redisMock = new();
     private readonly Mock<ILogger<RedisRateLimiter>> _loggerMock = new();
     private readonly Mock<IDatabase> _databaseMock = new();
+    private readonly Mock<IOptionsMonitor<RateLimitOptions>> _optionsMock = new();
 
     private RedisRateLimiter CreateSut()
     {
         _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(_databaseMock.Object);
-        return new RedisRateLimiter(_redisMock.Object, _loggerMock.Object);
+        _optionsMock.Setup(o => o.CurrentValue).Returns(new RateLimitOptions());
+        return new RedisRateLimiter(_redisMock.Object, _optionsMock.Object, _loggerMock.Object);
     }
 
     #region AcquireAsync - Email Channel
@@ -222,7 +226,8 @@ public class RateLimiterTests
         // Arrange
         _redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
             .Throws(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Connection failed"));
-        var sut = new RedisRateLimiter(_redisMock.Object, _loggerMock.Object);
+        _optionsMock.Setup(o => o.CurrentValue).Returns(new RateLimitOptions());
+        var sut = new RedisRateLimiter(_redisMock.Object, _optionsMock.Object, _loggerMock.Object);
 
         // Act
         var result = await sut.AcquireAsync("user@example.com", "OrderCreated", NotificationChannel.Email);

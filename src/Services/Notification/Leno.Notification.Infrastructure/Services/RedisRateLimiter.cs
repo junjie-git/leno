@@ -1,37 +1,40 @@
 using Leno.Notification.Domain.Services;
 using Leno.Notification.Domain.ValueObjects;
+using Leno.Notification.Infrastructure.Options;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
 namespace Leno.Notification.Infrastructure.Services;
 
 /// <summary>
 /// 基于 Redis 滑动窗口的频率限制器实现。
-/// 
+///
 /// 规则：
 /// - Email: 10条/小时/接收人
 /// - SMS: 5条/小时/接收人，20条/天/接收人
 /// - 验证码类通知免限或单独限流
 /// - Redis 不可用时降级为允许，并发送告警
+///
+/// P1-7：限流阈值与窗口改为通过 <see cref="IOptionsMonitor{RateLimitOptions}"/> 注入，
+///       支持运行时热更新与按 templateCode 维度覆盖，缺省值与原 const 完全对齐（零行为变更）。
 /// </summary>
 public sealed class RedisRateLimiter : IRateLimiter
 {
-    private const int EmailHourlyLimit = 10;
-    private const int SmsHourlyLimit = 5;
-    private const int SmsDailyLimit = 20;
-    private const int VerificationCodeHourlyLimit = 5;
-
-    private static readonly TimeSpan HourlyWindow = TimeSpan.FromHours(1);
-    private static readonly TimeSpan DailyWindow = TimeSpan.FromHours(24);
-
     private readonly IConnectionMultiplexer _redis;
+    private readonly IOptionsMonitor<RateLimitOptions> _options;
     private readonly ILogger<RedisRateLimiter> _logger;
 
-    public RedisRateLimiter(IConnectionMultiplexer redis, ILogger<RedisRateLimiter> logger)
+    public RedisRateLimiter(
+        IConnectionMultiplexer redis,
+        IOptionsMonitor<RateLimitOptions> options,
+        ILogger<RedisRateLimiter> logger)
     {
         ArgumentNullException.ThrowIfNull(redis);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
         _redis = redis;
+        _options = options;
         _logger = logger;
     }
 
@@ -59,22 +62,36 @@ public sealed class RedisRateLimiter : IRateLimiter
     private async Task<RateLimitResult> CheckRateLimitAsync(string recipient, string templateCode, NotificationChannel channel)
     {
         var db = _redis.GetDatabase();
+        var opts = _options.CurrentValue;
+
+        // 查找按 templateCode 维度的限流规则覆盖
+        TemplateRateLimitRule? templateRule = null;
+        if (!string.IsNullOrEmpty(templateCode))
+        {
+            opts.PerTemplateCode.TryGetValue(templateCode, out templateRule);
+        }
+
+        var hourlyWindow = TimeSpan.FromSeconds(opts.HourlyWindowSeconds);
+        var dailyWindow = TimeSpan.FromSeconds(opts.DailyWindowSeconds);
 
         switch (channel)
         {
             case NotificationChannel.Email:
-                return await CheckLimitAsync(db, recipient, channel, "hourly", EmailHourlyLimit, HourlyWindow);
+                var emailLimit = templateRule?.EmailHourlyLimit ?? opts.EmailHourlyLimit;
+                return await CheckLimitAsync(db, recipient, channel, "hourly", emailLimit, hourlyWindow);
 
             case NotificationChannel.Sms:
                 // 短信先检查小时限制
-                var hourlyResult = await CheckLimitAsync(db, recipient, channel, "hourly", SmsHourlyLimit, HourlyWindow);
+                var smsHourlyLimit = templateRule?.SmsHourlyLimit ?? opts.SmsHourlyLimit;
+                var hourlyResult = await CheckLimitAsync(db, recipient, channel, "hourly", smsHourlyLimit, hourlyWindow);
                 if (!hourlyResult.Allowed)
                 {
                     return hourlyResult;
                 }
 
                 // 再检查日限制
-                var dailyResult = await CheckLimitAsync(db, recipient, channel, "daily", SmsDailyLimit, DailyWindow);
+                var smsDailyLimit = templateRule?.SmsDailyLimit ?? opts.SmsDailyLimit;
+                var dailyResult = await CheckLimitAsync(db, recipient, channel, "daily", smsDailyLimit, dailyWindow);
                 return dailyResult;
 
             case NotificationChannel.InApp:

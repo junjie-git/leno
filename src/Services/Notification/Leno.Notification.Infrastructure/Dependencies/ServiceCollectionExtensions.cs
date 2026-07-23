@@ -8,6 +8,7 @@ using Leno.Notification.Domain.Services;
 using Leno.Notification.Infrastructure.Channels;
 using Leno.Notification.Infrastructure.Consumers;
 using Leno.Notification.Infrastructure.Jobs;
+using Leno.Notification.Infrastructure.Options;
 using Leno.Notification.Infrastructure.Repositories;
 using Leno.Notification.Infrastructure.Services;
 using Leno.Notification.Infrastructure.Services.Grpc;
@@ -108,6 +109,10 @@ public static class ServiceCollectionExtensions
         services.Configure<EmailChannelOptions>(configuration.GetSection("Notification:Email"));
         services.Configure<SmsChannelOptions>(configuration.GetSection("Notification:Sms"));
 
+        // P1-7：重试策略与频率限制配置（IOptionsMonitor 支持热更新）
+        services.Configure<RetryPolicyOptions>(configuration.GetSection(RetryPolicyOptions.SectionName));
+        services.Configure<RateLimitOptions>(configuration.GetSection(RateLimitOptions.SectionName));
+
         // 通知渠道实现：ISmsProvider 由 AliyunSmsProvider/TencentSmsProvider 实现，
         // SmsChannel 外壳类作为唯一的 INotificationChannel(NotificationChannel.Sms) 注册到 DI，
         // 避免两个 SMS 实现注册为 INotificationChannel 时 ToDictionary 抛重复键异常。
@@ -164,9 +169,7 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(configurator);
 
-        // 仅注册按 BC 拆分的专用 Consumer。
-        // 删除 NotificationEventConsumer 的注册：它与各专用 Consumer 实现相同的 IConsumer<T> 接口，
-        // 全部注册后每条集成事件会被两个队列各消费一次（重复订阅 P0 问题）。
+        // 仅注册按 BC 拆分的专用 Consumer，避免重复订阅（P0 问题已修复）。
         configurator.AddConsumer<UserEventConsumer>();
         configurator.AddConsumer<OrderEventConsumer>();
         configurator.AddConsumer<PaymentEventConsumer>();

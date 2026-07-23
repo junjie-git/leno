@@ -1,4 +1,6 @@
 using Leno.Notification.Domain.Services;
+using Leno.Notification.Infrastructure.Options;
+using Microsoft.Extensions.Options;
 
 namespace Leno.Notification.Infrastructure.Services;
 
@@ -21,55 +23,24 @@ namespace Leno.Notification.Infrastructure.Services;
 ///
 /// P2-42：未知错误码默认不重试（直接死信），避免对未知错误盲目重试造成资源浪费。
 ///       如需对特定错误码重试，应显式加入 RetryableErrorCodes 白名单。
+///
+/// P1-7：退避序列、错误码白/黑名单改为通过 <see cref="IOptionsMonitor{RetryPolicyOptions}"/> 注入，
+///       支持运行时热更新，缺省值与原 const 完全对齐（零行为变更）。
 /// </summary>
 public sealed class RetryPolicy : IRetryPolicy
 {
-    private static readonly HashSet<string> NonRetryableErrorCodes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        // 邮箱不存在 / 黑名单 / 签名不匹配
-        "SMTP_NON_RETRYABLE",
-        "EMAIL_EMPTY",
-        "EMAIL_CONFIG_MISSING",
-        "SMS_PHONE_EMPTY",
-        "SMS_CONFIG_MISSING",
-        "SMS_HTTP_ERROR",
-        "TEMPLATE_NOT_FOUND",
-        "TEMPLATE_RENDER_FAILED",
-        "CHANNEL_NOT_FOUND",
-        "NOTIFICATION_RECORD_ID_EMPTY",
-        "NOTIFICATION_USER_EMPTY",
-        "NOTIFICATION_TEMPLATE_CODE_EMPTY",
-        "NOTIFICATION_TITLE_EMPTY",
-        "NOTIFICATION_CONTENT_EMPTY",
-        "NOTIFICATION_CHANNEL_INVALID"
-    };
-
-    private static readonly HashSet<string> RetryableErrorCodes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        // SMTP 421/450/452 临时失败
-        "SMTP_RETRYABLE",
-        // 连接超时
-        "SMTP_CONNECT_TIMEOUT",
-        // 短信超时
-        "SMS_TIMEOUT",
-        // 通用异常（可能是网络抖动）
-        "EMAIL_EXCEPTION",
-        "SMS_EXCEPTION",
-        "DISPATCH_EXCEPTION",
-        "RETRY_EXCEPTION",
-        "SEND_EXCEPTION",
-        "ACCEPTED_TIMEOUT"
-    };
-
     /// <summary>
-    /// 指数退避延迟：30s / 2min / 10min
+    /// 错误码大小写不敏感比较器，与原 static HashSet 使用的 <c>StringComparer.OrdinalIgnoreCase</c> 行为一致。
     /// </summary>
-    private static readonly TimeSpan[] BackoffDelays =
-    [
-        TimeSpan.FromSeconds(30),
-        TimeSpan.FromMinutes(2),
-        TimeSpan.FromMinutes(10)
-    ];
+    private static readonly StringComparer ErrorCodeComparer = StringComparer.OrdinalIgnoreCase;
+
+    private readonly IOptionsMonitor<RetryPolicyOptions> _options;
+
+    public RetryPolicy(IOptionsMonitor<RetryPolicyOptions> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _options = options;
+    }
 
     /// <inheritdoc />
     public bool ShouldRetry(string? errorCode)
@@ -80,12 +51,14 @@ public sealed class RetryPolicy : IRetryPolicy
             return false;
         }
 
-        if (NonRetryableErrorCodes.Contains(errorCode))
+        var opts = _options.CurrentValue;
+
+        if (opts.NonRetryableErrorCodes.Contains(errorCode, ErrorCodeComparer))
         {
             return false;
         }
 
-        if (RetryableErrorCodes.Contains(errorCode))
+        if (opts.RetryableErrorCodes.Contains(errorCode, ErrorCodeComparer))
         {
             return true;
         }
@@ -103,17 +76,24 @@ public sealed class RetryPolicy : IRetryPolicy
     /// <inheritdoc />
     public TimeSpan NextDelay(int retryCount)
     {
+        var backoffSeconds = _options.CurrentValue.BackoffSeconds;
+
+        if (backoffSeconds.Length == 0)
+        {
+            return TimeSpan.Zero;
+        }
+
         if (retryCount <= 0)
         {
-            return BackoffDelays[0];
+            return TimeSpan.FromSeconds(backoffSeconds[0]);
         }
 
         var index = retryCount - 1;
-        if (index >= BackoffDelays.Length)
+        if (index >= backoffSeconds.Length)
         {
-            return BackoffDelays[^1];
+            return TimeSpan.FromSeconds(backoffSeconds[^1]);
         }
 
-        return BackoffDelays[index];
+        return TimeSpan.FromSeconds(backoffSeconds[index]);
     }
 }

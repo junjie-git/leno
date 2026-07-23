@@ -1,11 +1,21 @@
 using Leno.Notification.Domain.Services;
+using Leno.Notification.Infrastructure.Options;
 using Leno.Notification.Infrastructure.Services;
+using Microsoft.Extensions.Options;
+using Moq;
 
 namespace Leno.Notification.Application.Tests;
 
 public class RetryPolicyTests
 {
-    private readonly RetryPolicy _policy = new();
+    private readonly RetryPolicy _policy = CreateSutWithDefaults();
+
+    private static RetryPolicy CreateSutWithDefaults()
+    {
+        var optionsMock = new Mock<IOptionsMonitor<RetryPolicyOptions>>();
+        optionsMock.Setup(o => o.CurrentValue).Returns(new RetryPolicyOptions());
+        return new RetryPolicy(optionsMock.Object);
+    }
 
     #region ShouldRetry
 
