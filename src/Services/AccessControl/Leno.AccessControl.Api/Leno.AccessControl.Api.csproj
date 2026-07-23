@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\..\SharedContracts\Grpc\access_control.proto" Link="Protos\access_control.proto" GrpcServices="Server" />
+    <Protobuf Include="..\..\..\SharedContracts\Grpc\access_control.proto" Link="Protos\access_control.proto" GrpcServices="Server" />
   </ItemGroup>
 
 </Project>
