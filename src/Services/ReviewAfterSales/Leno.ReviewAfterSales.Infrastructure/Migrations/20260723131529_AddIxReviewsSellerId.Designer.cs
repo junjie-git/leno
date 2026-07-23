@@ -4,6 +4,7 @@ using Leno.ReviewAfterSales.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Leno.ReviewAfterSales.Infrastructure.Migrations
 {
     [DbContext(typeof(ReviewAfterSalesDbContext))]
-    partial class ReviewAfterSalesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723131529_AddIxReviewsSellerId")]
+    partial class AddIxReviewsSellerId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

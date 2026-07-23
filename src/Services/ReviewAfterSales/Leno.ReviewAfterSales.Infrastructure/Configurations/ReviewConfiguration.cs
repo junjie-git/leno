@@ -58,5 +58,11 @@ public sealed class ReviewConfiguration : IEntityTypeConfiguration<Review>
         builder.HasIndex(r => r.SpuId).HasDatabaseName("ix_reviews_spu_id");
         builder.HasIndex(r => r.UserId).HasDatabaseName("ix_reviews_user_id");
         builder.HasIndex(r => r.OrderLineId).IsUnique().HasDatabaseName("ix_reviews_order_line_id");
+
+        // 卖家后台评价列表查询高频走 seller_id 过滤，Include CreatedAt/Rating 形成覆盖索引，
+        // 避免回表查询主键聚簇索引；迁移中以 ONLINE=ON 在线创建避免锁表。
+        builder.HasIndex(r => r.SellerId)
+            .HasDatabaseName("ix_reviews_seller_id")
+            .IncludeProperties(r => new { r.CreatedAt, r.Rating });
     }
 }
