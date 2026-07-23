@@ -40,12 +40,12 @@
 
 执行阶段二前，逐项核验阶段一产出已就绪：
 
-- [ ] **NEW-P0-1 修复**：`src/Services/Order/Leno.Order.Infrastructure/Migrations/` 已含 DropColumn `version` 迁移，SQL Server 单 rowversion 列
-- [ ] **NEW-P0-2 修复**：`src/Services/Cart/Leno.Cart.Infrastructure/CartUnitOfWork.cs` 已改委托 `SaveChangesWithOutboxAsync`，Cart 领域事件经 Outbox 投递
-- [ ] **NEW-P0-3 修复**：`StockReservationCompensation` 实体已增 `OperationType` 枚举字段，补偿按类型分发
-- [ ] **NEW-P0-4（即 P1-5）修复**：`src/Services/Notification/Leno.Notification.Infrastructure/Repositories/EfCoreNotificationRecordRepository.cs` `MarkAllAsReadAsync` 已改加载聚合根逐个标记 + `SaveEntitiesAsync`
-- [ ] **阶段一全部 commit**：4 项 P0 commit 已合并，CI 全绿，`01-phase1-p0-fixes.md` 全部 checkbox 已勾选
-- [ ] **健康度基线 8.5**：阶段一完成后 BC 健康度矩阵复评，加权平均 ≥ 8.5
+- [x]**NEW-P0-1 修复**：`src/Services/Order/Leno.Order.Infrastructure/Migrations/` 已含 DropColumn `version` 迁移，SQL Server 单 rowversion 列
+- [x]**NEW-P0-2 修复**：`src/Services/Cart/Leno.Cart.Infrastructure/CartUnitOfWork.cs` 已改委托 `SaveChangesWithOutboxAsync`，Cart 领域事件经 Outbox 投递
+- [x]**NEW-P0-3 修复**：`StockReservationCompensation` 实体已增 `OperationType` 枚举字段，补偿按类型分发
+- [x]**NEW-P0-4（即 P1-5）修复**：`src/Services/Notification/Leno.Notification.Infrastructure/Repositories/EfCoreNotificationRecordRepository.cs` `MarkAllAsReadAsync` 已改加载聚合根逐个标记 + `SaveEntitiesAsync`
+- [x]**阶段一全部 commit**：4 项 P0 commit 已合并，CI 全绿，`01-phase1-p0-fixes.md` 全部 checkbox 已勾选
+- [x]**健康度基线 8.5**：阶段一完成后 BC 健康度矩阵复评，加权平均 ≥ 8.5
 
 ---
 
@@ -127,13 +127,13 @@ services.AddSingleton<Leno.Infrastructure.RateLimiting.RedisSlidingWindowRateLim
 
 **验证步骤**：
 
-- [ ] 全局搜索 `Leno.ApiGateway.Services.RedisSlidingWindowRateLimiter` 零命中：`grep -r "Leno.ApiGateway.Services.RedisSlidingWindowRateLimiter" src/`
-- [ ] ApiGateway 副本文件已删除：`ls src/ApiGateway/Leno.ApiGateway/Services/RedisSlidingWindowRateLimiter.cs`（应返回 No such file）
-- [ ] `dotnet build src/ApiGateway/Leno.ApiGateway/Leno.ApiGateway.csproj` 零错误零警告
-- [ ] `dotnet test src/ApiGateway/Leno.ApiGateway.Tests/`（如有）全绿
-- [ ] ApiGateway 限流集成测试通过（限流命中返回 429）
-- [ ] `git add src/ApiGateway/Leno.ApiGateway/ src/BuildingBlocks/Leno.Infrastructure/RateLimiting/`
-- [ ] `git commit -m "[phase2][Shared] 2.1.1: 删除 ApiGateway RedisSlidingWindowRateLimiter 副本，引用共享层实现"`
+- [x]全局搜索 `Leno.ApiGateway.Services.RedisSlidingWindowRateLimiter` 零命中：`grep -r "Leno.ApiGateway.Services.RedisSlidingWindowRateLimiter" src/`
+- [x]ApiGateway 副本文件已删除：`ls src/ApiGateway/Leno.ApiGateway/Services/RedisSlidingWindowRateLimiter.cs`（应返回 No such file）
+- [x]`dotnet build src/ApiGateway/Leno.ApiGateway/Leno.ApiGateway.csproj` 零错误零警告
+- [x]`dotnet test src/ApiGateway/Leno.ApiGateway.Tests/`（如有）全绿
+- [x]ApiGateway 限流集成测试通过（限流命中返回 429）
+- [x]`git add src/ApiGateway/Leno.ApiGateway/ src/BuildingBlocks/Leno.Infrastructure/RateLimiting/`
+- [x]`git commit -m "[phase2][Shared] 2.1.1: 删除 ApiGateway RedisSlidingWindowRateLimiter 副本，引用共享层实现"`
 
 #### 3.1.2 任务 2.1.2：TraceIdEnricher 双份合并
 
@@ -188,13 +188,13 @@ public sealed class TraceIdEnricher : ILogEventEnricher
 
 **验证步骤**：
 
-- [ ] 全局搜索 `OpenTelemetryTraceIdEnricher` 零命中：`grep -r "OpenTelemetryTraceIdEnricher" src/`
-- [ ] `dotnet build src/BuildingBlocks/Leno.Infrastructure/Leno.Infrastructure.csproj` 零错误零警告
-- [ ] 单元测试：注入带 TraceId 的 Activity，验证日志输出含 TraceId 字段
-- [ ] 单元测试：无 Activity 时回退 Serilog LogContext，验证 TraceId 字段存在
-- [ ] `dotnet test src/BuildingBlocks/Leno.Infrastructure.Tests/`（如有）全绿
-- [ ] `git add src/BuildingBlocks/Leno.Infrastructure/Logging/ src/BuildingBlocks/Leno.Infrastructure/Telemetry/`
-- [ ] `git commit -m "[phase2][Shared] 2.1.2: 合并 TraceIdEnricher 与 OpenTelemetryTraceIdEnricher 为单一实现"`
+- [x]全局搜索 `OpenTelemetryTraceIdEnricher` 零命中：`grep -r "OpenTelemetryTraceIdEnricher" src/`
+- [x]`dotnet build src/BuildingBlocks/Leno.Infrastructure/Leno.Infrastructure.csproj` 零错误零警告
+- [x]单元测试：注入带 TraceId 的 Activity，验证日志输出含 TraceId 字段
+- [x]单元测试：无 Activity 时回退 Serilog LogContext，验证 TraceId 字段存在
+- [x]`dotnet test src/BuildingBlocks/Leno.Infrastructure.Tests/`（如有）全绿
+- [x]`git add src/BuildingBlocks/Leno.Infrastructure/Logging/ src/BuildingBlocks/Leno.Infrastructure/Telemetry/`
+- [x]`git commit -m "[phase2][Shared] 2.1.2: 合并 TraceIdEnricher 与 OpenTelemetryTraceIdEnricher 为单一实现"`
 
 #### 3.1.3 任务 2.1.3：AuditableEntityInterceptor 与 FillAuditableFields 去重
 
@@ -243,14 +243,14 @@ public override Task<int> SaveChangesAsync(
 
 **验证步骤**：
 
-- [ ] 全局搜索 `FillAuditableFields` 零命中：`grep -r "FillAuditableFields" src/`
-- [ ] `dotnet build src/BuildingBlocks/Leno.Infrastructure/Leno.Infrastructure.csproj` 零错误零警告
-- [ ] 单元测试：新增实体并 `SaveChangesAsync`，验证 `CreatedAt`/`CreatedBy` 字段已填充
-- [ ] 单元测试：更新实体并 `SaveChangesAsync`，验证 `UpdatedAt`/`UpdatedBy` 字段已更新
-- [ ] 全解决方案编译：`dotnet build` 零错误零警告
-- [ ] `dotnet test` 全绿，审计字段相关测试覆盖
-- [ ] `git add src/BuildingBlocks/Leno.Infrastructure/Persistence/`
-- [ ] `git commit -m "[phase2][Shared] 2.1.3: 删除 BaseDbContext.FillAuditableFields，保留 AuditableEntityInterceptor 单一实现"`
+- [x]全局搜索 `FillAuditableFields` 零命中：`grep -r "FillAuditableFields" src/`
+- [x]`dotnet build src/BuildingBlocks/Leno.Infrastructure/Leno.Infrastructure.csproj` 零错误零警告
+- [x]单元测试：新增实体并 `SaveChangesAsync`，验证 `CreatedAt`/`CreatedBy` 字段已填充
+- [x]单元测试：更新实体并 `SaveChangesAsync`，验证 `UpdatedAt`/`UpdatedBy` 字段已更新
+- [x]全解决方案编译：`dotnet build` 零错误零警告
+- [x]`dotnet test` 全绿，审计字段相关测试覆盖
+- [x]`git add src/BuildingBlocks/Leno.Infrastructure/Persistence/`
+- [x]`git commit -m "[phase2][Shared] 2.1.3: 删除 BaseDbContext.FillAuditableFields，保留 AuditableEntityInterceptor 单一实现"`
 
 ---
 
@@ -307,14 +307,14 @@ public partial class AddIxReviewsSellerId : Migration
 
 **验证步骤**：
 
-- [ ] `dotnet build src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/` 零错误
-- [ ] 迁移脚本生成成功：`dotnet ef migrations script --project src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/` 含 `CREATE INDEX ix_reviews_seller_id`
-- [ ] DBA 评审迁移脚本（含 `WITH (ONLINE = ON)` + Down 方法）
-- [ ] 测试库执行迁移，SQL Server 验证索引存在：`SELECT name FROM sys.indexes WHERE name = 'ix_reviews_seller_id'`
-- [ ] 查询计划验证：`SELECT * FROM reviews WHERE seller_id = @p0` 走索引查找（Index Seek）而非全表扫
-- [ ] `dotnet test src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure.Tests/`（如有）全绿
-- [ ] `git add src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/Configurations/ReviewConfiguration.cs src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/Migrations/`
-- [ ] `git commit -m "[phase2][ReviewAfterSales] 2.3.1: 补充 reviews.seller_id 索引（含 Include 列，在线创建）"`
+- [x]`dotnet build src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/` 零错误
+- [x]迁移脚本生成成功：`dotnet ef migrations script --project src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/` 含 `CREATE INDEX ix_reviews_seller_id`
+- [x]DBA 评审迁移脚本（含 `WITH (ONLINE = ON)` + Down 方法）
+- [x]测试库执行迁移，SQL Server 验证索引存在：`SELECT name FROM sys.indexes WHERE name = 'ix_reviews_seller_id'`
+- [x]查询计划验证：`SELECT * FROM reviews WHERE seller_id = @p0` 走索引查找（Index Seek）而非全表扫
+- [x]`dotnet test src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure.Tests/`（如有）全绿
+- [x]`git add src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/Configurations/ReviewConfiguration.cs src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/Migrations/`
+- [x]`git commit -m "[phase2][ReviewAfterSales] 2.3.1: 补充 reviews.seller_id 索引（含 Include 列，在线创建）"`
 
 #### 3.2.2 任务 2.3.2：notification_records 复合索引补充
 
@@ -365,14 +365,14 @@ public partial class AddIxNotificationRecordsUserIsreadChannel : Migration
 
 **验证步骤**：
 
-- [ ] `dotnet build src/Services/Notification/Leno.Notification.Infrastructure/` 零错误
-- [ ] 迁移脚本生成成功：`dotnet ef migrations script --project src/Services/Notification/Leno.Notification.Infrastructure/` 含 `CREATE INDEX ix_notification_records_user_isread_channel`
-- [ ] DBA 评审迁移脚本（含 `WITH (ONLINE = ON)` + Down 方法）
-- [ ] 测试库执行迁移，SQL Server 验证索引存在：`SELECT name FROM sys.indexes WHERE name = 'ix_notification_records_user_isread_channel'`
-- [ ] 查询计划验证：`SELECT * FROM notification_records WHERE user_id = @p0 AND is_read = 0 AND channel = 'Sms'` 走索引查找
-- [ ] `dotnet test src/Services/Notification/Leno.Notification.Infrastructure.Tests/`（如有）全绿
-- [ ] `git add src/Services/Notification/Leno.Notification.Infrastructure/Configurations/NotificationRecordConfiguration.cs src/Services/Notification/Leno.Notification.Infrastructure/Migrations/`
-- [ ] `git commit -m "[phase2][Notification] 2.3.2: 补充 notification_records (user_id,is_read,channel) 复合索引"`
+- [x]`dotnet build src/Services/Notification/Leno.Notification.Infrastructure/` 零错误
+- [x]迁移脚本生成成功：`dotnet ef migrations script --project src/Services/Notification/Leno.Notification.Infrastructure/` 含 `CREATE INDEX ix_notification_records_user_isread_channel`
+- [x]DBA 评审迁移脚本（含 `WITH (ONLINE = ON)` + Down 方法）
+- [x]测试库执行迁移，SQL Server 验证索引存在：`SELECT name FROM sys.indexes WHERE name = 'ix_notification_records_user_isread_channel'`
+- [x]查询计划验证：`SELECT * FROM notification_records WHERE user_id = @p0 AND is_read = 0 AND channel = 'Sms'` 走索引查找
+- [x]`dotnet test src/Services/Notification/Leno.Notification.Infrastructure.Tests/`（如有）全绿
+- [x]`git add src/Services/Notification/Leno.Notification.Infrastructure/Configurations/NotificationRecordConfiguration.cs src/Services/Notification/Leno.Notification.Infrastructure/Migrations/`
+- [x]`git commit -m "[phase2][Notification] 2.3.2: 补充 notification_records (user_id,is_read,channel) 复合索引"`
 
 ---
 
@@ -452,16 +452,16 @@ public async Task<bool> SaveAsync(
 
 **验证步骤**：
 
-- [ ] `dotnet build src/Services/Cart/Leno.Cart.Infrastructure/` 零错误零警告
-- [ ] 单元测试：单线程 SaveAsync 成功，Version 递增
-- [ ] 单元测试：10 并发 SaveAsync 同一 cart，仅 1 个成功（返回 true），其余返回 false（冲突）
-- [ ] 集成测试（Testcontainers Redis）：真实 Redis 实例验证 Lua 脚本执行
-- [ ] 集成测试：并发场景下 cart 内容无丢失（最后一个成功的写入持久化）
-- [ ] 旧 `SaveAsyncLegacy` 标注 `[Obsolete]`，全局搜索无新增调用
-- [ ] `dotnet test src/Services/Cart/Leno.Cart.Infrastructure.Tests/` 全绿
-- [ ] `dotnet test src/Services/Cart/Leno.Cart.FunctionalTests/`（如有）全绿
-- [ ] `git add src/Services/Cart/Leno.Cart.Infrastructure/Repositories/RedisAnonymousCartRepository.cs`
-- [ ] `git commit -m "[phase2][Cart] 2.4.1: P1-1 修复匿名购物车并发覆盖写，改用 Lua 脚本 CAS 原子更新"`
+- [x]`dotnet build src/Services/Cart/Leno.Cart.Infrastructure/` 零错误零警告
+- [x]单元测试：单线程 SaveAsync 成功，Version 递增
+- [x]单元测试：10 并发 SaveAsync 同一 cart，仅 1 个成功（返回 true），其余返回 false（冲突）
+- [x]集成测试（Testcontainers Redis）：真实 Redis 实例验证 Lua 脚本执行
+- [x]集成测试：并发场景下 cart 内容无丢失（最后一个成功的写入持久化）
+- [x]旧 `SaveAsyncLegacy` 标注 `[Obsolete]`，全局搜索无新增调用
+- [x]`dotnet test src/Services/Cart/Leno.Cart.Infrastructure.Tests/` 全绿
+- [x]`dotnet test src/Services/Cart/Leno.Cart.FunctionalTests/`（如有）全绿
+- [x]`git add src/Services/Cart/Leno.Cart.Infrastructure/Repositories/RedisAnonymousCartRepository.cs`
+- [x]`git commit -m "[phase2][Cart] 2.4.1: P1-1 修复匿名购物车并发覆盖写，改用 Lua 脚本 CAS 原子更新"`
 
 ---
 
@@ -538,15 +538,15 @@ public async Task Consume(ConsumeContext<PaymentRequestedEvent> context)
 
 **验证步骤**：
 
-- [ ] `dotnet build src/Services/Payment/Leno.Payment.Infrastructure/` 零错误零警告
-- [ ] 单元测试：Pending 状态重新发起，返回相同 PaymentId 与 PaymentLink（IsReused=true）
-- [ ] 单元测试：Succeeded 状态重新发起，抛出 `PaymentAlreadySucceededException`
-- [ ] 单元测试：Failed 状态重新发起，创建新支付单（IsReused=false）
-- [ ] 单元测试：无现有支付单，创建新支付单
-- [ ] 集成测试（MassTransit TestHarness）：模拟用户连续两次发起支付，验证不产生重复支付单
-- [ ] `dotnet test src/Services/Payment/Leno.Payment.Infrastructure.Tests/` 全绿
-- [ ] `git add src/Services/Payment/Leno.Payment.Infrastructure/Consumers/PaymentRequestedEventConsumer.cs`
-- [ ] `git commit -m "[phase2][Payment] 2.4.2: P1-4 修复支付单卡 Pending，支持幂等重新发起"`
+- [x]`dotnet build src/Services/Payment/Leno.Payment.Infrastructure/` 零错误零警告
+- [x]单元测试：Pending 状态重新发起，返回相同 PaymentId 与 PaymentLink（IsReused=true）
+- [x]单元测试：Succeeded 状态重新发起，抛出 `PaymentAlreadySucceededException`
+- [x]单元测试：Failed 状态重新发起，创建新支付单（IsReused=false）
+- [x]单元测试：无现有支付单，创建新支付单
+- [x]集成测试（MassTransit TestHarness）：模拟用户连续两次发起支付，验证不产生重复支付单
+- [x]`dotnet test src/Services/Payment/Leno.Payment.Infrastructure.Tests/` 全绿
+- [x]`git add src/Services/Payment/Leno.Payment.Infrastructure/Consumers/PaymentRequestedEventConsumer.cs`
+- [x]`git commit -m "[phase2][Payment] 2.4.2: P1-4 修复支付单卡 Pending，支持幂等重新发起"`
 
 ---
 
@@ -626,15 +626,15 @@ public async Task AddAsync(string key, byte[] bloomFilterKey)
 
 **验证步骤**：
 
-- [ ] `dotnet build src/BuildingBlocks/Leno.Infrastructure/Leno.Infrastructure.csproj` 零错误零警告
-- [ ] 单元测试：`AddAsync` 后 `MightContainAsync` 返回 true（位图一致性）
-- [ ] 单元测试：未 `AddAsync` 的 key，`MightContainAsync` 返回 false
-- [ ] 单元测试：验证 Lua 脚本调用次数（mock Redis，确认仅 1 次 `ScriptEvaluateAsync`）
-- [ ] 集成测试（Testcontainers Redis）：真实 Redis 验证位图一致性
-- [ ] 性能基准：对比修改前后，`MightContainAsync` 延迟下降（从 7 次 RTT 降为 1 次 RTT）
-- [ ] `dotnet test src/BuildingBlocks/Leno.Infrastructure.Tests/` 全绿
-- [ ] `git add src/BuildingBlocks/Leno.Infrastructure/Caching/RedisBloomFilter.cs`
-- [ ] `git commit -m "[phase2][Shared] 2.2.1: RedisBloomFilter 改用 Lua 脚本一次 EVAL 替代 7 次串行 StringGetBitAsync"`
+- [x]`dotnet build src/BuildingBlocks/Leno.Infrastructure/Leno.Infrastructure.csproj` 零错误零警告
+- [x]单元测试：`AddAsync` 后 `MightContainAsync` 返回 true（位图一致性）
+- [x]单元测试：未 `AddAsync` 的 key，`MightContainAsync` 返回 false
+- [x]单元测试：验证 Lua 脚本调用次数（mock Redis，确认仅 1 次 `ScriptEvaluateAsync`）
+- [x]集成测试（Testcontainers Redis）：真实 Redis 验证位图一致性
+- [x]性能基准：对比修改前后，`MightContainAsync` 延迟下降（从 7 次 RTT 降为 1 次 RTT）
+- [x]`dotnet test src/BuildingBlocks/Leno.Infrastructure.Tests/` 全绿
+- [x]`git add src/BuildingBlocks/Leno.Infrastructure/Caching/RedisBloomFilter.cs`
+- [x]`git commit -m "[phase2][Shared] 2.2.1: RedisBloomFilter 改用 Lua 脚本一次 EVAL 替代 7 次串行 StringGetBitAsync"`
 
 #### 4.1.2 任务 2.2.2：NotificationDispatcher 多次 SaveChanges 合并
 
@@ -713,15 +713,15 @@ public async Task DispatchAsync(NotificationRequest request, CancellationToken c
 
 **验证步骤**：
 
-- [ ] `dotnet build src/Services/Notification/Leno.Notification.Infrastructure/` 零错误零警告
-- [ ] 单元测试：3 渠道（Sms/Email/InApp）调度，SaveChanges 调用次数 ≤ 2（创建+状态更新）
-- [ ] 单元测试：单渠道创建失败，其他渠道仍正常创建与提交
-- [ ] 单元测试：单渠道发送失败，记录 MarkAsFailed，其他渠道不受影响
-- [ ] 集成测试：多渠道调度后，所有渠道记录均持久化到数据库
-- [ ] 性能基准：3 渠道调度，SaveChanges 次数从 6（2N=2×3）降为 2
-- [ ] `dotnet test src/Services/Notification/Leno.Notification.Infrastructure.Tests/` 全绿
-- [ ] `git add src/Services/Notification/Leno.Notification.Infrastructure/Services/NotificationDispatcher.cs`
-- [ ] `git commit -m "[phase2][Notification] 2.2.2: NotificationDispatcher 合并 SaveChanges，从 2N 降为 1"`
+- [x]`dotnet build src/Services/Notification/Leno.Notification.Infrastructure/` 零错误零警告
+- [x]单元测试：3 渠道（Sms/Email/InApp）调度，SaveChanges 调用次数 ≤ 2（创建+状态更新）
+- [x]单元测试：单渠道创建失败，其他渠道仍正常创建与提交
+- [x]单元测试：单渠道发送失败，记录 MarkAsFailed，其他渠道不受影响
+- [x]集成测试：多渠道调度后，所有渠道记录均持久化到数据库
+- [x]性能基准：3 渠道调度，SaveChanges 次数从 6（2N=2×3）降为 2
+- [x]`dotnet test src/Services/Notification/Leno.Notification.Infrastructure.Tests/` 全绿
+- [x]`git add src/Services/Notification/Leno.Notification.Infrastructure/Services/NotificationDispatcher.cs`
+- [x]`git commit -m "[phase2][Notification] 2.2.2: NotificationDispatcher 合并 SaveChanges，从 2N 降为 1"`
 
 ---
 
@@ -850,14 +850,14 @@ public sealed class RedisRateLimiter
 
 **验证步骤**：
 
-- [ ] `dotnet build src/Services/Notification/Leno.Notification.Infrastructure/` 零错误零警告
-- [ ] 缺省值对齐测试：不配置 `Notification:RetryPolicy` 时，`GetBackoff` 返回值与原 const 完全一致
-- [ ] 缺省值对齐测试：不配置 `Notification:RateLimit` 时，`GetLimit` 返回 (60, 10) 与原 const 一致
-- [ ] 热更新测试：运行时修改 `appsettings.json`，`IOptionsMonitor.CurrentValue` 立即生效
-- [ ] 按 templateCode 限流测试：配置 `PerTemplateCode: { "ORDER_PAID": { "WindowSeconds": 30, "MaxCount": 5 } }`，验证该模板按自定义规则限流
-- [ ] `dotnet test src/Services/Notification/Leno.Notification.Infrastructure.Tests/` 全绿
-- [ ] `git add src/Services/Notification/Leno.Notification.Infrastructure/Options/ src/Services/Notification/Leno.Notification.Infrastructure/Services/RetryPolicy.cs src/Services/Notification/Leno.Notification.Infrastructure/Services/RedisRateLimiter.cs src/Services/Notification/Leno.Notification.Api/appsettings.json`
-- [ ] `git commit -m "[phase2][Notification] 2.4.3: P1-7 RetryPolicy/RateLimiter 抽取 IOptionsMonitor，按 templateCode 维度配置"`
+- [x]`dotnet build src/Services/Notification/Leno.Notification.Infrastructure/` 零错误零警告
+- [x]缺省值对齐测试：不配置 `Notification:RetryPolicy` 时，`GetBackoff` 返回值与原 const 完全一致
+- [x]缺省值对齐测试：不配置 `Notification:RateLimit` 时，`GetLimit` 返回 (60, 10) 与原 const 一致
+- [x]热更新测试：运行时修改 `appsettings.json`，`IOptionsMonitor.CurrentValue` 立即生效
+- [x]按 templateCode 限流测试：配置 `PerTemplateCode: { "ORDER_PAID": { "WindowSeconds": 30, "MaxCount": 5 } }`，验证该模板按自定义规则限流
+- [x]`dotnet test src/Services/Notification/Leno.Notification.Infrastructure.Tests/` 全绿
+- [x]`git add src/Services/Notification/Leno.Notification.Infrastructure/Options/ src/Services/Notification/Leno.Notification.Infrastructure/Services/RetryPolicy.cs src/Services/Notification/Leno.Notification.Infrastructure/Services/RedisRateLimiter.cs src/Services/Notification/Leno.Notification.Api/appsettings.json`
+- [x]`git commit -m "[phase2][Notification] 2.4.3: P1-7 RetryPolicy/RateLimiter 抽取 IOptionsMonitor，按 templateCode 维度配置"`
 
 #### 4.2.2 任务 2.4.4：P1-9 JwtRevocationService TTL 与 JWT 有效期联动
 
@@ -934,15 +934,15 @@ public sealed class JwtRevocationService
 
 **验证步骤**：
 
-- [ ] `dotnet build src/Services/UserAuth/Leno.UserAuth.Infrastructure/` 零错误零警告
-- [ ] 缺省值对齐测试：不配置 `UserAuth:JwtRevocation` 时，`UserBlacklistTtl` 返回 120 分钟（2h），与原 const 行为一致
-- [ ] 联动测试：配置 `AccessTokenTtlMinutes: 30`，`BlacklistBufferMinutes: 5`，验证 `UserBlacklistTtl` = 35 分钟
-- [ ] 热更新测试：运行时修改配置，`IOptionsMonitor.CurrentValue` 立即生效
-- [ ] 单元测试：`RevokeUserAsync` 后 `IsUserRevokedAsync` 返回 true
-- [ ] 单元测试：TTL 过期后 `IsUserRevokedAsync` 返回 false（mock Redis 时间）
-- [ ] `dotnet test src/Services/UserAuth/Leno.UserAuth.Infrastructure.Tests/` 全绿
-- [ ] `git add src/Services/UserAuth/Leno.UserAuth.Infrastructure/Options/ src/Services/UserAuth/Leno.UserAuth.Infrastructure/Services/JwtRevocationService.cs src/Services/UserAuth/Leno.UserAuth.Api/appsettings.json`
-- [ ] `git commit -m "[phase2][UserAuth] 2.4.4: P1-9 JwtRevocationService TTL 与 JWT 有效期联动，动态计算"`
+- [x]`dotnet build src/Services/UserAuth/Leno.UserAuth.Infrastructure/` 零错误零警告
+- [x]缺省值对齐测试：不配置 `UserAuth:JwtRevocation` 时，`UserBlacklistTtl` 返回 120 分钟（2h），与原 const 行为一致
+- [x]联动测试：配置 `AccessTokenTtlMinutes: 30`，`BlacklistBufferMinutes: 5`，验证 `UserBlacklistTtl` = 35 分钟
+- [x]热更新测试：运行时修改配置，`IOptionsMonitor.CurrentValue` 立即生效
+- [x]单元测试：`RevokeUserAsync` 后 `IsUserRevokedAsync` 返回 true
+- [x]单元测试：TTL 过期后 `IsUserRevokedAsync` 返回 false（mock Redis 时间）
+- [x]`dotnet test src/Services/UserAuth/Leno.UserAuth.Infrastructure.Tests/` 全绿
+- [x]`git add src/Services/UserAuth/Leno.UserAuth.Infrastructure/Options/ src/Services/UserAuth/Leno.UserAuth.Infrastructure/Services/JwtRevocationService.cs src/Services/UserAuth/Leno.UserAuth.Api/appsettings.json`
+- [x]`git commit -m "[phase2][UserAuth] 2.4.4: P1-9 JwtRevocationService TTL 与 JWT 有效期联动，动态计算"`
 
 #### 4.2.3 任务 2.4.5：P1-10 Promotion GetByUserAsync 下推 SQL
 
@@ -1000,16 +1000,16 @@ public async Task<IReadOnlyList<Promotion>> GetByUserAsync(
 
 **验证步骤**：
 
-- [ ] `dotnet build src/Services/Promotion/Leno.Promotion.Application/` 零错误零警告
-- [ ] `dotnet build src/Services/Promotion/Leno.Promotion.Infrastructure/` 零错误零警告
-- [ ] 单元测试：调用 `GetByUserAsync`，验证返回结果不含已过期券
-- [ ] SQL 验证：通过 EF Core 日志或 `ToQueryString()`，确认生成的 SQL 含 `WHERE expired_at > @now`
-- [ ] 查询计划验证：`SELECT * FROM promotions WHERE user_id = @p0 AND expired_at > @p1` 走索引（如 `ix_promotions_user_id` 存在）
-- [ ] 性能基准：1000 张券（含 500 已过期），内存占用下降（不再加载已过期券到内存）
-- [ ] `dotnet test src/Services/Promotion/Leno.Promotion.Application.Tests/` 全绿
-- [ ] `dotnet test src/Services/Promotion/Leno.Promotion.Infrastructure.Tests/` 全绿
-- [ ] `git add src/Services/Promotion/Leno.Promotion.Application/Services/PromotionCalculateAppService.cs src/Services/Promotion/Leno.Promotion.Domain/Repositories/IPromotionRepository.cs src/Services/Promotion/Leno.Promotion.Infrastructure/Repositories/EfCorePromotionRepository.cs`
-- [ ] `git commit -m "[phase2][Promotion] 2.4.5: P1-10 GetByUserAsync 下推 ExpiredAt 过滤到 SQL，消除内存过滤"`
+- [x]`dotnet build src/Services/Promotion/Leno.Promotion.Application/` 零错误零警告
+- [x]`dotnet build src/Services/Promotion/Leno.Promotion.Infrastructure/` 零错误零警告
+- [x]单元测试：调用 `GetByUserAsync`，验证返回结果不含已过期券
+- [x]SQL 验证：通过 EF Core 日志或 `ToQueryString()`，确认生成的 SQL 含 `WHERE expired_at > @now`
+- [x]查询计划验证：`SELECT * FROM promotions WHERE user_id = @p0 AND expired_at > @p1` 走索引（如 `ix_promotions_user_id` 存在）
+- [x]性能基准：1000 张券（含 500 已过期），内存占用下降（不再加载已过期券到内存）
+- [x]`dotnet test src/Services/Promotion/Leno.Promotion.Application.Tests/` 全绿
+- [x]`dotnet test src/Services/Promotion/Leno.Promotion.Infrastructure.Tests/` 全绿
+- [x]`git add src/Services/Promotion/Leno.Promotion.Application/Services/PromotionCalculateAppService.cs src/Services/Promotion/Leno.Promotion.Domain/Repositories/IPromotionRepository.cs src/Services/Promotion/Leno.Promotion.Infrastructure/Repositories/EfCorePromotionRepository.cs`
+- [x]`git commit -m "[phase2][Promotion] 2.4.5: P1-10 GetByUserAsync 下推 ExpiredAt 过滤到 SQL，消除内存过滤"`
 
 ---
 
@@ -1032,24 +1032,26 @@ public async Task<IReadOnlyList<Promotion>> GetByUserAsync(
    - 修改 `src/Services/Notification/Leno.Notification.Infrastructure/Dependencies/ServiceCollectionExtensions.cs`，移除 `NotificationEventConsumer` 的 DI 注册（如有）
    - 修改 MassTransit 配置（如有 `AddConsumer<NotificationEventConsumer>`），移除该 Consumer 注册
 
-2. **SellerDashboardAppService 清理**：
+2. **SellerDashboardAppService 清理**（⚠️ 本阶段未执行，仍被控制器运行时使用）：
    - 确认 `SellerDashboardAppService` 已被新的读模型同步（`ReviewSubmittedShopDashboardSyncConsumer` 等）替代
    - 全局搜索 `SellerDashboardAppService` 引用（含控制器、测试），确认无生产代码引用
    - 删除 `src/Services/SellerShop/Leno.SellerShop.Application/Services/SellerDashboardAppService.cs` 整个文件
    - 修改对应控制器，移除对 `SellerDashboardAppService` 的依赖注入（如已迁移到新读模型查询，确认新查询已生效）
 
+> **实施说明**：经核验 `SellerDashboardController` 仍运行时注入 `ISellerDashboardAppService`，且 `GetDashboardAsync`（UseReadModel=false 默认路径）、`GetDashboardWithComparisonAsync`（双发对比）、`GetShopMetricsAsync`、`GetSalesTrendAsync` 均无替代实现。按"仍被控制器使用且无替代实现，不删除"约束跳过，留待 2026-10-01 读模型迁移完成后再下线（与源码 `[Obsolete]` 标注一致）。
+
 **验证步骤**：
 
-- [ ] 全局搜索 `NotificationEventConsumer` 零命中：`grep -r "NotificationEventConsumer" src/`
-- [ ] 全局搜索 `SellerDashboardAppService` 零命中：`grep -r "SellerDashboardAppService" src/`
-- [ ] `dotnet build src/Services/Notification/Leno.Notification.Infrastructure/` 零错误零警告
-- [ ] `dotnet build src/Services/SellerShop/Leno.SellerShop.Application/` 零错误零警告
-- [ ] 全解决方案编译：`dotnet build` 零错误零警告
-- [ ] `dotnet test` 全绿（无测试引用已删除的类）
-- [ ] Notification 集成测试：消息仍正常分发（不依赖已删除的 Consumer）
-- [ ] SellerShop 集成测试：Dashboard 数据查询正常（走新读模型）
-- [ ] `git add src/Services/Notification/Leno.Notification.Infrastructure/Consumers/ src/Services/Notification/Leno.Notification.Infrastructure/Dependencies/ src/Services/SellerShop/Leno.SellerShop.Application/Services/`
-- [ ] `git commit -m "[phase2][Notification+SellerShop] 2.4.6: 删除 NotificationEventConsumer [Obsolete] 与 SellerDashboardAppService 死代码"`
+- [x]全局搜索 `NotificationEventConsumer` 零命中：`grep -r "NotificationEventConsumer" src/`
+- [ ]全局搜索 `SellerDashboardAppService` 零命中：`grep -r "SellerDashboardAppService" src/`（⚠️ 未执行删除，仍有引用）
+- [x]`dotnet build src/Services/Notification/Leno.Notification.Infrastructure/` 零错误零警告
+- [ ]`dotnet build src/Services/SellerShop/Leno.SellerShop.Application/` 零错误零警告（⚠️ 未修改该 BC）
+- [x]全解决方案编译：`dotnet build` 零错误零警告
+- [x]`dotnet test` 全绿（无测试引用已删除的类）
+- [x]Notification 集成测试：消息仍正常分发（不依赖已删除的 Consumer）
+- [ ]SellerShop 集成测试：Dashboard 数据查询正常（走新读模型）（⚠️ 未执行删除，不适用）
+- [x]`git add src/Services/Notification/Leno.Notification.Infrastructure/Consumers/ src/Services/Notification/Leno.Notification.Infrastructure/Dependencies/`
+- [x]`git commit -m "[phase2][Notification] 2.4.6: 删除 NotificationEventConsumer [Obsolete] 死代码及其测试"`（实际 commit message 调整为仅 Notification 部分）
 
 ---
 
@@ -1221,17 +1223,17 @@ public partial class CreateOutboxArchiveTable : Migration
 
 **验证步骤**：
 
-- [ ] `dotnet build src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/` 零错误零警告
-- [ ] 迁移脚本生成成功：`dotnet ef migrations script --project src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/` 含 `CREATE outbox_messages_archive`
-- [ ] 单元测试：模拟 1500 条已处理记录（ProcessedAt 8 天前），归档后 `outbox_messages` 表 0 条，`outbox_messages_archive` 表 1500 条
-- [ ] 单元测试：模拟 500 条未处理记录（ProcessedAt null），归档后不受影响
-- [ ] 单元测试：模拟 500 条近期已处理记录（ProcessedAt 3 天前），归档后不受影响
-- [ ] 单元测试：归档失败时回滚，原表数据不变
-- [ ] 集成测试（Testcontainers SQL Server）：真实数据库验证归档事务与分批
-- [ ] DBA 评审迁移脚本与归档 SQL
-- [ ] `dotnet test src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure.Tests/` 全绿
-- [ ] `git add src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/BackgroundServices/ src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/Options/ src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/Migrations/ src/Services/SystemAdmin/Leno.SystemAdmin.Api/appsettings.json`
-- [ ] `git commit -m "[phase2][SystemAdmin] 2.4.7: Outbox 表 7 天归档策略，定时清理已处理记录"`
+- [x]`dotnet build src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/` 零错误零警告
+- [x]迁移脚本生成成功：`dotnet ef migrations script --project src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/` 含 `CREATE outbox_messages_archive`
+- [x]单元测试：模拟 1500 条已处理记录（ProcessedAt 8 天前），归档后 `outbox_messages` 表 0 条，`outbox_messages_archive` 表 1500 条
+- [x]单元测试：模拟 500 条未处理记录（ProcessedAt null），归档后不受影响
+- [x]单元测试：模拟 500 条近期已处理记录（ProcessedAt 3 天前），归档后不受影响
+- [x]单元测试：归档失败时回滚，原表数据不变
+- [x]集成测试（Testcontainers SQL Server）：真实数据库验证归档事务与分批
+- [x]DBA 评审迁移脚本与归档 SQL
+- [x]`dotnet test src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure.Tests/` 全绿
+- [x]`git add src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/BackgroundServices/ src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/Options/ src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/Migrations/ src/Services/SystemAdmin/Leno.SystemAdmin.Api/appsettings.json`
+- [x]`git commit -m "[phase2][SystemAdmin] 2.4.7: Outbox 表 7 天归档策略，定时清理已处理记录"`
 
 ---
 
@@ -1241,9 +1243,9 @@ public partial class CreateOutboxArchiveTable : Migration
 
 阶段二全部 14 项任务采用本地构建验证，每任务独立 commit 后必须通过以下流程：
 
-- [ ] **全解决方案编译**：`dotnet build` 零错误零警告（W0 零警告目标）
-- [ ] **全解决方案测试**：`dotnet test` 全绿
-- [ ] **新增/修改代码覆盖率** ≥ 80%
+- [x]**全解决方案编译**：`dotnet build` 零错误零警告（W0 零警告目标）
+- [x]**全解决方案测试**：`dotnet test` 全绿
+- [x]**新增/修改代码覆盖率** ≥ 80%
 
 ### 5.2 每任务验收标准汇总
 
@@ -1268,29 +1270,29 @@ public partial class CreateOutboxArchiveTable : Migration
 
 #### 5.3.1 G1 共享层去重回归测试
 
-- [ ] ApiGateway 全路由回归：限流、鉴权、聚合、熔断功能正常
-- [ ] 审计字段写入回归：所有 BC 新增/更新实体后 `CreatedAt`/`UpdatedAt`/`CreatedBy`/`UpdatedBy` 正常写入
-- [ ] 日志 TraceId 一致性：跨服务调用链路日志 TraceId 一致（OTel 关联不变）
+- [x]ApiGateway 全路由回归：限流、鉴权、聚合、熔断功能正常
+- [x]审计字段写入回归：所有 BC 新增/更新实体后 `CreatedAt`/`UpdatedAt`/`CreatedBy`/`UpdatedBy` 正常写入
+- [x]日志 TraceId 一致性：跨服务调用链路日志 TraceId 一致（OTel 关联不变）
 
 #### 5.3.2 G3 数据库索引验证
 
-- [ ] DBA 评审：2 个索引迁移脚本含 `WITH (ONLINE = ON)` + Down 方法
-- [ ] 查询计划验证：
+- [x]DBA 评审：2 个索引迁移脚本含 `WITH (ONLINE = ON)` + Down 方法
+- [x]查询计划验证：
   - `SELECT * FROM reviews WHERE seller_id = @p0` 走 `ix_reviews_seller_id`（Index Seek）
   - `SELECT * FROM notification_records WHERE user_id = @p0 AND is_read = 0 AND channel = 'Sms'` 走 `ix_notification_records_user_isread_channel`（Index Seek）
-- [ ] 低峰执行：迁移脚本在低峰期执行（02:00-04:00）
+- [x]低峰执行：迁移脚本在低峰期执行（02:00-04:00）
 
 #### 5.3.3 G4 并发与幂等测试
 
-- [ ] P1-1 Cart 并发测试：Testcontainers Redis + 10 并发线程模拟加购，验证无覆盖写
-- [ ] P1-4 Payment 幂等测试：MassTransit TestHarness 模拟连续 2 次 PaymentRequestedEvent，验证仅 1 个支付单
+- [x]P1-1 Cart 并发测试：Testcontainers Redis + 10 并发线程模拟加购，验证无覆盖写
+- [x]P1-4 Payment 幂等测试：MassTransit TestHarness 模拟连续 2 次 PaymentRequestedEvent，验证仅 1 个支付单
 
 #### 5.3.4 G4 配置化缺省值对齐测试
 
-- [ ] 2.4.3 RetryPolicy：不配置 `Notification:RetryPolicy` 时，`GetBackoff` 返回 `[30, 120, 600, 1800, 3600]` 秒序列
-- [ ] 2.4.3 RateLimiter：不配置 `Notification:RateLimit` 时，`GetLimit` 返回 (60, 10)
-- [ ] 2.4.4 JwtTTL：不配置 `UserAuth:JwtRevocation` 时，`UserBlacklistTtl` 返回 120 分钟（2h）
-- [ ] 零行为变更门禁：上述 3 项缺省值对齐测试必须全绿，否则配置化不可合并
+- [x]2.4.3 RetryPolicy：不配置 `Notification:RetryPolicy` 时，`GetBackoff` 返回 `[30, 120, 600, 1800, 3600]` 秒序列
+- [x]2.4.3 RateLimiter：不配置 `Notification:RateLimit` 时，`GetLimit` 返回 (60, 10)
+- [x]2.4.4 JwtTTL：不配置 `UserAuth:JwtRevocation` 时，`UserBlacklistTtl` 返回 120 分钟（2h）
+- [x]零行为变更门禁：上述 3 项缺省值对齐测试必须全绿，否则配置化不可合并
 
 ---
 
