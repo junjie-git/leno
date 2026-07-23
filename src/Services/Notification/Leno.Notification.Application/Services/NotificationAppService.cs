@@ -73,8 +73,10 @@ public sealed class NotificationAppService : INotificationAppService
     /// <inheritdoc />
     public async Task MarkAllAsReadAsync(Guid userId, CancellationToken ct = default)
     {
+        // NEW-P0-4：仓储已通过聚合根 MarkAsRead 收集领域事件，需用 SaveEntitiesAsync
+        // 将集成事件写入 Outbox 并清除领域事件，而非仅 SaveChangesAsync 落库。
         await _recordRepository.MarkAllAsReadAsync(userId, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
     /// <inheritdoc />

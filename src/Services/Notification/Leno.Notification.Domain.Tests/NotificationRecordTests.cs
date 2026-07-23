@@ -1,4 +1,5 @@
 using Leno.Notification.Domain.Aggregates;
+using Leno.Notification.Domain.Events;
 using Leno.Notification.Domain.Exceptions;
 using Leno.Notification.Domain.ValueObjects;
 
@@ -1038,6 +1039,43 @@ public class NotificationRecordTests
         // Assert
         act.Should().Throw<NotificationDomainException>()
             .And.ErrorCode.Should().Be("NOTIFICATION_READ_CHANNEL_INVALID");
+    }
+
+    [Fact]
+    public void MarkAsRead_WhenUnread_ShouldPublishNotificationReadDomainEvent()
+    {
+        // Arrange
+        var record = CreateValidRecord(channel: NotificationChannel.InApp);
+        record.DomainEvents.Should().BeEmpty();
+
+        // Act
+        record.MarkAsRead();
+
+        // Assert
+        var domainEvent = record.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<NotificationReadDomainEvent>().Subject;
+
+        domainEvent.RecordId.Should().Be(record.Id);
+        domainEvent.UserId.Should().Be(record.UserId);
+        domainEvent.ReadAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+        domainEvent.AggregateId.Should().Be(record.Id);
+        domainEvent.EventId.Should().NotBeEmpty();
+        domainEvent.OccurredAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public void MarkAsRead_WhenAlreadyRead_ShouldNotPublishAdditionalDomainEvent()
+    {
+        // Arrange
+        var record = CreateValidRecord(channel: NotificationChannel.InApp);
+        record.MarkAsRead();
+        record.DomainEvents.Should().ContainSingle();
+
+        // Act
+        record.MarkAsRead();
+
+        // Assert - 幂等性：重复调用不追加新的领域事件
+        record.DomainEvents.Should().ContainSingle();
     }
 
     #endregion

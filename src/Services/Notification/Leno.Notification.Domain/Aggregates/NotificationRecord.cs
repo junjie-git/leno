@@ -1,3 +1,4 @@
+using Leno.Notification.Domain.Events;
 using Leno.Notification.Domain.Exceptions;
 using Leno.Notification.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
@@ -346,6 +347,12 @@ public sealed class NotificationRecord : AggregateRoot
         }
 
         IsRead = true;
+
+        // NEW-P0-4：发布已读领域事件，供 Outbox 同事务发布
+        AddDomainEvent(new NotificationReadDomainEvent(
+            recordId: Id,
+            userId: UserId,
+            readAt: DateTime.UtcNow));
     }
 
     /// <summary>

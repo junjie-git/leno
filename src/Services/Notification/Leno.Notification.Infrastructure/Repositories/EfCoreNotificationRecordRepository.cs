@@ -96,9 +96,18 @@ public sealed class EfCoreNotificationRecordRepository : INotificationRecordRepo
     /// <inheritdoc />
     public async Task<int> MarkAllAsReadAsync(Guid userId, CancellationToken ct = default)
     {
-        return await _context.NotificationRecords
+        // NEW-P0-4：走聚合根 MarkAsRead，确保触发 NotificationReadDomainEvent 与审计字段更新，
+        // 不再使用 ExecuteUpdateAsync 直接生成 UPDATE SQL 绕过聚合根。
+        var unreadRecords = await _context.NotificationRecords
             .Where(n => n.UserId == userId && n.Channel == NotificationChannel.InApp && !n.IsRead)
-            .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true), ct);
+            .ToListAsync(ct);
+
+        foreach (var record in unreadRecords)
+        {
+            record.MarkAsRead();
+        }
+
+        return unreadRecords.Count;
     }
 
     /// <inheritdoc />
