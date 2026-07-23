@@ -131,7 +131,7 @@ public sealed class DeadLetterMonitorBackgroundServiceTests
         services.AddSingleton(managerMock.Object);
         var serviceProvider = services.BuildServiceProvider();
 
-        var options = Options.Create(new DeadLetterMonitorOptions
+        var options = Microsoft.Extensions.Options.Options.Create(new DeadLetterMonitorOptions
         {
             Interval = TimeSpan.FromHours(1),
             AlertThreshold = threshold,

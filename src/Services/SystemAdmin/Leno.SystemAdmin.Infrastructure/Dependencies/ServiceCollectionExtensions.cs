@@ -6,10 +6,12 @@ using Leno.SystemAdmin.Application.Abstractions;
 using Leno.SystemAdmin.Application.Services;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.Services;
+using Leno.SystemAdmin.Infrastructure.BackgroundServices;
 using Leno.SystemAdmin.Infrastructure.Cache;
 using Leno.SystemAdmin.Infrastructure.Consumers;
 using Leno.SystemAdmin.Infrastructure.EventBus;
 using Leno.SystemAdmin.Infrastructure.Jobs;
+using Leno.SystemAdmin.Infrastructure.Options;
 using Leno.SystemAdmin.Infrastructure.Repositories;
 using Leno.SystemAdmin.Infrastructure.Services;
 using ReconciliationServiceImpl = Leno.SystemAdmin.Infrastructure.Services.StatisticsReconciliationService;
@@ -111,6 +113,11 @@ public static class ServiceCollectionExtensions
 
         // 审计日志保留后台服务
         services.AddHostedService<AuditLogRetentionService>();
+
+        // 2.4.7: Outbox 表 7 天归档后台服务，每天 02:00 UTC 清理已处理记录至 outbox_messages_archive
+        services.Configure<OutboxArchivalOptions>(
+            configuration.GetSection(OutboxArchivalOptions.SectionName));
+        services.AddHostedService<OutboxArchivalBackgroundService>();
 
         // Application Services
         services.AddScoped<IDeadLetterAppService, DeadLetterAppService>();
