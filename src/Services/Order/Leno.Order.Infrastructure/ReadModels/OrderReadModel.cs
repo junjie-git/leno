@@ -54,6 +54,17 @@ public sealed class OrderReadModel
     /// <summary>取消时间（UTC），未取消为 null。</summary>
     public DateTime? CancelledAt { get; set; }
 
+    /// <summary>
+    /// 3.12：读模型最后投影的事件版本号，用于增量回放定位起点。
+    /// 全量重建时随事件回放递增；快照恢复时由快照 Version 写入。
+    /// </summary>
+    public long Version { get; set; }
+
+    /// <summary>
+    /// 3.12：最近一次快照时间（UTC），用于运维监控快照新鲜度。无快照时为 null。
+    /// </summary>
+    public DateTime? LastSnapshotAt { get; set; }
+
     /// <summary>订单明细列表。</summary>
     public List<OrderItemReadModel> Items { get; set; } = new();
 

@@ -1,5 +1,6 @@
 using Leno.Infrastructure.Outbox;
 using Leno.Infrastructure.Persistence;
+using Leno.Infrastructure.ReadModel;
 using Leno.Order.Application.ProcessManagers.States;
 using Leno.Order.Application.Sagas.States;
 using Leno.Order.Domain.Aggregates;
@@ -14,6 +15,7 @@ namespace Leno.Order.Infrastructure;
 /// OrderItem 作为 Order 聚合的 owned collection 持久化，无需独立 DbSet。
 /// 3.2：暴露 <see cref="OrderSagaStates"/> DbSet，由 MassTransit EF Core Saga 持久化 OrderSagaState（崩溃恢复）。
 /// 3.3：暴露 <see cref="OrderPaymentProcesses"/> DbSet，由 Process Manager 读写 OrderPaymentProcessState（支付后编排状态）。
+/// 3.12：暴露 <see cref="ReadModelSnapshots"/> DbSet，由 <see cref="SqlSnapshotStore{TContext}"/> 持久化读模型快照（快照+增量回放）。
 /// </summary>
 public sealed class OrderDbContext : BaseDbContext
 {
@@ -48,4 +50,20 @@ public sealed class OrderDbContext : BaseDbContext
     /// 乐观锁通过 <see cref="OrderPaymentProcessState.RowVersion"/>（rowversion）实现并发控制。
     /// </summary>
     public DbSet<OrderPaymentProcessState> OrderPaymentProcesses => Set<OrderPaymentProcessState>();
+
+    /// <summary>
+    /// 读模型快照集合（3.12），持久化到 read_model_snapshots 表。
+    /// 由 <see cref="SqlSnapshotStore{TContext}"/> 读写，支持 CQRS 读模型快照重建与增量回放。
+    /// </summary>
+    public DbSet<ReadModelSnapshot> ReadModelSnapshots => Set<ReadModelSnapshot>();
+
+    /// <summary>
+    /// 注册读模型快照实体映射配置（配置位于 Leno.Infrastructure 程序集，需显式应用）。
+    /// </summary>
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(modelBuilder);
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfiguration(new ReadModelSnapshotConfiguration());
+    }
 }
