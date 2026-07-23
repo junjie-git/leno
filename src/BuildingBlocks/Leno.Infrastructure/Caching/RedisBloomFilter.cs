@@ -34,6 +34,22 @@ return #ARGV
 ";
 
     /// <summary>
+    /// Lua 脚本：批量检查多个 bit 是否全为 1，将多次 StringGetBitAsync 合并为单次网络往返。
+    /// KEYS[1] = Redis bitmap key，ARGV[1..N] = bit 偏移量。
+    /// 全部为 1 返回 1（可能存在），任一为 0 返回 0（一定不存在）。
+    /// 任务 2.2.1：替代原 MightContainAsync 中 N 次串行 StringGetBitAsync 的 Task.WhenAll 实现，
+    /// 将 N 次网络往返降为 1 次 EVAL。
+    /// </summary>
+    private static readonly string _batchGetBitsScript = @"
+for i = 1, #ARGV do
+    if redis.call('GETBIT', KEYS[1], ARGV[i]) == 0 then
+        return 0
+    end
+end
+return 1
+";
+
+    /// <summary>
     /// 默认参数：1000 万元素，1% 误判率
     /// m = -10000000 * ln(0.01) / (ln(2)^2) ≈ 95,850,583 bits ≈ 11.4 MB
     /// k = (95850583 / 10000000) * ln(2) ≈ 7
@@ -88,16 +104,16 @@ return #ARGV
 
         var positions = GetHashPositions(key);
 
-        var tasks = new List<Task<bool>>(positions.Length);
+        // 任务 2.2.1：使用 Lua 脚本一次 EVAL 替代 N 次串行 StringGetBitAsync 的 Task.WhenAll，
+        // 将 N 次网络往返降为 1 次 EVAL，且保证原子读取（不被并发 SETBIT 中断导致中间状态）。
+        // Lua 脚本遍历所有位偏移，全部为 1 返回 1（可能存在），任一为 0 返回 0（一定不存在）。
+        var args = positions.Select(p => (RedisValue)p).ToArray();
+        var result = await _database.ScriptEvaluateAsync(
+            _batchGetBitsScript,
+            new RedisKey[] { _redisKey },
+            args).ConfigureAwait(false);
 
-        foreach (var position in positions)
-        {
-            tasks.Add(_database.StringGetBitAsync(_redisKey, position));
-        }
-
-        var results = await Task.WhenAll(tasks);
-
-        return results.All(r => r);
+        return (long)result == 1;
     }
 
     private long[] GetHashPositions(string key)
