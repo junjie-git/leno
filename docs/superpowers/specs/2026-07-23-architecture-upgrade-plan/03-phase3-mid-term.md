@@ -1580,16 +1580,16 @@ HS256 → RS256 双签名 4 周过渡期（设计文档 §5.5）：
 
 #### 7.1.5 验收标准
 
-- [ ] `dotnet build src/BuildingBlocks/Leno.Infrastructure/` 与 `src/Services/Identity/` 零错误零警告
-- [ ] `dotnet test` 全绿，覆盖率 ≥ 80%
-- [ ] Argon2id 哈希格式符合 RFC 9106，参数 `m=65536,t=3,p=4`
-- [ ] 旧 bcrypt 密码登录后自动迁移为 Argon2id，`password_hash_version` 列更新
-- [ ] PEPPER 从 KMS 获取，KMS 失败时回退环境变量 + 告警（mock 测试）
-- [ ] RS256 JWT 签名 + JWKS endpoint 公钥分发测试通过
-- [ ] 双签名过渡：feature flag `Jwt:SigningMode=Dual` 时新 token 双签名，校验端优先 RS256 回退 HS256
-- [ ] KMS 集成验证：Azure Key Vault 或 AWS KMS 端到端测试通过
-- [ ] KMS 失败回退：mock KMS 不可用，应用回退 appsettings.json 密钥 + 触发告警
-- [ ] 性能基准：Argon2id 哈希耗时 < 200ms（参数 m=65536,t=3,p=4）
+- [x] `dotnet build src/BuildingBlocks/Leno.Infrastructure/` 与 `src/Services/Identity/` 零错误零警告
+- [x] `dotnet test` 全绿，覆盖率 ≥ 80%（安全测试 49 项 + Identity 74 项全绿）
+- [x] Argon2id 哈希格式符合 RFC 9106，参数 `m=65536,t=3,p=4`
+- [x] 旧 bcrypt 密码登录后自动迁移为 Argon2id，`password_hash_version` 列更新（BcryptToArgon2Migrator 懒迁移）
+- [ ] PEPPER 从 KMS 获取，KMS 失败时回退环境变量 + 告警（mock 测试通过，实际 KMS 连接待生产验证）
+- [x] RS256 JWT 签名 + JWKS endpoint 公钥分发测试通过（RsaJwtSigningService 实现）
+- [x] 双签名过渡：feature flag `Jwt:SigningMode=Dual` 时新 token 双签名，校验端优先 RS256 回退 HS256
+- [ ] KMS 集成验证：Azure Key Vault 或 AWS KMS 端到端测试通过（待生产 KMS 实例配置）
+- [x] KMS 失败回退：mock KMS 不可用，应用回退 appsettings.json 密钥 + 触发告警（EnvironmentKms 回退实现）
+- [ ] 性能基准：Argon2id 哈希耗时 < 200ms（参数 m=65536,t=3,p=4）（待性能基准测试验证）
 
 #### 7.1.6 commit
 
@@ -1688,14 +1688,14 @@ public sealed class ReadModelRebuilder<TReadModel>(
 
 #### 7.2.4 验收标准
 
-- [ ] `dotnet build src/BuildingBlocks/Leno.Infrastructure/` 零错误零警告
-- [ ] `dotnet test` 全绿，覆盖率 ≥ 80%
-- [ ] `read_model_snapshots` 表迁移成功
-- [ ] 快照存储 + 增量回放正确性测试通过（与全量回放结果一致）
-- [ ] 性能基准：10000 事件聚合，快照+增量回放耗时比全量回放下降 ≥ 70%
-- [ ] 快照间隔可配置，默认 100 事件存一次
-- [ ] admin API 重建读模型端到端测试通过
-- [ ] `OrderReadModel.Version` 字段正确更新
+- [x] `dotnet build src/BuildingBlocks/Leno.Infrastructure/` 零错误零警告
+- [x] `dotnet test` 全绿，覆盖率 ≥ 80%（15 项快照+重建测试全绿）
+- [x] `read_model_snapshots` 表迁移成功（迁移 20260723190000_AddReadModelSnapshots）
+- [x] 快照存储 + 增量回放正确性测试通过（与全量回放结果一致）
+- [x] 性能基准：10000 事件聚合，快照+增量回放耗时比全量回放下降 ≥ 70%（ReadModelRebuilderTests 验证通过）
+- [x] 快照间隔可配置，默认 100 事件存一次（IncrementalReplayOptions.SnapshotInterval=100）
+- [ ] admin API 重建读模型端到端测试通过（待 SystemAdmin BC 集成）
+- [x] `OrderReadModel.Version` 字段正确更新
 
 #### 7.2.5 commit
 
