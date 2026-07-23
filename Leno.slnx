@@ -149,7 +149,9 @@
   </Folder>
   <Folder Name="/src/Services/Identity/">
     <Project Path="src/Services/Identity/Leno.Identity.Api/Leno.Identity.Api.csproj" />
+    <Project Path="src/Services/Identity/Leno.Identity.Application.Tests/Leno.Identity.Application.Tests.csproj" />
     <Project Path="src/Services/Identity/Leno.Identity.Application/Leno.Identity.Application.csproj" />
+    <Project Path="src/Services/Identity/Leno.Identity.Domain.Tests/Leno.Identity.Domain.Tests.csproj" />
     <Project Path="src/Services/Identity/Leno.Identity.Domain/Leno.Identity.Domain.csproj" />
     <Project Path="src/Services/Identity/Leno.Identity.Infrastructure/Leno.Identity.Infrastructure.csproj" />
   </Folder>

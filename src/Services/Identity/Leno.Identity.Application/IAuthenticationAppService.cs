@@ -36,4 +36,20 @@ public interface IAuthenticationAppService
     /// <param name="userId">用户标识。</param>
     /// <param name="ct">取消令牌。</param>
     Task LogoutAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// OAuth2 / OIDC / SAML2 回调处理（3.7 OAuth/SSO 通用化）。
+    /// <para>
+    /// 流程：按 provider slug 查找 <c>OAuthClient</c> 配置 → 通过 <c>ProviderType</c> 解析适配器 →
+    /// 交换授权码 → 拉取 IdP userinfo → 映射 claim 为 <c>ClaimsPrincipal</c> →
+    /// 按 <c>(Provider, ProviderUserId)</c> 查找已绑定用户，未找到则自动创建（无密码、无手机号的 OAuth 用户） →
+    /// 签发刷新令牌 → 生成访问令牌。
+    /// </para>
+    /// </summary>
+    /// <param name="provider">OAuthClient.Provider slug，如 google / wechat / keycloak / 自定义 IdP 标识。</param>
+    /// <param name="code">回调返回的授权码（OIDC）或 SAMLResponse（SAML2，Base64 编码）。</param>
+    /// <param name="redirectUri">回调地址，必须与发起授权时一致。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>包含访问与刷新令牌的响应。</returns>
+    Task<TokenDto> HandleOAuthCallbackAsync(string provider, string code, string redirectUri, CancellationToken ct = default);
 }

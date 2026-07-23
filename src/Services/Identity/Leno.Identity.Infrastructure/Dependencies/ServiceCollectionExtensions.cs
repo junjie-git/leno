@@ -5,6 +5,7 @@ using Leno.Identity.Application.Services;
 using Leno.Identity.Domain.Repositories;
 using Leno.Identity.Domain.Services;
 using Leno.Identity.Infrastructure.EventBus;
+using Leno.Identity.Infrastructure.OAuth;
 using Leno.Identity.Infrastructure.Repositories;
 using Leno.Identity.Infrastructure.Services;
 using Leno.Infrastructure.EventBus;
@@ -80,6 +81,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<JwtTokenService>();
         services.AddScoped<IAuthenticationAppService, AuthenticationAppService>();
         services.AddScoped<TwoFactorAppService>();
+
+        // 7.1 OAuth2 / OIDC / SAML2 适配器与工厂（3.7 OAuth/SSO 通用化）
+        //     适配器通过 HttpClientFactory 注册（typed client 模式），便于配置超时、重试与日志策略；
+        //     Discovery 文档缓存在适配器内部静态字段，多实例共享。
+        //     使用 factory delegate 解析具体类型，确保 HttpClient 通过 typed client 激活器注入。
+        services.AddHttpClient<OidcProviderAdapter>();
+        services.AddHttpClient<Saml2ProviderAdapter>();
+        services.AddScoped<IOAuth2ProviderAdapter>(sp => sp.GetRequiredService<OidcProviderAdapter>());
+        services.AddScoped<IOAuth2ProviderAdapter>(sp => sp.GetRequiredService<Saml2ProviderAdapter>());
+        services.AddScoped<IOAuth2ProviderFactory, OAuth2ProviderFactory>();
 
         // 8. FluentValidation 校验器自动扫描
         services.AddValidatorsFromAssembly(typeof(IAuthenticationAppService).Assembly);
