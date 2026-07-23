@@ -43,11 +43,11 @@ public class BaseDbContextAuditTests
     [Fact]
     public async Task SaveChangesAsync_OnModify_ShouldFillUpdatedByOnly()
     {
-        // Arrange
-        var userId = Guid.NewGuid();
-        var originalUserId = Guid.NewGuid().ToString();
+        // Arrange — 首次以 creator 身份创建实体，CreatedBy 应为 creator
+        var creatorId = Guid.NewGuid();
+        var modifierId = Guid.NewGuid();
         var userContext = new Mock<ICurrentUserContext>();
-        userContext.SetupGet(x => x.UserId).Returns(userId);
+        userContext.SetupGet(x => x.UserId).Returns(creatorId);
         userContext.SetupGet(x => x.IsAuthenticated).Returns(true);
 
         var options = new DbContextOptionsBuilder<TestAuditDbContext>()
@@ -55,22 +55,18 @@ public class BaseDbContextAuditTests
             .Options;
 
         await using var context = new TestAuditDbContext(options, userContext.Object);
-        var entity = new TestAuditableEntity
-        {
-            Name = "original",
-            CreatedBy = originalUserId,
-            UpdatedBy = originalUserId
-        };
+        var entity = new TestAuditableEntity { Name = "original" };
         context.AuditableEntities.Add(entity);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(); // Added: CreatedBy = creatorId, UpdatedBy = creatorId
 
-        // Act
+        // Act — 切换到 modifier 身份修改实体
+        userContext.SetupGet(x => x.UserId).Returns(modifierId);
         entity.Name = "modified";
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(); // Modified: UpdatedBy = modifierId, CreatedBy 不变
 
         // Assert
-        entity.CreatedBy.Should().Be(originalUserId, "CreatedBy 在修改时不应被覆盖");
-        entity.UpdatedBy.Should().Be(userId.ToString(), "UpdatedBy 应为当前用户");
+        entity.CreatedBy.Should().Be(creatorId.ToString(), "CreatedBy 在修改时不应被覆盖");
+        entity.UpdatedBy.Should().Be(modifierId.ToString(), "UpdatedBy 应为当前修改者");
     }
 
     [Fact]
@@ -139,6 +135,8 @@ public class BaseDbContextAuditTests
                 optionsBuilder.UseInMemoryDatabase("fallback");
             }
             optionsBuilder.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
+            // 调用基类 OnConfiguring 以注册 AuditableEntityInterceptor
+            base.OnConfiguring(optionsBuilder);
         }
 
         protected override ICurrentUserContext? CurrentUserContext => _userContext;
@@ -163,6 +161,8 @@ public class BaseDbContextAuditTests
                 optionsBuilder.UseInMemoryDatabase("fallback-no-context");
             }
             optionsBuilder.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
+            // 调用基类 OnConfiguring 以注册 AuditableEntityInterceptor
+            base.OnConfiguring(optionsBuilder);
         }
     }
 

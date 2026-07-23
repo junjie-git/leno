@@ -21,6 +21,8 @@ public abstract class BaseDbContext : DbContext
     /// <summary>
     /// 当前用户上下文，子类通过构造函数注入并覆盖此属性以填充审计字段 CreatedBy/UpdatedBy。
     /// 为 null 时（如后台迁移工具、无 HttpContext 的控制台任务），审计字段填 "system"。
+    /// 此属性由 <see cref="AuditableEntityInterceptor"/> 在 <see cref="OnConfiguring"/> 中通过访问器捕获，
+    /// 拦截器在 SavingChanges 时解析，避免构造时序问题。
     /// </summary>
     protected virtual ICurrentUserContext? CurrentUserContext => null;
 
@@ -30,6 +32,18 @@ public abstract class BaseDbContext : DbContext
 
     protected BaseDbContext()
     {
+    }
+
+    /// <summary>
+    /// 注册审计字段拦截器，自动填充 CreatedAt/UpdatedAt/CreatedBy/UpdatedBy。
+    /// 拦截器通过访问器延迟解析 <see cref="CurrentUserContext"/>，确保子类构造完成后能正确获取用户上下文。
+    /// 所有继承 <see cref="BaseDbContext"/> 的 DbContext 自动获得审计字段填充能力，无需各 BC 重复注册。
+    /// </summary>
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(optionsBuilder);
+        optionsBuilder.AddInterceptors(new AuditableEntityInterceptor(() => CurrentUserContext));
+        base.OnConfiguring(optionsBuilder);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -94,59 +108,5 @@ public abstract class BaseDbContext : DbContext
 
             modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
         }
-    }
-
-    /// <summary>
-    /// 保存变更前统一填充审计字段（CreatedAt/UpdatedAt 与 CreatedBy/UpdatedBy）。
-    /// 时间戳始终填充；用户标识由 <see cref="CurrentUserContext"/> 解析，未认证或缺失时填 "system"。
-    /// </summary>
-    public override int SaveChanges()
-    {
-        FillAuditableFields();
-        return base.SaveChanges();
-    }
-
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        FillAuditableFields();
-        return base.SaveChangesAsync(cancellationToken);
-    }
-
-    private void FillAuditableFields()
-    {
-        var now = DateTime.UtcNow;
-        var userIdentifier = ResolveUserIdentifier();
-
-        foreach (var entry in ChangeTracker.Entries<IAuditable>())
-        {
-            switch (entry.State)
-            {
-                case EntityState.Added:
-                    entry.Entity.CreatedAt = now;
-                    entry.Entity.UpdatedAt = now;
-                    entry.Entity.CreatedBy = userIdentifier;
-                    entry.Entity.UpdatedBy = userIdentifier;
-                    break;
-                case EntityState.Modified:
-                    entry.Entity.UpdatedAt = now;
-                    entry.Entity.UpdatedBy = userIdentifier;
-                    // CreatedBy/CreatedAt 在修改时不应被覆盖，保留原始创建者信息
-                    break;
-            }
-        }
-    }
-
-    /// <summary>
-    /// 解析当前用户标识符，用于审计字段 CreatedBy/UpdatedBy。
-    /// 已认证用户返回 UserId.ToString()；未认证、UserId 为 null 或无用户上下文时返回 "system"。
-    /// </summary>
-    private string ResolveUserIdentifier()
-    {
-        var userContext = CurrentUserContext;
-        if (userContext is null || !userContext.IsAuthenticated || userContext.UserId is null)
-        {
-            return "system";
-        }
-        return userContext.UserId.Value.ToString();
     }
 }
