@@ -1,3 +1,4 @@
+using Leno.Notification.Domain.Channels;
 using Leno.Notification.Domain.Services;
 using Leno.Notification.Domain.ValueObjects;
 using MailKit.Net.Smtp;
@@ -15,6 +16,18 @@ public sealed class SmtpEmailChannel : INotificationChannel
 {
     private static readonly TimeSpan SmtpTimeout = TimeSpan.FromSeconds(10);
 
+    private static readonly NotificationChannelMetadata MetadataValue = new(
+        ChannelKey.Email,
+        "邮件",
+        new NotificationChannelCapabilities(
+            RequiresRateLimit: false,
+            SupportsAsyncReceipt: true,
+            IsIdempotent: false,
+            SupportsTemplate: true,
+            Timeout: TimeSpan.FromSeconds(60)),
+        IsEnabled: true,
+        Priority: 20);
+
     private readonly EmailChannelOptions _options;
     private readonly ILogger<SmtpEmailChannel> _logger;
 
@@ -28,6 +41,12 @@ public sealed class SmtpEmailChannel : INotificationChannel
 
     /// <inheritdoc />
     public NotificationChannel Channel => NotificationChannel.Email;
+
+    /// <inheritdoc />
+    public ChannelKey ChannelKey => ChannelKey.Email;
+
+    /// <inheritdoc />
+    public NotificationChannelMetadata Metadata => MetadataValue;
 
     /// <inheritdoc />
     public async Task<ChannelSendResult> SendAsync(ChannelSendRequest request, CancellationToken ct = default)

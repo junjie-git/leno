@@ -3,6 +3,7 @@ using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.Configuration;
 using Leno.Infrastructure.Persistence;
 using Leno.Notification.Application;
+using Leno.Notification.Domain.Channels;
 using Leno.Notification.Domain.Repositories;
 using Leno.Notification.Domain.Services;
 using Leno.Notification.Infrastructure.Channels;
@@ -125,6 +126,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INotificationChannel, SmsChannel>();
         services.AddScoped<INotificationChannel, SmtpEmailChannel>();
         services.AddScoped<INotificationChannel, InAppChannel>();
+        // 3.9：新增 PushChannel mock 验证"实现 IChannel + DI 注册即可被注册表自动发现，零侵入核心调度"。
+        services.AddScoped<INotificationChannel, PushChannel>();
+
+        // 3.9：通知渠道注册表，从 IEnumerable<INotificationChannel> 构建。
+        // 渠道实现自带 Metadata，注册表汇总后供调度器 / 限流器 / 偏好查询使用。
+        // Scoped 生命周期与 INotificationChannel 对齐（依赖 IEnumerable<INotificationChannel>）。
+        services.AddScoped<INotificationChannelRegistry, NotificationChannelRegistry>();
 
         // 重试策略
         services.AddSingleton<Domain.Services.IRetryPolicy, Infrastructure.Services.RetryPolicy>();
@@ -154,11 +162,13 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<IRateLimitAppService, AppServices.RateLimitAppService>();
 		services.AddScoped<INotificationRecordAppService, AppServices.NotificationRecordAppService>();
 
-		// 渠道选择器
-		services.AddSingleton<Domain.Services.IChannelSelector>(sp =>
+		// 渠道选择器（3.9：注入 INotificationChannelRegistry，改为 Scoped 避免 captive dependency；
+		//   旧 Singleton 生命周期无法注入 Scoped 注册表。）
+		services.AddScoped<Domain.Services.IChannelSelector>(sp =>
 		{
 			var smsProvider = configuration["Notification:Sms:Provider"] ?? "Aliyun";
-			return new Domain.Services.ChannelSelector(smsProvider);
+			var registry = sp.GetRequiredService<INotificationChannelRegistry>();
+			return new Domain.Services.ChannelSelector(smsProvider, registry);
 		});
 
 		return services;

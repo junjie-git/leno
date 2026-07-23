@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Leno.Notification.Domain.Channels;
 using Leno.Notification.Domain.Services;
 using Leno.Notification.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
@@ -306,12 +307,30 @@ public sealed class TencentSmsProvider : ISmsProvider
 /// </summary>
 public sealed class SmsChannel : INotificationChannel
 {
+    private static readonly NotificationChannelMetadata MetadataValue = new(
+        ChannelKey.Sms,
+        "短信",
+        new NotificationChannelCapabilities(
+            RequiresRateLimit: true,
+            SupportsAsyncReceipt: true,
+            IsIdempotent: false,
+            SupportsTemplate: true,
+            Timeout: TimeSpan.FromSeconds(30)),
+        IsEnabled: true,
+        Priority: 10);
+
     private readonly Dictionary<string, ISmsProvider> _providers;
     private readonly IChannelSelector _channelSelector;
     private readonly ILogger<SmsChannel> _logger;
 
     /// <inheritdoc />
     public NotificationChannel Channel => NotificationChannel.Sms;
+
+    /// <inheritdoc />
+    public ChannelKey ChannelKey => ChannelKey.Sms;
+
+    /// <inheritdoc />
+    public NotificationChannelMetadata Metadata => MetadataValue;
 
     public SmsChannel(
         IEnumerable<ISmsProvider> providers,

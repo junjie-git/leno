@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Leno.Notification.Domain.Channels;
 using Leno.Notification.Domain.Services;
 using Leno.Notification.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,19 @@ namespace Leno.Notification.Infrastructure.Channels;
 public sealed class InAppChannel : INotificationChannel
 {
     private static readonly TimeSpan CountTtl = TimeSpan.FromDays(30);
+
+    private static readonly NotificationChannelMetadata MetadataValue = new(
+        ChannelKey.InApp,
+        "站内信",
+        new NotificationChannelCapabilities(
+            RequiresRateLimit: false,
+            SupportsAsyncReceipt: false,
+            IsIdempotent: true,
+            SupportsTemplate: true,
+            Timeout: null),
+        IsEnabled: true,
+        Priority: 30);
+
     private readonly IConnectionMultiplexer _redis;
     private readonly ILogger<InAppChannel> _logger;
 
@@ -26,6 +40,12 @@ public sealed class InAppChannel : INotificationChannel
 
     /// <inheritdoc />
     public NotificationChannel Channel => NotificationChannel.InApp;
+
+    /// <inheritdoc />
+    public ChannelKey ChannelKey => ChannelKey.InApp;
+
+    /// <inheritdoc />
+    public NotificationChannelMetadata Metadata => MetadataValue;
 
     /// <inheritdoc />
     public async Task<ChannelSendResult> SendAsync(ChannelSendRequest request, CancellationToken ct = default)

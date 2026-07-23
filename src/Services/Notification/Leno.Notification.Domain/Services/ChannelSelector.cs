@@ -1,3 +1,4 @@
+using Leno.Notification.Domain.Channels;
 using Leno.Notification.Domain.Exceptions;
 using Leno.Notification.Domain.ValueObjects;
 
@@ -22,6 +23,10 @@ namespace Leno.Notification.Domain.Services;
 ///
 /// P2-42：未知错误码默认不可重试（不触发 failover），与 RetryPolicy.ShouldRetry 行为对齐。
 ///       如需对特定错误码 failover，应显式加入 RetryableErrorCodes 白名单。
+///
+/// 3.9：构造时可选注入 <see cref="INotificationChannelRegistry"/>，
+///      通过 <see cref="GetChannelMetadata"/> / <see cref="IsChannelRegistered"/> 暴露注册表查询能力。
+///      原有 <see cref="SelectProvider"/> / <see cref="SelectFallbackProvider"/> / <see cref="IsRetryableError"/> / <see cref="ShouldFailover"/> 行为保持不变（向后兼容）。
 /// </summary>
 public sealed class ChannelSelector : IChannelSelector
 {
@@ -52,12 +57,23 @@ public sealed class ChannelSelector : IChannelSelector
     };
 
     private readonly string _smsProvider;
+    private readonly INotificationChannelRegistry? _registry;
 
     /// <summary>
-    /// 初始化渠道选择器。
+    /// 初始化渠道选择器（向后兼容构造，未注入注册表）。
     /// </summary>
     /// <param name="smsProvider">短信服务商，默认 "Aliyun"，可选 "Tencent"。</param>
     public ChannelSelector(string smsProvider = "Aliyun")
+        : this(smsProvider, registry: null)
+    {
+    }
+
+    /// <summary>
+    /// 初始化渠道选择器，注入 <see cref="INotificationChannelRegistry"/> 用于按 ChannelKey 查询渠道元数据。
+    /// </summary>
+    /// <param name="smsProvider">短信服务商，默认 "Aliyun"，可选 "Tencent"。</param>
+    /// <param name="registry">通知渠道注册表，可空（向后兼容旧测试）。</param>
+    public ChannelSelector(string smsProvider, INotificationChannelRegistry? registry)
     {
         if (string.IsNullOrWhiteSpace(smsProvider))
         {
@@ -65,6 +81,31 @@ public sealed class ChannelSelector : IChannelSelector
         }
 
         _smsProvider = smsProvider;
+        _registry = registry;
+    }
+
+    /// <summary>
+    /// 按 ChannelKey 查询渠道元数据，未注册或未注入注册表时返回 null。
+    /// </summary>
+    public NotificationChannelMetadata? GetChannelMetadata(ChannelKey key)
+    {
+        return _registry?.GetChannel(key);
+    }
+
+    /// <summary>
+    /// 判断渠道是否已注册（注册表未注入时返回 false）。
+    /// </summary>
+    public bool IsChannelRegistered(ChannelKey key)
+    {
+        return _registry?.IsRegistered(key) ?? false;
+    }
+
+    /// <summary>
+    /// 获取注册表中所有已注册渠道的元数据（注册表未注入时返回空列表）。
+    /// </summary>
+    public IReadOnlyList<NotificationChannelMetadata> GetAllRegisteredChannels()
+    {
+        return _registry?.GetAllChannels() ?? Array.Empty<NotificationChannelMetadata>();
     }
 
     /// <inheritdoc />
