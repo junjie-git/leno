@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Moq.Protected;
 using System.Net;
 using System.Text;
+using Options = Microsoft.Extensions.Options.Options;
 
 namespace Leno.Notification.Infrastructure.Tests.Channels;
 
@@ -15,7 +16,7 @@ public class AliyunSmsProviderTests
     public async Task SendAsync_Success_ShouldReturnBizIdAsChannelMessageId()
     {
         // Arrange
-        var options = Options.Create(new SmsChannelOptions
+        var options = Microsoft.Extensions.Options.Options.Create(new SmsChannelOptions
         {
             Provider = "Aliyun",
             AccessKeyId = "AKID123",
@@ -61,7 +62,7 @@ public class AliyunSmsProviderTests
     public async Task SendAsync_SuccessButNoBizId_ShouldReturnNullChannelMessageId()
     {
         // Arrange — 响应中无 BizId 字段
-        var options = Options.Create(new SmsChannelOptions
+        var options = Microsoft.Extensions.Options.Options.Create(new SmsChannelOptions
         {
             Provider = "Aliyun",
             AccessKeyId = "AKID123",
