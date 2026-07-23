@@ -79,6 +79,8 @@ public class OrderAppServiceOwnershipTests
         var order = CreatePaidOrder(OwnerSellerId);
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
+        _logisticsRepoMock.Setup(r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(LogisticsCompany.Create(Guid.NewGuid(), "顺丰速运", "SF", null, true));
 
         var dto = new ShipOrderDto { LogisticsNo = "SF1234567890", LogisticsCompanyCode = "SF" };
 

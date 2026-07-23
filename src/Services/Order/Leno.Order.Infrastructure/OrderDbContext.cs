@@ -1,5 +1,6 @@
 using Leno.Infrastructure.Outbox;
 using Leno.Infrastructure.Persistence;
+using Leno.Order.Application.Sagas.States;
 using Leno.Order.Domain.Aggregates;
 using Microsoft.EntityFrameworkCore;
 using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
@@ -10,6 +11,7 @@ namespace Leno.Order.Infrastructure;
 /// 订单域 DbContext，继承 <see cref="BaseDbContext"/> 复用审计字段填充与软删除查询过滤器。
 /// 暴露订单、库存预占、物流公司、运费模板聚合与 OutboxMessage 发件箱表的 DbSet。
 /// OrderItem 作为 Order 聚合的 owned collection 持久化，无需独立 DbSet。
+/// 3.2：暴露 <see cref="OrderSagaStates"/> DbSet，由 MassTransit EF Core Saga 持久化 OrderSagaState（崩溃恢复）。
 /// </summary>
 public sealed class OrderDbContext : BaseDbContext
 {
@@ -31,4 +33,10 @@ public sealed class OrderDbContext : BaseDbContext
 
     /// <summary>运费模板聚合根。</summary>
     public DbSet<FreightTemplate> FreightTemplates => Set<FreightTemplate>();
+
+    /// <summary>
+    /// 订单 Saga 状态机实例集合（3.2），持久化到 order_saga_states 表。
+    /// 由 MassTransit EF Core Saga Repository 读写，服务崩溃重启后从本表恢复 Saga 状态。
+    /// </summary>
+    public DbSet<OrderSagaState> OrderSagaStates => Set<OrderSagaState>();
 }

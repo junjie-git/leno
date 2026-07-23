@@ -191,7 +191,7 @@ public class OrderSagaOrchestratorTests
         // 记录 SaveEntitiesAsync 与 ScheduleSend（通过 bus.Publish<ScheduleMessage>）的调用顺序
         var callOrder = new List<string>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(() => { callOrder.Add("SaveEntitiesAsync"); return Task.CompletedTask; });
+            .Returns(() => { callOrder.Add("SaveEntitiesAsync"); return Task.FromResult(true); });
         busMock.Setup(b => b.Publish(It.IsAny<ScheduleMessage>(), It.IsAny<IPipe<PublishContext<ScheduleMessage>>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask)
             .Callback(() => callOrder.Add("ScheduleSend"));
@@ -286,7 +286,8 @@ public class OrderSagaOrchestratorTests
             promotionMock.Object,
             pointsMock.Object,
             busMock.Object,
-            loggerMock.Object);
+            loggerMock.Object,
+            Microsoft.Extensions.Options.Options.Create(new Leno.Order.Application.Sagas.OrderSagaOptions()));
     }
 
     /// <summary>

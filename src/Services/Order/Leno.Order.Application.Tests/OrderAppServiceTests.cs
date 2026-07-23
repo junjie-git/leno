@@ -54,7 +54,8 @@ public class OrderAppServiceTests
             _promotionAcMock.Object,
             _pointsAcMock.Object,
             _busMock.Object,
-            new Mock<ILogger<OrderSagaOrchestrator>>().Object);
+            new Mock<ILogger<OrderSagaOrchestrator>>().Object,
+            Microsoft.Extensions.Options.Options.Create(new Leno.Order.Application.Sagas.OrderSagaOptions()));
 
         _sut = new OrderAppService(
             _orderRepoMock.Object,
@@ -112,6 +113,8 @@ public class OrderAppServiceTests
         order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
+        _logisticsCompanyRepoMock.Setup(r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(LogisticsCompany.Create(Guid.NewGuid(), "顺丰速运", "SF", null, true));
 
         await _sut.ShipAsync(OrderId, SellerId, new ShipOrderDto { LogisticsNo = "SF123", LogisticsCompanyCode = "SF" });
 
@@ -208,7 +211,7 @@ public class OrderAppServiceTests
         // 记录 SaveEntitiesAsync 与 ReleaseBatchAsync 的调用顺序
         var callOrder = new List<string>();
         _uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(() => { callOrder.Add("SaveEntitiesAsync"); return Task.CompletedTask; });
+            .Returns(() => { callOrder.Add("SaveEntitiesAsync"); return Task.FromResult(true); });
         _stockServiceMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
             .Returns(() => { callOrder.Add("ReleaseStock"); return Task.CompletedTask; });
 
@@ -531,7 +534,8 @@ public class OrderAppServiceTests
         // Act
         var act = () => _sut.CreateOrderAsync(UserId, dto);
 
-        // Assert — 第二组失败须补偿第一组：释放库存/积分/优惠券、移除未提交订单聚合；订单未持久化；抛原始异常
+        // Assert — 第二组失败须补偿第一组：释放库存/积分/优惠券；订单未持久化；抛原始异常
+        // P1-T24：并行阶段聚合未入仓储（DbContext 非线程安全），失败时聚合仅存在于内存，无需 RemoveAsync
         await act.Should().ThrowAsync<OrderDomainException>().WithMessage("*库存预占失败*");
 
         _stockServiceMock.Verify(
@@ -551,7 +555,7 @@ public class OrderAppServiceTests
             Times.Once);
         _orderRepoMock.Verify(
             r => r.RemoveAsync(It.IsAny<OrderAggregate>(), It.IsAny<CancellationToken>()),
-            Times.Once);
+            Times.Never);
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 

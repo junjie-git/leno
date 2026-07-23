@@ -11,8 +11,9 @@
 
   <ItemGroup>
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.10.0" />
-    <PackageReference Include="MassTransit" Version="8.3.6" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
+    <PackageReference Include="MassTransit" Version="$(MassTransitVersion)" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" Version="$(MassTransitVersion)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EntityFrameworkCoreVersion)" />
   </ItemGroup>
 
   <PropertyGroup>

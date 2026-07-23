@@ -4,6 +4,8 @@ using Leno.Infrastructure.Cqrs;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.Order.Application;
+using Leno.Order.Application.Sagas;
+using Leno.Order.Application.Sagas.States;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
@@ -11,6 +13,7 @@ using Leno.Order.Infrastructure.Consumers;
 using Leno.Order.Infrastructure.EventBus;
 using Leno.Order.Infrastructure.ReadModels;
 using Leno.Order.Infrastructure.Repositories;
+using Leno.Order.Infrastructure.Sagas;
 using Leno.Order.Infrastructure.Services;
 using Leno.Order.Infrastructure.Services.Grpc;
 using Leno.SharedContracts.Grpc.Points.V1;
@@ -230,6 +233,7 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<IPointsAntiCorruptionService>(),
             sp.GetRequiredService<IBus>(),
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<OrderSagaOrchestrator>>(),
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Leno.Order.Application.Sagas.OrderSagaOptions>>(),
             maxDegreeOfParallelism: OrderSagaOrchestrator.ProductionMaxDegreeOfParallelism));
 
         // FluentValidation 校验器
@@ -270,6 +274,12 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<StockAdjustedEventConsumer>();
         configurator.AddConsumer<OrderReadModelSyncConsumer>();
         configurator.AddConsumer<SeckillOrderCreatedEventConsumer>();
+
+        // 3.2 MassTransit Saga 状态机注册：OrderSagaStateMachine 编排下单全流程，
+        // 状态持久化到 order_saga_states 表（复用 OrderDbContext），崩溃后从持久化状态恢复。
+        // 双轨期：feature flag Order:UseSagaStateMachine 控制 OrderSagaOrchestrator 是否发布 OrderSagaStarted 事件。
+        configurator.AddSagaStateMachine<OrderSagaStateMachine, OrderSagaState>()
+            .UseOrderSagaRepository();
 
         return configurator;
     }
