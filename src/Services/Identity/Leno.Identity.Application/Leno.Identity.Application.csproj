@@ -6,6 +6,7 @@
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts\Leno.SharedContracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts.Grpc\Leno.SharedContracts.Grpc.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.Infrastructure.Abstractions\Leno.Infrastructure.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Leno.Infrastructure\Leno.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

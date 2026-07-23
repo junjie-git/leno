@@ -7,6 +7,7 @@ using Leno.Identity.Domain.Exceptions;
 using Leno.Identity.Domain.Repositories;
 using Leno.Identity.Domain.Services;
 using Leno.Identity.Domain.ValueObjects;
+using Leno.Infrastructure.Security;
 using Leno.SharedContracts.Grpc.AccessControl.V1;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -218,9 +219,13 @@ public class AuthenticationAppServiceOAuthTests
         var userRepo = new Mock<IUserRepository>();
         var refreshTokenRepo = new Mock<IRefreshTokenRepository>();
         var oauthClientRepo = new Mock<IOAuthClientRepository>();
-        var passwordHasher = new Mock<IPasswordHasher>();
+        var passwordHasher = new Mock<Leno.Identity.Domain.Services.IPasswordHasher>();
         var unitOfWork = new Mock<IUnitOfWork>();
         var providerFactory = new Mock<IOAuth2ProviderFactory>();
+        var passwordMigrator = new Mock<IBcryptToArgon2Migrator>();
+        passwordMigrator
+            .Setup(m => m.TryMigrateAsync(It.IsAny<User>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         var logger = new Mock<ILogger<AuthenticationAppService>>();
 
         oauthClientRepo
@@ -249,12 +254,13 @@ public class AuthenticationAppServiceOAuthTests
             unitOfWork.Object,
             jwtService,
             providerFactory.Object,
+            passwordMigrator.Object,
             logger.Object);
 
         return (service, new ServiceMocks(userRepo, refreshTokenRepo, oauthClientRepo, unitOfWork));
     }
 
-    /// <summary>创建真实 JwtTokenService（gRPC 客户端返回空角色列表）。</summary>
+    /// <summary>创建真实 JwtTokenService（gRPC 客户端返回空角色列表，签名服务返回占位令牌）。</summary>
     private static JwtTokenService CreateJwtTokenService()
     {
         var options = Options.Create(new JwtOptions
@@ -265,6 +271,11 @@ public class AuthenticationAppServiceOAuthTests
             AccessTokenExpirationMinutes = 30,
             RefreshTokenExpirationDays = 7
         });
+
+        var signingService = new Mock<IJwtSigningService>();
+        signingService
+            .Setup(s => s.SignAsync(It.IsAny<System.IdentityModel.Tokens.Jwt.JwtPayload>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("dummy-signed-token");
 
         var mockInvoker = new Mock<CallInvoker>();
         mockInvoker
@@ -283,7 +294,7 @@ public class AuthenticationAppServiceOAuthTests
         var client = new AccessControlService.AccessControlServiceClient(mockInvoker.Object);
         var logger = Mock.Of<ILogger<JwtTokenService>>();
 
-        return new JwtTokenService(options, client, logger);
+        return new JwtTokenService(options, signingService.Object, client, logger);
     }
 
     private static OAuthClient CreateOidcClient(bool enabled)

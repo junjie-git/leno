@@ -22,6 +22,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.PhoneNumber).HasColumnName("phone_number").HasMaxLength(20);
         // password_hash 扩列至 256，为未来切换 Argon2id（典型 96+ 字符）预留空间
         builder.Property(u => u.PasswordHash).HasColumnName("password_hash").HasMaxLength(256);
+        // 3.10 安全技术栈升级：密码哈希算法版本（0=Bcrypt 历史数据，1=Argon2id 当前）
+        builder.Property(u => u.PasswordHashVersion).HasColumnName("password_hash_version").HasDefaultValue(0);
         builder.Property(u => u.Nickname).HasColumnName("nickname").HasMaxLength(32).IsRequired();
         builder.Property(u => u.AvatarUrl).HasColumnName("avatar_url").HasMaxLength(512);
         builder.Property(u => u.Status).HasColumnName("status").HasConversion<int>();

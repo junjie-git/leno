@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Grpc.Core;
 using Leno.Identity.Domain.Aggregates;
+using Leno.Infrastructure.Security;
 using Leno.SharedContracts.Grpc.AccessControl.V1;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -12,18 +13,21 @@ using Microsoft.IdentityModel.Tokens;
 namespace Leno.Identity.Application.Services;
 
 /// <summary>
-/// JWT 访问令牌与刷新令牌生成服务（Identity BC，3.6 AuthN/AuthZ 拆分）。
+/// JWT 访问令牌与刷新令牌生成服务（Identity BC，3.6 AuthN/AuthZ 拆分 / 3.10 安全技术栈升级）。
 /// <para>
 /// 核心职责：通过 AccessControl BC 的 <c>GetUserRoles</c> gRPC RPC 获取用户角色，
 /// 将角色写入 JWT claims（同时填充 <see cref="ClaimTypes.Role"/> 与 <c>"role"</c> 两种类型，
 /// 兼容 ASP.NET Core RBAC 与网关自定义校验）。
 /// </para>
 /// <para>
-/// 签名算法：HS256（对称密钥，阶段四升级为 RS256 非对称密钥）。
+/// 签名算法（3.10 升级）：通过 <see cref="IJwtSigningService"/> 委托签名，
+/// 支持 HS256（对称，兼容）/ Dual（过渡）/ RS256（非对称目标态）三种模式，由
+/// <c>JwtSigning:SigningMode</c> feature flag 控制。
 /// </para>
 /// <para>
 /// 依赖：<see cref="AccessControlService.AccessControlServiceClient"/>（由 Infrastructure 层
-/// <c>AddGrpcClient</c> 注册）、<see cref="JwtOptions"/> 配置、<see cref="ILogger{TCategoryName}"/>。
+/// <c>AddGrpcClient</c> 注册）、<see cref="IJwtSigningService"/>、<see cref="JwtOptions"/> 配置、
+/// <see cref="ILogger{TCategoryName}"/>。
 /// </para>
 /// </summary>
 public sealed class JwtTokenService
@@ -38,42 +42,36 @@ public sealed class JwtTokenService
     private static readonly TimeSpan ClockSkew = TimeSpan.FromSeconds(30);
 
     private readonly JwtOptions _options;
+    private readonly IJwtSigningService _signingService;
     private readonly AccessControlService.AccessControlServiceClient _accessControlClient;
     private readonly ILogger<JwtTokenService> _logger;
-    private readonly JwtSecurityTokenHandler _tokenHandler = new();
 
     /// <summary>
     /// 初始化 <see cref="JwtTokenService"/> 的新实例。
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    /// 配置节缺失或 <see cref="JwtOptions.SigningKey"/> 长度不足 32 字节。
-    /// </exception>
+    /// <param name="options">Identity:Jwt 配置（签发方/受众/过期时间）。</param>
+    /// <param name="signingService">JWT 签名服务（HS256/RS256/Dual）。</param>
+    /// <param name="accessControlClient">AccessControl BC gRPC 客户端。</param>
+    /// <param name="logger">日志。</param>
     public JwtTokenService(
         IOptions<JwtOptions> options,
+        IJwtSigningService signingService,
         AccessControlService.AccessControlServiceClient accessControlClient,
         ILogger<JwtTokenService> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(signingService);
         ArgumentNullException.ThrowIfNull(accessControlClient);
         ArgumentNullException.ThrowIfNull(logger);
 
         _options = options.Value ?? throw new InvalidOperationException("Identity:Jwt 配置节缺失或绑定失败");
+        _signingService = signingService;
         _accessControlClient = accessControlClient;
         _logger = logger;
 
-        if (string.IsNullOrWhiteSpace(_options.SigningKey))
-        {
-            throw new InvalidOperationException(
-                "Identity:Jwt:SigningKey 配置缺失，无法签发 JWT。请提供至少 32 字节的随机密钥。");
-        }
-
-        var keyBytes = Encoding.UTF8.GetBytes(_options.SigningKey);
-        if (keyBytes.Length < MinSigningKeyBytes)
-        {
-            throw new InvalidOperationException(
-                $"Identity:Jwt:SigningKey 长度不足：HS256 要求至少 {MinSigningKeyBytes} 字节（256 位），" +
-                $"当前 UTF-8 编码仅 {keyBytes.Length} 字节。请使用更长的随机密钥。");
-        }
+        // 3.10：SigningKey 仅在 HS256 回退模式（BuildValidationParameters）下需要，
+        // RS256/Dual 模式的签名密钥由 IJwtSigningService + KMS 管理。
+        // 此处不再强制要求 SigningKey 非空，由 RsaJwtSigningService 在 HS256 模式下校验。
 
         if (_options.AccessTokenExpirationMinutes <= 0)
         {
@@ -99,7 +97,7 @@ public sealed class JwtTokenService
     /// <list type="number">
     /// <item>调用 AccessControl BC <c>GetUserRoles</c> RPC 获取用户角色编码列表。</item>
     /// <item>构建 claims：sub/jti/nameidentifier/name/email + 每个角色的 Role 与 "role" 双声明。</item>
-    /// <item>HS256 签名，签发 JWT。</item>
+    /// <item>构建 <see cref="JwtPayload"/> 并委托 <see cref="IJwtSigningService"/> 签名（HS256/RS256/Dual）。</item>
     /// </list>
     /// gRPC 调用失败时记录错误并向上抛出，由调用方决定降级策略（避免签发无角色的令牌导致权限异常）。
     /// </summary>
@@ -153,19 +151,15 @@ public sealed class JwtTokenService
             }
         }
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey));
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var now = DateTime.UtcNow;
-
-        var token = new JwtSecurityToken(
+        var payload = new JwtPayload(
             issuer: _options.Issuer,
             audience: _options.Audience,
             claims: claims,
             notBefore: now,
-            expires: now.AddMinutes(_options.AccessTokenExpirationMinutes),
-            signingCredentials: credentials);
+            expires: now.AddMinutes(_options.AccessTokenExpirationMinutes));
 
-        return _tokenHandler.WriteToken(token);
+        return await _signingService.SignAsync(payload, ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -193,11 +187,30 @@ public sealed class JwtTokenService
     }
 
     /// <summary>
-    /// 构造与共享内核 JwtBearer 管线一致的校验参数，供验证场景复用。
+    /// 构造 HS256 校验参数（向后兼容，供共享内核 JwtBearer 管线使用）。
+    /// <para>
+    /// 3.10 升级后，RS256/Dual 模式的验签通过 <see cref="IJwtSigningService.VerifyAsync"/> 完成。
+    /// 此方法仅在 SigningKey 已配置时返回 HS256 参数；否则抛出异常提示切换至 RS256 验签。
+    /// </para>
     /// </summary>
     public TokenValidationParameters BuildValidationParameters()
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey));
+        if (string.IsNullOrWhiteSpace(_options.SigningKey))
+        {
+            throw new InvalidOperationException(
+                "Identity:Jwt:SigningKey 未配置，HS256 校验参数不可用。" +
+                "RS256/Dual 模式请通过 IJwtSigningService.VerifyAsync 验签。");
+        }
+
+        var keyBytes = Encoding.UTF8.GetBytes(_options.SigningKey);
+        if (keyBytes.Length < MinSigningKeyBytes)
+        {
+            throw new InvalidOperationException(
+                $"Identity:Jwt:SigningKey 长度不足：HS256 要求至少 {MinSigningKeyBytes} 字节（256 位），" +
+                $"当前 UTF-8 编码仅 {keyBytes.Length} 字节。");
+        }
+
+        var key = new SymmetricSecurityKey(keyBytes);
         return new TokenValidationParameters
         {
             ValidateIssuer = true,

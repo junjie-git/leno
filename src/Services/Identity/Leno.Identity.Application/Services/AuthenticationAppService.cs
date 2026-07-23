@@ -53,6 +53,7 @@ public sealed class AuthenticationAppService : IAuthenticationAppService
     private readonly IUnitOfWork _unitOfWork;
     private readonly JwtTokenService _jwtTokenService;
     private readonly IOAuth2ProviderFactory _oauthProviderFactory;
+    private readonly IBcryptToArgon2Migrator _passwordMigrator;
     private readonly ILogger<AuthenticationAppService> _logger;
 
     public AuthenticationAppService(
@@ -63,6 +64,7 @@ public sealed class AuthenticationAppService : IAuthenticationAppService
         IUnitOfWork unitOfWork,
         JwtTokenService jwtTokenService,
         IOAuth2ProviderFactory oauthProviderFactory,
+        IBcryptToArgon2Migrator passwordMigrator,
         ILogger<AuthenticationAppService> logger)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
@@ -72,6 +74,7 @@ public sealed class AuthenticationAppService : IAuthenticationAppService
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _jwtTokenService = jwtTokenService ?? throw new ArgumentNullException(nameof(jwtTokenService));
         _oauthProviderFactory = oauthProviderFactory ?? throw new ArgumentNullException(nameof(oauthProviderFactory));
+        _passwordMigrator = passwordMigrator ?? throw new ArgumentNullException(nameof(passwordMigrator));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -124,6 +127,9 @@ public sealed class AuthenticationAppService : IAuthenticationAppService
 
         // 登录成功：重置失败计数，发布领域事件
         user.RecordLogin(AuthMethodPassword);
+
+        // 3.10 安全技术栈升级：bcrypt → Argon2id 懒迁移（登录成功后无感知升级）
+        await _passwordMigrator.TryMigrateAsync(user, dto.Password, ct).ConfigureAwait(false);
 
         await _userRepository.UpdateAsync(user, ct).ConfigureAwait(false);
 

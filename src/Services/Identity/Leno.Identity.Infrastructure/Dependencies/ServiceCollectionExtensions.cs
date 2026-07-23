@@ -7,14 +7,17 @@ using Leno.Identity.Domain.Services;
 using Leno.Identity.Infrastructure.EventBus;
 using Leno.Identity.Infrastructure.OAuth;
 using Leno.Identity.Infrastructure.Repositories;
+using Leno.Identity.Infrastructure.Security;
 using Leno.Identity.Infrastructure.Services;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
+using Leno.Infrastructure.Security;
 using Leno.SharedContracts.Grpc.AccessControl.V1;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Leno.Identity.Infrastructure.Dependencies;
@@ -55,14 +58,51 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITwoFactorSessionRepository, EfCoreTwoFactorSessionRepository>();
         services.AddScoped<IOAuthClientRepository, EfCoreOAuthClientRepository>();
 
-        // 4. 领域服务实现
-        services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
+        // 4. 领域服务实现 + 3.10 安全技术栈升级（Argon2id + PEPPER / HS256→RS256 / KMS 托管）
+        //    4.1 配置选项（须先于服务注册，供 IOptions<T> 注入）
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<PasswordHashOptions>(configuration.GetSection(PasswordHashOptions.SectionName));
+        services.Configure<JwtSigningOptions>(configuration.GetSection(JwtSigningOptions.SectionName));
+
+        //    4.2 KMS 基础设施：默认 EnvironmentKms（环境变量 PEM 回退），生产可切换 AzureKeyVaultKms
+        //        DG-4 务实推进：代码完整实现，实际 KMS 连接待生产验证，失败回退环境变量。
+        services.AddSingleton<IKeyManagementService>(sp =>
+        {
+            var signingOptions = sp.GetRequiredService<IOptions<JwtSigningOptions>>().Value;
+            if (signingOptions.UseAzureKeyVault && !string.IsNullOrWhiteSpace(signingOptions.KeyVaultUri))
+            {
+                // 生产环境：Azure Key Vault HSM 托管 RSA 密钥
+                var credential = new Azure.Identity.DefaultAzureCredential();
+                var akvLogger = sp.GetRequiredService<ILogger<AzureKeyVaultKms>>();
+                return new AzureKeyVaultKms(
+                    new Uri(signingOptions.KeyVaultUri),
+                    credential,
+                    Options.Create(signingOptions),
+                    akvLogger);
+            }
+
+            // 开发/CI 回退：从环境变量 JWT_RSA_PRIVATE_KEY_PEM / JWT_RSA_PUBLIC_KEY_PEM 读取 PEM
+            var envKmsLogger = sp.GetRequiredService<ILogger<EnvironmentKms>>();
+            return new EnvironmentKms(Options.Create(signingOptions), envKmsLogger);
+        });
+
+        //    4.3 Argon2id 密码哈希栈：pepper 注入 + bcrypt 旧哈希兼容校验
+        //        - BcryptPasswordVerifier：仅校验历史 bcrypt 哈希（不含 pepper）
+        //        - IPepperProvider：KMS 解包 > 环境变量 PASSWORD_PEPPER > 静态配置
+        //        - Argon2PasswordHasher：新签发 Argon2id + pepper，校验时自动识别算法
+        services.AddSingleton<BcryptPasswordVerifier>();
+        services.AddSingleton<IPepperProvider, PepperProvider>();
+        services.AddSingleton<Leno.Infrastructure.Security.IPasswordHasher, Argon2PasswordHasher>();
+        //        桥接：领域端口 IPasswordHasher（Hash/Verify）→ 基础设施 IPasswordHasher（HashPassword/VerifyPassword/DetectAlgorithm）
+        services.AddScoped<Leno.Identity.Domain.Services.IPasswordHasher, IdentityPasswordHasherAdapter>();
+        services.AddScoped<IBcryptToArgon2Migrator, BcryptToArgon2Migrator>();
+
+        //    4.4 JWT 签名服务（HS256 / Dual / RS256，由 JwtSigning:SigningMode feature flag 控制）
+        services.AddSingleton<IJwtSigningService, RsaJwtSigningService>();
+
+        //    4.5 其他领域服务
         services.AddScoped<IUserUniquenessChecker, UserUniquenessChecker>();
         services.AddScoped<ITokenVerifier, TotpTokenVerifier>();
-
-        // 5. 配置选项
-        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
-        services.Configure<PasswordHashOptions>(configuration.GetSection("PasswordHash"));
 
         // 6. AccessControl BC gRPC 客户端注册（JwtTokenService 通过此客户端调用 GetUserRoles RPC 填充角色 claims）
         //    地址从 ServiceUrls:AccessControlApi 读取（与 AntiCorruption:GrpcEndpoints:AccessControl 二选一，前者保留向后兼容）

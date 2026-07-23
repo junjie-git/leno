@@ -50,6 +50,12 @@ public sealed partial class User : AggregateRoot
     /// <summary>密码哈希（bcrypt），纯 OAuth 用户可空。</summary>
     public string? PasswordHash { get; private set; }
 
+    /// <summary>
+    /// 密码哈希算法版本（3.10 安全技术栈升级）：0=Bcrypt（历史），1=Argon2id（当前）。
+    /// 默认 0 兼容存量数据，懒迁移后更新为 1。
+    /// </summary>
+    public int PasswordHashVersion { get; private set; }
+
     /// <summary>昵称，1–32 字符。</summary>
     public string Nickname { get; private set; } = string.Empty;
 
@@ -605,6 +611,26 @@ public sealed partial class User : AggregateRoot
         PasswordHash = newPasswordHash;
 
         AddDomainEvent(new UserPasswordChangedEvent(Id, isResetFlow: true));
+    }
+
+    /// <summary>
+    /// 懒迁移：直接更新密码哈希与算法版本（由 BcryptToArgon2Migrator 在登录成功后调用）。
+    /// 与 <see cref="ChangePassword"/> 不同，此方法不校验旧密码（调用方已校验）；
+    /// 与 <see cref="ResetPassword"/> 不同，此方法不标记为密码重置流程。
+    /// </summary>
+    /// <param name="newPasswordHash">新密码哈希字符串（Argon2id PHC 格式）。</param>
+    /// <param name="hashVersion">哈希算法版本（1=Argon2id）。</param>
+    public void UpdatePasswordHash(string newPasswordHash, int hashVersion = 1)
+    {
+        if (string.IsNullOrWhiteSpace(newPasswordHash))
+        {
+            throw new IdentityDomainException("新密码哈希不可为空", "USER_PASSWORD_HASH_EMPTY");
+        }
+
+        PasswordHash = newPasswordHash;
+        PasswordHashVersion = hashVersion;
+
+        AddDomainEvent(new UserPasswordChangedEvent(Id));
     }
 
     /// <summary>
