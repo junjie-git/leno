@@ -3,6 +3,7 @@ using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.Outbox;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Leno.Infrastructure.Persistence;
 
@@ -43,14 +44,22 @@ public abstract class BaseDbContext : DbContext
         // 统一配置乐观锁 shadow property（避免领域层 Entity 携带持久化细节）
         // 所有继承 Entity 的实体自动获得名为 "Version" 的 rowversion shadow property
         // 跳过 owned type（由 OwnsOne/OwnsMany 持有的实体）以避免 "cannot be configured as non-owned" 异常
+        // 跳过已显式声明 rowversion 列的实体（如 OrderConfiguration 中显式声明的 row_version 列），
+        // 因 SQL Server 单表仅允许一个 rowversion 列，否则迁移会失败
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (typeof(Entity).IsAssignableFrom(entityType.ClrType) && !entityType.IsOwned())
             {
-                modelBuilder.Entity(entityType.ClrType)
-                    .Property<byte[]>("Version")
-                    .HasColumnName("version")
-                    .IsRowVersion();
+                var hasExplicitRowVersion = entityType.GetProperties()
+                    .Any(p => p.IsConcurrencyToken && p.ValueGenerated == ValueGenerated.OnAddOrUpdate);
+
+                if (!hasExplicitRowVersion)
+                {
+                    modelBuilder.Entity(entityType.ClrType)
+                        .Property<byte[]>("Version")
+                        .HasColumnName("version")
+                        .IsRowVersion();
+                }
             }
         }
 
