@@ -55,5 +55,13 @@ public sealed class NotificationRecordConfiguration : IEntityTypeConfiguration<N
             .HasDatabaseName("ix_notification_records_status_next_retry_at");
         builder.HasIndex(n => new { n.Status, n.RetryCount })
             .HasDatabaseName("ix_notification_records_status_retry_count");
+
+        // 用户通知中心列表查询高频走 (user_id, is_read, channel) 过滤，
+        // 高选择性列 user_id 在前，is_read/channel 等值过滤紧随；
+        // Include CreatedAt/TemplateCode 形成覆盖索引，避免回表查询聚簇索引。
+        // 迁移中以 ONLINE=ON 在线创建避免锁表。
+        builder.HasIndex(n => new { n.UserId, n.IsRead, n.Channel })
+            .HasDatabaseName("ix_notification_records_user_isread_channel")
+            .IncludeProperties(n => new { n.CreatedAt, n.TemplateCode });
     }
 }
