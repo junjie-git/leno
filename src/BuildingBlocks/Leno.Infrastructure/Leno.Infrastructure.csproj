@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Leno.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="Leno.ApiGateway.Tests" />
   </ItemGroup>
 
   <!-- BannedApiAnalyzers（D4.1 part2）：显式将禁用 API 规则文件作为分析器附加输入。 -->

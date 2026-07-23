@@ -3,20 +3,21 @@ using Microsoft.Extensions.Logging.Abstractions;
 using StackExchange.Redis;
 using System.Threading.RateLimiting;
 
-namespace Leno.ApiGateway.Services;
+namespace Leno.Infrastructure.RateLimiting;
 
 /// <summary>
-/// 基于 Redis SortedSet + Lua 脚本的分布式滑动窗口限流器。
+/// 基于 Redis SortedSet + Lua 脚本的分布式滑动窗口限流器（ASP.NET Core RateLimiter 中间件分区实现）。
 /// <para>
 /// 算法：
 /// 1. 以 SortedSet 存储请求时间戳作为 member，时间戳（毫秒）作为 score。
-/// 2. Lua 脚本原子执行：ZREMRANGEBYSCORE 清除窗口外旧记录 → ZADD 当前时间戳 → ZCARD 计数 → 判断是否超过阈值。
+/// 2. Lua 脚本原子执行：ZREMRANGEBYSCORE 清除窗口外旧记录 → ZCARD 计数 → 判断是否超过阈值。
 /// 3. 超过阈值时 TTL 仅在 ZCARD=0 时设置（首次访问），避免重复设置。
 /// </para>
 /// 与 ASP.NET Core <see cref="RateLimiter"/> 抽象兼容，
 /// 通过 <see cref="RateLimitPartition.Create{TKey}"/> 注册到 <c>AddRateLimiter</c> 中间件。
+/// 此实现供 ApiGateway 限流中间件分区使用；业务限流请使用 <see cref="IRateLimiter"/>。
 /// </summary>
-public sealed class RedisSlidingWindowRateLimiter : RateLimiter
+public sealed class RedisSlidingWindowRateLimiterPartition : RateLimiter
 {
     // KEYS[1] = Redis key
     // ARGV[1] = current timestamp (ms, score)
@@ -55,7 +56,7 @@ return 1
     private readonly int _permitLimit;
     private readonly TimeSpan _window;
     private readonly int _segmentsPerWindow;
-    private readonly ILogger<RedisSlidingWindowRateLimiter> _logger;
+    private readonly ILogger<RedisSlidingWindowRateLimiterPartition> _logger;
     private long _counter;
 
     /// <summary>
@@ -67,13 +68,13 @@ return 1
     /// <param name="window">滑动窗口时长。</param>
     /// <param name="segmentsPerWindow">窗口分段数（仅用于 TTL 计算，Redis SortedSet 滑动窗口本身无分段概念）。</param>
     /// <param name="logger">日志记录器。T28：Redis 异常时记录 warning 便于运维感知限流器故障。null 时使用 NullLogger。</param>
-    public RedisSlidingWindowRateLimiter(
+    public RedisSlidingWindowRateLimiterPartition(
         IDatabase database,
         string key,
         int permitLimit,
         TimeSpan window,
         int segmentsPerWindow,
-        ILogger<RedisSlidingWindowRateLimiter>? logger = null)
+        ILogger<RedisSlidingWindowRateLimiterPartition>? logger = null)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         if (string.IsNullOrEmpty(key)) throw new ArgumentException("key cannot be null or empty", nameof(key));
@@ -82,7 +83,7 @@ return 1
         _window = window;
         _segmentsPerWindow = segmentsPerWindow > 0 ? segmentsPerWindow : 1;
         _counter = 0;
-        _logger = logger ?? NullLogger<RedisSlidingWindowRateLimiter>.Instance;
+        _logger = logger ?? NullLogger<RedisSlidingWindowRateLimiterPartition>.Instance;
     }
 
     /// <inheritdoc />
@@ -183,8 +184,8 @@ return 1
 
     private sealed class RedisRateLimitLease : RateLimitLease
     {
-        private readonly RedisSlidingWindowRateLimiter _limiter;
-        public RedisRateLimitLease(RedisSlidingWindowRateLimiter limiter) => _limiter = limiter;
+        private readonly RedisSlidingWindowRateLimiterPartition _limiter;
+        public RedisRateLimitLease(RedisSlidingWindowRateLimiterPartition limiter) => _limiter = limiter;
         public override bool IsAcquired => true;
         public override IEnumerable<string> MetadataNames => Array.Empty<string>();
         public override bool TryGetMetadata(string metadataName, out object? metadata)

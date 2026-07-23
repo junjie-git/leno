@@ -1,5 +1,5 @@
 using Leno.ApiGateway.Options;
-using Leno.ApiGateway.Services;
+using Leno.Infrastructure.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,7 +32,7 @@ public static class RateLimiterExtensions
     /// <item>路由级策略 "default"/"seckill"：滑动窗口 200/50 req/s</item>
     /// <item>用户级策略 "per-user"：滑动窗口 100 req/min，按 UserId 分区</item>
     /// </list>
-    /// Redis 启用时（UseRedisDistributed=true），路由级和用户级策略使用 <see cref="RedisSlidingWindowRateLimiter"/>。
+    /// Redis 启用时（UseRedisDistributed=true），路由级和用户级策略使用 <see cref="RedisSlidingWindowRateLimiterPartition"/>。
     /// </summary>
     public static IServiceCollection AddGatewayRateLimiter(
         this IServiceCollection services,
@@ -97,7 +97,7 @@ public static class RateLimiterExtensions
     }
 
     /// <summary>
-    /// 根据配置创建滑动窗口分区：Redis 启用时返回 <see cref="RedisSlidingWindowRateLimiter"/>，否则回退到内置 <see cref="SlidingWindowRateLimiter"/>。
+    /// 根据配置创建滑动窗口分区：Redis 启用时返回 <see cref="RedisSlidingWindowRateLimiterPartition"/>，否则回退到内置 <see cref="SlidingWindowRateLimiter"/>。
     /// </summary>
     private static RateLimitPartition<string> CreateSlidingWindowPartition(
         HttpContext httpContext,
@@ -121,10 +121,10 @@ public static class RateLimiterExtensions
         {
             var database = httpContext.RequestServices.GetRequiredService<IDatabase>();
             // T28：从 DI 解析 logger 传入限流器，使 Redis 异常时能记录 warning 日志
-            var logger = httpContext.RequestServices.GetService<ILogger<RedisSlidingWindowRateLimiter>>();
+            var logger = httpContext.RequestServices.GetService<ILogger<RedisSlidingWindowRateLimiterPartition>>();
             return RateLimitPartition.Get(
                 compositeKey,
-                _ => new RedisSlidingWindowRateLimiter(
+                _ => new RedisSlidingWindowRateLimiterPartition(
                     database,
                     compositeKey,
                     permitLimit,

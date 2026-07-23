@@ -1,10 +1,10 @@
-using Leno.ApiGateway.Services;
+using Leno.Infrastructure.RateLimiting;
 using Moq;
 using StackExchange.Redis;
 
 namespace Leno.ApiGateway.Tests.Services;
 
-public class RedisSlidingWindowRateLimiterTests
+public class RedisSlidingWindowRateLimiterPartitionTests
 {
     private static Mock<IDatabase> CreateDatabaseMock(long scriptResult)
     {
@@ -30,7 +30,7 @@ public class RedisSlidingWindowRateLimiterTests
     {
         // Arrange — Lua 脚本返回 1 表示允许
         var dbMock = CreateDatabaseMock(scriptResult: 1);
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object, "leno:rl:seckill:user-1", 50, TimeSpan.FromSeconds(1), 4);
 
         // Act
@@ -45,7 +45,7 @@ public class RedisSlidingWindowRateLimiterTests
     {
         // Arrange — Lua 脚本返回 0 表示拒绝
         var dbMock = CreateDatabaseMock(scriptResult: 0);
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object, "leno:rl:seckill:user-1", 50, TimeSpan.FromSeconds(1), 4);
 
         // Act
@@ -67,7 +67,7 @@ public class RedisSlidingWindowRateLimiterTests
             It.IsAny<CommandFlags>()))
             .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Connection refused"));
 
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object, "leno:rl:seckill:user-1", 50, TimeSpan.FromSeconds(1), 4);
 
         // Act
@@ -88,7 +88,7 @@ public class RedisSlidingWindowRateLimiterTests
             It.IsAny<CommandFlags>()))
             .ThrowsAsync(new OperationCanceledException());
 
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object, "leno:rl:seckill:user-1", 50, TimeSpan.FromSeconds(1), 4);
 
         using var cts = new CancellationTokenSource();
@@ -102,7 +102,7 @@ public class RedisSlidingWindowRateLimiterTests
     [Fact]
     public void Constructor_NullDatabase_Throws()
     {
-        var act = () => new RedisSlidingWindowRateLimiter(null!, "key", 50, TimeSpan.FromSeconds(1), 4);
+        var act = () => new RedisSlidingWindowRateLimiterPartition(null!, "key", 50, TimeSpan.FromSeconds(1), 4);
         act.Should().Throw<ArgumentNullException>();
     }
 
@@ -112,7 +112,7 @@ public class RedisSlidingWindowRateLimiterTests
     public void Constructor_EmptyOrNullKey_Throws(string? key)
     {
         var dbMock = new Mock<IDatabase>();
-        var act = () => new RedisSlidingWindowRateLimiter(dbMock.Object, key!, 50, TimeSpan.FromSeconds(1), 4);
+        var act = () => new RedisSlidingWindowRateLimiterPartition(dbMock.Object, key!, 50, TimeSpan.FromSeconds(1), 4);
         act.Should().Throw<ArgumentException>();
     }
 
@@ -122,7 +122,7 @@ public class RedisSlidingWindowRateLimiterTests
     public void Constructor_NonPositivePermitLimit_Throws(int limit)
     {
         var dbMock = new Mock<IDatabase>();
-        var act = () => new RedisSlidingWindowRateLimiter(dbMock.Object, "key", limit, TimeSpan.FromSeconds(1), 4);
+        var act = () => new RedisSlidingWindowRateLimiterPartition(dbMock.Object, "key", limit, TimeSpan.FromSeconds(1), 4);
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
@@ -146,7 +146,7 @@ public class RedisSlidingWindowRateLimiterTests
             })
             .ReturnsAsync(RedisResult.Create((RedisValue)1L, ResultType.Integer));
 
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object, "leno:rl:seckill:user-1", 50, TimeSpan.FromSeconds(1), 4);
 
         // Act
@@ -169,7 +169,7 @@ public class RedisSlidingWindowRateLimiterTests
     {
         // Arrange
         var dbMock = CreateDatabaseMock(scriptResult: 1);
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object, "leno:rl:seckill:user-1", 50, TimeSpan.FromSeconds(1), 4);
 
         // Act — 同步路径

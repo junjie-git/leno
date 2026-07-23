@@ -1,4 +1,4 @@
-using Leno.ApiGateway.Services;
+using Leno.Infrastructure.RateLimiting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using StackExchange.Redis;
@@ -6,10 +6,10 @@ using StackExchange.Redis;
 namespace Leno.ApiGateway.Tests.Services;
 
 /// <summary>
-/// T28 单元测试：验证 RedisSlidingWindowRateLimiter 在 Redis 异常时记录 warning 日志（fail-open 仍放行）。
-/// 不修改既有 RedisSlidingWindowRateLimiterTests 中的断言，仅新增针对日志输出的验证。
+/// T28 单元测试：验证 RedisSlidingWindowRateLimiterPartition 在 Redis 异常时记录 warning 日志（fail-open 仍放行）。
+/// 不修改既有 RedisSlidingWindowRateLimiterPartitionTests 中的断言，仅新增针对日志输出的验证。
 /// </summary>
-public class RedisSlidingWindowRateLimiterLoggingTests
+public class RedisSlidingWindowRateLimiterPartitionLoggingTests
 {
     /// <summary>
     /// T28：异步路径 Redis 异常时，应记录 warning 日志并 fail-open 放行。
@@ -26,8 +26,8 @@ public class RedisSlidingWindowRateLimiterLoggingTests
             It.IsAny<CommandFlags>()))
             .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Connection refused"));
 
-        var loggerMock = new Mock<ILogger<RedisSlidingWindowRateLimiter>>();
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var loggerMock = new Mock<ILogger<RedisSlidingWindowRateLimiterPartition>>();
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object,
             key: "leno:rl:seckill:user-1",
             permitLimit: 50,
@@ -67,7 +67,7 @@ public class RedisSlidingWindowRateLimiterLoggingTests
             It.IsAny<CommandFlags>()))
             .ThrowsAsync(new RedisTimeoutException("timeout", CommandStatus.Unknown));
 
-        var loggerMock = new Mock<ILogger<RedisSlidingWindowRateLimiter>>();
+        var loggerMock = new Mock<ILogger<RedisSlidingWindowRateLimiterPartition>>();
         string? loggedMessage = null;
         loggerMock
             .Setup(x => x.Log(
@@ -84,7 +84,7 @@ public class RedisSlidingWindowRateLimiterLoggingTests
                 }
             });
 
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object,
             key: "leno:rl:seckill:user-42",
             permitLimit: 50,
@@ -115,8 +115,8 @@ public class RedisSlidingWindowRateLimiterLoggingTests
             It.IsAny<CommandFlags>()))
             .Throws(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "Connection refused"));
 
-        var loggerMock = new Mock<ILogger<RedisSlidingWindowRateLimiter>>();
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var loggerMock = new Mock<ILogger<RedisSlidingWindowRateLimiterPartition>>();
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object,
             key: "leno:rl:default:client-x",
             permitLimit: 200,
@@ -154,8 +154,8 @@ public class RedisSlidingWindowRateLimiterLoggingTests
             It.IsAny<CommandFlags>()))
             .ReturnsAsync(RedisResult.Create((RedisValue)1L, ResultType.Integer));
 
-        var loggerMock = new Mock<ILogger<RedisSlidingWindowRateLimiter>>();
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var loggerMock = new Mock<ILogger<RedisSlidingWindowRateLimiterPartition>>();
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object,
             key: "leno:rl:seckill:user-1",
             permitLimit: 50,
@@ -194,7 +194,7 @@ public class RedisSlidingWindowRateLimiterLoggingTests
             .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.UnableToConnect, "down"));
 
         // logger 参数为 null（等价于不传）
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object,
             key: "leno:rl:seckill:user-1",
             permitLimit: 50,
@@ -224,8 +224,8 @@ public class RedisSlidingWindowRateLimiterLoggingTests
             It.IsAny<CommandFlags>()))
             .ThrowsAsync(new OperationCanceledException());
 
-        var loggerMock = new Mock<ILogger<RedisSlidingWindowRateLimiter>>();
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var loggerMock = new Mock<ILogger<RedisSlidingWindowRateLimiterPartition>>();
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object,
             key: "leno:rl:seckill:user-1",
             permitLimit: 50,
@@ -267,8 +267,8 @@ public class RedisSlidingWindowRateLimiterLoggingTests
             It.IsAny<CommandFlags>()))
             .ThrowsAsync(expectedException);
 
-        var loggerMock = new Mock<ILogger<RedisSlidingWindowRateLimiter>>();
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var loggerMock = new Mock<ILogger<RedisSlidingWindowRateLimiterPartition>>();
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object,
             key: "key1",
             permitLimit: 50,

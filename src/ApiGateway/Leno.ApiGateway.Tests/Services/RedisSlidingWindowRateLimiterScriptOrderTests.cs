@@ -1,20 +1,20 @@
-using Leno.ApiGateway.Services;
+using Leno.Infrastructure.RateLimiting;
 using Moq;
 using StackExchange.Redis;
 
 namespace Leno.ApiGateway.Tests.Services;
 
 /// <summary>
-/// RedisSlidingWindowRateLimiter Lua 脚本顺序验证。
+/// RedisSlidingWindowRateLimiterPartition Lua 脚本顺序验证。
 /// 验证 P0-T8：ZREMRANGEBYSCORE 必须在第一次 ZCARD 之前执行，清除窗口外过期记录后再计数。
 /// </summary>
-public class RedisSlidingWindowRateLimiterScriptOrderTests
+public class RedisSlidingWindowRateLimiterPartitionScriptOrderTests
 {
     [Fact]
     public void GetScriptForTesting_ShouldContainBothZremAndZcard()
     {
         // Arrange
-        var script = RedisSlidingWindowRateLimiter.GetScriptForTesting();
+        var script = RedisSlidingWindowRateLimiterPartition.GetScriptForTesting();
 
         // Act + Assert — 脚本必须同时包含清窗口与计数命令
         script.Should().Contain("ZREMRANGEBYSCORE");
@@ -25,7 +25,7 @@ public class RedisSlidingWindowRateLimiterScriptOrderTests
     public void Script_ZremRangeByScore_ShouldAppearBeforeFirstZcard()
     {
         // Arrange
-        var script = RedisSlidingWindowRateLimiter.GetScriptForTesting();
+        var script = RedisSlidingWindowRateLimiterPartition.GetScriptForTesting();
 
         // Act — 定位第一个 ZREMRANGEBYSCORE 与第一个 ZCARD 的位置
         var removeIndex = script.IndexOf("ZREMRANGEBYSCORE", StringComparison.OrdinalIgnoreCase);
@@ -62,7 +62,7 @@ public class RedisSlidingWindowRateLimiterScriptOrderTests
 
         redisMock.Setup(x => x.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(dbMock.Object);
 
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object, "test:ratelimit", permitLimit: 2, window: TimeSpan.FromMinutes(1), segmentsPerWindow: 1);
 
         // Act
@@ -97,7 +97,7 @@ public class RedisSlidingWindowRateLimiterScriptOrderTests
             })
             .ReturnsAsync(RedisResult.Create((RedisValue)1L, ResultType.Integer));
 
-        var limiter = new RedisSlidingWindowRateLimiter(
+        var limiter = new RedisSlidingWindowRateLimiterPartition(
             dbMock.Object, "leno:rl:order-test", 10, TimeSpan.FromSeconds(1), 1);
 
         // Act
