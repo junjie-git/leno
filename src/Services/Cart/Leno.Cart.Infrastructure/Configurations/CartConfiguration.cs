@@ -24,6 +24,9 @@ public sealed class CartConfiguration : IEntityTypeConfiguration<CartAggregate>
         builder.Property(c => c.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(c => c.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
 
+        // P1-1：Revision 仅用于 Redis 匿名购物车 CAS 乐观并发，不持久化到 EF Core（认证购物车路径使用 rowversion shadow property）
+        builder.Ignore(c => c.Revision);
+
         // CartItem 一对多，独立表，级联删除
         builder.HasMany(c => c.Items)
             .WithOne()

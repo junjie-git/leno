@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.Cart.Domain.Aggregates;
@@ -44,7 +45,16 @@ public sealed class CartItem : Entity
     /// <summary>展示用主图 URL（商品域信息更新时刷新）。</summary>
     public string DisplayImageUrl { get; private set; } = string.Empty;
 
-    /// <summary>EF Core 无参构造。</summary>
+    /// <summary>
+    /// EF Core 无参构造；同时作为 System.Text.Json 反序列化入口（P1-1 修复）。
+    /// <para>
+    /// P1-1：购物车聚合经 <c>Cart.Items</c> 集合随父聚合一起序列化到 Redis Hash，
+    /// 本类存在两个构造函数（无参 + internal 带参），默认策略无法决定使用哪个，
+    /// 故在此显式标注 <see cref="JsonConstructorAttribute"/> 指定无参构造。
+    /// EF Core 物化行为不受影响。
+    /// </para>
+    /// </summary>
+    [JsonConstructor]
     private CartItem() { }
 
     internal CartItem(Guid id, Guid cartId, Guid skuId, Guid sellerId, int quantity) : base(id)

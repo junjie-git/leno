@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Leno.Cart.Domain.Events;
 using Leno.Cart.Domain.Exceptions;
 using Leno.SharedKernel.Abstractions;
@@ -21,7 +22,62 @@ public sealed class Cart : AggregateRoot
     /// <summary>购物车项集合，聚合内实体，仅经聚合根访问。</summary>
     public IReadOnlyCollection<CartItem> Items => _items.AsReadOnly();
 
-    /// <summary>EF Core 无参构造。</summary>
+    /// <summary>
+    /// 匿名购物车 Redis CAS 乐观并发版本号（P1-1 修复）。
+    /// <para>
+    /// 仅用于 <c>RedisAnonymousCartRepository</c> 路径的 Compare-And-Swap 原子更新：
+    /// 仓储加载时通过 <see cref="MarkLoaded"/> 设置为 Redis Hash 中存储的 version 字段；
+    /// 保存时作为 expectedVersion 传入 Lua 脚本，保存成功后通过 <see cref="MarkSaved"/> 递增。
+    /// </para>
+    /// <para>
+    /// EF Core 认证购物车路径不使用此字段（已在 <c>CartConfiguration</c> 中 Ignore），
+    /// 认证路径的乐观并发由 SQL Server rowversion shadow property 保证。
+    /// </para>
+    /// <para>
+    /// 默认值 0 表示新创建的购物车，尚未持久化到 Redis。
+    /// </para>
+    /// </summary>
+    public int Revision { get; private set; }
+
+    /// <summary>
+    /// 仓储加载购物车后调用，将聚合的 Revision 同步为 Redis Hash 中持久化的版本号。
+    /// </summary>
+    /// <param name="loadedRevision">从 Redis Hash version 字段读取的当前版本号。</param>
+    public void MarkLoaded(int loadedRevision)
+    {
+        if (loadedRevision < 0)
+        {
+            throw new ArgumentException("加载的版本号不可为负数", nameof(loadedRevision));
+        }
+        Revision = loadedRevision;
+    }
+
+    /// <summary>
+    /// 仓储成功执行 CAS 保存后调用，将聚合的 Revision 递增为新版本号。
+    /// </summary>
+    /// <param name="newRevision">保存成功后的新版本号（expectedVersion + 1）。</param>
+    public void MarkSaved(int newRevision)
+    {
+        if (newRevision <= Revision)
+        {
+            throw new ArgumentException(
+                $"新版本号 {newRevision} 必须大于当前版本号 {Revision}", nameof(newRevision));
+        }
+        Revision = newRevision;
+    }
+
+    /// <summary>
+    /// EF Core 无参构造；同时作为 System.Text.Json 反序列化入口（P1-1 修复）。
+    /// <para>
+    /// P1-1：匿名购物车通过 <c>RedisAnonymousCartRepository</c> 用 <c>System.Text.Json</c>
+    /// 序列化/反序列化到 Redis Hash。本类存在两个构造函数（无参 + <c>Guid id</c>），
+    /// 默认策略无法决定使用哪个，故在此显式标注 <see cref="JsonConstructorAttribute"/> 指定无参构造。
+    /// </para>
+    /// <para>
+    /// EF Core 物化行为不受影响：EF Core 通过反射识别无参构造函数，不依赖此特性。
+    /// </para>
+    /// </summary>
+    [JsonConstructor]
     private Cart() { }
 
     private Cart(Guid id) : base(id) { }
