@@ -11,6 +11,7 @@ using Leno.UserAuth.Domain.Services;
 using Leno.UserAuth.Infrastructure.Audit;
 using Leno.UserAuth.Infrastructure.Auth;
 using Leno.UserAuth.Infrastructure.EventBus;
+using Leno.UserAuth.Infrastructure.Options;
 using Leno.UserAuth.Infrastructure.Repositories;
 using Leno.UserAuth.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -49,6 +50,9 @@ public static class ServiceCollectionExtensions
 
         services.Configure<PasswordHashOptions>(configuration.GetSection("PasswordHash"));
         services.Configure<OAuth2Options>(configuration.GetSection("OAuth2"));
+
+        // P1-9：JWT 吊销服务配置（IOptionsMonitor 支持热更新，TTL 与 JWT 有效期联动）
+        services.Configure<JwtRevocationOptions>(configuration.GetSection(JwtRevocationOptions.SectionName));
 
         services.AddDbContext<UserAuthDbContext>((sp, options) =>
         {
