@@ -29,4 +29,10 @@ public class PromotionDbContext : BaseDbContext
 
     /// <summary>秒杀预占记录表，跟踪 Redis 预扣后的履约状态。</summary>
     public DbSet<SeckillPreOccupationRecord> SeckillPreOccupationRecords => Set<SeckillPreOccupationRecord>();
+
+    /// <summary>
+    /// 促销规则定义聚合根，存储"规则类型 + 优先级 + 叠加策略 + JSON 规则体"四要素。
+    /// 由 <c>JsonRuleLoader</c> 加载并供 <see cref="Leno.Promotion.Domain.Rules.IRuleEngine"/> 编排时使用。
+    /// </summary>
+    public DbSet<PromotionRuleDefinition> PromotionRuleDefinitions => Set<PromotionRuleDefinition>();
 }

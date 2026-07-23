@@ -4,10 +4,12 @@ using Leno.Infrastructure.Persistence;
 using Leno.Promotion.Application;
 using Leno.Promotion.Application.Services;
 using Leno.Promotion.Domain.Repositories;
+using Leno.Promotion.Domain.Rules;
 using Leno.Promotion.Domain.Services;
 using Leno.Promotion.Infrastructure.EventBus;
 using Leno.Promotion.Infrastructure.ReadModels;
 using Leno.Promotion.Infrastructure.Repositories;
+using Leno.Promotion.Infrastructure.Rules;
 using Leno.Promotion.Infrastructure.Services;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
@@ -49,9 +51,27 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserCouponRepository, EfCoreUserCouponRepository>();
         services.AddScoped<ISeckillActivityRepository, EfCoreSeckillActivityRepository>();
         services.AddScoped<ISeckillPreOccupationRecordRepository, EfCoreSeckillPreOccupationRecordRepository>();
+        services.AddScoped<IPromotionRuleDefinitionRepository, EfCorePromotionRuleDefinitionRepository>();
 
         services.AddScoped<IPromotionQueryService, EfCorePromotionQueryService>();
         services.AddScoped<ISeckillStockService, RedisSeckillStockService>();
+
+        // 规则引擎：注册 JsonRuleLoader（IHostedService 启动时加载规则定义缓存）
+        // 单例保证缓存全局唯一，同时暴露为 IJsonRuleLoader 供规则实现读取、IHostedService 触发启动加载
+        services.AddSingleton<JsonRuleLoader>();
+        services.AddSingleton<IJsonRuleLoader>(sp => sp.GetRequiredService<JsonRuleLoader>());
+        services.AddHostedService(sp => sp.GetRequiredService<JsonRuleLoader>());
+
+        // 规则实现：注册为 IPromotionRule 集合，RuleEngine 通过 IEnumerable<IPromotionRule> 注入
+        services.AddScoped<IPromotionRule, FullReductionRule>();
+        services.AddScoped<IPromotionRule, CouponRule>();
+        services.AddScoped<IPromotionRule, SeckillDiscountRule>();
+
+        // 规则引擎编排器
+        services.AddScoped<IRuleEngine, RuleEngine>();
+
+        // 功能开关：绑定 Promotion 配置节（A/B 灰度切换新旧试算路径）
+        services.Configure<PromotionOptions>(configuration.GetSection(PromotionOptions.SectionName));
 
         // 应用服务
         services.AddScoped<IPromotionAppService, PromotionAppService>();

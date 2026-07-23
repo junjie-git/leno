@@ -4,6 +4,7 @@ using Leno.Promotion.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Leno.Promotion.Infrastructure.Migrations
 {
     [DbContext(typeof(PromotionDbContext))]
-    partial class PromotionDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723000000_AddPromotionRuleDefinitions")]
+    partial class AddPromotionRuleDefinitions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -223,6 +226,90 @@ namespace Leno.Promotion.Infrastructure.Migrations
                         .HasDatabaseName("ix_promotion_activities_status");
 
                     b.ToTable("promotion_activities", (string)null);
+                });
+
+            modelBuilder.Entity("Leno.Promotion.Domain.Aggregates.PromotionRuleDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("DefinitionJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("definition_json");
+
+                    b.Property<string>("DefinitionVersion")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasColumnName("definition_version");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("display_name");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("bit")
+                        .HasColumnName("enabled");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int")
+                        .HasColumnName("priority");
+
+                    b.Property<string>("Remark")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)")
+                        .HasColumnName("remark");
+
+                    b.Property<int>("Stacking")
+                        .HasColumnType("int")
+                        .HasColumnName("stacking");
+
+                    b.Property<string>("RuleType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("rule_type");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Priority")
+                        .HasDatabaseName("ix_promotion_rule_definitions_priority");
+
+                    b.HasIndex("RuleType", "Enabled")
+                        .IsUnique()
+                        .HasFilter("[enabled] = 1")
+                        .HasDatabaseName("ux_promotion_rule_definitions_rule_type_enabled");
+
+                    b.ToTable("promotion_rule_definitions", (string)null);
                 });
 
             modelBuilder.Entity("Leno.Promotion.Domain.Aggregates.SeckillActivity", b =>
@@ -467,90 +554,6 @@ namespace Leno.Promotion.Infrastructure.Migrations
                         .HasDatabaseName("ux_user_coupons_user_id_coupon_id");
 
                     b.ToTable("user_coupons", (string)null);
-                });
-
-            modelBuilder.Entity("Leno.Promotion.Domain.Aggregates.PromotionRuleDefinition", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)")
-                        .HasColumnName("created_by");
-
-                    b.Property<string>("DefinitionJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("definition_json");
-
-                    b.Property<string>("DefinitionVersion")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)")
-                        .HasColumnName("definition_version");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)")
-                        .HasColumnName("display_name");
-
-                    b.Property<bool>("Enabled")
-                        .HasColumnType("bit")
-                        .HasColumnName("enabled");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("int")
-                        .HasColumnName("priority");
-
-                    b.Property<string>("Remark")
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)")
-                        .HasColumnName("remark");
-
-                    b.Property<int>("Stacking")
-                        .HasColumnType("int")
-                        .HasColumnName("stacking");
-
-                    b.Property<string>("RuleType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)")
-                        .HasColumnName("rule_type");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("updated_at");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)")
-                        .HasColumnName("updated_by");
-
-                    b.Property<byte[]>("Version")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion")
-                        .HasColumnName("version");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Priority")
-                        .HasDatabaseName("ix_promotion_rule_definitions_priority");
-
-                    b.HasIndex("RuleType", "Enabled")
-                        .IsUnique()
-                        .HasFilter("[enabled] = 1")
-                        .HasDatabaseName("ux_promotion_rule_definitions_rule_type_enabled");
-
-                    b.ToTable("promotion_rule_definitions", (string)null);
                 });
 #pragma warning restore 612, 618
         }
