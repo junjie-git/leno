@@ -53,6 +53,25 @@ public sealed class StockReservationCompensationTests
     }
 
     [Fact]
+    public void Create_DefaultOperationType_ShouldBeRelease()
+    {
+        var compensation = StockReservationCompensation.Create(Guid.NewGuid(), OrderId, SkuId, 5);
+
+        compensation.OperationType.Should().Be(CompensationOperationType.Release);
+        compensation.Status.Should().Be(CompensationStatus.Pending);
+    }
+
+    [Fact]
+    public void Create_WithOperationType_ReturnDeducted_ShouldStoreOperationType()
+    {
+        var compensation = StockReservationCompensation.Create(
+            Guid.NewGuid(), OrderId, SkuId, 5, operationType: CompensationOperationType.ReturnDeducted);
+
+        compensation.OperationType.Should().Be(CompensationOperationType.ReturnDeducted);
+        compensation.Status.Should().Be(CompensationStatus.Pending);
+    }
+
+    [Fact]
     public void MarkFailed_ShouldIncrementRetryCountAndStayPending()
     {
         var compensation = StockReservationCompensation.Create(Guid.NewGuid(), OrderId, SkuId, 5);
@@ -239,6 +258,50 @@ public sealed class StockReservationCompensationTests
 
         await act.Should().NotThrowAsync();
         compensation.MarkFailed("should still apply in-memory");
+    }
+
+    [Fact]
+    public async Task RunRetryCycleAsync_WithRelease_ShouldCallReleaseAsync()
+    {
+        var sut = CreateSut(out var compensationRepoMock, out var inventoryRepoMock, out var uowMock);
+        var compensation = StockReservationCompensation.Create(
+            Guid.NewGuid(), OrderId, SkuId, 5, operationType: CompensationOperationType.Release);
+        compensationRepoMock
+            .Setup(r => r.GetPendingAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<StockReservationCompensation> { compensation });
+
+        await sut.RunRetryCycleAsync(CancellationToken.None);
+
+        inventoryRepoMock.Verify(
+            r => r.ReleaseAsync(SkuId, OrderId, 5, It.IsAny<CancellationToken>()),
+            Times.Once);
+        inventoryRepoMock.Verify(
+            r => r.ReturnDeductedAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        compensation.Status.Should().Be(CompensationStatus.Succeeded);
+    }
+
+    [Fact]
+    public async Task RunRetryCycleAsync_WithReturnDeducted_ShouldCallReturnDeductedAsync()
+    {
+        var sut = CreateSut(out var compensationRepoMock, out var inventoryRepoMock, out var uowMock);
+        var compensation = StockReservationCompensation.Create(
+            Guid.NewGuid(), OrderId, SkuId, 5, operationType: CompensationOperationType.ReturnDeducted);
+        compensationRepoMock
+            .Setup(r => r.GetPendingAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<StockReservationCompensation> { compensation });
+
+        await sut.RunRetryCycleAsync(CancellationToken.None);
+
+        // 关键修复点（NEW-P0-3）：ReturnDeducted 类型记录必须调用 ReturnDeductedAsync 而非 ReleaseAsync，
+        // 否则 deducted 库存会因 ReleaseAsync（仅释放预占，对已扣减库存是 no-op）而永久丢失。
+        inventoryRepoMock.Verify(
+            r => r.ReturnDeductedAsync(SkuId, OrderId, 5, It.IsAny<CancellationToken>()),
+            Times.Once);
+        inventoryRepoMock.Verify(
+            r => r.ReleaseAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        compensation.Status.Should().Be(CompensationStatus.Succeeded);
     }
 
     #endregion

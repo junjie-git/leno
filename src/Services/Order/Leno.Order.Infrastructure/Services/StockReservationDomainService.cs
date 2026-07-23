@@ -53,7 +53,8 @@ public sealed class StockReservationDomainService : IStockReservationDomainServi
                     }
                     catch (Exception ex)
                     {
-                        await RecordCompensationAsync(orderId, reservedSku, reservedQty, ex, ct);
+                        await RecordCompensationAsync(orderId, reservedSku, reservedQty, ex,
+                            CompensationOperationType.Release, ct);
                     }
                 }
 
@@ -91,7 +92,8 @@ public sealed class StockReservationDomainService : IStockReservationDomainServi
             {
                 _logger.LogError(ex, "批量释放库存失败，写入补偿表 OrderId={OrderId} SkuId={SkuId} Quantity={Quantity}",
                     orderId, skuId, quantity);
-                await RecordCompensationAsync(orderId, skuId, quantity, ex, ct);
+                await RecordCompensationAsync(orderId, skuId, quantity, ex,
+                    CompensationOperationType.Release, ct);
             }
         }
     }
@@ -110,7 +112,8 @@ public sealed class StockReservationDomainService : IStockReservationDomainServi
             {
                 _logger.LogError(ex, "批量归还已扣减库存失败，写入补偿表 OrderId={OrderId} SkuId={SkuId} Quantity={Quantity}",
                     orderId, skuId, quantity);
-                await RecordCompensationAsync(orderId, skuId, quantity, ex, ct);
+                await RecordCompensationAsync(orderId, skuId, quantity, ex,
+                    CompensationOperationType.ReturnDeducted, ct);
             }
         }
     }
@@ -123,9 +126,11 @@ public sealed class StockReservationDomainService : IStockReservationDomainServi
     /// <param name="skuId">待释放 SKU 标识。</param>
     /// <param name="quantity">待释放数量。</param>
     /// <param name="failureException">触发补偿的原始异常。</param>
+    /// <param name="operationType">补偿操作类型，决定后台任务重试时调用 ReleaseAsync 还是 ReturnDeductedAsync（NEW-P0-3）。</param>
     /// <param name="ct">取消令牌。</param>
     private async Task RecordCompensationAsync(
-        Guid orderId, Guid skuId, int quantity, Exception failureException, CancellationToken ct)
+        Guid orderId, Guid skuId, int quantity, Exception failureException,
+        CompensationOperationType operationType, CancellationToken ct)
     {
         try
         {
@@ -134,13 +139,13 @@ public sealed class StockReservationDomainService : IStockReservationDomainServi
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
             var compensation = StockReservationCompensation.Create(
-                Guid.NewGuid(), orderId, skuId, quantity);
+                Guid.NewGuid(), orderId, skuId, quantity, operationType: operationType);
 
             await repo.AddAsync(compensation, ct);
             await unitOfWork.SaveChangesAsync(ct);
 
-            _logger.LogWarning("库存回滚失败已写入补偿表 OrderId={OrderId} SkuId={SkuId} Quantity={Quantity} Reason={Reason}",
-                orderId, skuId, quantity, failureException.Message);
+            _logger.LogWarning("库存回滚失败已写入补偿表 OrderId={OrderId} SkuId={SkuId} Quantity={Quantity} OperationType={OperationType} Reason={Reason}",
+                orderId, skuId, quantity, operationType, failureException.Message);
         }
         catch (Exception persistEx)
         {

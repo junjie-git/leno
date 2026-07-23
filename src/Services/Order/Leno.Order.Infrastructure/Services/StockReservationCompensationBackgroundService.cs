@@ -24,7 +24,11 @@ public sealed class StockReservationCompensationOptions
 /// <summary>
 /// 库存预占回滚补偿后台服务（T18）。
 /// 定期拉取 <see cref="StockReservationCompensation"/> 表中 <see cref="CompensationStatus.Pending"/> 记录，
-/// 对每条记录调用 <see cref="IInventoryRepository.ReleaseAsync"/> 释放库存：
+/// 按每条记录的 <see cref="StockReservationCompensation.OperationType"/> 分发到对应库存仓储方法（NEW-P0-3）：
+/// <list type="bullet">
+/// <item><see cref="CompensationOperationType.Release"/> → <see cref="IInventoryRepository.ReleaseAsync"/>（释放预占）</item>
+/// <item><see cref="CompensationOperationType.ReturnDeducted"/> → <see cref="IInventoryRepository.ReturnDeductedAsync"/>（归还已扣减）</item>
+/// </list>
 /// - 成功：<see cref="StockReservationCompensation.MarkSucceeded"/>
 /// - 失败：<see cref="StockReservationCompensation.MarkFailed"/>（达到 <see cref="StockReservationCompensation.MaxRetries"/> 自动流转到 <see cref="CompensationStatus.MaxRetriesExceeded"/> 等待人工介入）
 /// 每条记录独立事务提交，单条失败不影响其它记录重试。
@@ -79,7 +83,8 @@ public sealed class StockReservationCompensationBackgroundService : BackgroundSe
     }
 
     /// <summary>
-    /// 执行一轮补偿重试：拉取 Pending 记录并逐条尝试释放库存。
+    /// 执行一轮补偿重试：拉取 Pending 记录并按 <see cref="StockReservationCompensation.OperationType"/>
+    /// 分发到对应库存仓储方法（释放预占或归还已扣减）。
     /// 每条记录独立提交，单条失败不影响其它记录。
     /// </summary>
     /// <param name="ct">取消令牌。</param>
@@ -108,7 +113,21 @@ public sealed class StockReservationCompensationBackgroundService : BackgroundSe
 
             try
             {
-                await inventoryRepo.ReleaseAsync(compensation.SkuId, compensation.OrderId, compensation.Quantity, ct);
+                // 按 OperationType 分发到对应库存仓储方法（NEW-P0-3）：
+                // Release → ReleaseAsync（释放预占），ReturnDeducted → ReturnDeductedAsync（归还已扣减）
+                switch (compensation.OperationType)
+                {
+                    case CompensationOperationType.Release:
+                        await inventoryRepo.ReleaseAsync(compensation.SkuId, compensation.OrderId, compensation.Quantity, ct);
+                        break;
+                    case CompensationOperationType.ReturnDeducted:
+                        await inventoryRepo.ReturnDeductedAsync(compensation.SkuId, compensation.OrderId, compensation.Quantity, ct);
+                        break;
+                    default:
+                        throw new InvalidOperationException(
+                            $"未知的补偿操作类型 {compensation.OperationType}，CompensationId={compensation.Id}");
+                }
+
                 compensation.MarkSucceeded();
                 await compensationRepo.UpdateAsync(compensation, ct);
                 await unitOfWork.SaveChangesAsync(ct);

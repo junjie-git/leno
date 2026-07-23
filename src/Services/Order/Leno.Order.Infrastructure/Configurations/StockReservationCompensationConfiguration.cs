@@ -18,6 +18,9 @@ public sealed class StockReservationCompensationConfiguration : IEntityTypeConfi
         builder.Property(c => c.OrderId).HasColumnName("order_id");
         builder.Property(c => c.SkuId).HasColumnName("sku_id");
         builder.Property(c => c.Quantity).HasColumnName("quantity");
+        builder.Property(c => c.OperationType)
+            .HasColumnName("operation_type")
+            .HasConversion<int>();
         builder.Property(c => c.Status).HasColumnName("status");
         // RetryCount 为只读属性（底层 _retryCount 字段由 Interlocked.Increment 原子自增），
         // 显式声明 backing field 与 Field 访问模式，确保 EF Core 经字段读写（P1-T20）

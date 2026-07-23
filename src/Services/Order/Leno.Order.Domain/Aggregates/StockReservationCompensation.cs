@@ -41,6 +41,13 @@ public sealed class StockReservationCompensation : AggregateRoot
     /// <summary>最大重试次数，超过即标记 MaxRetriesExceeded 等待人工介入。</summary>
     public int MaxRetries { get; private set; }
 
+    /// <summary>
+    /// 补偿操作类型，决定后台任务重试时调用哪个库存仓储方法（NEW-P0-3）。
+    /// - <see cref="CompensationOperationType.Release"/> → <c>IInventoryRepository.ReleaseAsync</c>（释放预占）
+    /// - <see cref="CompensationOperationType.ReturnDeducted"/> → <c>IInventoryRepository.ReturnDeductedAsync</c>（归还已扣减）
+    /// </summary>
+    public CompensationOperationType OperationType { get; private set; }
+
     /// <summary>最近一次尝试时间（UTC）。</summary>
     public DateTime? LastAttemptedAt { get; private set; }
 
@@ -60,12 +67,14 @@ public sealed class StockReservationCompensation : AggregateRoot
     /// <param name="skuId">待释放 SKU 标识。</param>
     /// <param name="quantity">待释放数量，须 &gt; 0。</param>
     /// <param name="maxRetries">最大重试次数，默认 <see cref="DefaultMaxRetries"/>。</param>
+    /// <param name="operationType">补偿操作类型，默认 <see cref="CompensationOperationType.Release"/>（NEW-P0-3）。</param>
     public static StockReservationCompensation Create(
         Guid id,
         Guid orderId,
         Guid skuId,
         int quantity,
-        int maxRetries = DefaultMaxRetries)
+        int maxRetries = DefaultMaxRetries,
+        CompensationOperationType operationType = CompensationOperationType.Release)
     {
         if (orderId == Guid.Empty)
         {
@@ -87,6 +96,11 @@ public sealed class StockReservationCompensation : AggregateRoot
             maxRetries = DefaultMaxRetries;
         }
 
+        if (!Enum.IsDefined(typeof(CompensationOperationType), operationType))
+        {
+            throw new OrderDomainException("补偿操作类型无效", "STOCK_COMPENSATION_OP_TYPE_INVALID");
+        }
+
         return new StockReservationCompensation(id == Guid.Empty ? Guid.NewGuid() : id)
         {
             OrderId = orderId,
@@ -95,6 +109,7 @@ public sealed class StockReservationCompensation : AggregateRoot
             Status = CompensationStatus.Pending,
             _retryCount = 0,
             MaxRetries = maxRetries,
+            OperationType = operationType,
             LastAttemptedAt = null,
             LastErrorMessage = null
         };
@@ -171,4 +186,25 @@ public enum CompensationStatus
 
     /// <summary>达到最大重试次数仍失败，等待人工介入（终态）。</summary>
     MaxRetriesExceeded = 2
+}
+
+/// <summary>
+/// 库存预占回滚补偿操作类型枚举（NEW-P0-3）。
+/// 决定后台补偿任务重试时调用哪个库存仓储方法：
+/// <see cref="Release"/> 对应 <c>IInventoryRepository.ReleaseAsync</c>（释放预占），
+/// <see cref="ReturnDeducted"/> 对应 <c>IInventoryRepository.ReturnDeductedAsync</c>（归还已扣减）。
+/// </summary>
+public enum CompensationOperationType
+{
+    /// <summary>
+    /// 释放预占库存，对应 <c>IInventoryRepository.ReleaseAsync</c>。
+    /// 适用于 <c>ReserveBatchAsync</c> 内部回滚失败或 <c>ReleaseBatchAsync</c> 失败的场景。
+    /// </summary>
+    Release = 0,
+
+    /// <summary>
+    /// 归还已扣减库存，对应 <c>IInventoryRepository.ReturnDeductedAsync</c>。
+    /// 适用于 <c>ReturnDeductedBatchAsync</c>（ForceCancel 已支付订单）失败的场景。
+    /// </summary>
+    ReturnDeducted = 1
 }
