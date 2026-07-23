@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using System.Reflection;
+using Leno.Infrastructure.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -8,9 +8,7 @@ using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using Serilog;
 using Serilog.Core;
-using Serilog.Events;
 
 namespace Leno.Infrastructure.Telemetry;
 
@@ -95,8 +93,8 @@ public static class OpenTelemetryExtensions
                 configureMetrics?.Invoke(metrics);
             });
 
-        // 注册 Serilog OpenTelemetry TraceId 富化器
-        builder.Services.AddSingleton<ILogEventEnricher, OpenTelemetryTraceIdEnricher>();
+        // 注册 Serilog TraceId 富化器（统一实现，支持 OTel Activity 优先 + Serilog LogContext 回退）
+        builder.Services.AddSingleton<ILogEventEnricher, TraceIdEnricher>();
 
         builder.Logging.AddOpenTelemetry(logging =>
         {
@@ -118,32 +116,5 @@ public static class OpenTelemetryExtensions
         }
 
         return new TraceIdRatioBasedSampler(0.1);
-    }
-}
-
-/// <summary>
-/// 基于 OpenTelemetry <see cref="Activity"/> 的 TraceId 富化器，
-/// 将当前 Span 的 TraceId 注入每条 Serilog 日志，实现链路追踪贯穿。
-/// 与 <see cref="Leno.Infrastructure.Logging.TraceIdEnricher"/> 功能等价，
-/// 但使用 OpenTelemetry 的 Activity API。
-/// </summary>
-public sealed class OpenTelemetryTraceIdEnricher : ILogEventEnricher
-{
-    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
-    {
-        ArgumentNullException.ThrowIfNull(logEvent);
-        ArgumentNullException.ThrowIfNull(propertyFactory);
-
-        var traceId = Activity.Current?.TraceId.ToString();
-        if (!string.IsNullOrEmpty(traceId) && traceId != "00000000000000000000000000000000")
-        {
-            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("TraceId", traceId));
-
-            var spanId = Activity.Current?.SpanId.ToString();
-            if (!string.IsNullOrEmpty(spanId))
-            {
-                logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("SpanId", spanId));
-            }
-        }
     }
 }

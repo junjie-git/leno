@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Leno.Infrastructure.Logging;
 using Leno.Infrastructure.Telemetry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,7 +57,7 @@ public class OpenTelemetryExtensionsTests
 
         var enricher = provider.GetService<ILogEventEnricher>();
         enricher.Should().NotBeNull();
-        enricher.Should().BeOfType<OpenTelemetryTraceIdEnricher>();
+        enricher.Should().BeOfType<TraceIdEnricher>();
     }
 
     [Fact]
@@ -107,13 +108,13 @@ public class OpenTelemetryExtensionsTests
     }
 }
 
-public class OpenTelemetryTraceIdEnricherTests
+public class TraceIdEnricherTests
 {
     [Fact]
     public void Enrich_WithActiveTraceId_ShouldAddTraceIdProperty()
     {
         using var activity = new Activity("test-operation").Start();
-        var enricher = new OpenTelemetryTraceIdEnricher();
+        var enricher = new TraceIdEnricher();
 
         var logEvent = new Serilog.Events.LogEvent(
             DateTimeOffset.Now,
@@ -142,7 +143,7 @@ public class OpenTelemetryTraceIdEnricherTests
     [Fact]
     public void Enrich_WithoutActiveActivity_ShouldNotAddTraceId()
     {
-        var enricher = new OpenTelemetryTraceIdEnricher();
+        var enricher = new TraceIdEnricher();
         var logEvent = new Serilog.Events.LogEvent(
             DateTimeOffset.Now,
             Serilog.Events.LogEventLevel.Information,
@@ -159,7 +160,7 @@ public class OpenTelemetryTraceIdEnricherTests
     [Fact]
     public void Enrich_NullLogEvent_ShouldThrow()
     {
-        var enricher = new OpenTelemetryTraceIdEnricher();
+        var enricher = new TraceIdEnricher();
         var propertyFactory = new Mock<ILogEventPropertyFactory>();
 
         var act = () => enricher.Enrich(null!, propertyFactory.Object);
@@ -170,7 +171,7 @@ public class OpenTelemetryTraceIdEnricherTests
     [Fact]
     public void Enrich_NullPropertyFactory_ShouldThrow()
     {
-        var enricher = new OpenTelemetryTraceIdEnricher();
+        var enricher = new TraceIdEnricher();
         var logEvent = new Serilog.Events.LogEvent(
             DateTimeOffset.Now,
             Serilog.Events.LogEventLevel.Information,

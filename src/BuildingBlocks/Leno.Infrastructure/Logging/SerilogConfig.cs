@@ -1,7 +1,5 @@
-using System.Diagnostics;
 using Serilog;
 using Serilog.Core;
-using Serilog.Events;
 
 namespace Leno.Infrastructure.Logging;
 
@@ -26,23 +24,5 @@ public static class SerilogConfig
             .Enrich.FromLogContext()
             .Enrich.With<TraceIdEnricher>()
             .WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter());
-    }
-}
-
-/// <summary>
-/// 将当前 <see cref="Activity"/> 的 TraceId 注入每条日志，实现链路追踪贯穿。
-/// </summary>
-public sealed class TraceIdEnricher : ILogEventEnricher
-{
-    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
-    {
-        ArgumentNullException.ThrowIfNull(logEvent);
-        ArgumentNullException.ThrowIfNull(propertyFactory);
-
-        var traceId = Activity.Current?.TraceId.ToString();
-        if (!string.IsNullOrEmpty(traceId))
-        {
-            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("TraceId", traceId));
-        }
     }
 }
