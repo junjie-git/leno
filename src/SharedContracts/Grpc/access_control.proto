@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package leno.access_control.v1;
+option csharp_namespace = "Leno.SharedContracts.Grpc.AccessControl.V1";
+
+// AccessControl BC gRPC 契约（3.6 AuthN/AuthZ 拆分）。
+// user_id 采用 string 承载 Guid（D 格式），遵循 ADR-0006/0007 的 Guid-string 迁移策略，
+// 与 user.proto / order.proto 等保持一致，避免 int64 不可逆映射。
+service AccessControlService {
+  rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
+  rpc GetUserRoles(GetUserRolesRequest) returns (GetUserRolesResponse);
+}
+
+message CheckPermissionRequest {
+  string user_id = 1;
+  string resource = 2;
+  string action = 3;
+  optional string tenant_id = 4;
+}
+
+message CheckPermissionResponse {
+  bool allowed = 1;
+  repeated string matched_policies = 2;
+  string denial_reason = 3;
+}
+
+message GetUserRolesRequest {
+  string user_id = 1;
+}
+
+message GetUserRolesResponse {
+  repeated string roles = 1;
+}

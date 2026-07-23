@@ -69,6 +69,12 @@
     <Project Path="src/Services/Payment/Leno.Payment.Infrastructure.Tests/Leno.Payment.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/Payment/Leno.Payment.Infrastructure/Leno.Payment.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Services/AccessControl/">
+    <Project Path="src/Services/AccessControl/Leno.AccessControl.Api/Leno.AccessControl.Api.csproj" />
+    <Project Path="src/Services/AccessControl/Leno.AccessControl.Application/Leno.AccessControl.Application.csproj" />
+    <Project Path="src/Services/AccessControl/Leno.AccessControl.Domain/Leno.AccessControl.Domain.csproj" />
+    <Project Path="src/Services/AccessControl/Leno.AccessControl.Infrastructure/Leno.AccessControl.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Services/AfterSales/">
     <Project Path="src/Services/AfterSales/Leno.AfterSales.Api/Leno.AfterSales.Api.csproj" />
     <Project Path="src/Services/AfterSales/Leno.AfterSales.Application/Leno.AfterSales.Application.csproj" />
@@ -140,6 +146,12 @@
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Domain/Leno.ReviewAfterSales.Domain.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure.Tests/Leno.ReviewAfterSales.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/Leno.ReviewAfterSales.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Identity/">
+    <Project Path="src/Services/Identity/Leno.Identity.Api/Leno.Identity.Api.csproj" />
+    <Project Path="src/Services/Identity/Leno.Identity.Application/Leno.Identity.Application.csproj" />
+    <Project Path="src/Services/Identity/Leno.Identity.Domain/Leno.Identity.Domain.csproj" />
+    <Project Path="src/Services/Identity/Leno.Identity.Infrastructure/Leno.Identity.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/Inventory/">
     <Project Path="src/Services/Inventory/Leno.Inventory.Api/Leno.Inventory.Api.csproj" />
