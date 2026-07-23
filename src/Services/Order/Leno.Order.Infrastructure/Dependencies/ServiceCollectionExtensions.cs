@@ -4,6 +4,7 @@ using Leno.Infrastructure.Cqrs;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.Order.Application;
+using Leno.Order.Application.ProcessManagers;
 using Leno.Order.Application.Sagas;
 using Leno.Order.Application.Sagas.States;
 using Leno.Order.Application.Services;
@@ -62,6 +63,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IInventoryRepository, RedisInventoryRepository>();
         services.AddScoped<IStockReservationRepository, EfCoreStockReservationRepository>();
         services.AddScoped<IStockReservationCompensationRepository, EfCoreStockReservationCompensationRepository>();
+
+        // 3.3 Process Manager：支付后编排器（Saga 之上的业务编排层）
+        // 双轨期 feature flag Order:UsePaymentProcessManager 控制新旧路径切换，默认 false
+        services.Configure<OrderPaymentProcessOptions>(configuration.GetSection("Order"));
+        services.AddScoped<IOrderPaymentProcessRepository, EfCoreOrderPaymentProcessRepository>();
+        services.AddScoped<IOrderPaymentProcessManager, OrderPaymentProcessManager>();
 
         // 领域服务
         services.AddScoped<IStockReservationDomainService, StockReservationDomainService>();

@@ -1,5 +1,6 @@
 using System.Reflection;
 using Leno.Infrastructure.EventBus;
+using Leno.Order.Application.ProcessManagers;
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.ValueObjects;
@@ -7,6 +8,7 @@ using Leno.Order.Infrastructure.Consumers;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Leno.Infrastructure.Abstractions;
 using Moq;
 using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
@@ -17,6 +19,7 @@ namespace Leno.Order.Infrastructure.Tests;
 /// 支付成功事件消费者测试。
 /// T4 拆分后，本消费者仅负责订单状态变更（MarkAsPaid）与本地事务保存，
 /// 库存确认与积分确认已迁移至独立的 <see cref="StockConfirmConsumer"/> / <see cref="PointsConfirmConsumer"/>。
+/// 3.3：双轨期 feature flag 默认关闭，Process Manager 不参与（旧路径行为不变）。
 /// </summary>
 public class PaymentSucceededEventConsumerTests
 {
@@ -43,11 +46,7 @@ public class PaymentSucceededEventConsumerTests
         var mockLogger = new Mock<ILogger<PaymentSucceededEventConsumer>>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
-        var consumer = new PaymentSucceededEventConsumer(
-            mockOrderRepo.Object,
-            mockUnitOfWork.Object,
-            mockLogger.Object,
-            mockIdempotencyStore.Object);
+        var consumer = CreateConsumer(mockOrderRepo.Object, mockUnitOfWork.Object, mockLogger.Object, mockIdempotencyStore.Object);
 
         var integrationEvent = new PaymentSucceededEvent
         {
@@ -90,11 +89,7 @@ public class PaymentSucceededEventConsumerTests
         var mockLogger = new Mock<ILogger<PaymentSucceededEventConsumer>>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
-        var consumer = new PaymentSucceededEventConsumer(
-            mockOrderRepo.Object,
-            mockUnitOfWork.Object,
-            mockLogger.Object,
-            mockIdempotencyStore.Object);
+        var consumer = CreateConsumer(mockOrderRepo.Object, mockUnitOfWork.Object, mockLogger.Object, mockIdempotencyStore.Object);
 
         var integrationEvent = new PaymentSucceededEvent
         {
@@ -136,11 +131,7 @@ public class PaymentSucceededEventConsumerTests
         var mockLogger = new Mock<ILogger<PaymentSucceededEventConsumer>>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
-        var consumer = new PaymentSucceededEventConsumer(
-            mockOrderRepo.Object,
-            mockUnitOfWork.Object,
-            mockLogger.Object,
-            mockIdempotencyStore.Object);
+        var consumer = CreateConsumer(mockOrderRepo.Object, mockUnitOfWork.Object, mockLogger.Object, mockIdempotencyStore.Object);
 
         var integrationEvent = new PaymentSucceededEvent
         {
@@ -181,11 +172,7 @@ public class PaymentSucceededEventConsumerTests
         var mockLogger = new Mock<ILogger<PaymentSucceededEventConsumer>>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
 
-        var consumer = new PaymentSucceededEventConsumer(
-            mockOrderRepo.Object,
-            mockUnitOfWork.Object,
-            mockLogger.Object,
-            mockIdempotencyStore.Object);
+        var consumer = CreateConsumer(mockOrderRepo.Object, mockUnitOfWork.Object, mockLogger.Object, mockIdempotencyStore.Object);
 
         var integrationEvent = new PaymentSucceededEvent
         {
@@ -214,6 +201,29 @@ public class PaymentSucceededEventConsumerTests
         // 2. 订单应被更新并保存
         mockOrderRepo.Verify(r => r.UpdateAsync(order, It.IsAny<CancellationToken>()), Times.Once);
         mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    /// <summary>
+    /// 创建被测消费者实例，注入默认关闭 Process Manager 的 Options（双轨期：旧路径行为不变）。
+    /// </summary>
+    private static PaymentSucceededEventConsumer CreateConsumer(
+        IOrderRepository orderRepo,
+        IUnitOfWork unitOfWork,
+        ILogger<PaymentSucceededEventConsumer> logger,
+        IIdempotencyStore idempotencyStore)
+    {
+        var processManagerMock = new Mock<IOrderPaymentProcessManager>();
+        var optionsMock = new Mock<IOptionsMonitor<OrderPaymentProcessOptions>>();
+        optionsMock.Setup(o => o.CurrentValue)
+            .Returns(new OrderPaymentProcessOptions { UsePaymentProcessManager = false });
+
+        return new PaymentSucceededEventConsumer(
+            orderRepo,
+            unitOfWork,
+            logger,
+            idempotencyStore,
+            processManagerMock.Object,
+            optionsMock.Object);
     }
 
     private static OrderAggregate CreateMembershipOrder()

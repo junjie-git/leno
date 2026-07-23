@@ -1,4 +1,5 @@
 using Leno.Infrastructure.Abstractions;
+using Leno.Order.Application.ProcessManagers;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.ValueObjects;
@@ -6,6 +7,7 @@ using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Leno.Order.Infrastructure.Consumers;
 
@@ -15,6 +17,10 @@ namespace Leno.Order.Infrastructure.Consumers;
 /// 通过独立队列（order-points-confirm）与独立幂等键（points-confirm-{PaymentId}）实现隔离，
 /// 任一操作失败不影响本消费者的执行结果与重试，反之亦然。
 /// 会员订阅订单跳过积分确认（与原 PaymentSucceededEventConsumer 早期返回行为一致）。
+/// 3.3：双轨期 feature flag <c>Order:UsePaymentProcessManager</c> 切流。
+/// flag=true 时（shadow 模式）：消费者在完成积分确认后调用 <see cref="IOrderPaymentProcessManager.HandlePointsConfirmedAsync"/>
+/// 转发完成回调给 Process Manager。旧路径仍执行实际工作以保证功能兼容。
+/// flag=false 时：仅走旧路径，不调用 Process Manager。
 /// </summary>
 public sealed class PointsConfirmConsumer : IConsumer<PaymentSucceededEvent>
 {
@@ -22,21 +28,30 @@ public sealed class PointsConfirmConsumer : IConsumer<PaymentSucceededEvent>
     private readonly IPointsAntiCorruptionService _pointsAntiCorruption;
     private readonly IIdempotencyStore _idempotencyStore;
     private readonly ILogger<PointsConfirmConsumer> _logger;
+    private readonly IOrderPaymentProcessManager _processManager;
+    private readonly IOptionsMonitor<OrderPaymentProcessOptions> _options;
 
     public PointsConfirmConsumer(
         IOrderRepository orderRepository,
         IPointsAntiCorruptionService pointsAntiCorruption,
         IIdempotencyStore idempotencyStore,
-        ILogger<PointsConfirmConsumer> logger)
+        ILogger<PointsConfirmConsumer> logger,
+        IOrderPaymentProcessManager processManager,
+        IOptionsMonitor<OrderPaymentProcessOptions> options)
     {
         ArgumentNullException.ThrowIfNull(orderRepository);
         ArgumentNullException.ThrowIfNull(pointsAntiCorruption);
         ArgumentNullException.ThrowIfNull(idempotencyStore);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(processManager);
+        ArgumentNullException.ThrowIfNull(options);
+
         _orderRepository = orderRepository;
         _pointsAntiCorruption = pointsAntiCorruption;
         _idempotencyStore = idempotencyStore;
         _logger = logger;
+        _processManager = processManager;
+        _options = options;
     }
 
     /// <inheritdoc />
@@ -66,6 +81,9 @@ public sealed class PointsConfirmConsumer : IConsumer<PaymentSucceededEvent>
             return;
         }
 
+        var useProcessManager = OrderPaymentProcessRolloutEvaluator.ShouldUseProcessManager(
+            _options.CurrentValue, evt.OrderId);
+
         try
         {
             await ConfirmPointsAsync(evt, ct);
@@ -83,6 +101,12 @@ public sealed class PointsConfirmConsumer : IConsumer<PaymentSucceededEvent>
         await _idempotencyStore.MarkAsProcessedAsync(idempotencyId, ct);
         _logger.LogInformation("积分确认完成 PaymentId={PaymentId} OrderId={OrderId}",
             evt.PaymentId, evt.OrderId);
+
+        // 3.3 双轨期 shadow 模式：转发积分确认完成回调给 Process Manager
+        if (useProcessManager)
+        {
+            await TryHandlePointsConfirmedAsync(evt.OrderId, ct);
+        }
     }
 
     /// <summary>
@@ -105,5 +129,23 @@ public sealed class PointsConfirmConsumer : IConsumer<PaymentSucceededEvent>
         }
 
         await _pointsAntiCorruption.ConfirmDeductionAsync(order.Id, ct);
+    }
+
+    /// <summary>
+    /// 转发积分确认完成回调给 Process Manager。
+    /// 异常隔离：回调失败不应影响旧路径的实际工作（shadow 模式），仅记录错误日志。
+    /// </summary>
+    private async Task TryHandlePointsConfirmedAsync(Guid orderId, CancellationToken ct)
+    {
+        try
+        {
+            await _processManager.HandlePointsConfirmedAsync(orderId, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Process Manager HandlePointsConfirmedAsync 回调失败，不影响旧路径实际工作 OrderId={OrderId}",
+                orderId);
+        }
     }
 }

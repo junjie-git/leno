@@ -1,4 +1,5 @@
 using Leno.Infrastructure.Abstractions;
+using Leno.Order.Application.ProcessManagers;
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
@@ -7,6 +8,7 @@ using Leno.Order.Infrastructure.Consumers;
 using Leno.SharedContracts.Events;
 using MassTransit;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
 
@@ -46,11 +48,7 @@ public class StockConfirmConsumerTests
 
         var mockLogger = new Mock<ILogger<StockConfirmConsumer>>();
 
-        var consumer = new StockConfirmConsumer(
-            mockOrderRepo.Object,
-            mockStockService.Object,
-            mockIdempotencyStore.Object,
-            mockLogger.Object);
+        var consumer = CreateConsumer(mockOrderRepo.Object, mockStockService.Object, mockIdempotencyStore.Object, mockLogger.Object);
 
         var evt = new PaymentSucceededEvent
         {
@@ -98,11 +96,7 @@ public class StockConfirmConsumerTests
 
         var mockLogger = new Mock<ILogger<StockConfirmConsumer>>();
 
-        var consumer = new StockConfirmConsumer(
-            mockOrderRepo.Object,
-            mockStockService.Object,
-            mockIdempotencyStore.Object,
-            mockLogger.Object);
+        var consumer = CreateConsumer(mockOrderRepo.Object, mockStockService.Object, mockIdempotencyStore.Object, mockLogger.Object);
 
         var evt = new PaymentSucceededEvent
         {
@@ -143,11 +137,7 @@ public class StockConfirmConsumerTests
 
         var mockLogger = new Mock<ILogger<StockConfirmConsumer>>();
 
-        var consumer = new StockConfirmConsumer(
-            mockOrderRepo.Object,
-            mockStockService.Object,
-            mockIdempotencyStore.Object,
-            mockLogger.Object);
+        var consumer = CreateConsumer(mockOrderRepo.Object, mockStockService.Object, mockIdempotencyStore.Object, mockLogger.Object);
 
         var evt = new PaymentSucceededEvent
         {
@@ -191,11 +181,7 @@ public class StockConfirmConsumerTests
 
         var mockLogger = new Mock<ILogger<StockConfirmConsumer>>();
 
-        var consumer = new StockConfirmConsumer(
-            mockOrderRepo.Object,
-            mockStockService.Object,
-            mockIdempotencyStore.Object,
-            mockLogger.Object);
+        var consumer = CreateConsumer(mockOrderRepo.Object, mockStockService.Object, mockIdempotencyStore.Object, mockLogger.Object);
 
         var evt = new PaymentSucceededEvent
         {
@@ -216,6 +202,29 @@ public class StockConfirmConsumerTests
         mockStockService.Verify(
             s => s.ConfirmBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    /// <summary>
+    /// 创建被测消费者实例，注入默认关闭 Process Manager 的 Options（双轨期：旧路径行为不变）。
+    /// </summary>
+    private static StockConfirmConsumer CreateConsumer(
+        IOrderRepository orderRepo,
+        IStockReservationDomainService stockService,
+        IIdempotencyStore idempotencyStore,
+        ILogger<StockConfirmConsumer> logger)
+    {
+        var processManagerMock = new Mock<IOrderPaymentProcessManager>();
+        var optionsMock = new Mock<IOptionsMonitor<OrderPaymentProcessOptions>>();
+        optionsMock.Setup(o => o.CurrentValue)
+            .Returns(new OrderPaymentProcessOptions { UsePaymentProcessManager = false });
+
+        return new StockConfirmConsumer(
+            orderRepo,
+            stockService,
+            idempotencyStore,
+            logger,
+            processManagerMock.Object,
+            optionsMock.Object);
     }
 
     private static Mock<ConsumeContext<PaymentSucceededEvent>> CreateConsumeContext(PaymentSucceededEvent message, CancellationToken ct = default)
