@@ -1,0 +1,339 @@
+using Leno.AfterSales.Application.DTOs;
+using Leno.AfterSales.Domain.Aggregates;
+using Leno.AfterSales.Domain.Exceptions;
+using Leno.AfterSales.Domain.Repositories;
+using Leno.AfterSales.Domain.Services;
+using Leno.AfterSales.Domain.ValueObjects;
+using Leno.SharedContracts.Events;
+using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions;
+using Microsoft.Extensions.Logging;
+using AfterSalesAggregate = Leno.AfterSales.Domain.Aggregates.AfterSalesOrder;
+
+namespace Leno.AfterSales.Application.Services;
+
+/// <summary>
+/// 售后应用服务实现，编排售后申请、审核、撤销、退货、确认收货与查询用例。
+/// 审核通过时经 <see cref="IEventBus"/> 发布 <see cref="RefundRequestedIntegrationEvent"/> 请求支付域退款。
+/// 支付单标识与渠道通过 <see cref="IPaymentInfoQueryService"/> 防腐层查询。
+/// 买家按订单查询售后单时通过 <see cref="IOrderStatusProvider"/> 校验订单归属，防止越权查询他人售后单。
+/// </summary>
+public sealed class AfterSalesAppService : IAfterSalesAppService
+{
+    private readonly IAfterSalesRepository _afterSalesRepository;
+    private readonly IAfterSalesEligibilityChecker _eligibilityChecker;
+    private readonly IPaymentInfoQueryService _paymentInfoQueryService;
+    private readonly IOrderStatusProvider _orderStatusProvider;
+    private readonly IEventBus _eventBus;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<AfterSalesAppService> _logger;
+
+    public AfterSalesAppService(
+        IAfterSalesRepository afterSalesRepository,
+        IAfterSalesEligibilityChecker eligibilityChecker,
+        IPaymentInfoQueryService paymentInfoQueryService,
+        IOrderStatusProvider orderStatusProvider,
+        IEventBus eventBus,
+        IUnitOfWork unitOfWork,
+        ILogger<AfterSalesAppService> logger)
+    {
+        ArgumentNullException.ThrowIfNull(afterSalesRepository);
+        ArgumentNullException.ThrowIfNull(eligibilityChecker);
+        ArgumentNullException.ThrowIfNull(paymentInfoQueryService);
+        ArgumentNullException.ThrowIfNull(orderStatusProvider);
+        ArgumentNullException.ThrowIfNull(eventBus);
+        ArgumentNullException.ThrowIfNull(unitOfWork);
+        ArgumentNullException.ThrowIfNull(logger);
+        _afterSalesRepository = afterSalesRepository;
+        _eligibilityChecker = eligibilityChecker;
+        _paymentInfoQueryService = paymentInfoQueryService;
+        _orderStatusProvider = orderStatusProvider;
+        _eventBus = eventBus;
+        _unitOfWork = unitOfWork;
+        _logger = logger;
+    }
+
+    /// <inheritdoc />
+    public async Task<AfterSalesDto> SubmitAfterSalesAsync(Guid userId, SubmitAfterSalesDto dto, CancellationToken ct = default)
+    {
+        // 资格校验器查询订单域并校验申请人归属，返回携带真实 SellerId 的订单状态概要。
+        // 忽略 dto.SellerId（客户端可伪造），仅使用订单域返回的真实卖家标识创建售后单。
+        var order = await _eligibilityChecker.EnsureEligibleAsync(dto.OrderId, dto.OrderLineId, userId, dto.Type, ct);
+
+        var afterSalesId = Guid.NewGuid();
+        var afterSales = AfterSalesAggregate.Create(
+            afterSalesId, dto.OrderId, dto.OrderLineId, userId, order.SellerId,
+            dto.Type, dto.ReasonCategory, dto.Reason, dto.Images,
+            dto.RequestedAmount, dto.Currency);
+
+        await _afterSalesRepository.AddAsync(afterSales, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        _logger.LogInformation("售后申请已提交 AfterSalesId={AfterSalesId} OrderId={OrderId} Type={Type}", afterSalesId, dto.OrderId, dto.Type);
+        return ToDto(afterSales);
+    }
+
+    /// <inheritdoc />
+    public async Task ApproveAfterSalesAsync(Guid afterSalesId, Guid operatorId, decimal approvedAmount, CancellationToken ct = default)
+    {
+        var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
+            ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        // 越权校验：仅归属卖家可审核
+        RequireOwnedAfterSales(afterSales, operatorId);
+
+        afterSales.Approve(operatorId, approvedAmount);
+
+        // 仅退款类型直接进入退款流程
+        if (afterSales.Type == AfterSalesType.RefundOnly)
+        {
+            afterSales.MarkRefunding();
+
+            // 合并审计 3.7：拆分事务避免长事务持锁。
+            // 第一次事务：状态机推进到 Refunding，立即提交，释放行锁。
+            await _afterSalesRepository.UpdateAsync(afterSales, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+
+            // 事务外：远程查询支付单信息（不持有 DB 锁）
+            var paymentInfo = await _paymentInfoQueryService.GetByOrderIdAsync(afterSales.OrderId, ct)
+                ?? throw new InvalidOperationException($"订单支付信息不存在 OrderId={afterSales.OrderId}");
+
+            // 第二次事务：仅追加退款请求事件到发件箱
+            var refundId = Guid.NewGuid();
+            afterSales.AddRefundRequestedEvent(
+                refundId, paymentInfo.PaymentId, approvedAmount,
+                paymentInfo.Channel, afterSales.Reason);
+            await _afterSalesRepository.UpdateAsync(afterSales, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+
+            _logger.LogInformation("卖家审核通过仅退款售后并已入发件箱 AfterSalesId={AfterSalesId} RefundId={RefundId}", afterSalesId, refundId);
+        }
+        else
+        {
+            _logger.LogInformation("售后审核通过（退货退款，等待买家退货） AfterSalesId={AfterSalesId} ApprovedAmount={ApprovedAmount}", afterSalesId, approvedAmount);
+            await _afterSalesRepository.UpdateAsync(afterSales, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task RejectAfterSalesAsync(Guid afterSalesId, Guid operatorId, string reason, CancellationToken ct = default)
+    {
+        var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
+            ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        // 越权校验：仅归属卖家可驳回（防止卖家 A 驳回卖家 B 的售后单）
+        RequireOwnedAfterSales(afterSales, operatorId);
+
+        afterSales.Reject(operatorId, reason);
+        await _afterSalesRepository.UpdateAsync(afterSales, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task ConfirmReturnAsync(Guid afterSalesId, Guid operatorId, CancellationToken ct = default)
+    {
+        var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
+            ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        // 越权校验：仅归属卖家可确认退货
+        RequireOwnedAfterSales(afterSales, operatorId);
+
+        afterSales.ConfirmReturn(operatorId);
+        afterSales.MarkRefunding();
+
+        // 合并审计 3.7：拆分事务避免长事务持锁。
+        // 第一次事务：状态机推进到 Refunding，立即提交，释放行锁。
+        await _afterSalesRepository.UpdateAsync(afterSales, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        // 事务外：远程查询支付单信息（不持有 DB 锁）
+        var paymentInfo = await _paymentInfoQueryService.GetByOrderIdAsync(afterSales.OrderId, ct)
+            ?? throw new InvalidOperationException($"订单支付信息不存在 OrderId={afterSales.OrderId}");
+
+        // 第二次事务：追加退款请求事件到发件箱
+        var refundId = Guid.NewGuid();
+        var refundAmount = afterSales.ApprovedAmount ?? afterSales.RequestedAmount;
+        afterSales.AddRefundRequestedEvent(
+            refundId, paymentInfo.PaymentId, refundAmount,
+            paymentInfo.Channel, afterSales.Reason);
+        await _afterSalesRepository.UpdateAsync(afterSales, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        _logger.LogInformation("卖家确认收货并已入发件箱 AfterSalesId={AfterSalesId} RefundId={RefundId}", afterSalesId, refundId);
+    }
+
+    /// <inheritdoc />
+    public async Task AdminApproveAfterSalesAsync(Guid afterSalesId, Guid operatorId, decimal approvedAmount, CancellationToken ct = default)
+    {
+        var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
+            ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        afterSales.Approve(operatorId, approvedAmount);
+
+        // 仅退款类型直接进入退款流程
+        if (afterSales.Type == AfterSalesType.RefundOnly)
+        {
+            afterSales.MarkRefunding();
+
+            // 合并审计 3.7：拆分事务避免长事务持锁。
+            // 第一次事务：状态机推进到 Refunding，立即提交，释放行锁。
+            await _afterSalesRepository.UpdateAsync(afterSales, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+
+            // 事务外：远程查询支付单信息（不持有 DB 锁）
+            var paymentInfo = await _paymentInfoQueryService.GetByOrderIdAsync(afterSales.OrderId, ct)
+                ?? throw new InvalidOperationException($"订单支付信息不存在 OrderId={afterSales.OrderId}");
+
+            // 第二次事务：追加退款请求事件到发件箱
+            var refundId = Guid.NewGuid();
+            afterSales.AddRefundRequestedEvent(
+                refundId, paymentInfo.PaymentId, approvedAmount,
+                paymentInfo.Channel, afterSales.Reason);
+            await _afterSalesRepository.UpdateAsync(afterSales, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
+        else
+        {
+            await _afterSalesRepository.UpdateAsync(afterSales, ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
+        }
+
+        _logger.LogInformation("运营审核通过售后 AfterSalesId={AfterSalesId} ApprovedAmount={ApprovedAmount}", afterSalesId, approvedAmount);
+    }
+
+    /// <inheritdoc />
+    public async Task AdminRejectAfterSalesAsync(Guid afterSalesId, Guid operatorId, string reason, CancellationToken ct = default)
+    {
+        var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
+            ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        afterSales.Reject(operatorId, reason);
+        await _afterSalesRepository.UpdateAsync(afterSales, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task ReturnGoodsAsync(Guid afterSalesId, Guid userId, string trackingNo, CancellationToken ct = default)
+    {
+        var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
+            ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        // 越权校验：仅申请人（买家）本人可填写退货物流单号，防止他人冒充买家退货
+        if (afterSales.UserId != userId)
+        {
+            throw new AfterSalesDomainException("无权操作此售后单", "AFTERSALES_NOT_OWNED");
+        }
+
+        afterSales.ReturnGoods(trackingNo);
+        await _afterSalesRepository.UpdateAsync(afterSales, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task CancelAfterSalesAsync(Guid afterSalesId, Guid userId, string reason, CancellationToken ct = default)
+    {
+        var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
+            ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        afterSales.Cancel(userId, reason);
+        await _afterSalesRepository.UpdateAsync(afterSales, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<AfterSalesDto>> GetByOrderIdAsync(Guid orderId, CancellationToken ct = default)
+    {
+        var items = await _afterSalesRepository.GetByOrderIdAsync(orderId, ct);
+        return items.ConvertAll(ToDto);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<AfterSalesDto>> GetByOrderIdForUserAsync(Guid orderId, Guid userId, CancellationToken ct = default)
+    {
+        // 通过订单域防腐层反查订单归属，防止买家 A 越权查询买家 B 的售后单
+        var order = await _orderStatusProvider.GetOrderStatusAsync(orderId, ct)
+            ?? throw new InvalidOperationException($"订单不存在 OrderId={orderId}");
+        if (order.UserId != userId)
+        {
+            throw new AfterSalesDomainException("无权查询此订单售后", "AFTERSALES_FORBIDDEN");
+        }
+
+        var items = await _afterSalesRepository.GetByOrderIdAsync(orderId, ct);
+        return items.ConvertAll(ToDto);
+    }
+
+    /// <inheritdoc />
+    public async Task<AfterSalesListResultDto> GetByUserAsync(Guid userId, int page, int pageSize, CancellationToken ct = default)
+    {
+        var items = await _afterSalesRepository.QueryAsync(null, userId, null, null, page, pageSize, ct);
+        var total = await _afterSalesRepository.CountAsync(null, userId, null, null, ct);
+        return new AfterSalesListResultDto { Items = items.ConvertAll(ToDto), Total = total, Page = page, PageSize = pageSize };
+    }
+
+    /// <inheritdoc />
+    public async Task<AfterSalesListResultDto> GetBySellerAsync(Guid sellerId, AfterSalesStatus? status, int page, int pageSize, CancellationToken ct = default)
+    {
+        var items = await _afterSalesRepository.QueryAsync(null, null, sellerId, status, page, pageSize, ct);
+        var total = await _afterSalesRepository.CountAsync(null, null, sellerId, status, ct);
+        return new AfterSalesListResultDto { Items = items.ConvertAll(ToDto), Total = total, Page = page, PageSize = pageSize };
+    }
+
+    /// <inheritdoc />
+    public async Task<AfterSalesListResultDto> QueryAsync(Guid? orderId, Guid? userId, Guid? sellerId, AfterSalesStatus? status, int page, int pageSize, CancellationToken ct = default)
+    {
+        var items = await _afterSalesRepository.QueryAsync(orderId, userId, sellerId, status, page, pageSize, ct);
+        var total = await _afterSalesRepository.CountAsync(orderId, userId, sellerId, status, ct);
+        return new AfterSalesListResultDto { Items = items.ConvertAll(ToDto), Total = total, Page = page, PageSize = pageSize };
+    }
+
+    /// <summary>
+    /// 校验售后单归属卖家。非归属卖家抛领域异常，操作人标识为空抛领域异常。
+    /// </summary>
+    private static void RequireOwnedAfterSales(AfterSalesAggregate afterSales, Guid operatorId)
+    {
+        if (operatorId == Guid.Empty)
+        {
+            throw new AfterSalesDomainException("操作人标识不可为空", "OPERATOR_EMPTY");
+        }
+        if (afterSales.SellerId != operatorId)
+        {
+            throw new AfterSalesDomainException("无权操作此售后单", "AFTERSALES_NOT_OWNED");
+        }
+    }
+
+    private static AfterSalesDto ToDto(AfterSalesAggregate afterSales)
+    {
+        return new AfterSalesDto
+        {
+            AfterSalesId = afterSales.Id,
+            OrderId = afterSales.OrderId,
+            OrderLineId = afterSales.OrderLineId,
+            UserId = afterSales.UserId,
+            SellerId = afterSales.SellerId,
+            Type = afterSales.Type,
+            ReasonCategory = afterSales.ReasonCategory,
+            Reason = afterSales.Reason,
+            Images = afterSales.Images.ToList(),
+            RequestedAmount = afterSales.RequestedAmount,
+            Currency = afterSales.Currency,
+            ApprovedAmount = afterSales.ApprovedAmount,
+            RefundedAmount = afterSales.RefundedAmount,
+            Status = afterSales.Status,
+            AppliedAt = afterSales.AppliedAt,
+            ApprovedAt = afterSales.ApprovedAt,
+            RejectedAt = afterSales.RejectedAt,
+            ApproverId = afterSales.ApproverId,
+            RefundedAt = afterSales.RefundedAt,
+            ChannelRefundNo = afterSales.ChannelRefundNo,
+            RejectReason = afterSales.RejectReason,
+            FailReason = afterSales.FailReason,
+            CancelledAt = afterSales.CancelledAt,
+            CancelReason = afterSales.CancelReason,
+            ReturnedAt = afterSales.ReturnedAt,
+            TrackingNo = afterSales.TrackingNo,
+            ReturnConfirmedAt = afterSales.ReturnConfirmedAt,
+            ReturnConfirmedBy = afterSales.ReturnConfirmedBy
+        };
+    }
+}
