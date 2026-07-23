@@ -29,8 +29,14 @@ public sealed class EfCorePaymentOrderRepository : IPaymentOrderRepository
             .FirstOrDefaultAsync(o => o.OutTradeNo == outTradeNo, ct);
 
     /// <inheritdoc />
+    /// <remarks>
+    /// P1-4：同一订单可能存在多张支付单（旧的 Failed/Closed + 新的 Pending/ChannelOrdered）。
+    /// 按 <see cref="AggregateRoot"/> 审计字段 <c>CreatedAt</c> 倒序取最新一张，确保消费方看到
+    /// 当前生效的支付单而非历史终态单，避免误判为已存在而拒绝重新发起。
+    /// </remarks>
     public async Task<PaymentOrderAggregate?> GetByOrderIdAsync(Guid orderId, CancellationToken ct = default)
         => await _context.PaymentOrders
+            .OrderByDescending(o => o.CreatedAt)
             .FirstOrDefaultAsync(o => o.OrderId == orderId, ct);
 
     /// <inheritdoc />

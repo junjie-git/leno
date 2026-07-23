@@ -226,4 +226,47 @@ public sealed class PaymentOrder : AggregateRoot
         FailReason = reason;
         AddDomainEvent(new PaymentClosedDomainEvent(Id, OrderId, reason, DateTime.UtcNow));
     }
+
+    /// <summary>
+    /// 获取当前生效的支付链接（幂等重新发起支付场景使用）。
+    /// 仅当支付单处于 <see cref="PaymentStatus.ChannelOrdered"/>（渠道已下单，已拿到预支付参数）
+    /// 且链接未过期（<see cref="ExpireAt"/> 晚于当前 UTC 时间）时返回有效链接，否则返回 null。
+    /// </summary>
+    /// <remarks>
+    /// 链接选取优先级：<see cref="H5Url"/>（H5/JSAPI 场景）→ <see cref="CodeUrl"/>（扫码场景）。
+    /// <see cref="PaymentStatus.Pending"/> 态尚未请求渠道，无链接；<see cref="PaymentStatus.Paid"/>/
+    /// <see cref="PaymentStatus.Failed"/>/<see cref="PaymentStatus.Closed"/> 态链接已失效，均返回 null。
+    /// </remarks>
+    /// <returns>当前生效的支付链接；无可用链接时返回 null。</returns>
+    public string? GetActivePaymentLink()
+    {
+        if (Status != PaymentStatus.ChannelOrdered)
+        {
+            return null;
+        }
+
+        if (ExpireAt <= DateTime.UtcNow)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(H5Url))
+        {
+            return H5Url;
+        }
+
+        if (!string.IsNullOrWhiteSpace(CodeUrl))
+        {
+            return CodeUrl;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 判断当前支付单是否处于可接受重新发起支付的"占用"态（即已存在有效支付链接，幂等跳过）。
+    /// 为 true 时消费方应跳过创建新支付单，复用现有支付链接。
+    /// </summary>
+    /// <returns>存在生效支付链接返回 true；否则返回 false。</returns>
+    public bool HasActivePaymentLink() => !string.IsNullOrWhiteSpace(GetActivePaymentLink());
 }
