@@ -153,3 +153,78 @@ public sealed class ProductUpdatedEvent : IntegrationEventBase
     }
 }
 
+/// <summary>
+/// 商品 SKU 更新集成事件（阶段三 3.11 新增）。
+/// 商品域在 SKU 价格/规格/可售状态变化时发布，消费方：购物车域（刷新本地 SKU 快照）。
+/// <para>
+/// 与 <see cref="ProductUpdatedEvent"/> 区别：后者仅携带商品级标题与主图（粗粒度），
+/// 本事件携带 SKU 级价格/币种/规格/可售状态（细粒度），供购物车域直接更新本地快照，
+/// 无需消费方再次回调商品域 ACL 查询。
+/// </para>
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class ProductSkuUpdatedEvent : IntegrationEventBase
+{
+    /// <summary>商品标识。</summary>
+    public Guid ProductId { get; init; }
+
+    /// <summary>受影响的 SKU 标识。</summary>
+    public Guid SkuId { get; init; }
+
+    /// <summary>卖家（店铺）标识，语义等同卖家与店铺管理域的 ShopId。</summary>
+    public Guid SellerId { get; init; }
+
+    /// <summary>商品标题（更新后，用于购物车展示）。</summary>
+    public string SkuName { get; init; } = string.Empty;
+
+    /// <summary>SKU 单价（更新后）。</summary>
+    public decimal Price { get; init; }
+
+    /// <summary>币种（ISO 4217）。</summary>
+    public string Currency { get; init; } = "CNY";
+
+    /// <summary>主图 URL（更新后）。</summary>
+    public string? MainImageUrl { get; init; }
+
+    /// <summary>规格文本（更新后，如"红色 / XL"）。</summary>
+    public string? SpecText { get; init; }
+
+    /// <summary>是否可售（在售且有库存）。</summary>
+    public bool Available { get; init; }
+
+    /// <summary>变更时间（UTC，由商品域填充）。</summary>
+    public DateTime UpdatedAt { get; init; }
+
+    /// <summary>聚合根标识，用于发件箱归类（以 SkuId 作为聚合标识）。</summary>
+    public Guid AggregateId => SkuId;
+
+    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
+    public ProductSkuUpdatedEvent() : base()
+    {
+    }
+
+    public ProductSkuUpdatedEvent(
+        Guid productId,
+        Guid skuId,
+        Guid sellerId,
+        string skuName,
+        decimal price,
+        string currency,
+        string? mainImageUrl,
+        string? specText,
+        bool available,
+        DateTime updatedAt) : base()
+    {
+        ProductId = productId;
+        SkuId = skuId;
+        SellerId = sellerId;
+        SkuName = skuName ?? string.Empty;
+        Price = price;
+        Currency = string.IsNullOrEmpty(currency) ? "CNY" : currency;
+        MainImageUrl = mainImageUrl;
+        SpecText = specText;
+        Available = available;
+        UpdatedAt = updatedAt;
+    }
+}
+

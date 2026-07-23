@@ -78,7 +78,9 @@ public static class ServiceCollectionExtensions
             {
                 options.Address = new Uri(productGrpcEndpoint);
             });
+#pragma warning disable CS0618 // 阶段三 3.11：GrpcCartPriceService 已标记 [Obsolete]，保留作为降级备份
             services.AddScoped<GrpcCartPriceService>();
+#pragma warning restore CS0618
 
             services.AddKeyedSingleton<CircuitBreakerState>("product", (sp, _) =>
             {
@@ -92,7 +94,9 @@ public static class ServiceCollectionExtensions
             services.AddScoped<AntiCorruptionDispatcher<ICartPriceService>>(sp =>
             {
                 var httpImpl = sp.GetRequiredService<CartPriceService>();
+#pragma warning disable CS0618 // 阶段三 3.11：GrpcCartPriceService 已标记 [Obsolete]，保留作为降级备份
                 var grpcImpl = sp.GetService<GrpcCartPriceService>();
+#pragma warning restore CS0618
                 var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
                 var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<ICartPriceService>>>();
                 var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("product");
@@ -100,15 +104,40 @@ public static class ServiceCollectionExtensions
                     httpImpl, grpcImpl, options, logger, "product", cb);
             });
             services.AddScoped<CartPriceDispatcherAdapter>();
-            services.AddScoped<ICartPriceService>(sp =>
-                sp.GetRequiredService<CartPriceDispatcherAdapter>());
         }
         else
         {
-            // UseGrpc=false：直接注册 HttpClient 实现（兼容期）
-            services.AddScoped<ICartPriceService>(sp =>
-                sp.GetRequiredService<CartPriceService>());
+            // UseGrpc=false：HttpClient 实现已通过 AddHttpClient<CartPriceService> 注册，
+            // ICartPriceService 的最终注册由下方 SnapshotCartPriceService 装饰器统一处理
         }
+
+        // 阶段三 3.11：Cart SKU 快照本地化配置 + 后台刷新队列
+        // CartSnapshotOptions 绑定 Cart 配置节，支持 Consul KV 热更新（UseSkuSnapshot 开关灰度）
+        services.Configure<CartSnapshotOptions>(configuration.GetSection(CartSnapshotOptions.SectionName));
+
+        // 后台快照刷新队列：BackgroundService + Channel，Singleton 生命周期（要求 CreateScope 解析 Scoped 依赖）
+        // IBackgroundSnapshotRefresher 同时由 SkuSnapshotRefreshQueue 实现，供 SnapshotCartPriceService 非阻塞入队
+        // 显式注册 Singleton + 工厂式 HostedService，保证 IBackgroundSnapshotRefresher 与后台服务解析同一实例
+        services.AddSingleton<SkuSnapshotRefreshQueue>();
+        services.AddHostedService(sp => sp.GetRequiredService<SkuSnapshotRefreshQueue>());
+        services.AddSingleton<IBackgroundSnapshotRefresher>(sp => sp.GetRequiredService<SkuSnapshotRefreshQueue>());
+
+        // 阶段三 3.11：SnapshotCartPriceService 装饰器包装内部 ICartPriceService 实现
+        // 优先读取本地 SkuSnapshot，过期/缺失时回退内部实现（CartPriceDispatcherAdapter 或 CartPriceService）并触发后台刷新
+        // feature flag UseSkuSnapshot=false 时透传给内部实现，保持向后兼容
+        services.AddScoped<ICartPriceService>(sp =>
+        {
+            // 按具体类型解析内部实现，避免 ICartPriceService 自解析递归
+            ICartPriceService inner = antiCorruptionOptions.UseGrpc
+                ? sp.GetRequiredService<CartPriceDispatcherAdapter>()
+                : sp.GetRequiredService<CartPriceService>();
+
+            var dbContext = sp.GetRequiredService<CartDbContext>();
+            var refresher = sp.GetRequiredService<IBackgroundSnapshotRefresher>();
+            var options = sp.GetRequiredService<IOptionsMonitor<CartSnapshotOptions>>();
+            var logger = sp.GetRequiredService<ILogger<SnapshotCartPriceService>>();
+            return new SnapshotCartPriceService(inner, dbContext, refresher, options, logger);
+        });
 
         // 商品快照防腐层 HttpClient 实现（保留作为降级备份）
         services.AddHttpClient<ProductSnapshotAntiCorruptionService>(client =>
@@ -180,6 +209,8 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<ProductTakenDownEventConsumer>();
         configurator.AddConsumer<ProductPublishedEventConsumer>();
         configurator.AddConsumer<ProductUpdatedEventConsumer>();
+        // 阶段三 3.11：SKU 级更新事件，直接刷新购物车本地快照（无需回调 ACL）
+        configurator.AddConsumer<ProductSkuUpdatedEventConsumer>();
 
         return configurator;
     }

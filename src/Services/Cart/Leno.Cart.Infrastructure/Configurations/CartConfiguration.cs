@@ -60,6 +60,24 @@ public sealed class CartItemConfiguration : IEntityTypeConfiguration<CartItem>
         builder.Property(i => i.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(i => i.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
 
+        // 阶段三 3.11：SkuSnapshot 作为 owned entity 映射到 cart_items 表的 sku_snapshot_* 列。
+        // 所有列可空，允许历史购物车项渐进回填。Ownership 设为可选（SkuSnapshot 可为 null）。
+        // EF Core 在读取时若所有 owned 列均为 NULL，则将 SkuSnapshot 设为 null。
+        builder.OwnsOne(i => i.SkuSnapshot, snapshot =>
+        {
+            snapshot.Property(s => s.SkuId).HasColumnName("sku_snapshot_sku_id");
+            snapshot.Property(s => s.SkuName).HasColumnName("sku_snapshot_sku_name").HasMaxLength(256);
+            snapshot.Property(s => s.Price).HasColumnName("sku_snapshot_price").HasPrecision(18, 2);
+            snapshot.Property(s => s.Currency).HasColumnName("sku_snapshot_currency").HasMaxLength(8);
+            snapshot.Property(s => s.MainImageUrl).HasColumnName("sku_snapshot_main_image_url").HasMaxLength(1024);
+            snapshot.Property(s => s.SpecText).HasColumnName("sku_snapshot_spec_text").HasMaxLength(512);
+            snapshot.Property(s => s.Available).HasColumnName("sku_snapshot_available");
+            snapshot.Property(s => s.SnapshotVersion).HasColumnName("sku_snapshot_version");
+            snapshot.Property(s => s.SnapshotAt).HasColumnName("sku_snapshot_at");
+        })
+        .Navigation(i => i.SkuSnapshot)
+        .IsRequired(false);
+
         builder.HasIndex(i => i.SkuId).HasDatabaseName("ix_cart_items_sku_id");
         builder.HasIndex(i => i.SellerId).HasDatabaseName("ix_cart_items_seller_id");
     }

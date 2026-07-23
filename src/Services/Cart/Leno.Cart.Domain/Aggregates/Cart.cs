@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Leno.Cart.Domain.Events;
 using Leno.Cart.Domain.Exceptions;
+using Leno.Cart.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.Cart.Domain.Aggregates;
@@ -363,6 +364,30 @@ public sealed class Cart : AggregateRoot
         if (item is null) return;
 
         item.RefreshDisplaySnapshot(title, mainImageUrl);
+    }
+
+    /// <summary>
+    /// 更新指定 SKU 购物车项的本地快照（阶段三 3.11 新增）。
+    /// <para>
+    /// 由 <c>ProductSkuUpdatedEvent</c> 消费者与后台刷新队列调用，将商品域推送的最新 SKU 快照写入本地。
+    /// 快照写入后若价格发生变化，发布 <see cref="SkuPriceChangedEvent"/> 领域事件供下游联动。
+    /// </para>
+    /// 幂等：不存在的 SKU 忽略；相同快照重复写入不产生副作用。
+    /// </summary>
+    /// <param name="skuId">商品 SKU 标识。</param>
+    /// <param name="snapshot">新的 SKU 快照（SkuId 必须与 <paramref name="skuId"/> 一致）。</param>
+    public void UpdateSkuSnapshot(Guid skuId, SkuSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        var item = FindItem(skuId);
+        if (item is null) return;
+
+        var change = item.UpdateSnapshot(snapshot);
+        if (change.PriceChanged)
+        {
+            AddDomainEvent(new SkuPriceChangedEvent(
+                Id, item.Id, skuId, change.OldPrice, change.NewPrice, change.Currency));
+        }
     }
 
     /// <summary>

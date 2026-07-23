@@ -2,6 +2,7 @@ using Leno.Cart.Application.Abstractions;
 using Leno.Cart.Application.DTOs;
 using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
+using Leno.Cart.Domain.ValueObjects;
 using Leno.Cart.Infrastructure;
 using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.EventBus;
@@ -223,4 +224,113 @@ public sealed class ProductUpdatedEventConsumer : IntegrationEventConsumerBase<P
             }
         }
     }
+}
+
+/// <summary>
+/// 商品 SKU 更新事件消费者（阶段三 3.11）：消费商品域发布的 <see cref="ProductSkuUpdatedEvent"/>，
+/// 直接基于事件携带的 SKU 快照数据更新购物车本地快照，无需回调商品域 ACL。
+/// <para>
+/// 与 <see cref="ProductUpdatedEventConsumer"/> 区别：后者仅携带商品级标题与主图（粗粒度），
+/// 需回调 ACL 获取 SKU 级价格；本事件携带完整 SKU 级数据（价格/币种/规格/可售状态），
+/// 是阶段三 3.11 快照本地化的主刷新路径，事件驱动实时性优于后台过期刷新。
+/// </para>
+/// <para>
+/// 幂等：通过 EventId + <see cref="IIdempotencyStore"/> 去重（基类保证）；
+/// <see cref="CartAggregate.UpdateSkuSnapshot"/> 对相同快照重复写入无副作用（价格不变时不发布领域事件）。
+/// 批处理：每批 100 个购物车提交一次，与 <see cref="ProductUpdatedEventConsumer"/> 一致。
+/// </para>
+/// </summary>
+/// <remarks>
+/// P2-9：每批 <see cref="IUnitOfWork.SaveEntitiesAsync"/> 后调用 <c>ChangeTracker.Clear()</c> 清理跟踪，
+/// 避免跨批次累积跟踪导致内存增长与变更检测开销。
+/// </remarks>
+public sealed class ProductSkuUpdatedEventConsumer : IntegrationEventConsumerBase<ProductSkuUpdatedEvent>
+{
+    private const int BatchSize = 100;
+
+    private readonly ICartRepository _cartRepository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ICartSkuIndexService _indexService;
+    private readonly CartDbContext _dbContext;
+
+    public ProductSkuUpdatedEventConsumer(
+        ICartRepository cartRepository,
+        IUnitOfWork unitOfWork,
+        ICartSkuIndexService indexService,
+        CartDbContext dbContext,
+        ILogger<ProductSkuUpdatedEventConsumer> logger,
+        IIdempotencyStore idempotencyStore)
+        : base(logger, idempotencyStore)
+    {
+        ArgumentNullException.ThrowIfNull(cartRepository);
+        ArgumentNullException.ThrowIfNull(unitOfWork);
+        ArgumentNullException.ThrowIfNull(indexService);
+        ArgumentNullException.ThrowIfNull(dbContext);
+        _cartRepository = cartRepository;
+        _unitOfWork = unitOfWork;
+        _indexService = indexService;
+        _dbContext = dbContext;
+    }
+
+    /// <inheritdoc />
+    protected override async Task HandleAsync(ProductSkuUpdatedEvent integrationEvent, CancellationToken ct)
+    {
+        Logger.LogInformation(
+            "处理商品 SKU 更新事件 ProductId={ProductId} SkuId={SkuId} Price={Price} Currency={Currency} Available={Available} UpdatedAt={UpdatedAt}",
+            integrationEvent.ProductId,
+            integrationEvent.SkuId,
+            integrationEvent.Price,
+            integrationEvent.Currency,
+            integrationEvent.Available,
+            integrationEvent.UpdatedAt);
+
+        // 事件携带完整 SKU 快照数据，直接构造本地快照，无需回调商品域 ACL
+        var snapshot = MapEventToSnapshot(integrationEvent);
+
+        // 经反向索引定位包含该 SKU 的所有购物车
+        var cartIds = await _indexService.GetCartIdsBySkuAsync(integrationEvent.SkuId, ct);
+        if (cartIds.Count == 0)
+        {
+            Logger.LogDebug("SKU 未被任何购物车持有，跳过快照更新 SkuId={SkuId}", integrationEvent.SkuId);
+            return;
+        }
+
+        var updatedCartCount = 0;
+        foreach (var batch in cartIds.Chunk(BatchSize))
+        {
+            // P1-2：批量加载，避免 N+1 SELECT
+            var carts = await _cartRepository.GetByIdsAsync(batch, ct);
+            foreach (var cart in carts)
+            {
+                // Cart.UpdateSkuSnapshot 幂等：SkuId 不存在忽略；价格变化时发布 SkuPriceChangedEvent
+                cart.UpdateSkuSnapshot(integrationEvent.SkuId, snapshot);
+                updatedCartCount++;
+            }
+
+            await _unitOfWork.SaveEntitiesAsync(ct);
+            // P2-9：清理 ChangeTracker，避免跨批次累积跟踪
+            _dbContext.ChangeTracker.Clear();
+        }
+
+        Logger.LogInformation(
+            "商品 SKU 快照更新完成 SkuId={SkuId} 更新购物车数={CartCount}",
+            integrationEvent.SkuId, updatedCartCount);
+    }
+
+    /// <summary>
+    /// 将集成事件载荷映射为本地 <see cref="SkuSnapshot"/> 值对象。
+    /// SnapshotAt 优先取事件 UpdatedAt（商品域时间戳），缺失时回退当前 UTC 时间。
+    /// SnapshotVersion 固定为 1：事件为离散更新点，版本号用于后台刷新与事件刷新的并发冲突检测，
+    /// 真正的时序判定由 SnapshotAt 时间戳保证。
+    /// </summary>
+    private static SkuSnapshot MapEventToSnapshot(ProductSkuUpdatedEvent evt) => new(
+        skuId: evt.SkuId,
+        skuName: evt.SkuName,
+        price: evt.Price,
+        currency: string.IsNullOrEmpty(evt.Currency) ? "CNY" : evt.Currency,
+        mainImageUrl: evt.MainImageUrl,
+        specText: evt.SpecText,
+        available: evt.Available,
+        snapshotVersion: 1,
+        snapshotAt: evt.UpdatedAt == default ? DateTime.UtcNow : evt.UpdatedAt);
 }

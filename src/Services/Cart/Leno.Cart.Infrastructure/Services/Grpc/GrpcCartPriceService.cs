@@ -16,6 +16,12 @@ namespace Leno.Cart.Infrastructure.Services.Grpc;
 /// 由 <see cref="AntiCorruptionDispatcher{ICartPriceService}"/> 在运行时按 <c>UseGrpc</c> 开关与熔断状态选择使用本类或 HttpClient 实现。
 /// 调用 Product BC <c>ProductInternalService.BatchGetSkuInfo</c> RPC 批量查询 SKU 价格与可售状态。
 /// </summary>
+/// <remarks>
+/// 阶段三 3.11：已被 <see cref="SnapshotCartPriceService"/> 装饰器取代为读取路径的首选实现。
+/// 本类保留作为快照模式（<c>Cart:UseSkuSnapshot=true</c>）下快照缺失时的实时调用降级备份，
+/// 以及 feature flag 关闭（<c>UseSkuSnapshot=false</c>）时的旧路径兼容。新代码不应直接依赖本类。
+/// </remarks>
+[Obsolete("阶段三 3.11：已被 SnapshotCartPriceService 装饰器取代，仅作为快照缺失时的降级备份与旧路径兼容保留。新代码请通过 ICartPriceService 接口依赖 SnapshotCartPriceService。")]
 public sealed class GrpcCartPriceService
     : GrpcAntiCorruptionClientBase, ICartPriceService
 {
