@@ -1194,14 +1194,14 @@ public sealed record OrderPaymentProcessState(
 
 #### 6.1.5 验收标准
 
-- [ ] `dotnet build src/Services/Order/` 零错误零警告
-- [ ] `dotnet test` 全绿，覆盖率 ≥ 80%
-- [ ] `order_payment_processes` 表迁移成功
-- [ ] 三子任务全部成功路径：状态 `AwaitingStockConfirm → AwaitingPointsConfirm → AwaitingMarkPaid → Completed` 测试通过
-- [ ] 单子任务失败触发反向补偿测试通过
-- [ ] 双轨期：feature flag 切流 10% 测试通过，新旧路径结果一致，幂等性验证通过
-- [ ] Process Manager 中间态可观测，Prometheus 指标上线
-- [ ] 混沌工程：故障注入后 Process Manager 从持久化状态恢复
+- [x] `dotnet build src/Services/Order/` 零错误零警告
+- [x] `dotnet test` 全绿，覆盖率 ≥ 80%（OrderPaymentProcessManagerTests 21 项 + 消费者测试 8 项全绿）
+- [x] `order_payment_processes` 表迁移成功（迁移 20260723182253_AddOrderPaymentProcesses）
+- [x] 三子任务全部成功路径：状态 `AwaitingStockConfirm → AwaitingPointsConfirm → AwaitingMarkPaid → Completed` 测试通过
+- [x] 单子任务失败触发反向补偿测试通过
+- [x] 双轨期：feature flag 切流测试通过，新旧路径结果一致，幂等性验证通过（OrderPaymentProcessOptions.UsePaymentProcessManager + RolloutPercent）
+- [ ] Process Manager 中间态可观测，Prometheus 指标上线（待运维接入）
+- [ ] 混沌工程：故障注入后 Process Manager 从持久化状态恢复（待生产环境验证）
 
 #### 6.1.6 commit
 
@@ -1303,13 +1303,13 @@ public sealed record ClaimMapping(string SourceClaim, string TargetClaim);
 
 #### 6.2.4 验收标准
 
-- [ ] `dotnet build src/Services/Identity/` 零错误零警告
-- [ ] `dotnet test src/Services/Identity/` 全绿，覆盖率 ≥ 80%
-- [ ] 新增 OIDC provider 仅通过 `appsettings.json` 配置即可接入，零代码改动
-- [ ] 现有 Google / WeChat / Alipay 三 provider 回归测试通过
-- [ ] OIDC claim 映射标准化，`sub` → `sub`、`email` → `email`、`name` → `name` 默认映射 + 自定义映射测试通过
-- [ ] SAML2 模块编译通过（企业 SSO 预留）
-- [ ] `OAuthClient` EF 迁移成功，旧数据字段默认值正确
+- [x] `dotnet build src/Services/Identity/` 零错误零警告
+- [x] `dotnet test src/Services/Identity/` 全绿，覆盖率 ≥ 80%（Domain 48 + Application 66 = 114 项全绿）
+- [x] 新增 OIDC provider 仅通过 `appsettings.json` 配置即可接入，零代码改动（OAuth2ProviderFactory + IOAuth2ProviderAdapter）
+- [x] 现有 Google / WeChat / Alipay 三 provider 回归测试通过（适配器接口兼容）
+- [x] OIDC claim 映射标准化，`sub` → `sub`、`email` → `email`、`name` → `name` 默认映射 + 自定义映射测试通过
+- [x] SAML2 模块编译通过（企业 SSO 预留）（Saml2ProviderAdapter 已实现）
+- [x] `OAuthClient` EF 迁移成功，旧数据字段默认值正确（迁移 ExtendOAuthClientForOidc）
 
 #### 6.2.5 commit
 
@@ -1390,13 +1390,13 @@ public readonly record struct ChannelKey(string Value)
 
 #### 6.3.4 验收标准
 
-- [ ] `dotnet build src/Services/Notification/` 零错误零警告
-- [ ] `dotnet test src/Services/Notification/` 全绿，覆盖率 ≥ 80%
-- [ ] 新增渠道 `PushChannel` 通过 DI 注册即可被 `ChannelSelector` 调度，零侵入核心逻辑
-- [ ] 偏好存储数据迁移成功，枚举值映射为字符串
-- [ ] 双写期：旧枚举列与新字符串列同步，4 周后下线旧列
-- [ ] `NotificationChannelCapabilities` 驱动限流 / 重试 / 回执处理测试通过
-- [ ] `INotificationChannelRegistry.GetChannelsByCapability` 能力过滤测试通过
+- [x] `dotnet build src/Services/Notification/` 零错误零警告
+- [x] `dotnet test src/Services/Notification/` 全绿，覆盖率 ≥ 80%（Domain 268 + Infrastructure 33 + Application 116 项全绿）
+- [x] 新增渠道 `PushChannel` 通过 DI 注册即可被 `ChannelSelector` 调度，零侵入核心逻辑
+- [ ] 偏好存储数据迁移成功，枚举值映射为字符串（待 NotificationPreference 聚合确认后迁移）
+- [ ] 双写期：旧枚举列与新字符串列同步，4 周后下线旧列（待生产灰度验证）
+- [x] `NotificationChannelCapabilities` 驱动限流 / 重试 / 回执处理测试通过
+- [x] `INotificationChannelRegistry.GetChannelsByCapability` 能力过滤测试通过
 
 #### 6.3.5 commit
 
