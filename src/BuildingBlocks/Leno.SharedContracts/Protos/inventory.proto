@@ -1,0 +1,60 @@
+syntax = "proto3";
+package leno.inventory.v1;
+option csharp_namespace = "Leno.SharedContracts.Grpc.Inventory.V1";
+
+// Inventory BC gRPC 服务契约。
+// 阶段三 3.1 任务：proto 已定义，GrpcService 实现待后续任务接入（遗留项：待 gRPC 客户端接入完成后启用）。
+service InventoryInternalService {
+  rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
+  rpc ConfirmStock(ConfirmStockRequest) returns (ConfirmStockResponse);
+  rpc ReleaseStock(ReleaseStockRequest) returns (ReleaseStockResponse);
+  rpc GetAvailableStock(GetAvailableStockRequest) returns (AvailableStockResponse);
+}
+
+message ReserveStockItem {
+  string sku_id = 1;
+  int32 quantity = 2;
+  int64 seller_id = 3;
+}
+
+message ReserveStockRequest {
+  string order_id = 1;
+  string idempotency_key = 2;
+  repeated ReserveStockItem items = 3;
+}
+
+message ReserveStockResponse {
+  bool success = 1;
+  string failure_reason = 2;
+  string reservation_id = 3;
+}
+
+message ConfirmStockRequest {
+  string order_id = 1;
+  string idempotency_key = 2;
+}
+
+message ConfirmStockResponse {
+  bool success = 1;
+  string failure_reason = 2;
+}
+
+message ReleaseStockRequest {
+  string order_id = 1;
+  string idempotency_key = 2;
+  // 0=Release（释放预占），1=ReturnDeducted（归还已扣减）
+  int32 operation_type = 3;
+}
+
+message ReleaseStockResponse {
+  bool success = 1;
+  string failure_reason = 2;
+}
+
+message GetAvailableStockRequest {
+  string sku_id = 1;
+}
+
+message AvailableStockResponse {
+  int32 available_qty = 1;
+}
