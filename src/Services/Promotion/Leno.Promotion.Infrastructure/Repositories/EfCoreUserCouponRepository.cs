@@ -27,12 +27,19 @@ public sealed class EfCoreUserCouponRepository : IUserCouponRepository
     public async Task<List<UserCouponAggregate>> GetByUserAsync(
         Guid userId,
         CouponStatus? status,
+        DateTime? now = null,
         CancellationToken ct = default)
     {
         var query = _context.UserCoupons.Where(u => u.UserId == userId);
         if (status.HasValue)
         {
             query = query.Where(u => u.Status == status.Value);
+        }
+
+        // P1-10：ExpiredAt > now 下推到 SQL，消除内存过滤
+        if (now.HasValue)
+        {
+            query = query.Where(u => u.ExpiredAt.HasValue && u.ExpiredAt.Value > now.Value);
         }
 
         return await query.OrderByDescending(u => u.ReceivedAt).ToListAsync(ct);

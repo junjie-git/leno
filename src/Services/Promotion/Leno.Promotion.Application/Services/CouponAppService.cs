@@ -131,7 +131,7 @@ public sealed class CouponAppService : ICouponAppService
     /// <inheritdoc />
     public async Task<List<UserCouponDto>> GetMyCouponsAsync(Guid userId, CouponStatus? status, CancellationToken ct = default)
     {
-        var userCoupons = await _userCouponRepository.GetByUserAsync(userId, status, ct);
+        var userCoupons = await _userCouponRepository.GetByUserAsync(userId, status, ct: ct);
         return userCoupons.Select(ToDto).ToList();
     }
 

@@ -13,9 +13,17 @@ public interface IUserCouponRepository : IRepository<UserCouponAggregate>
     /// <summary>
     /// 查询买家持有的全部用户券（按状态可选过滤），按领取时间倒序。
     /// </summary>
+    /// <param name="userId">用户标识。</param>
+    /// <param name="status">券状态过滤（null 表示不限状态）。</param>
+    /// <param name="now">
+    /// 当前 UTC 时间。传入非 null 值时，SQL 层下推 <c>ExpiredAt &gt; now</c> 过滤已过期券，消除内存过滤。
+    /// 传 null（缺省）时不过滤过期时间，调用方自行在内存中处理（向后兼容）。
+    /// </param>
+    /// <param name="ct">取消令牌。</param>
     Task<List<UserCouponAggregate>> GetByUserAsync(
         Guid userId,
         CouponStatus? status,
+        DateTime? now = null,
         CancellationToken ct = default);
 
     /// <summary>

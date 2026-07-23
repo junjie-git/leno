@@ -89,30 +89,22 @@ public sealed class PromotionCalculateAppService : IPromotionCalculateAppService
             return 0m;
         }
 
-        var userCoupons = await _userCouponRepository.GetByUserAsync(userId, CouponStatus.Unused, ct);
+        // P1-10：ExpiredAt > now 下推到 SQL，消除内存过滤（原 .Where(uc => !uc.IsExpiredAt(now)) 已移除）
+        var userCoupons = await _userCouponRepository.GetByUserAsync(userId, CouponStatus.Unused, now, ct);
         if (userCoupons.Count == 0)
         {
             return 0m;
         }
 
-        // 过滤已过期（防御性：聚合状态可能未及时同步为 Expired）
-        var effectiveUserCoupons = userCoupons
-            .Where(uc => !uc.IsExpiredAt(now))
-            .ToList();
-        if (effectiveUserCoupons.Count == 0)
-        {
-            return 0m;
-        }
-
         // 一次性批量加载所有券模板，消除 N+1 DB 查询（原实现循环内逐个 GetByIdAsync）
-        var couponIds = effectiveUserCoupons.Select(uc => uc.CouponId).Distinct().ToList();
+        var couponIds = userCoupons.Select(uc => uc.CouponId).Distinct().ToList();
         var coupons = await _couponRepository.GetByIdsAsync(couponIds, ct);
         var couponMap = coupons
             .Where(c => c.Status == CouponTemplateStatus.Enabled)
             .ToDictionary(c => c.Id);
 
         decimal best = 0m;
-        foreach (var userCoupon in effectiveUserCoupons)
+        foreach (var userCoupon in userCoupons)
         {
             if (!couponMap.TryGetValue(userCoupon.CouponId, out var coupon))
             {
