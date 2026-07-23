@@ -30,6 +30,27 @@ public sealed class WeChatPayAdapter : IPaymentChannelAdapter
     }
 
     /// <inheritdoc />
+    /// <remarks>阶段三 3.8：与 <see cref="PaymentChannel.WeChatPay"/> 枚举名一致，便于工厂按枚举回退查找。</remarks>
+    public string ChannelKey => "WeChatPay";
+
+    /// <inheritdoc />
+    public string DisplayName => "微信支付";
+
+    /// <inheritdoc />
+    /// <remarks>微信支付支持退款、支持查询、HTTP 回调与轮询双轨，不支持部分捕获。</remarks>
+    public PaymentChannelCapabilities Capabilities { get; } = new PaymentChannelCapabilities
+    {
+        SupportsRefund = true,
+        SupportsPartialCapture = false,
+        SupportsQuery = true,
+        AsyncNotifyMode = AsyncNotifyMode.Both
+    };
+
+    /// <inheritdoc />
+    /// <remarks>当前实现始终启用；如需运行时禁用，可由配置驱动 <c>PaymentChannelPluginOptions.EnabledChannels</c> 过滤。</remarks>
+    public bool IsEnabled => true;
+
+    /// <inheritdoc />
     public async Task<ChannelPaymentResult> CreatePaymentAsync(
         PaymentOrder paymentOrder, CancellationToken ct = default)
     {

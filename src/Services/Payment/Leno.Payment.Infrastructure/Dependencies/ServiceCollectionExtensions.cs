@@ -60,22 +60,35 @@ public static class ServiceCollectionExtensions
         services.Configure<WeChatPayOptions>(configuration.GetSection("Payment:WeChatPayV3"));
         // 补偿任务配置（P2-20）：绑定 Payment:Jobs 节，允许按环境调整 ThresholdMinutes/BatchSize
         services.Configure<PaymentJobOptions>(configuration.GetSection("Payment:Jobs"));
+        // 阶段三 3.8 插件化：绑定 Payment:Plugins 节，支持 EnabledChannels 白名单 + PluginAssemblies 动态加载
+        services.Configure<PaymentChannelPluginOptions>(configuration.GetSection("Payment:Plugins"));
         services.AddSingleton<IChannelConfigProvider, ChannelConfigProvider>();
 
         // 渠道 HTTP 客户端（通过 IHttpClientFactory 注入 HttpClient）
         services.AddHttpClient<WeChatPayClient>();
         services.AddHttpClient<AlipayClient>();
 
-        // 渠道适配器
+        // 渠道适配器（具体类注册，供 NotifyHandler 直接依赖）
         services.AddScoped<WeChatPayAdapter>();
         services.AddScoped<AlipayAdapter>();
-        services.AddScoped<PaymentChannelFactory>();
-        // WeChatPayNotifyHandler 依赖 IPaymentChannelAdapter 抽象（P0-1），将其解析为 WeChatPayAdapter 具体实现。
-        // AlipayNotifyHandler 仍直接依赖 AlipayAdapter 具体类，不受此注册影响。
+
+        // 阶段三 3.8 插件化：将各适配器注册为 IPaymentChannelAdapter，
+        // 使 IEnumerable<IPaymentChannelAdapter> 解析得到全部已注册适配器，
+        // PaymentChannelFactory / PaymentChannelRegistry 据此构建按 ChannelKey 查找字典，无需 switch/if-else。
+        // WeChatPayNotifyHandler 改为直接依赖 WeChatPayAdapter 具体类（与 AlipayNotifyHandler 对称），
+        // 不再依赖 IPaymentChannelAdapter 单注入，避免多注册歧义。
         services.AddScoped<IPaymentChannelAdapter>(sp => sp.GetRequiredService<WeChatPayAdapter>());
-        // PaymentRequestedEventConsumer 依赖 IPaymentChannelFactory 抽象（P0-6），解析为 PaymentChannelFactory 具体实现，
-        // 与同 scope 的 PaymentChannelFactory 共享实例。
+        services.AddScoped<IPaymentChannelAdapter>(sp => sp.GetRequiredService<AlipayAdapter>());
+
+        // 动态加载外部插件程序集中的适配器类型并注册为 IPaymentChannelAdapter
+        AddPaymentChannelPlugins(services, configuration);
+
+        // 工厂与注册表
+        services.AddScoped<PaymentChannelFactory>();
         services.AddScoped<IPaymentChannelFactory>(sp => sp.GetRequiredService<PaymentChannelFactory>());
+        services.AddScoped<PaymentChannelRegistry>();
+        services.AddScoped<IPaymentChannelRegistry>(sp => sp.GetRequiredService<PaymentChannelRegistry>());
+        services.AddSingleton<PaymentChannelPluginLoader>();
 
         // 渠道签名验证（供表现层验签后处理业务）
         services.AddScoped<WeChatPayChannel>();
@@ -122,5 +135,39 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<RefundRequestedEventConsumer>();
 
         return configurator;
+    }
+
+    /// <summary>
+    /// 阶段三 3.8 插件化：动态加载外部插件程序集并注册适配器类型到 DI。
+    /// 在 DI 配置阶段同步执行 <see cref="PaymentChannelPluginLoader.Load"/> 扫描插件程序集，
+    /// 将识别到的适配器类型注册为 <see cref="IPaymentChannelAdapter"/>，
+    /// 使 <c>IEnumerable&lt;IPaymentChannelAdapter&gt;</c> 解析时包含插件适配器。
+    /// </summary>
+    /// <param name="services">DI 容器。</param>
+    /// <param name="configuration">应用配置。</param>
+    private static void AddPaymentChannelPlugins(IServiceCollection services, IConfiguration configuration)
+    {
+        var pluginOptions = configuration
+            .GetSection("Payment:Plugins")
+            .Get<PaymentChannelPluginOptions>() ?? new PaymentChannelPluginOptions();
+
+        if (pluginOptions.PluginAssemblies.Count == 0)
+        {
+            return;
+        }
+
+        // DI 配置阶段无法解析 ILogger<T>，使用 NullLogger 兜底；
+        // 加载失败项记录到返回结果的 Failures，不阻塞启动。
+        var loader = new PaymentChannelPluginLoader(
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<PaymentChannelPluginLoader>.Instance);
+        var loadResult = loader.Load(pluginOptions);
+
+        foreach (var adapterType in loadResult.AdapterTypes)
+        {
+            // 插件适配器类型注册为 IPaymentChannelAdapter，
+            // 由 DI 容器在解析 IEnumerable<IPaymentChannelAdapter> 时构造实例。
+            // 适配器类型的构造函数依赖由 DI 自动解析（需在插件侧注册或依赖共享服务）。
+            services.AddScoped(typeof(IPaymentChannelAdapter), adapterType);
+        }
     }
 }

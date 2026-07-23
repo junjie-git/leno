@@ -99,8 +99,35 @@ public sealed class ChannelNotifyResult
 /// 支付渠道适配器抽象契约，屏蔽各第三方支付渠道（微信/支付宝）差异。
 /// 领域层依赖此抽象，基础设施层按渠道提供具体实现（如 WeChatPayChannelAdapter）。
 /// </summary>
+/// <remarks>
+/// 阶段三 3.8 插件化：适配器自描述 <see cref="ChannelKey"/> / <see cref="DisplayName"/> /
+/// <see cref="Capabilities"/> / <see cref="IsEnabled"/>，由 DI 以 <c>IEnumerable&lt;IPaymentChannelAdapter&gt;</c>
+/// 注入到 <c>PaymentChannelFactory</c>，新增渠道仅需实现本接口并注册 DI，无需修改工厂分支逻辑。
+/// </remarks>
 public interface IPaymentChannelAdapter
 {
+    /// <summary>
+    /// 渠道唯一标识（如 "WeChatPay" / "Alipay" / "UnionPay"），大小写不敏感。
+    /// 用于 <see cref="IPaymentChannelFactory"/> 按 Key 查找适配器。
+    /// </summary>
+    string ChannelKey { get; }
+
+    /// <summary>
+    /// 渠道显示名称（如 "微信支付"），用于管理后台展示与日志可读性。
+    /// </summary>
+    string DisplayName { get; }
+
+    /// <summary>
+    /// 渠道能力声明，驱动退款/查询/通知处理等条件分支。
+    /// </summary>
+    PaymentChannelCapabilities Capabilities { get; }
+
+    /// <summary>
+    /// 是否启用。禁用的渠道不会被 <see cref="IPaymentChannelFactory"/> 返回，
+    /// 也不会出现在 <c>ListEnabledChannels</c> 列表中。
+    /// </summary>
+    bool IsEnabled { get; }
+
     /// <summary>
     /// 向第三方渠道发起下单，获取预支付参数。
     /// </summary>

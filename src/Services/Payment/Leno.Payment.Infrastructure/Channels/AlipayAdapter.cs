@@ -28,6 +28,27 @@ public sealed class AlipayAdapter : IPaymentChannelAdapter
     }
 
     /// <inheritdoc />
+    /// <remarks>阶段三 3.8：与 <see cref="PaymentChannel.Alipay"/> 枚举名一致，便于工厂按枚举回退查找。</remarks>
+    public string ChannelKey => "Alipay";
+
+    /// <inheritdoc />
+    public string DisplayName => "支付宝";
+
+    /// <inheritdoc />
+    /// <remarks>支付宝支持退款、支持查询、HTTP 回调与轮询双轨，不支持部分捕获。</remarks>
+    public PaymentChannelCapabilities Capabilities { get; } = new PaymentChannelCapabilities
+    {
+        SupportsRefund = true,
+        SupportsPartialCapture = false,
+        SupportsQuery = true,
+        AsyncNotifyMode = AsyncNotifyMode.Both
+    };
+
+    /// <inheritdoc />
+    /// <remarks>当前实现始终启用；如需运行时禁用，可由配置驱动 <c>PaymentChannelPluginOptions.EnabledChannels</c> 过滤。</remarks>
+    public bool IsEnabled => true;
+
+    /// <inheritdoc />
     /// <remarks>默认使用扫码支付（precreate）。如需指定场景，请使用 <see cref="CreatePaymentAsync(PaymentOrder, PaymentScene, string?, CancellationToken)"/>。</remarks>
     public async Task<ChannelPaymentResult> CreatePaymentAsync(
         PaymentOrder paymentOrder, CancellationToken ct = default)

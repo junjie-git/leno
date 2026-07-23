@@ -1,6 +1,7 @@
 using Leno.Payment.Domain.Repositories;
 using Leno.Payment.Domain.Services;
 using Leno.Payment.Domain.ValueObjects;
+using Leno.Payment.Infrastructure.Channels;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -18,10 +19,14 @@ namespace Leno.Payment.Infrastructure.Notify;
 /// 验签前调用 <c>ParseXml</c> 会抛 <c>XmlException</c> 被外层 catch 吞掉返回 <c>FAIL</c>，
 /// 导致所有 V3 回调永远无法处理。修复后先验签，验签失败直接返回 <c>FAIL</c>，
 /// 验签成功后直接使用 <see cref="ChannelNotifyResult"/> 中的字段，由 <c>WeChatPayAdapter</c> 解析解密数据填充。
+///
+/// 阶段三 3.8 插件化：原依赖 <see cref="IPaymentChannelAdapter"/> 单一注册（解析为 WeChatPayAdapter），
+/// 改为直接依赖 <see cref="WeChatPayAdapter"/> 具体类，与 <see cref="AlipayNotifyHandler"/> 对称，
+/// 避免多个 <see cref="IPaymentChannelAdapter"/> 注册时单注入歧义。
 /// </remarks>
 public sealed class WeChatPayNotifyHandler
 {
-    private readonly IPaymentChannelAdapter _adapter;
+    private readonly WeChatPayAdapter _adapter;
     private readonly IPaymentOrderRepository _paymentOrderRepository;
     private readonly IRefundOrderRepository _refundOrderRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -29,7 +34,7 @@ public sealed class WeChatPayNotifyHandler
     private readonly ILogger<WeChatPayNotifyHandler> _logger;
 
     public WeChatPayNotifyHandler(
-        IPaymentChannelAdapter adapter,
+        WeChatPayAdapter adapter,
         IPaymentOrderRepository paymentOrderRepository,
         IRefundOrderRepository refundOrderRepository,
         IUnitOfWork unitOfWork,
