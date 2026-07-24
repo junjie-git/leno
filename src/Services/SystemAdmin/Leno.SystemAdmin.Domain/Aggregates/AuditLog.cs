@@ -7,7 +7,7 @@ namespace Leno.SystemAdmin.Domain.Aggregates;
 /// 审计日志聚合根，记录运营人员对资源的操作请求，仅追加不可变更。
 /// 聚合标识 <see cref="Entity.Id"/> 即对外 <c>LogId</c>。
 /// </summary>
-public sealed class AuditLog : AggregateRoot
+public sealed class AuditLog : AggregateRoot, ITenantEntity
 {
     private const int MaxActionLength = 128;
     private const int MaxResourceTypeLength = 64;
@@ -45,6 +45,15 @@ public sealed class AuditLog : AggregateRoot
 
     /// <summary>审计发生时间（UTC）。</summary>
     public DateTime OccurredAt { get; private set; }
+
+    /// <summary>
+    /// 租户 ID（多租户预留扩展位，4.7）。
+    /// <para>
+    /// 当前阶段默认 <c>null</c>（单租户模式 / 全局数据），由 <c>BaseDbContext</c> 全局查询过滤器保证默认行为不变。
+    /// DG-7 决策门通过后，由 <c>TenantQueryFilterInterceptor</c> 在保存时自动填充当前租户 ID。
+    /// </para>
+    /// </summary>
+    public Guid? TenantId { get; set; }
 
     /// <summary>EF Core 无参构造。</summary>
     private AuditLog() { }

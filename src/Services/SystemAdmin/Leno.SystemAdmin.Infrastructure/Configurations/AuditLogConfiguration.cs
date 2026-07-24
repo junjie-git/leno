@@ -30,6 +30,12 @@ public sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(a => a.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
         builder.Property(a => a.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
 
+        // 多租户预留扩展位（4.7）：tenant_id 列声明（nullable，默认 null = 全局数据）。
+        // BaseDbContext.OnModelCreating 会统一为 ITenantEntity 实体配置此列 + 全局查询过滤器，
+        // 此处显式声明以明确 AuditLog 支持多租户扩展位，并追加索引便于按租户查询。
+        builder.Property(a => a.TenantId).HasColumnName("tenant_id").IsRequired(false);
+        builder.HasIndex(a => a.TenantId).HasDatabaseName("ix_audit_logs_tenant_id");
+
         builder.HasIndex(a => a.OperatorId).HasDatabaseName("ix_audit_logs_operator_id");
         builder.HasIndex(a => a.OccurredAt).HasDatabaseName("ix_audit_logs_occurred_at");
         builder.HasIndex(a => a.ResourceType).HasDatabaseName("ix_audit_logs_resource_type");
