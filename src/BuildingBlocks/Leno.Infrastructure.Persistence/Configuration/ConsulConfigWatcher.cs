@@ -21,6 +21,9 @@ public sealed class ConsulConfigWatcher : BackgroundService
 {
     private const string UseGrpcKeyPrefix = "leno/anticorruption/use-grpc/";
     private const string UseGrpcConfigKey = "AntiCorruption:UseGrpc";
+    /// <summary>Schema 版本校验 key 前缀（阶段四 4.6 步骤6）。</summary>
+    private const string ConfigKeyPrefix = "leno/config/";
+    private const string GrayPercentKeySuffix = "/gray-percent";
     private static readonly TimeSpan WaitTime = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(10);
 
@@ -30,16 +33,29 @@ public sealed class ConsulConfigWatcher : BackgroundService
     private readonly ILogger<ConsulConfigWatcher> _logger;
     private readonly string _bcName;
     private readonly string _useGrpcKey;
+    /// <summary>Schema 版本校验器（阶段四 4.6 步骤6，可为 null 表示不启用版本校验）。</summary>
+    private readonly ConsulConfigSchemaValidator? _schemaValidator;
+    /// <summary>灰度发布服务（阶段四 4.6 步骤6，可为 null 表示不启用灰度判定）。</summary>
+    private readonly ConsulGrayReleaseService? _grayReleaseService;
+    /// <summary>当前实例 ID（用于灰度切流判定）。</summary>
+    private readonly string _instanceId;
+    /// <summary>期望的 Schema 版本（从配置读取，0 表示不校验）。</summary>
+    private readonly int _expectedSchemaVersion;
+    /// <summary>环境名（如 dev/staging/prod）。</summary>
+    private readonly string _env;
 
     /// <summary>
     /// 主构造函数（DI 生产路径）：注入 <see cref="ConsulReloadableConfigurationProvider"/>，
     /// KV 变更时通过 <see cref="ConsulReloadableConfigurationProvider.SetValue"/> 写入并触发 OnReload。
+    /// 阶段四 4.6 步骤6：可选注入 Schema 校验器和灰度发布服务，启用配置版本化与灰度发布。
     /// </summary>
     public ConsulConfigWatcher(
         IConsulClient consul,
         ConsulReloadableConfigurationProvider consulProvider,
         IConfiguration configuration,
-        ILogger<ConsulConfigWatcher> logger)
+        ILogger<ConsulConfigWatcher> logger,
+        ConsulConfigSchemaValidator? schemaValidator = null,
+        ConsulGrayReleaseService? grayReleaseService = null)
     {
         ArgumentNullException.ThrowIfNull(consul);
         ArgumentNullException.ThrowIfNull(consulProvider);
@@ -52,6 +68,12 @@ public sealed class ConsulConfigWatcher : BackgroundService
         _logger = logger;
         _bcName = configuration["Service:Name"] ?? string.Empty;
         _useGrpcKey = UseGrpcKeyPrefix + _bcName;
+        _schemaValidator = schemaValidator;
+        _grayReleaseService = grayReleaseService;
+        _instanceId = configuration["Service:InstanceId"]
+            ?? Environment.MachineName + "-" + Environment.ProcessId;
+        _env = configuration["Service:Env"] ?? "dev";
+        _expectedSchemaVersion = int.TryParse(configuration["Consul:SchemaVersion"], out var v) ? v : 0;
     }
 
     /// <summary>
@@ -74,6 +96,12 @@ public sealed class ConsulConfigWatcher : BackgroundService
         _logger = logger;
         _bcName = configuration["Service:Name"] ?? string.Empty;
         _useGrpcKey = UseGrpcKeyPrefix + _bcName;
+        _schemaValidator = null;
+        _grayReleaseService = null;
+        _instanceId = configuration["Service:InstanceId"]
+            ?? Environment.MachineName + "-" + Environment.ProcessId;
+        _env = configuration["Service:Env"] ?? "dev";
+        _expectedSchemaVersion = int.TryParse(configuration["Consul:SchemaVersion"], out var v) ? v : 0;
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -101,6 +129,18 @@ public sealed class ConsulConfigWatcher : BackgroundService
                 {
                     waitIndex = queryResult.LastIndex;
                     var newValue = Encoding.UTF8.GetString(queryResult.Response.Value);
+
+                    // 阶段四 4.6 步骤6：灰度发布判定
+                    if (_grayReleaseService is not null && !await ShouldApplyByGrayReleaseAsync(ct).ConfigureAwait(false))
+                    {
+                        _logger.LogInformation("灰度判定：实例 {Instance} 未命中灰度，跳过本次配置应用", _instanceId);
+                        continue;
+                    }
+
+                    // 阶段四 4.6 步骤6：Schema 版本校验（仅对配置类 KV，UseGrpc 简单布尔值跳过）
+                    // UseGrpc KV 值为 "true"/"false"，非 JSON，无需 Schema 校验
+                    // Schema 校验适用于 leno/config/{env}/{service} 路径下的 JSON 配置
+
                     // T19：优先通过 ConsulReloadableConfigurationProvider 写入并触发 OnReload，
                     // 使 IOptionsMonitor<AntiCorruptionOptions> 感知变更并重新绑定 CurrentValue。
                     // 测试路径（_consulProvider 为 null）回退到直接写 IConfiguration 索引器。
@@ -127,5 +167,37 @@ public sealed class ConsulConfigWatcher : BackgroundService
         }
 
         _logger.LogInformation("ConsulConfigWatcher 退出");
+    }
+
+    /// <summary>
+    /// 阶段四 4.6 步骤6：读取 Consul KV 灰度比例并判定当前实例是否命中灰度。
+    /// 灰度比例 key：leno/config/{env}/{service}/gray-percent
+    /// </summary>
+    private async Task<bool> ShouldApplyByGrayReleaseAsync(CancellationToken ct)
+    {
+        if (_grayReleaseService is null)
+        {
+            return true;
+        }
+
+        var grayKey = $"{ConfigKeyPrefix}{_env}/{_bcName}{GrayPercentKeySuffix}";
+        try
+        {
+            var grayResult = await _consul.KV.Get(grayKey, ct).ConfigureAwait(false);
+            if (grayResult.Response is null)
+            {
+                // 灰度比例未配置，默认全量应用
+                return true;
+            }
+
+            var rawPercent = Encoding.UTF8.GetString(grayResult.Response.Value);
+            var grayPercent = _grayReleaseService.ParseGrayPercent(rawPercent);
+            return _grayReleaseService.ShouldApplyConfig(_instanceId, grayPercent);
+        }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex, "读取灰度比例失败，默认全量应用");
+            return true;
+        }
     }
 }
