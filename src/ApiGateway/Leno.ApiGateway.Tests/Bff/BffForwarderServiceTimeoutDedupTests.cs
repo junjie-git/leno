@@ -146,7 +146,7 @@ public class BffForwarderServiceTimeoutDedupTests
             PerRequestTimeout = TimeSpan.FromSeconds(5)
         });
 
-        var service = new BffForwarderService(factory, options);
+        var service = new BffForwarderService(factory, options, dagOrchestrator: null);
 
         // 验证构造不抛异常且超时已读取（通过行为间接验证——此处仅验证构造成功）
         service.Should().NotBeNull();
