@@ -1,5 +1,6 @@
 using Consul;
 using Leno.ApiGateway.Bff;
+using Leno.ApiGateway.Bff.Dag;
 using Leno.ApiGateway.Middleware;
 using Leno.ApiGateway.Options;
 using Leno.ApiGateway.Services;
@@ -275,7 +276,8 @@ public static class ServiceCollectionExtensions
     /// 注册 BFF 聚合转发相关服务：
     /// <list type="bullet">
     ///   <item>命名 HttpClient <c>"BffForwarder"</c>（超时从 <see cref="BffOptions.PerRequestTimeout"/> 读取，默认 3 秒）</item>
-    ///   <item><see cref="IBffForwarderService"/> 作用域服务（T15：从 <see cref="BffOptions"/> 读取整体与单请求超时）</item>
+    ///   <item><see cref="IBffForwarderService"/> 作用域服务（T15：从 <see cref="BffOptions"/> 读取整体与单请求超时；4.3：注入 <see cref="IDagOrchestrator"/>）</item>
+    ///   <item>4.3 DAG 编排引擎：<see cref="CascadeTimeoutPolicy"/> + <see cref="IDagOrchestrator"/> + <see cref="BffDagNodeFactory"/>（Scoped，每次请求隔离）</item>
     ///   <item>调用 <see cref="MvcServiceCollectionExtensions.AddControllers(IServiceCollection)"/> 启用 BFF 控制器发现</item>
     /// </list>
     /// </summary>
@@ -293,7 +295,25 @@ public static class ServiceCollectionExtensions
             client.Timeout = bffOptions.PerRequestTimeout;
         });
 
-        services.AddScoped<IBffForwarderService, BffForwarderService>();
+        // 4.3 DAG 编排引擎：CascadeTimeoutPolicy 持有单次执行的超时状态，需 Scoped 隔离
+        services.AddScoped<CascadeTimeoutPolicy>();
+        services.AddScoped<IDagOrchestrator>(sp =>
+        {
+            var cascadePolicy = sp.GetRequiredService<CascadeTimeoutPolicy>();
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<DagOrchestrator>>();
+            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<BffOptions>>().Value;
+            return new DagOrchestrator(cascadePolicy, logger, options.OverallTimeout);
+        });
+        services.AddScoped<BffDagNodeFactory>();
+
+        // 4.3：BffForwarderService 注入 IDagOrchestrator，支持 ExecuteDagAsync
+        services.AddScoped<IBffForwarderService>(sp =>
+        {
+            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<BffOptions>>();
+            var dagOrchestrator = sp.GetRequiredService<IDagOrchestrator>();
+            return new BffForwarderService(httpClientFactory, options, dagOrchestrator);
+        });
 
         // BFF 控制器位于 Leno.ApiGateway.Bff.Controllers 命名空间，
         // AddControllers 会扫描程序集自动发现 [ApiController] 装饰的控制器

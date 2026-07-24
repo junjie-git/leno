@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Leno.ApiGateway.Bff.Dag;
 using Leno.ApiGateway.Bff.Models;
 using Leno.ApiGateway.Options;
 using Microsoft.Extensions.Options;
@@ -10,10 +11,10 @@ using Microsoft.Extensions.Options;
 namespace Leno.ApiGateway.Bff;
 
 /// <summary>
-/// <see cref="IBffForwarderService"/> 默认实现：基于 <see cref="IHttpClientFactory"/> 与
-/// <see cref="Parallel.ForEachAsync"/> 的并行下游聚合器。
+/// <see cref="IBffForwarderService"/> 默认实现：支持两种聚合模式。
 /// <para>
-/// 实现要点：
+/// 模式一：<see cref="ForwardAsync{T}"/> 基于 <see cref="IHttpClientFactory"/> 与
+/// <see cref="Parallel.ForEachAsync"/> 的无依赖并行聚合器（特例保留）。
 /// <list type="bullet">
 ///   <item>整体超时（默认 10 秒，<see cref="DefaultOverallTimeout"/>），由 linked CTS 控制</item>
 ///   <item>每个下游请求独立超时（默认 3 秒，<see cref="DefaultPerRequestTimeout"/>），失败仅影响该请求</item>
@@ -21,6 +22,10 @@ namespace Leno.ApiGateway.Bff;
 ///   <item>响应以 <see cref="JsonElement"/>? 形式存入并发字典（成功）或 <see cref="BffError"/> 存入并发字典（失败，T16 改用 ConcurrentDictionary 原子去重）</item>
 ///   <item>HTTP 200 + Partial=true 表示部分成功，调用方通过 Errors 字段识别失败来源</item>
 /// </list>
+/// </para>
+/// <para>
+/// 模式二：<see cref="ExecuteDagAsync"/> 基于 <see cref="IDagOrchestrator"/> 的 DAG 编排引擎。
+/// 适用于下游请求存在依赖链的场景，自动拓扑排序 + 分波并行 + 节点超时级联取消。
 /// </para>
 /// </summary>
 public sealed class BffForwarderService : IBffForwarderService
@@ -41,33 +46,42 @@ public sealed class BffForwarderService : IBffForwarderService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly TimeSpan _overallTimeout;
     private readonly TimeSpan _perRequestTimeout;
+    private readonly IDagOrchestrator? _dagOrchestrator;
 
-    /// <summary>公开构造函数：使用默认超时（整体 10s、单请求 3s）。</summary>
+    /// <summary>公开构造函数：使用默认超时（整体 10s、单请求 3s）。DAG 引擎未注入，<see cref="ExecuteDagAsync"/> 不可用。</summary>
     public BffForwarderService(IHttpClientFactory httpClientFactory)
-        : this(httpClientFactory, DefaultOverallTimeout, DefaultPerRequestTimeout)
+        : this(httpClientFactory, DefaultOverallTimeout, DefaultPerRequestTimeout, dagOrchestrator: null)
     {
     }
 
     /// <summary>
-    /// 公开构造函数：从 <see cref="BffOptions"/> 读取整体与单请求超时。
+    /// 公开构造函数：从 <see cref="BffOptions"/> 读取整体与单请求超时，并注入 DAG 编排引擎。
     /// T15：区分整体超时与单请求超时，整体超时应大于单请求超时。
     /// </summary>
-    public BffForwarderService(IHttpClientFactory httpClientFactory, IOptions<BffOptions> options)
+    public BffForwarderService(
+        IHttpClientFactory httpClientFactory,
+        IOptions<BffOptions> options,
+        IDagOrchestrator dagOrchestrator)
         : this(
               httpClientFactory,
               options?.Value?.OverallTimeout ?? DefaultOverallTimeout,
-              options?.Value?.PerRequestTimeout ?? DefaultPerRequestTimeout)
+              options?.Value?.PerRequestTimeout ?? DefaultPerRequestTimeout,
+              dagOrchestrator)
     {
     }
 
     /// <summary>测试用构造函数：允许覆盖超时以加速超时场景测试（整体与单请求使用同一超时，向后兼容）。</summary>
     internal BffForwarderService(IHttpClientFactory httpClientFactory, TimeSpan timeout)
-        : this(httpClientFactory, timeout, timeout)
+        : this(httpClientFactory, timeout, timeout, dagOrchestrator: null)
     {
     }
 
-    /// <summary>测试用构造函数：允许分别覆盖整体与单请求超时。</summary>
-    internal BffForwarderService(IHttpClientFactory httpClientFactory, TimeSpan overallTimeout, TimeSpan perRequestTimeout)
+    /// <summary>测试用构造函数：允许分别覆盖整体与单请求超时，可选注入 DAG 引擎。</summary>
+    internal BffForwarderService(
+        IHttpClientFactory httpClientFactory,
+        TimeSpan overallTimeout,
+        TimeSpan perRequestTimeout,
+        IDagOrchestrator? dagOrchestrator = null)
     {
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         if (overallTimeout <= TimeSpan.Zero)
@@ -80,6 +94,7 @@ public sealed class BffForwarderService : IBffForwarderService
         }
         _overallTimeout = overallTimeout;
         _perRequestTimeout = perRequestTimeout;
+        _dagOrchestrator = dagOrchestrator;
     }
 
     /// <inheritdoc />
@@ -210,13 +225,52 @@ public sealed class BffForwarderService : IBffForwarderService
         };
     }
 
+    /// <inheritdoc />
+    public Task<AggregateResult> ExecuteDagAsync(AggregateGraph graph, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+        if (_dagOrchestrator is null)
+        {
+            throw new InvalidOperationException(
+                "DAG 编排引擎未注入。请通过构造函数注入 IDagOrchestrator 后再调用 ExecuteDagAsync。");
+        }
+        return _dagOrchestrator.ExecuteAsync(graph, ct);
+    }
+
     private async Task SendDownstreamAsync(
         BffDownstreamRequest req,
         string requestId,
         ConcurrentDictionary<string, JsonElement?> results,
         CancellationToken token)
     {
-        var client = _httpClientFactory.CreateClient(HttpClientName);
+        var json = await SendDownstreamRequestAsync(_httpClientFactory, req, requestId, token)
+            .ConfigureAwait(false);
+        results[req.Source] = json;
+    }
+
+    /// <summary>
+    /// 执行单个下游 HTTP 请求，返回 <see cref="JsonElement"/>。
+    /// <para>
+    /// 提取为 internal static 方法供 <see cref="BffDagNodeFactory"/> 在 DAG 节点委托中复用，
+    /// 避免 HTTP 调用逻辑重复。
+    /// </para>
+    /// </summary>
+    /// <param name="httpClientFactory">HTTP 客户端工厂。</param>
+    /// <param name="req">下游请求描述。</param>
+    /// <param name="requestId">请求追踪标识。</param>
+    /// <param name="token">取消令牌。</param>
+    /// <returns>下游响应 JSON。</returns>
+    /// <exception cref="DownstreamFailureException">下游返回非 2xx 时抛出。</exception>
+    internal static async Task<JsonElement> SendDownstreamRequestAsync(
+        IHttpClientFactory httpClientFactory,
+        BffDownstreamRequest req,
+        string requestId,
+        CancellationToken token)
+    {
+        ArgumentNullException.ThrowIfNull(httpClientFactory);
+        ArgumentNullException.ThrowIfNull(req);
+
+        var client = httpClientFactory.CreateClient(HttpClientName);
 
         using var requestMessage = new HttpRequestMessage(
             new HttpMethod(req.Method ?? "GET"),
@@ -249,8 +303,7 @@ public sealed class BffForwarderService : IBffForwarderService
             var json = await response.Content
                 .ReadFromJsonAsync<JsonElement>(cancellationToken: token)
                 .ConfigureAwait(false);
-            results[req.Source] = json;
-            return;
+            return json;
         }
 
         var body = await response.Content
@@ -266,9 +319,10 @@ public sealed class BffForwarderService : IBffForwarderService
     }
 
     /// <summary>
-    /// 下游非 2xx 响应时抛出，供外层 catch 转换为 <see cref="BffError"/>。
+    /// 下游非 2xx 响应时抛出，供外层 catch 转换为 <see cref="BffError"/> 或
+    /// <see cref="DagNodeException"/>（DAG 模式下）。
     /// </summary>
-    private sealed class DownstreamFailureException : Exception
+    internal sealed class DownstreamFailureException : Exception
     {
         public DownstreamFailureException(string source, int statusCode, string message)
             : base(message)

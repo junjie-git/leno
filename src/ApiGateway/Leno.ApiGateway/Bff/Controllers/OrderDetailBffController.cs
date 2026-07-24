@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Leno.ApiGateway.Bff.Dag;
 using Leno.ApiGateway.Bff.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,7 +8,10 @@ namespace Leno.ApiGateway.Bff.Controllers;
 /// <summary>
 /// 订单详情 BFF 聚合端点。
 /// <para>
-/// 并行调用 Order BC 的订单详情接口与物流轨迹接口，聚合返回 <see cref="OrderDetailBffResponse"/>。
+/// 4.3 迁移示例：从 <see cref="IBffForwarderService.ForwardAsync{T}"/>（Parallel.ForEachAsync 无依赖并行）
+/// 迁移到 <see cref="IBffForwarderService.ExecuteDagAsync"/>（DAG 编排引擎）。
+/// 两个下游请求（订单详情 + 物流轨迹）相互独立，DAG 引擎将它们在第一波并行执行，
+/// 等价于原 Parallel.ForEachAsync，同时获得 DAG 引擎的节点级超时与级联取消能力。
 /// </para>
 /// </summary>
 [ApiController]
@@ -19,18 +24,21 @@ public sealed class OrderDetailBffController : ControllerBase
     private const string OrderServiceBase = "http://order-api:8080";
 
     private readonly IBffForwarderService _forwarder;
+    private readonly BffDagNodeFactory _nodeFactory;
     private readonly ILogger<OrderDetailBffController> _logger;
 
     public OrderDetailBffController(
         IBffForwarderService forwarder,
+        BffDagNodeFactory nodeFactory,
         ILogger<OrderDetailBffController> logger)
     {
         _forwarder = forwarder ?? throw new ArgumentNullException(nameof(forwarder));
+        _nodeFactory = nodeFactory ?? throw new ArgumentNullException(nameof(nodeFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
-    /// 聚合查询订单详情与物流轨迹。
+    /// 聚合查询订单详情与物流轨迹（DAG 编排引擎）。
     /// </summary>
     /// <param name="orderId">订单 ID（GUID）。</param>
     /// <param name="ct">取消令牌。</param>
@@ -43,34 +51,44 @@ public sealed class OrderDetailBffController : ControllerBase
         CancellationToken ct)
     {
         var requestId = HttpContext.TraceIdentifier;
-        var requests = new BffDownstreamRequest[]
-        {
-            new()
-            {
-                Source = OrderDetailSource,
-                ServiceUrl = $"{OrderServiceBase}/api/orders/{orderId:D}"
-            },
-            new()
-            {
-                Source = OrderLogisticsSource,
-                ServiceUrl = $"{OrderServiceBase}/api/orders/{orderId:D}/logistics"
-            }
-        };
+
+        // 4.3：声明式 DAG 构建——两个无依赖节点在第一波并行执行
+        var graph = new AggregateBuilder()
+            .AddNode(_nodeFactory.CreateNode(
+                OrderDetailSource,
+                new BffDownstreamRequest
+                {
+                    Source = OrderDetailSource,
+                    ServiceUrl = $"{OrderServiceBase}/api/orders/{orderId:D}"
+                },
+                requestId))
+            .AddNode(_nodeFactory.CreateNode(
+                OrderLogisticsSource,
+                new BffDownstreamRequest
+                {
+                    Source = OrderLogisticsSource,
+                    ServiceUrl = $"{OrderServiceBase}/api/orders/{orderId:D}/logistics"
+                },
+                requestId))
+            .Build();
 
         _logger.LogInformation(
-            "BFF OrderDetail: forwarding {Count} downstream requests for orderId={OrderId}, requestId={RequestId}",
-            requests.Length, orderId, requestId);
+            "BFF OrderDetail (DAG): executing {Count} nodes for orderId={OrderId}, requestId={RequestId}",
+            graph.Count, orderId, requestId);
 
-        var response = await _forwarder.ForwardAsync(
-            requestId,
-            requests,
-            dict => new OrderDetailBffResponse
+        var result = await _forwarder.ExecuteDagAsync(graph, ct);
+
+        // 从 DAG 结果中提取节点结果，组装 BffResponse
+        return Ok(new BffResponse<OrderDetailBffResponse>
+        {
+            Success = result.Success,
+            Partial = result.Partial,
+            Data = new OrderDetailBffResponse
             {
-                Order = dict.GetValueOrDefault(OrderDetailSource),
-                Logistics = dict.GetValueOrDefault(OrderLogisticsSource)
+                Order = result.GetResult<JsonElement>(OrderDetailSource),
+                Logistics = result.GetResult<JsonElement>(OrderLogisticsSource)
             },
-            ct);
-
-        return Ok(response);
+            Errors = result.Errors
+        });
     }
 }

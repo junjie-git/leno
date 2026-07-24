@@ -1,14 +1,25 @@
+using Leno.ApiGateway.Bff.Dag;
 using Leno.ApiGateway.Bff.Models;
 
 namespace Leno.ApiGateway.Bff;
 
 /// <summary>
-/// BFF 聚合转发服务：并行调用多个下游服务，3 秒超时，部分失败返回 Partial=true + 错误明细。
+/// BFF 聚合转发服务：支持两种聚合模式。
+/// <list type="bullet">
+///   <item>
+///     <see cref="ForwardAsync{T}"/>：基于 <see cref="Parallel.ForEachAsync"/> 的无依赖并行聚合（特例保留）。
+///     适用于所有下游请求相互独立、可一次性并行调用的场景。
+///   </item>
+///   <item>
+///     <see cref="ExecuteDagAsync"/>：基于 <see cref="IDagOrchestrator"/> 的 DAG 编排引擎。
+///     适用于下游请求存在依赖链（如先查用户再查用户订单）的场景，自动拓扑排序 + 分波并行 + 级联超时。
+///   </item>
+/// </list>
 /// </summary>
 public interface IBffForwarderService
 {
     /// <summary>
-    /// 并行调用多个下游服务并聚合响应。
+    /// 并行调用多个下游服务并聚合响应（无依赖场景特例，基于 <see cref="Parallel.ForEachAsync"/>）。
     /// </summary>
     /// <typeparam name="T">聚合后的响应 DTO 类型。</typeparam>
     /// <param name="requestId">请求追踪标识（透传到下游 X-Request-Id 头）。</param>
@@ -31,6 +42,21 @@ public interface IBffForwarderService
         IReadOnlyList<BffDownstreamRequest> requests,
         Func<IReadOnlyDictionary<string, System.Text.Json.JsonElement?>, T> aggregator,
         CancellationToken ct = default) where T : class;
+
+    /// <summary>
+    /// 通过 DAG 编排引擎执行聚合图：自动拓扑排序、分波并行调度、节点超时级联取消。
+    /// <para>
+    /// 适用于下游请求存在依赖链的场景（如 user → order → items → snapshot）。
+    /// 无依赖场景也可使用此方法（所有节点第一波就绪，等价于 <see cref="ForwardAsync{T}"/>）。
+    /// </para>
+    /// </summary>
+    /// <param name="graph">通过 <see cref="AggregateBuilder.Build"/> 构建的聚合图。</param>
+    /// <param name="ct">调用方取消令牌。</param>
+    /// <returns>
+    /// <see cref="AggregateResult"/>：包含已完成节点结果字典与失败明细。
+    /// 调用方可通过 <see cref="AggregateResult.GetResult{T}(string)"/> 或直接访问 <see cref="AggregateResult.Results"/> 获取节点结果。
+    /// </returns>
+    Task<AggregateResult> ExecuteDagAsync(AggregateGraph graph, CancellationToken ct = default);
 }
 
 /// <summary>

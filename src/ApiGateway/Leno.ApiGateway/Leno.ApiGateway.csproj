@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Leno.ApiGateway.Tests" />
+    <InternalsVisibleTo Include="Leno.ApiGateway.Bff.Dag.Tests" />
   </ItemGroup>
 
 </Project>
