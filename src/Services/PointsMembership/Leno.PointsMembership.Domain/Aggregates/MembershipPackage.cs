@@ -8,6 +8,12 @@ namespace Leno.PointsMembership.Domain.Aggregates;
 /// 会员套餐聚合根，运营配置的可购买会员套餐，封装价格、时长、权益与状态的不变量。
 /// 聚合标识 <see cref="Entity.Id"/> 即对外 <c>PackageId</c>。
 /// </summary>
+/// <remarks>
+/// 双轨期弃用标记：此类型所属的 PointsMembership BC 已拆分为 Points BC + Membership BC（阶段四步骤 4.9）。
+/// 新代码请使用 <c>Leno.Membership.Domain.Aggregates.MembershipPackage.MembershipPackage</c>。
+/// 双轨期 8 周后下线整个 PointsMembership BC。
+/// </remarks>
+[Obsolete("PointsMembership BC 已拆分为 Points BC + Membership BC（阶段四步骤 4.9）。双轨期 8 周后下线。新代码请使用 Leno.Membership.Domain.Aggregates.MembershipPackage.MembershipPackage。", DiagnosticId = "LENO_PM_BC_SPLIT")]
 public sealed class MembershipPackage : AggregateRoot
 {
     /// <summary>套餐名称。</summary>

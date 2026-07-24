@@ -56,7 +56,9 @@ public sealed class PointsLedgerWriteTests
 
         var consumeLedger = account.Ledgers.Single(l => l.TxType == PointsTxType.Consume);
         consumeLedger.Amount.Should().Be(100);
-        consumeLedger.BalanceAfter.Should().Be(0);
+        // ConfirmDeduct 核销冻结余额，不重复扣减可用余额（Freeze 已扣减）。
+        // 可用余额仍为 Earn(200)-Freeze(100)=100，与新 Points BC 的 PointsBalance.ConfirmDeduct 行为一致。
+        consumeLedger.BalanceAfter.Should().Be(100);
     }
 
     [Fact]

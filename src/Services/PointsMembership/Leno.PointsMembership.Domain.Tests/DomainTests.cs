@@ -1473,9 +1473,10 @@ public class MemberGrowthValueTests
         member.EvaluateGrowthLevel(levels);
 
         member.CurrentGrowthLevel.Should().Be(2);
-        member.LevelChangeHistories.Should().HaveCount(1);
-        member.LevelChangeHistories[0].OldLevel.Should().Be(0);
-        member.LevelChangeHistories[0].NewLevel.Should().Be(2);
+        // AddGrowthValue 记录 1 条成长值累加历史（PM-M02），EvaluateGrowthLevel 升级再记录 1 条等级变更历史
+        member.LevelChangeHistories.Should().HaveCount(2);
+        member.LevelChangeHistories[1].OldLevel.Should().Be(0);
+        member.LevelChangeHistories[1].NewLevel.Should().Be(2);
         member.DomainEvents.Should().HaveCount(1);
     }
 
@@ -1493,7 +1494,8 @@ public class MemberGrowthValueTests
         member.EvaluateGrowthLevel(levels);
 
         member.CurrentGrowthLevel.Should().Be(0);
-        member.LevelChangeHistories.Should().BeEmpty();
+        // AddGrowthValue 记录 1 条成长值累加历史（PM-M02），等级未变 EvaluateGrowthLevel 不再追加
+        member.LevelChangeHistories.Should().HaveCount(1);
         member.DomainEvents.Should().BeEmpty();
     }
 
@@ -1516,7 +1518,8 @@ public class MemberGrowthValueTests
         member.EvaluateGrowthLevel(levels);
 
         member.CurrentGrowthLevel.Should().Be(3);
-        member.LevelChangeHistories.Should().HaveCount(2);
+        // 每轮 AddGrowthValue + EvaluateGrowthLevel(升级) 各记录 1 条，2 轮共 4 条
+        member.LevelChangeHistories.Should().HaveCount(4);
     }
 }
 

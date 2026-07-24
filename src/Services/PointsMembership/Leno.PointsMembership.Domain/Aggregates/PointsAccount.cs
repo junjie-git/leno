@@ -10,6 +10,12 @@ namespace Leno.PointsMembership.Domain.Aggregates;
 /// 聚合标识 <see cref="Entity.Id"/> 即对外 <c>AccountId</c>。
 /// 不变量：<see cref="Balance"/> + <see cref="FrozenBalance"/> ≥ 0（仅可自余额冻结）。
 /// </summary>
+/// <remarks>
+/// 双轨期弃用标记：此类型所属的 PointsMembership BC 已拆分为 Points BC + Membership BC（阶段四步骤 4.9）。
+/// 新代码请使用 <c>Leno.Points.Domain.Aggregates.PointsAccount.PointsAccount</c>。
+/// 双轨期 8 周后下线整个 PointsMembership BC。
+/// </remarks>
+[Obsolete("PointsMembership BC 已拆分为 Points BC + Membership BC（阶段四步骤 4.9）。双轨期 8 周后下线。新代码请使用 Leno.Points.Domain.Aggregates.PointsAccount.PointsAccount。", DiagnosticId = "LENO_PM_BC_SPLIT")]
 public sealed class PointsAccount : AggregateRoot
 {
     /// <summary>积分抵扣换算率：100 积分 = 1 元。</summary>

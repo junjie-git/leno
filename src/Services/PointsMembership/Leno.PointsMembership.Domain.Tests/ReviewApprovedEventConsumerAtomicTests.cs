@@ -49,7 +49,7 @@ public sealed class ReviewApprovedEventConsumerAtomicTests
         var dbMock = new Mock<IDatabase>();
         dbMock.Setup(d => d.StringIncrementAsync(It.IsAny<RedisKey>(), It.IsAny<long>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(1);
-        dbMock.Setup(d => d.KeyExpireAsync(It.IsAny<RedisKey>(), It.IsAny<TimeSpan?>(), It.IsAny<CommandFlags>()))
+        dbMock.Setup(d => d.KeyExpireAsync(It.IsAny<RedisKey>(), It.IsAny<TimeSpan?>(), It.IsAny<ExpireWhen>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
         redisMock.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>())).Returns(dbMock.Object);
 
@@ -71,7 +71,7 @@ public sealed class ReviewApprovedEventConsumerAtomicTests
             Times.Never);
         // 首次自增应设置过期时间
         dbMock.Verify(
-            d => d.KeyExpireAsync(It.IsAny<RedisKey>(), It.IsAny<TimeSpan?>(), It.IsAny<CommandFlags>()),
+            d => d.KeyExpireAsync(It.IsAny<RedisKey>(), It.IsAny<TimeSpan?>(), It.IsAny<ExpireWhen>(), It.IsAny<CommandFlags>()),
             Times.Once);
     }
 
