@@ -9,7 +9,7 @@ namespace Leno.Notification.Domain.Aggregates;
 /// 模板变量使用 {{variable}} 占位符语法，由 <c>ITemplateRenderer</c> 渲染。
 /// 聚合标识 <see cref="Entity.Id"/> 即对外 <c>TemplateId</c>。
 /// </summary>
-public sealed class NotificationTemplate : AggregateRoot
+public sealed class NotificationTemplate : AggregateRoot, ITenantEntity
 {
     /// <summary>模板编码（如 OrderCreated），同一编码每渠道仅一个启用模板。</summary>
     public string Code { get; private set; } = string.Empty;
@@ -36,6 +36,31 @@ public sealed class NotificationTemplate : AggregateRoot
     public Guid? OperatorId { get; private set; }
 
     /// <summary>
+    /// 租户 ID（多租户预留扩展位，4.7）。
+    /// <para>
+    /// 当前阶段默认 <c>null</c>（单租户模式 / 全局数据），由 <c>BaseDbContext</c> 全局查询过滤器保证默认行为不变。
+    /// DG-7 决策门通过后，由 <c>TenantQueryFilterInterceptor</c> 在保存时自动填充当前租户 ID。
+    /// </para>
+    /// </summary>
+    public Guid? TenantId { get; set; }
+
+    /// <summary>
+    /// 模板文化维度（国际化预留扩展位，DG-8 决策门通过后实际启用）。
+    /// <para>
+    /// 当前阶段默认 <c>null</c>，语义等同 <see cref="NotificationTemplateCulture.Default"/>（zh-CN），
+    /// 保证现有模板行为零变更。业务方确认海外扩展计划后，按 <c>TemplateCode + Culture</c> 维度
+    /// 创建多语言变体模板。
+    /// </para>
+    /// </summary>
+    public NotificationTemplateCulture? Culture { get; private set; }
+
+    /// <summary>
+    /// 模板生效文化（<see cref="Culture"/> 为 <c>null</c> 时回退到 <see cref="NotificationTemplateCulture.Default"/>）。
+    /// 供模板渲染与查询时统一获取文化维度，避免调用方重复处理 null 回退逻辑。
+    /// </summary>
+    public NotificationTemplateCulture EffectiveCulture => Culture ?? NotificationTemplateCulture.Default;
+
+    /// <summary>
     /// 模板变量列表，持久化为 JSON。
     /// </summary>
     private List<TemplateVariable> _variables = [];
@@ -52,6 +77,10 @@ public sealed class NotificationTemplate : AggregateRoot
     /// <summary>
     /// 工厂方法，创建启用态模板。
     /// </summary>
+    /// <param name="culture">
+    /// 模板文化维度（国际化预留扩展位）。为 <c>null</c> 时语义等同 zh-CN（默认行为不变），
+    /// DG-8 决策门通过后传入具体 <see cref="NotificationTemplateCulture"/> 创建多语言变体。
+    /// </param>
     public static NotificationTemplate Create(
         Guid templateId,
         string code,
@@ -62,7 +91,8 @@ public sealed class NotificationTemplate : AggregateRoot
         List<TemplateVariable> variables,
         string? smsTemplateCode = null,
         string? description = null,
-        Guid? operatorId = null)
+        Guid? operatorId = null,
+        NotificationTemplateCulture? culture = null)
     {
         ValidateCommon(templateId, code, name, channel, subject, body);
 
@@ -77,8 +107,22 @@ public sealed class NotificationTemplate : AggregateRoot
             SmsTemplateCode = smsTemplateCode,
             Description = description,
             OperatorId = operatorId,
+            Culture = culture,
             Status = TemplateStatus.Enabled
         };
+    }
+
+    /// <summary>
+    /// 更新模板文化维度（国际化预留扩展位）。
+    /// <para>
+    /// 当前阶段调用方通常不调用此方法（Culture 保持 <c>null</c> = zh-CN 默认行为）。
+    /// DG-8 决策门通过后，运营端按 <c>TemplateCode + Culture</c> 维度管理多语言变体时调用。
+    /// </para>
+    /// </summary>
+    /// <param name="culture">目标文化，为 <c>null</c> 时回退到默认 zh-CN 语义。</param>
+    public void UpdateCulture(NotificationTemplateCulture? culture)
+    {
+        Culture = culture;
     }
 
     /// <summary>
