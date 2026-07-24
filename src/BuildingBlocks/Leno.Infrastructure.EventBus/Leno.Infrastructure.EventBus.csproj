@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Leno.Infrastructure</RootNamespace>
+    <Description>Leno Infrastructure EventBus 子包：RabbitMQ + 幂等基类</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Leno.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="Leno.ApiGateway.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Leno.Infrastructure.Abstractions\Leno.Infrastructure.Abstractions.csproj" />
+    <ProjectReference Include="..\Leno.SharedKernel\Leno.SharedKernel.csproj" />
+    <ProjectReference Include="..\Leno.SharedContracts\Leno.SharedContracts.csproj" />
+    <ProjectReference Include="..\Leno.Infrastructure.Caching\Leno.Infrastructure.Caching.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MassTransit" Version="8.3.6" />
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.3.6" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Leno.Infrastructure</RootNamespace>
+    <Description>Leno Infrastructure ReadModel 子包：ES 读模型同步</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Leno.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="Leno.ApiGateway.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Leno.Infrastructure.Abstractions\Leno.Infrastructure.Abstractions.csproj" />
+    <ProjectReference Include="..\Leno.SharedKernel\Leno.SharedKernel.csproj" />
+    <ProjectReference Include="..\Leno.SharedContracts\Leno.SharedContracts.csproj" />
+    <ProjectReference Include="..\Leno.Infrastructure.EventBus\Leno.Infrastructure.EventBus.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Elastic.Clients.Elasticsearch" Version="8.17.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0" />
+  </ItemGroup>
+
+</Project>

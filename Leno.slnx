@@ -37,6 +37,14 @@
   <Folder Name="/src/" />
   <Folder Name="/src/BuildingBlocks/">
     <Project Path="src/BuildingBlocks/Leno.Infrastructure.Abstractions/Leno.Infrastructure.Abstractions.csproj" />
+    <Project Path="src/BuildingBlocks/Leno.Infrastructure.AntiCorruption/Leno.Infrastructure.AntiCorruption.csproj" />
+    <Project Path="src/BuildingBlocks/Leno.Infrastructure.Auth/Leno.Infrastructure.Auth.csproj" />
+    <Project Path="src/BuildingBlocks/Leno.Infrastructure.Caching/Leno.Infrastructure.Caching.csproj" />
+    <Project Path="src/BuildingBlocks/Leno.Infrastructure.EventBus/Leno.Infrastructure.EventBus.csproj" />
+    <Project Path="src/BuildingBlocks/Leno.Infrastructure.Persistence/Leno.Infrastructure.Persistence.csproj" />
+    <Project Path="src/BuildingBlocks/Leno.Infrastructure.RateLimiting/Leno.Infrastructure.RateLimiting.csproj" />
+    <Project Path="src/BuildingBlocks/Leno.Infrastructure.ReadModel/Leno.Infrastructure.ReadModel.csproj" />
+    <Project Path="src/BuildingBlocks/Leno.Infrastructure.Telemetry/Leno.Infrastructure.Telemetry.csproj" />
     <Project Path="src/BuildingBlocks/Leno.Infrastructure.Tests/Leno.Infrastructure.Tests.csproj" />
     <Project Path="src/BuildingBlocks/Leno.Infrastructure/Leno.Infrastructure.csproj" />
     <Project Path="src/BuildingBlocks/Leno.SharedContracts.Grpc/Leno.SharedContracts.Grpc.csproj" />
