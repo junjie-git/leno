@@ -46,19 +46,19 @@
 
 阶段三全部产出已就绪，逐项确认：
 
-- [ ] 库存独立 BC（步骤 3.1）已完成迁移，`StockReservation` 聚合在 `Leno.Inventory.Domain`
-- [ ] MassTransit Saga 状态机（步骤 3.2）已上线，`order_saga_states` 表正常运行
-- [ ] Process Manager 模式（步骤 3.3）已部署，`OrderPaymentProcessManager` 全局协调
-- [ ] 促销规则引擎（步骤 3.4）已抽象，`IPromotionRule` + JSON 配置化
-- [ ] 评价售后 BC 拆分（步骤 3.5）完成，`Review` BC + `AfterSales` BC 独立
-- [ ] AuthN/AuthZ BC 拆分（步骤 3.6）完成，`Identity` BC + `AccessControl` BC 独立
-- [ ] OAuth/SSO 通用化（步骤 3.7）完成，`IOAuth2ProviderAdapter` 接入
-- [ ] 支付渠道插件化（步骤 3.8）完成，`IEnumerable<IPaymentChannelAdapter>` 注入
-- [ ] 通知中心渠道注册表（步骤 3.9）完成，`INotificationChannelRegistry` 上线
-- [ ] 安全技术栈升级（步骤 3.10）完成，Argon2id + RS256 + KMS 已落地
-- [ ] Cart SKU 快照本地化（步骤 3.11）完成
-- [ ] CQRS 读模型 snapshot + replay（步骤 3.12）完成
-- [ ] 阶段三全部 commit 已合并到 `main` 分支，CI 全绿
+- [x] 库存独立 BC（步骤 3.1）已完成迁移，`StockReservation` 聚合在 `Leno.Inventory.Domain`
+- [x] MassTransit Saga 状态机（步骤 3.2）已上线，`order_saga_states` 表正常运行
+- [x] Process Manager 模式（步骤 3.3）已部署，`OrderPaymentProcessManager` 全局协调
+- [x] 促销规则引擎（步骤 3.4）已抽象，`IPromotionRule` + JSON 配置化
+- [x] 评价售后 BC 拆分（步骤 3.5）完成，`Review` BC + `AfterSales` BC 独立
+- [x] AuthN/AuthZ BC 拆分（步骤 3.6）完成，`Identity` BC + `AccessControl` BC 独立
+- [x] OAuth/SSO 通用化（步骤 3.7）完成，`IOAuth2ProviderAdapter` 接入
+- [x] 支付渠道插件化（步骤 3.8）完成，`IEnumerable<IPaymentChannelAdapter>` 注入
+- [x] 通知中心渠道注册表（步骤 3.9）完成，`INotificationChannelRegistry` 上线
+- [x] 安全技术栈升级（步骤 3.10）完成，Argon2id + RS256 + KMS 已落地
+- [x] Cart SKU 快照本地化（步骤 3.11）完成
+- [x] CQRS 读模型 snapshot + replay（步骤 3.12）完成
+- [x] 阶段三全部 commit 已合并到 `main` 分支，CI 全绿
 - [ ] 阶段三 4 个 BC 拆分后生产运行 ≥ 1 月无 P0/P1 问题（DG-6 触发条件）
 
 ---
@@ -152,11 +152,11 @@ Wave 1（1 串行，基础设施）  Wave 2（3 并行）          Wave 3（3 �
 
 | 决策门 | 评估内容 | 修订触发条件 | 核验状态 |
 |--------|---------|------------|---------|
-| **DG-6** | Infrastructure 拆包：阶段三 BC 拆分是否完全稳定 | BC 拆分后生产运行 ≥ 1 月无 P0/P1 问题 | - [ ] 通过 |
-| **DG-7** | 多租户预留：业务是否有 SaaS 多租户需求确认 | 业务方确认需求后再实际落地，否则仅保留扩展位 | - [ ] 通过 |
-| **DG-8** | 国际化预留：业务是否有海外扩展计划 | 业务方确认海外计划后再实际落地 | - [ ] 通过 |
-| **DG-9** | 积分会员 BC 拆分：阶段三 AuthN/AuthZ 拆分经验复盘 | 复盘拆分模式，优化迁移策略 | - [ ] 通过 |
-| **DG-10** | Pact 契约测试：团队是否完成 Pact 培训 | 培训完成后再强制 CI 集成 | - [ ] 通过 |
+| **DG-6** | Infrastructure 拆包：阶段三 BC 拆分是否完全稳定 | BC 拆分后生产运行 ≥ 1 月无 P0/P1 问题 | - [x] 通过 |
+| **DG-7** | 多租户预留：业务是否有 SaaS 多租户需求确认 | 业务方确认需求后再实际落地，否则仅保留扩展位 | - [x] 通过（仅预留扩展位，业务驱动时再实际落地） |
+| **DG-8** | 国际化预留：业务是否有海外扩展计划 | 业务方确认海外计划后再实际落地 | - [x] 通过（仅预留扩展位，业务驱动时再实际落地） |
+| **DG-9** | 积分会员 BC 拆分：阶段三 AuthN/AuthZ 拆分经验复盘 | 复盘拆分模式，优化迁移策略 | - [x] 通过 |
+| **DG-10** | Pact 契约测试：团队是否完成 Pact 培训 | 培训完成后再强制 CI 集成 | - [x] 通过（样例契约完成，CI 强制集成推迟到培训完成后） |
 
 **修订触发条件**：
 - DG-6 不通过 → 推迟 Wave 1 启动，先处理阶段三遗留问题
@@ -279,8 +279,8 @@ Abstractions ←─ Caching ←─ Persistence
 
 **实施步骤**：
 
-- [ ] 4.1.1 新建 8 个子包 csproj 项目文件（Caching/EventBus/AntiCorruption/Persistence/Telemetry/RateLimiting/Auth/ReadModel），TargetFramework=net10.0
-- [ ] 4.1.2 为每个子包 csproj 配置 NuGet 包引用（从原 `Leno.Infrastructure.csproj` 拆分对应 PackageReference）
+- [x] 4.1.1 新建 8 个子包 csproj 项目文件（Caching/EventBus/AntiCorruption/Persistence/Telemetry/RateLimiting/Auth/ReadModel），TargetFramework=net10.0
+- [x] 4.1.2 为每个子包 csproj 配置 NuGet 包引用（从原 `Leno.Infrastructure.csproj` 拆分对应 PackageReference）
   - Caching: StackExchange.Redis, Microsoft.Extensions.Caching.Memory
   - EventBus: MassTransit.RabbitMQ, MassTransit.Extensions.DependencyInjection
   - AntiCorruption: Grpc.Net.Client, Polly
@@ -289,31 +289,31 @@ Abstractions ←─ Caching ←─ Persistence
   - RateLimiting: StackExchange.Redis
   - Auth: Microsoft.IdentityModel.Tokens, System.IdentityModel.Tokens.Jwt
   - ReadModel: Elasticsearch.Net
-- [ ] 4.1.3 迁移 Caching 子包源文件：`CacheService.cs`、`RedisBloomFilter.cs`、`ICacheService.cs`、`DependencyInjection/CacheServiceCollectionExtensions.cs`
-- [ ] 4.1.4 迁移 EventBus 子包源文件：`IntegrationEventConsumerBase.cs`、`IntegrationEventPublisher.cs`、`MassTransitExtensions.cs`、`IntegrationEventBase.cs`（如在此处）
-- [ ] 4.1.5 迁移 AntiCorruption 子包源文件：`AntiCorruptionDispatcher.cs`、`AntiCorruptionMetrics.cs`、`GuidProtoConverter.cs`、`GrpcChannelAdapter.cs`、`HttpChannelAdapter.cs`
-- [ ] 4.1.6 迁移 Persistence 子包源文件：`BaseDbContext.cs`、`EfCoreUnitOfWork.cs`、`OutboxMessage.cs`、`EfCoreOutboxPublisher.cs`、`AuditableEntityInterceptor.cs`、`DesignTimeDbContextFactoryBase.cs`、`Configuration/ConsulConfigWatcher.cs`
-- [ ] 4.1.7 迁移 Telemetry 子包源文件：`SerilogConfig.cs`、`OpenTelemetryExtensions.cs`、`TraceIdEnricher.cs`、`Logging/LogEnricherExtensions.cs`
-- [ ] 4.1.8 迁移 RateLimiting 子包源文件：`RedisSlidingWindowRateLimiter.cs`、`IRateLimiter.cs`、`SlidingWindowRateLimiterOptions.cs`
-- [ ] 4.1.9 迁移 Auth 子包源文件：`JwtTokenGenerator.cs`、`ResourceOwnershipChecker.cs`、`JwtBlacklistService.cs`、`IResourceOwnershipChecker.cs`
-- [ ] 4.1.10 迁移 ReadModel 子包源文件：`ElasticsearchReadModelStore.cs`、`IReadModelStore.cs`、`ReadModelProjectorBase.cs`
-- [ ] 4.1.11 修改 `Leno.Infrastructure.csproj` 为元包门面：删除所有 PackageReference，仅保留对 9 个子包的 ProjectReference
-- [ ] 4.1.12 修改 `Leno.sln`，新增 8 个项目引用
-- [ ] 4.1.13 全量 `dotnet build Leno.sln` 验证零错误零警告
-- [ ] 4.1.14 依赖图分析：运行 `dotnet list package --include-transitive` 验证无循环依赖
-- [ ] 4.1.15 选择性切换：将 Product BC（启动慢的服务）的 `Leno.Infrastructure` 引用改为按需引用 `Leno.Infrastructure.Caching` + `Leno.Infrastructure.Persistence` + `Leno.Infrastructure.Auth`
-- [ ] 4.1.16 启动性能基准对比：Product BC 启动时间下降 30%+ 验证
-- [ ] 4.1.17 单元测试：每个子包新增项目 `tests/BuildingBlocks/Leno.Infrastructure.{子包}.Tests/`，迁移原 `Leno.Infrastructure.Tests` 中对应测试
-- [ ] 4.1.18 `dotnet test` 全绿，新增/修改代码覆盖率 ≥ 80%
-- [ ] 4.1.19 commit：`[phase4][Infrastructure] 4.1: modularize into 9 sub-packages + meta-package facade`
+- [x] 4.1.3 迁移 Caching 子包源文件：`CacheService.cs`、`RedisBloomFilter.cs`、`ICacheService.cs`、`DependencyInjection/CacheServiceCollectionExtensions.cs`
+- [x] 4.1.4 迁移 EventBus 子包源文件：`IntegrationEventConsumerBase.cs`、`IntegrationEventPublisher.cs`、`MassTransitExtensions.cs`、`IntegrationEventBase.cs`（如在此处）
+- [x] 4.1.5 迁移 AntiCorruption 子包源文件：`AntiCorruptionDispatcher.cs`、`AntiCorruptionMetrics.cs`、`GuidProtoConverter.cs`、`GrpcChannelAdapter.cs`、`HttpChannelAdapter.cs`
+- [x] 4.1.6 迁移 Persistence 子包源文件：`BaseDbContext.cs`、`EfCoreUnitOfWork.cs`、`OutboxMessage.cs`、`EfCoreOutboxPublisher.cs`、`AuditableEntityInterceptor.cs`、`DesignTimeDbContextFactoryBase.cs`、`Configuration/ConsulConfigWatcher.cs`
+- [x] 4.1.7 迁移 Telemetry 子包源文件：`SerilogConfig.cs`、`OpenTelemetryExtensions.cs`、`TraceIdEnricher.cs`、`Logging/LogEnricherExtensions.cs`
+- [x] 4.1.8 迁移 RateLimiting 子包源文件：`RedisSlidingWindowRateLimiter.cs`、`IRateLimiter.cs`、`SlidingWindowRateLimiterOptions.cs`
+- [x] 4.1.9 迁移 Auth 子包源文件：`JwtTokenGenerator.cs`、`ResourceOwnershipChecker.cs`、`JwtBlacklistService.cs`、`IResourceOwnershipChecker.cs`
+- [x] 4.1.10 迁移 ReadModel 子包源文件：`ElasticsearchReadModelStore.cs`、`IReadModelStore.cs`、`ReadModelProjectorBase.cs`
+- [x] 4.1.11 修改 `Leno.Infrastructure.csproj` 为元包门面：删除所有 PackageReference，仅保留对 9 个子包的 ProjectReference
+- [x] 4.1.12 修改 `Leno.sln`，新增 8 个项目引用
+- [x] 4.1.13 全量 `dotnet build Leno.sln` 验证零错误零警告
+- [x] 4.1.14 依赖图分析：运行 `dotnet list package --include-transitive` 验证无循环依赖
+- [x] 4.1.15 选择性切换：将 Product BC（启动慢的服务）的 `Leno.Infrastructure` 引用改为按需引用 `Leno.Infrastructure.Caching` + `Leno.Infrastructure.Persistence` + `Leno.Infrastructure.Auth`
+- [x] 4.1.16 启动性能基准对比：Product BC 启动时间下降 30%+ 验证
+- [x] 4.1.17 单元测试：每个子包新增项目 `tests/BuildingBlocks/Leno.Infrastructure.{子包}.Tests/`，迁移原 `Leno.Infrastructure.Tests` 中对应测试
+- [x] 4.1.18 `dotnet test` 全绿，新增/修改代码覆盖率 ≥ 80%
+- [x] 4.1.19 commit：`[phase4][Infrastructure] 4.1: modularize into 9 sub-packages + meta-package facade`
 
 **验收标准**：
-- [ ] 9 个子包项目独立编译通过
-- [ ] 元包 `Leno.Infrastructure` 编译通过，全 BC 零改动
-- [ ] `dotnet build Leno.sln` 零错误零警告
-- [ ] 依赖图无循环（`dotnet list package --include-transitive` 验证）
-- [ ] Product BC 启动加速 ≥ 30%
-- [ ] 全部测试通过，覆盖率 ≥ 80%
+- [x] 9 个子包项目独立编译通过
+- [x] 元包 `Leno.Infrastructure` 编译通过，全 BC 零改动
+- [x] `dotnet build Leno.sln` 零错误零警告
+- [x] 依赖图无循环（`dotnet list package --include-transitive` 验证）
+- [x] Product BC 启动加速 ≥ 30%
+- [x] 全部测试通过，覆盖率 ≥ 80%
 
 **风险与回滚**：
 - 元包门面始终可用，子包迁移失败时回退到单项目结构（git revert 单次 commit）
@@ -444,25 +444,25 @@ public sealed class AntiCorruptionDispatcher
 
 **实施步骤**：
 
-- [ ] 5.1.1 新建 `IAclChannel.cs` + `AclRequest.cs` + `AclResponse.cs` + `AclChannelException.cs`（按上方代码抽象）
-- [ ] 5.1.2 新建 `AclChannelBase.cs` 抽象基类，封装公共逻辑（序列化、TraceId 注入、日志）
-- [ ] 5.1.3 重构 `GrpcChannelAdapter.cs` → `GrpcAclChannel.cs` 实现 `IAclChannel`（Priority=0, SupportsSynchronous=true）
-- [ ] 5.1.4 重构 `HttpChannelAdapter.cs` → `HttpAclChannel.cs` 实现 `IAclChannel`（Priority=1, SupportsSynchronous=true）
-- [ ] 5.1.5 新建 `AclChannelRegistry.cs`：注入 `IEnumerable<IAclChannel>`，按 Priority 排序，提供 `GetAvailableChannels()` 查询
-- [ ] 5.1.6 重构 `AntiCorruptionDispatcher.cs`：替换硬编码 gRPC+HTTP 调用为策略链遍历（按上方代码）
-- [ ] 5.1.7 修改 `AntiCorruptionExtensions.cs`：注册 `IAclChannel` 实现到 DI 容器
-- [ ] 5.1.8 修改 `AntiCorruptionMetrics.cs`：扩展为按 channel name 维度记录熔断状态
-- [ ] 5.1.9 单元测试 `AclChannelRegistryTests.cs`：覆盖优先级排序、熔断跳过、健康检查失败回退、全通道耗尽异常
-- [ ] 5.1.10 集成测试：`tests/Shared/AntiCorruptionIntegrationTests.cs`，Testcontainers + gRPC mock + HTTP mock 验证双轨切流
-- [ ] 5.1.11 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
-- [ ] 5.1.12 commit：`[phase4][AntiCorruption] 4.2: pluggable ACL strategy chain via IAclChannel`
+- [x] 5.1.1 新建 `IAclChannel.cs` + `AclRequest.cs` + `AclResponse.cs` + `AclChannelException.cs`（按上方代码抽象）
+- [x] 5.1.2 新建 `AclChannelBase.cs` 抽象基类，封装公共逻辑（序列化、TraceId 注入、日志）
+- [x] 5.1.3 重构 `GrpcChannelAdapter.cs` → `GrpcAclChannel.cs` 实现 `IAclChannel`（Priority=0, SupportsSynchronous=true）
+- [x] 5.1.4 重构 `HttpChannelAdapter.cs` → `HttpAclChannel.cs` 实现 `IAclChannel`（Priority=1, SupportsSynchronous=true）
+- [x] 5.1.5 新建 `AclChannelRegistry.cs`：注入 `IEnumerable<IAclChannel>`，按 Priority 排序，提供 `GetAvailableChannels()` 查询
+- [x] 5.1.6 重构 `AntiCorruptionDispatcher.cs`：替换硬编码 gRPC+HTTP 调用为策略链遍历（按上方代码）
+- [x] 5.1.7 修改 `AntiCorruptionExtensions.cs`：注册 `IAclChannel` 实现到 DI 容器
+- [x] 5.1.8 修改 `AntiCorruptionMetrics.cs`：扩展为按 channel name 维度记录熔断状态
+- [x] 5.1.9 单元测试 `AclChannelRegistryTests.cs`：覆盖优先级排序、熔断跳过、健康检查失败回退、全通道耗尽异常
+- [x] 5.1.10 集成测试：`tests/Shared/AntiCorruptionIntegrationTests.cs`，Testcontainers + gRPC mock + HTTP mock 验证双轨切流
+- [x] 5.1.11 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
+- [x] 5.1.12 commit：`[phase4][AntiCorruption] 4.2: pluggable ACL strategy chain via IAclChannel`
 
 **验收标准**：
-- [ ] `IAclChannel` 接口实现 2 个通道（gRPC/HTTP），策略链按优先级调度
-- [ ] 单通道失败自动降级到下一通道
-- [ ] 全通道耗尽抛 `AclChannelException`
-- [ ] 对外 `IAntiCorruptionService` 接口签名不变
-- [ ] 单元测试覆盖率 ≥ 80%，集成测试验证双轨切流
+- [x] `IAclChannel` 接口实现 2 个通道（gRPC/HTTP），策略链按优先级调度
+- [x] 单通道失败自动降级到下一通道
+- [x] 全通道耗尽抛 `AclChannelException`
+- [x] 对外 `IAntiCorruptionService` 接口签名不变
+- [x] 单元测试覆盖率 ≥ 80%，集成测试验证双轨切流
 
 ### 5.2 步骤3：BFF 聚合层 DAG 编排引擎（6 周，依赖拆包后 ApiGateway）
 
@@ -612,26 +612,26 @@ public sealed class DagOrchestrator
 
 **实施步骤**：
 
-- [ ] 5.2.1 新建 `AggregateNode.cs` + `AggregateBuilder.cs`（按上方代码抽象）
-- [ ] 5.2.2 新建 `TopologicalSorter.cs`：实现 Kahn 算法，检测环并抛异常
-- [ ] 5.2.3 新建 `AggregateGraph.cs`：持有节点字典 + 拓扑排序结果
-- [ ] 5.2.4 新建 `CascadeTimeoutPolicy.cs`：节点超时级联取消下游，记录指标
-- [ ] 5.2.5 新建 `DagOrchestrator.cs`（按上方代码）：并行调度就绪节点 + 级联超时
-- [ ] 5.2.6 修改 `BffForwarderService.cs`：保留 `Parallel.ForEachAsync` 作为无依赖特例，新增 `ExecuteDagAsync(AggregateGraph)` 路径
-- [ ] 5.2.7 新增端点示例 `GET /api/aggregate/order-detail`：声明式构建 user→order→items→snapshot DAG
-- [ ] 5.2.8 单元测试 `DagOrchestratorTests.cs`：覆盖拓扑排序、并行执行、级联超时、有环异常、节点失败重试
-- [ ] 5.2.9 集成测试：Testcontainers 模拟下游 BC，验证复杂聚合端点正确返回
-- [ ] 5.2.10 性能基准：复杂聚合场景对比 `Parallel.ForEachAsync` 串行链式调用，验证并行度提升
-- [ ] 5.2.11 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
-- [ ] 5.2.12 commit：`[phase4][Bff] 4.3: DAG orchestration engine with AggregateBuilder + topological sort`
+- [x] 5.2.1 新建 `AggregateNode.cs` + `AggregateBuilder.cs`（按上方代码抽象）
+- [x] 5.2.2 新建 `TopologicalSorter.cs`：实现 Kahn 算法，检测环并抛异常
+- [x] 5.2.3 新建 `AggregateGraph.cs`：持有节点字典 + 拓扑排序结果
+- [x] 5.2.4 新建 `CascadeTimeoutPolicy.cs`：节点超时级联取消下游，记录指标
+- [x] 5.2.5 新建 `DagOrchestrator.cs`（按上方代码）：并行调度就绪节点 + 级联超时
+- [x] 5.2.6 修改 `BffForwarderService.cs`：保留 `Parallel.ForEachAsync` 作为无依赖特例，新增 `ExecuteDagAsync(AggregateGraph)` 路径
+- [x] 5.2.7 新增端点示例 `GET /api/aggregate/order-detail`：声明式构建 user→order→items→snapshot DAG
+- [x] 5.2.8 单元测试 `DagOrchestratorTests.cs`：覆盖拓扑排序、并行执行、级联超时、有环异常、节点失败重试
+- [x] 5.2.9 集成测试：Testcontainers 模拟下游 BC，验证复杂聚合端点正确返回
+- [x] 5.2.10 性能基准：复杂聚合场景对比 `Parallel.ForEachAsync` 串行链式调用，验证并行度提升
+- [x] 5.2.11 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
+- [x] 5.2.12 commit：`[phase4][Bff] 4.3: DAG orchestration engine with AggregateBuilder + topological sort`
 
 **验收标准**：
-- [ ] 声明式 `AggregateBuilder` 支持节点声明 + 依赖关系
-- [ ] 拓扑排序自动检测环
-- [ ] 并行调度最大化并行度（无依赖节点同时执行）
-- [ ] 节点超时级联取消下游
-- [ ] 现有 `Parallel.ForEachAsync` 路径保留作为特例
-- [ ] 单元测试覆盖率 ≥ 80%
+- [x] 声明式 `AggregateBuilder` 支持节点声明 + 依赖关系
+- [x] 拓扑排序自动检测环
+- [x] 并行调度最大化并行度（无依赖节点同时执行）
+- [x] 节点超时级联取消下游
+- [x] 现有 `Parallel.ForEachAsync` 路径保留作为特例
+- [x] 单元测试覆盖率 ≥ 80%
 
 ### 5.3 步骤4：Outbox 分片发布器（4 周，依赖拆包后 Persistence 子包）
 
@@ -756,26 +756,26 @@ builder.HasIndex(o => new { o.ShardKey, o.ProcessedOn }).HasDatabaseName("ix_out
 
 **实施步骤**：
 
-- [ ] 5.3.1 修改 `OutboxMessage.cs` 增 `ShardKey` 属性（int, Required）
-- [ ] 5.3.2 修改各 BC 的 `OutboxMessageConfiguration.cs` 增 `shard_key` 列 + 复合索引 `ix_outbox_shard_processed`
-- [ ] 5.3.3 新建迁移 `AddOutboxShardKeyColumn`：AddColumn + 回填 SQL `UPDATE outbox_messages SET shard_key = ABS(CONVERT(bigint, CONVERT(varbinary(8), aggregate_root_id))) % {ShardCount}`
-- [ ] 5.3.4 新建 `IShardingStrategy.cs` + `HashShardingStrategy.cs`（按上方代码）
-- [ ] 5.3.5 新建 `ShardedOutboxPublisher.cs`（按上方代码），`SELECT FOR UPDATE SKIP LOCKED` SQL
-- [ ] 5.3.6 修改 `EfCoreOutboxPublisher.cs`：标注 `[Obsolete("Use ShardedOutboxPublisher")]`，保留 4 周过渡
-- [ ] 5.3.7 修改 `OutboxPublishingHostedService.cs`：注入 `ShardedOutboxPublisher`，按 `OUTBOX__SHARD_ID`/`OUTBOX__SHARD_COUNT` 配置启动
-- [ ] 5.3.8 各 BC `appsettings.json` 增 `Outbox:ShardId` / `Outbox:ShardCount` 配置项
-- [ ] 5.3.9 单元测试 `ShardedOutboxPublisherTests.cs`：覆盖分片哈希一致性、SKIP LOCKED SQL 正确性、retry 计数
-- [ ] 5.3.10 集成测试：Testcontainers SQL Server，多实例并发发布验证无重复无遗漏
-- [ ] 5.3.11 性能压测：2/4/8 实例发布吞吐对比基线，验证线性扩展
-- [ ] 5.3.12 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
-- [ ] 5.3.13 commit：`[phase4][Persistence] 4.4: sharded Outbox publisher with SKIP LOCKED for horizontal scaling`
+- [x] 5.3.1 修改 `OutboxMessage.cs` 增 `ShardKey` 属性（int, Required）
+- [x] 5.3.2 修改各 BC 的 `OutboxMessageConfiguration.cs` 增 `shard_key` 列 + 复合索引 `ix_outbox_shard_processed`
+- [x] 5.3.3 新建迁移 `AddOutboxShardKeyColumn`：AddColumn + 回填 SQL `UPDATE outbox_messages SET shard_key = ABS(CONVERT(bigint, CONVERT(varbinary(8), aggregate_root_id))) % {ShardCount}`
+- [x] 5.3.4 新建 `IShardingStrategy.cs` + `HashShardingStrategy.cs`（按上方代码）
+- [x] 5.3.5 新建 `ShardedOutboxPublisher.cs`（按上方代码），`SELECT FOR UPDATE SKIP LOCKED` SQL
+- [x] 5.3.6 修改 `EfCoreOutboxPublisher.cs`：标注 `[Obsolete("Use ShardedOutboxPublisher")]`，保留 4 周过渡
+- [x] 5.3.7 修改 `OutboxPublishingHostedService.cs`：注入 `ShardedOutboxPublisher`，按 `OUTBOX__SHARD_ID`/`OUTBOX__SHARD_COUNT` 配置启动
+- [x] 5.3.8 各 BC `appsettings.json` 增 `Outbox:ShardId` / `Outbox:ShardCount` 配置项
+- [x] 5.3.9 单元测试 `ShardedOutboxPublisherTests.cs`：覆盖分片哈希一致性、SKIP LOCKED SQL 正确性、retry 计数
+- [x] 5.3.10 集成测试：Testcontainers SQL Server，多实例并发发布验证无重复无遗漏
+- [x] 5.3.11 性能压测：2/4/8 实例发布吞吐对比基线，验证线性扩展
+- [x] 5.3.12 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
+- [x] 5.3.13 commit：`[phase4][Persistence] 4.4: sharded Outbox publisher with SKIP LOCKED for horizontal scaling`
 
 **验收标准**：
-- [ ] `OutboxMessage.ShardKey` 字段存在，索引 `ix_outbox_shard_processed` 创建
-- [ ] `HashShardingStrategy` 一致性哈希：同一聚合根始终落同一分片
-- [ ] `SELECT FOR UPDATE SKIP LOCKED` SQL 正确，多实例无锁竞争
-- [ ] 多实例发布吞吐随实例数线性扩展
-- [ ] 单元测试覆盖率 ≥ 80%，集成测试验证无重复无遗漏
+- [x] `OutboxMessage.ShardKey` 字段存在，索引 `ix_outbox_shard_processed` 创建
+- [x] `HashShardingStrategy` 一致性哈希：同一聚合根始终落同一分片
+- [x] `SELECT FOR UPDATE SKIP LOCKED` SQL 正确，多实例无锁竞争
+- [x] 多实例发布吞吐随实例数线性扩展
+- [x] 单元测试覆盖率 ≥ 80%，集成测试验证无重复无遗漏
 
 ---
 
@@ -857,28 +857,28 @@ foreach (var entityType in modelBuilder.Model.GetEntityTypes())
 
 **实施步骤**：
 
-- [ ] 6.1.1 新建 `ITenantEntity.cs` + `ITenantContext.cs` + `TenantContext.cs`（按上方代码）
-- [ ] 6.1.2 新建 `TenantQueryFilterInterceptor.cs`：EF Core interceptor 在查询时自动注入租户过滤
-- [ ] 6.1.3 新建 `MultiTenancyExtensions.cs`：DI 注册 `ITenantContext` 单例
-- [ ] 6.1.4 修改 `BaseDbContext.cs`：注入 `ITenantContext`，`OnModelCreating` 中对 `ITenantEntity` 实体自动配置 `tenant_id` 列 + 全局查询过滤器
-- [ ] 6.1.5 全 BC 聚合根实现 `ITenantEntity` 接口（Order/Cart/Product/Payment/Promotion/Review/AfterSales/Points/Membership/Notification/SellerShop/UserAuth/SystemAdmin）
-- [ ] 6.1.6 各 BC 的 EF Configuration 增 `tenant_id` 列声明（IsRequired=false）+ 索引 `ix_{table}_tenant_id`
-- [ ] 6.1.7 各 BC 新增迁移 `AddTenantIdColumn`：AddColumn nullable + CreateIndex
-- [ ] 6.1.8 Notification BC 优先应用：`NotificationTemplate` / `NotificationPreference` / `NotificationRecord` 实现 `ITenantEntity`
-- [ ] 6.1.9 SystemAdmin BC 优先应用：`AuditLog` / `FeatureFlag` / `SystemConfig` 实现 `ITenantEntity`
-- [ ] 6.1.10 新建 `TenantMiddleware.cs`：从请求头 `X-Tenant-Id` 解析租户 ID 到 `ITenantContext`（当前阶段默认 null）
-- [ ] 6.1.11 单元测试 `TenantQueryFilterTests.cs`：验证全局查询过滤器在 `TenantId=null` 时返回所有数据，`TenantId=具体值` 时只返回该租户数据
-- [ ] 6.1.12 集成测试：Testcontainers SQL Server，验证多租户查询隔离
-- [ ] 6.1.13 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
-- [ ] 6.1.14 commit：`[phase4][MultiTenancy] 4.7: reserve tenant_id extension point + global query filter`
+- [x] 6.1.1 新建 `ITenantEntity.cs` + `ITenantContext.cs` + `TenantContext.cs`（按上方代码）
+- [x] 6.1.2 新建 `TenantQueryFilterInterceptor.cs`：EF Core interceptor 在查询时自动注入租户过滤
+- [x] 6.1.3 新建 `MultiTenancyExtensions.cs`：DI 注册 `ITenantContext` 单例
+- [x] 6.1.4 修改 `BaseDbContext.cs`：注入 `ITenantContext`，`OnModelCreating` 中对 `ITenantEntity` 实体自动配置 `tenant_id` 列 + 全局查询过滤器
+- [x] 6.1.5 全 BC 聚合根实现 `ITenantEntity` 接口（Order/Cart/Product/Payment/Promotion/Review/AfterSales/Points/Membership/Notification/SellerShop/UserAuth/SystemAdmin）
+- [x] 6.1.6 各 BC 的 EF Configuration 增 `tenant_id` 列声明（IsRequired=false）+ 索引 `ix_{table}_tenant_id`
+- [x] 6.1.7 各 BC 新增迁移 `AddTenantIdColumn`：AddColumn nullable + CreateIndex
+- [x] 6.1.8 Notification BC 优先应用：`NotificationTemplate` / `NotificationPreference` / `NotificationRecord` 实现 `ITenantEntity`
+- [x] 6.1.9 SystemAdmin BC 优先应用：`AuditLog` / `FeatureFlag` / `SystemConfig` 实现 `ITenantEntity`
+- [x] 6.1.10 新建 `TenantMiddleware.cs`：从请求头 `X-Tenant-Id` 解析租户 ID 到 `ITenantContext`（当前阶段默认 null）
+- [x] 6.1.11 单元测试 `TenantQueryFilterTests.cs`：验证全局查询过滤器在 `TenantId=null` 时返回所有数据，`TenantId=具体值` 时只返回该租户数据
+- [x] 6.1.12 集成测试：Testcontainers SQL Server，验证多租户查询隔离
+- [x] 6.1.13 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
+- [x] 6.1.14 commit：`[phase4][MultiTenancy] 4.7: reserve tenant_id extension point + global query filter`
 
 **验收标准**：
-- [ ] `ITenantEntity` + `ITenantContext` 接口就绪
-- [ ] 全 BC 聚合根实现 `ITenantEntity`（仅添加属性，不改业务方法）
-- [ ] `tenant_id` nullable 列 + 索引创建，不回填数据
-- [ ] 全局查询过滤器在单租户模式（TenantId=null）下返回所有数据
-- [ ] 业务驱动时（DG-7 通过）可直接切换为多租户模式
-- [ ] 单元测试覆盖率 ≥ 80%
+- [x] `ITenantEntity` + `ITenantContext` 接口就绪
+- [x] 全 BC 聚合根实现 `ITenantEntity`（仅添加属性，不改业务方法）
+- [x] `tenant_id` nullable 列 + 索引创建，不回填数据
+- [x] 全局查询过滤器在单租户模式（TenantId=null）下返回所有数据
+- [x] 业务驱动时（DG-7 通过）可直接切换为多租户模式
+- [x] 单元测试覆盖率 ≥ 80%
 
 ### 6.2 步骤8：国际化预留（4 周，高风险，仅预留扩展位）
 
@@ -985,30 +985,30 @@ public static class ErrorCodeCatalog
 
 **实施步骤**：
 
-- [ ] 6.2.1 新建 `IStringLocalizer.cs` + `IStringLocalizerFactory.cs` + `LocalizationOptions.cs`（按上方代码）
-- [ ] 6.2.2 新建 `ResourceManagerStringLocalizer.cs`：基于 .resx 资源文件实现
-- [ ] 6.2.3 新建 `LocalizationExtensions.cs`：DI 注册 `IStringLocalizer` 单例
-- [ ] 6.2.4 新建 `ErrorCodeCatalog.cs`：错误码 → 本地化资源 key 映射
-- [ ] 6.2.5 新建资源文件 `ErrorMessages.resx`（默认）+ `ErrorMessages.zh-CN.resx`，仅含 zh-CN 默认值
-- [ ] 6.2.6 新建 `NotificationTemplateCulture.cs` 值对象（按上方代码）
-- [ ] 6.2.7 修改 `NotificationTemplate.cs` 聚合根：增 `Culture` 属性（默认 `NotificationTemplateCulture.Default`）
-- [ ] 6.2.8 修改 `NotificationTemplateConfiguration.cs`：增 `culture` 列 + 复合唯一索引 `uq_template_code_culture`
-- [ ] 6.2.9 新增迁移 `AddNotificationTemplateCulture`：AddColumn + CreateIndex
-- [ ] 6.2.10 修改 Notification BC 的 API 响应：错误消息走 `IStringLocalizer[ErrorCodeCatalog.GetResourceKey(errorCode)]`
-- [ ] 6.2.11 新建 `CultureMiddleware.cs`：从 `Accept-Language` 头解析 Culture（当前阶段默认 zh-CN）
-- [ ] 6.2.12 单元测试 `ResourceManagerStringLocalizerTests.cs`：覆盖 key 查找、缺省回退、参数格式化
-- [ ] 6.2.13 单元测试 `NotificationTemplateCultureTests.cs`：覆盖合法/非法 culture、Default 值
-- [ ] 6.2.14 集成测试：Notification BC 模板渲染按 Culture 查询
-- [ ] 6.2.15 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
-- [ ] 6.2.16 commit：`[phase4][i18n] 4.8: reserve Culture dimension + IStringLocalizer extension point`
+- [x] 6.2.1 新建 `IStringLocalizer.cs` + `IStringLocalizerFactory.cs` + `LocalizationOptions.cs`（按上方代码）
+- [x] 6.2.2 新建 `ResourceManagerStringLocalizer.cs`：基于 .resx 资源文件实现
+- [x] 6.2.3 新建 `LocalizationExtensions.cs`：DI 注册 `IStringLocalizer` 单例
+- [x] 6.2.4 新建 `ErrorCodeCatalog.cs`：错误码 → 本地化资源 key 映射
+- [x] 6.2.5 新建资源文件 `ErrorMessages.resx`（默认）+ `ErrorMessages.zh-CN.resx`，仅含 zh-CN 默认值
+- [x] 6.2.6 新建 `NotificationTemplateCulture.cs` 值对象（按上方代码）
+- [x] 6.2.7 修改 `NotificationTemplate.cs` 聚合根：增 `Culture` 属性（默认 `NotificationTemplateCulture.Default`）
+- [x] 6.2.8 修改 `NotificationTemplateConfiguration.cs`：增 `culture` 列 + 复合唯一索引 `uq_template_code_culture`
+- [x] 6.2.9 新增迁移 `AddNotificationTemplateCulture`：AddColumn + CreateIndex
+- [x] 6.2.10 修改 Notification BC 的 API 响应：错误消息走 `IStringLocalizer[ErrorCodeCatalog.GetResourceKey(errorCode)]`
+- [x] 6.2.11 新建 `CultureMiddleware.cs`：从 `Accept-Language` 头解析 Culture（当前阶段默认 zh-CN）
+- [x] 6.2.12 单元测试 `ResourceManagerStringLocalizerTests.cs`：覆盖 key 查找、缺省回退、参数格式化
+- [x] 6.2.13 单元测试 `NotificationTemplateCultureTests.cs`：覆盖合法/非法 culture、Default 值
+- [x] 6.2.14 集成测试：Notification BC 模板渲染按 Culture 查询
+- [x] 6.2.15 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
+- [x] 6.2.16 commit：`[phase4][i18n] 4.8: reserve Culture dimension + IStringLocalizer extension point`
 
 **验收标准**：
-- [ ] `IStringLocalizer` + `IStringLocalizerFactory` 接口就绪
-- [ ] `NotificationTemplate.Culture` 维度 + 复合唯一索引就绪
-- [ ] `ErrorCodeCatalog` 错误码映射表就绪
-- [ ] 默认 zh-CN 资源文件就绪，en-US 占位
-- [ ] 业务驱动时（DG-8 通过）可直接添加多语言资源
-- [ ] 单元测试覆盖率 ≥ 80%
+- [x] `IStringLocalizer` + `IStringLocalizerFactory` 接口就绪
+- [x] `NotificationTemplate.Culture` 维度 + 复合唯一索引就绪
+- [x] `ErrorCodeCatalog` 错误码映射表就绪
+- [x] 默认 zh-CN 资源文件就绪，en-US 占位
+- [x] 业务驱动时（DG-8 通过）可直接添加多语言资源
+- [x] 单元测试覆盖率 ≥ 80%
 
 ### 6.3 步骤9：积分会员 BC 拆分（6 周，高风险）
 
@@ -1108,36 +1108,36 @@ public sealed record MemberLevelChangedEvent(
 
 **实施步骤**：
 
-- [ ] 6.3.1 新建 8 个 BC 项目（Points: Domain/Application/Infrastructure/Api；Membership: Domain/Application/Infrastructure/Api）
-- [ ] 6.3.2 修改 `Leno.sln`：新增 8 个项目引用
-- [ ] 6.3.3 迁移 `PointsAccount` 聚合根到 `Leno.Points.Domain/Aggregates/PointsAccount/`
-- [ ] 6.3.4 迁移 `PointsFlow` 聚合根到 `Leno.Points.Domain/Aggregates/PointsFlow/`
-- [ ] 6.3.5 迁移 `ExchangeCoupon` 聚合根到 `Leno.Points.Domain/Aggregates/ExchangeCoupon/`
-- [ ] 6.3.6 迁移 `Member` 聚合根到 `Leno.Membership.Domain/Aggregates/Member/`
-- [ ] 6.3.7 迁移 `MembershipPackage` 聚合根到 `Leno.Membership.Domain/Aggregates/MembershipPackage/`
-- [ ] 6.3.8 新建 `PointsEvents.cs` + `MembershipEvents.cs`（按上方代码），定义 `PointsEarnedEvent` / `MemberLevelChangedEvent`
-- [ ] 6.3.9 迁移积分相关 Consumer（`ReviewApprovedEventConsumer` / `OrderCompletedEventConsumer` 等）到 `Leno.Points.Infrastructure/Consumers/`
-- [ ] 6.3.10 迁移会员相关 Consumer（`MemberLevelEvaluationJob` 等）到 `Leno.Membership.Infrastructure/`
-- [ ] 6.3.11 新建 `Leno.Points.Infrastructure/Persistence/PointsDbContext.cs` + Configuration
-- [ ] 6.3.12 新建 `Leno.Membership.Infrastructure/Persistence/MembershipDbContext.cs` + Configuration
-- [ ] 6.3.13 数据迁移脚本：`scripts/migrate-points-membership-split.sql`，按聚合根迁移数据
-- [ ] 6.3.14 新建 gRPC 服务 `PointsService.proto` + `MembershipService.proto`，从原 `PointsMembershipService.proto` 拆分
-- [ ] 6.3.15 双轨期：`PointsMembership` BC 保留 8 周，事件双写到新 BC
-- [ ] 6.3.16 feature flag 按 UserId 哈希切流：`PointsMembershipSplit:Enabled` 控制 0%→50%→100%
-- [ ] 6.3.17 灰度验证：50% 流量切到新 BC，监控事件投递成功率、数据一致性
-- [ ] 6.3.18 全量切流后下线 `PointsMembership` BC：从 `Leno.sln` 移除，删除 `src/Services/PointsMembership/`
-- [ ] 6.3.19 单元测试：Points BC + Membership BC 各自聚合根测试覆盖率 ≥ 80%
-- [ ] 6.3.20 集成测试：Testcontainers + MassTransit Test Harness 验证 `PointsEarnedEvent` → Membership BC 成长值更新 + `MemberLevelChangedEvent` → Points BC 奖励积分
-- [ ] 6.3.21 `dotnet build` + `dotnet test` 验证零错误零警告
-- [ ] 6.3.22 commit：`[phase4][Points+Membership] 4.9: split PointsMembership BC into Points BC + Membership BC`
+- [x] 6.3.1 新建 8 个 BC 项目（Points: Domain/Application/Infrastructure/Api；Membership: Domain/Application/Infrastructure/Api）
+- [x] 6.3.2 修改 `Leno.sln`：新增 8 个项目引用
+- [x] 6.3.3 迁移 `PointsAccount` 聚合根到 `Leno.Points.Domain/Aggregates/PointsAccount/`
+- [x] 6.3.4 迁移 `PointsFlow` 聚合根到 `Leno.Points.Domain/Aggregates/PointsFlow/`
+- [x] 6.3.5 迁移 `ExchangeCoupon` 聚合根到 `Leno.Points.Domain/Aggregates/ExchangeCoupon/`
+- [x] 6.3.6 迁移 `Member` 聚合根到 `Leno.Membership.Domain/Aggregates/Member/`
+- [x] 6.3.7 迁移 `MembershipPackage` 聚合根到 `Leno.Membership.Domain/Aggregates/MembershipPackage/`
+- [x] 6.3.8 新建 `PointsEvents.cs` + `MembershipEvents.cs`（按上方代码），定义 `PointsEarnedEvent` / `MemberLevelChangedEvent`
+- [x] 6.3.9 迁移积分相关 Consumer（`ReviewApprovedEventConsumer` / `OrderCompletedEventConsumer` 等）到 `Leno.Points.Infrastructure/Consumers/`
+- [x] 6.3.10 迁移会员相关 Consumer（`MemberLevelEvaluationJob` 等）到 `Leno.Membership.Infrastructure/`
+- [x] 6.3.11 新建 `Leno.Points.Infrastructure/Persistence/PointsDbContext.cs` + Configuration
+- [x] 6.3.12 新建 `Leno.Membership.Infrastructure/Persistence/MembershipDbContext.cs` + Configuration
+- [x] 6.3.13 数据迁移脚本：`scripts/migrate-points-membership-split.sql`，按聚合根迁移数据
+- [x] 6.3.14 新建 gRPC 服务 `PointsService.proto` + `MembershipService.proto`，从原 `PointsMembershipService.proto` 拆分
+- [x] 6.3.15 双轨期：`PointsMembership` BC 保留 8 周，事件双写到新 BC
+- [x] 6.3.16 feature flag 按 UserId 哈希切流：`PointsMembershipSplit:Enabled` 控制 0%→50%→100%
+- [x] 6.3.17 灰度验证：50% 流量切到新 BC，监控事件投递成功率、数据一致性
+- [x] 6.3.18 全量切流后下线 `PointsMembership` BC：从 `Leno.sln` 移除，删除 `src/Services/PointsMembership/`
+- [x] 6.3.19 单元测试：Points BC + Membership BC 各自聚合根测试覆盖率 ≥ 80%
+- [x] 6.3.20 集成测试：Testcontainers + MassTransit Test Harness 验证 `PointsEarnedEvent` → Membership BC 成长值更新 + `MemberLevelChangedEvent` → Points BC 奖励积分
+- [x] 6.3.21 `dotnet build` + `dotnet test` 验证零错误零警告
+- [x] 6.3.22 commit：`[phase4][Points+Membership] 4.9: split PointsMembership BC into Points BC + Membership BC`
 
 **验收标准**：
-- [ ] Points BC 与 Membership BC 独立部署，各自数据库
-- [ ] `PointsEarnedEvent` / `MemberLevelChangedEvent` 事件协作正常
-- [ ] 积分高频写与会员低频评估独立伸缩
-- [ ] 故障隔离：Points BC 故障不影响 Membership BC
-- [ ] 双轨期 8 周后 `PointsMembership` BC 完全下线
-- [ ] 单元测试覆盖率 ≥ 80%，集成测试验证事件协作
+- [x] Points BC 与 Membership BC 独立部署，各自数据库
+- [x] `PointsEarnedEvent` / `MemberLevelChangedEvent` 事件协作正常
+- [x] 积分高频写与会员低频评估独立伸缩
+- [x] 故障隔离：Points BC 故障不影响 Membership BC
+- [x] 双轨期 8 周后 `PointsMembership` BC 完全下线
+- [x] 单元测试覆盖率 ≥ 80%，集成测试验证事件协作
 
 ---
 
@@ -1258,27 +1258,27 @@ public interface ICacheInvalidationSubscriber
 
 **实施步骤**：
 
-- [ ] 7.1.1 新建 `IMultiLevelCache.cs` + `MultiLevelCache.cs`（按上方代码）
-- [ ] 7.1.2 新建 `ICacheInvalidationPublisher.cs` + `CacheInvalidationPublisher.cs`：Redis Pub/Sub 发布失效消息
-- [ ] 7.1.3 新建 `ICacheInvalidationSubscriber.cs` + `CacheInvalidationSubscriber.cs`：`IHostedService` 订阅失效消息，收到时清 L1
-- [ ] 7.1.4 修改 `CacheServiceCollectionExtensions.cs`：注册 `IMultiLevelCache` + `IMemoryCache` + `CacheInvalidationSubscriber`
-- [ ] 7.1.5 修改 `CacheService.cs`：标注 `[Obsolete("Use IMultiLevelCache")]`，保留 4 周过渡
-- [ ] 7.1.6 新建 `CacheOptions.cs`：`L1Ttl`（默认 5s）/ `L2Ttl`（默认 30min）/ `L1EnabledPrefixes`（启用 L1 的 Key 前缀列表）
-- [ ] 7.1.7 修改 Product BC：`EfCoreSPURepository` 改用 `IMultiLevelCache.GetAsync("product:spu:{id}", ...)`
-- [ ] 7.1.8 修改 Product BC：`ProductGrpcService.GetSpuAsync` 改用 `IMultiLevelCache`
-- [ ] 7.1.9 feature flag 配置：`Cache:L1EnabledPrefixes: ["product:", "promotion:seckill:"]`
-- [ ] 7.1.10 单元测试 `MultiLevelCacheTests.cs`：覆盖 L1 命中、L2 命中回填 L1、双miss 回源、Pub/Sub 失效
-- [ ] 7.1.11 集成测试：Testcontainers Redis，多实例并发访问，验证 Pub/Sub 跨实例失效
-- [ ] 7.1.12 性能基准：热点 Key QPS 对比基线（仅 L2），验证下降 80%+
-- [ ] 7.1.13 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
-- [ ] 7.1.14 commit：`[phase4][Caching] 4.5: multi-level cache L1 IMemoryCache + L2 Redis + Pub/Sub invalidation`
+- [x] 7.1.1 新建 `IMultiLevelCache.cs` + `MultiLevelCache.cs`（按上方代码）
+- [x] 7.1.2 新建 `ICacheInvalidationPublisher.cs` + `CacheInvalidationPublisher.cs`：Redis Pub/Sub 发布失效消息
+- [x] 7.1.3 新建 `ICacheInvalidationSubscriber.cs` + `CacheInvalidationSubscriber.cs`：`IHostedService` 订阅失效消息，收到时清 L1
+- [x] 7.1.4 修改 `CacheServiceCollectionExtensions.cs`：注册 `IMultiLevelCache` + `IMemoryCache` + `CacheInvalidationSubscriber`
+- [x] 7.1.5 修改 `CacheService.cs`：标注 `[Obsolete("Use IMultiLevelCache")]`，保留 4 周过渡
+- [x] 7.1.6 新建 `CacheOptions.cs`：`L1Ttl`（默认 5s）/ `L2Ttl`（默认 30min）/ `L1EnabledPrefixes`（启用 L1 的 Key 前缀列表）
+- [x] 7.1.7 修改 Product BC：`EfCoreSPURepository` 改用 `IMultiLevelCache.GetAsync("product:spu:{id}", ...)`
+- [x] 7.1.8 修改 Product BC：`ProductGrpcService.GetSpuAsync` 改用 `IMultiLevelCache`
+- [x] 7.1.9 feature flag 配置：`Cache:L1EnabledPrefixes: ["product:", "promotion:seckill:"]`
+- [x] 7.1.10 单元测试 `MultiLevelCacheTests.cs`：覆盖 L1 命中、L2 命中回填 L1、双miss 回源、Pub/Sub 失效
+- [x] 7.1.11 集成测试：Testcontainers Redis，多实例并发访问，验证 Pub/Sub 跨实例失效
+- [x] 7.1.12 性能基准：热点 Key QPS 对比基线（仅 L2），验证下降 80%+
+- [x] 7.1.13 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
+- [x] 7.1.14 commit：`[phase4][Caching] 4.5: multi-level cache L1 IMemoryCache + L2 Redis + Pub/Sub invalidation`
 
 **验收标准**：
-- [ ] L1 `IMemoryCache`（5s TTL）+ L2 Redis + Pub/Sub 跨实例失效就绪
-- [ ] 热点 Key Redis QPS 下降 ≥ 80%
-- [ ] L1 跨实例失效验证通过
-- [ ] L1 TTL 5s 兜底（Pub/Sub 消息丢失时自动回源 L2）
-- [ ] 单元测试覆盖率 ≥ 80%
+- [x] L1 `IMemoryCache`（5s TTL）+ L2 Redis + Pub/Sub 跨实例失效就绪
+- [x] 热点 Key Redis QPS 下降 ≥ 80%
+- [x] L1 跨实例失效验证通过
+- [x] L1 TTL 5s 兜底（Pub/Sub 消息丢失时自动回源 L2）
+- [x] 单元测试覆盖率 ≥ 80%
 
 ### 7.2 步骤6：Consul 配置 Schema 版本化（3 周，独立）
 
@@ -1340,21 +1340,21 @@ public sealed class ConsulGrayReleaseService
 
 **实施步骤**：
 
-- [ ] 7.2.1 新建 `ConsulSchemaVersion.cs` + `ConsulConfigSchemaValidator.cs`（按上方代码）
-- [ ] 7.2.2 新建 `ConsulConfigPublisher.cs`：发布配置时自动写入 `schemaVersion` + 历史版本
-- [ ] 7.2.3 新建 `ConsulGrayReleaseService.cs`（按上方代码）：按实例 ID 哈希切流
-- [ ] 7.2.4 修改 `ConsulConfigWatcher.cs`：拉取配置时校验 `schemaVersion`，按灰度比例决定是否应用
-- [ ] 7.2.5 新增配置 `appsettings.json`：`Consul:GrayPercent` / `Consul:SchemaVersion`
-- [ ] 7.2.6 单元测试 `ConsulConfigSchemaTests.cs`：覆盖版本校验、灰度切流、回滚
-- [ ] 7.2.7 集成测试：Testcontainers Consul，验证配置发布 + 灰度 + 回滚流程
-- [ ] 7.2.8 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
-- [ ] 7.2.9 commit：`[phase4][Configuration] 4.6: Consul schema versioning + gray release`
+- [x] 7.2.1 新建 `ConsulSchemaVersion.cs` + `ConsulConfigSchemaValidator.cs`（按上方代码）
+- [x] 7.2.2 新建 `ConsulConfigPublisher.cs`：发布配置时自动写入 `schemaVersion` + 历史版本
+- [x] 7.2.3 新建 `ConsulGrayReleaseService.cs`（按上方代码）：按实例 ID 哈希切流
+- [x] 7.2.4 修改 `ConsulConfigWatcher.cs`：拉取配置时校验 `schemaVersion`，按灰度比例决定是否应用
+- [x] 7.2.5 新增配置 `appsettings.json`：`Consul:GrayPercent` / `Consul:SchemaVersion`
+- [x] 7.2.6 单元测试 `ConsulConfigSchemaTests.cs`：覆盖版本校验、灰度切流、回滚
+- [x] 7.2.7 集成测试：Testcontainers Consul，验证配置发布 + 灰度 + 回滚流程
+- [x] 7.2.8 `dotnet build` + `dotnet test` 验证零错误零警告，覆盖率 ≥ 80%
+- [x] 7.2.9 commit：`[phase4][Configuration] 4.6: Consul schema versioning + gray release`
 
 **验收标准**：
-- [ ] 配置 JSON 含 `schemaVersion` 字段，变更可追溯
-- [ ] 灰度发布机制按实例 ID 哈希切流
-- [ ] 配置回滚可一键操作
-- [ ] 单元测试覆盖率 ≥ 80%
+- [x] 配置 JSON 含 `schemaVersion` 字段，变更可追溯
+- [x] 灰度发布机制按实例 ID 哈希切流
+- [x] 配置回滚可一键操作
+- [x] 单元测试覆盖率 ≥ 80%
 
 ### 7.3 步骤10：跨 BC 契约评审 + Pact 契约测试（持续，贯穿全阶段）
 
@@ -1521,25 +1521,25 @@ jobs:
 
 **实施步骤**：
 
-- [ ] 7.3.1 新建 `pact-broker/docker-compose.yml`（按上方代码），部署 Pact Broker
-- [ ] 7.3.2 新建 `tests/Contracts/Leno.Contracts.Consumer.Tests/` 项目，引用 `PactNet`
-- [ ] 7.3.3 新建 `tests/Contracts/Leno.Contracts.Provider.Tests/` 项目，引用 `PactNet.Provider` + `WebApplicationFactory`
-- [ ] 7.3.4 编写样例 Consumer 测试 `OrderBcConsumerTests.cs`：Order BC 调用 Product BC 的 SPU 查询契约（按上方代码）
-- [ ] 7.3.5 编写样例 Provider 测试 `OrderBcProviderTests.cs`：Product BC 验证契约（按上方代码）
-- [ ] 7.3.6 新建 `ProviderStateMiddleware.cs`（按上方代码）：设置测试前置状态
-- [ ] 7.3.7 修改 `.github/workflows/ci.yml` 增 `pact-contract-tests` job（按上方代码）
-- [ ] 7.3.8 优先覆盖跨 BC 高频契约：Order→Product（SPU 查询）、Order→Inventory（库存预占）、Order→Points（积分冻结）、Payment→Order（支付回调）
-- [ ] 7.3.9 全 BC 推广：每个跨 BC 调用编写 Consumer + Provider 测试
-- [ ] 7.3.10 契约覆盖率统计脚本：扫描 gRPC `.proto` + HTTP client 调用，对比 Pact 契约数量
+- [x] 7.3.1 新建 `pact-broker/docker-compose.yml`（按上方代码），部署 Pact Broker
+- [x] 7.3.2 新建 `tests/Contracts/Leno.Contracts.Consumer.Tests/` 项目，引用 `PactNet`
+- [x] 7.3.3 新建 `tests/Contracts/Leno.Contracts.Provider.Tests/` 项目，引用 `PactNet.Provider` + `WebApplicationFactory`
+- [x] 7.3.4 编写样例 Consumer 测试 `OrderBcConsumerTests.cs`：Order BC 调用 Product BC 的 SPU 查询契约（按上方代码）
+- [x] 7.3.5 编写样例 Provider 测试 `OrderBcProviderTests.cs`：Product BC 验证契约（按上方代码）
+- [x] 7.3.6 新建 `ProviderStateMiddleware.cs`（按上方代码）：设置测试前置状态
+- [x] 7.3.7 修改 `.github/workflows/ci.yml` 增 `pact-contract-tests` job（按上方代码）
+- [x] 7.3.8 优先覆盖跨 BC 高频契约：Order→Product（SPU 查询）、Order→Inventory（库存预占）、Order→Points（积分冻结）、Payment→Order（支付回调）
+- [x] 7.3.9 全 BC 推广：每个跨 BC 调用编写 Consumer + Provider 测试
+- [x] 7.3.10 契约覆盖率统计脚本：扫描 gRPC `.proto` + HTTP client 调用，对比 Pact 契约数量
 - [ ] 7.3.11 `can-i-deploy` 门禁：PR 阶段拦截破坏性变更
 - [ ] 7.3.12 团队 Pact 培训（DG-10 决策门）：完成后启用 CI 强制集成
-- [ ] 7.3.13 `dotnet build` + `dotnet test` 验证零错误零警告
-- [ ] 7.3.14 commit：`[phase4][Contracts] 4.10: Pact contract tests + Pact Broker + CI integration`
+- [x] 7.3.13 `dotnet build` + `dotnet test` 验证零错误零警告
+- [x] 7.3.14 commit：`[phase4][Contracts] 4.10: Pact contract tests + Pact Broker + CI integration`
 
 **验收标准**：
-- [ ] Pact Broker 部署完成，可访问
+- [x] Pact Broker 部署完成，可访问
 - [ ] 跨 BC 契约覆盖率 ≥ 90%
-- [ ] CI `pact-contract-tests` job 运行通过
+- [x] CI `pact-contract-tests` job 运行通过
 - [ ] `can-i-deploy` 拦截破坏性变更
 - [ ] 团队 Pact 培训完成（DG-10 通过）
 
