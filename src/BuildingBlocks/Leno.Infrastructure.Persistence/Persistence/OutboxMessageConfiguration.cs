@@ -30,6 +30,14 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
             .HasDefaultValue(1)
             .IsRequired();
 
+        // 4.4 Outbox 分片发布器：聚合根 ID + 分片键
+        builder.Property(o => o.AggregateRootId).HasColumnName("aggregate_root_id");
+        builder.Property(o => o.ShardKey).HasColumnName("shard_key").HasDefaultValue(0).IsRequired();
+
         builder.HasIndex(o => o.Status).HasDatabaseName("ix_outbox_messages_status");
+
+        // 4.4：分片键 + 处理状态复合索引，供 ShardedOutboxPublisher 按本实例分片号拉取 pending 消息
+        builder.HasIndex(o => new { o.ShardKey, o.Status })
+            .HasDatabaseName("ix_outbox_shard_status");
     }
 }

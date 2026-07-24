@@ -29,6 +29,9 @@ namespace Leno.Infrastructure.Outbox;
 /// </para>
 /// </summary>
 /// <typeparam name="TDbContext">承载发件箱表的 DbContext 类型。</typeparam>
+[Obsolete("4.4 Outbox 分片发布器：多实例部署请改用 ShardedOutboxPublisher<TDbContext>，" +
+          "通过 SELECT ... WITH (UPDLOCK, ROWLOCK, READPAST) 行级锁避免多实例重复发布，" +
+          "发布吞吐随实例数线性扩展。双轨期 4 周后本类将移除。")]
 public class OutboxPublisher<TDbContext> : BackgroundService
     where TDbContext : DbContext
 {

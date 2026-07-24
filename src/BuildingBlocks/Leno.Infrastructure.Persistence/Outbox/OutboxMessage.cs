@@ -43,6 +43,21 @@ public class OutboxMessage
     /// <summary>事件模式版本号（M4.2），从 IntegrationEventBase.SchemaVersion 复制；非 IntegrationEventBase 派生事件默认 1。</summary>
     public int SchemaVersion { get; private set; }
 
+    /// <summary>
+    /// 聚合根 ID（4.4 Outbox 分片发布器）。
+    /// 用于 <see cref="IShardingStrategy"/> 计算分片键，保证同一聚合根的事件始终落到同一分片，
+    /// 从而由同一实例顺序发布，避免跨实例乱序。
+    /// 历史数据无聚合根 ID 时默认 <see cref="Guid.Empty"/>，分片键按 0 计算（向后兼容）。
+    /// </summary>
+    public Guid AggregateRootId { get; private set; }
+
+    /// <summary>
+    /// 分片键（4.4 Outbox 分片发布器）。
+    /// 由 <see cref="IShardingStrategy.ComputeShard"/> 按 <see cref="AggregateRootId"/> 计算，
+    /// 范围 0..ShardCount-1。<see cref="ShardedOutboxPublisher{TDbContext}"/> 仅处理 ShardKey 等于当前实例分片号的消息。
+    /// </summary>
+    public int ShardKey { get; private set; }
+
     private OutboxMessage() { }
 
     public static OutboxMessage Create(IIntegrationEvent integrationEvent)
@@ -57,7 +72,41 @@ public class OutboxMessage
             Payload = JsonSerializer.Serialize(integrationEvent, eventType),
             OccurredAt = integrationEvent.OccurredAt == default ? DateTime.UtcNow : integrationEvent.OccurredAt,
             Status = OutboxMessageStatus.Pending,
-            SchemaVersion = integrationEvent is IntegrationEventBase baseEvt ? baseEvt.SchemaVersion : 1
+            SchemaVersion = integrationEvent is IntegrationEventBase baseEvt ? baseEvt.SchemaVersion : 1,
+            AggregateRootId = Guid.Empty,
+            ShardKey = 0
+        };
+    }
+
+    /// <summary>
+    /// 创建带分片信息的发件箱消息（4.4 Outbox 分片发布器）。
+    /// </summary>
+    /// <param name="integrationEvent">集成事件。</param>
+    /// <param name="aggregateRootId">聚合根 ID，作为分片哈希输入；<see cref="Guid.Empty"/> 表示无聚合根（按 0 分片）。</param>
+    /// <param name="shardingStrategy">分片策略；null 时落到分片 0（兼容单实例模式）。</param>
+    /// <param name="shardCount">分片总数；&lt;=1 时落到分片 0。</param>
+    public static OutboxMessage Create(
+        IIntegrationEvent integrationEvent,
+        Guid aggregateRootId,
+        IShardingStrategy? shardingStrategy,
+        int shardCount)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+        var eventType = integrationEvent.GetType();
+        var shardKey = shardingStrategy is null || shardCount <= 1
+            ? 0
+            : shardingStrategy.ComputeShard(aggregateRootId, shardCount);
+
+        return new OutboxMessage
+        {
+            Id = Guid.NewGuid(),
+            Type = eventType.FullName ?? eventType.AssemblyQualifiedName ?? eventType.Name,
+            Payload = JsonSerializer.Serialize(integrationEvent, eventType),
+            OccurredAt = integrationEvent.OccurredAt == default ? DateTime.UtcNow : integrationEvent.OccurredAt,
+            Status = OutboxMessageStatus.Pending,
+            SchemaVersion = integrationEvent is IntegrationEventBase baseEvt ? baseEvt.SchemaVersion : 1,
+            AggregateRootId = aggregateRootId,
+            ShardKey = shardKey
         };
     }
 
