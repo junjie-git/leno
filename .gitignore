@@ -29,3 +29,6 @@ appsettings.Docker.json
 *.key
 *.pem
 docker-compose.override.yml
+
+# Pact 契约文件（Consumer 测试生成至 pacts/，CI 中由 consumer→provider 顺序产出）
+pacts/

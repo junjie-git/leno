@@ -1,0 +1,43 @@
+# Pact Broker 部署（阶段 4.10：跨 BC 契约评审 + Pact 契约测试）
+#
+# 本地启动：docker compose -f pact-broker/docker-compose.yml up -d
+# 访问地址：http://localhost:9292 （Basic Auth: pact / pact_password）
+#
+# 用途：
+#   1. Consumer 测试生成 pact 文件后，通过 pact-cli publish 推送到 Broker
+#   2. Provider 测试从 Broker 拉取 pact 文件进行验证
+#   3. can-i-deploy 检查：CI 中判断当前版本是否可安全部署
+#
+# 生产环境请勿使用此处的明文密码，应通过环境变量或 Secret 管理注入。
+services:
+  postgres:
+    image: postgres:15
+    container_name: pact-postgres
+    environment:
+      POSTGRES_DB: pact
+      POSTGRES_USER: pact
+      POSTGRES_PASSWORD: pact_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pact -d pact"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pact-broker:
+    image: pactfoundation/pact-broker:2.108.0
+    container_name: pact-broker
+    ports:
+      - "9292:9292"
+    environment:
+      PACT_BROKER_DATABASE_URL: postgres://pact:pact_password@postgres:5432/pact
+      PACT_BROKER_BASIC_AUTH_USERNAME: pact
+      PACT_BROKER_BASIC_AUTH_PASSWORD: pact_password
+      PACT_BROKER_LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

@@ -284,3 +284,66 @@ jobs:
       - name: Cleanup
         if: always()
         run: docker compose down -v
+
+  # ===========================================================================
+  # 阶段 4.10：Pact 跨 BC 契约测试
+  #
+  # DG-10 决策门约束：团队 Pact 培训完成前，本 job 设为 continue-on-error: true（非阻塞）。
+  # 当前阶段仅完成样例契约（Order BC → Product BC SPU/SKU 查询）与基础设施搭建，
+  # CI 强制集成（can-i-deploy 阻断部署）推迟到培训完成后将 continue-on-error 改为 false。
+  #
+  # 流程：Consumer 测试生成 pact →（可选）发布到 Pact Broker → Provider 验证 →（可选）can-i-deploy
+  # Pact Broker 未配置 secrets 前，发布与 can-i-deploy 步骤自动跳过，不影响 Consumer/Provider 本地验证。
+  # ===========================================================================
+  pact-contract-tests:
+    name: Pact 契约测试 (Consumer/Provider)
+    runs-on: ubuntu-latest
+    continue-on-error: true  # DG-10：培训完成前非阻塞，完成后改为 false 启用强制集成
+    env:
+      PACT_BROKER_URL: ${{ secrets.PACT_BROKER_URL }}
+      PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # 1. Consumer 测试：生成 pact 契约文件至仓库根 pacts/
+      - name: Run consumer tests (生成 pact 文件)
+        run: dotnet test tests/Contracts/Leno.Contracts.Consumer.Tests --configuration Release --logger trx
+
+      # 2. 发布 pact 到 Pact Broker（仅当 Broker secrets 已配置时执行）
+      - name: Publish pacts to broker
+        if: ${{ env.PACT_BROKER_URL != '' && env.PACT_BROKER_TOKEN != '' }}
+        run: |
+          docker run --rm -v $(pwd)/pacts:/pacts pactfoundation/pact-cli:latest \
+            publish /pacts \
+            --broker-base-url "$PACT_BROKER_URL" \
+            --broker-token "$PACT_BROKER_TOKEN"
+
+      # 3. Provider 验证：读取本地 pact 文件验证 Product BC 契约遵从性
+      - name: Verify provider contracts
+        run: dotnet test tests/Contracts/Leno.Contracts.Provider.Tests --configuration Release --logger trx
+
+      # 4. can-i-deploy 检查（仅当 Broker secrets 已配置时执行；DG-10 前仅作展示，不阻断）
+      - name: Check can-i-deploy
+        if: ${{ env.PACT_BROKER_URL != '' && env.PACT_BROKER_TOKEN != '' }}
+        run: |
+          docker run --rm pactfoundation/pact-cli:latest \
+            broker can-i-deploy \
+            --pacticipant "Order BC" \
+            --version ${{ github.sha }} \
+            --broker-base-url "$PACT_BROKER_URL" \
+            --broker-token "$PACT_BROKER_TOKEN"
+
+      - name: Upload pact test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pact-test-results
+          path: |
+            **/TestResults/*.trx
+            pacts/*.json
+          retention-days: 14

@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    阶段 4.10：跨 BC 契约 Provider 测试项目。
+    Provider（Product BC）通过 PactVerifier 验证自身实现对 Consumer（Order BC）契约的遵从性。
+
+    重要：PactNet 5.x 的 Rust 内核无法调用 in-memory TestServer / WebApplicationFactory，
+    必须在真实 TCP socket 上托管 Provider API（见 README "Verifying a Provider" 节），
+    因此本项目通过 Host.CreateDefaultBuilder().ConfigureWebHostDefaults() 启动真实 Kestrel 实例，
+    而非使用 WebApplicationFactory。Microsoft.AspNetCore.Mvc.Testing 引用按任务要求保留，
+    供后续如需对真实 Product.Api 做集成级 Provider 验证扩展使用。
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PactNet" Version="$(PactNetVersion)" />
+    <PackageReference Include="xunit" Version="$(XUnitVersion)" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="$(XUnitRunnerVersion)">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" Version="$(FluentAssertionsVersion)" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="coverlet.collector" Version="$(CoverletVersion)">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>
