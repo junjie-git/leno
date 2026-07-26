@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日签到 - Leno 买家端</title>
+<style>
+:root{
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:#EDEDED;max-width:375px;margin:0 auto;min-height:100vh;position:relative;box-shadow:0 0 24px rgba(0,0,0,.12);-webkit-font-smoothing:antialiased;line-height:1.5715;}
+.app{background:#F7F8FA;min-height:100vh;padding-bottom:var(--s8);}
+
+.nav-bar{position:sticky;top:0;z-index:50;height:46px;display:flex;align-items:center;background:var(--n1);border-bottom:1px solid var(--n3);padding:0 var(--s2);}
+.nav-bar__back{display:flex;align-items:center;justify-content:center;width:32px;height:32px;color:var(--n10);}
+.nav-bar__title{flex:1;text-align:center;font-size:var(--fs-lg);font-weight:var(--fw-medium);margin-right:32px;}
+
+.content{padding:var(--s3);}
+
+/* 签到状态卡 */
+.checkin-card{background:linear-gradient(135deg,#1677FF 0%,#0958D9 100%);color:#fff;border-radius:var(--r-lg);padding:var(--s6) var(--s4);position:relative;overflow:hidden;box-shadow:0 6px 16px rgba(9,88,217,.28);}
+.checkin-card::before{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.18) 0%,rgba(255,255,255,0) 70%);}
+.checkin-card__label{font-size:var(--fs-sm);opacity:.9;display:flex;align-items:center;gap:var(--s1);}
+.checkin-card__streak{font-size:var(--fs-3xl);font-weight:var(--fw-semibold);margin-top:var(--s1);line-height:1.1;}
+.checkin-card__streak small{font-size:var(--fs-base);font-weight:var(--fw-normal);opacity:.9;}
+.checkin-card__sub{font-size:var(--fs-sm);opacity:.85;margin-top:var(--s1);}
+.checkin-btn{margin-top:var(--s4);width:100%;border:none;border-radius:999px;padding:13px 0;font-size:var(--fs-lg);font-weight:var(--fw-semibold);font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:var(--s2);position:relative;z-index:1;}
+.checkin-btn--active{background:#fff;color:var(--c-primary);box-shadow:0 4px 10px rgba(0,0,0,.12);}
+.checkin-btn--done{background:rgba(255,255,255,.32);color:#fff;cursor:default;}
+
+/* 连签奖励进度 */
+.card{background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s4);margin-top:var(--s3);}
+.card__title{font-size:var(--fs-base);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s1);}
+.card__sub{font-size:var(--fs-sm);color:var(--n7);margin-left:auto;}
+.reward-row{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--s1);margin-top:var(--s3);}
+.reward-day{display:flex;flex-direction:column;align-items:center;gap:var(--s1);}
+.reward-day__num{width:34px;height:34px;border-radius:50%;background:var(--n3);display:flex;align-items:center;justify-content:center;color:var(--n7);font-size:var(--fs-sm);font-weight:var(--fw-medium);position:relative;}
+.reward-day__pts{font-size:10px;color:var(--n7);}
+.reward-day--done .reward-day__num{background:var(--c-primary);color:#fff;}
+.reward-day--done .reward-day__pts{color:var(--c-primary);font-weight:var(--fw-medium);}
+.reward-day--current .reward-day__num{background:var(--c-success);color:#fff;box-shadow:0 0 0 3px rgba(82,196,26,.2);}
+.reward-day--current .reward-day__pts{color:var(--c-success);font-weight:var(--fw-semibold);}
+.reward-day--bonus .reward-day__num{background:linear-gradient(135deg,#FAAD14,#D48806);color:#fff;}
+.reward-day--bonus .reward-day__pts{color:#D48806;font-weight:var(--fw-semibold);}
+.reward-day__check{position:absolute;bottom:-2px;right:-2px;}
+.reward-line{display:flex;align-items:center;margin-top:var(--s3);}
+.reward-line__bar{flex:1;height:4px;background:var(--n3);border-radius:2px;position:relative;}
+.reward-line__fill{position:absolute;left:0;top:0;height:100%;background:var(--c-primary);border-radius:2px;}
+
+/* 日历 */
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin:var(--s4) var(--s1) var(--s3);}
+.cal-head__month{font-size:var(--fs-base);font-weight:var(--fw-semibold);}
+.cal-week{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s2);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-cell{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:var(--fs-base);color:var(--n10);position:relative;border-radius:var(--r-base);}
+.cal-cell--empty{visibility:hidden;}
+.cal-cell--muted{color:var(--n5);}
+.cal-cell--checked{color:var(--c-primary);font-weight:var(--fw-medium);}
+.cal-cell--checked .cal-dot{position:absolute;bottom:5px;width:5px;height:5px;border-radius:50%;background:var(--c-primary);}
+.cal-cell--today{background:var(--c-primary);color:#fff;border-radius:var(--r-base);font-weight:var(--fw-semibold);}
+.cal-cell--today .cal-dot{background:#fff;}
+.cal-cell--future{color:var(--n5);}
+.cal-foot{margin-top:var(--s3);display:flex;align-items:center;justify-content:center;gap:var(--s6);font-size:var(--fs-sm);color:var(--n7);}
+.cal-legend{display:flex;align-items:center;gap:var(--s1);}
+.cal-legend__dot{width:8px;height:8px;border-radius:50%;}
+
+/* 规则 */
+.rules{background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s4);margin-top:var(--s3);}
+.rules__title{font-size:var(--fs-base);font-weight:var(--fw-semibold);margin-bottom:var(--s2);}
+.rules__item{display:flex;gap:var(--s2);font-size:var(--fs-sm);color:var(--n9);padding:5px 0;}
+.rules__item::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--c-primary);margin-top:8px;flex-shrink:0;}
+
+/* 签到成功弹层 */
+.popup-wrap{background:rgba(0,0,0,.45);border-radius:var(--r-lg);padding:var(--s8) var(--s4);margin-top:var(--s3);}
+.popup{background:var(--n1);border-radius:var(--r-lg);overflow:hidden;text-align:center;position:relative;padding-bottom:var(--s4);}
+.popup__close{position:absolute;top:var(--s2);right:var(--s2);color:var(--n7);}
+.popup__star{margin:var(--s4) auto var(--s2);}
+.popup__title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);}
+.popup__pts{color:#D48806;font-size:var(--fs-2xl);font-weight:var(--fw-semibold);margin:var(--s1) 0;}
+.popup__pts small{font-size:var(--fs-base);}
+.popup__desc{font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s3);}
+.popup__btn{background:linear-gradient(135deg,#FAAD14,#D48806);color:#fff;border:none;border-radius:999px;padding:10px 0;width:100%;font-size:var(--fs-base);font-weight:var(--fw-semibold);font-family:inherit;cursor:pointer;}
+
+/* 状态 */
+.state-box{border:1px dashed var(--n5);border-radius:var(--r-lg);background:var(--n1);margin-top:var(--s4);}
+.state-head{font-size:var(--fs-sm);color:var(--n7);background:var(--n2);padding:6px var(--s3);border-bottom:1px solid var(--n3);}
+.sk{background:linear-gradient(90deg,#f0f0f0 25%,#e3e3e3 37%,#f0f0f0 63%);background-size:400% 100%;animation:sk 1.4s ease infinite;border-radius:var(--r-base);}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.error{padding:var(--s8) var(--s4);text-align:center;}
+.error__icon{width:64px;height:64px;margin:0 auto var(--s3);}
+.error__title{font-size:var(--fs-base);color:var(--n9);margin:0 0 var(--s3);}
+.btn{display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:var(--r-base);font-family:inherit;font-size:var(--fs-base);font-weight:var(--fw-medium);padding:8px 16px;cursor:pointer;}
+.btn--outline{background:#fff;color:var(--c-primary);border:1px solid var(--c-primary);}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="nav-bar">
+    <div class="nav-bar__back" aria-label="返回">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12.5 4L6.5 10L12.5 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="nav-bar__title">每日签到</div>
+  </div>
+
+  <div class="content">
+    <!-- 签到状态卡（已签到态） -->
+    <div class="checkin-card" role="region" aria-label="签到状态">
+      <div class="checkin-card__label">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="3" width="10" height="9" rx="1" stroke="#fff" stroke-width="1.1"/><path d="M2 5.5h10M5 2v2M9 2v2" stroke="#fff" stroke-width="1.1" stroke-linecap="round"/></svg>
+        已连续签到
+      </div>
+      <div class="checkin-card__streak">7 <small>天</small></div>
+      <div class="checkin-card__sub">今日已签到，获得 +5 积分，连续 7 天额外 +50 积分已到账</div>
+      <button class="checkin-btn checkin-btn--done" aria-label="今日已签到获得 5 积分">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" fill="rgba(255,255,255,.25)"/><path d="M5.5 9l2.2 2.2L12.5 6.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        已签到 +5
+      </button>
+    </div>
+
+    <!-- 连续签到奖励进度 -->
+    <div class="card">
+      <div class="card__title">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 4.5 5 .5-3.5 3.5L12.5 15 8 12.5 3.5 15l1-5.5L1 6l5-.5L8 1z" stroke="#FAAD14" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        连续签到奖励
+        <span class="card__sub">连签 7 天额外 +50</span>
+      </div>
+      <div class="reward-row">
+        <div class="reward-day reward-day--done">
+          <div class="reward-day__num">1<span class="reward-day__check"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6.2l2 2L9 3.8" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          <div class="reward-day__pts">+5</div>
+        </div>
+        <div class="reward-day reward-day--done">
+          <div class="reward-day__num">2<span class="reward-day__check"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6.2l2 2L9 3.8" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          <div class="reward-day__pts">+5</div>
+        </div>
+        <div class="reward-day reward-day--done">
+          <div class="reward-day__num">3<span class="reward-day__check"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6.2l2 2L9 3.8" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          <div class="reward-day__pts">+5</div>
+        </div>
+        <div class="reward-day reward-day--done">
+          <div class="reward-day__num">4<span class="reward-day__check"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6.2l2 2L9 3.8" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          <div class="reward-day__pts">+5</div>
+        </div>
+        <div class="reward-day reward-day--done">
+          <div class="reward-day__num">5<span class="reward-day__check"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6.2l2 2L9 3.8" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          <div class="reward-day__pts">+5</div>
+        </div>
+        <div class="reward-day reward-day--done">
+          <div class="reward-day__num">6<span class="reward-day__check"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6.2l2 2L9 3.8" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          <div class="reward-day__pts">+5</div>
+        </div>
+        <div class="reward-day reward-day--current reward-day--bonus">
+          <div class="reward-day__num">7<span class="reward-day__check"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6.2l2 2L9 3.8" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+          <div class="reward-day__pts">+55</div>
+        </div>
+      </div>
+      <div class="reward-line">
+        <div class="reward-line__bar"><div class="reward-line__fill" style="width:100%;"></div></div>
+      </div>
+    </div>
+
+    <!-- 本月日历 -->
+    <div class="card">
+      <div class="cal-head">
+        <div class="cal-head__month">2026 年 7 月</div>
+        <div style="display:flex;gap:var(--s2);color:var(--n7);">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="cal-week">
+        <div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div>
+      </div>
+      <div class="cal-grid" role="grid" aria-label="2026年7月签到日历">
+        <!-- 第1行: 1(三)2(四)3(五)4(六)5(日) -->
+        <div class="cal-cell cal-cell--empty"></div><div class="cal-cell cal-cell--empty"></div>
+        <div class="cal-cell cal-cell--muted">1</div>
+        <div class="cal-cell cal-cell--muted">2</div>
+        <div class="cal-cell cal-cell--muted">3</div>
+        <div class="cal-cell cal-cell--muted">4</div>
+        <div class="cal-cell cal-cell--muted">5</div>
+        <!-- 第2行: 6-12 -->
+        <div class="cal-cell cal-cell--muted">6</div>
+        <div class="cal-cell cal-cell--muted">7</div>
+        <div class="cal-cell cal-cell--muted">8</div>
+        <div class="cal-cell cal-cell--muted">9</div>
+        <div class="cal-cell cal-cell--muted">10</div>
+        <div class="cal-cell cal-cell--muted">11</div>
+        <div class="cal-cell cal-cell--muted">12</div>
+        <!-- 第3行: 13-19 -->
+        <div class="cal-cell cal-cell--muted">13</div>
+        <div class="cal-cell cal-cell--muted">14</div>
+        <div class="cal-cell cal-cell--muted">15</div>
+        <div class="cal-cell cal-cell--muted">16</div>
+        <div class="cal-cell cal-cell--muted">17</div>
+        <div class="cal-cell cal-cell--muted">18</div>
+        <div class="cal-cell cal-cell--muted">19</div>
+        <!-- 第4行: 20-26 (已签到 20-26) -->
+        <div class="cal-cell cal-cell--checked">20<span class="cal-dot"></span></div>
+        <div class="cal-cell cal-cell--checked">21<span class="cal-dot"></span></div>
+        <div class="cal-cell cal-cell--checked">22<span class="cal-dot"></span></div>
+        <div class="cal-cell cal-cell--checked">23<span class="cal-dot"></span></div>
+        <div class="cal-cell cal-cell--checked">24<span class="cal-dot"></span></div>
+        <div class="cal-cell cal-cell--checked">25<span class="cal-dot"></span></div>
+        <div class="cal-cell cal-cell--today">26<span class="cal-dot"></span></div>
+        <!-- 第5行: 27-31 -->
+        <div class="cal-cell cal-cell--future">27</div>
+        <div class="cal-cell cal-cell--future">28</div>
+        <div class="cal-cell cal-cell--future">29</div>
+        <div class="cal-cell cal-cell--future">30</div>
+        <div class="cal-cell cal-cell--future">31</div>
+        <div class="cal-cell cal-cell--empty"></div>
+        <div class="cal-cell cal-cell--empty"></div>
+      </div>
+      <div class="cal-foot">
+        <div class="cal-legend"><span class="cal-legend__dot" style="background:var(--c-primary);"></span>已签到</div>
+        <div class="cal-legend"><span class="cal-legend__dot" style="background:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.25);"></span>今日</div>
+        <div class="cal-legend"><span class="cal-legend__dot" style="background:var(--n5);"></span>未签到</div>
+      </div>
+    </div>
+
+    <!-- 签到规则 -->
+    <div class="rules" role="list">
+      <div class="rules__title">签到规则</div>
+      <div class="rules__item" role="listitem">每日签到获得 5 积分，积分即时到账</div>
+      <div class="rules__item" role="listitem">连续签到 7 天，第 7 天额外奖励 50 积分</div>
+      <div class="rules__item" role="listitem">签到中断后连续天数重新计算，已获积分不受影响</div>
+      <div class="rules__item" role="listitem">每日仅可签到一次，当日 24:00 后视为次日签到</div>
+    </div>
+
+    <!-- 未签到态按钮样例 -->
+    <div class="state-box" style="margin-top:var(--s6);">
+      <div class="state-head">未签到态（按钮可点击）</div>
+      <div style="padding:var(--s4);background:linear-gradient(135deg,#1677FF,#0958D9);border-radius:0 0 var(--r-lg) var(--r-lg);">
+        <div style="color:#fff;font-size:var(--fs-sm);opacity:.9;">已连续签到</div>
+        <div style="color:#fff;font-size:var(--fs-3xl);font-weight:600;line-height:1.1;margin-top:4px;">6 <span style="font-size:var(--fs-base);font-weight:400;">天</span></div>
+        <button class="checkin-btn checkin-btn--active" style="margin-top:var(--s4);position:static;">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="3.5" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 7h12M6.5 2v3M11.5 2v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          今日签到 +5
+        </button>
+      </div>
+    </div>
+
+    <!-- 签到成功弹层 -->
+    <div class="state-box">
+      <div class="state-head">签到成功弹层</div>
+      <div class="popup-wrap" style="margin:0;border-radius:0;">
+        <div class="popup">
+          <div class="popup__close">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#F5F5F5"/><path d="M7 7l6 6M13 7l-6 6" stroke="#8C8C8C" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <svg class="popup__star" width="64" height="64" viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="32" r="30" fill="#FFF7E6"/>
+            <path d="M32 8l6.5 13.5L53 24l-10.5 10 2.5 15L32 41l-13 8 2.5-15L11 24l14.5-2.5L32 8z" fill="#FAAD14" stroke="#D48806" stroke-width="1.4" stroke-linejoin="round"/>
+            <path d="M24 32l6 6 10-12" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="popup__title">签到成功</div>
+          <div class="popup__pts"><small>+</small>55 <small>积分</small></div>
+          <div class="popup__desc">连续签到第 7 天，额外奖励 50 积分已到账</div>
+          <button class="popup__btn">开心收下</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 错误态 -->
+    <div class="state-box">
+      <div class="state-head">错误态（签到失败）</div>
+      <div class="error">
+        <svg class="error__icon" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="28" stroke="#FF4D4F" stroke-width="2" stroke-opacity=".3"/>
+          <path d="M32 18v14" stroke="#FF4D4F" stroke-width="2.6" stroke-linecap="round"/>
+          <circle cx="32" cy="42" r="2" fill="#FF4D4F"/>
+        </svg>
+        <div class="error__title">签到失败，请稍后重试</div>
+        <button class="btn btn--outline">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="margin-right:4px;"><path d="M11 7a4 4 0 1 1-1.2-2.8M11 2.5V5H8.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          重新签到
+        </button>
+      </div>
+    </div>
+
+    <!-- 骨架屏 -->
+    <div class="state-box">
+      <div class="state-head">加载骨架屏（状态卡 + 进度 + 日历）</div>
+      <div style="padding:var(--s3);">
+        <div class="sk" style="height:150px;border-radius:var(--r-lg);"></div>
+        <div class="sk" style="height:96px;margin-top:var(--s3);"></div>
+        <div class="sk" style="height:200px;margin-top:var(--s3);"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

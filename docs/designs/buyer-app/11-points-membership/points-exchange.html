@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>积分兑换 - Leno 买家端</title>
+<style>
+:root{
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:#EDEDED;max-width:375px;margin:0 auto;min-height:100vh;position:relative;box-shadow:0 0 24px rgba(0,0,0,.12);-webkit-font-smoothing:antialiased;line-height:1.5715;}
+.app{background:#F7F8FA;min-height:100vh;padding-bottom:var(--s8);}
+
+.nav-bar{position:sticky;top:0;z-index:50;height:46px;display:flex;align-items:center;background:var(--n1);border-bottom:1px solid var(--n3);padding:0 var(--s2);}
+.nav-bar__back{display:flex;align-items:center;justify-content:center;width:32px;height:32px;color:var(--n10);}
+.nav-bar__title{flex:1;text-align:center;font-size:var(--fs-lg);font-weight:var(--fw-medium);margin-right:32px;}
+.nav-bar__right{display:flex;align-items:center;font-size:var(--fs-sm);color:var(--c-primary);}
+
+/* 余额条 */
+.balance-bar{background:linear-gradient(135deg,#1677FF 0%,#0958D9 100%);color:#fff;padding:var(--s4);display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden;}
+.balance-bar::after{content:"";position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.18) 0%,rgba(255,255,255,0) 70%);}
+.balance-bar__left{display:flex;align-items:baseline;gap:var(--s1);position:relative;z-index:1;}
+.balance-bar__value{font-size:var(--fs-xl);font-weight:var(--fw-semibold);}
+.balance-bar__unit{font-size:var(--fs-sm);opacity:.9;}
+.balance-bar__conv{font-size:var(--fs-sm);opacity:.85;position:relative;z-index:1;}
+.balance-bar__right{display:flex;align-items:center;gap:var(--s1);background:rgba(255,255,255,.2);border-radius:999px;padding:5px 12px;font-size:var(--fs-sm);position:relative;z-index:1;}
+
+.content{padding:var(--s3);}
+
+/* 分类标题 */
+.section-title{display:flex;align-items:center;gap:var(--s2);margin:var(--s3) var(--s1) var(--s3);font-size:var(--fs-base);font-weight:var(--fw-semibold);}
+.section-title__bar{width:3px;height:14px;background:var(--c-primary);border-radius:2px;}
+.section-title__sub{font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal);margin-left:auto;}
+
+/* 兑换网格 */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);}
+.ex-card{background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);overflow:hidden;display:flex;flex-direction:column;}
+.ex-img{height:120px;display:flex;align-items:center;justify-content:center;position:relative;}
+.ex-img--coupon{background:linear-gradient(135deg,#FFF1F0 0%,#FFE7E6 100%);}
+.ex-img--towel{background:linear-gradient(135deg,#E6F0FF 0%,#D6E4FF 100%);}
+.ex-img--earphone{background:linear-gradient(135deg,#F3E8FF 0%,#E5D0FF 100%);}
+.ex-img--cup{background:linear-gradient(135deg,#FFF7E6 0%,#FFE7BA 100%);}
+.ex-img--umb{background:linear-gradient(135deg,#F0FBEB 0%,#DCFCE7 100%);}
+.sold-mask{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;}
+.sold-mask__text{color:#fff;font-size:var(--fs-sm);font-weight:var(--fw-semibold);background:rgba(0,0,0,.4);padding:4px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.6);}
+.ex-body{padding:var(--s2) var(--s3) var(--s3);display:flex;flex-direction:column;gap:var(--s1);flex:1;}
+.ex-name{font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium);line-height:1.3;}
+.ex-meta{font-size:var(--fs-sm);color:var(--n7);}
+.ex-cost{display:flex;align-items:baseline;gap:2px;color:var(--c-warning);margin-top:var(--s1);}
+.ex-cost__num{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:#D48806;}
+.ex-cost__unit{font-size:var(--fs-sm);color:#D48806;}
+.ex-btn{margin-top:var(--s2);border:none;border-radius:999px;padding:7px 0;font-size:var(--fs-sm);font-weight:var(--fw-medium);font-family:inherit;cursor:pointer;text-align:center;}
+.ex-btn--ok{background:linear-gradient(135deg,#FAAD14,#D48806);color:#fff;}
+.ex-btn--insufficient{background:var(--n3);color:var(--n7);cursor:not-allowed;}
+.ex-btn--sold{background:var(--n5);color:#fff;cursor:not-allowed;}
+
+/* 弹层 */
+.popup-mask{position:relative;background:rgba(0,0,0,.45);border-radius:var(--r-lg) var(--r-lg) 0 0;}
+.popup{background:var(--n1);border-radius:var(--r-lg);overflow:hidden;}
+.popup__head{display:flex;align-items:center;justify-content:space-between;padding:var(--s3) var(--s4);border-bottom:1px solid var(--n3);}
+.popup__title{font-size:var(--fs-lg);font-weight:var(--fw-medium);}
+.popup__close{color:var(--n7);display:flex;}
+.popup__body{padding:var(--s4);}
+.popup__name{font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium);text-align:center;}
+.popup__amt{text-align:center;color:var(--c-error);font-size:var(--fs-2xl);font-weight:var(--fw-semibold);margin:var(--s2) 0;}
+.popup__amt small{font-size:var(--fs-base);}
+.popup__cost{text-align:center;font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s3);}
+.popup__rows{background:var(--n2);border-radius:var(--r-card);padding:var(--s2) var(--s3);}
+.popup__row{display:flex;justify-content:space-between;font-size:var(--fs-sm);padding:6px 0;border-bottom:1px solid var(--n3);}
+.popup__row:last-child{border-bottom:none;}
+.popup__row span:first-child{color:var(--n7);}
+.popup__actions{display:flex;gap:var(--s2);margin-top:var(--s4);}
+.btn{flex:1;border:none;border-radius:var(--r-base);padding:11px 0;font-size:var(--fs-base);font-weight:var(--fw-medium);font-family:inherit;cursor:pointer;}
+.btn--cancel{background:var(--n3);color:var(--n9);}
+.btn--primary{background:var(--c-primary);color:#fff;}
+
+/* 状态 */
+.state-box{border:1px dashed var(--n5);border-radius:var(--r-lg);background:var(--n1);margin-top:var(--s4);}
+.state-head{font-size:var(--fs-sm);color:var(--n7);background:var(--n2);padding:6px var(--s3);border-bottom:1px solid var(--n3);}
+.sk{background:linear-gradient(90deg,#f0f0f0 25%,#e3e3e3 37%,#f0f0f0 63%);background-size:400% 100%;animation:sk 1.4s ease infinite;border-radius:var(--r-base);}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.empty{padding:var(--s8) var(--s4);text-align:center;}
+.empty__icon{width:96px;height:96px;margin:0 auto var(--s3);}
+.empty__title{font-size:var(--fs-base);color:var(--n7);margin:0 0 var(--s3);}
+.error{padding:var(--s8) var(--s4);text-align:center;}
+.error__icon{width:64px;height:64px;margin:0 auto var(--s3);}
+.error__title{font-size:var(--fs-base);color:var(--n9);margin:0 0 var(--s3);}
+.btn--outline{background:#fff;color:var(--c-primary);border:1px solid var(--c-primary);flex:none;padding:8px 16px;border-radius:var(--r-base);}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="nav-bar">
+    <div class="nav-bar__back" aria-label="返回">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12.5 4L6.5 10L12.5 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="nav-bar__title">积分兑换</div>
+    <div class="nav-bar__right">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="margin-right:2px;"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>我的券
+    </div>
+  </div>
+
+  <!-- 余额条 -->
+  <div class="balance-bar" role="region" aria-label="积分余额">
+    <div class="balance-bar__left">
+      <span class="balance-bar__value" aria-label="积分余额 2860">2,860</span>
+      <span class="balance-bar__unit">积分</span>
+      <span class="balance-bar__conv">≈ ¥28.60</span>
+    </div>
+    <div class="balance-bar__right">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 4h8l-1 6H4L3 4z" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><path d="M5 4V3a2 2 0 0 1 4 0v1" stroke="#fff" stroke-width="1.3"/></svg>
+      100 积分 = 1 元
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="section-title">
+      <span class="section-title__bar"></span>
+      优惠券
+      <span class="section-title__sub">兑换后进入「我的优惠券」</span>
+    </div>
+
+    <div class="grid">
+      <!-- 满100减10 -->
+      <div class="ex-card" role="article">
+        <div class="ex-img ex-img--coupon">
+          <svg width="84" height="56" viewBox="0 0 84 56" fill="none">
+            <path d="M6 8h72v14a6 6 0 0 0 0 12v14H6V34a6 6 0 0 0 0-12V8z" fill="#fff" stroke="#FF4D4F" stroke-width="1.6"/>
+            <path d="M42 8v40" stroke="#FFCCC7" stroke-width="1.4" stroke-dasharray="3 3"/>
+            <text x="24" y="34" font-size="20" font-weight="700" fill="#FF4D4F">¥10</text>
+          </svg>
+        </div>
+        <div class="ex-body">
+          <div class="ex-name">满 100 减 10 优惠券</div>
+          <div class="ex-meta">全品类 · 有效期 7 天</div>
+          <div class="ex-cost"><span class="ex-cost__num">500</span><span class="ex-cost__unit">积分</span></div>
+          <button class="ex-btn ex-btn--ok">立即兑换</button>
+        </div>
+      </div>
+
+      <!-- 满200减30 -->
+      <div class="ex-card" role="article">
+        <div class="ex-img ex-img--coupon">
+          <svg width="84" height="56" viewBox="0 0 84 56" fill="none">
+            <path d="M6 8h72v14a6 6 0 0 0 0 12v14H6V34a6 6 0 0 0 0-12V8z" fill="#fff" stroke="#FF4D4F" stroke-width="1.6"/>
+            <path d="M42 8v40" stroke="#FFCCC7" stroke-width="1.4" stroke-dasharray="3 3"/>
+            <text x="18" y="34" font-size="20" font-weight="700" fill="#FF4D4F">¥30</text>
+          </svg>
+        </div>
+        <div class="ex-body">
+          <div class="ex-name">满 200 减 30 优惠券</div>
+          <div class="ex-meta">全品类 · 有效期 7 天</div>
+          <div class="ex-cost"><span class="ex-cost__num">1,200</span><span class="ex-cost__unit">积分</span></div>
+          <button class="ex-btn ex-btn--ok">立即兑换</button>
+        </div>
+      </div>
+
+      <!-- 品牌毛巾 -->
+      <div class="ex-card" role="article">
+        <div class="ex-img ex-img--towel">
+          <svg width="90" height="70" viewBox="0 0 90 70" fill="none">
+            <rect x="14" y="10" width="62" height="52" rx="4" fill="#fff" stroke="#1677FF" stroke-width="1.6"/>
+            <path d="M20 20h50M20 30h50M20 40h50" stroke="#BAE0FF" stroke-width="1.4"/>
+            <rect x="34" y="48" width="22" height="8" rx="2" fill="#1677FF"/>
+          </svg>
+        </div>
+        <div class="ex-body">
+          <div class="ex-name">品牌纯棉毛巾</div>
+          <div class="ex-meta">家居好物 · 仅剩 23 件</div>
+          <div class="ex-cost"><span class="ex-cost__num">1,500</span><span class="ex-cost__unit">积分</span></div>
+          <button class="ex-btn ex-btn--ok">立即兑换</button>
+        </div>
+      </div>
+
+      <!-- 满500减80 (积分不足) -->
+      <div class="ex-card" role="article">
+        <div class="ex-img ex-img--coupon">
+          <svg width="84" height="56" viewBox="0 0 84 56" fill="none">
+            <path d="M6 8h72v14a6 6 0 0 0 0 12v14H6V34a6 6 0 0 0 0-12V8z" fill="#fff" stroke="#FF4D4F" stroke-width="1.6"/>
+            <path d="M42 8v40" stroke="#FFCCC7" stroke-width="1.4" stroke-dasharray="3 3"/>
+            <text x="16" y="34" font-size="20" font-weight="700" fill="#FF4D4F">¥80</text>
+          </svg>
+        </div>
+        <div class="ex-body">
+          <div class="ex-name">满 500 减 80 优惠券</div>
+          <div class="ex-meta">全品类 · 有效期 7 天</div>
+          <div class="ex-cost"><span class="ex-cost__num">3,000</span><span class="ex-cost__unit">积分</span></div>
+          <button class="ex-btn ex-btn--insufficient" disabled>积分不足</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:var(--s6);">
+      <span class="section-title__bar"></span>
+      实物好物
+      <span class="section-title__sub">兑换后邮寄送达</span>
+    </div>
+
+    <div class="grid">
+      <!-- 品牌保温杯 (已兑罄) -->
+      <div class="ex-card" role="article" style="opacity:.7;">
+        <div class="ex-img ex-img--cup">
+          <svg width="60" height="80" viewBox="0 0 60 80" fill="none">
+            <path d="M16 12h28v52a8 8 0 0 1-8 8H24a8 8 0 0 1-8-8V12z" fill="#fff" stroke="#FAAD14" stroke-width="1.6"/>
+            <path d="M44 24h6a4 4 0 0 1 4 4v12a4 4 0 0 1-4 4h-6" stroke="#FAAD14" stroke-width="1.6"/>
+            <rect x="20" y="22" width="20" height="14" rx="2" fill="#FAAD14"/>
+          </svg>
+          <div class="sold-mask"><div class="sold-mask__text">已兑罄</div></div>
+        </div>
+        <div class="ex-body">
+          <div class="ex-name">品牌保温杯</div>
+          <div class="ex-meta">生活好物 · 已兑完</div>
+          <div class="ex-cost"><span class="ex-cost__num">2,000</span><span class="ex-cost__unit">积分</span></div>
+          <button class="ex-btn ex-btn--sold" disabled>已兑罄</button>
+        </div>
+      </div>
+
+      <!-- 蓝牙耳机 (积分不足) -->
+      <div class="ex-card" role="article">
+        <div class="ex-img ex-img--earphone">
+          <svg width="90" height="70" viewBox="0 0 90 70" fill="none">
+            <path d="M24 20c-8 0-14 6-14 14v6h8v6h12v-6h8v-6c0-8-6-14-14-14z" fill="#fff" stroke="#722ED1" stroke-width="1.6"/>
+            <circle cx="24" cy="34" r="4" fill="#722ED1"/>
+            <path d="M58 24c-6 0-10 4-10 10v4h6v4h8v-4h6v-4c0-6-4-10-10-10z" fill="#fff" stroke="#722ED1" stroke-width="1.6"/>
+            <circle cx="58" cy="36" r="3" fill="#722ED1"/>
+          </svg>
+        </div>
+        <div class="ex-body">
+          <div class="ex-name">无线蓝牙耳机</div>
+          <div class="ex-meta">数码电子 · 仅剩 5 件</div>
+          <div class="ex-cost"><span class="ex-cost__num">8,000</span><span class="ex-cost__unit">积分</span></div>
+          <button class="ex-btn ex-btn--insufficient" disabled>积分不足</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 兑换确认弹层 -->
+    <div class="section-title" style="margin-top:var(--s6);">
+      <span class="section-title__bar"></span>
+      兑换确认弹层（二次确认）
+    </div>
+    <div class="popup">
+      <div class="popup__head">
+        <div class="popup__title">确认兑换</div>
+        <div class="popup__close">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M5 5l8 8M13 5l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="popup__body">
+        <div class="popup__name">满 100 减 10 优惠券</div>
+        <div class="popup__amt"><small>消耗</small> 500 <small>积分</small></div>
+        <div class="popup__cost">兑换后余额 2,360 积分 · 有效期 7 天</div>
+        <div class="popup__rows">
+          <div class="popup__row"><span>面额</span><span>¥10</span></div>
+          <div class="popup__row"><span>使用门槛</span><span>满 100 元可用</span></div>
+          <div class="popup__row"><span>适用范围</span><span>全品类</span></div>
+          <div class="popup__row"><span>有效期</span><span>7 天</span></div>
+        </div>
+        <div class="popup__actions">
+          <button class="btn btn--cancel">取消</button>
+          <button class="btn btn--primary">确认兑换</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 交互状态 -->
+    <div class="state-box">
+      <div class="state-head">加载骨架屏（余额条 + 4 张兑换卡片）</div>
+      <div style="padding:var(--s3);">
+        <div class="sk" style="height:54px;margin-bottom:var(--s3);"></div>
+        <div class="grid">
+          <div class="sk" style="height:200px;"></div>
+          <div class="sk" style="height:200px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="state-box">
+      <div class="state-head">空数据（暂无可兑换优惠券）</div>
+      <div class="empty">
+        <svg class="empty__icon" viewBox="0 0 96 96" fill="none">
+          <rect x="20" y="30" width="56" height="40" rx="6" fill="#FAFAFA" stroke="#E5E5E5" stroke-width="1.5"/>
+          <path d="M48 30v-8a6 6 0 0 1 6-6h6" stroke="#D9D9D9" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M30 46h36M30 56h24" stroke="#E5E5E5" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <div class="empty__title">暂无可兑换优惠券</div>
+        <button class="btn btn--outline">去赚积分</button>
+      </div>
+    </div>
+
+    <div class="state-box">
+      <div class="state-head">错误态（接口失败 · 兑换失败提示）</div>
+      <div class="error">
+        <svg class="error__icon" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="28" stroke="#FF4D4F" stroke-width="2" stroke-opacity=".3"/>
+          <path d="M32 18v14" stroke="#FF4D4F" stroke-width="2.6" stroke-linecap="round"/>
+          <circle cx="32" cy="42" r="2" fill="#FF4D4F"/>
+        </svg>
+        <div class="error__title">加载失败，请稍后重试</div>
+        <button class="btn btn--outline">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="margin-right:4px;"><path d="M11 7a4 4 0 1 1-1.2-2.8M11 2.5V5H8.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          重新加载
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

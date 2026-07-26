@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会员套餐 - Leno 买家端</title>
+<style>
+:root{
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:#EDEDED;max-width:375px;margin:0 auto;min-height:100vh;position:relative;box-shadow:0 0 24px rgba(0,0,0,.12);-webkit-font-smoothing:antialiased;line-height:1.5715;}
+.app{background:#F7F8FA;min-height:100vh;padding-bottom:var(--s8);}
+
+.nav-bar{position:sticky;top:0;z-index:50;height:46px;display:flex;align-items:center;background:var(--n1);border-bottom:1px solid var(--n3);padding:0 var(--s2);}
+.nav-bar__back{display:flex;align-items:center;justify-content:center;width:32px;height:32px;color:var(--n10);}
+.nav-bar__title{flex:1;text-align:center;font-size:var(--fs-lg);font-weight:var(--fw-medium);margin-right:32px;}
+
+.content{padding:var(--s3);}
+
+/* 当前会员状态条 */
+.status-bar{display:flex;align-items:center;gap:var(--s3);background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s3) var(--s4);}
+.status-bar__ico{width:40px;height:40px;border-radius:var(--r-card);background:#FFF7E6;color:#D48806;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.status-bar__main{flex:1;}
+.status-bar__title{font-size:var(--fs-base);font-weight:var(--fw-medium);}
+.status-bar__sub{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+.status-bar__btn{border:1px solid #D48806;background:#FFF7E6;color:#D48806;border-radius:999px;padding:6px 14px;font-size:var(--fs-sm);font-weight:var(--fw-medium);font-family:inherit;cursor:pointer;}
+
+/* 页头标题 */
+.page-title{margin:var(--s4) var(--s1) var(--s2);font-size:var(--fs-lg);font-weight:var(--fw-semibold);text-align:center;}
+.page-subtitle{text-align:center;font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s4);}
+
+/* 套餐卡 */
+.pkg{position:relative;border-radius:var(--r-lg);padding:var(--s4);margin-bottom:var(--s3);overflow:hidden;color:#fff;}
+.pkg--normal{background:linear-gradient(135deg,#FFF7E6 0%,#FFE7BA 100%);color:#8C6A1F;border:1px solid #FFE7BA;}
+.pkg--year{background:linear-gradient(135deg,#FFD666 0%,#D48806 100%);box-shadow:0 8px 20px rgba(212,136,6,.32);}
+.pkg__rec{position:absolute;top:0;right:0;background:#FF4D4F;color:#fff;font-size:10px;font-weight:var(--fw-semibold);padding:3px 12px;border-bottom-left-radius:var(--r-base);display:flex;align-items:center;gap:3px;}
+.pkg__head{display:flex;align-items:center;justify-content:space-between;}
+.pkg__name{font-size:var(--fs-lg);font-weight:var(--fw-semibold);}
+.pkg__period{font-size:var(--fs-sm);opacity:.85;}
+.pkg__price-row{display:flex;align-items:baseline;gap:var(--s2);margin-top:var(--s2);}
+.pkg__sym{font-size:var(--fs-base);font-weight:var(--fw-medium);}
+.pkg__price{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);color:#FF4D4F;}
+.pkg--normal .pkg__price{color:#D48806;}
+.pkg__unit{font-size:var(--fs-sm);color:var(--n7);}
+.pkg--year .pkg__unit{color:rgba(255,255,255,.85);}
+.pkg__orig{font-size:var(--fs-sm);color:var(--n7);text-decoration:line-through;}
+.pkg--year .pkg__orig{color:rgba(255,255,255,.7);}
+.pkg__save{display:inline-flex;align-items:center;background:rgba(255,77,79,.12);color:#FF4D4F;border-radius:var(--r-base);padding:2px 8px;font-size:10px;font-weight:var(--fw-medium);margin-left:var(--s1);}
+.pkg--year .pkg__save{background:rgba(255,255,255,.28);color:#fff;}
+.pkg__benefits{margin-top:var(--s3);display:flex;flex-direction:column;gap:7px;}
+.pkg__benefit{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-sm);}
+.pkg__benefit-ico{width:16px;height:16px;flex-shrink:0;display:flex;}
+.pkg--year .pkg__benefit{color:#fff;}
+.pkg--normal .pkg__benefit{color:#8C6A1F;}
+.pkg__btn{margin-top:var(--s3);width:100%;border:none;border-radius:999px;padding:11px 0;font-size:var(--fs-base);font-weight:var(--fw-semibold);font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:var(--s1);}
+.pkg--normal .pkg__btn{background:#fff;color:#D48806;border:1px solid #FAAD14;}
+.pkg--year .pkg__btn{background:#fff;color:#D48806;box-shadow:0 4px 10px rgba(0,0,0,.12);}
+
+/* 权益说明 */
+.section{background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s4);margin-top:var(--s3);}
+.section__title{font-size:var(--fs-base);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s1);margin-bottom:var(--s2);}
+.rule-item{display:flex;gap:var(--s2);padding:7px 0;font-size:var(--fs-sm);color:var(--n9);}
+.rule-item__label{color:var(--n7);min-width:64px;flex-shrink:0;}
+.rule-item__dot{width:4px;height:4px;border-radius:50%;background:var(--c-primary);margin-top:8px;flex-shrink:0;}
+
+/* 确认弹层 */
+.popup-mask{background:rgba(0,0,0,.45);border-radius:var(--r-lg);padding:var(--s4);margin-top:var(--s3);}
+.popup{background:var(--n1);border-radius:var(--r-lg);overflow:hidden;}
+.popup__head{padding:var(--s4) var(--s4) 0;text-align:center;}
+.popup__title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);}
+.popup__name{font-size:var(--fs-sm);color:var(--n7);margin-top:4px;}
+.popup__price{color:var(--c-error);font-size:var(--fs-2xl);font-weight:var(--fw-semibold);margin:var(--s3) 0 0;}
+.popup__price small{font-size:var(--fs-base);}
+.popup__rows{margin:var(--s3) var(--s4);background:var(--n2);border-radius:var(--r-card);padding:var(--s2) var(--s3);}
+.popup__row{display:flex;justify-content:space-between;font-size:var(--fs-sm);padding:6px 0;border-bottom:1px solid var(--n3);}
+.popup__row:last-child{border-bottom:none;}
+.popup__row span:first-child{color:var(--n7);}
+.popup__actions{display:flex;gap:var(--s2);padding:0 var(--s4) var(--s4);}
+.btn{flex:1;border:none;border-radius:var(--r-base);padding:11px 0;font-size:var(--fs-base);font-weight:var(--fw-medium);font-family:inherit;cursor:pointer;}
+.btn--cancel{background:var(--n3);color:var(--n9);}
+.btn--primary{background:linear-gradient(135deg,#FAAD14,#D48806);color:#fff;}
+
+/* 已开通状态样例 */
+.active-bar{display:flex;align-items:center;gap:var(--s3);background:linear-gradient(135deg,#FFF7E6,#FFE7BA);border:1px solid #FFD666;border-radius:var(--r-lg);padding:var(--s3) var(--s4);margin-bottom:var(--s3);}
+.active-bar__ico{width:40px;height:40px;border-radius:var(--r-card);background:linear-gradient(135deg,#FAAD14,#D48806);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.active-bar__main{flex:1;}
+.active-bar__title{font-size:var(--fs-base);font-weight:var(--fw-semibold);color:#8C6A1F;}
+.active-bar__sub{font-size:var(--fs-sm);color:#8C6A1F;opacity:.85;margin-top:2px;}
+.active-bar__btn{background:#fff;color:#D48806;border:1px solid #FAAD14;border-radius:999px;padding:6px 14px;font-size:var(--fs-sm);font-weight:var(--fw-medium);font-family:inherit;cursor:pointer;}
+
+/* 状态 */
+.state-box{border:1px dashed var(--n5);border-radius:var(--r-lg);background:var(--n1);margin-top:var(--s4);}
+.state-head{font-size:var(--fs-sm);color:var(--n7);background:var(--n2);padding:6px var(--s3);border-bottom:1px solid var(--n3);}
+.sk{background:linear-gradient(90deg,#f0f0f0 25%,#e3e3e3 37%,#f0f0f0 63%);background-size:400% 100%;animation:sk 1.4s ease infinite;border-radius:var(--r-base);}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.empty{padding:var(--s8) var(--s4);text-align:center;}
+.empty__icon{width:96px;height:96px;margin:0 auto var(--s3);}
+.empty__title{font-size:var(--fs-base);color:var(--n7);margin:0 0 var(--s3);}
+.error{padding:var(--s8) var(--s4);text-align:center;}
+.error__icon{width:64px;height:64px;margin:0 auto var(--s3);}
+.error__title{font-size:var(--fs-base);color:var(--n9);margin:0 0 var(--s3);}
+.btn--outline{background:#fff;color:var(--c-primary);border:1px solid var(--c-primary);flex:none;padding:8px 16px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="nav-bar">
+    <div class="nav-bar__back" aria-label="返回">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12.5 4L6.5 10L12.5 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="nav-bar__title">会员套餐</div>
+  </div>
+
+  <div class="content">
+    <!-- 当前会员状态条 -->
+    <div class="status-bar" role="region" aria-label="当前付费会员状态">
+      <div class="status-bar__ico">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2l3 5.5 6 .5-4.5 4 1.5 6L11 14.5 5.5 18l1.5-6L2.5 8l6-.5L11 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="status-bar__main">
+        <div class="status-bar__title">未开通付费会员</div>
+        <div class="status-bar__sub">开通后尊享专享折扣、积分翻倍等权益</div>
+      </div>
+      <button class="status-bar__btn">去开通</button>
+    </div>
+
+    <div class="page-title">选择适合你的会员套餐</div>
+    <div class="page-subtitle">付费会员与免费会员等级权益叠加，开通立即生效</div>
+
+    <!-- 月卡 -->
+    <div class="pkg pkg--normal" role="article">
+      <div class="pkg__head">
+        <div class="pkg__name">付费会员月卡</div>
+        <div class="pkg__period">30 天</div>
+      </div>
+      <div class="pkg__price-row">
+        <span class="pkg__sym">¥</span><span class="pkg__price">15</span><span class="pkg__unit">/ 月</span>
+        <span class="pkg__orig">¥19</span>
+        <span class="pkg__save">立省 ¥4</span>
+      </div>
+      <div class="pkg__benefits">
+        <div class="pkg__benefit"><span class="pkg__benefit-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="#52C41A"/><path d="M5 8l2 2 4-4.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>全品类 9.5 折专享</div>
+        <div class="pkg__benefit"><span class="pkg__benefit-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="#52C41A"/><path d="M5 8l2 2 4-4.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>积分 1.5 倍加速</div>
+        <div class="pkg__benefit"><span class="pkg__benefit-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="#52C41A"/><path d="M5 8l2 2 4-4.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>每月免邮券 5 张</div>
+      </div>
+      <button class="pkg__btn">立即开通</button>
+    </div>
+
+    <!-- 季卡 -->
+    <div class="pkg pkg--normal" role="article">
+      <div class="pkg__head">
+        <div class="pkg__name">付费会员季卡</div>
+        <div class="pkg__period">90 天</div>
+      </div>
+      <div class="pkg__price-row">
+        <span class="pkg__sym">¥</span><span class="pkg__price">40</span><span class="pkg__unit">/ 3 月</span>
+        <span class="pkg__orig">¥45</span>
+        <span class="pkg__save">立省 ¥5</span>
+      </div>
+      <div class="pkg__benefits">
+        <div class="pkg__benefit"><span class="pkg__benefit-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="#52C41A"/><path d="M5 8l2 2 4-4.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>全品类 9.5 折专享</div>
+        <div class="pkg__benefit"><span class="pkg__benefit-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="#52C41A"/><path d="M5 8l2 2 4-4.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>积分 1.5 倍加速</div>
+        <div class="pkg__benefit"><span class="pkg__benefit-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="#52C41A"/><path d="M5 8l2 2 4-4.5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>每月免邮券 5 张</div>
+      </div>
+      <button class="pkg__btn">立即开通</button>
+    </div>
+
+    <!-- 年卡（推荐） -->
+    <div class="pkg pkg--year" role="article">
+      <div class="pkg__rec">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1l1 2.5L9 4 7 6l.5 3L5 7.5 2.5 9 3 6 1 4l3-.5L5 1z" fill="#fff"/></svg>
+        推荐
+      </div>
+      <div class="pkg__head">
+        <div class="pkg__name">付费会员年卡</div>
+        <div class="pkg__period">365 天</div>
+      </div>
+      <div class="pkg__price-row">
+        <span class="pkg__sym" style="color:#FF4D4F;">¥</span><span class="pkg__price">128</span><span class="pkg__unit">/ 年</span>
+        <span class="pkg__orig">¥180</span>
+        <span class="pkg__save">立省 ¥52</span>
+      </div>
+      <div class="pkg__benefits">
+        <div class="pkg__benefit"><span class="pkg__benefit-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="#fff"/><path d="M5 8l2 2 4-4.5" stroke="#D48806" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>全品类 8.8 折专享</div>
+        <div class="pkg__benefit"><span class="pkg__benefit-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="#fff"/><path d="M5 8l2 2 4-4.5" stroke="#D48806" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>积分 2 倍加速</div>
+        <div class="pkg__benefit"><span class="pkg__benefit-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="#fff"/><path d="M5 8l2 2 4-4.5" stroke="#D48806" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>免邮不限次数</div>
+        <div class="pkg__benefit"><span class="pkg__benefit-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="#fff"/><path d="M5 8l2 2 4-4.5" stroke="#D48806" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>7×24 专属客服</div>
+        <div class="pkg__benefit"><span class="pkg__benefit-ico"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="#fff"/><path d="M5 8l2 2 4-4.5" stroke="#D48806" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>生日月双倍积分</div>
+      </div>
+      <button class="pkg__btn">立即开通</button>
+    </div>
+
+    <!-- 权益说明 -->
+    <div class="section">
+      <div class="section__title">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.2" stroke="var(--c-primary)" stroke-width="1.4"/><path d="M8 5v3.2M8 10.5v.5" stroke="var(--c-primary)" stroke-width="1.4" stroke-linecap="round"/></svg>
+        权益说明
+      </div>
+      <div class="rule-item"><span class="rule-item__label">使用规则</span><span>开通后立即生效，与免费会员等级权益叠加享受；专享折扣不与商品秒杀价叠加。</span></div>
+      <div class="rule-item"><span class="rule-item__label">有效期</span><span>自开通之日起按套餐时长计算，到期自动失效，可在到期前续费延长。</span></div>
+      <div class="rule-item"><span class="rule-item__label">退订规则</span><span>开通 7 天内未使用任何权益可申请全额退款；已使用权益不支持退款。</span></div>
+      <div class="rule-item"><span class="rule-item__label">自动续费</span><span>可在「设置 - 支付与订阅」中关闭自动续费，关闭不影响当前有效期权益。</span></div>
+    </div>
+
+    <!-- 订阅确认弹层 -->
+    <div class="state-box" style="margin-top:var(--s6);">
+      <div class="state-head">订阅确认弹层（二次确认）</div>
+      <div class="popup-mask" style="margin:0;border-radius:0;">
+        <div class="popup">
+          <div class="popup__head">
+            <div class="popup__title">确认订阅</div>
+            <div class="popup__name">付费会员年卡</div>
+            <div class="popup__price"><small>支付 </small>¥128<small> / 年</small></div>
+          </div>
+          <div class="popup__rows">
+            <div class="popup__row"><span>套餐时长</span><span>365 天</span></div>
+            <div class="popup__row"><span>立省金额</span><span style="color:var(--c-error);">¥52</span></div>
+            <div class="popup__row"><span>核心权益</span><span>8.8 折 / 积分 2 倍 / 免邮</span></div>
+            <div class="popup__row"><span>支付方式</span><span>微信支付</span></div>
+          </div>
+          <div class="popup__actions">
+            <button class="btn btn--cancel">取消</button>
+            <button class="btn btn--primary">确认支付 ¥128</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 已开通/续费/到期状态 -->
+    <div class="state-box">
+      <div class="state-head">已开通状态（续费 / 到期提示）</div>
+      <div style="padding:var(--s3);">
+        <div class="active-bar">
+          <div class="active-bar__ico">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2l3 5.5 6 .5-4.5 4 1.5 6L11 14.5 5.5 18l1.5-6L2.5 8l6-.5L11 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="active-bar__main">
+            <div class="active-bar__title">付费会员年卡 · 生效中</div>
+            <div class="active-bar__sub">有效期至 2027-07-26，剩余 365 天</div>
+          </div>
+          <button class="active-bar__btn">续费</button>
+        </div>
+        <div class="active-bar" style="background:#FFF1F0;border-color:#FFA39E;">
+          <div class="active-bar__ico" style="background:linear-gradient(135deg,#FF7875,#FF4D4F);">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M11 7v4.5M11 14v.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <div class="active-bar__main">
+            <div class="active-bar__title" style="color:#CF1322;">即将到期</div>
+            <div class="active-bar__sub" style="color:#CF1322;opacity:.85;">有效期至 2026-08-02，剩余 7 天</div>
+          </div>
+          <button class="active-bar__btn" style="background:#FF4D4F;color:#fff;border-color:#FF4D4F;">立即续费</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 交互状态 -->
+    <div class="state-box">
+      <div class="state-head">加载骨架屏（状态条 + 3 张套餐卡片）</div>
+      <div style="padding:var(--s3);">
+        <div class="sk" style="height:64px;margin-bottom:var(--s3);"></div>
+        <div class="sk" style="height:180px;margin-bottom:var(--s3);"></div>
+        <div class="sk" style="height:180px;margin-bottom:var(--s3);"></div>
+        <div class="sk" style="height:240px;"></div>
+      </div>
+    </div>
+
+    <div class="state-box">
+      <div class="state-head">空数据（暂无可购买套餐）</div>
+      <div class="empty">
+        <svg class="empty__icon" viewBox="0 0 96 96" fill="none">
+          <rect x="28" y="20" width="40" height="56" rx="6" fill="#FAFAFA" stroke="#E5E5E5" stroke-width="1.5"/>
+          <path d="M36 36h24M36 48h24M36 60h16" stroke="#E5E5E5" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="48" cy="76" r="6" fill="#fff" stroke="#E5E5E5" stroke-width="1.5"/>
+        </svg>
+        <div class="empty__title">暂无可购买套餐</div>
+      </div>
+    </div>
+
+    <div class="state-box">
+      <div class="state-head">错误态（加载失败）</div>
+      <div class="error">
+        <svg class="error__icon" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="28" stroke="#FF4D4F" stroke-width="2" stroke-opacity=".3"/>
+          <path d="M32 18v14M32 42v.5" stroke="#FF4D4F" stroke-width="2.6" stroke-linecap="round"/>
+        </svg>
+        <div class="error__title">加载失败，请稍后重试</div>
+        <button class="btn--outline" style="display:inline-flex;align-items:center;border:1px solid var(--c-primary);background:#fff;color:var(--c-primary);border-radius:var(--r-base);padding:8px 16px;font-size:var(--fs-base);font-weight:var(--fw-medium);">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="margin-right:4px;"><path d="M11 7a4 4 0 1 1-1.2-2.8M11 2.5V5H8.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          重新加载
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
