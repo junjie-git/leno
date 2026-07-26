@@ -205,6 +205,12 @@
     <Project Path="src/Services/UserAuth/Leno.UserAuth.Infrastructure.Tests/Leno.UserAuth.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/UserAuth/Leno.UserAuth.Infrastructure/Leno.UserAuth.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Services/UserCenter/">
+    <Project Path="src/Services/UserCenter/Leno.UserCenter.Api/Leno.UserCenter.Api.csproj" />
+    <Project Path="src/Services/UserCenter/Leno.UserCenter.Application/Leno.UserCenter.Application.csproj" />
+    <Project Path="src/Services/UserCenter/Leno.UserCenter.Domain/Leno.UserCenter.Domain.csproj" />
+    <Project Path="src/Services/UserCenter/Leno.UserCenter.Infrastructure/Leno.UserCenter.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Services/SystemAdmin/">
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Api.Tests/Leno.SystemAdmin.Api.Tests.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Api/Leno.SystemAdmin.Api.csproj" />
