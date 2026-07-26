@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>库存预警 - Leno 商家管理后台</title>
+<style>
+:root{
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-width:1200px}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715;-webkit-font-smoothing:antialiased}
+a{color:var(--c-primary);text-decoration:none}
+/* ===== Layout Shell ===== */
+.app{display:flex;flex-direction:column;min-height:100vh}
+.app-header{height:var(--header-h);background:var(--n1);display:flex;align-items:center;padding:0 var(--s6);box-shadow:0 1px 4px rgba(0,21,41,.08);position:sticky;top:0;z-index:100;gap:var(--s4)}
+.app-logo{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);white-space:nowrap;width:calc(var(--sider-width) - var(--s4));flex-shrink:0}
+.app-logo .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--c-primary),#4096FF);border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700;flex-shrink:0}
+.app-header .breadcrumb{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-base);color:var(--n9);flex:1}
+.app-header .breadcrumb .sep{color:var(--n5)}
+.app-header .breadcrumb .current{color:var(--n10)}
+.app-header .header-search{display:flex;align-items:center;background:var(--n3);border-radius:var(--r-base);padding:0 var(--s3);height:32px;width:220px;gap:var(--s2);transition:all .2s;border:1px solid transparent}
+.app-header .header-search:hover{border-color:var(--c-primary);background:var(--n1)}
+.app-header .header-search input{border:none;background:transparent;outline:none;font-size:var(--fs-sm);flex:1;color:var(--n10);font-family:var(--ff-app)}
+.app-header .header-search input::placeholder{color:var(--n7)}
+.app-header .header-actions{display:flex;align-items:center;gap:var(--s4);margin-left:auto}
+.app-header .icon-btn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--n9);transition:all .2s;position:relative}
+.app-header .icon-btn:hover{background:var(--n3);color:var(--n10)}
+.app-header .icon-btn .badge-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;background:var(--c-error);border-radius:50%;border:2px solid var(--n1)}
+.app-header .user-menu{display:flex;align-items:center;gap:var(--s2);cursor:pointer;padding:0 var(--s2);height:var(--header-h)}
+.app-header .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#13C2C2,var(--c-primary));color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);font-weight:var(--fw-semibold)}
+.app-header .user-name{font-size:var(--fs-sm);color:var(--n10)}
+.app-body{display:flex;flex:1}
+.app-sider{width:var(--sider-width);background:var(--sider-bg);flex-shrink:0;position:sticky;top:var(--header-h);height:calc(100vh - var(--header-h));overflow-y:auto;padding:var(--s2) 0}
+.app-sider .menu-group-title{padding:var(--s4) var(--s6) var(--s2);font-size:var(--fs-sm);color:#ffffff40;font-weight:var(--fw-normal);letter-spacing:.5px}
+.app-sider .menu-item{display:flex;align-items:center;gap:var(--s3);padding:0 var(--s6);height:36px;font-size:var(--fs-sm);color:rgba(255,255,255,.85);cursor:pointer;transition:all .15s;position:relative}
+.app-sider .menu-item:hover{color:#fff;background:rgba(255,255,255,.04)}
+.app-sider .menu-item .menu-icon{width:14px;height:14px;flex-shrink:0;opacity:.85}
+.app-sider .menu-item.active{background:var(--c-primary);color:#fff}
+.app-sider .menu-item.active .menu-icon{opacity:1}
+.app-content{flex:1;background:var(--n3);padding:var(--s6);min-width:0}
+.app-footer{height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7);padding:0 var(--s6)}
+/* ===== Page Header ===== */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:var(--s6)}
+.page-header .page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--n10);display:flex;align-items:center;gap:var(--s2)}
+.page-header .page-desc{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1)}
+.page-header .page-actions{display:flex;align-items:center;gap:var(--s3)}
+/* ===== Buttons ===== */
+.btn{display:inline-flex;align-items:center;gap:var(--s2);padding:0 var(--s4);font-size:var(--fs-base);border-radius:var(--r-base);cursor:pointer;transition:all .15s;font-family:var(--ff-app);border:1px solid var(--n5);background:var(--n1);color:var(--n10);height:32px;line-height:30px;white-space:nowrap}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff}
+.btn-danger{background:var(--c-error);border-color:var(--c-error);color:#fff}
+.btn-danger:hover{background:#FF7875;border-color:#FF7875;color:#fff}
+.btn-sm{height:24px;padding:0 var(--s2);font-size:var(--fs-sm);line-height:22px}
+.btn-link{border:none;background:transparent;color:var(--c-primary);padding:0;height:auto;line-height:1.5;font-size:var(--fs-sm);cursor:pointer;font-family:var(--ff-app)}
+.btn-link:hover{color:#4096FF}
+.btn[disabled]{background:var(--n3);border-color:var(--n3);color:#00000040;cursor:not-allowed}
+/* ===== Alert ===== */
+.alert{display:flex;align-items:flex-start;gap:var(--s3);padding:var(--s3) var(--s4);border-radius:var(--r-base);font-size:var(--fs-sm);margin-bottom:var(--s4);border:1px solid}
+.alert-warning{background:#FFFBE6;border-color:#FFE58F;color:var(--n9)}
+.alert .alert-icon{flex-shrink:0;margin-top:1px}
+.alert .alert-content{flex:1}
+.alert .alert-title{font-weight:var(--fw-medium);color:var(--n10);margin-bottom:2px;font-size:var(--fs-base)}
+.alert .alert-actions{display:flex;gap:var(--s2);margin-top:var(--s1)}
+.alert .alert-strong{color:var(--c-error);font-weight:var(--fw-semibold);font-family:var(--ff-mono)}
+/* ===== Filter Bar ===== */
+.filter-bar{background:var(--n1);border-radius:var(--r-card);padding:var(--s4) var(--s6);display:flex;align-items:center;gap:var(--s4);margin-bottom:var(--s6);box-shadow:var(--sh-card);flex-wrap:wrap}
+.filter-bar .filter-label{font-size:var(--fs-sm);color:var(--n9);flex-shrink:0;display:flex;align-items:center;gap:var(--s1)}
+.input-number{display:inline-flex;align-items:center;border:1px solid var(--n5);border-radius:var(--r-base);height:32px;overflow:hidden;background:var(--n1)}
+.input-number:hover{border-color:var(--c-primary)}
+.input-number .num-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--n2);color:var(--n9);cursor:pointer;border:none;font-size:var(--fs-base)}
+.input-number .num-btn:hover{color:var(--c-primary);background:#E6F4FF}
+.input-number input{width:56px;height:30px;border:none;outline:none;text-align:center;font-size:var(--fs-base);font-family:var(--ff-mono);color:var(--n10);background:var(--n1)}
+.select{display:inline-flex;align-items:center;justify-content:space-between;gap:var(--s2);border:1px solid var(--n5);border-radius:var(--r-base);height:32px;padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);background:var(--n1);cursor:pointer;min-width:140px}
+.select:hover{border-color:var(--c-primary)}
+.select .sel-arrow{color:var(--n7)}
+/* ===== Card ===== */
+.chart-card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden;margin-bottom:var(--s6)}
+.chart-card .card-head{display:flex;align-items:center;justify-content:space-between;padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3)}
+.chart-card .card-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);display:flex;align-items:center;gap:var(--s2)}
+.chart-card .card-title .sub{font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal);margin-left:var(--s2)}
+.chart-card .card-extra{display:flex;align-items:center;gap:var(--s3)}
+.chart-card .card-body{padding:0}
+.chart-card .card-body.pad{padding:var(--s6)}
+/* ===== Table ===== */
+.data-table{width:100%;border-collapse:collapse;font-size:var(--fs-base)}
+.data-table th{background:var(--n2);color:var(--n9);font-weight:var(--fw-medium);text-align:left;padding:0 var(--s4);height:44px;font-size:var(--fs-sm);border-bottom:1px solid var(--n5);white-space:nowrap}
+.data-table th.center{text-align:center}
+.data-table td{padding:0 var(--s4);height:48px;border-bottom:1px solid var(--n3);color:var(--n10);font-size:var(--fs-base)}
+.data-table tr:hover td{background:var(--n2)}
+.data-table tr:last-child td{border-bottom:none}
+.data-table .num{font-family:var(--ff-mono);font-size:var(--fs-sm)}
+.data-table .stock-num{font-family:var(--ff-mono);font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.stock-cell{display:flex;align-items:center;gap:var(--s2)}
+.stock-bar{width:60px;height:6px;background:var(--n3);border-radius:3px;overflow:hidden;flex-shrink:0}
+.stock-bar .bar-fill{height:100%;border-radius:3px}
+.prod-cell{display:flex;align-items:center;gap:var(--s2)}
+.prod-thumb{width:32px;height:32px;border-radius:var(--r-base);background:linear-gradient(135deg,#E6F4FF,#F0F5FF);display:flex;align-items:center;justify-content:center;color:var(--c-primary);font-size:var(--fs-sm);font-weight:var(--fw-semibold);flex-shrink:0}
+/* ===== Checkbox ===== */
+.checkbox{width:16px;height:16px;border:1px solid var(--n5);border-radius:3px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:var(--n1);flex-shrink:0;vertical-align:middle}
+.checkbox:hover{border-color:var(--c-primary)}
+.checkbox.checked{background:var(--c-primary);border-color:var(--c-primary)}
+.checkbox.checked::after{content:"";width:8px;height:8px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Cpath fill='%23fff' d='M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM428 726c-12.2 12.2-32 12.2-44.2 0L294 636.2c-12.2-12.2-12.2-32 0-44.2 12.2-12.2 32-12.2 44.2 0l68 68 290-290c12.2-12.2 32-12.2 44.2 0 12.2 12.2 12.2 32 0 44.2L428 726z'/%3E%3C/svg%3E") center/contain no-repeat}
+/* ===== Tag ===== */
+.tag{display:inline-flex;align-items:center;padding:0 var(--s2);height:22px;border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;border:1px solid;white-space:nowrap;gap:4px}
+.tag-blue{background:#E6F4FF;color:var(--c-primary);border-color:#91CAFF}
+.tag-green{background:#F6FFED;color:var(--c-success);border-color:#B7EB8F}
+.tag-gold{background:#FFFBE6;color:var(--c-warning);border-color:#FFE58F}
+.tag-red{background:#FFF2F0;color:var(--c-error);border-color:#FFCCC7}
+.tag-gray{background:var(--n3);color:var(--n7);border-color:var(--n5)}
+.tag .tag-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+/* ===== Batch toolbar ===== */
+.batch-bar{display:flex;align-items:center;gap:var(--s4);padding:var(--s3) var(--s4);background:#E6F4FF;border:1px solid #91CAFF;border-radius:var(--r-base);margin-bottom:var(--s3);font-size:var(--fs-sm)}
+.batch-bar .batch-count{color:var(--c-primary);font-weight:var(--fw-semibold);font-family:var(--ff-mono)}
+/* ===== Threshold setting ===== */
+.threshold-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3) var(--s6)}
+.threshold-row{display:flex;align-items:center;justify-content:space-between;padding:var(--s2) 0;border-bottom:1px dashed var(--n3)}
+.threshold-row:last-child{border-bottom:none}
+.threshold-row .th-label{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-base);color:var(--n10)}
+.threshold-row .th-cat-dot{width:8px;height:8px;border-radius:2px}
+.threshold-row .th-input{display:inline-flex;align-items:center;gap:var(--s1);font-size:var(--fs-sm);color:var(--n9)}
+.threshold-row .th-input input{width:48px;height:24px;border:1px solid var(--n5);border-radius:var(--r-base);text-align:center;font-family:var(--ff-mono);font-size:var(--fs-sm);color:var(--n10);outline:none}
+.threshold-row .th-input input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+/* ===== Drawer ===== */
+.drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;opacity:1;transition:opacity .2s}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:420px;background:var(--n1);z-index:201;display:flex;flex-direction:column;box-shadow:var(--sh-modal);transform:translateX(0);transition:transform .2s}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3)}
+.drawer-head .drawer-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);display:flex;align-items:center;gap:var(--s2)}
+.drawer-head .drawer-close{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--n7)}
+.drawer-head .drawer-close:hover{background:var(--n3);color:var(--n10)}
+.drawer-body{flex:1;overflow-y:auto;padding:var(--s6)}
+.drawer-foot{padding:var(--s4) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s3);background:var(--n2)}
+.drawer-body .d-section{margin-bottom:var(--s6)}
+.drawer-body .d-section:last-child{margin-bottom:0}
+.drawer-body .d-sec-title{font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s3);font-weight:var(--fw-medium)}
+.prod-summary{display:flex;align-items:center;gap:var(--s3);padding:var(--s3);background:var(--n2);border-radius:var(--r-base);border:1px solid var(--n3)}
+.prod-summary .ps-thumb{width:48px;height:48px;border-radius:var(--r-base);background:linear-gradient(135deg,#E6F4FF,#F0F5FF);display:flex;align-items:center;justify-content:center;color:var(--c-primary);font-size:var(--fs-lg);font-weight:var(--fw-semibold);flex-shrink:0}
+.prod-summary .ps-info{flex:1;display:flex;flex-direction:column;gap:2px}
+.prod-summary .ps-name{font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium)}
+.prod-summary .ps-spec{font-size:var(--fs-sm);color:var(--n7)}
+.stock-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s4)}
+.stock-info-item{display:flex;flex-direction:column;gap:var(--s1)}
+.stock-info-item .si-label{font-size:var(--fs-sm);color:var(--n7)}
+.stock-info-item .si-value{font-size:var(--fs-xl);font-weight:var(--fw-semibold);font-family:var(--ff-mono);color:var(--n10)}
+.stock-info-item .si-value.danger{color:var(--c-error)}
+.stock-info-item .si-value.success{color:var(--c-success)}
+.form-item{display:flex;flex-direction:column;gap:var(--s2);margin-bottom:var(--s4)}
+.form-item:last-child{margin-bottom:0}
+.form-label{font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium);display:flex;align-items:center;gap:4px}
+.form-label .req{color:var(--c-error)}
+.form-hint{font-size:var(--fs-sm);color:var(--n7);display:flex;align-items:center;gap:4px}
+.form-hint.warn{color:var(--c-warning)}
+.input-lg{width:100%;height:36px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-lg);color:var(--n10);font-family:var(--ff-mono);background:var(--n1);outline:none;transition:all .15s}
+.input-lg:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.input-lg.error{border-color:var(--c-error)}
+/* scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.25)}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-logo">
+      <div class="logo-icon">L</div>
+      <span>Leno 商家后台</span>
+    </div>
+    <div class="breadcrumb">
+      <span>首页</span>
+      <span class="sep">/</span>
+      <span>工作台</span>
+      <span class="sep">/</span>
+      <span class="current">库存预警</span>
+    </div>
+    <div class="header-search">
+      <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor" style="color:var(--n7)"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 714 478.4 714 408c0-168.4-136.6-305-305-305S104 239.6 104 408s136.6 305 305 305c70.4 0 134.7-23.8 186.8-64.1l259.7 259.6 54.1-54.1zM409 652.2c-134.8 0-244.2-109.4-244.2-244.2S274.2 163.8 409 163.8s244.2 109.4 244.2 244.2S543.8 652.2 409 652.2z"/></svg>
+      <input placeholder="搜索订单、商品、买家..." />
+    </div>
+    <div class="header-actions">
+      <div class="icon-btn" title="待发货">
+        <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM428 726c-12.2 12.2-32 12.2-44.2 0L294 636.2c-12.2-12.2-12.2-32 0-44.2 12.2-12.2 32-12.2 44.2 0l68 68 290-290c12.2-12.2 32-12.2 44.2 0 12.2 12.2 12.2 32 0 44.2L428 726z"/></svg>
+        <span class="badge-dot"></span>
+      </div>
+      <div class="icon-btn" title="通知">
+        <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a32 32 0 0 1 32 32v32h160a32 32 0 0 1 32 32v64a32 32 0 0 1-32 32H320a32 32 0 0 1-32-32V160a32 32 0 0 1 32-32h160V96a32 32 0 0 1 32-32zM256 256h512v352a256 256 0 0 1-512 0V256zm256 576a96 96 0 0 0 96-96H416a96 96 0 0 0 96 96z"/></svg>
+        <span class="badge-dot"></span>
+      </div>
+      <div class="user-menu">
+        <div class="avatar">张</div>
+        <span class="user-name">张老板</span>
+        <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor" style="color:var(--n7)"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39.1 17.6 51.9 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- Sider -->
+    <aside class="app-sider">
+      <div class="menu-group-title">工作台</div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 0 0-96-142.4 446.7 446.7 0 0 0-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 0 0-142.4 96 446.7 446.7 0 0 0-96 142.4C75.8 440.9 64 499.5 64 560c0 132.3 51.9 256.7 146 350.8a494.4 494.4 0 0 0 350.8 146c60.5 0 119.1-11.8 174.4-35.2a446.7 446.7 0 0 0 142.4-96 446.7 446.7 0 0 0 96-142.4c23.4-55.3 35.2-113.9 35.2-174.4s-11.8-119.1-35.2-174.4zM512 880c-176.7 0-320-143.3-320-320s143.3-320 320-320 320 143.3 320 320-143.3 320-320 320z"/><path d="M512 400a48 48 0 1 0 0-96 48 48 0 0 0 0 96zm0 96a48 48 0 1 0 0 96 48 48 0 0 0 0-96z"/></svg><span>经营概览</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM428 726c-12.2 12.2-32 12.2-44.2 0L294 636.2c-12.2-12.2-12.2-32 0-44.2 12.2-12.2 32-12.2 44.2 0l68 68 290-290c12.2-12.2 32-12.2 44.2 0 12.2 12.2 12.2 32 0 44.2L428 726z"/></svg><span>销售趋势</span></div>
+      <div class="menu-item active"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64L128 224v320c0 212.8 163.2 409.6 384 416 220.8-6.4 384-203.2 384-416V224L512 64zm0 640c-176.7 0-320-72-320-160V294.4L512 160l320 134.4V544c0 88-143.3 160-320 160z"/></svg><span>库存预警</span></div>
+      <div class="menu-group-title">商品管理</div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v288c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32zM332 240c0-30.9 25.1-56 56-56h248c30.9 0 56 25.1 56 56v224H332V240zm500 480H192V528h640v192z"/></svg><span>商品列表</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 820V180c0-37.6-30.4-68-68-68H180c-37.6 0-68 30.4-68 68v640c0 37.6 30.4 68 68 68h664c37.6 0 68-30.4 68-68zM180 180h664v640H180V180zm140 480h384a32 32 0 1 0 0-64H320a32 32 0 1 0 0 64zm0-160h384a32 32 0 1 0 0-64H320a32 32 0 1 0 0 64zm0-160h192a32 32 0 1 0 0-64H320a32 32 0 1 0 0 64z"/></svg><span>SKU 管理</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-44.2 0-80 35.8-80 80v560c0 44.2 35.8 80 80 80h736c44.2 0 80-35.8 80-80V192c0-44.2-35.8-80-80-80z"/></svg><span>价格历史</span></div>
+      <div class="menu-group-title">物流管理</div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-44.2 0-80 35.8-80 80v560c0 44.2 35.8 80 80 80h736c44.2 0 80-35.8 80-80V192c0-44.2-35.8-80-80-80z"/></svg><span>运费模板</span></div>
+      <div class="menu-group-title">订单履约</div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>待发货订单</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>全部订单</span></div>
+      <div class="menu-group-title">售后处理</div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-44.2 0-80 35.8-80 80v560c0 44.2 35.8 80 80 80h736c44.2 0 80-35.8 80-80V192c0-44.2-35.8-80-80-80z"/></svg><span>售后列表</span></div>
+      <div class="menu-group-title">评价管理</div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-44.2 0-80 35.8-80 80v560c0 44.2 35.8 80 80 80h736c44.2 0 80-35.8 80-80V192c0-44.2-35.8-80-80-80z"/></svg><span>评价回复</span></div>
+      <div class="menu-group-title">店铺设置</div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 820V180c0-37.6-30.4-68-68-68H180c-37.6 0-68 30.4-68 68v640c0 37.6 30.4 68 68 68h664c37.6 0 68-30.4 68-68zM180 180h664v640H180V180z"/></svg><span>入驻申请</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 820V180c0-37.6-30.4-68-68-68H180c-37.6 0-68 30.4-68 68v640c0 37.6 30.4 68 68 68h664c37.6 0 68-30.4 68-68z"/></svg><span>店铺资料</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v288c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32z"/></svg><span>资质管理</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-44.2 0-80 35.8-80 80v560c0 44.2 35.8 80 80 80h736c44.2 0 80-35.8 80-80V192c0-44.2-35.8-80-80-80z"/></svg><span>店铺前台预览</span></div>
+      <div class="menu-group-title">报表导出</div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-44.2 0-80 35.8-80 80v560c0 44.2 35.8 80 80 80h736c44.2 0 80-35.8 80-80V192c0-44.2-35.8-80-80-80z"/></svg><span>销售报表导出</span></div>
+      <div class="menu-group-title">个人中心</div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.6 375.6 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 555.1 782.8 463.1 782.8 356.6c0-151.5-122.8-274.3-274.3-274.3s-274.3 122.8-274.3 274.3c0 106.5 63.9 198.5 154.7 206.5-.4.2-.8.3-1.2.5a370.4 370.4 0 0 0-119.5 80.6 374 374 0 0 0-80.6 119.5A372.6 372.6 0 0 0 165.4 906c0 4.4 3.6 8 8 8h669.2c4.4 0 8-3.6 8-8a372.6 372.6 0 0 0-18.1-142.4z"/></svg><span>个人资料</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a32 32 0 0 1 32 32v32h160a32 32 0 0 1 32 32v64a32 32 0 0 1-32 32H320a32 32 0 0 1-32-32V160a32 32 0 0 1 32-32h160V96a32 32 0 0 1 32-32zM256 256h512v352a256 256 0 0 1-512 0V256z"/></svg><span>通知中心</span></div>
+    </aside>
+
+    <!-- Content -->
+    <main class="app-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div>
+          <div class="page-title">
+            <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor" style="color:var(--c-warning)"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 0 1 0-96 48.01 48.01 0 0 1 0 96z"/></svg>
+            库存预警
+          </div>
+          <div class="page-desc">查看低库存商品，及时补货避免断货</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn">
+            <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-44.1C745.9 128 576 100.7 471.5 121.3l-47.5 9c-39.9 7.6-76.1 28.1-101.5 57.9l-60.1 70.2c-20.9 24.4-37.4 52.3-48.8 82.4L162.7 490.4c-7.4 19.4-7.4 40.8 0 60.2L214 679.6c11.4 30.1 27.9 58 48.8 82.4l60.1 70.2c25.4 29.8 61.6 50.3 101.5 57.9l47.5 9C677.4 923.3 847.6 896 913 864.8l56.4-44.1c9.2-7.2 14.6-18.2 14.6-29.9V239.2c0-11.7-5.4-22.7-14.9-29.9z"/></svg>
+            刷新
+          </button>
+          <button class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M505.7 661a8 8 0 0 1 12.6 0l112 141.7c4.1 5.2.4 12.9-6.3 12.9h-74.1V214c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v601.6H399.7c-6.7 0-10.4-7.7-6.3-12.9l112-141.7z"/></svg>
+            导出预警清单
+          </button>
+        </div>
+      </div>
+
+      <!-- Alert bar -->
+      <div class="alert alert-warning">
+        <span class="alert-icon">
+          <svg width="18" height="18" viewBox="0 0 1024 1024" fill="currentColor" style="color:var(--c-warning)"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 0 1 0-96 48.01 48.01 0 0 1 0 96z"/></svg>
+        </span>
+        <div class="alert-content">
+          <div class="alert-title">库存预警提醒</div>
+          当前有 <span class="alert-strong">8</span> 个 SKU 库存低于阈值 <span class="alert-strong">10</span>，其中 <span class="alert-strong">3</span> 个紧急缺货，建议尽快补货避免影响销售。
+          <div class="alert-actions">
+            <button class="btn btn-sm btn-primary">一键补货紧急商品</button>
+            <button class="btn btn-sm">查看补货建议</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <span class="filter-label">
+          <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48z"/></svg>
+          预警阈值
+        </span>
+        <div class="input-number" aria-label="库存预警阈值">
+          <button class="num-btn">−</button>
+          <input value="10" />
+          <button class="num-btn">+</button>
+        </div>
+        <span class="filter-label">商品分类</span>
+        <div class="select" style="min-width:160px">
+          <span>全部类目</span>
+          <span class="sel-arrow"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39.1 17.6 51.9 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg></span>
+        </div>
+        <span class="filter-label">排序方式</span>
+        <div class="select" style="min-width:140px">
+          <span>库存升序</span>
+          <span class="sel-arrow"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39.1 17.6 51.9 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg></span>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:var(--s2)">
+          <button class="btn" id="thresholdBtn">
+            <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+            阈值设置
+          </button>
+        </div>
+      </div>
+
+      <!-- Batch bar -->
+      <div class="batch-bar">
+        <span class="checkbox checked"></span>
+        <span>已选择 <span class="batch-count">3</span> 项商品</span>
+        <button class="btn btn-sm btn-primary">
+          <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+          批量补货
+        </button>
+        <button class="btn btn-sm">取消选择</button>
+      </div>
+
+      <!-- Low stock table -->
+      <div class="chart-card">
+        <div class="card-head">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor" style="color:var(--c-primary)"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v288c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32z"/></svg>
+            预警商品清单
+            <span class="sub">共 8 个 SKU · 按库存升序</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <table class="data-table" aria-label="低库存商品表格">
+            <thead>
+              <tr>
+                <th style="width:40px" class="center"><span class="checkbox"></span></th>
+                <th>商品名称</th>
+                <th style="width:110px">SKU 规格</th>
+                <th style="width:130px">SKU 编码</th>
+                <th style="width:140px">当前库存</th>
+                <th style="width:120px">销量（近 30 天）</th>
+                <th style="width:110px">库存状态</th>
+                <th style="width:90px;text-align:center">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="center"><span class="checkbox checked"></span></td>
+                <td><div class="prod-cell"><div class="prod-thumb">T</div>南极人纯棉短袖T恤</div></td>
+                <td>黑 / L</td>
+                <td><span class="num">SKU-NJ-T001</span></td>
+                <td>
+                  <div class="stock-cell">
+                    <span class="stock-num" style="color:var(--c-error)">2</span>
+                    <div class="stock-bar"><div class="bar-fill" style="width:8%;background:var(--c-error)"></div></div>
+                  </div>
+                </td>
+                <td><span class="num">156</span> 件</td>
+                <td><span class="tag tag-red"><span class="tag-dot"></span>紧急</span></td>
+                <td class="center"><button class="btn btn-sm btn-primary">补货</button></td>
+              </tr>
+              <tr>
+                <td class="center"><span class="checkbox"></span></td>
+                <td><div class="prod-cell"><div class="prod-thumb">W</div>南极人保暖内衣套装</div></td>
+                <td>灰 / L</td>
+                <td><span class="num">SKU-NJ-W001</span></td>
+                <td>
+                  <div class="stock-cell">
+                    <span class="stock-num" style="color:var(--c-error)">3</span>
+                    <div class="stock-bar"><div class="bar-fill" style="width:12%;background:var(--c-error)"></div></div>
+                  </div>
+                </td>
+                <td><span class="num">120</span> 件</td>
+                <td><span class="tag tag-red"><span class="tag-dot"></span>紧急</span></td>
+                <td class="center"><button class="btn btn-sm btn-primary">补货</button></td>
+              </tr>
+              <tr>
+                <td class="center"><span class="checkbox"></span></td>
+                <td><div class="prod-cell"><div class="prod-thumb">S</div>南极人运动短裤</div></td>
+                <td>黑 / L</td>
+                <td><span class="num">SKU-NJ-S002</span></td>
+                <td>
+                  <div class="stock-cell">
+                    <span class="stock-num" style="color:var(--c-error)">4</span>
+                    <div class="stock-bar"><div class="bar-fill" style="width:16%;background:var(--c-error)"></div></div>
+                  </div>
+                </td>
+                <td><span class="num">67</span> 件</td>
+                <td><span class="tag tag-red"><span class="tag-dot"></span>紧急</span></td>
+                <td class="center"><button class="btn btn-sm btn-primary">补货</button></td>
+              </tr>
+              <tr>
+                <td class="center"><span class="checkbox checked"></span></td>
+                <td><div class="prod-cell"><div class="prod-thumb">T</div>南极人纯棉短袖T恤</div></td>
+                <td>白 / M</td>
+                <td><span class="num">SKU-NJ-T002</span></td>
+                <td>
+                  <div class="stock-cell">
+                    <span class="stock-num" style="color:var(--c-warning)">5</span>
+                    <div class="stock-bar"><div class="bar-fill" style="width:20%;background:var(--c-warning)"></div></div>
+                  </div>
+                </td>
+                <td><span class="num">98</span> 件</td>
+                <td><span class="tag tag-gold"><span class="tag-dot"></span>警告</span></td>
+                <td class="center"><button class="btn btn-sm btn-primary">补货</button></td>
+              </tr>
+              <tr>
+                <td class="center"><span class="checkbox"></span></td>
+                <td><div class="prod-cell"><div class="prod-thumb">S</div>南极人纯棉袜子（10 双装）</div></td>
+                <td>白 / 均码</td>
+                <td><span class="num">SKU-NJ-S001</span></td>
+                <td>
+                  <div class="stock-cell">
+                    <span class="stock-num" style="color:var(--c-warning)">6</span>
+                    <div class="stock-bar"><div class="bar-fill" style="width:24%;background:var(--c-warning)"></div></div>
+                  </div>
+                </td>
+                <td><span class="num">88</span> 件</td>
+                <td><span class="tag tag-gold"><span class="tag-dot"></span>警告</span></td>
+                <td class="center"><button class="btn btn-sm btn-primary">补货</button></td>
+              </tr>
+              <tr>
+                <td class="center"><span class="checkbox"></span></td>
+                <td><div class="prod-cell"><div class="prod-thumb">H</div>南极人连帽卫衣</div></td>
+                <td>灰 / M</td>
+                <td><span class="num">SKU-NJ-H001</span></td>
+                <td>
+                  <div class="stock-cell">
+                    <span class="stock-num" style="color:var(--c-warning)">7</span>
+                    <div class="stock-bar"><div class="bar-fill" style="width:28%;background:var(--c-warning)"></div></div>
+                  </div>
+                </td>
+                <td><span class="num">54</span> 件</td>
+                <td><span class="tag tag-gold"><span class="tag-dot"></span>警告</span></td>
+                <td class="center"><button class="btn btn-sm btn-primary">补货</button></td>
+              </tr>
+              <tr>
+                <td class="center"><span class="checkbox checked"></span></td>
+                <td><div class="prod-cell"><div class="prod-thumb">I</div>南极人男士冰丝内裤</div></td>
+                <td>蓝 / XL</td>
+                <td><span class="num">SKU-NJ-I001</span></td>
+                <td>
+                  <div class="stock-cell">
+                    <span class="stock-num" style="color:var(--c-primary)">8</span>
+                    <div class="stock-bar"><div class="bar-fill" style="width:32%;background:var(--c-primary)"></div></div>
+                  </div>
+                </td>
+                <td><span class="num">45</span> 件</td>
+                <td><span class="tag tag-blue"><span class="tag-dot"></span>偏低</span></td>
+                <td class="center"><button class="btn btn-sm">补货</button></td>
+              </tr>
+              <tr>
+                <td class="center"><span class="checkbox"></span></td>
+                <td><div class="prod-cell"><div class="prod-thumb">P</div>南极人法兰绒睡衣</div></td>
+                <td>红 / XL</td>
+                <td><span class="num">SKU-NJ-P001</span></td>
+                <td>
+                  <div class="stock-cell">
+                    <span class="stock-num" style="color:var(--c-primary)">9</span>
+                    <div class="stock-bar"><div class="bar-fill" style="width:36%;background:var(--c-primary)"></div></div>
+                  </div>
+                </td>
+                <td><span class="num">32</span> 件</td>
+                <td><span class="tag tag-blue"><span class="tag-dot"></span>偏低</span></td>
+                <td class="center"><button class="btn btn-sm">补货</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Threshold setting -->
+      <div class="chart-card" id="thresholdCard">
+        <div class="card-head">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor" style="color:var(--c-primary)"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+            库存阈值设置
+            <span class="sub">库存低于阈值时自动预警，可按分类自定义</span>
+          </div>
+          <div class="card-extra">
+            <button class="btn btn-sm">恢复默认</button>
+            <button class="btn btn-sm btn-primary">保存设置</button>
+          </div>
+        </div>
+        <div class="card-body pad">
+          <div class="threshold-grid">
+            <div class="threshold-row">
+              <div class="th-label"><span class="th-cat-dot" style="background:var(--c-primary)"></span>全局默认阈值</div>
+              <div class="th-input">低于 <input value="10" /> 件时预警</div>
+            </div>
+            <div class="threshold-row">
+              <div class="th-label"><span class="th-cat-dot" style="background:#1677FF"></span>T恤/上衣</div>
+              <div class="th-input">低于 <input value="10" /> 件时预警</div>
+            </div>
+            <div class="threshold-row">
+              <div class="th-label"><span class="th-cat-dot" style="background:#52C41A"></span>内衣/内裤</div>
+              <div class="th-input">低于 <input value="15" /> 件时预警</div>
+            </div>
+            <div class="threshold-row">
+              <div class="th-label"><span class="th-cat-dot" style="background:#FAAD14"></span>袜子</div>
+              <div class="th-input">低于 <input value="20" /> 件时预警</div>
+            </div>
+            <div class="threshold-row">
+              <div class="th-label"><span class="th-cat-dot" style="background:#722ED1"></span>睡衣/家居服</div>
+              <div class="th-input">低于 <input value="8" /> 件时预警</div>
+            </div>
+            <div class="threshold-row">
+              <div class="th-label"><span class="th-cat-dot" style="background:#FF4D4F"></span>保暖内衣</div>
+              <div class="th-input">低于 <input value="12" /> 件时预警</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+  <footer class="app-footer">
+    Leno 电商平台商家管理后台 &copy; 2026 &nbsp;|&nbsp; 当前店铺：南极人官方旗舰店 &nbsp;|&nbsp; SLA 99.95%
+  </footer>
+</div>
+
+<!-- Restock Drawer (open state) -->
+<div class="drawer-mask" id="drawerMask"></div>
+<div class="drawer" id="restockDrawer">
+  <div class="drawer-head">
+    <div class="drawer-title">
+      <svg width="18" height="18" viewBox="0 0 1024 1024" fill="currentColor" style="color:var(--c-primary)"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v288c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32z"/></svg>
+      商品补货
+    </div>
+    <div class="drawer-close" id="drawerClose">
+      <svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+    </div>
+  </div>
+  <div class="drawer-body">
+    <!-- Product summary -->
+    <div class="d-section">
+      <div class="d-sec-title">补货商品</div>
+      <div class="prod-summary">
+        <div class="ps-thumb">T</div>
+        <div class="ps-info">
+          <span class="ps-name">南极人纯棉短袖T恤</span>
+          <span class="ps-spec">规格：黑 / L　·　SKU-NJ-T001</span>
+        </div>
+        <span class="tag tag-red">紧急</span>
+      </div>
+    </div>
+
+    <!-- Stock info -->
+    <div class="d-section">
+      <div class="d-sec-title">库存信息</div>
+      <div class="stock-info-grid">
+        <div class="stock-info-item">
+          <span class="si-label">当前库存</span>
+          <span class="si-value danger">2</span>
+        </div>
+        <div class="stock-info-item">
+          <span class="si-label">预警阈值</span>
+          <span class="si-value" style="color:var(--n7)">10</span>
+        </div>
+        <div class="stock-info-item">
+          <span class="si-label">近 30 天销量</span>
+          <span class="si-value">156</span>
+        </div>
+        <div class="stock-info-item">
+          <span class="si-label">日均销量</span>
+          <span class="si-value">5.2</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Restock form -->
+    <div class="d-section">
+      <div class="d-sec-title">补货数量</div>
+      <div class="form-item">
+        <label class="form-label">补货数量 <span class="req">*</span></label>
+        <input class="input-lg" value="100" />
+        <div class="form-hint">
+          <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor" style="color:var(--c-primary)"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M448 688h128v72H448zm0-272h128v224H448z"/></svg>
+          按日均销量 5.2 件计算，可售约 19 天
+        </div>
+      </div>
+      <div class="form-item">
+        <label class="form-label">补货后预计库存</label>
+        <div style="display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);background:#F6FFED;border:1px solid #B7EB8F;border-radius:var(--r-base)">
+          <span style="font-size:var(--fs-sm);color:var(--n9)">2</span>
+          <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor" style="color:var(--n7)"><path d="M765.7 486.8L314.9 134.7A7.46 7.46 0 0 0 302 141v77.3c0 4.9 2.3 9.6 6.3 12.6l360 281.1-360 281.1c-4 3-6.3 7.7-6.3 12.6V883c0 6.5 7.4 10.3 12.9 6.3l450.8-352.1a31.86 31.86 0 0 0 0-50.4z"/></svg>
+          <span style="font-size:var(--fs-sm);color:var(--n9)">+ 100</span>
+          <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor" style="color:var(--n7)"><path d="M765.7 486.8L314.9 134.7A7.46 7.46 0 0 0 302 141v77.3c0 4.9 2.3 9.6 6.3 12.6l360 281.1-360 281.1c-4 3-6.3 7.7-6.3 12.6V883c0 6.5 7.4 10.3 12.9 6.3l450.8-352.1a31.86 31.86 0 0 0 0-50.4z"/></svg>
+          <span class="stock-num" style="color:var(--c-success);font-size:var(--fs-xl)">102</span>
+          <span class="tag tag-green" style="margin-left:auto">库存充足</span>
+        </div>
+      </div>
+      <div class="form-item">
+        <label class="form-label">补货备注 <span style="color:var(--n7);font-size:var(--fs-sm);font-weight:var(--fw-normal)">（选填）</span></label>
+        <input class="input-lg" style="height:32px;font-size:var(--fs-base);font-family:var(--ff-app)" placeholder="如：供应商批次、预计到货时间" />
+      </div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn" id="drawerCancel">取消</button>
+    <button class="btn btn-primary">
+      <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+      确认补货
+    </button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var mask=document.getElementById('drawerMask');
+  var drawer=document.getElementById('restockDrawer');
+  function closeDrawer(){ mask.style.display='none'; drawer.style.display='none'; }
+  document.getElementById('drawerClose').addEventListener('click',closeDrawer);
+  document.getElementById('drawerCancel').addEventListener('click',closeDrawer);
+  mask.addEventListener('click',closeDrawer);
+  // threshold button scroll
+  document.getElementById('thresholdBtn').addEventListener('click',function(){
+    document.getElementById('thresholdCard').scrollIntoView({behavior:'smooth',block:'center'});
+  });
+})();
+</script>
+</body>
+</html>
