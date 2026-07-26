@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用户管理 - Leno 系统管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+html, body { height:100%; }
+body {
+  font-family:var(--ff-app);
+  font-size:var(--fs-base);
+  color:var(--n10);
+  background:var(--n3);
+  line-height:1.5715;
+  -webkit-font-smoothing:antialiased;
+}
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+button { font-family:inherit; cursor:pointer; }
+
+/* Layout */
+.app { display:flex; min-height:100vh; }
+.sider {
+  width:var(--sider-width);
+  background:var(--sider-bg);
+  position:fixed; top:0; left:0; bottom:0;
+  display:flex; flex-direction:column;
+  z-index:20;
+  overflow:hidden;
+}
+.sider-logo {
+  height:var(--header-h);
+  display:flex; align-items:center; gap:var(--s2);
+  padding:0 var(--s4);
+  color:#fff;
+  font-size:var(--fs-lg); font-weight:var(--fw-semibold);
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+.sider-logo .logo-mark {
+  width:28px; height:28px; border-radius:6px;
+  background:linear-gradient(135deg,#1677FF,#4096FF);
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:700; font-size:15px;
+}
+.sider-menu { flex:1; padding:var(--s2) 0; overflow-y:auto; }
+.sider-menu::-webkit-scrollbar { width:6px; }
+.sider-menu::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:3px; }
+.menu-group-title {
+  color:rgba(255,255,255,0.35);
+  font-size:11px;
+  padding:var(--s4) var(--s6) var(--s2);
+  letter-spacing:0.5px;
+}
+.menu-item {
+  display:flex; align-items:center; gap:var(--s3);
+  height:40px;
+  padding:0 var(--s6);
+  color:rgba(255,255,255,0.85);
+  font-size:var(--fs-base);
+  cursor:pointer;
+  border-left:3px solid transparent;
+  transition:background 100ms;
+}
+.menu-item:hover { background:rgba(255,255,255,0.06); }
+.menu-item.active {
+  background:#E6F4FF;
+  color:var(--c-primary);
+  border-left-color:var(--c-primary);
+  font-weight:var(--fw-medium);
+}
+.menu-item svg { width:16px; height:16px; flex-shrink:0; color:rgba(255,255,255,0.65); }
+.menu-item.active svg { color:var(--c-primary); }
+
+.main { flex:1; margin-left:var(--sider-width); display:flex; flex-direction:column; min-width:0; }
+.header {
+  height:var(--header-h);
+  background:var(--n1);
+  border-bottom:1px solid var(--n5);
+  display:flex; align-items:center;
+  padding:0 var(--s6);
+  position:sticky; top:0; z-index:10;
+  gap:var(--s4);
+}
+.header-icon-btn {
+  width:36px; height:36px; border:none; background:transparent;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--r-base); color:var(--n9);
+  position:relative;
+}
+.header-icon-btn:hover { background:var(--n3); }
+.header-icon-btn svg { width:18px; height:18px; }
+.collapse-btn { margin-right:var(--s2); }
+.breadcrumb { display:flex; align-items:center; gap:var(--s2); color:var(--n7); font-size:var(--fs-base); }
+.breadcrumb .sep { color:var(--n5); }
+.breadcrumb .current { color:var(--n10); }
+.header-search {
+  margin-left:auto;
+  display:flex; align-items:center; gap:var(--s2);
+  width:260px; height:32px;
+  background:var(--n3);
+  border:1px solid transparent;
+  border-radius:var(--r-base);
+  padding:0 var(--s3);
+  color:var(--n7);
+  font-size:13px;
+  cursor:pointer;
+}
+.header-search:hover { border-color:var(--c-primary); background:var(--n1); }
+.header-search svg { width:14px; height:14px; }
+.kbd {
+  margin-left:auto;
+  font-family:var(--ff-mono);
+  font-size:11px;
+  background:var(--n1);
+  border:1px solid var(--n5);
+  border-radius:4px;
+  padding:1px 6px;
+  color:var(--n7);
+}
+.notif-badge { position:relative; }
+.notif-badge .count {
+  position:absolute; top:4px; right:4px;
+  min-width:16px; height:16px; padding:0 4px;
+  background:var(--c-error); color:#fff;
+  border-radius:8px; font-size:10px; line-height:16px;
+  text-align:center; font-weight:600;
+  border:1.5px solid var(--n1);
+}
+.user-menu {
+  display:flex; align-items:center; gap:var(--s2);
+  padding:0 var(--s2); height:36px;
+  border-radius:var(--r-base); cursor:pointer;
+}
+.user-menu:hover { background:var(--n3); }
+.avatar {
+  width:28px; height:28px; border-radius:50%;
+  background:linear-gradient(135deg,#1677FF,#722ED1);
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:600;
+}
+.user-menu .name { font-size:13px; color:var(--n10); }
+
+.content { flex:1; padding:var(--s6); }
+.footer {
+  height:32px; background:var(--n1);
+  border-top:1px solid var(--n5);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 var(--s6);
+  font-size:12px; color:var(--n7);
+}
+
+/* Page components */
+.page-header {
+  display:flex; align-items:flex-start; justify-content:space-between;
+  margin-bottom:var(--s6); gap:var(--s4);
+}
+.page-title { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); }
+.page-subtitle { font-size:13px; color:var(--n7); margin-top:4px; }
+
+.toolbar {
+  display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap;
+  background:var(--n1);
+  padding:var(--s3) var(--s4);
+  border-radius:var(--r-card);
+  box-shadow:var(--sh-card);
+  margin-bottom:var(--s4);
+}
+.toolbar .left { display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap; }
+.toolbar .right { display:flex; align-items:center; gap:var(--s2); margin-left:auto; }
+
+.btn {
+  display:inline-flex; align-items:center; gap:var(--s2);
+  height:32px; padding:0 var(--s4);
+  border:1px solid var(--n5); background:var(--n1);
+  border-radius:var(--r-base);
+  font-size:var(--fs-base); color:var(--n10);
+  transition:all 100ms;
+}
+.btn:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.btn svg { width:14px; height:14px; }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-danger { color:var(--c-error); border-color:var(--c-error); }
+.btn-danger:hover { background:var(--c-error); color:#fff; }
+.btn-sm { height:28px; padding:0 var(--s3); font-size:13px; }
+.btn-link {
+  background:transparent; border:none; color:var(--c-primary);
+  padding:0 var(--s1); height:auto; font-size:13px;
+}
+.btn-link:hover { color:#4096FF; background:transparent; }
+.btn-link.danger { color:var(--c-error); }
+.btn-link.danger:hover { color:#ff7875; }
+.btn[disabled], .btn-link[disabled] { color:var(--n5); cursor:not-allowed; pointer-events:none; }
+
+/* Form controls (mock) */
+.field { display:flex; flex-direction:column; gap:4px; }
+.field-label { font-size:13px; color:var(--n9); }
+.input, .select {
+  height:32px; padding:0 var(--s3);
+  border:1px solid var(--n5); background:var(--n1);
+  border-radius:var(--r-base);
+  font-size:var(--fs-base); color:var(--n10);
+  display:flex; align-items:center; gap:var(--s2);
+  min-width:160px;
+}
+.input:hover, .select:hover { border-color:var(--c-primary); }
+.input input { border:none; outline:none; flex:1; font-size:var(--fs-base); background:transparent; }
+.input svg { width:14px; height:14px; color:var(--n7); }
+.select { position:relative; cursor:pointer; min-width:140px; justify-content:space-between; }
+.select .chev { width:12px; height:12px; color:var(--n7); }
+.select .ph { color:var(--n7); }
+.select .tags { display:flex; gap:4px; flex-wrap:wrap; }
+.select .mini-tag {
+  background:#F0F5FF; color:var(--c-primary);
+  border-radius:4px; padding:0 6px; font-size:12px; line-height:22px;
+  display:inline-flex; align-items:center; gap:4px;
+}
+.daterange {
+  height:32px; padding:0 var(--s3);
+  border:1px solid var(--n5); background:var(--n1);
+  border-radius:var(--r-base);
+  font-size:13px; color:var(--n10);
+  display:flex; align-items:center; gap:var(--s2);
+  font-family:var(--ff-mono);
+}
+.daterange svg { width:14px; height:14px; color:var(--n7); }
+
+.card {
+  background:var(--n1);
+  border-radius:var(--r-card);
+  box-shadow:var(--sh-card);
+  border:1px solid #F0F0F0;
+}
+.card-head {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:var(--s3) var(--s4);
+  border-bottom:1px solid var(--n3);
+}
+.card-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); display:flex; align-items:center; gap:var(--s2); }
+.card-title svg { width:16px; height:16px; color:var(--c-primary); }
+.card-extra { font-size:13px; color:var(--n7); }
+.card-body { padding:var(--s4); }
+
+/* Table */
+.tbl-wrap { overflow-x:auto; }
+.tbl { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+.tbl th, .tbl td {
+  text-align:left; padding:var(--s3) var(--s4);
+  border-bottom:1px solid var(--n3);
+}
+.tbl th {
+  background:var(--n2); color:var(--n9); font-weight:var(--fw-medium);
+  font-size:13px; height:40px;
+  white-space:nowrap;
+}
+.tbl td { height:48px; color:var(--n10); }
+.tbl tbody tr:hover { background:var(--n2); }
+.tbl .num { font-family:var(--ff-mono); font-feature-settings:"tnum"; }
+.tbl .muted { color:var(--n7); font-size:12px; }
+.tbl .uname { font-weight:var(--fw-medium); color:var(--n10); }
+.tbl .ops { display:flex; gap:var(--s2); align-items:center; white-space:nowrap; }
+.tbl .checkbox { width:16px; height:16px; }
+
+/* Tag */
+.tag {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:1px 8px; border-radius:var(--r-base);
+  font-size:12px; line-height:20px;
+  border:1px solid;
+}
+.tag-blue { background:#E6F4FF; color:#1677FF; border-color:#91CAFF; }
+.tag-green { background:#F6FFED; color:#52C41A; border-color:#B7EB8F; }
+.tag-gold { background:#FFFBE6; color:#FAAD14; border-color:#FFE58F; }
+.tag-red { background:#FFF1F0; color:#FF4D4F; border-color:#FFCCC7; }
+.tag-gray { background:#FAFAFA; color:#8C8C8C; border-color:#D9D9D9; }
+.tag-purple { background:#F9F0FF; color:#722ED1; border-color:#D3ADF7; }
+.tag-cyan { background:#E6FFFB; color:#13C2C2; border-color:#87E8DE; }
+
+/* status dot */
+.status { display:inline-flex; align-items:center; gap:6px; font-size:13px; }
+.status .dot { width:6px; height:6px; border-radius:50%; }
+.status.ok .dot { background:var(--c-success); }
+.status.warn .dot { background:var(--c-warning); }
+.status.err .dot { background:var(--c-error); }
+.status.neutral .dot { background:var(--n7); }
+
+/* Pagination */
+.pagination {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:var(--s3) var(--s4);
+}
+.pagination .info { font-size:13px; color:var(--n7); }
+.pager { display:flex; align-items:center; gap:6px; }
+.pager .p {
+  min-width:32px; height:32px; padding:0 var(--s2);
+  border:1px solid var(--n5); background:var(--n1);
+  border-radius:var(--r-base);
+  font-size:13px; color:var(--n10);
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family:var(--ff-mono);
+}
+.pager .p:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.pager .p.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.pager .p.disabled { color:var(--n5); cursor:not-allowed; pointer-events:none; }
+.pager .size { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--n9); }
+.pager .size .sel {
+  border:1px solid var(--n5); border-radius:var(--r-base);
+  height:32px; padding:0 var(--s2); display:flex; align-items:center; gap:6px;
+  background:var(--n1); cursor:pointer;
+}
+.pager .size .sel svg { width:10px; height:10px; color:var(--n7); }
+
+/* Drawer */
+.drawer-mask {
+  position:fixed; inset:0; background:rgba(0,0,0,0.45);
+  z-index:100;
+}
+.drawer {
+  position:fixed; top:0; right:0; bottom:0;
+  width:600px; background:var(--n1);
+  z-index:101;
+  display:flex; flex-direction:column;
+  box-shadow:-6px 0 16px rgba(0,0,0,0.08);
+  animation:slideIn 220ms ease;
+}
+@keyframes slideIn { from{transform:translateX(40px);opacity:.6;} to{transform:translateX(0);opacity:1;} }
+.drawer-head {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:var(--s4) var(--s6);
+  border-bottom:1px solid var(--n3);
+}
+.drawer-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); }
+.drawer-close {
+  width:32px; height:32px; border:none; background:transparent;
+  border-radius:var(--r-base); display:flex; align-items:center; justify-content:center;
+  color:var(--n7);
+}
+.drawer-close:hover { background:var(--n3); }
+.drawer-close svg { width:16px; height:16px; }
+.drawer-body { flex:1; overflow-y:auto; padding:var(--s6); }
+.drawer-foot {
+  padding:var(--s3) var(--s6);
+  border-top:1px solid var(--n3);
+  display:flex; justify-content:flex-end; gap:var(--s2);
+}
+
+/* Descriptions */
+.desc { width:100%; border-collapse:collapse; }
+.desc th, .desc td {
+  padding:var(--s3) var(--s4); font-size:13px;
+  border-bottom:1px solid var(--n3);
+  vertical-align:top;
+}
+.desc th { background:var(--n2); color:var(--n9); font-weight:var(--fw-medium); width:120px; white-space:nowrap; }
+.desc td { color:var(--n10); }
+.desc .mono { font-family:var(--ff-mono); }
+
+/* Mini section title */
+.section-title {
+  font-size:14px; font-weight:var(--fw-semibold); color:var(--n10);
+  display:flex; align-items:center; gap:var(--s2);
+  margin:var(--s6) 0 var(--s3);
+}
+.section-title::before {
+  content:""; width:3px; height:14px; background:var(--c-primary); border-radius:2px;
+}
+.section-title .count { color:var(--n7); font-weight:var(--fw-normal); font-size:12px; margin-left:4px; }
+
+/* Login history mini table */
+.mini-tbl { width:100%; border-collapse:collapse; font-size:12px; }
+.mini-tbl th, .mini-tbl td { padding:8px var(--s3); border-bottom:1px solid var(--n3); text-align:left; }
+.mini-tbl th { color:var(--n7); font-weight:var(--fw-medium); background:var(--n2); }
+.mini-tbl td { color:var(--n10); }
+.mini-tbl .mono { font-family:var(--ff-mono); }
+
+/* Modal (ConfirmDialog) */
+.modal-mask {
+  position:fixed; inset:0; background:rgba(0,0,0,0.45);
+  z-index:200; display:flex; align-items:center; justify-content:center;
+}
+.modal {
+  width:416px; background:var(--n1); border-radius:var(--r-lg);
+  box-shadow:0 6px 16px rgba(0,0,0,0.12),0 3px 6px -4px rgba(0,0,0,0.12);
+  overflow:hidden;
+}
+.modal-body { padding:var(--s6) var(--s6) var(--s4); display:flex; gap:var(--s4); }
+.modal-icon {
+  width:22px; height:22px; flex-shrink:0;
+  color:var(--c-error);
+}
+.modal-icon svg { width:22px; height:22px; }
+.modal-content { flex:1; min-width:0; }
+.modal-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); margin-bottom:var(--s2); }
+.modal-text { font-size:var(--fs-base); color:var(--n9); line-height:1.5715; }
+.modal-foot {
+  padding:var(--s4) var(--s6);
+  display:flex; justify-content:flex-end; gap:var(--s2);
+}
+
+/* Skeleton */
+.skel { background:linear-gradient(90deg,#F2F2F2 25%,#E6E6E6 37%,#F2F2F2 63%); background-size:400% 100%; animation:skel 1.4s ease infinite; border-radius:4px; }
+@keyframes skel { 0%{background-position:100% 50%;} 100%{background-position:0 50%;} }
+
+/* Tip banner */
+.tip {
+  display:flex; align-items:flex-start; gap:var(--s2);
+  background:#E6F4FF; border:1px solid #91CAFF;
+  border-radius:var(--r-base); padding:var(--s2) var(--s3);
+  font-size:12px; color:var(--n9); margin-bottom:var(--s4);
+}
+.tip svg { width:14px; height:14px; color:var(--c-primary); flex-shrink:0; margin-top:2px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sider -->
+  <aside class="sider">
+    <div class="sider-logo">
+      <div class="logo-mark">L</div>
+      <span>Leno 控制台</span>
+    </div>
+    <nav class="sider-menu">
+      <div class="menu-group-title">仪表盘</div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 805.5H670.9V719h253.9v86.5zm0-184.3H670.9v-86.5h253.9v86.5zm0-184.3H670.9v-86.5h253.9v86.5zm-348.6 368.6H99.2c-15.4 0-27.9-12.5-27.9-27.9V553.4c0-15.4 12.5-27.9 27.9-27.9h477c15.4 0 27.9 12.5 27.9 27.9v224.2c0 15.4-12.5 27.9-27.9 27.9zM535 478.4H140.2c-38 0-68.9-30.9-68.9-68.9V214.4c0-38 30.9-68.9 68.9-68.9H535c38 0 68.9 30.9 68.9 68.9v195.1c0 38-30.9 68.9-68.9 68.9z"/></svg>
+        <span>运营总览</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-70v126c0 5.5-4.5 10-10 10h-56c-5.5 0-10-4.5-10-10V559h-70c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h70V367c0-5.5 4.5-10 10-10h56c5.5 0 10 4.5 10 10v126h70c5.5 0 10 4.5 10 10v46z"/></svg>
+        <span>支付统计</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 1 0 0 896 448 448 0 0 0 0-896zm0 832a384 384 0 1 1 0-768 384 384 0 0 1 0 768zm48-176a48 48 0 1 1-96 0 48 48 0 0 1 96 0zm-48-464a32 32 0 0 0-32 32v256a32 32 0 0 0 64 0V288a32 32 0 0 0-32-32z"/></svg>
+        <span>积分统计</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM492 448a48 48 0 1 0 96 0 48 48 0 0 0-96 0zm-208 0a48 48 0 1 0 96 0 48 48 0 0 0-96 0zm416 0a48 48 0 1 0 96 0 48 48 0 0 0-96 0z"/></svg>
+        <span>通知送达率</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M955.3 352.3L863.6 137.5c-7.7-18-26.3-29.4-46-28.2L162.8 162.6c-19.7 1.2-36.7 14.7-42.3 33.7L69.7 395.9c-9.8 33.7 4.4 69.4 35.3 86.4 9.8 5.4 21.3 8.3 33 8.3h13.4l1 329.9c0 27.8 22.6 50.4 50.4 50.4h622.3c27.8 0 50.4-22.6 50.4-50.4V487.5h4.9c22.7 0 43.7-11.4 56.2-30.4 12.1-18.6 14.1-41.9 4.7-62.8z"/></svg>
+        <span>售后统计</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v384c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32zM428 240c0-22.1 17.9-40 40-40h88c22.1 0 40 17.9 40 40v224H428V240z"/></svg>
+        <span>店铺排行</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zm-40 632H136V232h752v560zM304 568h416v56H304v-56zm0-144h416v56H304v-56z"/></svg>
+        <span>报表快照</span>
+      </div>
+
+      <div class="menu-group-title">用户与权限</div>
+      <div class="menu-item active">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.6 375.6 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362.6c0-137-110.8-247.7-247.5-247.7S265 225.6 265 362.6c0 82.1 40.5 155.4 102.8 200.4-.4.2-.8.3-1.2.5-44.3 18.4-84 44.6-118.3 77.9a374 374 0 0 0-80.6 119.5C147.1 796.3 137.5 838.7 137 882c0 4.4 3.6 8 8 8h734c4.4 0 8-3.6 8-8-.5-43.3-10.1-85.7-28.5-118.4z"/></svg>
+        <span>用户管理</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M866.9 169.9L527.1 54.1C523 52.7 517.5 52 512 52s-11 .7-15.1 2.1L157.1 169.9c-8.3 2.8-15.1 12.4-15.1 21.2v482.4c0 8.8 5.7 20.4 12.6 25.9L499.3 968c3.5 2.5 8.1 3.8 12.7 3.8 4.6 0 9.2-1.3 12.7-3.8l344.7-268.6c6.9-5.4 12.6-17 12.6-25.9V191.1c.1-8.8-6.7-18.3-15.1-21.2z"/></svg>
+        <span>角色管理</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM492 448a48 48 0 1 0 96 0 48 48 0 0 0-96 0z"/></svg>
+        <span>OAuth 客户端</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-70v126c0 5.5-4.5 10-10 10h-56c-5.5 0-10-4.5-10-10V559h-70c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h70V367c0-5.5 4.5-10 10-10h56c5.5 0 10 4.5 10 10v126h70c5.5 0 10 4.5 10 10v46z"/></svg>
+        <span>运营人员</span>
+      </div>
+
+      <div class="menu-group-title">系统治理</div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+        <span>功能开关</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 805.5H670.9V719h253.9v86.5z"/></svg>
+        <span>系统配置</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+        <span>数据字典</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+        <span>公告管理</span>
+      </div>
+
+      <div class="menu-group-title">运行时运维</div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+        <span>限流规则</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+        <span>索引重建</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+        <span>死信队列</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+        <span>健康监控</span>
+      </div>
+
+      <div class="menu-group-title">审计与对账</div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+        <span>审计日志</span>
+      </div>
+      <div class="menu-item">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+        <span>对账管理</span>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Header -->
+    <header class="header">
+      <button class="header-icon-btn collapse-btn" title="折叠菜单">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"/></svg>
+      </button>
+      <div class="breadcrumb">
+        <span>用户与权限</span>
+        <span class="sep">/</span>
+        <span class="current">用户管理</span>
+      </div>
+      <div class="header-search">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0 0 11.6 0l43.6-43.5a8.2 8.2 0 0 0 0-11.6zM570.4 668.3c-44.8 44.8-104.4 69.7-158.4 69.7-79.2 0-138.2-31.4-184.4-77.6-46.2-46.2-77.6-105.2-77.6-184.4 0-54 24.9-113.6 69.7-158.4 44.8-44.8 104.4-69.7 158.4-69.7 79.2 0 138.2 31.4 184.4 77.6 46.2 46.2 77.6 105.2 77.6 184.4 0 54-24.9 113.6-69.7 158.4z"/></svg>
+        <span>搜索菜单、页面、端点</span>
+        <span class="kbd">Ctrl K</span>
+      </div>
+      <button class="header-icon-btn notif-badge" title="通知">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428c0-141.1-104.3-257.7-240-277.1V112c0-22.1-17.9-40-40-40s-40 17.9-40 40v38.9c-135.7 19.4-240 136-240 277.1v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c0 61.8 50.2 112 112 112s112-50.2 112-112h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM512 888c-26.5 0-48-21.5-48-48h96c0 26.5-21.5 48-48 48zM304 768V428c0-55.6 21.6-107.8 60.9-147.1S456.4 220 512 220c55.6 0 107.8 21.6 147.1 60.9S720 372.4 720 428v340H304z"/></svg>
+        <span class="count">12</span>
+      </button>
+      <div class="user-menu">
+        <div class="avatar">ZM</div>
+        <span class="name">张明 · Admin</span>
+        <svg viewBox="0 0 1024 1024" fill="currentColor" style="width:12px;height:12px;color:#8C8C8C;"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <div class="page-title">用户管理</div>
+          <div class="page-subtitle">数据来源 GET /api/admin/users · 状态机 Active → Suspended → Active · 列表不缓存，详情缓存 1 分钟</div>
+        </div>
+        <div style="display:flex; gap:var(--s2);">
+          <button class="btn">
+            <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M505.7 661a8 8 0 0 1 0-11.3L715.6 439.8a8 8 0 0 1 11.3 0l45.1 45.1a8 8 0 0 1 0 11.3L562.1 661a8 8 0 0 1-11.3 0L505.7 661z"/><path d="M512 192C298.2 192 124 366.2 124 580s174.2 388 388 388 388-174.2 388-388S725.8 192 512 192zm0 720c-183.9 0-332-148.1-332-332s148.1-332 332-332 332 148.1 332 332-148.1 332-332 332z"/></svg>
+            导出
+          </button>
+        </div>
+      </div>
+
+      <div class="tip">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 336a48 48 0 1 0 96 0 48 48 0 0 0-96 0zm72 112h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V456c0-4.4-3.6-8-8-8z"/></svg>
+        <span>锁定操作需 <code style="font-family:var(--ff-mono);">user:suspend</code> 权限，且必须经过 ConfirmDialog 二次确认（确认按钮 danger 红色）。分配角色为幂等操作（IdempotencyButton）。</span>
+      </div>
+
+      <!-- Filter toolbar -->
+      <div class="toolbar">
+        <div class="left">
+          <div class="input" style="width:240px;">
+            <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0 0 11.6 0l43.6-43.5a8.2 8.2 0 0 0 0-11.6z"/></svg>
+            <input placeholder="搜索用户名 / 邮箱（300ms 防抖）" value="" />
+          </div>
+          <div class="select">
+            <div class="tags">
+              <span class="mini-tag">Buyer</span>
+              <span class="mini-tag">Seller</span>
+            </div>
+            <svg class="chev" viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+          </div>
+          <div class="select">
+            <div class="tags">
+              <span class="mini-tag">Active</span>
+              <span class="mini-tag">Suspended</span>
+            </div>
+            <svg class="chev" viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+          </div>
+          <div class="daterange">
+            <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 184h-56V112c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v72H272V112c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v72h-56c-17.7 0-32 14.3-32 32v664c0 17.7 14.3 32 32 32h672c17.7 0 32-14.3 32-32V216c0-17.7-14.3-32-32-32zm-8 688H152V336h720v536z"/></svg>
+            <span>2026-07-01 00:00 ~ 2026-07-26 23:59</span>
+          </div>
+          <button class="btn btn-primary btn-sm">
+            <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0 0 11.6 0l43.6-43.5a8.2 8.2 0 0 0 0-11.6z"/></svg>
+            查询
+          </button>
+          <button class="btn btn-sm">重置</button>
+        </div>
+        <div class="right">
+          <span class="status ok"><span class="dot"></span>列表实时同步</span>
+        </div>
+      </div>
+
+      <!-- Table card -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.6 375.6 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362.6c0-137-110.8-247.7-247.5-247.7S265 225.6 265 362.6c0 82.1 40.5 155.4 102.8 200.4-.4.2-.8.3-1.2.5-44.3 18.4-84 44.6-118.3 77.9a374 374 0 0 0-80.6 119.5C147.1 796.3 137.5 838.7 137 882c0 4.4 3.6 8 8 8h734c4.4 0 8-3.6 8-8-.5-43.3-10.1-85.7-28.5-118.4z"/></svg>
+            用户列表
+          </div>
+          <div class="card-extra">共 12,456 条 · 当前第 1 页</div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:36px;"><input type="checkbox" class="checkbox" /></th>
+                <th style="width:110px;">用户 ID</th>
+                <th>用户名</th>
+                <th>邮箱</th>
+                <th>角色</th>
+                <th>状态</th>
+                <th>注册时间</th>
+                <th>最近登录</th>
+                <th style="width:200px;">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input type="checkbox" class="checkbox" /></td>
+                <td class="num muted">U100256</td>
+                <td><span class="uname">李文博</span></td>
+                <td class="muted">liwenbo@gmail.com</td>
+                <td><span class="tag tag-blue">Buyer</span></td>
+                <td><span class="status ok"><span class="dot"></span>Active</span></td>
+                <td class="muted">2026-07-26 08:42</td>
+                <td class="muted">2026-07-26 09:18 · 114.88.42.10</td>
+                <td class="ops">
+                  <button class="btn-link">查看</button>
+                  <button class="btn-link">分配角色</button>
+                  <button class="btn-link danger">锁定</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" /></td>
+                <td class="num muted">U100255</td>
+                <td><span class="uname">王雅琪</span></td>
+                <td class="muted">wangyaqi@163.com</td>
+                <td><span class="tag tag-cyan">Seller</span></td>
+                <td><span class="status ok"><span class="dot"></span>Active</span></td>
+                <td class="muted">2026-07-25 22:13</td>
+                <td class="muted">2026-07-26 08:55 · 120.229.18.7</td>
+                <td class="ops">
+                  <button class="btn-link">查看</button>
+                  <button class="btn-link">分配角色</button>
+                  <button class="btn-link danger">锁定</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" /></td>
+                <td class="num muted">U100254</td>
+                <td><span class="uname">陈志强</span></td>
+                <td class="muted">chenzq@sina.com</td>
+                <td><span class="tag tag-blue">Buyer</span></td>
+                <td><span class="status err"><span class="dot"></span>Suspended</span></td>
+                <td class="muted">2026-07-25 18:30</td>
+                <td class="muted">2026-07-25 19:02 · 58.34.120.6</td>
+                <td class="ops">
+                  <button class="btn-link">查看</button>
+                  <button class="btn-link">分配角色</button>
+                  <button class="btn-link">恢复</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" /></td>
+                <td class="num muted">U100253</td>
+                <td><span class="uname">刘晓彤</span></td>
+                <td class="muted">liuxiaotong@qq.com</td>
+                <td>
+                  <span class="tag tag-blue">Buyer</span>
+                  <span class="tag tag-cyan" style="margin-left:4px;">Seller</span>
+                </td>
+                <td><span class="status ok"><span class="dot"></span>Active</span></td>
+                <td class="muted">2026-07-25 14:21</td>
+                <td class="muted">2026-07-26 09:01 · 117.36.88.2</td>
+                <td class="ops">
+                  <button class="btn-link">查看</button>
+                  <button class="btn-link">分配角色</button>
+                  <button class="btn-link danger">锁定</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" /></td>
+                <td class="num muted">U100252</td>
+                <td><span class="uname">赵嘉伟</span></td>
+                <td class="muted">zhaojw@outlook.com</td>
+                <td><span class="tag tag-blue">Buyer</span></td>
+                <td><span class="status warn"><span class="dot"></span>Locked</span></td>
+                <td class="muted">2026-07-25 10:08</td>
+                <td class="muted">2026-07-25 11:45 · 211.144.18.9</td>
+                <td class="ops">
+                  <button class="btn-link">查看</button>
+                  <button class="btn-link">分配角色</button>
+                  <button class="btn-link">恢复</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" /></td>
+                <td class="num muted">U100251</td>
+                <td><span class="uname">孙梦琪</span></td>
+                <td class="muted">sunmengqi@gmail.com</td>
+                <td><span class="tag tag-cyan">Seller</span></td>
+                <td><span class="status ok"><span class="dot"></span>Active</span></td>
+                <td class="muted">2026-07-24 21:55</td>
+                <td class="muted">2026-07-26 07:32 · 112.65.44.18</td>
+                <td class="ops">
+                  <button class="btn-link">查看</button>
+                  <button class="btn-link">分配角色</button>
+                  <button class="btn-link danger">锁定</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" /></td>
+                <td class="num muted">U100250</td>
+                <td><span class="uname">周建华</span></td>
+                <td class="muted">zhoujh@163.com</td>
+                <td><span class="tag tag-blue">Buyer</span></td>
+                <td><span class="status ok"><span class="dot"></span>Active</span></td>
+                <td class="muted">2026-07-24 16:42</td>
+                <td class="muted">2026-07-25 22:18 · 119.137.66.3</td>
+                <td class="ops">
+                  <button class="btn-link">查看</button>
+                  <button class="btn-link">分配角色</button>
+                  <button class="btn-link danger">锁定</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" /></td>
+                <td class="num muted">U100249</td>
+                <td><span class="uname">吴婷婷</span></td>
+                <td class="muted">wutt@sina.com</td>
+                <td><span class="tag tag-blue">Buyer</span></td>
+                <td><span class="status err"><span class="dot"></span>Suspended</span></td>
+                <td class="muted">2026-07-24 09:18</td>
+                <td class="muted">2026-07-24 10:00 · 61.183.88.22</td>
+                <td class="ops">
+                  <button class="btn-link">查看</button>
+                  <button class="btn-link">分配角色</button>
+                  <button class="btn-link">恢复</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" /></td>
+                <td class="num muted">U100248</td>
+                <td><span class="uname">郑国栋</span></td>
+                <td class="muted">zhenggd@qq.com</td>
+                <td>
+                  <span class="tag tag-blue">Buyer</span>
+                  <span class="tag tag-cyan" style="margin-left:4px;">Seller</span>
+                </td>
+                <td><span class="status ok"><span class="dot"></span>Active</span></td>
+                <td class="muted">2026-07-23 23:10</td>
+                <td class="muted">2026-07-26 08:40 · 115.156.22.11</td>
+                <td class="ops">
+                  <button class="btn-link">查看</button>
+                  <button class="btn-link">分配角色</button>
+                  <button class="btn-link danger">锁定</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" /></td>
+                <td class="num muted">U100247</td>
+                <td><span class="uname">冯丽娜</span></td>
+                <td class="muted">fengln@gmail.com</td>
+                <td><span class="tag tag-blue">Buyer</span></td>
+                <td><span class="status ok"><span class="dot"></span>Active</span></td>
+                <td class="muted">2026-07-23 15:33</td>
+                <td class="muted">2026-07-25 20:12 · 218.19.45.7</td>
+                <td class="ops">
+                  <button class="btn-link">查看</button>
+                  <button class="btn-link">分配角色</button>
+                  <button class="btn-link danger">锁定</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="info">共 <strong style="color:var(--n10);">12,456</strong> 条记录 · 第 1/623 页</div>
+          <div class="pager">
+            <div class="size">每页 <span class="sel">20 <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg></span> 条</div>
+            <span class="p disabled">‹</span>
+            <span class="p active">1</span>
+            <span class="p">2</span>
+            <span class="p">3</span>
+            <span class="p">4</span>
+            <span class="p">5</span>
+            <span class="p">...</span>
+            <span class="p">623</span>
+            <span class="p">›</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>© 2026 Leno 电商平台 · 系统管理后台</span>
+      <span>版本 v1.4.2 · 构建于 2026-07-25 · 数据更新于 09:42</span>
+    </footer>
+  </div>
+</div>
+
+<!-- Drawer: user detail (region C) -->
+<div class="drawer-mask"></div>
+<div class="drawer">
+  <div class="drawer-head">
+    <div class="drawer-title">用户详情 · U100253</div>
+    <button class="drawer-close" title="关闭">
+      <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <div style="display:flex; align-items:center; gap:var(--s4); margin-bottom:var(--s6);">
+      <div class="avatar" style="width:56px; height:56px; font-size:20px;">刘</div>
+      <div>
+        <div style="font-size:var(--fs-lg); font-weight:var(--fw-semibold);">刘晓彤</div>
+        <div style="font-size:13px; color:var(--n7); margin-top:2px;">U100253 · 注册于 2026-07-25 14:21</div>
+        <div style="margin-top:6px; display:flex; gap:6px;">
+          <span class="tag tag-blue">Buyer</span>
+          <span class="tag tag-cyan">Seller</span>
+          <span class="status ok"><span class="dot"></span>Active</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">基本信息</div>
+    <table class="desc">
+      <tr><th>用户 ID</th><td class="mono">U100253</td></tr>
+      <tr><th>用户名</th><td>刘晓彤</td></tr>
+      <tr><th>邮箱</th><td class="mono">liuxiaotong@qq.com</td></tr>
+      <tr><th>手机号</th><td class="mono">138****6624</td></tr>
+      <tr><th>角色</th><td><span class="tag tag-blue">Buyer</span> <span class="tag tag-cyan" style="margin-left:4px;">Seller</span></td></tr>
+      <tr><th>状态</th><td><span class="status ok"><span class="dot"></span>Active</span></td></tr>
+      <tr><th>注册时间</th><td class="mono">2026-07-25 14:21:08</td></tr>
+      <tr><th>最近登录</th><td class="mono">2026-07-26 09:01:42</td></tr>
+      <tr><th>登录 IP</th><td class="mono">117.36.88.2（上海·联通）</td></tr>
+    </table>
+
+    <div class="section-title">登录历史 <span class="count">近 5 次</span></div>
+    <table class="mini-tbl">
+      <thead>
+        <tr><th>时间</th><th>IP</th><th>方式</th><th>结果</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">2026-07-26 09:01</td><td class="mono">117.36.88.2</td><td>OAuth-GitHub</td><td><span class="tag tag-green">成功</span></td></tr>
+        <tr><td class="mono">2026-07-25 22:18</td><td class="mono">117.36.88.2</td><td>密码</td><td><span class="tag tag-green">成功</span></td></tr>
+        <tr><td class="mono">2026-07-25 14:21</td><td class="mono">117.36.88.2</td><td>注册</td><td><span class="tag tag-green">成功</span></td></tr>
+        <tr><td class="mono">2026-07-25 14:18</td><td class="mono">117.36.88.2</td><td>密码</td><td><span class="tag tag-red">失败·密码错误</span></td></tr>
+        <tr><td class="mono">2026-07-25 14:15</td><td class="mono">117.36.88.2</td><td>密码</td><td><span class="tag tag-red">失败·密码错误</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-title">关联资源</div>
+    <div style="display:flex; flex-direction:column; gap:var(--s2);">
+      <a href="#" style="display:flex; align-items:center; justify-content:space-between; padding:var(--s3); border:1px solid var(--n3); border-radius:var(--r-base);">
+        <span style="display:flex; align-items:center; gap:var(--s2);">
+          <svg viewBox="0 0 1024 1024" fill="currentColor" style="width:16px;height:16px;color:var(--c-primary);"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+          <span style="font-size:13px;">查看该用户的审计记录</span>
+        </span>
+        <svg viewBox="0 0 1024 1024" fill="currentColor" style="width:12px;height:12px;color:var(--n7);"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+      </a>
+      <a href="#" style="display:flex; align-items:center; justify-content:space-between; padding:var(--s3); border:1px solid var(--n3); border-radius:var(--r-base);">
+        <span style="display:flex; align-items:center; gap:var(--s2);">
+          <svg viewBox="0 0 1024 1024" fill="currentColor" style="width:16px;height:16px;color:var(--c-primary);"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v384c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32z"/></svg>
+          <span style="font-size:13px;">查看名下店铺（1 家）</span>
+        </span>
+        <svg viewBox="0 0 1024 1024" fill="currentColor" style="width:12px;height:12px;color:var(--n7);"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+      </a>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn">关闭</button>
+    <button class="btn btn-primary">
+      <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.6 375.6 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362.6c0-137-110.8-247.7-247.5-247.7S265 225.6 265 362.6c0 82.1 40.5 155.4 102.8 200.4-.4.2-.8.3-1.2.5-44.3 18.4-84 44.6-118.3 77.9a374 374 0 0 0-80.6 119.5C147.1 796.3 137.5 838.7 137 882c0 4.4 3.6 8 8 8h734c4.4 0 8-3.6 8-8-.5-43.3-10.1-85.7-28.5-118.4z"/></svg>
+      分配角色
+    </button>
+  </div>
+</div>
+
+<!-- ConfirmDialog: lock user (danger) -->
+<div class="modal-mask">
+  <div class="modal">
+    <div class="modal-body">
+      <div class="modal-icon">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M955.7 856.7L563.3 112.6c-9.7-19.3-37.1-19.3-46.8 0L124.1 856.7c-9.2 18.3 4.2 39.7 24.5 39.7h782.6c20.2 0 33.7-21.4 24.5-39.7zM548 804c0 6.6-5.4 12-12 12h-48c-6.6 0-12-5.4-12-12v-48c0-6.6 5.4-12 12-12h48c6.6 0 12 5.4 12 12v48zm0-144c0 6.6-5.4 12-12 12h-48c-6.6 0-12-5.4-12-12V316c0-6.6 5.4-12 12-12h48c6.6 0 12 5.4 12 12v344z"/></svg>
+      </div>
+      <div class="modal-content">
+        <div class="modal-title">确认锁定该用户？</div>
+        <div class="modal-text">锁定后该用户将无法登录，关联的进行中订单不受影响。此操作可逆，可随时恢复。</div>
+        <div style="margin-top:var(--s3); padding:var(--s2) var(--s3); background:#FFF1F0; border:1px solid #FFCCC7; border-radius:var(--r-base); font-size:12px; color:var(--c-error); font-family:var(--ff-mono);">PUT /api/admin/users/U100253/status · body: { "status": "suspended" }</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn">取消</button>
+      <button class="btn btn-danger">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 112H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+        确认锁定
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.menu-item').forEach(m => {
+  m.addEventListener('click', () => {
+    document.querySelectorAll('.menu-item').forEach(x => x.classList.remove('active'));
+    m.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

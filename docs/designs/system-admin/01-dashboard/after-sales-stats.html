@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>售后统计 - Leno 系统管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+html, body { height:100%; }
+body {
+  font-family:var(--ff-app); font-size:var(--fs-base); color:var(--n10);
+  background:var(--n3); line-height:1.5715; -webkit-font-smoothing:antialiased;
+}
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+button { font-family:inherit; cursor:pointer; }
+
+.app { display:flex; min-height:100vh; }
+.sider { width:var(--sider-width); background:var(--sider-bg); position:fixed; top:0; left:0; bottom:0; display:flex; flex-direction:column; z-index:20; overflow:hidden; }
+.sider-logo { height:var(--header-h); display:flex; align-items:center; gap:var(--s2); padding:0 var(--s4); color:#fff; font-size:var(--fs-lg); font-weight:var(--fw-semibold); border-bottom:1px solid rgba(255,255,255,0.08); }
+.sider-logo .logo-mark { width:28px; height:28px; border-radius:6px; background:linear-gradient(135deg,#1677FF,#4096FF); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:15px; }
+.sider-menu { flex:1; padding:var(--s2) 0; overflow-y:auto; }
+.sider-menu::-webkit-scrollbar { width:6px; }
+.sider-menu::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:3px; }
+.menu-group-title { color:rgba(255,255,255,0.35); font-size:11px; padding:var(--s4) var(--s6) var(--s2); letter-spacing:0.5px; }
+.menu-item { display:flex; align-items:center; gap:var(--s3); height:40px; padding:0 var(--s6); color:rgba(255,255,255,0.85); font-size:var(--fs-base); cursor:pointer; border-left:3px solid transparent; transition:background 100ms; }
+.menu-item:hover { background:rgba(255,255,255,0.06); }
+.menu-item.active { background:#E6F4FF; color:var(--c-primary); border-left-color:var(--c-primary); font-weight:var(--fw-medium); }
+.menu-item svg { width:16px; height:16px; flex-shrink:0; color:rgba(255,255,255,0.65); }
+.menu-item.active svg { color:var(--c-primary); }
+
+.main { flex:1; margin-left:var(--sider-width); display:flex; flex-direction:column; min-width:0; }
+.header { height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5); display:flex; align-items:center; padding:0 var(--s6); position:sticky; top:0; z-index:10; gap:var(--s4); }
+.header-icon-btn { width:36px; height:36px; border:none; background:transparent; display:flex; align-items:center; justify-content:center; border-radius:var(--r-base); color:var(--n9); position:relative; }
+.header-icon-btn:hover { background:var(--n3); }
+.header-icon-btn svg { width:18px; height:18px; }
+.collapse-btn { margin-right:var(--s2); }
+.breadcrumb { display:flex; align-items:center; gap:var(--s2); color:var(--n7); font-size:var(--fs-base); }
+.breadcrumb .sep { color:var(--n5); }
+.breadcrumb .current { color:var(--n10); }
+.header-search { margin-left:auto; display:flex; align-items:center; gap:var(--s2); width:260px; height:32px; background:var(--n3); border:1px solid transparent; border-radius:var(--r-base); padding:0 var(--s3); color:var(--n7); font-size:13px; cursor:pointer; }
+.header-search:hover { border-color:var(--c-primary); background:var(--n1); }
+.header-search svg { width:14px; height:14px; }
+.kbd { margin-left:auto; font-family:var(--ff-mono); font-size:11px; background:var(--n1); border:1px solid var(--n5); border-radius:4px; padding:1px 6px; color:var(--n7); }
+.notif-badge { position:relative; }
+.notif-badge .count { position:absolute; top:4px; right:4px; min-width:16px; height:16px; padding:0 4px; background:var(--c-error); color:#fff; border-radius:8px; font-size:10px; line-height:16px; text-align:center; font-weight:600; border:1.5px solid var(--n1); }
+.user-menu { display:flex; align-items:center; gap:var(--s2); padding:0 var(--s2); height:36px; border-radius:var(--r-base); cursor:pointer; }
+.user-menu:hover { background:var(--n3); }
+.avatar { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#1677FF,#722ED1); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+.user-menu .name { font-size:13px; color:var(--n10); }
+
+.content { flex:1; padding:var(--s6); }
+.footer { height:32px; background:var(--n1); border-top:1px solid var(--n5); display:flex; align-items:center; justify-content:space-between; padding:0 var(--s6); font-size:12px; color:var(--n7); }
+
+.page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:var(--s6); gap:var(--s4); }
+.page-title { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); }
+.page-subtitle { font-size:13px; color:var(--n7); margin-top:4px; }
+
+.toolbar { display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap; background:var(--n1); padding:var(--s3) var(--s4); border-radius:var(--r-card); box-shadow:var(--sh-card); margin-bottom:var(--s4); }
+.toolbar .left { display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap; }
+.toolbar .right { display:flex; align-items:center; gap:var(--s2); margin-left:auto; }
+.seg { display:inline-flex; background:var(--n3); border-radius:var(--r-base); padding:2px; }
+.seg button { border:none; background:transparent; height:28px; padding:0 var(--s3); font-size:13px; color:var(--n9); border-radius:4px; }
+.seg button.active { background:var(--n1); color:var(--c-primary); font-weight:var(--fw-medium); box-shadow:var(--sh-card); }
+.btn { display:inline-flex; align-items:center; gap:var(--s2); height:32px; padding:0 var(--s4); border:1px solid var(--n5); background:var(--n1); border-radius:var(--r-base); font-size:var(--fs-base); color:var(--n10); transition:all 100ms; }
+.btn:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.btn svg { width:14px; height:14px; }
+.btn-sm { height:28px; padding:0 var(--s3); font-size:13px; }
+.select { display:inline-flex; align-items:center; gap:var(--s2); height:32px; padding:0 var(--s3); border:1px solid var(--n5); background:var(--n1); border-radius:var(--r-base); font-size:var(--fs-base); color:var(--n10); cursor:pointer; min-width:160px; }
+.select:hover { border-color:var(--c-primary); }
+.select .caret { margin-left:auto; width:10px; height:10px; color:var(--n7); }
+.multi-tag { display:inline-flex; align-items:center; gap:4px; background:#E6F4FF; color:var(--c-primary); border-radius:4px; padding:1px 6px; font-size:12px; }
+.multi-tag .x { cursor:pointer; opacity:0.6; }
+
+.card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; }
+.card-head { display:flex; align-items:center; justify-content:space-between; padding:var(--s3) var(--s4); border-bottom:1px solid var(--n3); }
+.card-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); display:flex; align-items:center; gap:var(--s2); }
+.card-title svg { width:16px; height:16px; color:var(--c-primary); }
+.card-extra { font-size:13px; color:var(--n7); }
+.card-body { padding:var(--s4); }
+
+.kpi-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:var(--s6); margin-bottom:var(--s6); }
+.kpi-card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; padding:var(--s6); position:relative; overflow:hidden; }
+.kpi-card .accent { position:absolute; left:0; top:0; bottom:0; width:3px; }
+.kpi-card .label { font-size:13px; color:var(--n7); display:flex; align-items:center; gap:var(--s2); }
+.kpi-card .label svg { width:14px; height:14px; }
+.kpi-card .value { font-size:var(--fs-2xl); font-weight:var(--fw-semibold); color:var(--n10); margin-top:var(--s2); line-height:1.2; font-feature-settings:"tnum"; }
+.kpi-card .value .unit { font-size:14px; color:var(--n9); font-weight:var(--fw-normal); margin-left:4px; }
+.kpi-card .value .danger { color:var(--c-error); }
+.kpi-card .trend { font-size:12px; margin-top:var(--s2); display:flex; align-items:center; gap:var(--s1); }
+.trend.up { color:var(--c-success); }
+.trend.down { color:var(--c-error); }
+.trend svg { width:12px; height:12px; }
+.kpi-card .trend .vs { color:var(--n7); margin-left:var(--s1); }
+.kpi-card.alert .value { color:var(--c-error); }
+
+.row { display:grid; gap:var(--s6); margin-bottom:var(--s6); }
+.row.r-1-1 { grid-template-columns:1fr 1fr; }
+.row.r-1 { grid-template-columns:1fr; }
+
+.chart-legend { display:flex; gap:var(--s4); padding:0 var(--s4) var(--s3); flex-wrap:wrap; }
+.legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--n9); }
+.legend-dot { width:10px; height:3px; border-radius:2px; }
+
+.tbl { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+.tbl th, .tbl td { text-align:left; padding:var(--s3) var(--s4); border-bottom:1px solid var(--n3); }
+.tbl th { background:var(--n2); color:var(--n9); font-weight:var(--fw-medium); font-size:13px; height:40px; }
+.tbl td { height:48px; color:var(--n10); }
+.tbl tbody tr:hover { background:var(--n2); }
+.tbl .num { font-family:var(--ff-mono); font-feature-settings:"tnum"; text-align:right; }
+.tbl .muted { color:var(--n7); font-size:12px; }
+.tbl .link { color:var(--c-primary); cursor:pointer; }
+.tbl .link:hover { color:#4096FF; text-decoration:underline; }
+.rank-badge { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:12px; font-weight:600; }
+.rank-badge.r1 { background:#FAAD14; color:#fff; }
+.rank-badge.r2 { background:#8C8C8C; color:#fff; }
+.rank-badge.r3 { background:#D48806; color:#fff; }
+.rank-badge.rn { background:var(--n3); color:var(--n9); }
+
+.tag { display:inline-flex; align-items:center; gap:4px; padding:1px 8px; border-radius:var(--r-base); font-size:12px; line-height:20px; border:1px solid; }
+.tag-blue { background:#E6F4FF; color:#1677FF; border-color:#91CAFF; }
+.tag-green { background:#F6FFED; color:#52C41A; border-color:#B7EB8F; }
+.tag-gold { background:#FFFBE6; color:#FAAD14; border-color:#FFE58F; }
+.tag-red { background:#FFF1F0; color:#FF4D4F; border-color:#FFCCC7; }
+.tag-gray { background:#FAFAFA; color:#8C8C8C; border-color:#D9D9D9; }
+.tag-purple { background:#F9F0FF; color:#722ED1; border-color:#D3ADF7; }
+.tag-cyan { background:#E6FFFB; color:#13C2C2; border-color:#87E8DE; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider">
+    <div class="sider-logo"><div class="logo-mark">L</div><span>Leno 控制台</span></div>
+    <nav class="sider-menu">
+      <div class="menu-group-title">仪表盘</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 805.5H670.9V719h253.9v86.5zm0-184.3H670.9v-86.5h253.9v86.5zm0-184.3H670.9v-86.5h253.9v86.5zm-348.6 368.6H99.2c-15.4 0-27.9-12.5-27.9-27.9V553.4c0-15.4 12.5-27.9 27.9-27.9h477c15.4 0 27.9 12.5 27.9 27.9v224.2c0 15.4-12.5 27.9-27.9 27.9zM535 478.4H140.2c-38 0-68.9-30.9-68.9-68.9V214.4c0-38 30.9-68.9 68.9-68.9H535c38 0 68.9 30.9 68.9 68.9v195.1c0 38-30.9 68.9-68.9 68.9z"/></svg><span>运营总览</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-70v126c0 5.5-4.5 10-10 10h-56c-5.5 0-10-4.5-10-10V559h-70c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h70V367c0-5.5 4.5-10 10-10h56c5.5 0 10 4.5 10 10v126h70c5.5 0 10 4.5 10 10v46z"/></svg><span>支付统计</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 1 0 0 896 448 448 0 0 0 0-896zm0 832a384 384 0 1 1 0-768 384 384 0 0 1 0 768zm48-176a48 48 0 1 1-96 0 48 48 0 0 1 96 0zm-48-464a32 32 0 0 0-32 32v256a32 32 0 0 0 64 0V288a32 32 0 0 0-32-32z"/></svg><span>积分统计</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM492 448a48 48 0 1 0 96 0 48 48 0 0 0-96 0z"/></svg><span>通知送达率</span></div>
+      <div class="menu-item active"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M955.3 352.3L863.6 137.5c-7.7-18-26.3-29.4-46-28.2L162.8 162.6c-19.7 1.2-36.7 14.7-42.3 33.7L69.7 395.9c-9.8 33.7 4.4 69.4 35.3 86.4 9.8 5.4 21.3 8.3 33 8.3h13.4l1 329.9c0 27.8 22.6 50.4 50.4 50.4h622.3c27.8 0 50.4-22.6 50.4-50.4V487.5h4.9c22.7 0 43.7-11.4 56.2-30.4 12.1-18.6 14.1-41.9 4.7-62.8z"/></svg><span>售后统计</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v384c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32zM428 240c0-22.1 17.9-40 40-40h88c22.1 0 40 17.9 40 40v224H428V240z"/></svg><span>店铺排行</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zm-40 632H136V232h752v560zM304 568h416v56H304v-56zm0-144h416v56H304v-56z"/></svg><span>报表快照</span></div>
+
+      <div class="menu-group-title">用户与权限</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.6 375.6 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362.6c0-137-110.8-247.7-247.5-247.7S265 225.6 265 362.6c0 82.1 40.5 155.4 102.8 200.4-.4.2-.8.3-1.2.5-44.3 18.4-84 44.6-118.3 77.9a374 374 0 0 0-80.6 119.5C147.1 796.3 137.5 838.7 137 882c0 4.4 3.6 8 8 8h734c4.4 0 8-3.6 8-8-.5-43.3-10.1-85.7-28.5-118.4z"/></svg><span>用户管理</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M866.9 169.9L527.1 54.1C523 52.7 517.5 52 512 52s-11 .7-15.1 2.1L157.1 169.9c-8.3 2.8-15.1 12.4-15.1 21.2v482.4c0 8.8 5.7 20.4 12.6 25.9L499.3 968c3.5 2.5 8.1 3.8 12.7 3.8 4.6 0 9.2-1.3 12.7-3.8l344.7-268.6c6.9-5.4 12.6-17 12.6-25.9V191.1c.1-8.8-6.7-18.3-15.1-21.2z"/></svg><span>角色管理</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM492 448a48 48 0 1 0 96 0 48 48 0 0 0-96 0z"/></svg><span>OAuth 客户端</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-70v126c0 5.5-4.5 10-10 10h-56c-5.5 0-10-4.5-10-10V559h-70c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h70V367c0-5.5 4.5-10 10-10h56c5.5 0 10 4.5 10 10v126h70c5.5 0 10 4.5 10 10v46z"/></svg><span>运营人员</span></div>
+
+      <div class="menu-group-title">系统治理</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>功能开关</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 805.5H670.9V719h253.9v86.5zm0-184.3H670.9v-86.5h253.9v86.5z"/></svg><span>系统配置</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>数据字典</span></div>
+
+      <div class="menu-group-title">审计与对账</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>审计日志</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>对账管理</span></div>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="header">
+      <button class="header-icon-btn collapse-btn" title="折叠菜单"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"/></svg></button>
+      <div class="breadcrumb"><span>仪表盘</span><span class="sep">/</span><span class="current">售后统计</span></div>
+      <div class="header-search"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0 0 11.6 0l43.6-43.5a8.2 8.2 0 0 0 0-11.6zM570.4 668.3c-44.8 44.8-104.4 69.7-158.4 69.7-79.2 0-138.2-31.4-184.4-77.6-46.2-46.2-77.6-105.2-77.6-184.4 0-54 24.9-113.6 69.7-158.4 44.8-44.8 104.4-69.7 158.4-69.7 79.2 0 138.2 31.4 184.4 77.6 46.2 46.2 77.6 105.2 77.6 184.4 0 54-24.9 113.6-69.7 158.4z"/></svg><span>搜索菜单、页面、端点</span><span class="kbd">Ctrl K</span></div>
+      <button class="header-icon-btn notif-badge" title="通知"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428c0-141.1-104.3-257.7-240-277.1V112c0-22.1-17.9-40-40-40s-40 17.9-40 40v38.9c-135.7 19.4-240 136-240 277.1v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c0 61.8 50.2 112 112 112s112-50.2 112-112h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM512 888c-26.5 0-48-21.5-48-48h96c0 26.5-21.5 48-48 48zM304 768V428c0-55.6 21.6-107.8 60.9-147.1S456.4 220 512 220c55.6 0 107.8 21.6 147.1 60.9S720 372.4 720 428v340H304z"/></svg><span class="count">12</span></button>
+      <div class="user-menu"><div class="avatar">ZM</div><span class="name">张明 · Admin</span><svg viewBox="0 0 1024 1024" fill="currentColor" style="width:12px;height:12px;color:#8C8C8C;"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg></div>
+    </header>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <div class="page-title">售后统计</div>
+          <div class="page-subtitle">数据周期：2026-07-19 00:00 至 2026-07-25 23:59 · 数据来源 DashboardReportDto(ReportType=AfterSalesVolume) · 缓存有效期 5 分钟</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="left">
+          <div class="seg" id="rangeSeg">
+            <button>今日</button><button>昨日</button><button class="active">近 7 天</button><button>近 30 天</button><button>本月</button>
+          </div>
+          <button class="btn btn-sm"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/></svg>2026-07-19 ~ 2026-07-25</button>
+          <div class="select" id="typeSelect">
+            <span class="multi-tag">仅退款<span class="x">×</span></span>
+            <span class="multi-tag">退货退款<span class="x">×</span></span>
+            <span class="multi-tag">换货<span class="x">×</span></span>
+            <svg class="caret" viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+          </div>
+          <button class="btn btn-sm"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4 44.1C775.8 155.1 656.2 92 521.9 92 290 92 102.3 279.5 102 511.5 101.7 743.7 289.8 932 521.9 932c181.3 0 335.8-115 394.9-276.1 1.5-4.2-.7-8.9-4.9-10.3l-56.7-19.5a8 8 0 0 0-10.1 4.8c-1.8 5-3.8 10-5.9 14.9-17.3 41-42.1 77.8-73.7 109.4A344.77 344.77 0 0 1 655.9 829c-42.3 17.9-87.4 27-133.8 27-46.5 0-91.5-9.1-133.8-27A341.5 341.5 0 0 1 279 755.2a342.16 342.16 0 0 1-73.7-109.4c-17.9-42.4-27-87.4-27-133.9s9.1-91.5 27-133.9c17.3-41 42.1-77.8 73.7-109.4 31.6-31.6 68.4-56.4 109.3-73.7 42.3-17.9 87.4-27 133.8-27 46.5 0 91.5 9.1 133.8 27a341.5 341.5 0 0 1 109.3 73.8c9.9 9.9 19.2 20.4 27.8 31.4l-60.2 47a8 8 0 0 0 3 14.1l175.6 43c5 1.2 9.9-2.6 9.9-7.7l.8-180.9c-.1-6.6-7.8-10.3-13-6.2z"/></svg>刷新</button>
+        </div>
+      </div>
+
+      <!-- KPI grid -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="accent" style="background:var(--c-primary);"></div>
+          <div class="label"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>售后单量</div>
+          <div class="value">320<span class="unit">单</span></div>
+          <div class="trend up"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.9 689L530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z"/></svg>0.3%<span class="vs">较上周</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="accent" style="background:var(--c-warning);"></div>
+          <div class="label"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 1 0 0 896 448 448 0 0 0 0-896zm0 832a384 384 0 1 1 0-768 384 384 0 0 1 0 768z"/></svg>退款金额</div>
+          <div class="value">¥48,200<span class="unit">元</span></div>
+          <div class="trend up"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.9 689L530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z"/></svg>1.2%<span class="vs">较上周</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="accent" style="background:var(--c-success);"></div>
+          <div class="label"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 820c0-21.7-17.6-39.3-39.3-39.3H151.3c-21.7 0-39.3 17.6-39.3 39.3v44.7c0 21.7 17.6 39.3 39.3 39.3h721.4c21.7 0 39.3-17.6 39.3-39.3V820z"/></svg>售后率（售后单/订单量）</div>
+          <div class="value">2.5<span class="unit">%</span></div>
+          <div class="trend down"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.9 335L530.5 715.8c-9.4 10.9-27.5 10.9-37 0L165.1 335c-12.2-14.2-1.2-35 18.5-35h656.8c19.7 0 30.7 20.8 18.5 35z"/></svg>0.1%<span class="vs">较上周 · 阈值 5%</span></div>
+        </div>
+      </div>
+
+      <!-- Pie + Trend -->
+      <div class="row r-1-1">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 112H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>售后类型分布</div>
+            <div class="card-extra">本周合计 320 单</div>
+          </div>
+          <div class="card-body">
+            <svg viewBox="0 0 360 260" style="width:100%; height:260px;">
+              <g transform="translate(120,130)">
+                <!-- 仅退款 168 (52.5%) -->
+                <circle r="80" fill="none" stroke="#1677FF" stroke-width="40" stroke-dasharray="264 502" transform="rotate(-90)"/>
+                <!-- 退货退款 112 (35%) -->
+                <circle r="80" fill="none" stroke="#FAAD14" stroke-width="40" stroke-dasharray="176 502" stroke-dashoffset="-264" transform="rotate(-90)"/>
+                <!-- 换货 40 (12.5%) -->
+                <circle r="80" fill="none" stroke="#13C2C2" stroke-width="40" stroke-dasharray="62 502" stroke-dashoffset="-440" transform="rotate(-90)"/>
+                <text y="-4" text-anchor="middle" font-size="20" font-weight="600" fill="#000000D9">320</text>
+                <text y="16" text-anchor="middle" font-size="11" fill="#8C8C8C">总售后单</text>
+              </g>
+              <g font-size="12" fill="#595959">
+                <rect x="240" y="50" width="10" height="10" fill="#1677FF" rx="2"/>
+                <text x="256" y="59">仅退款</text>
+                <text x="350" y="59" text-anchor="end" fill="#000000D9" font-weight="500">168</text>
+                <text x="350" y="72" text-anchor="end" fill="#8C8C8C" font-size="10">52.5%</text>
+                <rect x="240" y="100" width="10" height="10" fill="#FAAD14" rx="2"/>
+                <text x="256" y="109">退货退款</text>
+                <text x="350" y="109" text-anchor="end" fill="#000000D9" font-weight="500">112</text>
+                <text x="350" y="122" text-anchor="end" fill="#8C8C8C" font-size="10">35.0%</text>
+                <rect x="240" y="150" width="10" height="10" fill="#13C2C2" rx="2"/>
+                <text x="256" y="159">换货</text>
+                <text x="350" y="159" text-anchor="end" fill="#000000D9" font-weight="500">40</text>
+                <text x="350" y="172" text-anchor="end" fill="#8C8C8C" font-size="10">12.5%</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M888 792H200V168c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v688c0 4.4 3.6 8 8 8h752c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"/></svg>售后单量与退款金额双轴趋势</div>
+            <div class="card-extra">左轴 单 · 右轴 元 · 粒度 日</div>
+          </div>
+          <div class="card-body" style="padding:var(--s4) var(--s4) var(--s6);">
+            <div class="chart-legend">
+              <div class="legend-item"><span class="legend-dot" style="background:#1677FF;"></span>售后单量（左轴）</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#FAAD14;"></span>退款金额（右轴）</div>
+            </div>
+            <svg viewBox="0 0 720 280" preserveAspectRatio="none" style="width:100%; height:280px;">
+              <g stroke="#F0F0F0" stroke-width="1">
+                <line x1="50" y1="30" x2="700" y2="30"/><line x1="50" y1="90" x2="700" y2="90"/><line x1="50" y1="150" x2="700" y2="150"/><line x1="50" y1="210" x2="700" y2="210"/><line x1="50" y1="250" x2="700" y2="250"/>
+              </g>
+              <g fill="#8C8C8C" font-size="11" font-family="var(--ff-mono)" text-anchor="end">
+                <text x="44" y="34">80</text><text x="44" y="94">60</text><text x="44" y="154">40</text><text x="44" y="214">20</text><text x="44" y="254">0</text>
+              </g>
+              <g fill="#FAAD14" font-size="10" font-family="var(--ff-mono)" text-anchor="end">
+                <text x="706" y="34">¥12k</text><text x="706" y="94">¥9k</text><text x="706" y="154">¥6k</text><text x="706" y="214">¥3k</text><text x="706" y="254">0</text>
+              </g>
+              <g fill="#8C8C8C" font-size="11" text-anchor="middle">
+                <text x="100" y="270">07-19</text><text x="200" y="270">07-20</text><text x="300" y="270">07-21</text><text x="400" y="270">07-22</text><text x="500" y="270">07-23</text><text x="600" y="270">07-24</text><text x="680" y="270">07-25</text>
+              </g>
+              <!-- 单量 柱 -->
+              <g>
+                <rect x="80" y="170" width="40" height="80" fill="#1677FF" opacity="0.85" rx="3"/>
+                <rect x="180" y="160" width="40" height="90" fill="#1677FF" opacity="0.85" rx="3"/>
+                <rect x="280" y="180" width="40" height="70" fill="#1677FF" opacity="0.85" rx="3"/>
+                <rect x="380" y="150" width="40" height="100" fill="#1677FF" opacity="0.85" rx="3"/>
+                <rect x="480" y="190" width="40" height="60" fill="#1677FF" opacity="0.85" rx="3"/>
+                <rect x="580" y="140" width="40" height="110" fill="#1677FF" opacity="0.85" rx="3"/>
+                <rect x="660" y="130" width="20" height="120" fill="#1677FF" opacity="0.85" rx="3"/>
+              </g>
+              <!-- 退款金额 折线 (右轴 ¥48.2k total) -->
+              <path d="M100,120 L200,108 L300,128 L400,90 L500,138 L600,80 L680,60" fill="none" stroke="#FAAD14" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <g fill="#FAAD14"><circle cx="100" cy="120" r="3.5"/><circle cx="200" cy="108" r="3.5"/><circle cx="300" cy="128" r="3.5"/><circle cx="400" cy="90" r="3.5"/><circle cx="500" cy="138" r="3.5"/><circle cx="600" cy="80" r="3.5"/><circle cx="680" cy="60" r="3.5"/></g>
+              <g><line x1="680" y1="60" x2="680" y2="40" stroke="#FAAD14" stroke-width="1" stroke-dasharray="2,2"/><rect x="620" y="20" width="120" height="22" rx="4" fill="#FAAD14"/><text x="680" y="35" fill="#fff" font-size="11" text-anchor="middle">峰值 ¥9,840</text></g>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top 10 shops -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v384c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32z"/></svg>Top 10 高售后店铺</div>
+          <div class="card-extra">按售后率倒序 · 点击店铺名查看审计</div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:60px;">排名</th>
+                <th>店铺名</th>
+                <th style="width:130px;" class="num">售后单量</th>
+                <th style="width:130px;" class="num">订单量</th>
+                <th style="width:110px;" class="num">售后率</th>
+                <th style="width:140px;">平均处理时长</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="rank-badge r1">1</span></td><td><a class="link" href="#">蓝海数码旗舰店</a></td><td class="num">28</td><td class="num">412</td><td class="num"><span class="tag tag-red">6.8%</span></td><td class="muted">18.2 小时</td></tr>
+              <tr><td><span class="rank-badge r2">2</span></td><td><a class="link" href="#">优品服饰专营店</a></td><td class="num">42</td><td class="num">720</td><td class="num"><span class="tag tag-red">5.8%</span></td><td class="muted">22.6 小时</td></tr>
+              <tr><td><span class="rank-badge r3">3</span></td><td><a class="link" href="#">鲜达生活超市</a></td><td class="num">19</td><td class="num">358</td><td class="num"><span class="tag tag-red">5.3%</span></td><td class="muted">14.8 小时</td></tr>
+              <tr><td><span class="rank-badge rn">4</span></td><td><a class="link" href="#">魅力美妆馆</a></td><td class="num">24</td><td class="num">516</td><td class="num"><span class="tag tag-gold">4.7%</span></td><td class="muted">10.4 小时</td></tr>
+              <tr><td><span class="rank-badge rn">5</span></td><td><a class="link" href="#">家居优选旗舰店</a></td><td class="num">31</td><td class="num">680</td><td class="num"><span class="tag tag-gold">4.6%</span></td><td class="muted">9.2 小时</td></tr>
+              <tr><td><span class="rank-badge rn">6</span></td><td><a class="link" href="#">极速运动户外</a></td><td class="num">17</td><td class="num">420</td><td class="num"><span class="tag tag-gold">4.0%</span></td><td class="muted">8.6 小时</td></tr>
+              <tr><td><span class="rank-badge rn">7</span></td><td><a class="link" href="#">母婴时光店</a></td><td class="num">21</td><td class="num">560</td><td class="num"><span class="tag tag-gold">3.8%</span></td><td class="muted">7.4 小时</td></tr>
+              <tr><td><span class="rank-badge rn">8</span></td><td><a class="link" href="#">智选家电专营</a></td><td class="num">15</td><td class="num">432</td><td class="num"><span class="tag tag-green">3.5%</span></td><td class="muted">6.8 小时</td></tr>
+              <tr><td><span class="rank-badge rn">9</span></td><td><a class="link" href="#">环球零食铺</a></td><td class="num">13</td><td class="num">420</td><td class="num"><span class="tag tag-green">3.1%</span></td><td class="muted">5.2 小时</td></tr>
+              <tr><td><span class="rank-badge rn">10</span></td><td><a class="link" href="#">匠心手作工坊</a></td><td class="num">9</td><td class="num">360</td><td class="num"><span class="tag tag-green">2.5%</span></td><td class="muted">4.6 小时</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <span>© 2026 Leno 电商平台 · 系统管理后台</span>
+      <span>版本 v1.4.2 · 构建于 2026-07-25 · 数据更新于 09:42</span>
+    </footer>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('#rangeSeg button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#rangeSeg button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+  });
+});
+document.querySelectorAll('.menu-item').forEach(m => {
+  m.addEventListener('click', () => {
+    document.querySelectorAll('.menu-item').forEach(x => x.classList.remove('active'));
+    m.classList.add('active');
+  });
+});
+document.querySelectorAll('#typeSelect .x').forEach(x => {
+  x.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const tag = x.closest('.multi-tag');
+    if (tag) tag.remove();
+  });
+});
+</script>
+</body>
+</html>

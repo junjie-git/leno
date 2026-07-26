@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>报表快照 - Leno 系统管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+html, body { height:100%; }
+body {
+  font-family:var(--ff-app); font-size:var(--fs-base); color:var(--n10);
+  background:var(--n3); line-height:1.5715; -webkit-font-smoothing:antialiased;
+}
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+button { font-family:inherit; cursor:pointer; }
+
+.app { display:flex; min-height:100vh; }
+.sider { width:var(--sider-width); background:var(--sider-bg); position:fixed; top:0; left:0; bottom:0; display:flex; flex-direction:column; z-index:20; overflow:hidden; }
+.sider-logo { height:var(--header-h); display:flex; align-items:center; gap:var(--s2); padding:0 var(--s4); color:#fff; font-size:var(--fs-lg); font-weight:var(--fw-semibold); border-bottom:1px solid rgba(255,255,255,0.08); }
+.sider-logo .logo-mark { width:28px; height:28px; border-radius:6px; background:linear-gradient(135deg,#1677FF,#4096FF); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:15px; }
+.sider-menu { flex:1; padding:var(--s2) 0; overflow-y:auto; }
+.sider-menu::-webkit-scrollbar { width:6px; }
+.sider-menu::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:3px; }
+.menu-group-title { color:rgba(255,255,255,0.35); font-size:11px; padding:var(--s4) var(--s6) var(--s2); letter-spacing:0.5px; }
+.menu-item { display:flex; align-items:center; gap:var(--s3); height:40px; padding:0 var(--s6); color:rgba(255,255,255,0.85); font-size:var(--fs-base); cursor:pointer; border-left:3px solid transparent; transition:background 100ms; }
+.menu-item:hover { background:rgba(255,255,255,0.06); }
+.menu-item.active { background:#E6F4FF; color:var(--c-primary); border-left-color:var(--c-primary); font-weight:var(--fw-medium); }
+.menu-item svg { width:16px; height:16px; flex-shrink:0; color:rgba(255,255,255,0.65); }
+.menu-item.active svg { color:var(--c-primary); }
+
+.main { flex:1; margin-left:var(--sider-width); display:flex; flex-direction:column; min-width:0; }
+.header { height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5); display:flex; align-items:center; padding:0 var(--s6); position:sticky; top:0; z-index:10; gap:var(--s4); }
+.header-icon-btn { width:36px; height:36px; border:none; background:transparent; display:flex; align-items:center; justify-content:center; border-radius:var(--r-base); color:var(--n9); position:relative; }
+.header-icon-btn:hover { background:var(--n3); }
+.header-icon-btn svg { width:18px; height:18px; }
+.collapse-btn { margin-right:var(--s2); }
+.breadcrumb { display:flex; align-items:center; gap:var(--s2); color:var(--n7); font-size:var(--fs-base); }
+.breadcrumb .sep { color:var(--n5); }
+.breadcrumb .current { color:var(--n10); }
+.header-search { margin-left:auto; display:flex; align-items:center; gap:var(--s2); width:260px; height:32px; background:var(--n3); border:1px solid transparent; border-radius:var(--r-base); padding:0 var(--s3); color:var(--n7); font-size:13px; cursor:pointer; }
+.header-search:hover { border-color:var(--c-primary); background:var(--n1); }
+.header-search svg { width:14px; height:14px; }
+.kbd { margin-left:auto; font-family:var(--ff-mono); font-size:11px; background:var(--n1); border:1px solid var(--n5); border-radius:4px; padding:1px 6px; color:var(--n7); }
+.notif-badge { position:relative; }
+.notif-badge .count { position:absolute; top:4px; right:4px; min-width:16px; height:16px; padding:0 4px; background:var(--c-error); color:#fff; border-radius:8px; font-size:10px; line-height:16px; text-align:center; font-weight:600; border:1.5px solid var(--n1); }
+.user-menu { display:flex; align-items:center; gap:var(--s2); padding:0 var(--s2); height:36px; border-radius:var(--r-base); cursor:pointer; }
+.user-menu:hover { background:var(--n3); }
+.avatar { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#1677FF,#722ED1); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+.user-menu .name { font-size:13px; color:var(--n10); }
+
+.content { flex:1; padding:var(--s6); }
+.footer { height:32px; background:var(--n1); border-top:1px solid var(--n5); display:flex; align-items:center; justify-content:space-between; padding:0 var(--s6); font-size:12px; color:var(--n7); }
+
+.page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:var(--s6); gap:var(--s4); }
+.page-title { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); }
+.page-subtitle { font-size:13px; color:var(--n7); margin-top:4px; }
+
+.toolbar { display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap; background:var(--n1); padding:var(--s3) var(--s4); border-radius:var(--r-card); box-shadow:var(--sh-card); margin-bottom:var(--s6); }
+.toolbar .left { display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap; }
+.toolbar .right { display:flex; align-items:center; gap:var(--s2); margin-left:auto; }
+
+.btn { display:inline-flex; align-items:center; gap:var(--s2); height:32px; padding:0 var(--s4); border:1px solid var(--n5); background:var(--n1); border-radius:var(--r-base); font-size:var(--fs-base); color:var(--n10); transition:all 100ms; }
+.btn:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.btn svg { width:14px; height:14px; }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-sm { height:28px; padding:0 var(--s3); font-size:13px; }
+.btn-link { background:transparent; border:none; color:var(--c-primary); padding:0 var(--s1); height:auto; font-size:13px; }
+.btn-link:hover { color:#4096FF; background:transparent; }
+.btn-link.muted { color:var(--n7); }
+
+.select { display:inline-flex; align-items:center; gap:var(--s2); height:32px; padding:0 var(--s3); border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); cursor:pointer; min-width:180px; }
+.select:hover { border-color:var(--c-primary); }
+.select svg { width:12px; height:12px; color:var(--n7); margin-left:auto; }
+
+.card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; }
+.card-head { display:flex; align-items:center; justify-content:space-between; padding:var(--s3) var(--s4); border-bottom:1px solid var(--n3); }
+.card-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); display:flex; align-items:center; gap:var(--s2); }
+.card-title svg { width:16px; height:16px; color:var(--c-primary); }
+.card-extra { font-size:13px; color:var(--n7); }
+
+.tbl { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+.tbl th, .tbl td { text-align:left; padding:var(--s3) var(--s4); border-bottom:1px solid var(--n3); }
+.tbl th { background:var(--n2); color:var(--n9); font-weight:var(--fw-medium); font-size:13px; height:40px; }
+.tbl td { height:48px; color:var(--n10); }
+.tbl tbody tr:hover { background:var(--n2); }
+.tbl .num { font-family:var(--ff-mono); font-feature-settings:"tnum"; }
+.tbl .muted { color:var(--n7); font-size:12px; }
+.tbl .ops { display:flex; gap:var(--s2); }
+
+.tag { display:inline-flex; align-items:center; gap:4px; padding:1px 8px; border-radius:var(--r-base); font-size:12px; line-height:20px; border:1px solid; }
+.tag-blue { background:#E6F4FF; color:#1677FF; border-color:#91CAFF; }
+.tag-green { background:#F6FFED; color:#52C41A; border-color:#B7EB8F; }
+.tag-gold { background:#FFFBE6; color:#FAAD14; border-color:#FFE58F; }
+.tag-gray { background:#FAFAFA; color:#8C8C8C; border-color:#D9D9D9; }
+
+.pagination { display:flex; align-items:center; justify-content:flex-end; gap:var(--s1); padding:var(--s3) var(--s4); }
+.pagination .pg { min-width:32px; height:32px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--n9); cursor:pointer; }
+.pagination .pg:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.pagination .pg.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.pagination .pg.disabled { color:var(--n5); cursor:not-allowed; }
+.pagination .total { font-size:13px; color:var(--n7); margin-right:var(--s3); }
+
+/* Drawer */
+.drawer-mask { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:100; opacity:0; visibility:hidden; transition:opacity 200ms; }
+.drawer-mask.open { opacity:1; visibility:visible; }
+.drawer { position:fixed; top:0; right:0; bottom:0; width:640px; background:var(--n1); z-index:101; transform:translateX(100%); transition:transform 280ms cubic-bezier(0.23,1,0.32,1); display:flex; flex-direction:column; box-shadow:-6px 0 16px rgba(0,0,0,0.08); }
+.drawer.open { transform:translateX(0); }
+.drawer-head { display:flex; align-items:center; justify-content:space-between; padding:var(--s4) var(--s6); border-bottom:1px solid var(--n3); }
+.drawer-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); }
+.drawer-close { width:32px; height:32px; border:none; background:transparent; border-radius:var(--r-base); display:flex; align-items:center; justify-content:center; color:var(--n7); }
+.drawer-close:hover { background:var(--n3); }
+.drawer-close svg { width:16px; height:16px; }
+.drawer-body { flex:1; overflow-y:auto; padding:var(--s6); }
+
+/* Descriptions */
+.desc-list { border:1px solid var(--n3); border-radius:var(--r-base); overflow:hidden; }
+.desc-row { display:flex; border-bottom:1px solid var(--n3); }
+.desc-row:last-child { border-bottom:none; }
+.desc-label { width:140px; background:var(--n2); padding:var(--s3) var(--s4); font-size:13px; color:var(--n9); flex-shrink:0; }
+.desc-value { flex:1; padding:var(--s3) var(--s4); font-size:13px; color:var(--n10); }
+.desc-value.mono { font-family:var(--ff-mono); font-feature-settings:"tnum"; }
+
+/* Switch */
+.switch { display:inline-flex; align-items:center; gap:var(--s2); cursor:pointer; }
+.switch-track { width:36px; height:20px; border-radius:10px; background:var(--n5); position:relative; transition:background 200ms; }
+.switch-track::after { content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:transform 200ms; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+.switch.on .switch-track { background:var(--c-primary); }
+.switch.on .switch-track::after { transform:translateX(16px); }
+.switch-label { font-size:13px; color:var(--n10); }
+
+/* Diff table */
+.diff-tbl { width:100%; border-collapse:collapse; font-size:13px; margin-top:var(--s3); }
+.diff-tbl th, .diff-tbl td { text-align:left; padding:var(--s2) var(--s3); border-bottom:1px solid var(--n3); }
+.diff-tbl th { background:var(--n2); color:var(--n9); font-weight:var(--fw-medium); font-size:12px; }
+.diff-tbl .up { color:var(--c-success); font-family:var(--ff-mono); }
+.diff-tbl .down { color:var(--c-error); font-family:var(--ff-mono); }
+.diff-tbl .flat { color:var(--n7); font-family:var(--ff-mono); }
+
+.section-title { font-size:var(--fs-base); font-weight:var(--fw-semibold); color:var(--n10); margin:var(--s6) 0 var(--s3); display:flex; align-items:center; gap:var(--s2); }
+.section-title .bar { width:3px; height:14px; background:var(--c-primary); border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider">
+    <div class="sider-logo"><div class="logo-mark">L</div><span>Leno 控制台</span></div>
+    <nav class="sider-menu">
+      <div class="menu-group-title">仪表盘</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 805.5H670.9V719h253.9v86.5zm0-184.3H670.9v-86.5h253.9v86.5zm0-184.3H670.9v-86.5h253.9v86.5zm-348.6 368.6H99.2c-15.4 0-27.9-12.5-27.9-27.9V553.4c0-15.4 12.5-27.9 27.9-27.9h477c15.4 0 27.9 12.5 27.9 27.9v224.2c0 15.4-12.5 27.9-27.9 27.9zM535 478.4H140.2c-38 0-68.9-30.9-68.9-68.9V214.4c0-38 30.9-68.9 68.9-68.9H535c38 0 68.9 30.9 68.9 68.9v195.1c0 38-30.9 68.9-68.9 68.9z"/></svg><span>运营总览</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-70v126c0 5.5-4.5 10-10 10h-56c-5.5 0-10-4.5-10-10V559h-70c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h70V367c0-5.5 4.5-10 10-10h56c5.5 0 10 4.5 10 10v126h70c5.5 0 10 4.5 10 10v46zm424-184c0 5.5-4.5 10-10 10H596c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h222c5.5 0 10 4.5 10 10v46zm0 144c0 5.5-4.5 10-10 10H596c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h222c5.5 0 10 4.5 10 10v46z"/></svg><span>支付统计</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 1 0 0 896 448 448 0 0 0 0-896zm0 832a384 384 0 1 1 0-768 384 384 0 0 1 0 768zm48-176a48 48 0 1 1-96 0 48 48 0 0 1 96 0zm-48-464a32 32 0 0 0-32 32v256a32 32 0 0 0 64 0V288a32 32 0 0 0-32-32z"/></svg><span>积分统计</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM492 448a48 48 0 1 0 96 0 48 48 0 0 0-96 0zm-208 0a48 48 0 1 0 96 0 48 48 0 0 0-96 0zm416 0a48 48 0 1 0 96 0 48 48 0 0 0-96 0z"/></svg><span>通知送达率</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M955.3 352.3L863.6 137.5c-7.7-18-26.3-29.4-46-28.2L162.8 162.6c-19.7 1.2-36.7 14.7-42.3 33.7L69.7 395.9c-9.8 33.7 4.4 69.4 35.3 86.4 9.8 5.4 21.3 8.3 33 8.3h13.4l1 329.9c0 27.8 22.6 50.4 50.4 50.4h622.3c27.8 0 50.4-22.6 50.4-50.4V487.5h4.9c22.7 0 43.7-11.4 56.2-30.4 12.1-18.6 14.1-41.9 4.7-62.8z"/></svg><span>售后统计</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v384c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32zM428 240c0-22.1 17.9-40 40-40h88c22.1 0 40 17.9 40 40v224H428V240z"/></svg><span>店铺排行</span></div>
+      <div class="menu-item active"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zm-40 632H136V232h752v560zM304 568h416v56H304v-56zm0-144h416v56H304v-56z"/></svg><span>报表快照</span></div>
+
+      <div class="menu-group-title">用户与权限</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.6 375.6 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362.6c0-137-110.8-247.7-247.5-247.7S265 225.6 265 362.6c0 82.1 40.5 155.4 102.8 200.4-.4.2-.8.3-1.2.5-44.3 18.4-84 44.6-118.3 77.9a374 374 0 0 0-80.6 119.5C147.1 796.3 137.5 838.7 137 882c0 4.4 3.6 8 8 8h734c4.4 0 8-3.6 8-8-.5-43.3-10.1-85.7-28.5-118.4z"/></svg><span>用户管理</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M866.9 169.9L527.1 54.1C523 52.7 517.5 52 512 52s-11 .7-15.1 2.1L157.1 169.9c-8.3 2.8-15.1 12.4-15.1 21.2v482.4c0 8.8 5.7 20.4 12.6 25.9L499.3 968c3.5 2.5 8.1 3.8 12.7 3.8 4.6 0 9.2-1.3 12.7-3.8l344.7-268.6c6.9-5.4 12.6-17 12.6-25.9V191.1c.1-8.8-6.7-18.3-15.1-21.2z"/></svg><span>角色管理</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM492 448a48 48 0 1 0 96 0 48 48 0 0 0-96 0z"/></svg><span>OAuth 客户端</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-70v126c0 5.5-4.5 10-10 10h-56c-5.5 0-10-4.5-10-10V559h-70c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h70V367c0-5.5 4.5-10 10-10h56c5.5 0 10 4.5 10 10v126h70c5.5 0 10 4.5 10 10v46z"/></svg><span>运营人员</span></div>
+
+      <div class="menu-group-title">系统治理</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>功能开关</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 805.5H670.9V719h253.9v86.5z"/></svg><span>系统配置</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>数据字典</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>公告管理</span></div>
+
+      <div class="menu-group-title">运行时运维</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>限流规则</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>索引重建</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>死信队列</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>健康监控</span></div>
+
+      <div class="menu-group-title">审计与对账</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>审计日志</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>对账管理</span></div>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="header">
+      <button class="header-icon-btn collapse-btn" title="折叠菜单"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"/></svg></button>
+      <div class="breadcrumb"><span>仪表盘</span><span class="sep">/</span><span class="current">报表快照</span></div>
+      <div class="header-search"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0 0 11.6 0l43.6-43.5a8.2 8.2 0 0 0 0-11.6zM570.4 668.3c-44.8 44.8-104.4 69.7-158.4 69.7-79.2 0-138.2-31.4-184.4-77.6-46.2-46.2-77.6-105.2-77.6-184.4 0-54 24.9-113.6 69.7-158.4 44.8-44.8 104.4-69.7 158.4-69.7 79.2 0 138.2 31.4 184.4 77.6 46.2 46.2 77.6 105.2 77.6 184.4 0 54-24.9 113.6-69.7 158.4z"/></svg><span>搜索菜单、页面、端点</span><span class="kbd">Ctrl K</span></div>
+      <button class="header-icon-btn notif-badge" title="通知"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428c0-141.1-104.3-257.7-240-277.1V112c0-22.1-17.9-40-40-40s-40 17.9-40 40v38.9c-135.7 19.4-240 136-240 277.1v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c0 61.8 50.2 112 112 112s112-50.2 112-112h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM512 888c-26.5 0-48-21.5-48-48h96c0 26.5-21.5 48-48 48zM304 768V428c0-55.6 21.6-107.8 60.9-147.1S456.4 220 512 220c55.6 0 107.8 21.6 147.1 60.9S720 372.4 720 428v340H304z"/></svg><span class="count">12</span></button>
+      <div class="user-menu"><div class="avatar">ZM</div><span class="name">张明 · Admin</span><svg viewBox="0 0 1024 1024" fill="currentColor" style="width:12px;height:12px;color:#8C8C8C;"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg></div>
+    </header>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <div class="page-title">报表快照</div>
+          <div class="page-subtitle">数据来源 DashboardReportDto · 快照不可变，详情缓存 10 分钟 · GET /api/admin/dashboard/reports</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="left">
+          <div class="select">
+            <span>报表类型：订单 GMV</span>
+            <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+          </div>
+          <button class="btn btn-sm"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/></svg>2026-07-19 ~ 2026-07-25</button>
+          <div class="select">
+            <span>状态：全部</span>
+            <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+          </div>
+          <button class="btn btn-sm btn-primary"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4 44.1C775.8 155.1 656.2 92 521.9 92 290 92 102.3 279.5 102 511.5 101.7 743.7 289.8 932 521.9 932c181.3 0 335.8-115 394.9-276.1 1.5-4.2-.7-8.9-4.9-10.3l-56.7-19.5a8 8 0 0 0-10.1 4.8c-1.8 5-3.8 10-5.9 14.9-17.3 41-42.1 77.8-73.7 109.4A344.77 344.77 0 0 1 655.9 829c-42.3 17.9-87.4 27-133.8 27-46.5 0-91.5-9.1-133.8-27A341.5 341.5 0 0 1 279 755.2a342.16 342.16 0 0 1-73.7-109.4c-17.9-42.4-27-87.4-27-133.9s9.1-91.5 27-133.9c17.3-41 42.1-77.8 73.7-109.4 31.6-31.6 68.4-56.4 109.3-73.7 42.3-17.9 87.4-27 133.8-27 46.5 0 91.5 9.1 133.8 27a341.5 341.5 0 0 1 109.3 73.8c9.9 9.9 19.2 20.4 27.8 31.4l-60.2 47a8 8 0 0 0 3 14.1l175.6 43c5 1.2 9.9-2.6 9.9-7.7l.8-180.9c-.1-6.6-7.8-10.3-13-6.2z"/></svg>查询</button>
+        </div>
+        <div class="right">
+          <button class="btn btn-sm"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M505.7 661a8 8 0 0 1 0-11.3L715.6 439.8a8 8 0 0 1 11.3 0l45.1 45.1a8 8 0 0 1 0 11.3L562.1 661a8 8 0 0 1-11.3 0L505.7 661zm-1.4-221.2l219 219c3.1 3.1 3.1 8.2 0 11.3l-44.4 44.4c-3.1 3.1-8.2 3.1-11.3 0L439 485.5a8 8 0 0 1 0-11.3l45.4-45.4a8 8 0 0 1 11.3 0zM512 192C298.2 192 124 366.2 124 580s174.2 388 388 388 388-174.2 388-388S725.8 192 512 192zm0 720c-183.9 0-332-148.1-332-332s148.1-332 332-332 332 148.1 332 332-148.1 332-332 332z"/></svg>导出 CSV</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zm-40 632H136V232h752v560z"/></svg>快照列表</div>
+          <div class="card-extra">共 18 条 · 按生成时间倒序</div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>报表类型</th>
+                <th>周期起</th>
+                <th>周期止</th>
+                <th>粒度</th>
+                <th>数据版本</th>
+                <th>生成时间</th>
+                <th>状态</th>
+                <th style="width:140px;">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="tag tag-blue">订单 GMV</span></td>
+                <td class="num">2026-07-19</td>
+                <td class="num">2026-07-25</td>
+                <td><span class="tag tag-gray">日</span></td>
+                <td><span class="tag tag-blue">v3</span></td>
+                <td class="muted">2026-07-26 02:00</td>
+                <td><span class="tag tag-green">已完成</span></td>
+                <td class="ops"><button class="btn-link" onclick="openDrawer()">查看</button><button class="btn-link">对比</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-blue">订单 GMV</span></td>
+                <td class="num">2026-07-19</td>
+                <td class="num">2026-07-25</td>
+                <td><span class="tag tag-gray">日</span></td>
+                <td><span class="tag tag-blue">v2</span></td>
+                <td class="muted">2026-07-26 01:00</td>
+                <td><span class="tag tag-green">已完成</span></td>
+                <td class="ops"><button class="btn-link" onclick="openDrawer()">查看</button><button class="btn-link">对比</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-blue">订单 GMV</span></td>
+                <td class="num">2026-07-19</td>
+                <td class="num">2026-07-25</td>
+                <td><span class="tag tag-gray">日</span></td>
+                <td><span class="tag tag-blue">v1</span></td>
+                <td class="muted">2026-07-26 00:00</td>
+                <td><span class="tag tag-green">已完成</span></td>
+                <td class="ops"><button class="btn-link" onclick="openDrawer()">查看</button><button class="btn-link muted" title="无历史版本可对比">对比</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-gold">支付成功率</span></td>
+                <td class="num">2026-07-19</td>
+                <td class="num">2026-07-25</td>
+                <td><span class="tag tag-gray">日</span></td>
+                <td><span class="tag tag-blue">v2</span></td>
+                <td class="muted">2026-07-26 02:05</td>
+                <td><span class="tag tag-green">已完成</span></td>
+                <td class="ops"><button class="btn-link" onclick="openDrawer()">查看</button><button class="btn-link">对比</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-gold">支付成功率</span></td>
+                <td class="num">2026-07-19</td>
+                <td class="num">2026-07-25</td>
+                <td><span class="tag tag-gray">日</span></td>
+                <td><span class="tag tag-blue">v1</span></td>
+                <td class="muted">2026-07-26 00:05</td>
+                <td><span class="tag tag-green">已完成</span></td>
+                <td class="ops"><button class="btn-link" onclick="openDrawer()">查看</button><button class="btn-link muted">对比</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-green">积分发放量</span></td>
+                <td class="num">2026-07-19</td>
+                <td class="num">2026-07-25</td>
+                <td><span class="tag tag-gray">日</span></td>
+                <td><span class="tag tag-blue">v2</span></td>
+                <td class="muted">2026-07-26 02:10</td>
+                <td><span class="tag tag-green">已完成</span></td>
+                <td class="ops"><button class="btn-link" onclick="openDrawer()">查看</button><button class="btn-link">对比</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-blue">通知送达率</span></td>
+                <td class="num">2026-07-19</td>
+                <td class="num">2026-07-25</td>
+                <td><span class="tag tag-gray">日</span></td>
+                <td><span class="tag tag-blue">v3</span></td>
+                <td class="muted">2026-07-26 02:15</td>
+                <td><span class="tag tag-green">已完成</span></td>
+                <td class="ops"><button class="btn-link" onclick="openDrawer()">查看</button><button class="btn-link">对比</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-red">售后量</span></td>
+                <td class="num">2026-07-19</td>
+                <td class="num">2026-07-25</td>
+                <td><span class="tag tag-gray">日</span></td>
+                <td><span class="tag tag-blue">v2</span></td>
+                <td class="muted">2026-07-26 02:20</td>
+                <td><span class="tag tag-gold">生成中</span></td>
+                <td class="ops"><button class="btn-link muted">查看</button><button class="btn-link muted">对比</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-blue">店铺排行</span></td>
+                <td class="num">2026-07-19</td>
+                <td class="num">2026-07-25</td>
+                <td><span class="tag tag-gray">日</span></td>
+                <td><span class="tag tag-blue">v1</span></td>
+                <td class="muted">2026-07-26 02:25</td>
+                <td><span class="tag tag-green">已完成</span></td>
+                <td class="ops"><button class="btn-link" onclick="openDrawer()">查看</button><button class="btn-link muted">对比</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-blue">订单 GMV</span></td>
+                <td class="num">2026-07-12</td>
+                <td class="num">2026-07-18</td>
+                <td><span class="tag tag-gray">日</span></td>
+                <td><span class="tag tag-blue">v2</span></td>
+                <td class="muted">2026-07-19 02:00</td>
+                <td><span class="tag tag-green">已完成</span></td>
+                <td class="ops"><button class="btn-link" onclick="openDrawer()">查看</button><button class="btn-link">对比</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span class="total">共 18 条</span>
+          <button class="pg disabled">‹</button>
+          <button class="pg active">1</button>
+          <button class="pg">2</button>
+          <button class="pg">›</button>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <span>© 2026 Leno 电商平台 · 系统管理后台</span>
+      <span>版本 v1.4.2 · 构建于 2026-07-25 · 数据更新于 09:42</span>
+    </footer>
+  </div>
+</div>
+
+<!-- Drawer -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="drawer-title">快照详情 · 订单 GMV v3</div>
+    <button class="drawer-close" onclick="closeDrawer()"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg></button>
+  </div>
+  <div class="drawer-body">
+    <div class="section-title"><span class="bar"></span>基本信息</div>
+    <div class="desc-list">
+      <div class="desc-row"><div class="desc-label">报表 ID</div><div class="desc-value mono">7a3f8c2e-1b4d-4e6f-9a2c-8d5e7f1a2b3c</div></div>
+      <div class="desc-row"><div class="desc-label">报表类型</div><div class="desc-value">订单 GMV（OrderGmv）</div></div>
+      <div class="desc-row"><div class="desc-label">数据版本</div><div class="desc-value"><span class="tag tag-blue">v3</span></div></div>
+      <div class="desc-row"><div class="desc-label">粒度</div><div class="desc-value">日（Daily）</div></div>
+      <div class="desc-row"><div class="desc-label">周期起止</div><div class="desc-value mono">2026-07-19 00:00 ~ 2026-07-25 23:59</div></div>
+      <div class="desc-row"><div class="desc-label">生成时间</div><div class="desc-value mono">2026-07-26 02:00:00</div></div>
+      <div class="desc-row"><div class="desc-label">生成耗时</div><div class="desc-value mono">3.2s</div></div>
+    </div>
+
+    <div class="section-title"><span class="bar"></span>Metrics 指标</div>
+    <div class="desc-list">
+      <div class="desc-row"><div class="desc-label">totalGmv</div><div class="desc-value mono">¥1,286,580 <span class="muted">元</span></div></div>
+      <div class="desc-row"><div class="desc-label">orderCount</div><div class="desc-value mono">12,560 <span class="muted">笔</span></div></div>
+      <div class="desc-row"><div class="desc-label">avgOrderAmount</div><div class="desc-value mono">¥102.43 <span class="muted">元</span></div></div>
+      <div class="desc-row"><div class="desc-label">paidGmv</div><div class="desc-value mono">¥1,268,560 <span class="muted">元</span></div></div>
+      <div class="desc-row"><div class="desc-label">paymentSuccessRate</div><div class="desc-value mono">98.6 <span class="muted">%</span></div></div>
+      <div class="desc-row"><div class="desc-label">refundAmount</div><div class="desc-value mono">¥48,200 <span class="muted">元</span></div></div>
+    </div>
+
+    <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="display:flex;align-items:center;gap:var(--s2);"><span class="bar"></span>版本对比</span>
+      <div class="switch on" id="cmpSwitch" onclick="toggleCmp()">
+        <span class="switch-track"></span>
+        <span class="switch-label">与上一版本对比（v2）</span>
+      </div>
+    </div>
+    <div id="cmpArea">
+      <table class="diff-tbl">
+        <thead>
+          <tr><th>指标 Key</th><th style="text-align:right;">v2 旧值</th><th style="text-align:right;">v3 新值</th><th style="text-align:right;">变化</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>totalGmv</td><td style="text-align:right;" class="flat">¥1,243,200</td><td style="text-align:right;" class="flat">¥1,286,580</td><td style="text-align:right;" class="up">+3.49%</td></tr>
+          <tr><td>orderCount</td><td style="text-align:right;" class="flat">11,438</td><td style="text-align:right;" class="flat">12,560</td><td style="text-align:right;" class="up">+9.81%</td></tr>
+          <tr><td>avgOrderAmount</td><td style="text-align:right;" class="flat">¥108.69</td><td style="text-align:right;" class="flat">¥102.43</td><td style="text-align:right;" class="down">-5.76%</td></tr>
+          <tr><td>paidGmv</td><td style="text-align:right;" class="flat">¥1,226,080</td><td style="text-align:right;" class="flat">¥1,268,560</td><td style="text-align:right;" class="up">+3.46%</td></tr>
+          <tr><td>paymentSuccessRate</td><td style="text-align:right;" class="flat">98.9%</td><td style="text-align:right;" class="flat">98.6%</td><td style="text-align:right;" class="down">-0.30%</td></tr>
+          <tr><td>refundAmount</td><td style="text-align:right;" class="flat">¥47,640</td><td style="text-align:right;" class="flat">¥48,200</td><td style="text-align:right;" class="up">+1.18%</td></tr>
+        </tbody>
+      </table>
+      <div style="font-size:12px;color:var(--n7);margin-top:var(--s3);">差异正值显示绿色 ↑，负值显示红色 ↓。对比基于同周期前一版本 v2（生成于 2026-07-26 01:00）。</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openDrawer() {
+  document.getElementById('drawerMask').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawerMask').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+}
+function toggleCmp() {
+  const sw = document.getElementById('cmpSwitch');
+  const area = document.getElementById('cmpArea');
+  sw.classList.toggle('on');
+  if (sw.classList.contains('on')) { area.style.display='block'; }
+  else { area.style.display='none'; }
+}
+document.querySelectorAll('.menu-item').forEach(m => {
+  m.addEventListener('click', () => {
+    document.querySelectorAll('.menu-item').forEach(x => x.classList.remove('active'));
+    m.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

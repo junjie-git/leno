@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OAuth 客户端 - Leno 系统管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+html, body { height:100%; }
+body {
+  font-family:var(--ff-app);
+  font-size:var(--fs-base);
+  color:var(--n10);
+  background:var(--n3);
+  line-height:1.5715;
+  -webkit-font-smoothing:antialiased;
+}
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+button { font-family:inherit; cursor:pointer; }
+
+/* Layout */
+.app { display:flex; min-height:100vh; }
+.sider {
+  width:var(--sider-width);
+  background:var(--sider-bg);
+  position:fixed; top:0; left:0; bottom:0;
+  display:flex; flex-direction:column;
+  z-index:20; overflow:hidden;
+}
+.sider-logo {
+  height:var(--header-h);
+  display:flex; align-items:center; gap:var(--s2);
+  padding:0 var(--s4);
+  color:#fff; font-size:var(--fs-lg); font-weight:var(--fw-semibold);
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+.sider-logo .logo-mark {
+  width:28px; height:28px; border-radius:6px;
+  background:linear-gradient(135deg,#1677FF,#4096FF);
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:700; font-size:15px;
+}
+.sider-menu { flex:1; padding:var(--s2) 0; overflow-y:auto; }
+.sider-menu::-webkit-scrollbar { width:6px; }
+.sider-menu::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:3px; }
+.menu-group-title { color:rgba(255,255,255,0.35); font-size:11px; padding:var(--s4) var(--s6) var(--s2); letter-spacing:0.5px; }
+.menu-item {
+  display:flex; align-items:center; gap:var(--s3);
+  height:40px; padding:0 var(--s6);
+  color:rgba(255,255,255,0.85); font-size:var(--fs-base);
+  cursor:pointer; border-left:3px solid transparent; transition:background 100ms;
+}
+.menu-item:hover { background:rgba(255,255,255,0.06); }
+.menu-item.active { background:#E6F4FF; color:var(--c-primary); border-left-color:var(--c-primary); font-weight:var(--fw-medium); }
+.menu-item svg { width:16px; height:16px; flex-shrink:0; color:rgba(255,255,255,0.65); }
+.menu-item.active svg { color:var(--c-primary); }
+
+.main { flex:1; margin-left:var(--sider-width); display:flex; flex-direction:column; min-width:0; }
+.header {
+  height:var(--header-h); background:var(--n1);
+  border-bottom:1px solid var(--n5);
+  display:flex; align-items:center;
+  padding:0 var(--s6); position:sticky; top:0; z-index:10; gap:var(--s4);
+}
+.header-icon-btn { width:36px; height:36px; border:none; background:transparent; display:flex; align-items:center; justify-content:center; border-radius:var(--r-base); color:var(--n9); position:relative; }
+.header-icon-btn:hover { background:var(--n3); }
+.header-icon-btn svg { width:18px; height:18px; }
+.collapse-btn { margin-right:var(--s2); }
+.breadcrumb { display:flex; align-items:center; gap:var(--s2); color:var(--n7); font-size:var(--fs-base); }
+.breadcrumb .sep { color:var(--n5); }
+.breadcrumb .current { color:var(--n10); }
+.header-search { margin-left:auto; display:flex; align-items:center; gap:var(--s2); width:260px; height:32px; background:var(--n3); border:1px solid transparent; border-radius:var(--r-base); padding:0 var(--s3); color:var(--n7); font-size:13px; cursor:pointer; }
+.header-search:hover { border-color:var(--c-primary); background:var(--n1); }
+.header-search svg { width:14px; height:14px; }
+.kbd { margin-left:auto; font-family:var(--ff-mono); font-size:11px; background:var(--n1); border:1px solid var(--n5); border-radius:4px; padding:1px 6px; color:var(--n7); }
+.notif-badge { position:relative; }
+.notif-badge .count { position:absolute; top:4px; right:4px; min-width:16px; height:16px; padding:0 4px; background:var(--c-error); color:#fff; border-radius:8px; font-size:10px; line-height:16px; text-align:center; font-weight:600; border:1.5px solid var(--n1); }
+.user-menu { display:flex; align-items:center; gap:var(--s2); padding:0 var(--s2); height:36px; border-radius:var(--r-base); cursor:pointer; }
+.user-menu:hover { background:var(--n3); }
+.avatar { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#1677FF,#722ED1); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+.user-menu .name { font-size:13px; color:var(--n10); }
+
+.content { flex:1; padding:var(--s6); }
+.footer { height:32px; background:var(--n1); border-top:1px solid var(--n5); display:flex; align-items:center; justify-content:space-between; padding:0 var(--s6); font-size:12px; color:var(--n7); }
+
+/* Page components */
+.page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:var(--s6); gap:var(--s4); }
+.page-title { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); }
+.page-subtitle { font-size:13px; color:var(--n7); margin-top:4px; }
+
+.btn {
+  display:inline-flex; align-items:center; gap:var(--s2);
+  height:32px; padding:0 var(--s4);
+  border:1px solid var(--n5); background:var(--n1);
+  border-radius:var(--r-base); font-size:var(--fs-base); color:var(--n10); transition:all 100ms;
+}
+.btn:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.btn svg { width:14px; height:14px; }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-danger { color:var(--c-error); border-color:var(--c-error); }
+.btn-danger:hover { background:var(--c-error); color:#fff; }
+.btn-sm { height:28px; padding:0 var(--s3); font-size:13px; }
+.btn-link { background:transparent; border:none; color:var(--c-primary); padding:0 var(--s1); height:auto; font-size:13px; }
+.btn-link:hover { color:#4096FF; background:transparent; }
+.btn-link.danger { color:var(--c-error); }
+.btn-link.danger:hover { color:#ff7875; }
+.btn-link[disabled] { color:var(--n5); cursor:not-allowed; pointer-events:none; }
+.btn[disabled] { color:var(--n5); cursor:not-allowed; pointer-events:none; background:var(--n3); border-color:var(--n3); }
+.btn-primary[disabled] { background:#BAE0FF; border-color:#BAE0FF; color:#fff; }
+
+.input { height:32px; padding:0 var(--s3); border:1px solid var(--n5); background:var(--n1); border-radius:var(--r-base); font-size:var(--fs-base); color:var(--n10); display:flex; align-items:center; gap:var(--s2); }
+.input:hover { border-color:var(--c-primary); }
+.input input { border:none; outline:none; flex:1; font-size:var(--fs-base); background:transparent; font-family:inherit; }
+.input input::placeholder { color:var(--n7); }
+.input svg { width:14px; height:14px; color:var(--n7); }
+.input.password { font-family:var(--ff-mono); }
+.input.readonly { background:var(--n3); color:var(--n9); }
+.input.error { border-color:var(--c-error); }
+.input.error .err-msg { display:block; }
+
+.select { height:32px; padding:0 var(--s3); border:1px solid var(--n5); background:var(--n1); border-radius:var(--r-base); font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; gap:var(--s2); cursor:pointer; min-width:120px; }
+.select:hover { border-color:var(--c-primary); }
+.select .val { flex:1; }
+.select svg { width:12px; height:12px; color:var(--n7); }
+
+.card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; }
+.card-head { display:flex; align-items:center; justify-content:space-between; padding:var(--s3) var(--s4); border-bottom:1px solid var(--n3); }
+.card-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); display:flex; align-items:center; gap:var(--s2); }
+.card-title svg { width:16px; height:16px; color:var(--c-primary); }
+.card-extra { font-size:13px; color:var(--n7); display:flex; align-items:center; gap:var(--s2); }
+.card-body { padding:var(--s4); }
+
+/* Tag */
+.tag { display:inline-flex; align-items:center; gap:4px; padding:1px 8px; border-radius:var(--r-base); font-size:12px; line-height:20px; border:1px solid; }
+.tag-blue { background:#E6F4FF; color:#1677FF; border-color:#91CAFF; }
+.tag-green { background:#F6FFED; color:#52C41A; border-color:#B7EB8F; }
+.tag-gold { background:#FFFBE6; color:#FAAD14; border-color:#FFE58F; }
+.tag-red { background:#FFF1F0; color:#FF4D4F; border-color:#FFCCC7; }
+.tag-gray { background:#FAFAFA; color:#8C8C8C; border-color:#D9D9D9; }
+.tag-purple { background:#F9F0FF; color:#722ED1; border-color:#D3ADF7; }
+.tag-cyan { background:#E6FFFB; color:#13C2C2; border-color:#87E8DE; }
+
+/* Toolbar */
+.toolbar { display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap; background:var(--n1); padding:var(--s3) var(--s4); border-radius:var(--r-card); box-shadow:var(--sh-card); margin-bottom:var(--s4); }
+.toolbar .left { display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap; }
+.toolbar .right { display:flex; align-items:center; gap:var(--s2); margin-left:auto; }
+
+/* Table */
+.tbl-wrap { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; overflow:hidden; }
+.tbl { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+.tbl th, .tbl td { text-align:left; padding:var(--s3) var(--s4); border-bottom:1px solid var(--n3); }
+.tbl th { background:var(--n2); color:var(--n9); font-weight:var(--fw-medium); font-size:13px; height:40px; }
+.tbl td { height:48px; color:var(--n10); vertical-align:middle; }
+.tbl tbody tr:hover { background:var(--n2); }
+.tbl tbody tr:last-child td { border-bottom:none; }
+.tbl .num { font-family:var(--ff-mono); font-feature-settings:"tnum"; }
+.tbl .mono { font-family:var(--ff-mono); font-size:13px; }
+.tbl .muted { color:var(--n7); font-size:12px; }
+.tbl .provider-cell { display:flex; align-items:center; gap:var(--s3); }
+.provider-icon {
+  width:32px; height:32px; border-radius:var(--r-base);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  color:#fff; font-weight:700; font-size:13px;
+}
+.provider-icon.github { background:#24292E; }
+.provider-icon.google { background:#4285F4; }
+.provider-icon.wechat { background:#07C160; }
+.provider-icon.qq { background:#12B7F5; }
+.provider-icon.alipay { background:#1677FF; }
+.provider-icon.weibo { background:#E6162D; }
+.provider-name { font-weight:var(--fw-medium); font-size:14px; color:var(--n10); }
+.provider-code { font-family:var(--ff-mono); font-size:12px; color:var(--n7); }
+
+.secret-cell { display:flex; align-items:center; gap:var(--s2); }
+.secret-mask { font-family:var(--ff-mono); font-size:13px; color:var(--n7); letter-spacing:1px; }
+.secret-toggle { background:transparent; border:none; color:var(--n7); display:flex; padding:2px; }
+.secret-toggle:hover { color:var(--c-primary); }
+.secret-toggle svg { width:14px; height:14px; }
+
+.scopes-cell { display:flex; flex-wrap:wrap; gap:4px; max-width:240px; }
+.scope-chip { font-family:var(--ff-mono); font-size:11px; background:var(--n3); color:var(--n9); padding:1px 6px; border-radius:3px; }
+
+.row-actions { display:flex; align-items:center; gap:var(--s1); white-space:nowrap; }
+
+/* Pagination */
+.pagination { display:flex; align-items:center; justify-content:flex-end; gap:var(--s2); padding:var(--s3) var(--s4); }
+.page-info { font-size:13px; color:var(--n7); margin-right:auto; }
+.page-btn { width:32px; height:32px; border:1px solid var(--n5); background:var(--n1); border-radius:var(--r-base); display:flex; align-items:center; justify-content:center; color:var(--n10); }
+.page-btn:hover:not([disabled]) { border-color:var(--c-primary); color:var(--c-primary); }
+.page-btn[disabled] { color:var(--n5); cursor:not-allowed; background:var(--n3); }
+.page-btn.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.page-btn svg { width:12px; height:12px; }
+.page-size { display:flex; align-items:center; gap:var(--s1); font-size:13px; color:var(--n9); }
+
+/* Tip banner */
+.tip { display:flex; align-items:flex-start; gap:var(--s2); background:#E6F4FF; border:1px solid #91CAFF; border-radius:var(--r-base); padding:var(--s2) var(--s3); font-size:12px; color:var(--n9); margin-bottom:var(--s6); }
+.tip svg { width:14px; height:14px; color:var(--c-primary); flex-shrink:0; margin-top:2px; }
+
+/* Modal */
+.modal-mask { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:200; display:flex; align-items:center; justify-content:center; }
+.modal { width:560px; background:var(--n1); border-radius:var(--r-lg); box-shadow:0 6px 16px rgba(0,0,0,0.12),0 3px 6px -4px rgba(0,0,0,0.12); overflow:hidden; }
+.modal-head { display:flex; align-items:center; justify-content:space-between; padding:var(--s4) var(--s6); border-bottom:1px solid var(--n3); }
+.modal-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); }
+.modal-close { width:24px; height:24px; border:none; background:transparent; color:var(--n7); display:flex; align-items:center; justify-content:center; border-radius:4px; }
+.modal-close:hover { background:var(--n3); color:var(--n10); }
+.modal-close svg { width:14px; height:14px; }
+.modal-body { padding:var(--s6); max-height:60vh; overflow-y:auto; }
+.modal-foot { padding:var(--s4) var(--s6); border-top:1px solid var(--n3); display:flex; justify-content:flex-end; gap:var(--s2); background:var(--n2); }
+
+/* Form */
+.form-item { margin-bottom:var(--s4); }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:var(--s4); }
+.form-label { display:flex; align-items:center; gap:4px; font-size:var(--fs-base); color:var(--n10); margin-bottom:6px; }
+.form-label .req { color:var(--c-error); }
+.form-label .hint { color:var(--n7); font-size:12px; font-weight:var(--fw-normal); }
+.form-control { width:100%; }
+.form-explain { font-size:12px; color:var(--n7); margin-top:4px; }
+.form-explain.err { color:var(--c-error); }
+.form-divider { height:1px; background:var(--n3); margin:var(--s4) 0; }
+.form-section-label { font-size:13px; color:var(--n9); font-weight:var(--fw-medium); margin-bottom:var(--s3); display:flex; align-items:center; gap:var(--s2); }
+.form-section-label::before { content:""; width:3px; height:12px; background:var(--c-primary); border-radius:2px; }
+
+/* Confirm dialog (smaller) */
+.confirm-modal { width:416px; }
+.confirm-body { padding:var(--s6) var(--s6) var(--s4); display:flex; gap:var(--s4); }
+.confirm-icon { width:22px; height:22px; flex-shrink:0; color:var(--c-warning); }
+.confirm-icon svg { width:22px; height:22px; }
+.confirm-content { flex:1; min-width:0; }
+.confirm-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); margin-bottom:var(--s2); }
+.confirm-text { font-size:var(--fs-base); color:var(--n9); line-height:1.5715; }
+
+/* Skeleton */
+.skel { background:linear-gradient(90deg,#F2F2F2 25%,#E6E6E6 37%,#F2F2F2 63%); background-size:400% 100%; animation:skel 1.4s ease infinite; border-radius:4px; }
+@keyframes skel { 0%{background-position:100% 50%;} 100%{background-position:0 50%;} }
+
+/* Switch */
+.switch { display:inline-flex; align-items:center; width:28px; height:16px; background:var(--n5); border-radius:8px; position:relative; cursor:pointer; transition:background 200ms; }
+.switch.on { background:var(--c-primary); }
+.switch::after { content:""; position:absolute; top:2px; left:2px; width:12px; height:12px; background:#fff; border-radius:50%; transition:transform 200ms; box-shadow:0 1px 2px rgba(0,0,0,0.2); }
+.switch.on::after { transform:translateX(12px); }
+
+/* Status dot */
+.status-dot { display:inline-flex; align-items:center; gap:6px; font-size:13px; }
+.status-dot::before { content:""; width:6px; height:6px; border-radius:50%; }
+.status-dot.ok::before { background:var(--c-success); box-shadow:0 0 0 3px rgba(82,196,26,0.15); }
+.status-dot.off::before { background:var(--n7); box-shadow:0 0 0 3px rgba(140,140,140,0.15); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sider -->
+  <aside class="sider">
+    <div class="sider-logo">
+      <div class="logo-mark">L</div>
+      <span>Leno 控制台</span>
+    </div>
+    <nav class="sider-menu">
+      <div class="menu-group-title">仪表盘</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 805.5H670.9V719h253.9v86.5zm0-184.3H670.9v-86.5h253.9v86.5zm0-184.3H670.9v-86.5h253.9v86.5zm-348.6 368.6H99.2c-15.4 0-27.9-12.5-27.9-27.9V553.4c0-15.4 12.5-27.9 27.9-27.9h477c15.4 0 27.9 12.5 27.9 27.9v224.2c0 15.4-12.5 27.9-27.9 27.9zM535 478.4H140.2c-38 0-68.9-30.9-68.9-68.9V214.4c0-38 30.9-68.9 68.9-68.9H535c38 0 68.9 30.9 68.9 68.9v195.1c0 38-30.9 68.9-68.9 68.9z"/></svg><span>运营总览</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-70v126c0 5.5-4.5 10-10 10h-56c-5.5 0-10-4.5-10-10V559h-70c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h70V367c0-5.5 4.5-10 10-10h56c5.5 0 10 4.5 10 10v126h70c5.5 0 10 4.5 10 10v46z"/></svg><span>支付统计</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 1 0 0 896 448 448 0 0 0 0-896zm0 832a384 384 0 1 1 0-768 384 384 0 0 1 0 768zm48-176a48 48 0 1 1-96 0 48 48 0 0 1 96 0zm-48-464a32 32 0 0 0-32 32v256a32 32 0 0 0 64 0V288a32 32 0 0 0-32-32z"/></svg><span>积分统计</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM492 448a48 48 0 1 0 96 0 48 48 0 0 0-96 0zm-208 0a48 48 0 1 0 96 0 48 48 0 0 0-96 0zm416 0a48 48 0 1 0 96 0 48 48 0 0 0-96 0z"/></svg><span>通知送达率</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M955.3 352.3L863.6 137.5c-7.7-18-26.3-29.4-46-28.2L162.8 162.6c-19.7 1.2-36.7 14.7-42.3 33.7L69.7 395.9c-9.8 33.7 4.4 69.4 35.3 86.4 9.8 5.4 21.3 8.3 33 8.3h13.4l1 329.9c0 27.8 22.6 50.4 50.4 50.4h622.3c27.8 0 50.4-22.6 50.4-50.4V487.5h4.9c22.7 0 43.7-11.4 56.2-30.4 12.1-18.6 14.1-41.9 4.7-62.8z"/></svg><span>售后统计</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v384c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32zM428 240c0-22.1 17.9-40 40-40h88c22.1 0 40 17.9 40 40v224H428V240z"/></svg><span>店铺排行</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zm-40 632H136V232h752v560zM304 568h416v56H304v-56zm0-144h416v56H304v-56z"/></svg><span>报表快照</span></div>
+
+      <div class="menu-group-title">用户与权限</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.6 375.6 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362.6c0-137-110.8-247.7-247.5-247.7S265 225.6 265 362.6c0 82.1 40.5 155.4 102.8 200.4-.4.2-.8.3-1.2.5-44.3 18.4-84 44.6-118.3 77.9a374 374 0 0 0-80.6 119.5C147.1 796.3 137.5 838.7 137 882c0 4.4 3.6 8 8 8h734c4.4 0 8-3.6 8-8-.5-43.3-10.1-85.7-28.5-118.4z"/></svg><span>用户管理</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M866.9 169.9L527.1 54.1C523 52.7 517.5 52 512 52s-11 .7-15.1 2.1L157.1 169.9c-8.3 2.8-15.1 12.4-15.1 21.2v482.4c0 8.8 5.7 20.4 12.6 25.9L499.3 968c3.5 2.5 8.1 3.8 12.7 3.8 4.6 0 9.2-1.3 12.7-3.8l344.7-268.6c6.9-5.4 12.6-17 12.6-25.9V191.1c.1-8.8-6.7-18.3-15.1-21.2z"/></svg><span>角色管理</span></div>
+      <div class="menu-item active"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM492 448a48 48 0 1 0 96 0 48 48 0 0 0-96 0z"/></svg><span>OAuth 客户端</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-70v126c0 5.5-4.5 10-10 10h-56c-5.5 0-10-4.5-10-10V559h-70c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h70V367c0-5.5 4.5-10 10-10h56c5.5 0 10 4.5 10 10v126h70c5.5 0 10 4.5 10 10v46z"/></svg><span>运营人员</span></div>
+
+      <div class="menu-group-title">系统治理</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>功能开关</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 805.5H670.9V719h253.9v86.5z"/></svg><span>系统配置</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>数据字典</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>公告管理</span></div>
+
+      <div class="menu-group-title">运行时运维</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>限流规则</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>索引重建</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>死信队列</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>健康监控</span></div>
+
+      <div class="menu-group-title">审计与对账</div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>审计日志</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>对账管理</span></div>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="header">
+      <button class="header-icon-btn collapse-btn" title="折叠菜单">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"/></svg>
+      </button>
+      <div class="breadcrumb">
+        <span>用户与权限</span>
+        <span class="sep">/</span>
+        <span class="current">OAuth 客户端</span>
+      </div>
+      <div class="header-search">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0 0 11.6 0l43.6-43.5a8.2 8.2 0 0 0 0-11.6z"/></svg>
+        <span>搜索菜单、页面、端点</span>
+        <span class="kbd">Ctrl K</span>
+      </div>
+      <button class="header-icon-btn notif-badge" title="通知">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428c0-141.1-104.3-257.7-240-277.1V112c0-22.1-17.9-40-40-40s-40 17.9-40 40v38.9c-135.7 19.4-240 136-240 277.1v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c0 61.8 50.2 112 112 112s112-50.2 112-112h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM512 888c-26.5 0-48-21.5-48-48h96c0 26.5-21.5 48-48 48zM304 768V428c0-55.6 21.6-107.8 60.9-147.1S456.4 220 512 220c55.6 0 107.8 21.6 147.1 60.9S720 372.4 720 428v340H304z"/></svg>
+        <span class="count">12</span>
+      </button>
+      <div class="user-menu">
+        <div class="avatar">ZM</div>
+        <span class="name">张明 · Admin</span>
+        <svg viewBox="0 0 1024 1024" fill="currentColor" style="width:12px;height:12px;color:#8C8C8C;"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="page-header">
+        <div>
+          <div class="page-title">OAuth 客户端</div>
+          <div class="page-subtitle">数据来源 GET /api/admin/oauth-clients · 列表缓存 5 分钟，启停/编辑后失效 · Secret 始终掩码显示，编辑时清空才可重填</div>
+        </div>
+      </div>
+
+      <div class="tip">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 336a48 48 0 1 0 96 0 48 48 0 0 0-96 0zm72 112h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V456c0-4.4-3.6-8-8-8z"/></svg>
+        <span>新建配置默认禁用，需显式启用后用户才可通过该提供方登录。禁用启用中的提供方不影响已绑定账号，可随时重新启用。ClientSecret 仅在创建/重置时可见，请妥善保管。</span>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="left">
+          <button class="btn btn-primary">
+            <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M482.2 508.4L331.3 389c-3-2.4-7.3-2.4-10.3 0l-44.4 35.6c-2.9 2.3-3.4 6.5-1.1 9.4l132.1 169.9c3.3 4.2 9.6 4.6 13.4.8l261.5-261.5c2.7-2.7 2.7-7.1 0-9.8l-40.5-40.5c-2.7-2.7-7.1-2.7-9.8 0L482.2 508.4z"/></svg>
+            新建提供方
+          </button>
+          <div class="select">
+            <span class="val">全部状态</span>
+            <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+          </div>
+        </div>
+        <div class="right">
+          <button class="btn">
+            <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4 44.1C775.8 155.1 656.2 92 521.9 92 290 92 102.3 279.5 102 511.5 101.7 743.7 289.8 932 521.9 932c181.3 0 335.8-115 394.6-276.1 1.5-4.2-.7-8.9-4.9-10.3l-56.7-19.5a8 8 0 0 0-10.1 4.8c-1.8 5-3.8 10-5.9 14.9-17.3 41-42.1 77.8-73.7 109.4A344.77 344.77 0 0 1 655.9 829c-42.3 17.9-87.4 27-133.8 27-46.5 0-91.5-9.1-133.8-27A344.77 344.77 0 0 1 279 755.2a347.07 347.07 0 0 1-73.7-109.4c-17.9-42.4-27-87.4-27-133.9s9.1-91.5 27-133.9c17.3-41 42.1-77.8 73.7-109.4 31.6-31.6 68.4-56.4 109.3-73.8 42.3-17.9 87.4-27 133.8-27 46.5 0 91.5 9.1 133.8 27a344.77 344.77 0 0 1 109.3 73.8c9.9 9.9 19.2 20.4 27.8 31.4l-60.2 47a8 8 0 0 0 3 14.1l175.6 43c5 1.2 9.9-2.6 9.9-7.7l.8-180.9c-.1-6.6-7.2-10.5-12.7-6.4z"/></svg>
+            刷新
+          </button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th style="width:200px;">提供方 provider</th>
+              <th style="width:200px;">Client ID</th>
+              <th style="width:180px;">Client Secret</th>
+              <th>回调 URL</th>
+              <th style="width:220px;">Scopes</th>
+              <th style="width:100px;">状态</th>
+              <th style="width:180px;">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="provider-cell">
+                  <div class="provider-icon github">GH</div>
+                  <div>
+                    <div class="provider-name">GitHub</div>
+                    <div class="provider-code">github</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="mono">Iv1.8a3f2b9c7d6e5f4a</span></td>
+              <td>
+                <div class="secret-cell">
+                  <span class="secret-mask">••••••••••••</span>
+                  <button class="secret-toggle" title="显示/隐藏 Secret">
+                    <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M942.2 486.2C847.4 286.5 703.1 186 512 186c-191.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 0 0 0 51.5C176.6 737.5 320.9 838 512 838c191.2 0 335.4-100.5 430.2-300.3 7.7-16.2 7.7-35.3 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/></svg>
+                  </button>
+                </div>
+              </td>
+              <td><span class="mono">https://leno.example.com/auth/callback/github</span></td>
+              <td>
+                <div class="scopes-cell">
+                  <span class="scope-chip">user:email</span>
+                  <span class="scope-chip">read:user</span>
+                </div>
+              </td>
+              <td><span class="status-dot ok">启用</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn-link">编辑</button>
+                  <button class="btn-link">禁用</button>
+                  <button class="btn-link">审计</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="provider-cell">
+                  <div class="provider-icon google">G</div>
+                  <div>
+                    <div class="provider-name">Google</div>
+                    <div class="provider-code">google</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="mono">407408718192.apps.googleusercontent.com</span></td>
+              <td>
+                <div class="secret-cell">
+                  <span class="secret-mask">••••••••••••</span>
+                  <button class="secret-toggle" title="显示/隐藏 Secret">
+                    <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M942.2 486.2C847.4 286.5 703.1 186 512 186c-191.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 0 0 0 51.5C176.6 737.5 320.9 838 512 838c191.2 0 335.4-100.5 430.2-300.3 7.7-16.2 7.7-35.3 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/></svg>
+                  </button>
+                </div>
+              </td>
+              <td><span class="mono">https://leno.example.com/auth/callback/google</span></td>
+              <td>
+                <div class="scopes-cell">
+                  <span class="scope-chip">openid</span>
+                  <span class="scope-chip">email</span>
+                  <span class="scope-chip">profile</span>
+                </div>
+              </td>
+              <td><span class="status-dot ok">启用</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn-link">编辑</button>
+                  <button class="btn-link">禁用</button>
+                  <button class="btn-link">审计</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="provider-cell">
+                  <div class="provider-icon wechat">WX</div>
+                  <div>
+                    <div class="provider-name">微信开放平台</div>
+                    <div class="provider-code">wechat</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="mono">wx4f7a8b9c0d1e2f3a</span></td>
+              <td>
+                <div class="secret-cell">
+                  <span class="secret-mask">••••••••••••</span>
+                  <button class="secret-toggle" title="显示/隐藏 Secret">
+                    <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M942.2 486.2C847.4 286.5 703.1 186 512 186c-191.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 0 0 0 51.5C176.6 737.5 320.9 838 512 838c191.2 0 335.4-100.5 430.2-300.3 7.7-16.2 7.7-35.3 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/></svg>
+                  </button>
+                </div>
+              </td>
+              <td><span class="mono">https://leno.example.com/auth/callback/wechat</span></td>
+              <td>
+                <div class="scopes-cell">
+                  <span class="scope-chip">snsapi_login</span>
+                </div>
+              </td>
+              <td><span class="status-dot ok">启用</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn-link">编辑</button>
+                  <button class="btn-link">禁用</button>
+                  <button class="btn-link">审计</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="provider-cell">
+                  <div class="provider-icon qq">QQ</div>
+                  <div>
+                    <div class="provider-name">QQ 互联</div>
+                    <div class="provider-code">qq</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="mono">101478293</span></td>
+              <td>
+                <div class="secret-cell">
+                  <span class="secret-mask">••••••••••••</span>
+                  <button class="secret-toggle" title="显示/隐藏 Secret">
+                    <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M942.2 486.2C847.4 286.5 703.1 186 512 186c-191.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 0 0 0 51.5C176.6 737.5 320.9 838 512 838c191.2 0 335.4-100.5 430.2-300.3 7.7-16.2 7.7-35.3 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/></svg>
+                  </button>
+                </div>
+              </td>
+              <td><span class="mono">https://leno.example.com/auth/callback/qq</span></td>
+              <td>
+                <div class="scopes-cell">
+                  <span class="scope-chip">get_user_info</span>
+                </div>
+              </td>
+              <td><span class="status-dot off">禁用</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn-link">编辑</button>
+                  <button class="btn-link">启用</button>
+                  <button class="btn-link">审计</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="provider-cell">
+                  <div class="provider-icon alipay">ZFB</div>
+                  <div>
+                    <div class="provider-name">支付宝</div>
+                    <div class="provider-code">alipay</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="mono">2021001172658431</span></td>
+              <td>
+                <div class="secret-cell">
+                  <span class="secret-mask">••••••••••••</span>
+                  <button class="secret-toggle" title="显示/隐藏 Secret">
+                    <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M942.2 486.2C847.4 286.5 703.1 186 512 186c-191.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 0 0 0 51.5C176.6 737.5 320.9 838 512 838c191.2 0 335.4-100.5 430.2-300.3 7.7-16.2 7.7-35.3 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/></svg>
+                  </button>
+                </div>
+              </td>
+              <td><span class="mono">https://leno.example.com/auth/callback/alipay</span></td>
+              <td>
+                <div class="scopes-cell">
+                  <span class="scope-chip">auth_user</span>
+                  <span class="scope-chip">auth_base</span>
+                </div>
+              </td>
+              <td><span class="status-dot ok">启用</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn-link">编辑</button>
+                  <button class="btn-link">禁用</button>
+                  <button class="btn-link">审计</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="provider-cell">
+                  <div class="provider-icon weibo">WB</div>
+                  <div>
+                    <div class="provider-name">微博</div>
+                    <div class="provider-code">weibo</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="mono">3948275610</span></td>
+              <td>
+                <div class="secret-cell">
+                  <span class="secret-mask">••••••••••••</span>
+                  <button class="secret-toggle" title="显示/隐藏 Secret">
+                    <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M942.2 486.2C847.4 286.5 703.1 186 512 186c-191.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 0 0 0 51.5C176.6 737.5 320.9 838 512 838c191.2 0 335.4-100.5 430.2-300.3 7.7-16.2 7.7-35.3 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/></svg>
+                  </button>
+                </div>
+              </td>
+              <td><span class="mono">https://leno.example.com/auth/callback/weibo</span></td>
+              <td>
+                <div class="scopes-cell">
+                  <span class="scope-chip">email</span>
+                  <span class="scope-chip">friendships_groups_read</span>
+                </div>
+              </td>
+              <td><span class="status-dot off">禁用</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn-link">编辑</button>
+                  <button class="btn-link">启用</button>
+                  <button class="btn-link">审计</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span class="page-info">共 6 条 · 第 1 / 1 页</span>
+          <button class="page-btn" disabled><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M724 218.3V141.9c0-6.7-7.7-10.4-12.9-6.3L260.3 486.8a31.86 31.86 0 0 0 0 50.3l450.8 351.1c5.3 4.1 12.9.4 12.9-6.3v-76.4c0-4.9-2.3-9.6-6.1-12.6l-360-281.1 360-281.1c3.8-3 6.1-7.7 6.1-12.6z"/></svg></button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn" disabled><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M765.7 486.8L314.9 134.7c-5.3-4.1-12.9-.4-12.9 6.3v77.4c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.8 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.86 31.86 0 0 0 0-50.4z"/></svg></button>
+        </div>
+      </div>
+
+      <!-- Create/Edit Modal (展示新建弹窗) -->
+      <div class="modal-mask" id="createModal" style="display:none;">
+        <div class="modal">
+          <div class="modal-head">
+            <div class="modal-title">新建 OAuth 提供方</div>
+            <button class="modal-close" onclick="document.getElementById('createModal').style.display='none'">
+              <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-item">
+              <div class="form-label"><span class="req">*</span> 提供方 provider</div>
+              <div class="form-control">
+                <div class="select" style="width:100%;">
+                  <span class="val" style="color:var(--n7);">请选择提供方</span>
+                  <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+                </div>
+              </div>
+              <div class="form-explain">新建时可选下拉，创建后 provider 不可修改</div>
+            </div>
+            <div class="form-item">
+              <div class="form-label"><span class="req">*</span> Client ID</div>
+              <div class="form-control">
+                <div class="input"><input placeholder="请输入 OAuth 应用 Client ID" /></div>
+              </div>
+            </div>
+            <div class="form-item">
+              <div class="form-label"><span class="req">*</span> Client Secret</div>
+              <div class="form-control">
+                <div class="input password">
+                  <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v384c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32zM428 240c0-22.1 17.9-40 40-40h88c22.1 0 40 17.9 40 40v224H428V240z"/></svg>
+                  <input type="password" placeholder="请输入 Client Secret" autocomplete="new-password" />
+                </div>
+              </div>
+              <div class="form-explain">Secret 仅在创建时可见，请妥善保管；编辑时清空才可重填</div>
+            </div>
+            <div class="form-item">
+              <div class="form-label">Scopes <span class="hint">（逗号分隔）</span></div>
+              <div class="form-control">
+                <div class="input"><input placeholder="如：openid,email,profile" style="font-family:var(--ff-mono); font-size:13px;" /></div>
+              </div>
+            </div>
+            <div class="form-divider"></div>
+            <div class="form-section-label">OAuth 端点配置</div>
+            <div class="form-item">
+              <div class="form-label">Authorization Endpoint</div>
+              <div class="form-control">
+                <div class="input"><input placeholder="https://github.com/login/oauth/authorize" style="font-family:var(--ff-mono); font-size:13px;" /></div>
+              </div>
+            </div>
+            <div class="form-item">
+              <div class="form-label">Token Endpoint</div>
+              <div class="form-control">
+                <div class="input"><input placeholder="https://github.com/login/oauth/access_token" style="font-family:var(--ff-mono); font-size:13px;" /></div>
+              </div>
+            </div>
+            <div class="form-item">
+              <div class="form-label">UserInfo Endpoint</div>
+              <div class="form-control">
+                <div class="input"><input placeholder="https://api.github.com/user" style="font-family:var(--ff-mono); font-size:13px;" /></div>
+              </div>
+            </div>
+            <div class="form-item">
+              <div class="form-label"><span class="req">*</span> 回调 URL</div>
+              <div class="form-control">
+                <div class="input"><input placeholder="https://leno.example.com/auth/callback/{provider}" style="font-family:var(--ff-mono); font-size:13px;" /></div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn" onclick="document.getElementById('createModal').style.display='none'">取消</button>
+            <button class="btn btn-primary">
+              <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190.7l-62.6-62.6c-9.4-9.4-24.6-9.4-33.9 0L399.9 543.7 266.5 410.3c-9.4-9.4-24.6-9.4-33.9 0l-62.6 62.6c-9.4 9.4-9.4 24.6 0 33.9l196.3 196.3c9.4 9.4 24.6 9.4 33.9 0l511.8-511.8c9.4-9.4 9.4-24.6 0-33.9z"/></svg>
+              创建（默认禁用）
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirm Dialog (禁用确认) -->
+      <div class="modal-mask" id="confirmModal" style="display:none;">
+        <div class="modal confirm-modal">
+          <div class="confirm-body">
+            <div class="confirm-icon">
+              <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 336a48 48 0 1 0 96 0 48 48 0 0 0-96 0zm72 112h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V456c0-4.4-3.6-8-8-8z"/></svg>
+            </div>
+            <div class="confirm-content">
+              <div class="confirm-title">确认禁用 GitHub 提供方</div>
+              <div class="confirm-text">禁用后用户将无法通过该提供方登录，已绑定的账号不受影响。可随时重新启用。</div>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn" onclick="document.getElementById('confirmModal').style.display='none'">取消</button>
+            <button class="btn btn-primary" onclick="document.getElementById('confirmModal').style.display='none'">确认禁用</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <span>© 2026 Leno 电商平台 · 系统管理后台</span>
+      <span>版本 v1.4.2 · 构建于 2026-07-25 · 数据更新于 09:42</span>
+    </footer>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.menu-item').forEach(m => {
+  m.addEventListener('click', () => {
+    document.querySelectorAll('.menu-item').forEach(x => x.classList.remove('active'));
+    m.classList.add('active');
+  });
+});
+// 演示：点击「新建提供方」展示弹窗
+document.querySelector('.btn-primary').addEventListener('click', () => {
+  document.getElementById('createModal').style.display = 'flex';
+});
+// 演示：点击「禁用」展示确认弹窗
+document.querySelectorAll('.btn-link').forEach(b => {
+  if (b.textContent.trim() === '禁用') {
+    b.addEventListener('click', () => {
+      document.getElementById('confirmModal').style.display = 'flex';
+    });
+  }
+});
+// Secret 显示/隐藏切换（演示）
+document.querySelectorAll('.secret-toggle').forEach(t => {
+  t.addEventListener('click', () => {
+    const mask = t.previousElementSibling;
+    if (mask.classList.contains('secret-mask')) {
+      if (mask.textContent.startsWith('•')) {
+        mask.textContent = 'GOCSPX-aB3dE5fG7hI9jK1lM3';
+      } else {
+        mask.textContent = '••••••••••••';
+      }
+    }
+  });
+});
+</script>
+</body>
+</html>
