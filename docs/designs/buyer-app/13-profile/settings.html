@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>设置 - Leno 电商平台</title>
+  <style>
+    :root {
+      --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+      --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+      --r-base:6px; --r-card:8px; --r-lg:12px;
+      --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+      --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+      --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+      --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+      --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+    body {
+      font-family: var(--ff-app);
+      background: var(--n3);
+      max-width: 375px;
+      margin: 0 auto;
+      min-height: 100vh;
+      box-shadow: 0 0 24px rgba(0,0,0,.08);
+      color: var(--n10);
+      font-size: var(--fs-base);
+      line-height: 1.5715;
+      padding-bottom: calc(60px + env(safe-area-inset-bottom));
+    }
+
+    /* ===== NavBar ===== */
+    .navbar {
+      height: 46px;
+      background: var(--n1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--s3);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--n3);
+    }
+    .navbar-left, .navbar-right {
+      width: 40px;
+      display: flex;
+      align-items: center;
+    }
+    .navbar-right { justify-content: flex-end; }
+    .navbar-left a {
+      display: flex;
+      align-items: center;
+      color: var(--n10);
+    }
+    .navbar-left svg { width: 20px; height: 20px; fill: var(--n10); }
+    .navbar-title {
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-medium);
+      color: var(--n10);
+    }
+
+    /* ===== 设置分组 ===== */
+    .settings-content { padding: var(--s3); }
+    .settings-group {
+      margin-bottom: var(--s3);
+    }
+    .group-title {
+      font-size: var(--fs-sm);
+      color: var(--n7);
+      font-weight: var(--fw-medium);
+      padding: 0 var(--s1) var(--s2);
+    }
+    .group-card {
+      background: var(--n1);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-card);
+      overflow: hidden;
+    }
+
+    /* ===== 设置项 ===== */
+    .setting-item {
+      display: flex;
+      align-items: center;
+      padding: 0 var(--s4);
+      min-height: 48px;
+      gap: var(--s3);
+      border-bottom: 1px solid var(--n3);
+    }
+    .setting-item:last-child { border-bottom: none; }
+    .setting-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--r-base);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .setting-icon svg { width: 16px; height: 16px; }
+    .setting-label {
+      flex: 1;
+      font-size: var(--fs-base);
+      color: var(--n10);
+    }
+    .setting-value {
+      font-size: var(--fs-base);
+      color: var(--n7);
+    }
+    .setting-arrow svg { width: 16px; height: 16px; fill: var(--n7); }
+
+    /* ===== 开关 ===== */
+    .switch {
+      width: 44px;
+      height: 24px;
+      border-radius: 12px;
+      background: var(--c-primary);
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .switch.off { background: var(--n5); }
+    .switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 22px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      transition: left 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    }
+    .switch.off::after { left: 2px; }
+
+    /* ===== 退出登录按钮 ===== */
+    .logout-section {
+      margin-top: var(--s6);
+      padding: 0 var(--s3);
+    }
+    .logout-btn {
+      width: 100%;
+      height: 50px;
+      background: var(--n1);
+      border: none;
+      border-radius: var(--r-lg);
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-medium);
+      color: var(--c-error);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--s1);
+      box-shadow: var(--sh-card);
+    }
+    .logout-btn svg { width: 18px; height: 18px; fill: var(--c-error); }
+
+    /* ===== 骨架屏 ===== */
+    .skeleton-block {
+      background: linear-gradient(90deg, var(--n3) 25%, var(--n2) 37%, var(--n3) 63%);
+      background-size: 400% 100%;
+      animation: skeleton-loading 1.4s ease infinite;
+      border-radius: var(--r-base);
+    }
+    @keyframes skeleton-loading {
+      0% { background-position: 100% 50%; }
+      100% { background-position: 0 50%; }
+    }
+
+    /* ===== 错误状态 ===== */
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--s12) var(--s4);
+      text-align: center;
+    }
+    .error-state svg { width: 64px; height: 64px; fill: var(--n5); margin-bottom: var(--s3); }
+    .error-text { font-size: var(--fs-base); color: var(--n7); margin-bottom: var(--s4); }
+    .retry-btn {
+      padding: var(--s2) var(--s6);
+      background: var(--n1);
+      color: var(--c-primary);
+      border: 1px solid var(--c-primary);
+      border-radius: var(--r-base);
+      font-size: var(--fs-base);
+      font-weight: var(--fw-medium);
+    }
+
+    /* ===== 状态切换器 ===== */
+    .state-toggle {
+      position: fixed;
+      top: var(--s2);
+      right: var(--s2);
+      z-index: 200;
+      display: flex;
+      gap: var(--s1);
+    }
+    .state-toggle button {
+      padding: var(--s1) var(--s2);
+      border: 1px solid var(--n5);
+      border-radius: var(--r-base);
+      background: var(--n1);
+      font-size: var(--fs-sm);
+      color: var(--n9);
+      cursor: pointer;
+    }
+    .state-toggle button.active {
+      background: var(--c-primary);
+      color: #fff;
+      border-color: var(--c-primary);
+    }
+
+    .hidden { display: none !important; }
+
+    /* 版本号底部信息 */
+    .version-info {
+      text-align: center;
+      padding: var(--s4);
+      font-size: var(--fs-sm);
+      color: var(--n7);
+      line-height: 1.6;
+    }
+    .version-info span { display: block; }
+  </style>
+</head>
+<body>
+  <div class="state-toggle">
+    <button class="active" onclick="showState('normal')">正常</button>
+    <button onclick="showState('skeleton')">骨架屏</button>
+    <button onclick="showState('error')">错误</button>
+  </div>
+
+  <!-- NavBar -->
+  <div class="navbar">
+    <div class="navbar-left">
+      <a href="profile.html" aria-label="返回">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </a>
+    </div>
+    <span class="navbar-title">设置</span>
+    <div class="navbar-right"></div>
+  </div>
+
+  <!-- 正常状态 -->
+  <div id="page-normal">
+    <div class="settings-content">
+      <!-- 账号分组 -->
+      <div class="settings-group">
+        <div class="group-title">账号</div>
+        <div class="group-card">
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#E6F4FF;">
+              <svg viewBox="0 0 24 24" fill="#1677FF"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <span class="setting-label">账号信息</span>
+            <span class="setting-value">张小明</span>
+            <span class="setting-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+          </div>
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#FFF1F0;">
+              <svg viewBox="0 0 24 24" fill="#FF4D4F"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+            </div>
+            <span class="setting-label">安全中心</span>
+            <span class="setting-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 通用分组 -->
+      <div class="settings-group">
+        <div class="group-title">通用</div>
+        <div class="group-card">
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#FFF7E6;">
+              <svg viewBox="0 0 24 24" fill="#FAAD14"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
+            </div>
+            <span class="setting-label">深色模式</span>
+            <div class="switch off" onclick="toggleSwitch(this)" role="switch" aria-checked="false"></div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#E6F4FF;">
+              <svg viewBox="0 0 24 24" fill="#1677FF"><path d="M9 4v3h5v12h3V7h5V4H9zm-6 8h3v7H3v-7z"/></svg>
+            </div>
+            <span class="setting-label">字体大小</span>
+            <span class="setting-value">标准</span>
+            <span class="setting-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+          </div>
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#F6FFED;">
+              <svg viewBox="0 0 24 24" fill="#52C41A"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm-1.99 15l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+            </div>
+            <span class="setting-label">语言</span>
+            <span class="setting-value">简体中文</span>
+            <span class="setting-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+          </div>
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#FFF7E6;">
+              <svg viewBox="0 0 24 24" fill="#FAAD14"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+            </div>
+            <span class="setting-label">消息推送</span>
+            <div class="switch" onclick="toggleSwitch(this)" role="switch" aria-checked="true"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 隐私分组 -->
+      <div class="settings-group">
+        <div class="group-title">隐私</div>
+        <div class="group-card">
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#F9F0FF;">
+              <svg viewBox="0 0 24 24" fill="#722ED1"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+            </div>
+            <span class="setting-label">个性化推荐</span>
+            <div class="switch" onclick="toggleSwitch(this)" role="switch" aria-checked="true"></div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#E6F4FF;">
+              <svg viewBox="0 0 24 24" fill="#1677FF"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+            </div>
+            <span class="setting-label">浏览历史记录</span>
+            <div class="switch" onclick="toggleSwitch(this)" role="switch" aria-checked="true"></div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#FFF0F6;">
+              <svg viewBox="0 0 24 24" fill="#EB2F96"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1z"/></svg>
+            </div>
+            <span class="setting-label">广告个性化</span>
+            <div class="switch off" onclick="toggleSwitch(this)" role="switch" aria-checked="false"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 存储分组 -->
+      <div class="settings-group">
+        <div class="group-title">存储</div>
+        <div class="group-card">
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#FFF1F0;">
+              <svg viewBox="0 0 24 24" fill="#FF4D4F"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+            </div>
+            <span class="setting-label">清除缓存</span>
+            <span class="setting-value">23.5MB</span>
+            <span class="setting-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+          </div>
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#E6FFFB;">
+              <svg viewBox="0 0 24 24" fill="#13C2C2"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            </div>
+            <span class="setting-label">离线包管理</span>
+            <span class="setting-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 关于分组 -->
+      <div class="settings-group">
+        <div class="group-title">关于</div>
+        <div class="group-card">
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#E6F4FF;">
+              <svg viewBox="0 0 24 24" fill="#1677FF"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+            </div>
+            <span class="setting-label">关于 Leno</span>
+            <span class="setting-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+          </div>
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#FFF7E6;">
+              <svg viewBox="0 0 24 24" fill="#FAAD14"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+            </div>
+            <span class="setting-label">版本号</span>
+            <span class="setting-value">v1.2.0</span>
+          </div>
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#F6FFED;">
+              <svg viewBox="0 0 24 24" fill="#52C41A"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4a8 8 0 1 0 7.75 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            </div>
+            <span class="setting-label">检查更新</span>
+            <span class="setting-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+          </div>
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#E6F4FF;">
+              <svg viewBox="0 0 24 24" fill="#1677FF"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+            </div>
+            <span class="setting-label">用户协议</span>
+            <span class="setting-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+          </div>
+          <div class="setting-item">
+            <div class="setting-icon" style="background:#FFF1F0;">
+              <svg viewBox="0 0 24 24" fill="#FF4D4F"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h2c0-1.66 1.34-3 3-3s3 1.34 3 3v2H5c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+            </div>
+            <span class="setting-label">隐私政策</span>
+            <span class="setting-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 版本信息 -->
+      <div class="version-info">
+        <span>Leno 电商平台 v1.2.0</span>
+        <span>Copyright 2026 Leno Inc.</span>
+      </div>
+
+      <!-- 退出登录 -->
+      <div class="logout-section">
+        <button class="logout-btn">
+          <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+          退出登录
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 骨架屏状态 -->
+  <div id="page-skeleton" class="hidden">
+    <div class="settings-content">
+      <div class="settings-group">
+        <div class="group-title"><div class="skeleton-block" style="width:40px;height:12px;"></div></div>
+        <div class="group-card">
+          <div class="setting-item">
+            <div class="skeleton-block" style="width:28px;height:28px;border-radius:6px;"></div>
+            <div class="skeleton-block" style="width:80px;height:14px;"></div>
+            <div class="skeleton-block" style="width:40px;height:14px;margin-left:auto;"></div>
+          </div>
+          <div class="setting-item">
+            <div class="skeleton-block" style="width:28px;height:28px;border-radius:6px;"></div>
+            <div class="skeleton-block" style="width:80px;height:14px;"></div>
+            <div class="skeleton-block" style="width:40px;height:14px;margin-left:auto;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="group-title"><div class="skeleton-block" style="width:40px;height:12px;"></div></div>
+        <div class="group-card">
+          <div class="setting-item">
+            <div class="skeleton-block" style="width:28px;height:28px;border-radius:6px;"></div>
+            <div class="skeleton-block" style="width:80px;height:14px;"></div>
+            <div class="skeleton-block" style="width:44px;height:24px;border-radius:12px;margin-left:auto;"></div>
+          </div>
+          <div class="setting-item">
+            <div class="skeleton-block" style="width:28px;height:28px;border-radius:6px;"></div>
+            <div class="skeleton-block" style="width:80px;height:14px;"></div>
+            <div class="skeleton-block" style="width:50px;height:14px;margin-left:auto;"></div>
+          </div>
+          <div class="setting-item">
+            <div class="skeleton-block" style="width:28px;height:28px;border-radius:6px;"></div>
+            <div class="skeleton-block" style="width:80px;height:14px;"></div>
+            <div class="skeleton-block" style="width:60px;height:14px;margin-left:auto;"></div>
+          </div>
+          <div class="setting-item">
+            <div class="skeleton-block" style="width:28px;height:28px;border-radius:6px;"></div>
+            <div class="skeleton-block" style="width:80px;height:14px;"></div>
+            <div class="skeleton-block" style="width:44px;height:24px;border-radius:12px;margin-left:auto;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="group-title"><div class="skeleton-block" style="width:40px;height:12px;"></div></div>
+        <div class="group-card">
+          <div class="setting-item">
+            <div class="skeleton-block" style="width:28px;height:28px;border-radius:6px;"></div>
+            <div class="skeleton-block" style="width:80px;height:14px;"></div>
+            <div class="skeleton-block" style="width:60px;height:14px;margin-left:auto;"></div>
+          </div>
+          <div class="setting-item">
+            <div class="skeleton-block" style="width:28px;height:28px;border-radius:6px;"></div>
+            <div class="skeleton-block" style="width:80px;height:14px;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="settings-group">
+        <div class="group-title"><div class="skeleton-block" style="width:40px;height:12px;"></div></div>
+        <div class="group-card">
+          <div class="setting-item">
+            <div class="skeleton-block" style="width:28px;height:28px;border-radius:6px;"></div>
+            <div class="skeleton-block" style="width:80px;height:14px;"></div>
+            <div class="skeleton-block" style="width:50px;height:14px;margin-left:auto;"></div>
+          </div>
+          <div class="setting-item">
+            <div class="skeleton-block" style="width:28px;height:28px;border-radius:6px;"></div>
+            <div class="skeleton-block" style="width:80px;height:14px;"></div>
+            <div class="skeleton-block" style="width:60px;height:14px;margin-left:auto;"></div>
+          </div>
+          <div class="setting-item">
+            <div class="skeleton-block" style="width:28px;height:28px;border-radius:6px;"></div>
+            <div class="skeleton-block" style="width:80px;height:14px;"></div>
+          </div>
+          <div class="setting-item">
+            <div class="skeleton-block" style="width:28px;height:28px;border-radius:6px;"></div>
+            <div class="skeleton-block" style="width:80px;height:14px;"></div>
+          </div>
+          <div class="setting-item">
+            <div class="skeleton-block" style="width:28px;height:28px;border-radius:6px;"></div>
+            <div class="skeleton-block" style="width:80px;height:14px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 错误状态 -->
+  <div id="page-error" class="hidden">
+    <div class="error-state">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      <div class="error-text">加载设置失败</div>
+      <button class="retry-btn">重试</button>
+    </div>
+  </div>
+
+  <script>
+    function showState(state) {
+      var states = ['normal', 'skeleton', 'error'];
+      states.forEach(function(s) {
+        var el = document.getElementById('page-' + s);
+        if (el) { el.classList.add('hidden'); }
+      });
+      document.getElementById('page-' + state).classList.remove('hidden');
+      document.querySelectorAll('.state-toggle button').forEach(function(btn){ btn.classList.remove('active'); });
+      event.target.classList.add('active');
+    }
+
+    function toggleSwitch(el) {
+      if (el.classList.contains('off')) {
+        el.classList.remove('off');
+        el.setAttribute('aria-checked', 'true');
+      } else {
+        el.classList.add('off');
+        el.setAttribute('aria-checked', 'false');
+      }
+    }
+  </script>
+</body>
+</html>

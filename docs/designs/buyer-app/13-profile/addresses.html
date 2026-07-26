@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>收货地址 - Leno 电商平台</title>
+  <style>
+    :root {
+      --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+      --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+      --r-base:6px; --r-card:8px; --r-lg:12px;
+      --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+      --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+      --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+      --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+      --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+    body {
+      font-family: var(--ff-app);
+      background: var(--n3);
+      max-width: 375px;
+      margin: 0 auto;
+      min-height: 100vh;
+      box-shadow: 0 0 24px rgba(0,0,0,.08);
+      color: var(--n10);
+      font-size: var(--fs-base);
+      line-height: 1.5715;
+      padding-bottom: 72px;
+    }
+
+    /* ===== NavBar ===== */
+    .navbar {
+      height: 46px;
+      background: var(--n1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--s3);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--n3);
+    }
+    .navbar-left, .navbar-right {
+      width: 40px;
+      display: flex;
+      align-items: center;
+    }
+    .navbar-right { justify-content: flex-end; }
+    .navbar-left a, .navbar-right a {
+      display: flex;
+      align-items: center;
+      color: var(--n10);
+    }
+    .navbar-left svg, .navbar-right svg { width: 20px; height: 20px; fill: var(--n10); }
+    .navbar-title {
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-medium);
+      color: var(--n10);
+    }
+
+    /* ===== 内容区 ===== */
+    .content { padding: var(--s3); }
+
+    /* ===== 地址卡片 ===== */
+    .address-list { display: flex; flex-direction: column; gap: var(--s2); }
+    .address-card {
+      background: var(--n1);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-card);
+      padding: var(--s3);
+      border: 2px solid transparent;
+      position: relative;
+    }
+    .address-card.default { border-color: var(--c-primary); }
+    .address-card.default::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 0; height: 0;
+      border-style: solid;
+      border-width: 32px 32px 0 0;
+      border-color: var(--c-primary) transparent transparent transparent;
+      border-radius: var(--r-lg) 0 0 0;
+    }
+    .address-card.default::after {
+      content: '默认';
+      position: absolute;
+      top: 4px; left: 5px;
+      font-size: 10px;
+      color: #fff;
+      font-weight: var(--fw-medium);
+      z-index: 1;
+    }
+
+    .address-header {
+      display: flex;
+      align-items: center;
+      gap: var(--s2);
+      margin-bottom: var(--s2);
+    }
+    .address-name {
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-semibold);
+      color: var(--n10);
+    }
+    .address-phone {
+      font-size: var(--fs-base);
+      color: var(--n9);
+    }
+    .address-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px var(--s2);
+      border-radius: var(--r-base);
+      font-size: var(--fs-sm);
+      font-weight: var(--fw-medium);
+      margin-left: auto;
+    }
+    .tag-home { background: #E6F4FF; color: var(--c-primary); }
+    .tag-company { background: #F6FFED; color: var(--c-success); }
+    .tag-school { background: #FFF7E6; color: var(--c-warning); }
+
+    .address-detail {
+      font-size: var(--fs-base);
+      color: var(--n10);
+      line-height: 1.5;
+      margin-bottom: var(--s2);
+    }
+
+    .address-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--s3);
+      padding-top: var(--s2);
+      border-top: 1px solid var(--n3);
+    }
+    .address-action {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: var(--fs-sm);
+      color: var(--n9);
+      padding: var(--s1) var(--s2);
+    }
+    .address-action svg { width: 14px; height: 14px; fill: currentColor; }
+    .address-action.edit { color: var(--c-primary); }
+    .address-action.delete { color: var(--c-error); }
+    .address-action.default-btn { color: var(--c-primary); margin-right: auto; }
+
+    /* ===== 底部新增栏 ===== */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 375px;
+      max-width: 100%;
+      background: var(--n1);
+      padding: var(--s3);
+      border-top: 1px solid var(--n3);
+      z-index: 100;
+      padding-bottom: calc(var(--s3) + env(safe-area-inset-bottom));
+    }
+    .add-btn {
+      width: 100%;
+      height: 44px;
+      background: var(--c-primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--r-lg);
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-medium);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--s1);
+    }
+    .add-btn svg { width: 18px; height: 18px; fill: #fff; }
+
+    /* ===== 骨架屏 ===== */
+    .skeleton-block {
+      background: linear-gradient(90deg, var(--n3) 25%, var(--n2) 37%, var(--n3) 63%);
+      background-size: 400% 100%;
+      animation: skeleton-loading 1.4s ease infinite;
+      border-radius: var(--r-base);
+    }
+    @keyframes skeleton-loading {
+      0% { background-position: 100% 50%; }
+      100% { background-position: 0 50%; }
+    }
+    .sk-card {
+      background: var(--n1);
+      border-radius: var(--r-lg);
+      padding: var(--s3);
+      margin-bottom: var(--s2);
+    }
+
+    /* ===== 空状态 ===== */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--s12) var(--s4);
+      text-align: center;
+    }
+    .empty-state svg { width: 80px; height: 80px; fill: var(--n5); margin-bottom: var(--s3); }
+    .empty-text { font-size: var(--fs-base); color: var(--n7); margin-bottom: var(--s4); }
+    .empty-btn {
+      padding: var(--s2) var(--s6);
+      background: var(--c-primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--r-base);
+      font-size: var(--fs-base);
+      font-weight: var(--fw-medium);
+    }
+
+    /* ===== 错误状态 ===== */
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--s12) var(--s4);
+      text-align: center;
+    }
+    .error-state svg { width: 64px; height: 64px; fill: var(--n5); margin-bottom: var(--s3); }
+    .error-text { font-size: var(--fs-base); color: var(--n7); margin-bottom: var(--s4); }
+    .retry-btn {
+      padding: var(--s2) var(--s6);
+      background: var(--n1);
+      color: var(--c-primary);
+      border: 1px solid var(--c-primary);
+      border-radius: var(--r-base);
+      font-size: var(--fs-base);
+      font-weight: var(--fw-medium);
+    }
+
+    /* ===== 状态切换器 ===== */
+    .state-toggle {
+      position: fixed;
+      top: var(--s2);
+      right: var(--s2);
+      z-index: 200;
+      display: flex;
+      gap: var(--s1);
+    }
+    .state-toggle button {
+      padding: var(--s1) var(--s2);
+      border: 1px solid var(--n5);
+      border-radius: var(--r-base);
+      background: var(--n1);
+      font-size: var(--fs-sm);
+      color: var(--n9);
+      cursor: pointer;
+    }
+    .state-toggle button.active {
+      background: var(--c-primary);
+      color: #fff;
+      border-color: var(--c-primary);
+    }
+
+    .hidden { display: none !important; }
+
+    /* 地址数量提示 */
+    .address-count {
+      text-align: center;
+      padding: var(--s2);
+      font-size: var(--fs-sm);
+      color: var(--n7);
+    }
+  </style>
+</head>
+<body>
+  <div class="state-toggle">
+    <button class="active" onclick="showState('normal')">正常</button>
+    <button onclick="showState('skeleton')">骨架屏</button>
+    <button onclick="showState('empty')">空数据</button>
+    <button onclick="showState('error')">错误</button>
+  </div>
+
+  <!-- NavBar -->
+  <div class="navbar">
+    <div class="navbar-left">
+      <a href="profile.html" aria-label="返回">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </a>
+    </div>
+    <span class="navbar-title">收货地址</span>
+    <div class="navbar-right"></div>
+  </div>
+
+  <!-- 正常状态 -->
+  <div id="page-normal">
+    <div class="content">
+      <div class="address-list">
+        <!-- 默认地址 -->
+        <div class="address-card default">
+          <div class="address-header">
+            <span class="address-name">张小明</span>
+            <span class="address-phone">138****8888</span>
+            <span class="address-tag tag-home">家</span>
+          </div>
+          <div class="address-detail">福建省福州市鼓楼区软件大道89号 A 栋 12 层 1203 室</div>
+          <div class="address-actions">
+            <a href="#" class="address-action edit">
+              <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+              编辑
+            </a>
+            <a href="#" class="address-action delete">
+              <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+              删除
+            </a>
+          </div>
+        </div>
+
+        <!-- 普通地址 -->
+        <div class="address-card">
+          <div class="address-header">
+            <span class="address-name">张小明</span>
+            <span class="address-phone">139****6666</span>
+            <span class="address-tag tag-company">公司</span>
+          </div>
+          <div class="address-detail">上海市浦东新区张江高科技园区博云路2号 联想大厦 5 楼</div>
+          <div class="address-actions">
+            <a href="#" class="address-action default-btn">
+              <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              设为默认
+            </a>
+            <a href="#" class="address-action edit">
+              <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+              编辑
+            </a>
+            <a href="#" class="address-action delete">
+              <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+              删除
+            </a>
+          </div>
+        </div>
+
+        <!-- 普通地址 -->
+        <div class="address-card">
+          <div class="address-header">
+            <span class="address-name">李大华</span>
+            <span class="address-phone">137****2233</span>
+            <span class="address-tag tag-school">学校</span>
+          </div>
+          <div class="address-detail">北京市海淀区中关村南大街5号 北京理工大学 7 号宿舍楼 302 室</div>
+          <div class="address-actions">
+            <a href="#" class="address-action default-btn">
+              <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              设为默认
+            </a>
+            <a href="#" class="address-action edit">
+              <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+              编辑
+            </a>
+            <a href="#" class="address-action delete">
+              <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+              删除
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="address-count">共 3 个地址，最多可添加 20 个</div>
+    </div>
+  </div>
+
+  <!-- 骨架屏状态 -->
+  <div id="page-skeleton" class="hidden">
+    <div class="content">
+      <div class="sk-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <div class="skeleton-block" style="width:60px;height:16px;"></div>
+          <div class="skeleton-block" style="width:80px;height:14px;"></div>
+          <div class="skeleton-block" style="width:32px;height:18px;border-radius:4px;margin-left:auto;"></div>
+        </div>
+        <div class="skeleton-block" style="width:100%;height:14px;margin-bottom:4px;"></div>
+        <div class="skeleton-block" style="width:70%;height:14px;margin-bottom:8px;"></div>
+        <div style="border-top:1px solid #F5F5F5;padding-top:8px;display:flex;justify-content:flex-end;gap:12px;">
+          <div class="skeleton-block" style="width:40px;height:14px;"></div>
+          <div class="skeleton-block" style="width:40px;height:14px;"></div>
+        </div>
+      </div>
+      <div class="sk-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <div class="skeleton-block" style="width:60px;height:16px;"></div>
+          <div class="skeleton-block" style="width:80px;height:14px;"></div>
+          <div class="skeleton-block" style="width:32px;height:18px;border-radius:4px;margin-left:auto;"></div>
+        </div>
+        <div class="skeleton-block" style="width:100%;height:14px;margin-bottom:4px;"></div>
+        <div class="skeleton-block" style="width:70%;height:14px;margin-bottom:8px;"></div>
+        <div style="border-top:1px solid #F5F5F5;padding-top:8px;display:flex;justify-content:flex-end;gap:12px;">
+          <div class="skeleton-block" style="width:40px;height:14px;"></div>
+          <div class="skeleton-block" style="width:40px;height:14px;"></div>
+        </div>
+      </div>
+      <div class="sk-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <div class="skeleton-block" style="width:60px;height:16px;"></div>
+          <div class="skeleton-block" style="width:80px;height:14px;"></div>
+          <div class="skeleton-block" style="width:32px;height:18px;border-radius:4px;margin-left:auto;"></div>
+        </div>
+        <div class="skeleton-block" style="width:100%;height:14px;margin-bottom:4px;"></div>
+        <div class="skeleton-block" style="width:70%;height:14px;margin-bottom:8px;"></div>
+        <div style="border-top:1px solid #F5F5F5;padding-top:8px;display:flex;justify-content:flex-end;gap:12px;">
+          <div class="skeleton-block" style="width:40px;height:14px;"></div>
+          <div class="skeleton-block" style="width:40px;height:14px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 空数据状态 -->
+  <div id="page-empty" class="hidden">
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+      <div class="empty-text">暂无收货地址</div>
+      <button class="empty-btn">新增地址</button>
+    </div>
+  </div>
+
+  <!-- 错误状态 -->
+  <div id="page-error" class="hidden">
+    <div class="error-state">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      <div class="error-text">网络异常，加载失败</div>
+      <button class="retry-btn">重试</button>
+    </div>
+  </div>
+
+  <!-- 底部新增栏 -->
+  <div class="bottom-bar" id="bottom-bar">
+    <button class="add-btn">
+      <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      新增地址
+    </button>
+  </div>
+
+  <script>
+    function showState(state) {
+      var states = ['normal', 'skeleton', 'empty', 'error'];
+      states.forEach(function(s) {
+        var el = document.getElementById('page-' + s);
+        if (el) { el.classList.add('hidden'); }
+      });
+      document.getElementById('page-' + state).classList.remove('hidden');
+      document.querySelectorAll('.state-toggle button').forEach(function(btn){ btn.classList.remove('active'); });
+      event.target.classList.add('active');
+      var bottomBar = document.getElementById('bottom-bar');
+      if (state === 'empty') {
+        bottomBar.style.display = 'block';
+      } else if (state === 'error') {
+        bottomBar.style.display = 'none';
+      } else {
+        bottomBar.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

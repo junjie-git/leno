@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商品收藏 - Leno 电商平台</title>
+  <style>
+    :root {
+      --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+      --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+      --r-base:6px; --r-card:8px; --r-lg:12px;
+      --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+      --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+      --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+      --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+      --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+    body {
+      font-family: var(--ff-app);
+      background: var(--n3);
+      max-width: 375px;
+      margin: 0 auto;
+      min-height: 100vh;
+      box-shadow: 0 0 24px rgba(0,0,0,.08);
+      color: var(--n10);
+      font-size: var(--fs-base);
+      line-height: 1.5715;
+      padding-bottom: 56px;
+    }
+
+    /* ===== NavBar ===== */
+    .navbar {
+      height: 46px;
+      background: var(--n1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--s3);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--n3);
+    }
+    .navbar-left, .navbar-right {
+      width: 40px;
+      display: flex;
+      align-items: center;
+    }
+    .navbar-right { justify-content: flex-end; }
+    .navbar-left a, .navbar-right a {
+      display: flex;
+      align-items: center;
+      color: var(--n10);
+      font-size: var(--fs-sm);
+    }
+    .navbar-left svg, .navbar-right svg { width: 20px; height: 20px; fill: var(--n10); }
+    .navbar-title {
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-medium);
+      color: var(--n10);
+    }
+    .manage-btn { color: var(--n9); }
+
+    /* ===== Tabs ===== */
+    .tabs {
+      display: flex;
+      background: var(--n1);
+      border-bottom: 1px solid var(--n3);
+      position: sticky;
+      top: 46px;
+      z-index: 99;
+    }
+    .tab-item {
+      flex: 1;
+      text-align: center;
+      padding: var(--s3) 0;
+      font-size: var(--fs-base);
+      color: var(--n9);
+      position: relative;
+      transition: color 0.2s;
+    }
+    .tab-item.active {
+      color: var(--c-primary);
+      font-weight: var(--fw-medium);
+    }
+    .tab-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 3px;
+      background: var(--c-primary);
+      border-radius: 2px;
+    }
+
+    /* ===== 排序条 ===== */
+    .sort-bar {
+      display: flex;
+      background: var(--n1);
+      padding: var(--s2) var(--s3);
+      gap: var(--s4);
+      border-bottom: 1px solid var(--n3);
+    }
+    .sort-item {
+      font-size: var(--fs-sm);
+      color: var(--n9);
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .sort-item.active { color: var(--c-primary); font-weight: var(--fw-medium); }
+    .sort-item svg { width: 10px; height: 10px; fill: currentColor; }
+
+    /* ===== 商品网格 ===== */
+    .product-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--s2);
+      padding: var(--s3);
+    }
+    .product-card {
+      background: var(--n1);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      box-shadow: var(--sh-card);
+      position: relative;
+    }
+    .product-img {
+      width: 100%;
+      aspect-ratio: 1;
+      background: var(--n2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .product-img svg { width: 55%; height: 55%; }
+    .unfav-btn {
+      position: absolute;
+      top: var(--s1);
+      right: var(--s1);
+      width: 28px;
+      height: 28px;
+      background: rgba(255,255,255,.9);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,.1);
+    }
+    .unfav-btn svg { width: 16px; height: 16px; fill: var(--c-error); }
+    .product-info { padding: var(--s2); }
+    .product-name {
+      font-size: var(--fs-sm);
+      color: var(--n10);
+      line-height: 1.4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      margin-bottom: var(--s1);
+      min-height: 33px;
+    }
+    .product-price {
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-semibold);
+      color: var(--c-error);
+    }
+    .product-price small {
+      font-size: var(--fs-sm);
+      font-weight: var(--fw-normal);
+    }
+    .product-original-price {
+      font-size: var(--fs-sm);
+      color: var(--n7);
+      text-decoration: line-through;
+      margin-left: var(--s1);
+    }
+    .product-shop {
+      font-size: var(--fs-sm);
+      color: var(--n7);
+      margin-top: var(--s1);
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .product-shop svg { width: 10px; height: 10px; fill: var(--n7); }
+
+    /* ===== 店铺列表 ===== */
+    .shop-list {
+      padding: var(--s3);
+      display: flex;
+      flex-direction: column;
+      gap: var(--s2);
+    }
+    .shop-card {
+      background: var(--n1);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-card);
+      padding: var(--s3);
+      display: flex;
+      align-items: center;
+      gap: var(--s3);
+    }
+    .shop-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--r-card);
+      background: var(--n2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .shop-logo svg { width: 28px; height: 28px; fill: var(--c-primary); }
+    .shop-info { flex: 1; min-width: 0; }
+    .shop-name {
+      font-size: var(--fs-base);
+      font-weight: var(--fw-medium);
+      color: var(--n10);
+      margin-bottom: var(--s1);
+    }
+    .shop-desc {
+      font-size: var(--fs-sm);
+      color: var(--n7);
+      display: flex;
+      align-items: center;
+      gap: var(--s2);
+    }
+    .shop-stats {
+      font-size: var(--fs-sm);
+      color: var(--n7);
+    }
+    .shop-unfav {
+      padding: var(--s1) var(--s3);
+      border: 1px solid var(--n5);
+      border-radius: var(--r-base);
+      font-size: var(--fs-sm);
+      color: var(--n9);
+    }
+
+    /* ===== 骨架屏 ===== */
+    .skeleton-block {
+      background: linear-gradient(90deg, var(--n3) 25%, var(--n2) 37%, var(--n3) 63%);
+      background-size: 400% 100%;
+      animation: skeleton-loading 1.4s ease infinite;
+      border-radius: var(--r-base);
+    }
+    @keyframes skeleton-loading {
+      0% { background-position: 100% 50%; }
+      100% { background-position: 0 50%; }
+    }
+
+    /* ===== 空状态 ===== */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--s12) var(--s4);
+      text-align: center;
+    }
+    .empty-state svg { width: 80px; height: 80px; fill: var(--n5); margin-bottom: var(--s3); }
+    .empty-text { font-size: var(--fs-base); color: var(--n7); margin-bottom: var(--s4); }
+    .empty-btn {
+      padding: var(--s2) var(--s6);
+      background: var(--c-primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--r-base);
+      font-size: var(--fs-base);
+      font-weight: var(--fw-medium);
+    }
+
+    /* ===== 错误状态 ===== */
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--s12) var(--s4);
+      text-align: center;
+    }
+    .error-state svg { width: 64px; height: 64px; fill: var(--n5); margin-bottom: var(--s3); }
+    .error-text { font-size: var(--fs-base); color: var(--n7); margin-bottom: var(--s4); }
+    .retry-btn {
+      padding: var(--s2) var(--s6);
+      background: var(--n1);
+      color: var(--c-primary);
+      border: 1px solid var(--c-primary);
+      border-radius: var(--r-base);
+      font-size: var(--fs-base);
+      font-weight: var(--fw-medium);
+    }
+
+    /* ===== 状态切换器 ===== */
+    .state-toggle {
+      position: fixed;
+      top: var(--s2);
+      right: var(--s2);
+      z-index: 200;
+      display: flex;
+      gap: var(--s1);
+    }
+    .state-toggle button {
+      padding: var(--s1) var(--s2);
+      border: 1px solid var(--n5);
+      border-radius: var(--r-base);
+      background: var(--n1);
+      font-size: var(--fs-sm);
+      color: var(--n9);
+      cursor: pointer;
+    }
+    .state-toggle button.active {
+      background: var(--c-primary);
+      color: #fff;
+      border-color: var(--c-primary);
+    }
+
+    .hidden { display: none !important; }
+
+    /* 批量操作栏 */
+    .batch-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 375px;
+      max-width: 100%;
+      background: var(--n1);
+      display: flex;
+      align-items: center;
+      padding: var(--s2) var(--s3);
+      border-top: 1px solid var(--n3);
+      z-index: 100;
+      padding-bottom: calc(var(--s2) + env(safe-area-inset-bottom));
+    }
+    .batch-select-all {
+      display: flex;
+      align-items: center;
+      gap: var(--s1);
+      font-size: var(--fs-base);
+      color: var(--n10);
+      padding: var(--s2);
+    }
+    .batch-checkbox {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--n5);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .batch-checkbox.checked {
+      background: var(--c-primary);
+      border-color: var(--c-primary);
+    }
+    .batch-checkbox.checked svg { width: 12px; height: 12px; fill: #fff; }
+    .batch-actions {
+      margin-left: auto;
+      display: flex;
+      gap: var(--s2);
+    }
+    .batch-btn {
+      padding: var(--s2) var(--s4);
+      border: none;
+      border-radius: var(--r-lg);
+      font-size: var(--fs-base);
+      font-weight: var(--fw-medium);
+    }
+    .batch-btn.cart { background: var(--c-primary); color: #fff; }
+    .batch-btn.delete { background: var(--n3); color: var(--c-error); }
+  </style>
+</head>
+<body>
+  <div class="state-toggle">
+    <button class="active" onclick="showState('normal')">正常</button>
+    <button onclick="showState('skeleton')">骨架屏</button>
+    <button onclick="showState('empty')">空数据</button>
+    <button onclick="showState('error')">错误</button>
+  </div>
+
+  <!-- NavBar -->
+  <div class="navbar">
+    <div class="navbar-left">
+      <a href="profile.html" aria-label="返回">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </a>
+    </div>
+    <span class="navbar-title">收藏</span>
+    <div class="navbar-right">
+      <a href="#" class="manage-btn">管理</a>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab-item active" onclick="switchTab('products')">商品</div>
+    <div class="tab-item" onclick="switchTab('shops')">店铺</div>
+  </div>
+
+  <!-- 正常状态 - 商品收藏 -->
+  <div id="page-normal">
+    <!-- 排序条 -->
+    <div class="sort-bar" id="sort-bar">
+      <div class="sort-item active">综合</div>
+      <div class="sort-item">
+        价格
+        <svg viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z"/></svg>
+      </div>
+      <div class="sort-item">销量</div>
+      <div class="sort-item">最新</div>
+    </div>
+
+    <!-- 商品列表 -->
+    <div class="product-grid" id="product-grid">
+      <div class="product-card">
+        <div class="product-img">
+          <svg viewBox="0 0 24 24" fill="#D9D9D9"><path d="M18 2h-3V0h-2v2h-2V0H9v2H6c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 20H6V4h12v18z"/></svg>
+          <div class="unfav-btn" aria-label="取消收藏">
+            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </div>
+        </div>
+        <div class="product-info">
+          <div class="product-name">无线蓝牙耳机 主动降噪 入耳式 长续航</div>
+          <div>
+            <span class="product-price"><small>¥</small>199</span>
+            <span class="product-original-price">¥299</span>
+          </div>
+          <div class="product-shop">
+            <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0 0 20 4H5.21l-.94-2H1z"/></svg>
+            数码旗舰店
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="product-img">
+          <svg viewBox="0 0 24 24" fill="#D9D9D9"><rect x="5" y="2" width="14" height="20" rx="2"/></svg>
+          <div class="unfav-btn" aria-label="取消收藏">
+            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </div>
+        </div>
+        <div class="product-info">
+          <div class="product-name">智能手机 8+256G 全面屏拍照游戏手机</div>
+          <div>
+            <span class="product-price"><small>¥</small>2,999</span>
+          </div>
+          <div class="product-shop">
+            <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0 0 20 4H5.21l-.94-2H1z"/></svg>
+            官方旗舰店
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="product-img">
+          <svg viewBox="0 0 24 24" fill="#D9D9D9"><path d="M3 5h18v14H3z"/><circle cx="12" cy="12" r="4" fill="#FAFAFA"/></svg>
+          <div class="unfav-btn" aria-label="取消收藏">
+            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </div>
+        </div>
+        <div class="product-info">
+          <div class="product-name">智能手表 运动健康监测 心率血氧 GPS</div>
+          <div>
+            <span class="product-price"><small>¥</small>459</span>
+            <span class="product-original-price">¥599</span>
+          </div>
+          <div class="product-shop">
+            <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0 0 20 4H5.21l-.94-2H1z"/></svg>
+            智能穿戴专营店
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="product-img">
+          <svg viewBox="0 0 24 24" fill="#D9D9D9"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z"/></svg>
+          <div class="unfav-btn" aria-label="取消收藏">
+            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </div>
+        </div>
+        <div class="product-info">
+          <div class="product-name">家用多功能电饭煲 5L大容量智能预约</div>
+          <div>
+            <span class="product-price"><small>¥</small>329</span>
+          </div>
+          <div class="product-shop">
+            <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0 0 20 4H5.21l-.94-2H1z"/></svg>
+            厨房电器旗舰店
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="product-img">
+          <svg viewBox="0 0 24 24" fill="#D9D9D9"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+          <div class="unfav-btn" aria-label="取消收藏">
+            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </div>
+        </div>
+        <div class="product-info">
+          <div class="product-name">运动跑步鞋 男士透气网面休闲鞋 轻便减震</div>
+          <div>
+            <span class="product-price"><small>¥</small>259</span>
+            <span class="product-original-price">¥399</span>
+          </div>
+          <div class="product-shop">
+            <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0 0 20 4H5.21l-.94-2H1z"/></svg>
+            运动品牌专营店
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="product-img">
+          <svg viewBox="0 0 24 24" fill="#D9D9D9"><path d="M12 2L1 12h3v8h6v-6h2v6h6v-8h3L12 2z"/></svg>
+          <div class="unfav-btn" aria-label="取消收藏">
+            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </div>
+        </div>
+        <div class="product-info">
+          <div class="product-name">保温杯 不锈钢真空车载水杯 大容量便携</div>
+          <div>
+            <span class="product-price"><small>¥</small>89</span>
+          </div>
+          <div class="product-shop">
+            <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0 0 20 4H5.21l-.94-2H1z"/></svg>
+            生活家居馆
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 店铺收藏列表 (默认隐藏) -->
+    <div class="shop-list hidden" id="shop-list">
+      <div class="shop-card">
+        <div class="shop-logo">
+          <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0 0 20 4H5.21l-.94-2H1z"/></svg>
+        </div>
+        <div class="shop-info">
+          <div class="shop-name">数码旗舰店</div>
+          <div class="shop-desc">
+            <span class="shop-stats">商品 1,286</span>
+            <span class="shop-stats">关注 5.2万</span>
+          </div>
+        </div>
+        <a href="#" class="shop-unfav">取消关注</a>
+      </div>
+
+      <div class="shop-card">
+        <div class="shop-logo">
+          <svg viewBox="0 0 24 24"><path d="M12 2l-1 3.07L8 4l1.5 2.5L7 8l2 2-2.5 1.5L8 14l-1 1 3 1-1 3 3-1.93L15 19l-1-3 3-1-1-1 1.5-2.5L15 10l2-2-2.5-1.5L16 4l-3 1.07L12 2z"/></svg>
+        </div>
+        <div class="shop-info">
+          <div class="shop-name">官方旗舰店</div>
+          <div class="shop-desc">
+            <span class="shop-stats">商品 856</span>
+            <span class="shop-stats">关注 12.8万</span>
+          </div>
+        </div>
+        <a href="#" class="shop-unfav">取消关注</a>
+      </div>
+
+      <div class="shop-card">
+        <div class="shop-logo">
+          <svg viewBox="0 0 24 24"><path d="M3 5h18v14H3z"/><circle cx="12" cy="12" r="4" fill="#FAFAFA"/></svg>
+        </div>
+        <div class="shop-info">
+          <div class="shop-name">智能穿戴专营店</div>
+          <div class="shop-desc">
+            <span class="shop-stats">商品 432</span>
+            <span class="shop-stats">关注 3.1万</span>
+          </div>
+        </div>
+        <a href="#" class="shop-unfav">取消关注</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 骨架屏状态 -->
+  <div id="page-skeleton" class="hidden">
+    <div class="product-grid">
+      <div class="product-card" style="box-shadow:none;">
+        <div class="skeleton-block" style="width:100%;aspect-ratio:1;border-radius:0 0 0 0;"></div>
+        <div style="padding:8px;">
+          <div class="skeleton-block" style="width:100%;height:28px;margin-bottom:6px;"></div>
+          <div class="skeleton-block" style="width:60%;height:16px;"></div>
+        </div>
+      </div>
+      <div class="product-card" style="box-shadow:none;">
+        <div class="skeleton-block" style="width:100%;aspect-ratio:1;border-radius:0 0 0 0;"></div>
+        <div style="padding:8px;">
+          <div class="skeleton-block" style="width:100%;height:28px;margin-bottom:6px;"></div>
+          <div class="skeleton-block" style="width:60%;height:16px;"></div>
+        </div>
+      </div>
+      <div class="product-card" style="box-shadow:none;">
+        <div class="skeleton-block" style="width:100%;aspect-ratio:1;border-radius:0 0 0 0;"></div>
+        <div style="padding:8px;">
+          <div class="skeleton-block" style="width:100%;height:28px;margin-bottom:6px;"></div>
+          <div class="skeleton-block" style="width:60%;height:16px;"></div>
+        </div>
+      </div>
+      <div class="product-card" style="box-shadow:none;">
+        <div class="skeleton-block" style="width:100%;aspect-ratio:1;border-radius:0 0 0 0;"></div>
+        <div style="padding:8px;">
+          <div class="skeleton-block" style="width:100%;height:28px;margin-bottom:6px;"></div>
+          <div class="skeleton-block" style="width:60%;height:16px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 空数据状态 -->
+  <div id="page-empty" class="hidden">
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" opacity=".3"/><path d="M12 1.35l-1.45 1.32C5.4 7.36 2 10.44 2 14.22c0 3.08 2.42 5.5 5.5 5.5 1.74 0 3.41-.81 4.5-2.09 1.09 1.28 2.76 2.09 4.5 2.09 3.08 0 5.5-2.42 5.5-5.5 0-3.78-3.4-6.86-8.55-11.55L12 1.35z" fill="none" stroke="#D9D9D9" stroke-width="1"/></svg>
+      <div class="empty-text">暂无收藏</div>
+      <button class="empty-btn">去逛逛</button>
+    </div>
+  </div>
+
+  <!-- 错误状态 -->
+  <div id="page-error" class="hidden">
+    <div class="error-state">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      <div class="error-text">网络异常，加载失败</div>
+      <button class="retry-btn">重试</button>
+    </div>
+  </div>
+
+  <script>
+    function showState(state) {
+      var states = ['normal', 'skeleton', 'empty', 'error'];
+      states.forEach(function(s) {
+        var el = document.getElementById('page-' + s);
+        if (el) { el.classList.add('hidden'); }
+      });
+      document.getElementById('page-' + state).classList.remove('hidden');
+      document.querySelectorAll('.state-toggle button').forEach(function(btn){ btn.classList.remove('active'); });
+      event.target.classList.add('active');
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-item').forEach(function(t){ t.classList.remove('active'); });
+      event.target.classList.add('active');
+      var sortBar = document.getElementById('sort-bar');
+      var productGrid = document.getElementById('product-grid');
+      var shopList = document.getElementById('shop-list');
+      if (tab === 'products') {
+        sortBar.classList.remove('hidden');
+        productGrid.classList.remove('hidden');
+        shopList.classList.add('hidden');
+      } else {
+        sortBar.classList.add('hidden');
+        productGrid.classList.add('hidden');
+        shopList.classList.remove('hidden');
+      }
+    }
+  </script>
+</body>
+</html>

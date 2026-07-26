@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>账号安全 - Leno 电商平台</title>
+  <style>
+    :root {
+      --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+      --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+      --r-base:6px; --r-card:8px; --r-lg:12px;
+      --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+      --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+      --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+      --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+      --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+    body {
+      font-family: var(--ff-app);
+      background: var(--n3);
+      max-width: 375px;
+      margin: 0 auto;
+      min-height: 100vh;
+      box-shadow: 0 0 24px rgba(0,0,0,.08);
+      color: var(--n10);
+      font-size: var(--fs-base);
+      line-height: 1.5715;
+    }
+
+    /* ===== NavBar ===== */
+    .navbar {
+      height: 46px;
+      background: var(--n1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--s3);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--n3);
+    }
+    .navbar-left, .navbar-right {
+      width: 40px;
+      display: flex;
+      align-items: center;
+    }
+    .navbar-right { justify-content: flex-end; }
+    .navbar-left a {
+      display: flex;
+      align-items: center;
+      color: var(--n10);
+    }
+    .navbar-left svg { width: 20px; height: 20px; fill: var(--n10); }
+    .navbar-title {
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-medium);
+      color: var(--n10);
+    }
+
+    /* ===== 保护级别卡 ===== */
+    .security-level-card {
+      background: linear-gradient(135deg, #1677FF 0%, #0958D9 100%);
+      margin: var(--s3);
+      border-radius: var(--r-lg);
+      padding: var(--s4);
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .security-level-card::before {
+      content: '';
+      position: absolute;
+      top: -20px; right: -20px;
+      width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(255,255,255,.1) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .level-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--s3);
+      position: relative;
+    }
+    .level-title {
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-medium);
+    }
+    .level-value {
+      font-size: var(--fs-2xl);
+      font-weight: var(--fw-semibold);
+    }
+    .level-progress-wrap {
+      position: relative;
+    }
+    .level-progress-bar {
+      height: 6px;
+      background: rgba(255,255,255,.2);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: var(--s2);
+    }
+    .level-progress-fill {
+      height: 100%;
+      width: 60%;
+      background: #fff;
+      border-radius: 3px;
+    }
+    .level-progress-label {
+      font-size: var(--fs-sm);
+      color: rgba(255,255,255,.8);
+      display: flex;
+      justify-content: space-between;
+    }
+    .level-suggestion {
+      margin-top: var(--s3);
+      padding: var(--s2) var(--s3);
+      background: rgba(255,255,255,.15);
+      border-radius: var(--r-base);
+      font-size: var(--fs-sm);
+      color: rgba(255,255,255,.9);
+      display: flex;
+      align-items: center;
+      gap: var(--s1);
+    }
+    .level-suggestion svg { width: 14px; height: 14px; fill: rgba(255,255,255,.9); }
+
+    /* ===== 风险提示 ===== */
+    .risk-alert {
+      background: #FFF7E6;
+      margin: 0 var(--s3) var(--s3);
+      border-radius: var(--r-lg);
+      padding: var(--s3);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--s2);
+      border: 1px solid #FFE58F;
+    }
+    .risk-alert svg { width: 20px; height: 20px; fill: var(--c-warning); flex-shrink: 0; }
+    .risk-content { flex: 1; }
+    .risk-title {
+      font-size: var(--fs-base);
+      font-weight: var(--fw-medium);
+      color: var(--n10);
+      margin-bottom: 2px;
+    }
+    .risk-desc {
+      font-size: var(--fs-sm);
+      color: var(--n9);
+      line-height: 1.5;
+    }
+
+    /* ===== 安全项分组 ===== */
+    .section {
+      background: var(--n1);
+      margin: 0 var(--s3) var(--s3);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-card);
+      overflow: hidden;
+    }
+    .section-title-bar {
+      padding: var(--s3) var(--s4) var(--s1);
+      font-size: var(--fs-sm);
+      color: var(--n7);
+      font-weight: var(--fw-medium);
+    }
+
+    /* ===== 安全项列表 ===== */
+    .security-item {
+      display: flex;
+      align-items: center;
+      padding: var(--s3) var(--s4);
+      gap: var(--s3);
+      border-bottom: 1px solid var(--n3);
+      min-height: 56px;
+    }
+    .security-item:last-child { border-bottom: none; }
+    .item-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--r-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .item-icon svg { width: 18px; height: 18px; }
+    .item-content { flex: 1; min-width: 0; }
+    .item-title {
+      font-size: var(--fs-base);
+      color: var(--n10);
+      font-weight: var(--fw-medium);
+    }
+    .item-desc {
+      font-size: var(--fs-sm);
+      color: var(--n7);
+      margin-top: 2px;
+    }
+    .item-status {
+      display: flex;
+      align-items: center;
+      gap: var(--s1);
+      flex-shrink: 0;
+    }
+    .status-tag {
+      font-size: var(--fs-sm);
+      padding: 2px var(--s2);
+      border-radius: var(--r-base);
+    }
+    .status-tag.set { color: var(--c-success); background: #F6FFED; }
+    .status-tag.unset { color: var(--n7); background: var(--n3); }
+    .status-tag.bound { color: var(--c-success); background: #F6FFED; }
+    .status-tag.unbound { color: var(--c-error); background: #FFF1F0; }
+    .status-tag.verified { color: var(--c-success); background: #F6FFED; }
+    .item-arrow svg { width: 16px; height: 16px; fill: var(--n7); }
+
+    /* 第三方登录项 */
+    .external-item {
+      display: flex;
+      align-items: center;
+      padding: var(--s3) var(--s4);
+      gap: var(--s3);
+      border-bottom: 1px solid var(--n3);
+      min-height: 56px;
+    }
+    .external-item:last-child { border-bottom: none; }
+    .external-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--r-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .external-icon svg { width: 18px; height: 18px; }
+    .external-name {
+      flex: 1;
+      font-size: var(--fs-base);
+      color: var(--n10);
+      font-weight: var(--fw-medium);
+    }
+    .bind-btn {
+      padding: var(--s1) var(--s4);
+      border: 1px solid var(--c-primary);
+      border-radius: var(--r-base);
+      font-size: var(--fs-sm);
+      color: var(--c-primary);
+      background: transparent;
+    }
+    .unbind-btn {
+      padding: var(--s1) var(--s4);
+      border: 1px solid var(--n5);
+      border-radius: var(--r-base);
+      font-size: var(--fs-sm);
+      color: var(--c-error);
+      background: transparent;
+    }
+
+    /* ===== 骨架屏 ===== */
+    .skeleton-block {
+      background: linear-gradient(90deg, var(--n3) 25%, var(--n2) 37%, var(--n3) 63%);
+      background-size: 400% 100%;
+      animation: skeleton-loading 1.4s ease infinite;
+      border-radius: var(--r-base);
+    }
+    @keyframes skeleton-loading {
+      0% { background-position: 100% 50%; }
+      100% { background-position: 0 50%; }
+    }
+
+    /* ===== 空状态 ===== */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--s12) var(--s4);
+      text-align: center;
+    }
+    .empty-state svg { width: 80px; height: 80px; fill: var(--n5); margin-bottom: var(--s3); }
+    .empty-text { font-size: var(--fs-base); color: var(--n7); margin-bottom: var(--s4); }
+
+    /* ===== 错误状态 ===== */
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--s12) var(--s4);
+      text-align: center;
+    }
+    .error-state svg { width: 64px; height: 64px; fill: var(--n5); margin-bottom: var(--s3); }
+    .error-text { font-size: var(--fs-base); color: var(--n7); margin-bottom: var(--s4); }
+    .retry-btn {
+      padding: var(--s2) var(--s6);
+      background: var(--n1);
+      color: var(--c-primary);
+      border: 1px solid var(--c-primary);
+      border-radius: var(--r-base);
+      font-size: var(--fs-base);
+      font-weight: var(--fw-medium);
+    }
+
+    /* ===== 状态切换器 ===== */
+    .state-toggle {
+      position: fixed;
+      top: var(--s2);
+      right: var(--s2);
+      z-index: 200;
+      display: flex;
+      gap: var(--s1);
+    }
+    .state-toggle button {
+      padding: var(--s1) var(--s2);
+      border: 1px solid var(--n5);
+      border-radius: var(--r-base);
+      background: var(--n1);
+      font-size: var(--fs-sm);
+      color: var(--n9);
+      cursor: pointer;
+    }
+    .state-toggle button.active {
+      background: var(--c-primary);
+      color: #fff;
+      border-color: var(--c-primary);
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="state-toggle">
+    <button class="active" onclick="showState('normal')">正常</button>
+    <button onclick="showState('skeleton')">骨架屏</button>
+    <button onclick="showState('error')">错误</button>
+  </div>
+
+  <!-- NavBar -->
+  <div class="navbar">
+    <div class="navbar-left">
+      <a href="profile.html" aria-label="返回">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </a>
+    </div>
+    <span class="navbar-title">账号安全</span>
+    <div class="navbar-right"></div>
+  </div>
+
+  <!-- 正常状态 -->
+  <div id="page-normal">
+    <!-- 保护级别卡 -->
+    <div class="security-level-card">
+      <div class="level-header">
+        <span class="level-title">账号保护级别</span>
+        <span class="level-value">中</span>
+      </div>
+      <div class="level-progress-wrap">
+        <div class="level-progress-bar">
+          <div class="level-progress-fill"></div>
+        </div>
+        <div class="level-progress-label">
+          <span>已完成 3/5 项安全设置</span>
+          <span>60%</span>
+        </div>
+      </div>
+      <div class="level-suggestion">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        建议启用双因子认证并绑定邮箱，提升账号安全性
+      </div>
+    </div>
+
+    <!-- 风险提示 -->
+    <div class="risk-alert">
+      <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+      <div class="risk-content">
+        <div class="risk-title">检测到账号存在安全风险</div>
+        <div class="risk-desc">您的账号尚未启用双因子认证，建议尽快开启以防止账号被盗。</div>
+      </div>
+    </div>
+
+    <!-- 安全项列表 -->
+    <div class="section">
+      <div class="section-title-bar">安全设置</div>
+      <div class="security-item">
+        <div class="item-icon" style="background:#E6F4FF;">
+          <svg viewBox="0 0 24 24" fill="#1677FF"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h2c0-1.66 1.34-3 3-3s3 1.34 3 3v2H5c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+        </div>
+        <div class="item-content">
+          <div class="item-title">登录密码</div>
+          <div class="item-desc">建议定期更换密码以保障安全</div>
+        </div>
+        <div class="item-status">
+          <span class="status-tag set">已设置</span>
+          <span class="item-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+        </div>
+      </div>
+
+      <div class="security-item">
+        <div class="item-icon" style="background:#FFF7E6;">
+          <svg viewBox="0 0 24 24" fill="#FAAD14"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+        </div>
+        <div class="item-content">
+          <div class="item-title">双因子认证</div>
+          <div class="item-desc">登录时需输入验证码，更安全</div>
+        </div>
+        <div class="item-status">
+          <span class="status-tag unset">未启用</span>
+          <span class="item-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+        </div>
+      </div>
+
+      <div class="security-item">
+        <div class="item-icon" style="background:#F6FFED;">
+          <svg viewBox="0 0 24 24" fill="#52C41A"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+        </div>
+        <div class="item-content">
+          <div class="item-title">手机绑定</div>
+          <div class="item-desc">已绑定 138****8888</div>
+        </div>
+        <div class="item-status">
+          <span class="status-tag bound">已绑定</span>
+          <span class="item-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+        </div>
+      </div>
+
+      <div class="security-item">
+        <div class="item-icon" style="background:#FFF1F0;">
+          <svg viewBox="0 0 24 24" fill="#FF4D4F"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        </div>
+        <div class="item-content">
+          <div class="item-title">绑定邮箱</div>
+          <div class="item-desc">用于找回密码与接收通知</div>
+        </div>
+        <div class="item-status">
+          <span class="status-tag unbound">未绑定</span>
+          <span class="item-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+        </div>
+      </div>
+
+      <div class="security-item">
+        <div class="item-icon" style="background:#F6FFED;">
+          <svg viewBox="0 0 24 24" fill="#52C41A"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+        </div>
+        <div class="item-content">
+          <div class="item-title">实名认证</div>
+          <div class="item-desc">已认证 张*明</div>
+        </div>
+        <div class="item-status">
+          <span class="status-tag verified">已认证</span>
+          <span class="item-arrow"><svg viewBox="0 0 24 24"><path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/></svg></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 第三方账号 -->
+    <div class="section">
+      <div class="section-title-bar">第三方账号</div>
+      <div class="external-item">
+        <div class="external-icon" style="background:#F6FFED;">
+          <svg viewBox="0 0 24 24" fill="#52C41A"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        </div>
+        <div class="external-name">微信</div>
+        <span class="status-tag bound">已绑定</span>
+        <button class="unbind-btn">解绑</button>
+      </div>
+
+      <div class="external-item">
+        <div class="external-icon" style="background:#FFF7E6;">
+          <svg viewBox="0 0 24 24" fill="#FAAD14"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93C7.05 19.44 4 16.08 4 12c0-.61.08-1.21.21-1.78L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41C17.93 5.78 20 8.65 20 12c0 2.08-.8 3.97-2.1 5.39z"/></svg>
+        </div>
+        <div class="external-name">支付宝</div>
+        <span class="status-tag unbound">未绑定</span>
+        <button class="bind-btn">绑定</button>
+      </div>
+
+      <div class="external-item">
+        <div class="external-icon" style="background:#FFF1F0;">
+          <svg viewBox="0 0 24 24" fill="#FF4D4F"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93C7.05 19.44 4 16.08 4 12c0-.61.08-1.21.21-1.78L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41C17.93 5.78 20 8.65 20 12c0 2.08-.8 3.97-2.1 5.39z"/></svg>
+        </div>
+        <div class="external-name">Google</div>
+        <span class="status-tag unbound">未绑定</span>
+        <button class="bind-btn">绑定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 骨架屏状态 -->
+  <div id="page-skeleton" class="hidden">
+    <div class="security-level-card" style="min-height:130px;">
+      <div class="level-header">
+        <div class="skeleton-block" style="width:100px;height:16px;background:rgba(255,255,255,.2);"></div>
+        <div class="skeleton-block" style="width:30px;height:24px;background:rgba(255,255,255,.2);"></div>
+      </div>
+      <div class="skeleton-block" style="width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.2);margin-bottom:8px;"></div>
+      <div class="skeleton-block" style="width:60%;height:12px;background:rgba(255,255,255,.2);"></div>
+    </div>
+    <div class="section">
+      <div class="section-title-bar">
+        <div class="skeleton-block" style="width:60px;height:12px;"></div>
+      </div>
+      <div class="security-item">
+        <div class="skeleton-block" style="width:32px;height:32px;border-radius:8px;"></div>
+        <div class="item-content">
+          <div class="skeleton-block" style="width:80px;height:14px;margin-bottom:4px;"></div>
+          <div class="skeleton-block" style="width:120px;height:12px;"></div>
+        </div>
+        <div class="skeleton-block" style="width:40px;height:18px;border-radius:4px;"></div>
+      </div>
+      <div class="security-item">
+        <div class="skeleton-block" style="width:32px;height:32px;border-radius:8px;"></div>
+        <div class="item-content">
+          <div class="skeleton-block" style="width:80px;height:14px;margin-bottom:4px;"></div>
+          <div class="skeleton-block" style="width:120px;height:12px;"></div>
+        </div>
+        <div class="skeleton-block" style="width:40px;height:18px;border-radius:4px;"></div>
+      </div>
+      <div class="security-item">
+        <div class="skeleton-block" style="width:32px;height:32px;border-radius:8px;"></div>
+        <div class="item-content">
+          <div class="skeleton-block" style="width:80px;height:14px;margin-bottom:4px;"></div>
+          <div class="skeleton-block" style="width:120px;height:12px;"></div>
+        </div>
+        <div class="skeleton-block" style="width:40px;height:18px;border-radius:4px;"></div>
+      </div>
+      <div class="security-item">
+        <div class="skeleton-block" style="width:32px;height:32px;border-radius:8px;"></div>
+        <div class="item-content">
+          <div class="skeleton-block" style="width:80px;height:14px;margin-bottom:4px;"></div>
+          <div class="skeleton-block" style="width:120px;height:12px;"></div>
+        </div>
+        <div class="skeleton-block" style="width:40px;height:18px;border-radius:4px;"></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title-bar">
+        <div class="skeleton-block" style="width:60px;height:12px;"></div>
+      </div>
+      <div class="security-item">
+        <div class="skeleton-block" style="width:32px;height:32px;border-radius:8px;"></div>
+        <div class="item-content">
+          <div class="skeleton-block" style="width:60px;height:14px;"></div>
+        </div>
+        <div class="skeleton-block" style="width:50px;height:24px;border-radius:6px;"></div>
+      </div>
+      <div class="security-item">
+        <div class="skeleton-block" style="width:32px;height:32px;border-radius:8px;"></div>
+        <div class="item-content">
+          <div class="skeleton-block" style="width:60px;height:14px;"></div>
+        </div>
+        <div class="skeleton-block" style="width:50px;height:24px;border-radius:6px;"></div>
+      </div>
+      <div class="security-item">
+        <div class="skeleton-block" style="width:32px;height:32px;border-radius:8px;"></div>
+        <div class="item-content">
+          <div class="skeleton-block" style="width:60px;height:14px;"></div>
+        </div>
+        <div class="skeleton-block" style="width:50px;height:24px;border-radius:6px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 错误状态 -->
+  <div id="page-error" class="hidden">
+    <div class="error-state">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      <div class="error-text">网络异常，加载失败</div>
+      <button class="retry-btn">重试</button>
+    </div>
+  </div>
+
+  <script>
+    function showState(state) {
+      var states = ['normal', 'skeleton', 'error'];
+      states.forEach(function(s) {
+        var el = document.getElementById('page-' + s);
+        if (el) { el.classList.add('hidden'); }
+      });
+      document.getElementById('page-' + state).classList.remove('hidden');
+      document.querySelectorAll('.state-toggle button').forEach(function(btn){ btn.classList.remove('active'); });
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>
