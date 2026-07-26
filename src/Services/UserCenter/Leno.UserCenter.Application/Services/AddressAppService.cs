@@ -1,0 +1,221 @@
+using FluentValidation;
+using Leno.UserCenter.Application.DTOs;
+using Leno.UserCenter.Application.Exceptions;
+using Leno.UserCenter.Domain.Aggregates;
+using Leno.UserCenter.Domain.Exceptions;
+using Leno.UserCenter.Domain.Repositories;
+using Leno.SharedKernel.Abstractions;
+
+namespace Leno.UserCenter.Application.Services;
+
+/// <summary>
+/// 收货地址应用服务实现，编排地址增删改查与默认地址切换。
+/// 校验地址归属与上限，默认地址唯一不变量在事务内协调保证。
+/// 从 UserAuth BC 迁入 UserCenter BC（Task A6）。
+/// 跨域依赖：User 聚合的 DefaultAddressId 字段归属 Identity BC，通过 <see cref="IUserDefaultAddressStore"/> 防腐层抽象隔离。
+/// </summary>
+public sealed class AddressAppService : IAddressAppService
+{
+    /// <summary>每用户 Active 地址上限（INV-05）。</summary>
+    public const int MaxAddressesPerUser = 20;
+
+    private readonly IAddressRepository _addressRepository;
+    private readonly IUserDefaultAddressStore _userDefaultAddressStore;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IValidator<SaveAddressDto> _addressValidator;
+
+    public AddressAppService(
+        IAddressRepository addressRepository,
+        IUserDefaultAddressStore userDefaultAddressStore,
+        IUnitOfWork unitOfWork,
+        IValidator<SaveAddressDto> addressValidator)
+    {
+        _addressRepository = addressRepository;
+        _userDefaultAddressStore = userDefaultAddressStore;
+        _unitOfWork = unitOfWork;
+        _addressValidator = addressValidator;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<AddressDto>> ListAsync(Guid userId, CancellationToken ct = default)
+    {
+        var addresses = await _addressRepository.GetActiveByUserIdAsync(userId, ct);
+        return addresses
+            .OrderByDescending(a => a.IsDefault)
+            .ThenByDescending(a => a.UpdatedAt)
+            .Select(ToAddressDto)
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<AddressDto> CreateAsync(Guid userId, SaveAddressDto dto, CancellationToken ct = default)
+    {
+        await ValidateAsync(dto, ct);
+
+        var activeCount = await _addressRepository.CountActiveByUserIdAsync(userId, ct);
+        if (activeCount >= MaxAddressesPerUser)
+        {
+            throw new UserCenterDomainException(
+                $"每用户最多 {MaxAddressesPerUser} 条地址", "ADDRESS_LIMIT_EXCEEDED");
+        }
+
+        // 首条地址自动置默认（INV-06、AC-27）
+        var shouldBeDefault = dto.IsDefault || activeCount == 0;
+
+        if (shouldBeDefault)
+        {
+            await ClearExistingDefaultAsync(userId, ct);
+        }
+
+        var address = Address.Create(
+            Guid.NewGuid(),
+            userId,
+            dto.RecipientName,
+            dto.RecipientPhone,
+            dto.Province,
+            dto.City,
+            dto.District,
+            dto.Detail,
+            dto.Tag,
+            shouldBeDefault);
+
+        await _addressRepository.AddAsync(address, ct);
+
+        if (shouldBeDefault)
+        {
+            await UpdateUserDefaultAddressAsync(userId, address.Id, ct);
+        }
+
+        await _unitOfWork.SaveEntitiesAsync(ct);
+        return ToAddressDto(address);
+    }
+
+    /// <inheritdoc />
+    public async Task<AddressDto> UpdateAsync(Guid userId, Guid addressId, SaveAddressDto dto, CancellationToken ct = default)
+    {
+        await ValidateAsync(dto, ct);
+        var address = await RequireOwnedAddressAsync(userId, addressId, ct);
+
+        address.UpdateInfo(
+            dto.RecipientName,
+            dto.RecipientPhone,
+            dto.Province,
+            dto.City,
+            dto.District,
+            dto.Detail,
+            dto.Tag);
+
+        await _addressRepository.UpdateAsync(address, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        return ToAddressDto(address);
+    }
+
+    /// <inheritdoc />
+    public async Task DeleteAsync(Guid userId, Guid addressId, CancellationToken ct = default)
+    {
+        var address = await RequireOwnedAddressAsync(userId, addressId, ct);
+        var wasDefault = address.IsDefault;
+
+        address.SoftDelete();
+        await _addressRepository.UpdateAsync(address, ct);
+
+        // 删除默认地址后自愈：选取最近一条 Active 为默认，无则置空（INV-15、AC-29）
+        if (wasDefault)
+        {
+            var remaining = await _addressRepository.GetActiveByUserIdAsync(userId, ct);
+            var nextDefault = remaining
+                .OrderByDescending(a => a.UpdatedAt)
+                .FirstOrDefault();
+
+            if (nextDefault is not null)
+            {
+                nextDefault.MarkAsDefault();
+                await _addressRepository.UpdateAsync(nextDefault, ct);
+                await UpdateUserDefaultAddressAsync(userId, nextDefault.Id, ct);
+            }
+            else
+            {
+                await UpdateUserDefaultAddressAsync(userId, null, ct);
+            }
+        }
+
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<AddressDto> SetDefaultAsync(Guid userId, Guid addressId, CancellationToken ct = default)
+    {
+        var address = await RequireOwnedAddressAsync(userId, addressId, ct);
+
+        await ClearExistingDefaultAsync(userId, ct);
+        address.MarkAsDefault();
+
+        await _addressRepository.UpdateAsync(address, ct);
+        await UpdateUserDefaultAddressAsync(userId, address.Id, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        return ToAddressDto(address);
+    }
+
+    private async Task ClearExistingDefaultAsync(Guid userId, CancellationToken ct)
+    {
+        // 地址通过 GetActiveByUserIdAsync 加载已纳入 EF 变更跟踪，
+        // 调用 UnmarkDefault() 修改字段后由 UnitOfWork.SaveEntitiesAsync 统一持久化，
+        // 无需在循环内调用 UpdateAsync（P2-10：移除无效 UpdateAsync 避免误导读者以为有 DB 调用）。
+        var addresses = await _addressRepository.GetActiveByUserIdAsync(userId, ct);
+        foreach (var existing in addresses.Where(a => a.IsDefault))
+        {
+            existing.UnmarkDefault();
+        }
+    }
+
+    private async Task UpdateUserDefaultAddressAsync(Guid userId, Guid? addressId, CancellationToken ct)
+    {
+        // 跨 BC 调用：通过防腐层抽象更新 Identity BC 中 User.DefaultAddressId
+        await _userDefaultAddressStore.UpdateDefaultAddressAsync(userId, addressId, ct);
+    }
+
+    private async Task<Address> RequireOwnedAddressAsync(Guid userId, Guid addressId, CancellationToken ct)
+    {
+        var address = await _addressRepository.GetByIdAsync(addressId, ct);
+        if (address is null)
+        {
+            throw new UserCenterDomainException("地址不存在", "ADDRESS_NOT_FOUND");
+        }
+
+        if (address.UserId != userId)
+        {
+            throw new UserCenterDomainException("无权操作他人地址", "ADDRESS_FORBIDDEN");
+        }
+
+        return address;
+    }
+
+    private async Task ValidateAsync(SaveAddressDto dto, CancellationToken ct)
+    {
+        var result = await _addressValidator.ValidateAsync(dto, ct);
+        if (!result.IsValid)
+        {
+            throw new UserCenterValidationException(result.Errors.Select(e => e.ErrorMessage));
+        }
+    }
+
+    private static AddressDto ToAddressDto(Address address)
+        => new()
+        {
+            Id = address.Id,
+            UserId = address.UserId,
+            RecipientName = address.RecipientName,
+            RecipientPhone = address.RecipientPhone,
+            Province = address.Province,
+            City = address.City,
+            District = address.District,
+            Detail = address.Detail,
+            Tag = address.Tag,
+            IsDefault = address.IsDefault,
+            Status = address.Status,
+            CreatedAt = address.CreatedAt,
+            UpdatedAt = address.UpdatedAt
+        };
+}
