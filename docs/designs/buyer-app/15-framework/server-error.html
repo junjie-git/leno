@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>服务器开小差了 - Leno</title>
+  <style>
+    :root {
+      --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+      --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+      --r-base:6px; --r-card:8px; --r-lg:12px;
+      --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+      --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+      --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+      --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+      --state:#FF4D4F;
+      --ease-dec:cubic-bezier(0,0,0,1);
+    }
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html,body{font-family:var(--ff-app);background:#E9EBEE;}
+    body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+    .device{
+      position:relative;width:375px;height:812px;background:var(--n1);
+      overflow:hidden;display:flex;flex-direction:column;
+      box-shadow:0 18px 60px -12px rgba(0,0,0,.28),0 8px 24px -8px rgba(0,0,0,.12);
+      border-radius:42px;
+    }
+    .status-bar{
+      height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:space-between;
+      padding:0 24px 0 28px;background:var(--n1);color:var(--n10);
+    }
+    .status-bar .time{font-size:15px;font-weight:var(--fw-semibold);letter-spacing:.2px;}
+    .status-bar .icons{display:flex;align-items:center;gap:6px;}
+    .status-bar .icons svg{display:block;}
+    .nav-bar{
+      height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center;
+      position:relative;background:var(--n1);border-bottom:.5px solid var(--n3);
+    }
+    .nav-bar .back{
+      position:absolute;left:8px;top:50%;transform:translateY(-50%);
+      width:40px;height:40px;display:flex;align-items:center;justify-content:center;
+      border:none;background:transparent;cursor:pointer;color:var(--n10);
+    }
+    .nav-bar .back:active{opacity:.6;}
+    .nav-bar .title{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);}
+    .content{
+      flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:0 var(--s6) 96px;text-align:center;
+    }
+    .illustration{
+      width:200px;height:178px;margin-bottom:var(--s8);
+      animation:fadeUp .55s var(--ease-dec) both;
+    }
+    .illustration svg{display:block;width:100%;height:100%;animation:float 3.6s ease-in-out infinite;}
+    .gear-spin{transform-origin:90px 74px;animation:spin 9s linear infinite;}
+    .status-code{
+      font-size:var(--fs-sm);font-weight:var(--fw-semibold);color:var(--state);
+      letter-spacing:1.5px;margin-bottom:var(--s2);
+      padding:3px 10px;border-radius:999px;background:rgba(255,77,79,.08);
+      animation:fadeUp .55s .04s var(--ease-dec) both;
+    }
+    .title{
+      font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--n10);
+      margin-bottom:var(--s2);line-height:1.4;
+      animation:fadeUp .55s .1s var(--ease-dec) both;
+    }
+    .desc{
+      font-size:var(--fs-base);color:var(--n7);line-height:1.5715;
+      max-width:264px;margin-bottom:var(--s8);
+      animation:fadeUp .55s .16s var(--ease-dec) both;
+    }
+    .actions{width:100%;display:flex;flex-direction:column;gap:var(--s3);animation:fadeUp .55s .22s var(--ease-dec) both);}
+    .btn{
+      height:44px;border-radius:var(--r-base);font-size:var(--fs-lg);font-weight:var(--fw-medium);
+      border:none;cursor:pointer;font-family:inherit;transition:all .2s cubic-bezier(.2,0,0,1);
+      display:flex;align-items:center;justify-content:center;gap:6px;
+    }
+    .btn:active{transform:scale(.985);}
+    .btn-primary{background:var(--c-primary);color:#fff;box-shadow:0 4px 12px -4px rgba(22,119,255,.5);}
+    .btn-primary:active{background:#4096FF;}
+    .btn-secondary{background:var(--n1);color:var(--n10);border:1px solid var(--n5);}
+    .btn-secondary:active{background:var(--n2);border-color:var(--n7);}
+    .home-bar{
+      position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+      width:134px;height:5px;border-radius:3px;background:#000000;opacity:.22;
+    }
+    @keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+    @keyframes spin{from{transform:rotate(0);}to{transform:rotate(360deg);}}
+    @media (prefers-reduced-motion:reduce){
+      .illustration,.illustration svg,.gear-spin,.status-code,.title,.desc,.actions{animation:none!important;}
+    }
+  </style>
+</head>
+<body>
+  <div class="device">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <svg width="17" height="11" viewBox="0 0 17 11" fill="none">
+          <rect x="0" y="7" width="3" height="4" rx="0.6" fill="#000000D9"/>
+          <rect x="4.7" y="5" width="3" height="6" rx="0.6" fill="#000000D9"/>
+          <rect x="9.4" y="2.5" width="3" height="8.5" rx="0.6" fill="#000000D9"/>
+          <rect x="14.1" y="0" width="3" height="11" rx="0.6" fill="#000000D9"/>
+        </svg>
+        <svg width="15" height="11" viewBox="0 0 15 11" fill="none">
+          <path d="M7.5 2.2C9.7 2.2 11.7 3.05 13.2 4.4" stroke="#000000D9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+          <path d="M7.5 5.0C8.8 5.0 10.0 5.5 10.9 6.3" stroke="#000000D9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+          <path d="M7.5 7.7C8.0 7.7 8.5 7.9 8.8 8.2" stroke="#000000D9" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+          <circle cx="7.5" cy="9.6" r="1" fill="#000000D9"/>
+        </svg>
+        <svg width="27" height="12" viewBox="0 0 27 12" fill="none">
+          <rect x="0.6" y="0.6" width="22" height="10.8" rx="2.6" stroke="#000000D9" stroke-width="1" fill="none" opacity="0.4"/>
+          <rect x="2" y="2" width="19" height="8" rx="1.4" fill="#000000D9"/>
+          <path d="M24.5 4.2C25.3 4.6 25.3 7.4 24.5 7.8" fill="#000000D9" opacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+    <div class="nav-bar">
+      <button class="back" aria-label="返回">
+        <svg width="12" height="20" viewBox="0 0 12 20" fill="none">
+          <path d="M10 2L2 10L10 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="title">服务异常</span>
+    </div>
+    <div class="content">
+      <div class="illustration">
+        <svg viewBox="0 0 180 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="90" cy="144" rx="52" ry="7" fill="#F0F0F0"/>
+          <!-- 旋转齿轮 -->
+          <g class="gear-spin">
+            <!-- 8 个齿 -->
+            <rect x="85" y="36" width="10" height="14" rx="2" fill="#D9D9D9"/>
+            <rect x="85" y="36" width="10" height="14" rx="2" fill="#D9D9D9" transform="rotate(45 90 74)"/>
+            <rect x="85" y="36" width="10" height="14" rx="2" fill="#D9D9D9" transform="rotate(90 90 74)"/>
+            <rect x="85" y="36" width="10" height="14" rx="2" fill="#D9D9D9" transform="rotate(135 90 74)"/>
+            <rect x="85" y="36" width="10" height="14" rx="2" fill="#D9D9D9" transform="rotate(180 90 74)"/>
+            <rect x="85" y="36" width="10" height="14" rx="2" fill="#D9D9D9" transform="rotate(225 90 74)"/>
+            <rect x="85" y="36" width="10" height="14" rx="2" fill="#D9D9D9" transform="rotate(270 90 74)"/>
+            <rect x="85" y="36" width="10" height="14" rx="2" fill="#D9D9D9" transform="rotate(315 90 74)"/>
+            <!-- 齿轮主体 -->
+            <circle cx="90" cy="74" r="32" fill="#FFFFFF" stroke="#D9D9D9" stroke-width="2"/>
+            <circle cx="90" cy="74" r="24" fill="#FAFAFA"/>
+          </g>
+          <!-- 中心警示圆（不旋转） -->
+          <circle cx="90" cy="74" r="14" fill="#FFFFFF" stroke="#FF4D4F" stroke-width="2.6"/>
+          <circle cx="90" cy="74" r="14" fill="#FF4D4F" fill-opacity="0.06"/>
+          <!-- 感叹号 -->
+          <line x1="90" y1="68" x2="90" y2="76" stroke="#FF4D4F" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="90" cy="81" r="1.8" fill="#FF4D4F"/>
+          <!-- 装饰点 -->
+          <circle cx="36" cy="58" r="3" fill="#FAAD14" opacity="0.5"/>
+          <circle cx="150" cy="66" r="3" fill="#1677FF" opacity="0.4"/>
+          <circle cx="34" cy="108" r="2.5" fill="#D9D9D9"/>
+          <circle cx="152" cy="104" r="2" fill="#D9D9D9"/>
+        </svg>
+      </div>
+      <span class="status-code">ERROR 500</span>
+      <h1 class="title">服务器开小差了</h1>
+      <p class="desc">系统繁忙，请稍后重试</p>
+      <div class="actions">
+        <button class="btn btn-primary">重新加载</button>
+        <button class="btn btn-secondary">联系客服</button>
+      </div>
+    </div>
+    <div class="home-bar"></div>
+  </div>
+</body>
+</html>
