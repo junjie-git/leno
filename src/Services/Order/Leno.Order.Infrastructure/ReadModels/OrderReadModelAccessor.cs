@@ -90,6 +90,16 @@ public sealed class OrderReadModelAccessor : IOrderReadModelAccessor
             });
         }
 
+        if (!string.IsNullOrWhiteSpace(query.OrderNo))
+        {
+            // 订单号模糊匹配：使用 MatchQuery 对 OrderNo 文本字段做分词级模糊匹配。
+            // 放在 Filter 上下文不打分但保留匹配语义，与现有 Status/UserId 等过滤条件组合。
+            filters.Add(new MatchQuery(Infer.Field<OrderReadModel>(f => f.OrderNo))
+            {
+                Query = query.OrderNo
+            });
+        }
+
         if (query.StartDate.HasValue || query.EndDate.HasValue)
         {
             var range = new DateRangeQuery(Infer.Field<OrderReadModel>(f => f.CreatedAt));

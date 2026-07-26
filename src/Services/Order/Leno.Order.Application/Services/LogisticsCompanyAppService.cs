@@ -2,6 +2,7 @@ using Leno.Order.Application.DTOs;
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Exceptions;
 using Leno.Order.Domain.Repositories;
+using Leno.Order.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
 
 namespace Leno.Order.Application.Services;
@@ -59,6 +60,13 @@ public sealed class LogisticsCompanyAppService : ILogisticsCompanyAppService
     public async Task<List<LogisticsCompanyDto>> ListAsync(int page, int pageSize, CancellationToken ct = default)
     {
         var list = await _repository.ListAsync(page, pageSize, ct);
+        return list.Select(ToDto).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<List<LogisticsCompanyDto>> ListAsync(int page, int pageSize, string? keyword, LogisticsCompanyStatus? status, CancellationToken ct = default)
+    {
+        var list = await _repository.ListAsync(page, pageSize, keyword, status, ct);
         return list.Select(ToDto).ToList();
     }
 

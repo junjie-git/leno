@@ -136,15 +136,16 @@ public sealed class OrdersController : OrderControllerBase
     }
 
     /// <summary>
-    /// 分页查询当前卖家的订单（按状态/下单时间范围可选过滤）。
+    /// 分页查询当前卖家的订单（按订单号、状态、下单时间范围可选过滤）。
     /// 走 CQRS 读侧 ES 读模型，SellerId 取自 JWT 强制过滤，不可查看他店订单。
-    /// 复用 OrderListQuery（已支持 SellerId/Status/StartDate/EndDate 字段）与现有 OrderListQueryHandler。
+    /// 复用 OrderListQuery（已支持 SellerId/Status/OrderNo/StartDate/EndDate 字段）与现有 OrderListQueryHandler。
     /// </summary>
     [Authorize(Roles = "Seller")]
     [HttpGet("api/seller/orders")]
     [ProducesResponseType(typeof(ApiResponse<OrderListResult>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListSellerOrdersAsync(
         [FromQuery] OrderStatus? status,
+        [FromQuery] string? orderNo,
         [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate,
         [FromQuery] int page = 0,
@@ -155,6 +156,7 @@ public sealed class OrdersController : OrderControllerBase
         {
             SellerId = GetCurrentUserId(),
             Status = status?.ToString(),
+            OrderNo = orderNo,
             StartDate = startDate,
             EndDate = endDate,
             PageIndex = page,
@@ -166,17 +168,29 @@ public sealed class OrdersController : OrderControllerBase
 
     // ========== 运营端 ==========
 
-    /// <summary>分页查询全部订单（按用户、卖家、状态可选过滤）。走 CQRS 读侧 ES 读模型。</summary>
+    /// <summary>分页查询全部订单（按用户、卖家、订单号、状态、下单时间范围可选过滤）。走 CQRS 读侧 ES 读模型。</summary>
     [Authorize(Roles = "Operator,Admin")]
     [HttpGet("api/admin/orders")]
     [ProducesResponseType(typeof(ApiResponse<OrderListResult>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> ListAsync([FromQuery] Guid? userId, [FromQuery] Guid? sellerId, [FromQuery] OrderStatus? status, [FromQuery] int page = 0, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    public async Task<IActionResult> ListAsync(
+        [FromQuery] Guid? userId,
+        [FromQuery] Guid? sellerId,
+        [FromQuery] OrderStatus? status,
+        [FromQuery] string? orderNo,
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
+        [FromQuery] int page = 0,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
     {
         var query = new OrderListQuery
         {
             UserId = userId,
             SellerId = sellerId,
             Status = status?.ToString(),
+            OrderNo = orderNo,
+            StartDate = startDate,
+            EndDate = endDate,
             PageIndex = page,
             PageSize = pageSize
         };

@@ -105,7 +105,7 @@ public class SellerOrdersApiTests
 
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
-            status: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
 
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
@@ -151,7 +151,7 @@ public class SellerOrdersApiTests
 
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
-            status: null, startDate: null, endDate: null, page: 2, pageSize: 50);
+            status: null, orderNo: null, startDate: null, endDate: null, page: 2, pageSize: 50);
 
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
@@ -190,7 +190,7 @@ public class SellerOrdersApiTests
 
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
-            status: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
 
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
@@ -226,7 +226,7 @@ public class SellerOrdersApiTests
 
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
-            status: OrderStatus.Paid, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: OrderStatus.Paid, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
 
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
@@ -258,7 +258,7 @@ public class SellerOrdersApiTests
 
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
-            status: OrderStatus.Shipped, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: OrderStatus.Shipped, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
 
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
@@ -291,7 +291,7 @@ public class SellerOrdersApiTests
 
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
-            status: null, startDate: startDate, endDate: endDate, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: startDate, endDate: endDate, page: 0, pageSize: 20);
 
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
@@ -326,6 +326,7 @@ public class SellerOrdersApiTests
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
             status: OrderStatus.Completed,
+            orderNo: null,
             startDate: startDate,
             endDate: endDate,
             page: 1,
@@ -365,7 +366,7 @@ public class SellerOrdersApiTests
 
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
-            status: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
 
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
@@ -418,7 +419,7 @@ public class SellerOrdersApiTests
 
         // Act
         var act = () => sut.ListSellerOrdersAsync(
-            status: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
 
         // Assert — GetCurrentUserId() 在未认证时抛出 UnauthorizedAccessException（映射 401）
         await act.Should().ThrowAsync<UnauthorizedAccessException>();
@@ -455,7 +456,7 @@ public class SellerOrdersApiTests
 
         // Act
         await sut.ListSellerOrdersAsync(
-            status: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
 
         // Assert — 卖家 A 的查询 SellerId 必须是 A，不是 B
         capturedQuery.Should().NotBeNull();
@@ -488,7 +489,7 @@ public class SellerOrdersApiTests
 
         // Act
         await sut.ListSellerOrdersAsync(
-            status: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
 
         // Assert — 卖家 B 的查询 SellerId 必须是 B，不是 A
         capturedQuery.Should().NotBeNull();
@@ -522,6 +523,7 @@ public class SellerOrdersApiTests
         // Act — ListSellerOrdersAsync 方法签名无 sellerId 参数，SellerId 不可被外部注入
         await sut.ListSellerOrdersAsync(
             status: OrderStatus.Paid,
+            orderNo: null,
             startDate: new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             endDate: new DateTime(2026, 12, 31, 23, 59, 59, DateTimeKind.Utc),
             page: 5,

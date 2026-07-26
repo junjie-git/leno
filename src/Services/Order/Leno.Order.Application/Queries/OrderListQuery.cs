@@ -16,6 +16,9 @@ public sealed class OrderListQuery
     /// <summary>订单状态名称过滤（如 "Paid"、"Shipped"），可空表示不限。与 <c>OrderReadModel.Status</c> 字符串匹配。</summary>
     public string? Status { get; init; }
 
+    /// <summary>订单号模糊搜索过滤，可空表示不限。非空时对 <c>OrderReadModel.OrderNo</c> 做 MatchQuery 模糊匹配。</summary>
+    public string? OrderNo { get; init; }
+
     /// <summary>创建起始时间（UTC）过滤，可空表示不限。</summary>
     public DateTime? StartDate { get; init; }
 
