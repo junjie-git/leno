@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>支付渠道配置 - Leno 运营管理后台</title>
+<style>
+:root{
+  --c-primary:#1677FF;--c-success:#52C41A;--c-warning:#FAAD14;--c-error:#FF4D4F;
+  --n1:#FFFFFF;--n2:#FAFAFA;--n3:#F5F5F5;--n5:#D9D9D9;--n7:#8C8C8C;--n9:#595959;--n10:#000000D9;
+  --r-base:6px;--r-card:8px;--r-lg:12px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s6:24px;--s8:32px;--s12:48px;
+  --fs-sm:12px;--fs-base:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:30px;
+  --fw-normal:400;--fw-medium:500;--fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529;--sider-width:200px;--header-h:64px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715}
+/* Layout */
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--n1);display:flex;align-items:center;padding:0 var(--s4);z-index:100;box-shadow:0 1px 4px rgba(0,21,41,.08)}
+.header-logo{display:flex;align-items:center;gap:var(--s2);width:calc(var(--sider-width) - var(--s4));flex-shrink:0}
+.logo-mark{width:32px;height:32px;background:var(--c-primary);border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:var(--fw-semibold);font-size:var(--fs-lg)}
+.logo-text{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10)}
+.header-breadcrumb{display:flex;align-items:center;gap:var(--s2);color:var(--n9);font-size:var(--fs-base)}
+.header-breadcrumb .sep{color:var(--n5)}
+.header-breadcrumb .current{color:var(--n10)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:var(--s4)}
+.header-search{width:220px;height:32px;background:var(--n3);border:var(--r-base);border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);outline:none}
+.header-search::placeholder{color:var(--n7)}
+.header-icon-btn{width:36px;height:36px;border:none;background:transparent;border-radius:var(--r-base);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n9);position:relative}
+.header-icon-btn:hover{background:var(--n3)}
+.header-icon-btn .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;border-radius:8px;font-size:10px;line-height:16px;font-weight:var(--fw-semibold)}
+.user-menu{display:flex;align-items:center;gap:var(--s2);cursor:pointer;padding:var(--s1) var(--s2);border-radius:var(--r-base)}
+.user-menu:hover{background:var(--n3)}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-base);font-weight:var(--fw-medium)}
+.user-name{font-size:var(--fs-base);color:var(--n10)}
+/* Sider */
+.sider{position:fixed;top:var(--header-h);left:0;bottom:0;width:var(--sider-width);background:var(--sider-bg);overflow-y:auto;z-index:90}
+.menu{list-style:none;padding:var(--s2) 0}
+.menu-group-title{padding:var(--s4) var(--s6);font-size:var(--fs-sm);color:rgba(255,255,255,.35);font-weight:var(--fw-normal)}
+.menu-item{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s6);height:40px;color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;border-left:3px solid transparent;transition:all .2s}
+.menu-item:hover{color:#fff}
+.menu-item.active{background:var(--c-primary);color:#fff;border-left-color:var(--c-primary)}
+.menu-sub{list-style:none}
+.menu-sub .menu-item{padding-left:var(--s8);font-size:var(--fs-base)}
+.menu-sub .menu-item.active{background:var(--c-primary)}
+/* Content */
+.content{margin-left:var(--sider-width);margin-top:var(--header-h);padding:var(--s6);min-height:calc(100vh - var(--header-h) - 32px)}
+.footer{margin-left:var(--sider-width);height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7)}
+/* Page Header */
+.page-header{background:var(--n1);border-radius:var(--r-card);padding:var(--s6);margin-bottom:var(--s4);box-shadow:var(--sh-card)}
+.page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--n10);margin-bottom:var(--s1)}
+.page-desc{font-size:var(--fs-base);color:var(--n7)}
+/* Card */
+.card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card)}
+.card-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10)}
+.card-body{padding:var(--s6)}
+/* Toolbar */
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s4)}
+.toolbar-left{display:flex;align-items:center;gap:var(--s2)}
+.toolbar-right{display:flex;align-items:center;gap:var(--s2)}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:var(--s1);height:32px;padding:0 var(--s3);border-radius:var(--r-base);border:1px solid var(--n5);background:var(--n1);color:var(--n10);font-size:var(--fs-base);cursor:pointer;transition:all .1s;font-family:inherit}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff}
+.btn-danger{color:var(--c-error);border-color:var(--c-error)}
+.btn-danger:hover{background:var(--c-error);color:#fff}
+.btn-link{border:none;background:transparent;color:var(--c-primary);padding:0;height:auto;font-size:var(--fs-base);cursor:pointer}
+.btn-link:hover{color:#4096FF}
+.btn-sm{height:24px;padding:0 var(--s2);font-size:var(--fs-sm)}
+.btn-text{border:none;background:transparent;color:var(--n9);padding:0 var(--s1);height:24px;font-size:var(--fs-sm);cursor:pointer}
+.btn-text:hover{color:var(--c-primary)}
+/* Channel Cards Grid */
+.channel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:var(--s4)}
+.channel-card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s6);border:1px solid var(--n3);transition:all .2s;cursor:pointer}
+.channel-card:hover{box-shadow:var(--sh-dropdown);border-color:var(--c-primary)}
+.channel-card.disabled{opacity:.85}
+.channel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s4)}
+.channel-logo{display:flex;align-items:center;gap:var(--s3)}
+.channel-icon{width:48px;height:48px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.channel-name{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10)}
+.channel-code{font-size:var(--fs-sm);color:var(--n7);font-family:var(--ff-mono);margin-top:2px}
+.channel-stats{display:flex;gap:var(--s6);padding:var(--s3) 0;border-top:1px solid var(--n3);border-bottom:1px solid var(--n3);margin:var(--s4) 0}
+.channel-stat{flex:1}
+.channel-stat-label{font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s1)}
+.channel-stat-value{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10)}
+.channel-stat-value.amount{color:var(--c-error)}
+.channel-stat-value.rate{color:var(--c-success)}
+.channel-footer{display:flex;align-items:center;justify-content:space-between;margin-top:var(--s3)}
+.channel-fee{font-size:var(--fs-sm);color:var(--n9)}
+.channel-fee strong{color:var(--n10);font-size:var(--fs-base);font-weight:var(--fw-medium)}
+/* Switch */
+.switch{display:inline-flex;align-items:center;cursor:pointer;gap:var(--s1)}
+.switch-track{width:36px;height:20px;border-radius:10px;background:var(--n5);position:relative;transition:background .2s}
+.switch-track.on{background:var(--c-success)}
+.switch-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s}
+.switch-track.on .switch-thumb{transform:translateX(16px)}
+.switch-label{font-size:var(--fs-sm);color:var(--n9)}
+/* Status Dot */
+.status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:var(--s1)}
+.status-dot.on{background:var(--c-success)}
+.status-dot.off{background:var(--n7)}
+/* Tag */
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 var(--s2);border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;border:1px solid transparent}
+.tag-success{color:var(--c-success);background:#f6ffed;border-color:#b7eb8f}
+.tag-error{color:var(--c-error);background:#fff2f0;border-color:#ffccc7}
+.tag-warning{color:var(--c-warning);background:#fffbe6;border-color:#ffe58f}
+.tag-default{color:var(--n9);background:var(--n3);border-color:var(--n5)}
+.tag-primary{color:var(--c-primary);background:#e6f4ff;border-color:#91caff}
+/* Drawer */
+.drawer-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.drawer-mask.show{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:480px;background:var(--n1);z-index:201;transform:translateX(100%);transition:transform .3s;box-shadow:var(--sh-modal);display:flex;flex-direction:column}
+.drawer.show{transform:translateX(0)}
+.drawer-head{height:56px;padding:0 var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.drawer-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10)}
+.drawer-close{cursor:pointer;color:var(--n7);font-size:var(--fs-lg);border:none;background:transparent}
+.drawer-close:hover{color:var(--n10)}
+.drawer-body{flex:1;overflow-y:auto;padding:var(--s6)}
+.drawer-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2);flex-shrink:0}
+/* Form */
+.form-item{margin-bottom:var(--s4)}
+.form-label{display:block;font-size:var(--fs-base);color:var(--n9);margin-bottom:var(--s1)}
+.form-label .req{color:var(--c-error);margin-right:2px}
+.form-input{width:100%;height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;font-family:var(--ff-mono);background:var(--n1)}
+.form-input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.form-input.mono{font-family:var(--ff-mono)}
+.form-input.masked{color:var(--n7)}
+.form-hint{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1)}
+.form-row{display:flex;gap:var(--s3)}
+.form-row .form-item{flex:1}
+.form-section-title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);margin:var(--s4) 0 var(--s3);padding-bottom:var(--s2);border-bottom:1px solid var(--n3)}
+.form-section-title:first-child{margin-top:0}
+/* Descriptions */
+.desc-list{border:1px solid var(--n3);border-radius:var(--r-base);overflow:hidden}
+.desc-row{display:flex;border-bottom:1px solid var(--n3)}
+.desc-row:last-child{border-bottom:none}
+.desc-label{width:130px;padding:var(--s3) var(--s4);background:var(--n2);font-size:var(--fs-base);color:var(--n9);flex-shrink:0}
+.desc-value{padding:var(--s3) var(--s4);font-size:var(--fs-base);color:var(--n10);flex:1;font-family:var(--ff-mono);word-break:break-all}
+.desc-value.masked{color:var(--n7)}
+.desc-value .copy-btn{margin-left:var(--s2);color:var(--c-primary);cursor:pointer;font-size:var(--fs-sm)}
+/* Modal */
+.modal-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-mask.show{display:flex}
+.modal{width:520px;background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-modal)}
+.modal-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.modal-body{padding:var(--s6);max-height:60vh;overflow-y:auto}
+.modal-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2)}
+/* SVG icon */
+.icon{display:inline-flex;vertical-align:middle;flex-shrink:0}
+.icon-sm{width:12px;height:12px}
+.icon-base{width:14px;height:14px}
+.icon-md{width:16px;height:16px}
+.icon-lg{width:20px;height:20px}
+.icon-xl{width:24px;height:24px}
+.icon-btn{width:20px;height:20px;fill:currentColor}
+.icon-menu{width:16px;height:16px;fill:currentColor;flex-shrink:0}
+/* Empty */
+.empty{text-align:center;padding:var(--s12) var(--s6)}
+.empty-icon{width:64px;height:64px;margin:0 auto var(--s4);color:var(--n5)}
+.empty-text{font-size:var(--fs-base);color:var(--n7)}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-logo">
+      <div class="logo-mark">L</div>
+      <span class="logo-text">Leno 运营后台</span>
+    </div>
+    <div class="header-breadcrumb">
+      <span>支付运营</span>
+      <span class="sep">/</span>
+      <span class="current">支付渠道配置</span>
+    </div>
+    <div class="header-right">
+      <input class="header-search" placeholder="搜索菜单、订单、商品...">
+      <button class="header-icon-btn" title="待办工作台">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7zM635.1 582.6L597 430.1 794.6 232.5 635.1 582.6z"/><path d="M512 832c-176.4 0-320-143.6-320-320 0-126.8 73.9-236.5 180-288.7l-39.1-90.5C199.1 196.1 96 341.4 96 512c0 229.8 186.2 416 416 416 170.6 0 315.9-103.1 378.2-249.9l-90.5-39.1C748.5 758.1 638.8 832 512 832z"/></svg>
+        <span class="badge">12</span>
+      </button>
+      <button class="header-icon-btn" title="通知">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252s-252 110.7-252 252v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32zM336 428c0-105.9 86.1-188 192-188s192 82.1 192 188v340H336V428zM512 912c48.6 0 88-39.4 88-88H424c0 48.6 39.4 88 88 88z"/></svg>
+        <span class="badge">3</span>
+      </button>
+      <div class="user-menu">
+        <div class="user-avatar">运</div>
+        <span class="user-name">运营管理员</span>
+        <svg class="icon icon-sm" style="color:var(--n7)" viewBox="0 0 1024 1024"><path d="M884 256h-75v-84c0-4.4-3.6-8-8-8h-52c-4.4 0-8 3.6-8 8v84H283v-84c0-4.4-3.6-8-8-8h-52c-4.4 0-8 3.6-8 8v84H140c-17.7 0-32 14.3-32 32v544c0 17.7 14.3 32 32 32h744c17.7 0 32-14.3 32-32V288c0-17.7-14.3-32-32-32zm-40 536H180V400h664v392z"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sider -->
+  <aside class="sider">
+    <ul class="menu">
+      <li class="menu-group-title">运营管理</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c6.2-12.6 3.9-27.8-5.6-37.6zM512 700c-103.8 0-188-84.2-188-188s84.2-188 188-188 188 84.2 188 188-84.2 188-188 188z"/></svg><span>数据看板</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z"/><path d="M304 240h416v48H304zm0 160h416v48H304zm0 160h416v48H304z"/></svg><span>商品运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 832c-211.8 0-384-172.2-384-384s172.2-384 384-384 384 172.2 384 384-172.2 384-384 384z"/><path d="M512 360c-83.8 0-152 68.2-152 152s68.2 152 152 152 152-68.2 152-152-68.2-152-152-152zm0 232c-44.1 0-80-35.9-80-80s35.9-80 80-80 80 35.9 80 80-35.9 80-80 80z"/></svg><span>促销运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>卖家运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/><path d="M380.4 473.6l-72 72c-6.2 6.2-6.2 16.4 0 22.6l144 144c6.2 6.2 16.4 6.2 22.6 0l336-336c6.2-6.2 6.2-16.4 0-22.6l-72-72c-6.2-6.2-16.4-6.2-22.6 0L476.4 613.6 403 540.2c-6.2-6.3-16.4-6.3-22.6-0.6z"/></svg><span>订单运营</span></li>
+      <li class="menu-item" style="background:rgba(22,119,255,.15);color:#fff"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 768c-176.7 0-320-143.3-320-320s143.3-320 320-320 320 143.3 320 320-143.3 320-320 320z"/><path d="M640 512c0-70.7-57.3-128-128-128s-128 57.3-128 128 57.3 128 128 128 128-57.3 128-128z"/></svg><span>支付运营</span>
+        <svg class="icon icon-sm" style="margin-left:auto;fill:rgba(255,255,255,.45)" viewBox="0 0 1024 1024"><path d="M840.4 300H183.6c-24.2 0-43.6 19.4-43.6 43.6 0 6.8 1.6 13.4 4.6 19.4l164.3 316.4c12.6 24.2 42.4 33.6 66.6 21 4.8-2.5 9.2-5.7 12.9-9.4l88.6-88.6c6.2-6.2 16.4-6.2 22.6 0l91.8 91.8c24.6 24.6 64.4 24.6 89 0 24.6-24.6 24.6-64.4 0-89L580.6 530c-6.2-6.2-6.2-16.4 0-22.6l150.4-150.4c4.6-4.6 7.2-10.9 7.2-17.4 0-13.6-11-24.6-24.6-24.6z"/></svg>
+      </li>
+      <ul class="menu-sub">
+        <li class="menu-item"><span style="margin-left:8px">支付记录</span></li>
+        <li class="menu-item"><span style="margin-left:8px">退款记录</span></li>
+        <li class="menu-item active"><span style="margin-left:8px">支付渠道配置</span></li>
+      </ul>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg><span>通知运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zM620 780h-40V404c0-4.4-3.6-8-8-8h-52c-4.4 0-8 3.6-8 8v376h-40c-4.4 0-8 3.6-8 8v52c0 4.4 3.6 8 8 8h148c4.4 0 8-3.6 8-8v-52c0-4.4-3.6-8-8-8z"/></svg><span>会员运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>个人中心</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M505.7 661a8 8 0 0012.6 0l112-141.7c4.1-5.2.4-12.9-6.3-12.9h-74.1V168c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v338.3H400c-6.7 0-10.4 7.7-6.3 12.9l112 141.8zM878 626h-60c-4.4 0-8 3.6-8 8v154H214V634c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v198c0 17.7 14.3 32 32 32h684c17.7 0 32-14.3 32-32V634c0-4.4-3.6-8-8-8z"/></svg><span>数据导出</span></li>
+    </ul>
+  </aside>
+
+  <!-- Content -->
+  <main class="content">
+    <div class="page-header">
+      <div class="page-title">支付渠道配置</div>
+      <div class="page-desc">维护各支付渠道（微信支付/支付宝/银联/余额）的配置项、费率与启停状态，保障支付渠道可用性。</div>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <button class="btn btn-primary" onclick="openAddModal()">
+          <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M482 152h60c4.4 0 8 3.6 8 8v704c0 4.4-3.6 8-8 8h-60c-4.4 0-8-3.6-8-8V160c0-4.4 3.6-8 8-8z"/><path d="M176 474h672c4.4 0 8 3.6 8 8v60c0 4.4-3.6 8-8 8H176c-4.4 0-8-3.6-8-8v-60c0-4.4 3.6-8 8-8z"/></svg>
+          新增渠道
+        </button>
+        <span class="tag tag-primary">共 4 个渠道</span>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M909.1 209.3l-56.4-44.3c-3.5-2.7-8.5-2.1-11.2 1.4L374.7 717.2l-184.3-142.5c-3.5-2.7-8.5-2.1-11.2 1.4l-44.3 56.4c-2.7 3.5-2.1 8.5 1.4 11.2l241.3 186.5c1.6 1.2 3.5 1.8 5.4 1.8 2.3 0 4.6-1 6.2-2.9l620.9-712.6c2.7-3.5 2.1-8.5-1.4-11.2z"/></svg>刷新</button>
+      </div>
+    </div>
+
+    <!-- Channel Cards Grid -->
+    <div class="channel-grid">
+      <!-- 微信支付 -->
+      <div class="channel-card" onclick="openConfigDrawer('wechat')">
+        <div class="channel-head">
+          <div class="channel-logo">
+            <div class="channel-icon" style="background:#07C160">
+              <svg class="icon icon-xl" viewBox="0 0 1024 1024" style="fill:#fff"><path d="M690.1 377.4c5.9 0 11.8.2 17.6.5-24.4-128.7-158.3-227.1-319.9-227.1C209 150.8 64 271.4 64 420.2c0 81.1 43.6 154.2 111.9 203.6l-27.9 83.8 97.6-49.1c34.5 7.7 68.6 11.6 97.6 11.6 5.7 0 11.3-.1 16.9-.4-3.2-14.6-5.1-29.7-5.1-45.2 0-143.5 121.2-247.5 263.1-247.5zm-157.3-93.5c20.9 0 35 13.9 35 35s-14.1 35-35 35c-20.9 0-41.8-13.9-41.8-35s20.9-35 41.8-35zm-188.8 70c-20.9 0-42-13.9-42-35s21.1-35 42-35c20.9 0 34.8 13.9 34.8 35s-13.9 35-34.8 35zm455.4 169.6c-135.3 0-244.7 90.5-244.7 201.9 0 111.4 109.4 201.9 244.7 201.9 24.6 0 49.6-6.3 74.6-12.6l67.7 37.6-18.6-62.4c49.8-37.4 83.6-93.7 83.6-152.1 0-111.4-109.4-201.9-207.3-201.9zM584.4 575.5c-16.6 0-33.4-13.9-33.4-34.8 0-20.9 16.8-34.8 33.4-34.8 20.9 0 34.8 13.9 34.8 34.8 0 20.9-13.9 34.8-34.8 34.8zm188.9 0c-16.6 0-33.3-13.9-33.3-34.8 0-20.9 16.7-34.8 33.3-34.8 20.9 0 34.8 13.9 34.8 34.8 0 20.9-13.9 34.8-34.8 34.8z"/></svg>
+            </div>
+            <div>
+              <div class="channel-name">微信支付</div>
+              <div class="channel-code">WeChatPay · V3API</div>
+            </div>
+          </div>
+          <div class="switch" onclick="event.stopPropagation();toggleSwitch(this)">
+            <div class="switch-track on"><div class="switch-thumb"></div></div>
+            <span class="switch-label">已启用</span>
+          </div>
+        </div>
+        <div class="channel-stats">
+          <div class="channel-stat">
+            <div class="channel-stat-label">今日交易额</div>
+            <div class="channel-stat-value amount">¥86,420.50</div>
+          </div>
+          <div class="channel-stat">
+            <div class="channel-stat-label">今日笔数</div>
+            <div class="channel-stat-value">1,280</div>
+          </div>
+          <div class="channel-stat">
+            <div class="channel-stat-label">成功率</div>
+            <div class="channel-stat-value rate">99.2%</div>
+          </div>
+        </div>
+        <div class="channel-footer">
+          <div class="channel-fee">费率 <strong>0.60%</strong></div>
+          <button class="btn btn-sm btn-primary">配置</button>
+        </div>
+      </div>
+
+      <!-- 支付宝 -->
+      <div class="channel-card" onclick="openConfigDrawer('alipay')">
+        <div class="channel-head">
+          <div class="channel-logo">
+            <div class="channel-icon" style="background:#1677FF">
+              <svg class="icon icon-xl" viewBox="0 0 1024 1024" style="fill:#fff"><path d="M902.8 669.2c-32.4 11.2-168 48.4-323.6 16.4 60.4-44.4 100.8-105.6 127.6-166.4 17.2-39.2 32.4-80.8 38.4-123.6 6-42-2-84-28.4-116.8-24.4-30.4-62-48-100.4-50.8-40-2.8-80.8 8-115.6 29.2-38.8 23.6-69.2 60.4-91.2 101.2-22.8 42-38 90.4-38.4 139.6-.4 40.8 9.6 80.8 30.8 113.6-67.2-32.4-118.4-86.4-146.4-148-30.8-67.6-35.2-146.4-18.4-219.6 16.8-72.8 54.4-140 104.4-193.6 48-51.6 108-88.4 172-104 66-16 136.4-6.4 196.8 28.4 62 35.6 110 92 140 156.4 31.2 67.2 43.2 144 34.8 219.2-8.4 75.6-36.4 148-82.4 207.2-2.4 3.2-2.4 7.6.4 10.4 14 14 38.4 24.4 69.6 30.8zM624 596c-16.4-20.4-24.4-47.2-25.2-74.4-.8-30.4 7.2-60.8 19.6-89.6 11.2-26.4 26.4-52 44.4-73.6 15.2-18.4 32.8-36 52.4-48 16.4-10 34.4-16 52.8-15.2 17.2.8 33.2 8.4 43.2 22.8 9.6 14 12.8 32 10 49.2-3.2 19.2-12.4 37.6-23.6 54.4-24.4 36-56.4 66.4-89.2 92.4-26 20.8-53.2 39.6-80.4 57.6-1.6 1.2-3.2 2-4.8 2.4z"/></svg>
+            </div>
+            <div>
+              <div class="channel-name">支付宝</div>
+              <div class="channel-code">Alipay · 当面付</div>
+            </div>
+          </div>
+          <div class="switch" onclick="event.stopPropagation();toggleSwitch(this)">
+            <div class="switch-track on"><div class="switch-thumb"></div></div>
+            <span class="switch-label">已启用</span>
+          </div>
+        </div>
+        <div class="channel-stats">
+          <div class="channel-stat">
+            <div class="channel-stat-label">今日交易额</div>
+            <div class="channel-stat-value amount">¥72,180.00</div>
+          </div>
+          <div class="channel-stat">
+            <div class="channel-stat-label">今日笔数</div>
+            <div class="channel-stat-value">960</div>
+          </div>
+          <div class="channel-stat">
+            <div class="channel-stat-label">成功率</div>
+            <div class="channel-stat-value rate">98.8%</div>
+          </div>
+        </div>
+        <div class="channel-footer">
+          <div class="channel-fee">费率 <strong>0.55%</strong></div>
+          <button class="btn btn-sm btn-primary">配置</button>
+        </div>
+      </div>
+
+      <!-- 银联 -->
+      <div class="channel-card disabled" onclick="openConfigDrawer('unionpay')">
+        <div class="channel-head">
+          <div class="channel-logo">
+            <div class="channel-icon" style="background:#E60012">
+              <svg class="icon icon-xl" viewBox="0 0 1024 1024" style="fill:#fff"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-96 608l-32-384 96 16 16 384-80-16zm224-16l-16-384 96-16-32 400-48 0z"/></svg>
+            </div>
+            <div>
+              <div class="channel-name">银联支付</div>
+              <div class="channel-code">UnionPay · 网关支付</div>
+            </div>
+          </div>
+          <div class="switch" onclick="event.stopPropagation();toggleSwitch(this)">
+            <div class="switch-track"><div class="switch-thumb"></div></div>
+            <span class="switch-label">已停用</span>
+          </div>
+        </div>
+        <div class="channel-stats">
+          <div class="channel-stat">
+            <div class="channel-stat-label">今日交易额</div>
+            <div class="channel-stat-value">¥0.00</div>
+          </div>
+          <div class="channel-stat">
+            <div class="channel-stat-label">今日笔数</div>
+            <div class="channel-stat-value">0</div>
+          </div>
+          <div class="channel-stat">
+            <div class="channel-stat-label">成功率</div>
+            <div class="channel-stat-value" style="color:var(--n7)">—</div>
+          </div>
+        </div>
+        <div class="channel-footer">
+          <div class="channel-fee">费率 <strong>0.38%</strong></div>
+          <button class="btn btn-sm btn-primary">配置</button>
+        </div>
+      </div>
+
+      <!-- 余额支付 -->
+      <div class="channel-card" onclick="openConfigDrawer('balance')">
+        <div class="channel-head">
+          <div class="channel-logo">
+            <div class="channel-icon" style="background:#FAAD14">
+              <svg class="icon icon-xl" viewBox="0 0 1024 1024" style="fill:#fff"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM528 720c0 17.7-14.3 32-32 32h-80c-17.7 0-32-14.3-32-32V304c0-17.7 14.3-32 32-32h80c17.7 0 32 14.3 32 32v416z"/></svg>
+            </div>
+            <div>
+              <div class="channel-name">余额支付</div>
+              <div class="channel-code">Balance · 钱包直付</div>
+            </div>
+          </div>
+          <div class="switch" onclick="event.stopPropagation();toggleSwitch(this)">
+            <div class="switch-track on"><div class="switch-thumb"></div></div>
+            <span class="switch-label">已启用</span>
+          </div>
+        </div>
+        <div class="channel-stats">
+          <div class="channel-stat">
+            <div class="channel-stat-label">今日交易额</div>
+            <div class="channel-stat-value amount">¥12,560.00</div>
+          </div>
+          <div class="channel-stat">
+            <div class="channel-stat-label">今日笔数</div>
+            <div class="channel-stat-value">420</div>
+          </div>
+          <div class="channel-stat">
+            <div class="channel-stat-label">成功率</div>
+            <div class="channel-stat-value rate">100%</div>
+          </div>
+        </div>
+        <div class="channel-footer">
+          <div class="channel-fee">费率 <strong>0.00%</strong></div>
+          <button class="btn btn-sm btn-primary">配置</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Leno 电商平台运营管理后台 © 2026 Leno Technology Co., Ltd.</footer>
+</div>
+
+<!-- Config Drawer -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+<div class="drawer" id="configDrawer">
+  <div class="drawer-head">
+    <div class="drawer-title" id="drawerTitle">微信支付 - 渠道配置</div>
+    <button class="drawer-close" onclick="closeDrawer()">
+      <svg class="icon icon-lg" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.1-13.1-6.3-13.1H676c-4.9 0-9.6 2.1-12.9 5.9L499.3 442.6 333.7 191.9c-3.2-3.8-7.9-5.9-12.9-5.9H176.5c-6.5 0-9.5 7.9-5.1 13.1L433.8 512 171.4 824.9c-4.4 5.2-.1 13.1 6.3 13.1h143.7c4.9 0 9.6-2.1 12.9-5.9l167.2-252.8 167.2 252.8c3.2 3.8 7.9 5.9 12.9 5.9h138.7c6.5 0 9.5-7.9 5.1-13.1L563.8 512z"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <div style="display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s6)">
+      <span class="tag tag-success"><span class="status-dot on" style="background:var(--c-success)"></span>已启用</span>
+      <span style="font-size:var(--fs-sm);color:var(--n7)">最后更新：2026-07-25 16:32 · 运营管理员</span>
+    </div>
+
+    <div class="form-section-title">基础配置</div>
+    <div class="form-item">
+      <label class="form-label"><span class="req">*</span>AppID（应用ID）</label>
+      <input class="form-input mono" value="wx1a2b3c4d5e6f7890">
+      <div class="form-hint">微信开放平台或公众平台的应用 ID</div>
+    </div>
+    <div class="form-item">
+      <label class="form-label"><span class="req">*</span>商户号 MerchantId</label>
+      <input class="form-input mono" value="1900000109">
+    </div>
+
+    <div class="form-section-title">安全凭证</div>
+    <div class="form-item">
+      <label class="form-label">API v3 密钥</label>
+      <input class="form-input mono masked" type="password" value="********" placeholder="留空表示不修改">
+      <div class="form-hint">敏感字段，已脱敏显示；留空提交表示不修改原值</div>
+    </div>
+    <div class="form-item">
+      <label class="form-label">商户 API 证书序列号</label>
+      <input class="form-input mono masked" type="password" value="********">
+    </div>
+    <div class="form-item">
+      <label class="form-label">商户 API 私钥（apiclient_key.pem）</label>
+      <input class="form-input mono masked" type="password" value="********">
+      <div class="form-hint">PEM 格式私钥文件内容，传输加密存储</div>
+    </div>
+
+    <div class="form-section-title">回调与费率</div>
+    <div class="form-item">
+      <label class="form-label"><span class="req">*</span>支付回调地址（Notify URL）</label>
+      <input class="form-input mono" value="https://api.leno-shop.com/api/payment/wechat/notify">
+      <div class="form-hint">微信支付异步通知地址，需 HTTPS</div>
+    </div>
+    <div class="form-row">
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>渠道费率（%）</label>
+        <input class="form-input mono" value="0.60">
+      </div>
+      <div class="form-item">
+        <label class="form-label">渠道类型</label>
+        <select class="form-input" style="height:32px">
+          <option>JSAPI（公众号/小程序支付）</option>
+          <option>Native（扫码支付）</option>
+          <option>H5（手机网站支付）</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section-title">连通性测试</div>
+    <div style="background:var(--n2);border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s4)">
+      <div style="display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s2)">
+        <svg class="icon icon-md" style="color:var(--c-success)" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L449.2 729.5c-4.7 4.7-12.3 4.7-17 0L264.3 561.6c-4.7-4.7-4.7-12.3 0-17l23.3-23.3c4.7-4.7 12.3-4.7 17 0l135.2 135.2 228.7-228.7c4.7-4.7 12.3-4.7 17 0l23.3 23.3c4.7 4.7 4.7 12.3 0 17z" fill="currentColor"/></svg>
+        <span style="color:var(--c-success);font-weight:var(--fw-medium)">测试连接成功</span>
+      </div>
+      <div style="font-size:var(--fs-sm);color:var(--n7);font-family:var(--ff-mono)">渠道返回：SUCCESS · 耗时 186ms · 2026-07-26 10:24:18</div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-danger"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M864 64H160C107 64 64 107 64 160v704c0 53 43 96 96 96h704c53 0 96-43 96-96V160c0-53-43-96-96-96zM432 736H320V416h112v320zm272 0H592V288h112v448z" fill="currentColor"/></svg>停用渠道</button>
+    <button class="btn" onclick="closeDrawer()">取消</button>
+    <button class="btn btn-primary"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M912 328h-44V136c0-4.4-3.6-8-8-8h-52c-4.4 0-8 3.6-8 8v192H224V136c0-4.4-3.6-8-8-8h-52c-4.4 0-8 3.6-8 8v192H112c-17.7 0-32 14.3-32 32v544c0 17.7 14.3 32 32 32h800c17.7 0 32-14.3 32-32V360c0-17.7-14.3-32-32-32z" fill="currentColor"/></svg>保存配置</button>
+  </div>
+</div>
+
+<!-- Add Channel Modal -->
+<div class="modal-mask" id="addModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">新增支付渠道</div>
+      <button class="drawer-close" onclick="closeAddModal()">
+        <svg class="icon icon-lg" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.1-13.1-6.3-13.1H676c-4.9 0-9.6 2.1-12.9 5.9L499.3 442.6 333.7 191.9c-3.2-3.8-7.9-5.9-12.9-5.9H176.5c-6.5 0-9.5 7.9-5.1 13.1L433.8 512 171.4 824.9c-4.4 5.2-.1 13.1 6.3 13.1h143.7c4.9 0 9.6-2.1 12.9-5.9l167.2-252.8 167.2 252.8c3.2 3.8 7.9 5.9 12.9 5.9h138.7c6.5 0 9.5-7.9 5.1-13.1L563.8 512z"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>渠道类型</label>
+        <select class="form-input" style="height:32px">
+          <option>微信支付</option>
+          <option>支付宝</option>
+          <option>银联支付</option>
+          <option>余额支付</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>渠道名称</label>
+        <input class="form-input" placeholder="请输入渠道名称">
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>AppID</label>
+        <input class="form-input mono" placeholder="请输入应用 ID">
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>商户号</label>
+        <input class="form-input mono" placeholder="请输入商户号">
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>支付回调地址</label>
+        <input class="form-input mono" placeholder="https://api.leno-shop.com/...">
+      </div>
+      <div class="form-row">
+        <div class="form-item">
+          <label class="form-label"><span class="req">*</span>费率（%）</label>
+          <input class="form-input mono" placeholder="0.60">
+        </div>
+        <div class="form-item">
+          <label class="form-label">初始状态</label>
+          <div class="switch" style="margin-top:6px">
+            <div class="switch-track on"><div class="switch-thumb"></div></div>
+            <span class="switch-label">启用</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeAddModal()">取消</button>
+      <button class="btn btn-primary" onclick="closeAddModal()">确认新增</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSwitch(el){
+  const track=el.querySelector('.switch-track');
+  const label=el.querySelector('.switch-label');
+  track.classList.toggle('on');
+  if(track.classList.contains('on')){label.textContent='已启用';}
+  else{label.textContent='已停用';}
+}
+function openConfigDrawer(channel){
+  const titles={wechat:'微信支付 - 渠道配置',alipay:'支付宝 - 渠道配置',unionpay:'银联支付 - 渠道配置',balance:'余额支付 - 渠道配置'};
+  document.getElementById('drawerTitle').textContent=titles[channel]||'渠道配置';
+  document.getElementById('drawerMask').classList.add('show');
+  document.getElementById('configDrawer').classList.add('show');
+}
+function closeDrawer(){
+  document.getElementById('drawerMask').classList.remove('show');
+  document.getElementById('configDrawer').classList.remove('show');
+}
+function openAddModal(){document.getElementById('addModal').classList.add('show')}
+function closeAddModal(){document.getElementById('addModal').classList.remove('show')}
+</script>
+</body>
+</html>

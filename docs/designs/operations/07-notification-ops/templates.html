@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>通知模板 - Leno 运营管理后台</title>
+<style>
+:root{
+  --c-primary:#1677FF;--c-success:#52C41A;--c-warning:#FAAD14;--c-error:#FF4D4F;--c-purple:#722ED1;
+  --n1:#FFFFFF;--n2:#FAFAFA;--n3:#F5F5F5;--n5:#D9D9D9;--n7:#8C8C8C;--n9:#595959;--n10:#000000D9;
+  --r-base:6px;--r-card:8px;--r-lg:12px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s6:24px;--s8:32px;--s12:48px;
+  --fs-sm:12px;--fs-base:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:30px;
+  --fw-normal:400;--fw-medium:500;--fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529;--sider-width:200px;--header-h:64px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--n1);display:flex;align-items:center;padding:0 var(--s4);z-index:100;box-shadow:0 1px 4px rgba(0,21,41,.08)}
+.header-logo{display:flex;align-items:center;gap:var(--s2);width:calc(var(--sider-width) - var(--s4));flex-shrink:0}
+.logo-mark{width:32px;height:32px;background:var(--c-primary);border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:var(--fw-semibold);font-size:var(--fs-lg)}
+.logo-text{font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.header-breadcrumb{display:flex;align-items:center;gap:var(--s2);color:var(--n9);font-size:var(--fs-base)}
+.header-breadcrumb .sep{color:var(--n5)}
+.header-breadcrumb .current{color:var(--n10)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:var(--s4)}
+.header-search{width:220px;height:32px;background:var(--n3);border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);outline:none}
+.header-search::placeholder{color:var(--n7)}
+.header-icon-btn{width:36px;height:36px;border:none;background:transparent;border-radius:var(--r-base);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n9);position:relative}
+.header-icon-btn:hover{background:var(--n3)}
+.header-icon-btn .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;border-radius:8px;font-size:10px;line-height:16px;font-weight:var(--fw-semibold)}
+.user-menu{display:flex;align-items:center;gap:var(--s2);cursor:pointer;padding:var(--s1) var(--s2);border-radius:var(--r-base)}
+.user-menu:hover{background:var(--n3)}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-base);font-weight:var(--fw-medium)}
+.user-name{font-size:var(--fs-base)}
+.sider{position:fixed;top:var(--header-h);left:0;bottom:0;width:var(--sider-width);background:var(--sider-bg);overflow-y:auto;z-index:90}
+.menu{list-style:none;padding:var(--s2) 0}
+.menu-group-title{padding:var(--s4) var(--s6);font-size:var(--fs-sm);color:rgba(255,255,255,.35)}
+.menu-item{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s6);height:40px;color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;border-left:3px solid transparent;transition:all .2s}
+.menu-item:hover{color:#fff}
+.menu-item.active{background:var(--c-primary);color:#fff;border-left-color:var(--c-primary)}
+.menu-sub{list-style:none}
+.menu-sub .menu-item{padding-left:var(--s8)}
+.menu-sub .menu-item.active{background:var(--c-primary)}
+.content{margin-left:var(--sider-width);margin-top:var(--header-h);padding:var(--s6);min-height:calc(100vh - var(--header-h) - 32px)}
+.footer{margin-left:var(--sider-width);height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7)}
+.page-header{background:var(--n1);border-radius:var(--r-card);padding:var(--s6);margin-bottom:var(--s4);box-shadow:var(--sh-card)}
+.page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-bottom:var(--s1)}
+.page-desc{font-size:var(--fs-base);color:var(--n7)}
+.btn{display:inline-flex;align-items:center;gap:var(--s1);height:32px;padding:0 var(--s3);border-radius:var(--r-base);border:1px solid var(--n5);background:var(--n1);color:var(--n10);font-size:var(--fs-base);cursor:pointer;transition:all .1s;font-family:inherit}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff}
+.btn-link{border:none;background:transparent;color:var(--c-primary);padding:0;height:auto;font-size:var(--fs-base);cursor:pointer}
+.btn-link:hover{color:#4096FF}
+.btn-link.danger{color:var(--c-error)}
+.btn-link.danger:hover{color:#ff7875}
+.icon{display:inline-flex;vertical-align:middle;flex-shrink:0}
+.icon-md{width:16px;height:16px}
+.icon-lg{width:20px;height:20px}
+.icon-menu{width:16px;height:16px;fill:currentColor;flex-shrink:0}
+.icon-sm{width:12px;height:12px}
+.icon-xl{width:32px;height:32px}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 var(--s2);border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;border:1px solid transparent}
+.tag-success{color:var(--c-success);background:#f6ffed;border-color:#b7eb8f}
+.tag-error{color:var(--c-error);background:#fff2f0;border-color:#ffccc7}
+.tag-warning{color:var(--c-warning);background:#fffbe6;border-color:#ffe58f}
+.tag-default{color:var(--n9);background:var(--n3);border-color:var(--n5)}
+.tag-primary{color:var(--c-primary);background:#e6f4ff;border-color:#91caff}
+.tag-purple{color:var(--c-purple);background:#f9f0ff;border-color:#d3adf7}
+/* Filter */
+.filter-card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4) var(--s6);margin-bottom:var(--s4)}
+.filter-form{display:flex;flex-wrap:wrap;gap:var(--s4);align-items:flex-end}
+.filter-item{display:flex;flex-direction:column;gap:var(--s1)}
+.filter-label{font-size:var(--fs-sm);color:var(--n9)}
+.filter-input{height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);min-width:180px}
+.filter-input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.filter-select{height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);min-width:140px;cursor:pointer}
+.filter-actions{display:flex;gap:var(--s2);margin-left:auto}
+/* Table */
+.table-card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden}
+.table-toolbar{padding:var(--s3) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between}
+.table-toolbar-left{display:flex;align-items:center;gap:var(--s3)}
+.table-info{font-size:var(--fs-sm);color:var(--n7)}
+.table-info b{color:var(--n10);font-weight:var(--fw-medium)}
+table{width:100%;border-collapse:collapse;font-size:var(--fs-base)}
+thead th{background:var(--n2);font-weight:var(--fw-medium);color:var(--n9);font-size:var(--fs-sm);padding:var(--s3) var(--s4);text-align:left;white-space:nowrap;height:48px;border-bottom:1px solid var(--n3)}
+tbody td{padding:var(--s3) var(--s4);color:var(--n10);border-bottom:1px solid var(--n3);height:48px;white-space:nowrap}
+tbody tr:hover{background:var(--n2)}
+tbody tr.disabled{opacity:.6}
+.cell-mono{font-family:var(--ff-mono);font-size:var(--fs-base);color:var(--c-primary)}
+.cell-name{font-size:var(--fs-base);font-weight:var(--fw-medium)}
+.cell-time{font-size:var(--fs-sm);color:var(--n7)}
+.cell-sub{font-size:var(--fs-sm);color:var(--n7);font-family:var(--ff-mono)}
+.op-link{color:var(--c-primary);cursor:pointer;font-size:var(--fs-base);margin-right:var(--s2)}
+.op-link:hover{color:#4096FF}
+.op-link.warn{color:var(--c-warning)}
+.op-link.danger{color:var(--c-error)}
+.var-count{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 var(--s1);border-radius:var(--r-base);background:var(--n3);font-size:var(--fs-sm);color:var(--n9);font-weight:var(--fw-medium)}
+/* Pagination */
+.pagination{padding:var(--s4) var(--s6);display:flex;align-items:center;justify-content:flex-end;gap:var(--s2);border-top:1px solid var(--n3)}
+.page-size{font-size:var(--fs-sm);color:var(--n7);margin-right:auto}
+.page-btn{min-width:32px;height:32px;border:1px solid var(--n5);background:var(--n1);border-radius:var(--r-base);cursor:pointer;font-size:var(--fs-base);color:var(--n10);display:inline-flex;align-items:center;justify-content:center;padding:0 var(--s2)}
+.page-btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.page-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.page-btn.disabled{color:var(--n5);cursor:not-allowed}
+.page-jumper{font-size:var(--fs-sm);color:var(--n7);display:flex;align-items:center;gap:var(--s1)}
+.page-jumper input{width:48px;height:32px;border:1px solid var(--n5);border-radius:var(--r-base);text-align:center;font-size:var(--fs-base);outline:none}
+/* Modal */
+.modal-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-mask.show{display:flex}
+.modal-lg{width:840px;background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-modal);max-height:90vh;display:flex;flex-direction:column}
+.modal-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.modal-close{cursor:pointer;color:var(--n7);border:none;background:transparent}
+.modal-close:hover{color:var(--n10)}
+.modal-body{padding:var(--s6);overflow-y:auto;flex:1}
+.modal-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2);flex-shrink:0}
+/* Modal two-col layout */
+.modal-cols{display:flex;gap:var(--s6)}
+.modal-form-col{flex:1;min-width:0}
+.modal-preview-col{width:300px;flex-shrink:0}
+/* Form */
+.form-section-title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);margin:var(--s6) 0 var(--s3);padding-bottom:var(--s2);border-bottom:1px solid var(--n3);display:flex;align-items:center;gap:var(--s2)}
+.form-section-title:first-child{margin-top:0}
+.form-item{margin-bottom:var(--s4)}
+.form-label{display:block;font-size:var(--fs-base);color:var(--n9);margin-bottom:var(--s1)}
+.form-label .req{color:var(--c-error);margin-right:2px}
+.form-input{width:100%;height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app)}
+.form-input.mono{font-family:var(--ff-mono)}
+.form-input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.form-textarea{width:100%;min-height:96px;padding:var(--s2) var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app);resize:vertical;line-height:1.6}
+.form-textarea.mono{font-family:var(--ff-mono)}
+.form-textarea:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.form-hint{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1)}
+.form-row{display:flex;gap:var(--s3)}
+.form-row .form-item{flex:1}
+.form-select{width:100%;height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);cursor:pointer}
+/* Switch */
+.switch{display:inline-flex;align-items:center;cursor:pointer;gap:var(--s1)}
+.switch-track{width:36px;height:20px;border-radius:10px;background:var(--n5);position:relative;transition:background .2s}
+.switch-track.on{background:var(--c-success)}
+.switch-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s}
+.switch-track.on .switch-thumb{transform:translateX(16px)}
+.switch-label{font-size:var(--fs-sm);color:var(--n9)}
+/* Variable list */
+.var-list{display:flex;flex-direction:column;gap:var(--s2)}
+.var-row{display:flex;align-items:center;gap:var(--s2);padding:var(--s2) var(--s3);background:var(--n2);border-radius:var(--r-base);border:1px solid var(--n3)}
+.var-key{font-family:var(--ff-mono);font-size:var(--fs-sm);color:var(--c-primary);background:#e6f4ff;padding:1px var(--s1);border-radius:3px;min-width:90px;text-align:center}
+.var-desc{font-size:var(--fs-sm);color:var(--n9);flex:1}
+.var-example{font-size:var(--fs-sm);color:var(--n7);font-family:var(--ff-mono)}
+.var-insert-btn{display:inline-flex;align-items:center;gap:var(--s1);height:24px;padding:0 var(--s2);border:1px dashed var(--c-primary);border-radius:var(--r-base);background:transparent;color:var(--c-primary);font-size:var(--fs-sm);cursor:pointer}
+.var-insert-btn:hover{background:#e6f4ff}
+/* Preview panel */
+.preview-panel{background:var(--n2);border-radius:var(--r-card);border:1px solid var(--n3);padding:var(--s4);position:sticky;top:0}
+.preview-title-bar{font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--n9);margin-bottom:var(--s3);display:flex;align-items:center;gap:var(--s1)}
+.preview-phone{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4);margin-bottom:var(--s3)}
+.preview-channel-tag{display:inline-flex;align-items:center;gap:var(--s1);font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s3)}
+.preview-sms-title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);margin-bottom:var(--s2)}
+.preview-sms-body{font-size:var(--fs-sm);color:var(--n9);line-height:1.7;white-space:pre-wrap}
+.preview-sms-body .hl{color:var(--c-primary);font-weight:var(--fw-medium)}
+.preview-meta{font-size:var(--fs-sm);color:var(--n7);border-top:1px solid var(--n3);padding-top:var(--s2);margin-top:var(--s3)}
+.preview-test-input{width:100%;height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-sm);color:var(--n10);outline:none;background:var(--n1);margin-bottom:var(--s2)}
+.preview-test-input:focus{border-color:var(--c-primary)}
+.char-count{font-size:var(--fs-sm);color:var(--n7);text-align:right;margin-top:var(--s1)}
+.char-count.over{color:var(--c-error)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-logo">
+      <div class="logo-mark">L</div>
+      <span class="logo-text">Leno 运营后台</span>
+    </div>
+    <div class="header-breadcrumb">
+      <span>通知运营</span><span class="sep">/</span><span class="current">通知模板</span>
+    </div>
+    <div class="header-right">
+      <input class="header-search" placeholder="搜索菜单、订单、商品...">
+      <button class="header-icon-btn" title="待办">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7zM635.1 582.6L597 430.1 794.6 232.5 635.1 582.6z"/></svg>
+        <span class="badge">12</span>
+      </button>
+      <button class="header-icon-btn" title="通知">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252s-252 110.7-252 252v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32zM336 428c0-105.9 86.1-188 192-188s192 82.1 192 188v340H336V428zM512 912c48.6 0 88-39.4 88-88H424c0 48.6 39.4 88 88 88z"/></svg>
+        <span class="badge">3</span>
+      </button>
+      <div class="user-menu">
+        <div class="user-avatar">运</div>
+        <span class="user-name">运营管理员</span>
+      </div>
+    </div>
+  </header>
+
+  <aside class="sider">
+    <ul class="menu">
+      <li class="menu-group-title">运营管理</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c6.2-12.6 3.9-27.8-5.6-37.6zM512 700c-103.8 0-188-84.2-188-188s84.2-188 188-188 188 84.2 188 188-84.2 188-188 188z"/></svg><span>数据看板</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z"/><path d="M304 240h416v48H304zm0 160h416v48H304zm0 160h416v48H304z"/></svg><span>商品运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 832c-211.8 0-384-172.2-384-384s172.2-384 384-384 384 172.2 384 384-172.2 384-384 384z"/></svg><span>促销运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>卖家运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg><span>订单运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 768c-176.7 0-320-143.3-320-320s143.3-320 320-320 320 143.3 320 320-143.3 320-320 320z"/></svg><span>支付运营</span></li>
+      <li class="menu-item" style="background:rgba(22,119,255,.15);color:#fff"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg><span>通知运营</span></li>
+      <ul class="menu-sub">
+        <li class="menu-item active"><span style="margin-left:8px">通知模板</span></li>
+        <li class="menu-item"><span style="margin-left:8px">通知记录</span></li>
+        <li class="menu-item"><span style="margin-left:8px">通知配置</span></li>
+        <li class="menu-item"><span style="margin-left:8px">通知限流</span></li>
+      </ul>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32z"/></svg><span>会员运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>个人中心</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M505.7 661a8 8 0 0012.6 0l112-141.7c4.1-5.2.4-12.9-6.3-12.9h-74.1V168c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v338.3H400c-6.7 0-10.4 7.7-6.3 12.9l112 141.8zM878 626h-60c-4.4 0-8 3.6-8 8v154H214V634c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v198c0 17.7 14.3 32 32 32h684c17.7 0 32-14.3 32-32V634c0-4.4-3.6-8-8-8z"/></svg><span>数据导出</span></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <div class="page-title">通知模板</div>
+      <div class="page-desc">维护通知模板（按事件类型与渠道），支持创建、编辑、启停与渲染预览，保障通知文案与变量正确性。</div>
+    </div>
+
+    <!-- Filter -->
+    <div class="filter-card">
+      <div class="filter-form">
+        <div class="filter-item">
+          <label class="filter-label">模板名称 / 编码</label>
+          <input class="filter-input" placeholder="如 ORDER_PAID、订单已支付">
+        </div>
+        <div class="filter-item">
+          <label class="filter-label">事件类型</label>
+          <select class="filter-select"><option>全部</option><option>订单</option><option>支付</option><option>退款</option><option>售后</option><option>营销</option></select>
+        </div>
+        <div class="filter-item">
+          <label class="filter-label">渠道</label>
+          <select class="filter-select"><option>全部</option><option>短信</option><option>邮件</option><option>站内信</option><option>Push</option></select>
+        </div>
+        <div class="filter-item">
+          <label class="filter-label">状态</label>
+          <select class="filter-select"><option>全部</option><option>启用</option><option>禁用</option></select>
+        </div>
+        <div class="filter-actions">
+          <button class="btn"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 714 478.4 714 408c0-168.4-136.6-305-305-305S104 239.6 104 408s136.6 305 305 305c70.4 0 134.7-23.8 186.8-64.1l259.7 259.6 54.1-54.1zM169 408c0-132.3 107.7-240 240-240s240 107.7 240 240-107.7 240-240 240-240-107.7-240-240z" fill="currentColor"/></svg>查询</button>
+          <button class="btn">重置</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <div class="table-toolbar">
+        <div class="table-toolbar-left">
+          <button class="btn btn-primary" onclick="openEditModal()"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M482 152h444q28 0 28 28t-28 28H482q-28 0-28-28t28-28zm0 320h444q28 0 28 28t-28 28H482q-28 0-28-28t28-28zm0 320h444q28 0 28 28t-28 28H482q-28 0-28-28t28-28zm-184-64q40 0 68 28t28 68-28 68-68 28-68-28-28-68 28-68 68-28zm0-320q40 0 68 28t28 68-28 68-68 28-68-28-28-68 28-68 68-28zm0-320q40 0 68 28t28 68-28 68-68 28-68-28-28-68 28-68 68-28z" fill="currentColor"/></svg>新增模板</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--s3)">
+          <span class="table-info">共 <b>8</b> 条模板</span>
+          <button class="btn"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M909.1 209.3l-56.4-44.1C845.9 155 836 159 836 166.3V449c0 4.4 3.6 8 8 8h44.7c4.4 0 8-3.6 8-8V353.5l97.9 76.5c1.1.9 2.8.1 2.8-1.3V192.1c0-1.4-1.7-2.2-2.8-1.3L896.7 267c-.9.7-2.2.5-2.9-.4l-30.7-41.1c-.7-.9-.5-2.2.4-2.9z" fill="currentColor"/><path d="M880 696H144c-17.7 0-32 14.3-32 32v96c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32v-96c0-17.7-14.3-32-32-32z" fill="currentColor"/></svg>导出</button>
+          <button class="btn"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 714 478.4 714 408c0-168.4-136.6-305-305-305S104 239.6 104 408s136.6 305 305 305c70.4 0 134.7-23.8 186.8-64.1l259.7 259.6 54.1-54.1z" fill="currentColor"/></svg>刷新</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>模板编码</th>
+            <th>模板名称</th>
+            <th>事件类型</th>
+            <th>渠道</th>
+            <th>变量数</th>
+            <th>状态</th>
+            <th>更新时间</th>
+            <th style="width:180px">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="cell-mono">ORDER_PAID</span></td>
+            <td><span class="cell-name">订单已支付通知</span></td>
+            <td><span class="tag tag-primary">订单</span></td>
+            <td><span class="tag tag-success">短信</span></td>
+            <td><span class="var-count">3</span></td>
+            <td><span class="tag tag-success">启用</span></td>
+            <td><span class="cell-time">2026-07-26 14:30</span></td>
+            <td><span class="op-link" onclick="openEditModal()">编辑</span><span class="op-link" onclick="openPreviewModal()">预览</span><span class="op-link danger" onclick="confirmDisable()">停用</span></td>
+          </tr>
+          <tr>
+            <td><span class="cell-mono">SHIP_NOTIFY</span></td>
+            <td><span class="cell-name">订单发货通知</span></td>
+            <td><span class="tag tag-primary">订单</span></td>
+            <td><span class="tag tag-purple">站内信</span></td>
+            <td><span class="var-count">4</span></td>
+            <td><span class="tag tag-success">启用</span></td>
+            <td><span class="cell-time">2026-07-26 10:15</span></td>
+            <td><span class="op-link" onclick="openEditModal()">编辑</span><span class="op-link" onclick="openPreviewModal()">预览</span><span class="op-link danger" onclick="confirmDisable()">停用</span></td>
+          </tr>
+          <tr>
+            <td><span class="cell-mono">REFUND_OK</span></td>
+            <td><span class="cell-name">退款成功通知</span></td>
+            <td><span class="tag tag-warning">退款</span></td>
+            <td><span class="tag tag-purple">站内信</span></td>
+            <td><span class="var-count">2</span></td>
+            <td><span class="tag tag-success">启用</span></td>
+            <td><span class="cell-time">2026-07-25 16:42</span></td>
+            <td><span class="op-link" onclick="openEditModal()">编辑</span><span class="op-link" onclick="openPreviewModal()">预览</span><span class="op-link danger" onclick="confirmDisable()">停用</span></td>
+          </tr>
+          <tr>
+            <td><span class="cell-mono">COUPON_EXPIRE</span></td>
+            <td><span class="cell-name">优惠券到期提醒</span></td>
+            <td><span class="tag tag-purple">营销</span></td>
+            <td><span class="tag tag-success">短信</span></td>
+            <td><span class="var-count">2</span></td>
+            <td><span class="tag tag-success">启用</span></td>
+            <td><span class="cell-time">2026-07-25 09:20</span></td>
+            <td><span class="op-link" onclick="openEditModal()">编辑</span><span class="op-link" onclick="openPreviewModal()">预览</span><span class="op-link danger" onclick="confirmDisable()">停用</span></td>
+          </tr>
+          <tr class="disabled">
+            <td><span class="cell-mono">REGISTER_WELCOME</span></td>
+            <td><span class="cell-name">注册欢迎邮件</span></td>
+            <td><span class="tag tag-purple">营销</span></td>
+            <td><span class="tag tag-primary">邮件</span></td>
+            <td><span class="var-count">3</span></td>
+            <td><span class="tag tag-default">禁用</span></td>
+            <td><span class="cell-time">2026-07-24 18:05</span></td>
+            <td><span class="op-link" onclick="openEditModal()">编辑</span><span class="op-link" onclick="openPreviewModal()">预览</span><span class="op-link" onclick="confirmEnable()">启用</span></td>
+          </tr>
+          <tr>
+            <td><span class="cell-mono">ORDER_CANCEL</span></td>
+            <td><span class="cell-name">订单取消通知</span></td>
+            <td><span class="tag tag-primary">订单</span></td>
+            <td><span class="tag tag-warning">Push</span></td>
+            <td><span class="var-count">2</span></td>
+            <td><span class="tag tag-success">启用</span></td>
+            <td><span class="cell-time">2026-07-24 15:30</span></td>
+            <td><span class="op-link" onclick="openEditModal()">编辑</span><span class="op-link" onclick="openPreviewModal()">预览</span><span class="op-link danger" onclick="confirmDisable()">停用</span></td>
+          </tr>
+          <tr>
+            <td><span class="cell-mono">PRICE_DROP</span></td>
+            <td><span class="cell-name">降价提醒</span></td>
+            <td><span class="tag tag-purple">营销</span></td>
+            <td><span class="tag tag-warning">Push</span></td>
+            <td><span class="var-count">2</span></td>
+            <td><span class="tag tag-success">启用</span></td>
+            <td><span class="cell-time">2026-07-23 11:18</span></td>
+            <td><span class="op-link" onclick="openEditModal()">编辑</span><span class="op-link" onclick="openPreviewModal()">预览</span><span class="op-link danger" onclick="confirmDisable()">停用</span></td>
+          </tr>
+          <tr>
+            <td><span class="cell-mono">AFTERSALES_UPDATE</span></td>
+            <td><span class="cell-name">售后进度更新</span></td>
+            <td><span class="tag tag-error">售后</span></td>
+            <td><span class="tag tag-purple">站内信</span></td>
+            <td><span class="var-count">3</span></td>
+            <td><span class="tag tag-success">启用</span></td>
+            <td><span class="cell-time">2026-07-23 09:45</span></td>
+            <td><span class="op-link" onclick="openEditModal()">编辑</span><span class="op-link" onclick="openPreviewModal()">预览</span><span class="op-link danger" onclick="confirmDisable()">停用</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination">
+        <span class="page-size">每页 20 条 / 共 8 条</span>
+        <button class="page-btn disabled"><svg class="icon icon-sm" viewBox="0 0 1024 1024"><path d="M724 218.3V141.9c0-6.7-7.7-10.4-12.9-6.5L253.3 488.4c-7.6 6.1-7.6 17.2 0 23.3l457.8 352.9c5.2 4 12.9.4 12.9-6.5v-76.4c0-4.9-2.3-9.6-6.1-12.6l-326.1-259.6 326.1-259.6c3.8-3 6.1-7.7 6.1-12.6z" fill="currentColor"/></svg></button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn disabled"><svg class="icon icon-sm" viewBox="0 0 1024 1024"><path d="M765.7 486.8L314.9 134.7c-5.2-4-12.9-.4-12.9 6.5v77.4c0 4.9 2.3 9.6 6.1 12.6l326.1 259.6L308.1 750.7c-3.8 3-6.1 7.7-6.1 12.6v77.4c0 6.9 7.7 10.5 12.9 6.5l450.8-352.1c7.6-6.1 7.6-17.2 0-23.3z" fill="currentColor"/></svg></button>
+        <span class="page-jumper">跳至<input value="1">页</span>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Leno 电商平台运营管理后台 © 2026 Leno Technology Co., Ltd.</footer>
+</div>
+
+<!-- Edit / New Modal -->
+<div class="modal-mask" id="editModal">
+  <div class="modal-lg">
+    <div class="modal-head">
+      <div class="modal-title" id="editModalTitle">编辑通知模板</div>
+      <button class="modal-close" onclick="closeModal('editModal')"><svg class="icon icon-lg" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.1-13.1-6.3-13.1H676c-4.9 0-9.6 2.1-12.9 5.9L499.3 442.6 333.7 191.9c-3.2-3.8-7.9-5.9-12.9-5.9H176.5c-6.5 0-9.5 7.9-5.1 13.1L433.8 512 171.4 824.9c-4.4 5.2-.1 13.1 6.3 13.1h143.7c4.9 0 9.6-2.1 12.9-5.9l167.2-252.8 167.2 252.8c3.2 3.8 7.9 5.9 12.9 5.9h138.7c6.5 0 9.5-7.9 5.1-13.1L563.8 512z"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-cols">
+        <!-- Form column -->
+        <div class="modal-form-col">
+          <div class="form-section-title">
+            <svg class="icon icon-md" style="color:var(--c-primary)" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z" fill="currentColor"/></svg>
+            基础信息
+          </div>
+          <div class="form-row">
+            <div class="form-item">
+              <label class="form-label"><span class="req">*</span>模板编码</label>
+              <input class="form-input mono" value="ORDER_PAID" aria-label="模板编码 ORDER_PAID">
+              <div class="form-hint">唯一标识，创建后不可修改，大写字母与下划线</div>
+            </div>
+            <div class="form-item">
+              <label class="form-label"><span class="req">*</span>模板名称</label>
+              <input class="form-input" value="订单已支付通知">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-item">
+              <label class="form-label"><span class="req">*</span>事件类型</label>
+              <select class="form-select"><option>订单</option><option>支付</option><option>退款</option><option>售后</option><option>营销</option></select>
+            </div>
+            <div class="form-item">
+              <label class="form-label"><span class="req">*</span>渠道</label>
+              <select class="form-select"><option>短信</option><option>邮件</option><option>站内信</option><option>Push</option></select>
+            </div>
+          </div>
+
+          <div class="form-section-title">
+            <svg class="icon icon-md" style="color:var(--c-primary)" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z" fill="currentColor"/></svg>
+            模板内容
+          </div>
+          <div class="form-item">
+            <label class="form-label">标题模板</label>
+            <input class="form-input" value="【Leno】您的订单已支付成功">
+            <div class="form-hint">支持 <code style="color:var(--c-primary);font-family:var(--ff-mono)">{{变量名}}</code> 插值</div>
+          </div>
+          <div class="form-item">
+            <label class="form-label"><span class="req">*</span>正文模板</label>
+            <textarea class="form-textarea mono" id="bodyTemplate" oninput="updatePreview()">【Leno】您于{{orderTime}}提交的订单{{orderNo}}已支付成功，支付金额{{amount}}。我们将尽快为您安排发货，请留意物流通知。</textarea>
+            <div class="char-count" id="charCount">48 / 70 字（含变量渲染后）</div>
+          </div>
+
+          <div class="form-section-title">
+            <svg class="icon icon-md" style="color:var(--c-primary)" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z" fill="currentColor"/></svg>
+            变量列表
+          </div>
+          <div class="var-list">
+            <div class="var-row">
+              <span class="var-key" aria-label="变量 orderTime">{{orderTime}}</span>
+              <span class="var-desc">下单时间</span>
+              <span class="var-example">2026-07-26 15:23</span>
+              <button class="var-insert-btn" onclick="insertVar('orderTime')">插入</button>
+            </div>
+            <div class="var-row">
+              <span class="var-key" aria-label="变量 orderNo">{{orderNo}}</span>
+              <span class="var-desc">订单编号</span>
+              <span class="var-example">NO202607261523001</span>
+              <button class="var-insert-btn" onclick="insertVar('orderNo')">插入</button>
+            </div>
+            <div class="var-row">
+              <span class="var-key" aria-label="变量 amount">{{amount}}</span>
+              <span class="var-desc">支付金额</span>
+              <span class="var-example">¥299.00</span>
+              <button class="var-insert-btn" onclick="insertVar('amount')">插入</button>
+            </div>
+          </div>
+
+          <div class="form-section-title">
+            <svg class="icon icon-md" style="color:var(--c-primary)" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z" fill="currentColor"/></svg>
+            状态
+          </div>
+          <div class="form-item">
+            <div class="switch" onclick="toggleSwitch(this)"><div class="switch-track on"><div class="switch-thumb"></div></div><span class="switch-label">启用（该事件触发时发送通知）</span></div>
+          </div>
+        </div>
+
+        <!-- Preview column -->
+        <div class="modal-preview-col">
+          <div class="preview-panel">
+            <div class="preview-title-bar">
+              <svg class="icon icon-md" style="color:var(--c-primary)" viewBox="0 0 1024 1024"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32z" fill="currentColor"/></svg>
+              实时预览
+            </div>
+            <div class="preview-channel-tag">
+              <span class="tag tag-success">短信</span>
+              <span>· 渲染结果</span>
+            </div>
+            <div class="preview-phone">
+              <div class="preview-sms-title">【Leno】您的订单已支付成功</div>
+              <div class="preview-sms-body" id="previewBody">【Leno】您于<span class="hl">2026-07-26 15:23</span>提交的订单<span class="hl">NO202607261523001</span>已支付成功，支付金额<span class="hl">¥299.00</span>。我们将尽快为您安排发货，请留意物流通知。</div>
+              <div class="preview-meta">
+                <div style="margin-bottom:var(--s1)">字符数：<b>62</b> / 70</div>
+                <div>预计拆分：<b>1 条短信</b></div>
+              </div>
+            </div>
+            <div style="margin-bottom:var(--s2);font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--n9)">测试变量值</div>
+            <input class="preview-test-input" placeholder="orderTime 测试值" value="2026-07-26 15:23" oninput="updatePreview()">
+            <input class="preview-test-input" placeholder="orderNo 测试值" value="NO202607261523001" oninput="updatePreview()">
+            <input class="preview-test-input" placeholder="amount 测试值" value="¥299.00" oninput="updatePreview()">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('editModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('editModal')"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M912 328h-44V136c0-4.4-3.6-8-8-8h-52c-4.4 0-8 3.6-8 8v192H224V136c0-4.4-3.6-8-8-8h-52c-4.4 0-8 3.6-8 8v192H112c-17.7 0-32 14.3-32 32v544c0 17.7 14.3 32 32 32h800c17.7 0 32-14.3 32-32V360c0-17.7-14.3-32-32-32z" fill="currentColor"/></svg>保存模板</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Disable Dialog -->
+<div class="modal-mask" id="confirmModal">
+  <div class="modal" style="width:440px">
+    <div class="modal-head">
+      <div class="modal-title" style="display:flex;align-items:center;gap:var(--s2)">
+        <svg class="icon icon-lg" style="color:var(--c-warning)" viewBox="0 0 1024 1024"><path d="M955.7 856.5l-395.6-685c-11.1-19.2-43.8-19.2-54.9 0l-395.6 685c-5.5 9.5-5.5 21.3 0 30.8 5.5 9.5 15.7 15.4 27.5 15.4h791.2c11.8 0 22-5.9 27.5-15.4 5.5-9.5 5.5-21.3 0-30.8zM512 820c-22.1 0-40-17.9-40-40s17.9-40 40-40 40 17.9 40 40-17.9 40-40 40zm32-152c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V360c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v308z" fill="currentColor"/></svg>
+        确认停用模板
+      </div>
+      <button class="modal-close" onclick="closeModal('confirmModal')"><svg class="icon icon-lg" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.1-13.1-6.3-13.1H676c-4.9 0-9.6 2.1-12.9 5.9L499.3 442.6 333.7 191.9c-3.2-3.8-7.9-5.9-12.9-5.9H176.5c-6.5 0-9.5 7.9-5.1 13.1L433.8 512 171.4 824.9c-4.4 5.2-.1 13.1 6.3 13.1h143.7c4.9 0 9.6-2.1 12.9-5.9l167.2-252.8 167.2 252.8c3.2 3.8 7.9 5.9 12.9 5.9h138.7c6.5 0 9.5-7.9 5.1-13.1L563.8 512z"/></svg></button>
+    </div>
+    <div class="modal-body" style="padding:var(--s6)">
+      <p style="font-size:var(--fs-base);color:var(--n10);line-height:1.7">停用模板 <code style="font-family:var(--ff-mono);color:var(--c-primary);background:#e6f4ff;padding:1px 4px;border-radius:3px">ORDER_PAID</code> 后，该事件将不再发送通知。</p>
+      <p style="font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s2)">此操作可逆，后续可在模板列表中重新启用。停用后已发送的通知记录不受影响。</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('confirmModal')">取消</button>
+      <button class="btn btn-primary" style="background:var(--c-warning);border-color:var(--c-warning)" onclick="closeModal('confirmModal')">确认停用</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSwitch(el){var t=el.querySelector('.switch-track');var l=el.querySelector('.switch-label');t.classList.toggle('on');if(t.classList.contains('on')){l.textContent='启用（该事件触发时发送通知）';}else{l.textContent='已停用（该事件将不再发送通知）';}}
+function openEditModal(){document.getElementById('editModalTitle').textContent='编辑通知模板';document.getElementById('editModal').classList.add('show');updatePreview();}
+function openPreviewModal(){document.getElementById('editModalTitle').textContent='预览通知模板';document.getElementById('editModal').classList.add('show');updatePreview();}
+function confirmDisable(){document.getElementById('confirmModal').classList.add('show');}
+function confirmEnable(){document.getElementById('confirmModal').querySelector('.modal-title').innerHTML='<svg class="icon icon-lg" style="color:var(--c-success);width:20px;height:20px" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L449.2 729.5c-4.7 4.7-12.3 4.7-17 0L264.3 561.6c-4.7-4.7-4.7-12.3 0-17l23.3-23.3c4.7-4.7 12.3-4.7 17 0l135.2 135.2 228.7-228.7c4.7-4.7 12.3-4.7 17 0l23.3 23.3c4.7 4.7 4.7 12.3 0 17z" fill="currentColor"/></svg> 确认启用模板';document.getElementById('confirmModal').classList.add('show');}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function insertVar(name){var ta=document.getElementById('bodyTemplate');var start=ta.selectionStart;var end=ta.selectionEnd;var text='{{'+name+'}}';ta.value=ta.value.substring(0,start)+text+ta.value.substring(end);ta.selectionStart=ta.selectionEnd=start+text.length;ta.focus();updatePreview();}
+function updatePreview(){var body=document.getElementById('bodyTemplate').value;var inputs=document.querySelectorAll('.preview-test-input');var orderTime=inputs[0]?inputs[0].value:'2026-07-26 15:23';var orderNo=inputs[1]?inputs[1].value:'NO202607261523001';var amount=inputs[2]?inputs[2].value:'¥299.00';var rendered=body.replace(/\{\{orderTime\}\}/g,'<span class="hl">'+orderTime+'</span>').replace(/\{\{orderNo\}\}/g,'<span class="hl">'+orderNo+'</span>').replace(/\{\{amount\}\}/g,'<span class="hl">'+amount+'</span>');document.getElementById('previewBody').innerHTML=rendered;var plainLen=body.replace(/\{\{orderTime\}\}/g,orderTime).replace(/\{\{orderNo\}\}/g,orderNo).replace(/\{\{amount\}\}/g,amount).length;var cc=document.getElementById('charCount');cc.textContent=plainLen+' / 70 字（含变量渲染后）';if(plainLen>70){cc.classList.add('over');}else{cc.classList.remove('over');}}
+</script>
+</body>
+</html>

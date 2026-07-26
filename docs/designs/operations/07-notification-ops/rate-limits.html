@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>通知限流 - Leno 运营管理后台</title>
+<style>
+:root{
+  --c-primary:#1677FF;--c-success:#52C41A;--c-warning:#FAAD14;--c-error:#FF4D4F;--c-purple:#722ED1;
+  --n1:#FFFFFF;--n2:#FAFAFA;--n3:#F5F5F5;--n5:#D9D9D9;--n7:#8C8C8C;--n9:#595959;--n10:#000000D9;
+  --r-base:6px;--r-card:8px;--r-lg:12px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s6:24px;--s8:32px;--s12:48px;
+  --fs-sm:12px;--fs-base:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:30px;
+  --fw-normal:400;--fw-medium:500;--fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529;--sider-width:200px;--header-h:64px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--n1);display:flex;align-items:center;padding:0 var(--s4);z-index:100;box-shadow:0 1px 4px rgba(0,21,41,.08)}
+.header-logo{display:flex;align-items:center;gap:var(--s2);width:calc(var(--sider-width) - var(--s4));flex-shrink:0}
+.logo-mark{width:32px;height:32px;background:var(--c-primary);border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:var(--fw-semibold);font-size:var(--fs-lg)}
+.logo-text{font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.header-breadcrumb{display:flex;align-items:center;gap:var(--s2);color:var(--n9);font-size:var(--fs-base)}
+.header-breadcrumb .sep{color:var(--n5)}
+.header-breadcrumb .current{color:var(--n10)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:var(--s4)}
+.header-search{width:220px;height:32px;background:var(--n3);border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);outline:none}
+.header-search::placeholder{color:var(--n7)}
+.header-icon-btn{width:36px;height:36px;border:none;background:transparent;border-radius:var(--r-base);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n9);position:relative}
+.header-icon-btn:hover{background:var(--n3)}
+.header-icon-btn .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;border-radius:8px;font-size:10px;line-height:16px;font-weight:var(--fw-semibold)}
+.user-menu{display:flex;align-items:center;gap:var(--s2);cursor:pointer;padding:var(--s1) var(--s2);border-radius:var(--r-base)}
+.user-menu:hover{background:var(--n3)}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-base);font-weight:var(--fw-medium)}
+.user-name{font-size:var(--fs-base)}
+.sider{position:fixed;top:var(--header-h);left:0;bottom:0;width:var(--sider-width);background:var(--sider-bg);overflow-y:auto;z-index:90}
+.menu{list-style:none;padding:var(--s2) 0}
+.menu-group-title{padding:var(--s4) var(--s6);font-size:var(--fs-sm);color:rgba(255,255,255,.35)}
+.menu-item{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s6);height:40px;color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;border-left:3px solid transparent;transition:all .2s}
+.menu-item:hover{color:#fff}
+.menu-item.active{background:var(--c-primary);color:#fff;border-left-color:var(--c-primary)}
+.menu-sub{list-style:none}
+.menu-sub .menu-item{padding-left:var(--s8)}
+.menu-sub .menu-item.active{background:var(--c-primary)}
+.content{margin-left:var(--sider-width);margin-top:var(--header-h);padding:var(--s6);min-height:calc(100vh - var(--header-h) - 32px)}
+.footer{margin-left:var(--sider-width);height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7)}
+.page-header{background:var(--n1);border-radius:var(--r-card);padding:var(--s6);margin-bottom:var(--s4);box-shadow:var(--sh-card)}
+.page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-bottom:var(--s1)}
+.page-desc{font-size:var(--fs-base);color:var(--n7)}
+.btn{display:inline-flex;align-items:center;gap:var(--s1);height:32px;padding:0 var(--s3);border-radius:var(--r-base);border:1px solid var(--n5);background:var(--n1);color:var(--n10);font-size:var(--fs-base);cursor:pointer;transition:all .1s;font-family:inherit}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff}
+.icon{display:inline-flex;vertical-align:middle;flex-shrink:0}
+.icon-md{width:16px;height:16px}
+.icon-lg{width:20px;height:20px}
+.icon-menu{width:16px;height:16px;fill:currentColor;flex-shrink:0}
+.icon-sm{width:12px;height:12px}
+.icon-xl{width:24px;height:24px}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 var(--s2);border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;border:1px solid transparent}
+.tag-success{color:var(--c-success);background:#f6ffed;border-color:#b7eb8f}
+.tag-error{color:var(--c-error);background:#fff2f0;border-color:#ffccc7}
+.tag-warning{color:var(--c-warning);background:#fffbe6;border-color:#ffe58f}
+.tag-default{color:var(--n9);background:var(--n3);border-color:var(--n5)}
+.tag-primary{color:var(--c-primary);background:#e6f4ff;border-color:#91caff}
+.tag-purple{color:var(--c-purple);background:#f9f0ff;border-color:#d3adf7}
+/* Split layout */
+.split-layout{display:flex;gap:var(--s4);align-items:flex-start}
+.channel-sidebar{width:280px;flex-shrink:0;background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden}
+.channel-sidebar-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);display:flex;align-items:center;gap:var(--s2)}
+.channel-sidebar-list{padding:var(--s2)}
+.channel-side-item{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);border-radius:var(--r-base);cursor:pointer;transition:all .2s;margin-bottom:var(--s2)}
+.channel-side-item:hover{background:var(--n2)}
+.channel-side-item.active{background:#e6f4ff;border:1px solid #91caff}
+.channel-side-icon{width:36px;height:36px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.channel-side-info{flex:1;min-width:0}
+.channel-side-name{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10)}
+.channel-side-status{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;display:flex;align-items:center;gap:var(--s1)}
+.status-dot{display:inline-block;width:6px;height:6px;border-radius:50%}
+.status-dot.on{background:var(--c-success)}
+.status-dot.off{background:var(--c-error)}
+/* Detail panel */
+.detail-panel{flex:1;min-width:0;background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s6)}
+.detail-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s6);padding-bottom:var(--s4);border-bottom:1px solid var(--n3)}
+.detail-head-left{display:flex;align-items:center;gap:var(--s3)}
+.detail-head-icon{width:48px;height:48px;border-radius:var(--r-card);display:flex;align-items:center;justify-content:center}
+.detail-head-name{font-size:var(--fs-xl);font-weight:var(--fw-semibold)}
+.detail-head-meta{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;display:flex;align-items:center;gap:var(--s3)}
+/* Section title */
+.section-title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);margin:var(--s6) 0 var(--s3);padding-bottom:var(--s2);border-bottom:1px solid var(--n3);display:flex;align-items:center;gap:var(--s2)}
+.section-title:first-child{margin-top:0}
+/* Rule cards */
+.rule-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s4)}
+.rule-card{border:1px solid var(--n3);border-radius:var(--r-card);padding:var(--s4);background:var(--n1)}
+.rule-card-label{font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s2);display:flex;align-items:center;gap:var(--s1)}
+.rule-card-value{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10)}
+.rule-card-value .unit{font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal);margin-left:var(--s1)}
+.rule-card-desc{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1)}
+/* Progress bar */
+.usage-block{margin-top:var(--s6)}
+.usage-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s2)}
+.usage-title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10)}
+.usage-numbers{font-size:var(--fs-sm);color:var(--n7)}
+.usage-numbers b{color:var(--n10);font-weight:var(--fw-semibold);font-size:var(--fs-base)}
+.progress-track{height:8px;background:var(--n3);border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;transition:width .3s}
+.progress-fill.green{background:var(--c-success)}
+.progress-fill.orange{background:var(--c-warning)}
+.progress-fill.red{background:var(--c-error)}
+.usage-hint{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s2)}
+.usage-hint.warn{color:var(--c-warning)}
+.usage-hint.danger{color:var(--c-error)}
+/* Edit form */
+.form-item{margin-bottom:var(--s4)}
+.form-label{display:block;font-size:var(--fs-base);color:var(--n9);margin-bottom:var(--s1)}
+.form-label .req{color:var(--c-error);margin-right:2px}
+.form-label .hint-inline{font-size:var(--fs-sm);color:var(--n7);margin-left:var(--s1)}
+.form-input{width:100%;height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app)}
+.form-input.mono{font-family:var(--ff-mono)}
+.form-input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.form-hint{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1)}
+.form-row{display:flex;gap:var(--s3)}
+.form-row .form-item{flex:1}
+.form-select{width:100%;height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);cursor:pointer}
+.form-actions{display:flex;justify-content:flex-end;gap:var(--s2);margin-top:var(--s6);padding-top:var(--s4);border-top:1px solid var(--n3)}
+/* Switch */
+.switch{display:inline-flex;align-items:center;cursor:pointer;gap:var(--s1)}
+.switch-track{width:36px;height:20px;border-radius:10px;background:var(--n5);position:relative;transition:background .2s}
+.switch-track.on{background:var(--c-success)}
+.switch-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s}
+.switch-track.on .switch-thumb{transform:translateX(16px)}
+.switch-label{font-size:var(--fs-sm);color:var(--n9)}
+/* Desc list */
+.desc-list{border:1px solid var(--n3);border-radius:var(--r-base);overflow:hidden;margin-bottom:var(--s6)}
+.desc-row{display:flex;border-bottom:1px solid var(--n3)}
+.desc-row:last-child{border-bottom:none}
+.desc-label{width:140px;padding:var(--s3) var(--s4);background:var(--n2);font-size:var(--fs-base);color:var(--n9);flex-shrink:0}
+.desc-value{padding:var(--s3) var(--s4);font-size:var(--fs-base);color:var(--n10);flex:1;word-break:break-all}
+/* Modal */
+.modal-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-mask.show{display:flex}
+.modal{width:440px;background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-modal)}
+.modal-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2)}
+.modal-close{cursor:pointer;color:var(--n7);border:none;background:transparent}
+.modal-close:hover{color:var(--n10)}
+.modal-body{padding:var(--s6);max-height:60vh;overflow-y:auto}
+.modal-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2)}
+/* Hit records table */
+.hit-table{width:100%;border-collapse:collapse;font-size:var(--fs-base);margin-top:var(--s3)}
+.hit-table th{background:var(--n2);font-weight:var(--fw-medium);color:var(--n9);font-size:var(--fs-sm);padding:var(--s3) var(--s4);text-align:left;white-space:nowrap;height:40px;border-bottom:1px solid var(--n3)}
+.hit-table td{padding:var(--s2) var(--s4);color:var(--n10);border-bottom:1px solid var(--n3);height:40px;white-space:nowrap}
+.hit-table td .cell-mono{font-family:var(--ff-mono);font-size:var(--fs-sm);color:var(--n7)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-logo">
+      <div class="logo-mark">L</div>
+      <span class="logo-text">Leno 运营后台</span>
+    </div>
+    <div class="header-breadcrumb">
+      <span>通知运营</span><span class="sep">/</span><span class="current">通知限流</span>
+    </div>
+    <div class="header-right">
+      <input class="header-search" placeholder="搜索菜单、订单、商品...">
+      <button class="header-icon-btn" title="待办">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7zM635.1 582.6L597 430.1 794.6 232.5 635.1 582.6z"/></svg>
+        <span class="badge">12</span>
+      </button>
+      <button class="header-icon-btn" title="通知">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252s-252 110.7-252 252v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32zM336 428c0-105.9 86.1-188 192-188s192 82.1 192 188v340H336V428zM512 912c48.6 0 88-39.4 88-88H424c0 48.6 39.4 88 88 88z"/></svg>
+        <span class="badge">3</span>
+      </button>
+      <div class="user-menu">
+        <div class="user-avatar">运</div>
+        <span class="user-name">运营管理员</span>
+      </div>
+    </div>
+  </header>
+
+  <aside class="sider">
+    <ul class="menu">
+      <li class="menu-group-title">运营管理</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c6.2-12.6 3.9-27.8-5.6-37.6zM512 700c-103.8 0-188-84.2-188-188s84.2-188 188-188 188 84.2 188 188-84.2 188-188 188z"/></svg><span>数据看板</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z"/><path d="M304 240h416v48H304zm0 160h416v48H304zm0 160h416v48H304z"/></svg><span>商品运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 832c-211.8 0-384-172.2-384-384s172.2-384 384-384 384 172.2 384 384-172.2 384-384 384z"/></svg><span>促销运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>卖家运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg><span>订单运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 768c-176.7 0-320-143.3-320-320s143.3-320 320-320 320 143.3 320 320-143.3 320-320 320z"/></svg><span>支付运营</span></li>
+      <li class="menu-item" style="background:rgba(22,119,255,.15);color:#fff"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg><span>通知运营</span></li>
+      <ul class="menu-sub">
+        <li class="menu-item"><span style="margin-left:8px">通知模板</span></li>
+        <li class="menu-item"><span style="margin-left:8px">通知记录</span></li>
+        <li class="menu-item"><span style="margin-left:8px">通知配置</span></li>
+        <li class="menu-item active"><span style="margin-left:8px">通知限流</span></li>
+      </ul>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32z"/></svg><span>会员运营</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>个人中心</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M505.7 661a8 8 0 0012.6 0l112-141.7c4.1-5.2.4-12.9-6.3-12.9h-74.1V168c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v338.3H400c-6.7 0-10.4 7.7-6.3 12.9l112 141.8zM878 626h-60c-4.4 0-8 3.6-8 8v154H214V634c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v198c0 17.7 14.3 32 32 32h684c17.7 0 32-14.3 32-32V634c0-4.4-3.6-8-8-8z"/></svg><span>数据导出</span></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <div class="page-title">通知限流</div>
+      <div class="page-desc">维护各通知渠道的频率限制规则（用户级/全局限流），防止通知轰炸与渠道成本失控，保障用户体验。</div>
+    </div>
+
+    <div class="split-layout">
+      <!-- Channel Sidebar -->
+      <div class="channel-sidebar">
+        <div class="channel-sidebar-head">
+          <svg class="icon icon-md" style="color:var(--c-primary)" viewBox="0 0 1024 1024"><path d="M752 100c-61.8 0-112 50.2-112 112 0 7 .7 13.9 1.9 20.5L366.7 524.1c-6.5-1.8-13.3-2.7-20.3-2.7-12.9 0-25.1 3-36 8.4L174.5 393.9c5.4-10.9 8.4-23.1 8.4-36 0-44.2-35.8-80-80-80s-80 35.8-80 80 35.8 80 80 80c7 0 13.9-.7 20.5-1.9l135.9 135.9c-1.2 6.6-1.9 13.5-1.9 20.5 0 44.2 35.8 80 80 80s80-35.8 80-80c0-12.9-3-25.1-8.4-36l157.2-157.2c10.9 5.4 23.1 8.4 36 8.4 61.8 0 112-50.2 112-112S813.8 100 752 100z" fill="currentColor"/><path d="M944 420H760c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h184c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 184H760c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h184c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 184H760c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h184c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z" fill="currentColor"/></svg>
+          渠道列表
+        </div>
+        <div class="channel-sidebar-list">
+          <div class="channel-side-item active" onclick="selectChannel('sms',this)">
+            <div class="channel-side-icon" style="background:var(--c-success)"><svg class="icon icon-xl" viewBox="0 0 1024 1024" style="fill:#fff"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg></div>
+            <div class="channel-side-info">
+              <div class="channel-side-name">短信</div>
+              <div class="channel-side-status"><span class="status-dot on" aria-label="已启用"></span>已启用</div>
+            </div>
+          </div>
+          <div class="channel-side-item" onclick="selectChannel('email',this)">
+            <div class="channel-side-icon" style="background:var(--c-primary)"><svg class="icon icon-xl" viewBox="0 0 1024 1024" style="fill:#fff"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zm-80.8 48L514.4 505.2 179.2 208h668zm-668 608V267.2l342.4 299.6c5.9 5.2 13.3 7.8 20.7 7.8s14.8-2.6 20.7-7.8L868.8 267.2V816H179.2z"/></svg></div>
+            <div class="channel-side-info">
+              <div class="channel-side-name">邮件</div>
+              <div class="channel-side-status"><span class="status-dot on" aria-label="已启用"></span>已启用</div>
+            </div>
+          </div>
+          <div class="channel-side-item" onclick="selectChannel('inapp',this)">
+            <div class="channel-side-icon" style="background:var(--c-purple)"><svg class="icon icon-xl" viewBox="0 0 1024 1024" style="fill:#fff"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg></div>
+            <div class="channel-side-info">
+              <div class="channel-side-name">站内信</div>
+              <div class="channel-side-status"><span class="status-dot on" aria-label="已启用"></span>已启用</div>
+            </div>
+          </div>
+          <div class="channel-side-item" onclick="selectChannel('push',this)">
+            <div class="channel-side-icon" style="background:var(--c-warning)"><svg class="icon icon-xl" viewBox="0 0 1024 1024" style="fill:#fff"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg></div>
+            <div class="channel-side-info">
+              <div class="channel-side-name">Push 推送</div>
+              <div class="channel-side-status"><span class="status-dot off" aria-label="已禁用"></span>已禁用</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detail Panel -->
+      <div class="detail-panel" id="detailPanel">
+        <div class="detail-head">
+          <div class="detail-head-left">
+            <div class="detail-head-icon" style="background:var(--c-success)" id="detailHeadIcon">
+              <svg class="icon icon-xl" viewBox="0 0 1024 1024" style="fill:#fff"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg>
+            </div>
+            <div>
+              <div class="detail-head-name" id="detailHeadName">短信限流配置</div>
+              <div class="detail-head-meta">
+                <span><span class="status-dot on"></span>已启用</span>
+                <span>更新人：运营管理员</span>
+                <span>更新时间：2026-07-25 10:30</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:var(--s2)">
+            <button class="btn btn-primary" onclick="toggleEdit()"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M257.7 752c2.9 2.9 6.7 4.4 10.6 4.4s7.7-1.5 10.6-4.4l432.7-432.7c5.9-5.9 5.9-15.4 0-21.2l-57.3-57.3c-5.9-5.9-15.4-5.9-21.2 0L199.7 731.4c-5.9 5.9-5.9 15.4 0 21.2l58 58z" fill="currentColor"/><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z" fill="currentColor"/></svg>编辑</button>
+          </div>
+        </div>
+
+        <!-- View Mode -->
+        <div id="viewMode">
+          <div class="section-title">
+            <svg class="icon icon-md" style="color:var(--c-primary)" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z" fill="currentColor"/></svg>
+            用户级限流
+          </div>
+          <div class="rule-grid">
+            <div class="rule-card">
+              <div class="rule-card-label">每用户每日上限</div>
+              <div class="rule-card-value">10<span class="unit">条 / 天</span></div>
+              <div class="rule-card-desc">单个用户每日最多接收 10 条短信通知</div>
+            </div>
+            <div class="rule-card">
+              <div class="rule-card-label">每用户每小时上限</div>
+              <div class="rule-card-value">3<span class="unit">条 / 小时</span></div>
+              <div class="rule-card-desc">单个用户每小时最多接收 3 条短信通知</div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <svg class="icon icon-md" style="color:var(--c-primary)" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c6.2-12.6 3.9-27.8-5.6-37.6zM512 700c-103.8 0-188-84.2-188-188s84.2-188 188-188 188 84.2 188 188-84.2 188-188 188z" fill="currentColor"/></svg>
+            全局级限流
+          </div>
+          <div class="rule-grid">
+            <div class="rule-card">
+              <div class="rule-card-label">全平台每分钟上限</div>
+              <div class="rule-card-value">100<span class="unit">条 / 分钟</span></div>
+              <div class="rule-card-desc">全平台每分钟最多发送 100 条短信</div>
+            </div>
+            <div class="rule-card">
+              <div class="rule-card-label">全平台每小时上限</div>
+              <div class="rule-card-value">1,000<span class="unit">条 / 小时</span></div>
+              <div class="rule-card-desc">全平台每小时最多发送 1,000 条短信</div>
+            </div>
+          </div>
+
+          <div class="usage-block">
+            <div class="usage-head">
+              <div class="usage-title">当前用量（今日 00:00 - 24:00）</div>
+              <div class="usage-numbers">今日已发送 <b>560</b> / 1,000 条</div>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill green" style="width:56%"></div>
+            </div>
+            <div class="usage-hint">用量 56%，在合理范围内。限流规则持续生效中。</div>
+          </div>
+
+          <div class="section-title" style="margin-top:var(--s8)">
+            <svg class="icon icon-md" style="color:var(--c-warning)" viewBox="0 0 1024 1024"><path d="M955.7 856.5l-395.6-685c-11.1-19.2-43.8-19.2-54.9 0l-395.6 685c-5.5 9.5-5.5 21.3 0 30.8 5.5 9.5 15.7 15.4 27.5 15.4h791.2c11.8 0 22-5.9 27.5-15.4 5.5-9.5 5.5-21.3 0-30.8zM512 820c-22.1 0-40-17.9-40-40s17.9-40 40-40 40 17.9 40 40-17.9 40-40 40zm32-152c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V360c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v308z" fill="currentColor"/></svg>
+            限流命中记录（近 24 小时）
+          </div>
+          <table class="hit-table">
+            <thead>
+              <tr>
+                <th>命中时间</th>
+                <th>维度</th>
+                <th>用户标识</th>
+                <th>触发原因</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="cell-mono">2026-07-26 13:42</span></td>
+                <td><span class="tag tag-warning">用户级·每小时</span></td>
+                <td><span class="cell-mono">UID:100823</span></td>
+                <td>1 小时内已达 3 条上限</td>
+              </tr>
+              <tr>
+                <td><span class="cell-mono">2026-07-26 11:18</span></td>
+                <td><span class="tag tag-warning">用户级·每日</span></td>
+                <td><span class="cell-mono">UID:100516</span></td>
+                <td>当日已达 10 条上限</td>
+              </tr>
+              <tr>
+                <td><span class="cell-mono">2026-07-26 09:05</span></td>
+                <td><span class="tag tag-error">全局级·每分钟</span></td>
+                <td><span class="cell-mono">—</span></td>
+                <td>全平台 1 分钟内已达 100 条上限</td>
+              </tr>
+              <tr>
+                <td><span class="cell-mono">2026-07-26 08:30</span></td>
+                <td><span class="tag tag-warning">用户级·每小时</span></td>
+                <td><span class="cell-mono">UID:100312</span></td>
+                <td>1 小时内已达 3 条上限</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Edit Mode -->
+        <div id="editMode" style="display:none">
+          <div class="section-title">
+            <svg class="icon icon-md" style="color:var(--c-primary)" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z" fill="currentColor"/></svg>
+            用户级限流
+          </div>
+          <div class="form-row">
+            <div class="form-item">
+              <label class="form-label"><span class="req">*</span>每用户每日上限 <span class="hint-inline">（1 - 100 条）</span></label>
+              <input class="form-input mono" type="number" value="10" aria-label="每用户每日上限 10 条">
+              <div class="form-hint">单个用户每日最多接收的通知数量</div>
+            </div>
+            <div class="form-item">
+              <label class="form-label"><span class="req">*</span>每用户每小时上限 <span class="hint-inline">（1 - 20 条）</span></label>
+              <input class="form-input mono" type="number" value="3" aria-label="每用户每小时上限 3 条">
+              <div class="form-hint">不可超过每日上限</div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <svg class="icon icon-md" style="color:var(--c-primary)" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c6.2-12.6 3.9-27.8-5.6-37.6zM512 700c-103.8 0-188-84.2-188-188s84.2-188 188-188 188 84.2 188 188-84.2 188-188 188z" fill="currentColor"/></svg>
+            全局级限流
+          </div>
+          <div class="form-row">
+            <div class="form-item">
+              <label class="form-label"><span class="req">*</span>全平台每分钟上限 <span class="hint-inline">（10 - 10,000 条）</span></label>
+              <input class="form-input mono" type="number" value="100" aria-label="全平台每分钟上限 100 条">
+              <div class="form-hint">全平台每分钟最大发送量</div>
+            </div>
+            <div class="form-item">
+              <label class="form-label"><span class="req">*</span>全平台每小时上限 <span class="hint-inline">（100 - 100,000 条）</span></label>
+              <input class="form-input mono" type="number" value="1000" aria-label="全平台每小时上限 1000 条">
+              <div class="form-hint">不可低于每分钟上限</div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <svg class="icon icon-md" style="color:var(--c-error)" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32z" fill="currentColor"/></svg>
+            状态
+          </div>
+          <div class="form-item">
+            <div class="switch" onclick="toggleSwitch(this)"><div class="switch-track on"><div class="switch-thumb"></div></div><span class="switch-label">已启用（该渠道受限流规则约束）</span></div>
+            <div class="form-hint" style="color:var(--c-error)">关闭限流为高危操作，关闭后该渠道将不受任何频率限制，可能导致通知轰炸与渠道成本失控。</div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn" onclick="toggleEdit()">取消</button>
+            <button class="btn btn-primary" onclick="toggleEdit()"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M912 328h-44V136c0-4.4-3.6-8-8-8h-52c-4.4 0-8 3.6-8 8v192H224V136c0-4.4-3.6-8-8-8h-52c-4.4 0-8 3.6-8 8v192H112c-17.7 0-32 14.3-32 32v544c0 17.7 14.3 32 32 32h800c17.7 0 32-14.3 32-32V360c0-17.7-14.3-32-32-32z" fill="currentColor"/></svg>保存配置</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Leno 电商平台运营管理后台 © 2026 Leno Technology Co., Ltd.</footer>
+</div>
+
+<!-- Close Limit Confirm Dialog -->
+<div class="modal-mask" id="closeLimitModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">
+        <svg class="icon icon-lg" style="color:var(--c-error)" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32z" fill="currentColor"/></svg>
+        确认关闭限流
+      </div>
+      <button class="modal-close" onclick="closeModal('closeLimitModal')"><svg class="icon icon-lg" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.1-13.1-6.3-13.1H676c-4.9 0-9.6 2.1-12.9 5.9L499.3 442.6 333.7 191.9c-3.2-3.8-7.9-5.9-12.9-5.9H176.5c-6.5 0-9.5 7.9-5.1 13.1L433.8 512 171.4 824.9c-4.4 5.2-.1 13.1 6.3 13.1h143.7c4.9 0 9.6-2.1 12.9-5.9l167.2-252.8 167.2 252.8c3.2 3.8 7.9 5.9 12.9 5.9h138.7c6.5 0 9.5-7.9 5.1-13.1L563.8 512z"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:var(--fs-base);color:var(--n10);line-height:1.7">关闭 <b>短信</b> 渠道限流后，该渠道将不受任何频率限制约束。</p>
+      <div style="background:#fff2f0;border:1px solid #ffccc7;border-radius:var(--r-base);padding:var(--s3) var(--s4);margin-top:var(--s3)">
+        <div style="font-size:var(--fs-sm);color:var(--c-error);font-weight:var(--fw-medium);margin-bottom:var(--s1)">风险提示</div>
+        <div style="font-size:var(--fs-sm);color:var(--n9);line-height:1.6">可能导致通知轰炸，严重影响用户体验；渠道发送量可能急剧增长，导致渠道成本失控。</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('closeLimitModal')">取消</button>
+      <button class="btn btn-primary" style="background:var(--c-error);border-color:var(--c-error)" onclick="closeModal('closeLimitModal')">确认关闭限流</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var channelData={
+  sms:{name:'短信限流配置',color:'var(--c-success)',daily:10,hourly:3,gpm:100,ghourly:1000,usage:560,total:1000,updated:'2026-07-25 10:30'},
+  email:{name:'邮件限流配置',color:'var(--c-primary)',daily:20,hourly:5,gpm:200,ghourly:2000,usage:320,total:2000,updated:'2026-07-24 16:20'},
+  inapp:{name:'站内信限流配置',color:'var(--c-purple)',daily:50,hourly:10,gpm:500,ghourly:5000,usage:2800,total:5000,updated:'2026-07-25 09:15'},
+  push:{name:'Push 限流配置',color:'var(--c-warning)',daily:5,hourly:2,gpm:50,ghourly:500,usage:0,total:500,updated:'2026-07-23 14:00',disabled:true}
+};
+function selectChannel(type,el){
+  document.querySelectorAll('.channel-side-item').forEach(function(i){i.classList.remove('active')});
+  el.classList.add('active');
+  var d=channelData[type];
+  document.getElementById('detailHeadName').textContent=d.name;
+  document.getElementById('detailHeadIcon').style.background=d.color;
+  if(d.disabled){
+    document.getElementById('detailHeadIcon').style.opacity='.5';
+  }else{
+    document.getElementById('detailHeadIcon').style.opacity='1';
+  }
+}
+function toggleEdit(){
+  var view=document.getElementById('viewMode');
+  var edit=document.getElementById('editMode');
+  if(view.style.display!=='none'){
+    view.style.display='none';
+    edit.style.display='block';
+  }else{
+    view.style.display='block';
+    edit.style.display='none';
+  }
+}
+function toggleSwitch(el){
+  var t=el.querySelector('.switch-track');
+  var l=el.querySelector('.switch-label');
+  if(t.classList.contains('on')){
+    document.getElementById('closeLimitModal').classList.add('show');
+  }else{
+    t.classList.add('on');
+    l.textContent='已启用（该渠道受限流规则约束）';
+  }
+}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+</script>
+</body>
+</html>
