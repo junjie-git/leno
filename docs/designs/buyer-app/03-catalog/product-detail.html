@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商品详情 - Leno 买家端</title>
+<style>
+:root{
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{
+  font-family:var(--ff-app);background:#EEF0F3;color:var(--n10);
+  display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:24px 0;
+}
+.stage{display:flex;flex-direction:column;align-items:center;gap:24px;}
+
+/* ===== Phone Frame ===== */
+.phone{
+  width:375px;height:760px;background:var(--n2);border-radius:28px;overflow:hidden;position:relative;
+  box-shadow:0 12px 40px rgba(0,0,0,.16),0 2px 8px rgba(0,0,0,.08);
+  display:flex;flex-direction:column;
+}
+
+/* ===== NavBar ===== */
+.navbar{
+  height:46px;background:var(--n1);border-bottom:1px solid var(--n3);
+  display:flex;align-items:center;padding:0 var(--s3);flex-shrink:0;position:relative;
+}
+.nav-back{color:var(--n10);display:flex;cursor:pointer;}
+.nav-title{position:absolute;left:50%;transform:translateX(-50%);font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);}
+.nav-actions{margin-left:auto;display:flex;align-items:center;gap:var(--s4);color:var(--n10);}
+
+/* ===== Scrollable Body ===== */
+.body{flex:1;overflow-y:auto;background:var(--n2);}
+
+/* ===== Carousel (Area A) ===== */
+.carousel{
+  height:375px;background:linear-gradient(135deg,#1a2a4a,#2d4a7a);position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.carousel svg{color:#fff;opacity:.9;}
+.dots{
+  position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+  display:flex;gap:6px;
+}
+.dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.45);}
+.dot.active{background:#fff;width:16px;border-radius:3px;}
+.carousel-tag{
+  position:absolute;top:12px;left:12px;background:rgba(0,0,0,.5);color:#fff;
+  font-size:var(--fs-sm);padding:3px var(--s2);border-radius:var(--r-base);
+}
+
+/* ===== Price Area (Area B) ===== */
+.price-area{background:var(--n1);padding:var(--s4) var(--s3);}
+.price-row{display:flex;align-items:baseline;gap:var(--s2);flex-wrap:wrap;}
+.price-now{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);color:var(--c-error);line-height:1;}
+.price-now .y{font-size:var(--fs-lg);}
+.price-old{font-size:var(--fs-base);color:var(--n7);text-decoration:line-through;}
+.save-tag{
+  font-size:var(--fs-sm);color:var(--c-error);background:#FFF1F0;border:1px solid #FFCCC7;
+  padding:2px var(--s1);border-radius:var(--r-base);
+}
+.prod-title{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);line-height:1.4;margin-top:var(--s3);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.prod-sub{font-size:var(--fs-base);color:var(--n9);margin-top:var(--s1);}
+.prod-meta{display:flex;align-items:center;gap:var(--s4);margin-top:var(--s3);font-size:var(--fs-sm);color:var(--n7);}
+.prod-meta .sep{color:var(--n5);}
+
+/* ===== Spec Bar (Area C) ===== */
+.spec-bar{
+  background:var(--n1);margin-top:var(--s3);padding:var(--s3);display:flex;align-items:center;gap:var(--s2);
+  cursor:pointer;
+}
+.spec-bar .lbl{font-size:var(--fs-base);color:var(--n10);}
+.spec-bar .val{font-size:var(--fs-base);color:var(--n9);flex:1;}
+.spec-bar .arr{color:var(--n7);}
+
+/* ===== Tabs (Detail) ===== */
+.detail-section{background:var(--n1);margin-top:var(--s3);}
+.tabs{display:flex;border-bottom:1px solid var(--n3);position:sticky;top:0;background:var(--n1);z-index:2;}
+.tab{
+  flex:1;text-align:center;padding:12px 0;font-size:var(--fs-base);color:var(--n9);
+  position:relative;cursor:pointer;
+}
+.tab.active{color:var(--c-primary);font-weight:var(--fw-medium);}
+.tab.active::after{
+  content:"";position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:24px;height:2px;background:var(--c-primary);border-radius:1px;
+}
+.tab .cnt{font-size:var(--fs-sm);color:var(--n7);}
+.tab.active .cnt{color:var(--c-primary);}
+
+.detail-imgs{padding:var(--s3);}
+.detail-img{
+  width:100%;border-radius:var(--r-base);margin-bottom:var(--s2);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-base);
+}
+.detail-img .di-text{display:flex;flex-direction:column;align-items:center;gap:4px;opacity:.9;}
+.detail-img .di-text small{font-size:var(--fs-sm);opacity:.8;}
+
+/* ===== Review Summary (Area E) ===== */
+.review-sec{background:var(--n1);margin-top:var(--s3);padding:var(--s3);}
+.rev-head{display:flex;align-items:center;justify-content:space-between;}
+.rev-score{display:flex;align-items:baseline;gap:var(--s1);}
+.rev-score .num{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--c-warning);}
+.rev-score .lbl{font-size:var(--fs-sm);color:var(--n9);}
+.rev-count{font-size:var(--fs-sm);color:var(--n7);}
+.rev-all{font-size:var(--fs-base);color:var(--n9);display:flex;align-items:center;gap:2px;}
+.rev-item{padding:var(--s3) 0;border-top:1px solid var(--n3);}
+.rev-top{display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s1);}
+.rev-avatar{width:24px;height:24px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);}
+.rev-name{font-size:var(--fs-sm);color:var(--n9);flex:1;}
+.rev-stars{color:var(--c-warning);font-size:var(--fs-sm);}
+.rev-content{font-size:var(--fs-base);color:var(--n10);line-height:1.5;}
+.rev-spec{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1);}
+
+/* ===== Bottom Action Bar (Area F) ===== */
+.action-bar{
+  height:50px;background:var(--n1);border-top:1px solid var(--n3);flex-shrink:0;
+  display:flex;align-items:center;padding:0 var(--s2);gap:var(--s2);
+}
+.act-icon{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--n9);width:42px;cursor:pointer;}
+.act-icon span{font-size:10px;line-height:1;}
+.act-icon .ic{font-size:18px;}
+.act-icon.fav{color:var(--c-error);}
+.btn-cart{
+  flex:1;height:36px;border-radius:18px 0 0 18px;border:1.5px solid var(--c-primary);
+  background:#fff;color:var(--c-primary);font-size:var(--fs-base);font-weight:var(--fw-medium);
+  font-family:inherit;cursor:pointer;
+}
+.btn-buy{
+  flex:1;height:36px;border-radius:0 18px 18px 0;border:1.5px solid var(--c-primary);
+  background:var(--c-primary);color:#fff;font-size:var(--fs-base);font-weight:var(--fw-medium);
+  font-family:inherit;cursor:pointer;
+}
+
+/* ===== States Preview ===== */
+.states-wrap{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;}
+.states-cap{font-size:13px;color:var(--n7);text-align:center;margin-bottom:-8px;}
+.mini{
+  width:200px;height:380px;background:var(--n1);border-radius:14px;overflow:hidden;
+  box-shadow:0 4px 16px rgba(0,0,0,.1);display:flex;flex-direction:column;border:1px solid var(--n3);position:relative;
+}
+.mini .m-nav{height:24px;background:var(--n1);border-bottom:1px solid var(--n3);display:flex;align-items:center;padding:0 6px;}
+.mini .m-nav .nb{flex:1;text-align:center;font-size:10px;color:var(--n10);}
+.mini-lbl{font-size:11px;color:var(--n7);text-align:center;padding:6px;border-top:1px solid var(--n3);}
+.skel{background:linear-gradient(90deg,#f2f2f2 25%,#e6e6e6 37%,#f2f2f2 63%);background-size:400% 100%;animation:sk 1.4s ease infinite;}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.mini .m-action{position:absolute;bottom:0;left:0;right:0;height:26px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;padding:0 6px;gap:4px;}
+.mini .m-action .ab{height:14px;border-radius:7px;font-size:8px;display:flex;align-items:center;justify-content:center;color:#fff;}
+.mini .err-mini,.mini .sold-mini{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--n7);padding:10px;text-align:center;}
+.cta-btn{font-size:10px;color:var(--c-primary);border:1px solid var(--c-primary);padding:3px 10px;border-radius:var(--r-base);}
+.sold-tag{font-size:11px;color:var(--n7);background:var(--n3);padding:3px 10px;border-radius:var(--r-base);}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ============ MAIN PHONE: Product Detail ============ -->
+  <div class="phone">
+    <!-- NavBar -->
+    <div class="navbar">
+      <div class="nav-back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+      <div class="nav-title">商品详情</div>
+      <div class="nav-actions">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6M16 6l-4-4-4 4M12 2v13"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 9h8M8 13h5"/></svg>
+      </div>
+    </div>
+
+    <div class="body">
+      <!-- Area A: Carousel -->
+      <div class="carousel" role="region" aria-label="商品图片轮播">
+        <div class="carousel-tag">1/5</div>
+        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 18h4" stroke-width="1.4"/></svg>
+        <div class="dots">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+
+      <!-- Area B: Price -->
+      <div class="price-area">
+        <div class="price-row">
+          <div class="price-now"><span class="y">¥</span>999</div>
+          <div class="price-old">¥1299</div>
+          <div class="save-tag">省 ¥300</div>
+        </div>
+        <div class="prod-title">小米 Redmi Note 13 8+256GB 子夜黑 5G智能手机</div>
+        <div class="prod-sub">天玑6080处理器 · 1亿像素主摄 · 5000mAh大电池</div>
+        <div class="prod-meta">
+          <span>月销 1.2万</span>
+          <span class="sep">|</span>
+          <span>累计评价 38</span>
+          <span class="sep">|</span>
+          <span>福建福州</span>
+        </div>
+      </div>
+
+      <!-- Area C: Spec select -->
+      <div class="spec-bar">
+        <span class="lbl">选择</span>
+        <span class="val">颜色 · 尺码 · 数量</span>
+        <span class="arr">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </div>
+
+      <!-- Tabs + Detail -->
+      <div class="detail-section">
+        <div class="tabs" role="tablist">
+          <div class="tab active" role="tab" aria-selected="true">商品详情</div>
+          <div class="tab" role="tab">规格参数</div>
+          <div class="tab" role="tab">评价<span class="cnt">（38）</span></div>
+        </div>
+        <div class="detail-imgs">
+          <div class="detail-img" style="background:linear-gradient(135deg,#2d4a7a,#1a2a4a);height:180px;">
+            <div class="di-text">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 18h4"/></svg>
+              <small>正面外观 · 子夜黑</small>
+            </div>
+          </div>
+          <div class="detail-img" style="background:linear-gradient(135deg,#3a3a4a,#1a1a2a);height:200px;">
+            <div class="di-text">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6V4h8v2"/></svg>
+              <small>1亿像素主摄 · 影像系统</small>
+            </div>
+          </div>
+          <div class="detail-img" style="background:linear-gradient(135deg,#4a2a2a,#2a1a1a);height:160px;">
+            <div class="di-text">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+              <small>天玑6080 · 性能跑分</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Area E: Review summary -->
+      <div class="review-sec">
+        <div class="rev-head">
+          <div class="rev-score">
+            <span class="num">4.8</span>
+            <span class="lbl">分</span>
+          </div>
+          <div class="rev-all">
+            查看全部 38 条
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </div>
+        </div>
+        <div class="rev-item">
+          <div class="rev-top">
+            <div class="rev-avatar">林</div>
+            <span class="rev-name">林*杰</span>
+            <span class="rev-stars">★★★★★</span>
+          </div>
+          <div class="rev-content">手机收到用了几天，整体很流畅，屏幕显示清晰，电池续航也很给力，性价比很高。</div>
+          <div class="rev-spec">规格：子夜黑 · 8+256GB</div>
+        </div>
+        <div class="rev-item">
+          <div class="rev-top">
+            <div class="rev-avatar" style="background:var(--c-success);">王</div>
+            <span class="rev-name">王*芳</span>
+            <span class="rev-stars">★★★★★</span>
+          </div>
+          <div class="rev-content">拍照清晰，1亿像素不是盖的，发货速度快，包装完整，官方正品，推荐购买。</div>
+          <div class="rev-spec">规格：时光蓝 · 12+256GB</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Area F: Bottom action bar -->
+    <div class="action-bar">
+      <div class="act-icon">
+        <span class="ic">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 9h8M8 13h5"/><circle cx="18" cy="18" r="1.5"/></svg>
+        </span>
+        <span>客服</span>
+      </div>
+      <div class="act-icon">
+        <span class="ic">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l1-4h14l1 4M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M4 9h16M9 13h6"/></svg>
+        </span>
+        <span>店铺</span>
+      </div>
+      <div class="act-icon fav">
+        <span class="ic">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M12 21s-7-4.5-9.5-9C1 9 2.5 5.5 6 5.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 6.5C19 16.5 12 21 12 21z"/></svg>
+        </span>
+        <span>收藏</span>
+      </div>
+      <button class="btn-cart">加入购物车</button>
+      <button class="btn-buy">立即购买</button>
+    </div>
+  </div>
+
+  <!-- ============ STATES PREVIEW ============ -->
+  <div class="states-cap">交互状态预览（加载骨架屏 / 已下架 / 错误态）</div>
+  <div class="states-wrap">
+    <!-- Skeleton -->
+    <div class="mini">
+      <div class="m-nav"><span class="nb">商品详情</span></div>
+      <div style="height:120px;background:var(--n3);" class="skel"></div>
+      <div style="padding:8px;">
+        <div class="skel" style="height:18px;width:60%;border-radius:4px;"></div>
+        <div class="skel" style="height:12px;width:90%;margin-top:8px;border-radius:4px;"></div>
+        <div class="skel" style="height:12px;width:70%;margin-top:6px;border-radius:4px;"></div>
+        <div class="skel" style="height:32px;margin-top:10px;border-radius:6px;"></div>
+        <div class="skel" style="height:32px;margin-top:6px;border-radius:6px;"></div>
+        <div class="skel" style="height:60px;margin-top:6px;border-radius:6px;"></div>
+      </div>
+      <div class="m-action">
+        <div class="skel" style="width:20px;height:14px;"></div>
+        <div class="skel" style="width:20px;height:14px;"></div>
+        <div class="ab skel" style="flex:1;background:var(--n3);"></div>
+        <div class="ab skel" style="flex:1;background:var(--n3);"></div>
+      </div>
+      <div class="mini-lbl">加载骨架屏</div>
+    </div>
+
+    <!-- Sold out -->
+    <div class="mini">
+      <div class="m-nav"><span class="nb">商品详情</span></div>
+      <div style="height:120px;background:linear-gradient(135deg,#8C8C8C,#595959);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;opacity:.7;">商品图</div>
+      <div style="padding:8px;">
+        <div style="display:flex;align-items:baseline;gap:6px;">
+          <span style="font-size:16px;color:var(--n7);font-weight:600;">¥999</span>
+          <span class="sold-tag">已下架</span>
+        </div>
+        <div style="font-size:11px;color:var(--n10);margin-top:6px;">小米 Redmi Note 13 8+256GB 子夜黑</div>
+        <div style="font-size:9px;color:var(--n7);margin-top:4px;">该商品已下架，暂时无法购买</div>
+      </div>
+      <div class="sold-mini">
+        <svg width="44" height="44" viewBox="0 0 48 48" fill="none" stroke="var(--n5)" stroke-width="2"><circle cx="24" cy="24" r="18"/><path d="M16 16l16 16M32 16L16 32" stroke-linecap="round"/></svg>
+        <div style="font-size:11px;">商品已下架</div>
+        <div class="cta-btn">看看相似商品</div>
+      </div>
+      <div class="m-action">
+        <div class="ab" style="flex:1;background:var(--n3);color:var(--n7);">加入购物车</div>
+        <div class="ab" style="flex:1;background:var(--n3);color:var(--n7);">立即购买</div>
+      </div>
+      <div class="mini-lbl">已下架（按钮禁用）</div>
+    </div>
+
+    <!-- Error -->
+    <div class="mini">
+      <div class="m-nav"><span class="nb">商品详情</span></div>
+      <div class="err-mini">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="var(--c-error)" stroke-width="2"><circle cx="24" cy="24" r="18"/><path d="M24 14v12M24 32v.5" stroke-linecap="round"/></svg>
+        <div style="font-size:12px;">商品信息加载失败</div>
+        <div style="font-size:9px;">网络异常，请稍后重试</div>
+        <div class="cta-btn">重新加载</div>
+      </div>
+      <div class="mini-lbl">错误态</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

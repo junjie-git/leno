@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>搜索 - Leno 买家端</title>
+<style>
+:root{
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{
+  font-family:var(--ff-app);background:#EEF0F3;color:var(--n10);
+  display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:24px 0;
+}
+.stage{display:flex;flex-direction:column;align-items:center;gap:24px;}
+
+/* ===== Phone Frame ===== */
+.phone{
+  width:375px;height:760px;background:var(--n1);border-radius:28px;overflow:hidden;position:relative;
+  box-shadow:0 12px 40px rgba(0,0,0,.16),0 2px 8px rgba(0,0,0,.08);
+  display:flex;flex-direction:column;
+}
+
+/* ===== Search Bar (Area A) ===== */
+.search-top{
+  height:46px;background:var(--n1);border-bottom:1px solid var(--n3);
+  display:flex;align-items:center;padding:0 var(--s3);gap:var(--s2);flex-shrink:0;
+}
+.back-btn{color:var(--n10);display:flex;cursor:pointer;}
+.search-input{
+  flex:1;height:32px;background:var(--n3);border-radius:16px;
+  display:flex;align-items:center;padding:0 var(--s3);gap:var(--s1);
+}
+.search-input svg{color:var(--n7);flex-shrink:0;}
+.search-input input{
+  border:none;background:transparent;outline:none;flex:1;font-size:var(--fs-base);
+  font-family:inherit;color:var(--n10);
+}
+.search-input input::placeholder{color:var(--n7);}
+.search-btn{
+  font-size:var(--fs-base);color:var(--c-primary);font-weight:var(--fw-medium);
+  background:none;border:none;cursor:pointer;padding:0 var(--s1);font-family:inherit;
+}
+
+/* ===== Content ===== */
+.content{flex:1;overflow-y:auto;background:var(--n1);}
+.sec{padding:var(--s4) var(--s3);}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s3);}
+.sec-title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n9);display:flex;align-items:center;gap:var(--s1);}
+.sec-action{color:var(--n7);display:flex;align-items:center;gap:3px;font-size:var(--fs-sm);cursor:pointer;}
+
+/* History tags */
+.tag-row{display:flex;flex-wrap:wrap;gap:var(--s2);}
+.tag{
+  background:var(--n3);border-radius:var(--r-lg);padding:6px var(--s3);
+  font-size:var(--fs-base);color:var(--n9);cursor:pointer;
+}
+
+/* Hot search list */
+.hot-list{display:flex;flex-direction:column;}
+.hot-item{
+  display:flex;align-items:center;gap:var(--s3);padding:10px 0;border-bottom:1px solid var(--n3);
+  cursor:pointer;
+}
+.hot-item:last-child{border-bottom:none;}
+.hot-rank{
+  width:20px;font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n7);
+  text-align:center;flex-shrink:0;
+}
+.hot-item.top .hot-rank{color:var(--c-error);}
+.hot-word{flex:1;font-size:var(--fs-base);color:var(--n10);}
+.hot-item.top .hot-word{font-weight:var(--fw-medium);}
+.hot-index{font-size:var(--fs-sm);color:var(--n7);}
+.hot-tag{
+  font-size:10px;color:var(--c-error);border:1px solid var(--c-error);
+  padding:1px 5px;border-radius:var(--r-base);margin-left:var(--s1);
+}
+.hot-tag.new{color:var(--c-warning);border-color:var(--c-warning);}
+
+/* divider */
+.divider{height:8px;background:var(--n2);}
+
+/* hot categories */
+.cat-row{display:flex;flex-wrap:wrap;gap:var(--s2);}
+.cat-chip{
+  display:flex;align-items:center;gap:var(--s1);background:var(--n3);border-radius:var(--r-lg);
+  padding:6px var(--s3);font-size:var(--fs-base);color:var(--n9);cursor:pointer;
+}
+.cat-chip svg{color:var(--c-primary);}
+
+/* ===== States Preview ===== */
+.states-wrap{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;}
+.states-cap{font-size:13px;color:var(--n7);text-align:center;margin-bottom:-8px;}
+.mini{
+  width:210px;height:380px;background:var(--n1);border-radius:14px;overflow:hidden;
+  box-shadow:0 4px 16px rgba(0,0,0,.1);display:flex;flex-direction:column;border:1px solid var(--n3);
+}
+.mini .m-head{height:28px;background:var(--n1);border-bottom:1px solid var(--n3);display:flex;align-items:center;padding:0 8px;gap:6px;}
+.mini .m-head .sb{flex:1;height:16px;background:var(--n3);border-radius:8px;}
+.mini .m-head .btn{width:24px;height:12px;}
+.mini .m-body{flex:1;padding:8px;overflow:hidden;}
+.mini-lbl{font-size:11px;color:var(--n7);text-align:center;padding:6px;border-top:1px solid var(--n3);}
+.sugg-item{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--n3);font-size:11px;}
+.sugg-item .si-ic{color:var(--n7);}
+.sugg-item .si-txt{flex:1;color:var(--n10);}
+.sugg-item .si-txt b{color:var(--c-primary);font-weight:var(--fw-medium);}
+.skel{background:linear-gradient(90deg,#f2f2f2 25%,#e6e6e6 37%,#f2f2f2 63%);background-size:400% 100%;animation:sk 1.4s ease infinite;}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ============ MAIN PHONE: Search ============ -->
+  <div class="phone">
+    <!-- Area A: Search bar -->
+    <div class="search-top">
+      <div class="back-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+      <div class="search-input">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" placeholder="搜索商品" aria-label="搜索商品" autofocus>
+      </div>
+      <button class="search-btn">搜索</button>
+    </div>
+
+    <div class="content">
+      <!-- Area B: Search History -->
+      <div class="sec">
+        <div class="sec-head">
+          <div class="sec-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>
+            搜索历史
+          </div>
+          <div class="sec-action">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5h6v2M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            清空
+          </div>
+        </div>
+        <div class="tag-row">
+          <div class="tag">iPhone 15</div>
+          <div class="tag">夏季短袖</div>
+          <div class="tag">蓝牙耳机</div>
+          <div class="tag">运动鞋</div>
+          <div class="tag">三只松鼠</div>
+          <div class="tag">充电宝</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Area C: Hot Search -->
+      <div class="sec">
+        <div class="sec-head">
+          <div class="sec-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-error)" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3s4 4.5 4 8a4 4 0 0 1-8 0c0-1 .5-2 1-2.5C9 11 8 13 8 15a4 4 0 0 0 8 0c0-4-4-7-4-12z"/></svg>
+            热门搜索
+          </div>
+        </div>
+        <div class="hot-list">
+          <div class="hot-item top">
+            <div class="hot-rank">1</div>
+            <div class="hot-word">iPhone 15<span class="hot-tag">爆</span></div>
+            <div class="hot-index">搜索指数 98.5万</div>
+          </div>
+          <div class="hot-item top">
+            <div class="hot-rank">2</div>
+            <div class="hot-word">夏季短袖T恤</div>
+            <div class="hot-index">搜索指数 76.2万</div>
+          </div>
+          <div class="hot-item top">
+            <div class="hot-rank">3</div>
+            <div class="hot-word">蓝牙耳机<span class="hot-tag new">热</span></div>
+            <div class="hot-index">搜索指数 65.8万</div>
+          </div>
+          <div class="hot-item">
+            <div class="hot-rank">4</div>
+            <div class="hot-word">运动鞋</div>
+            <div class="hot-index">搜索指数 54.1万</div>
+          </div>
+          <div class="hot-item">
+            <div class="hot-rank">5</div>
+            <div class="hot-word">空调</div>
+            <div class="hot-index">搜索指数 48.3万</div>
+          </div>
+          <div class="hot-item">
+            <div class="hot-rank">6</div>
+            <div class="hot-word">防晒霜</div>
+            <div class="hot-index">搜索指数 42.7万</div>
+          </div>
+          <div class="hot-item">
+            <div class="hot-rank">7</div>
+            <div class="hot-word">每日坚果</div>
+            <div class="hot-index">搜索指数 38.9万</div>
+          </div>
+          <div class="hot-item">
+            <div class="hot-rank">8</div>
+            <div class="hot-word">充电宝</div>
+            <div class="hot-index">搜索指数 35.4万</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Hot Categories -->
+      <div class="sec">
+        <div class="sec-head">
+          <div class="sec-title">热门分类</div>
+        </div>
+        <div class="cat-row">
+          <div class="cat-chip">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="2" width="12" height="20" rx="2"/></svg>
+            手机数码
+          </div>
+          <div class="cat-chip">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3l1 3M16 3l1 3M5 6h14l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6z"/></svg>
+            休闲零食
+          </div>
+          <div class="cat-chip">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4l1 4M18 4l-1 4M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8z"/></svg>
+            家居家纺
+          </div>
+          <div class="cat-chip">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M12 14c-3 0-6 4-6 6h12c0-2-3-6-6-6z"/></svg>
+            面部护理
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STATES PREVIEW ============ -->
+  <div class="states-cap">交互状态预览（输入联想 / 联想加载 / 无匹配结果）</div>
+  <div class="states-wrap">
+    <!-- Suggestion -->
+    <div class="mini">
+      <div class="m-head"><div style="width:10px;color:var(--n10);font-size:12px;">←</div><div class="sb" style="background:#E6F4FF;"></div><div class="btn" style="font-size:10px;color:var(--c-primary);">搜索</div></div>
+      <div class="m-body">
+        <div class="sugg-item"><svg class="si-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span class="si-txt">夏季<b>短袖</b>男装</span></div>
+        <div class="sugg-item"><svg class="si-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span class="si-txt">纯棉<b>短袖</b>T恤</span></div>
+        <div class="sugg-item"><svg class="si-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span class="si-txt"><b>短袖</b>连衣裙</span></div>
+        <div class="sugg-item"><svg class="si-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span class="si-txt">南极人<b>短袖</b></span></div>
+        <div class="sugg-item"><svg class="si-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span class="si-txt">优衣库<b>短袖</b>男</span></div>
+      </div>
+      <div class="mini-lbl">输入联想</div>
+    </div>
+
+    <!-- Loading suggestion -->
+    <div class="mini">
+      <div class="m-head"><div style="width:10px;color:var(--n10);font-size:12px;">←</div><div class="sb skel"></div><div class="btn" style="font-size:10px;color:var(--c-primary);">搜索</div></div>
+      <div class="m-body">
+        <div class="sugg-item"><div class="skel" style="width:14px;height:14px;border-radius:50%;"></div><div class="skel" style="flex:1;height:11px;border-radius:3px;"></div></div>
+        <div class="sugg-item"><div class="skel" style="width:14px;height:14px;border-radius:50%;"></div><div class="skel" style="flex:1;height:11px;border-radius:3px;"></div></div>
+        <div class="sugg-item"><div class="skel" style="width:14px;height:14px;border-radius:50%;"></div><div class="skel" style="flex:1;height:11px;border-radius:3px;"></div></div>
+        <div class="sugg-item"><div class="skel" style="width:14px;height:14px;border-radius:50%;"></div><div class="skel" style="flex:1;height:11px;border-radius:3px;"></div></div>
+        <div style="font-size:10px;color:var(--n7);text-align:center;margin-top:8px;">联想中…</div>
+      </div>
+      <div class="mini-lbl">联想加载中</div>
+    </div>
+
+    <!-- No match -->
+    <div class="mini">
+      <div class="m-head"><div style="width:10px;color:var(--n10);font-size:12px;">←</div><div class="sb"></div><div class="btn" style="font-size:10px;color:var(--c-primary);">搜索</div></div>
+      <div class="m-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--n7);">
+        <svg width="44" height="44" viewBox="0 0 48 48" fill="none" stroke="var(--n5)" stroke-width="2"><circle cx="22" cy="22" r="14"/><path d="M33 33l8 8" stroke-linecap="round"/></svg>
+        <div style="font-size:11px;text-align:center;">无匹配联想词<br>按回车搜索全部</div>
+      </div>
+      <div class="mini-lbl">无匹配结果</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
