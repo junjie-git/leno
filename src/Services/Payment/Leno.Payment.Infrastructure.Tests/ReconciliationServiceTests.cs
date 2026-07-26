@@ -515,6 +515,8 @@ public class ReconciliationServiceTests
                     It.IsAny<PaymentStatus?>(),
                     It.IsAny<DateTime?>(),
                     It.IsAny<DateTime?>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<Guid?>(),
                     It.IsAny<int>(),
                     It.IsAny<int>(),
                     It.IsAny<CancellationToken>()),

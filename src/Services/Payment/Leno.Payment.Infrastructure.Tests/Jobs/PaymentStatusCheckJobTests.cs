@@ -73,6 +73,7 @@ public class PaymentStatusCheckJobTests
             .Setup(r => r.QueryAsync(
                 It.IsAny<Guid?>(), It.IsAny<PaymentChannel?>(), It.IsAny<PaymentStatus?>(),
                 It.IsAny<DateTime?>(), It.IsAny<DateTime?>(),
+                It.IsAny<string?>(), It.IsAny<Guid?>(),
                 It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<PaymentOrder>());
 
@@ -112,6 +113,7 @@ public class PaymentStatusCheckJobTests
             .Setup(r => r.QueryAsync(
                 It.IsAny<Guid?>(), It.IsAny<PaymentChannel?>(), It.IsAny<PaymentStatus?>(),
                 It.IsAny<DateTime?>(), It.IsAny<DateTime?>(),
+                It.IsAny<string?>(), It.IsAny<Guid?>(),
                 It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<PaymentOrder>());
 
@@ -147,6 +149,7 @@ public class PaymentStatusCheckJobTests
             .Setup(r => r.QueryAsync(
                 It.IsAny<Guid?>(), It.IsAny<PaymentChannel?>(), It.IsAny<PaymentStatus?>(),
                 It.IsAny<DateTime?>(), It.IsAny<DateTime?>(),
+                It.IsAny<string?>(), It.IsAny<Guid?>(),
                 It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<PaymentOrder>());
 
@@ -190,6 +193,7 @@ public class PaymentStatusCheckJobTests
             .Setup(r => r.QueryAsync(
                 It.IsAny<Guid?>(), It.IsAny<PaymentChannel?>(), It.IsAny<PaymentStatus?>(),
                 It.IsAny<DateTime?>(), It.IsAny<DateTime?>(),
+                It.IsAny<string?>(), It.IsAny<Guid?>(),
                 It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<PaymentOrder>());
 

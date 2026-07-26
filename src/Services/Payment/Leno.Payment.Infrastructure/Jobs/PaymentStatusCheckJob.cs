@@ -51,10 +51,10 @@ public sealed class PaymentStatusCheckJob
         var threshold = DateTime.UtcNow.AddMinutes(-_jobOptions.ThresholdMinutes);
 
         var pendingOrders = await _paymentOrderRepository.QueryAsync(
-            null, null, PaymentStatus.Pending, null, threshold, 1, _jobOptions.BatchSize, ct);
+            null, null, PaymentStatus.Pending, null, threshold, null, null, 1, _jobOptions.BatchSize, ct);
 
         var channelOrderedOrders = await _paymentOrderRepository.QueryAsync(
-            null, null, PaymentStatus.ChannelOrdered, null, threshold, 1, _jobOptions.BatchSize, ct);
+            null, null, PaymentStatus.ChannelOrdered, null, threshold, null, null, 1, _jobOptions.BatchSize, ct);
 
         _logger.LogInformation("支付状态补偿：待查支付单 {PendingCount} 笔（待支付）+ {ChannelOrderedCount} 笔（渠道已下单）",
             pendingOrders.Count, channelOrderedOrders.Count);

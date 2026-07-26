@@ -123,10 +123,10 @@ public class PaymentAppServiceTests
     public async Task QueryPaymentsAsync_ShouldReturnPaginated()
     {
         var payments = new List<PaymentOrder> { CreatePayment() };
-        _repoMock.Setup(r => r.QueryAsync(null, null, null, null, null, 1, 20, It.IsAny<CancellationToken>())).ReturnsAsync(payments);
-        _repoMock.Setup(r => r.CountAsync(null, null, null, null, null, It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _repoMock.Setup(r => r.QueryAsync(null, null, null, null, null, null, null, 1, 20, It.IsAny<CancellationToken>())).ReturnsAsync(payments);
+        _repoMock.Setup(r => r.CountAsync(null, null, null, null, null, null, null, It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var result = await _sut.QueryPaymentsAsync(null, null, null, null, null, 1, 20);
+        var result = await _sut.QueryPaymentsAsync(null, null, null, null, null, null, null, 1, 20);
 
         result.Items.Should().HaveCount(1);
         result.Total.Should().Be(1);
@@ -178,10 +178,10 @@ public class RefundAppServiceTests
     public async Task QueryRefundsAsync_ShouldReturnPaginated()
     {
         var refunds = new List<RefundOrder> { CreateRefund() };
-        _repoMock.Setup(r => r.QueryAsync(null, null, 1, 20, It.IsAny<CancellationToken>())).ReturnsAsync(refunds);
-        _repoMock.Setup(r => r.CountAsync(null, null, It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _repoMock.Setup(r => r.QueryAsync(null, null, null, null, null, 1, 20, It.IsAny<CancellationToken>())).ReturnsAsync(refunds);
+        _repoMock.Setup(r => r.CountAsync(null, null, null, null, null, It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var result = await _sut.QueryRefundsAsync(null, null, 1, 20);
+        var result = await _sut.QueryRefundsAsync(null, null, null, null, null, 1, 20);
 
         result.Items.Should().HaveCount(1);
         result.Total.Should().Be(1);

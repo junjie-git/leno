@@ -40,7 +40,7 @@ public sealed class RefundStatusCheckJob
     public async Task ExecuteAsync(CancellationToken ct = default)
     {
         var refundingOrders = await _refundOrderRepository.QueryAsync(
-            null, RefundStatus.Refunding, 1, BatchSize, ct);
+            null, RefundStatus.Refunding, null, null, null, 1, BatchSize, ct);
 
         _logger.LogInformation("退款状态补偿：待查退款单 {Count} 笔", refundingOrders.Count);
 

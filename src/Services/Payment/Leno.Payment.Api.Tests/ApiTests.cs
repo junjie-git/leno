@@ -217,7 +217,7 @@ public class PaymentApiTests : IClassFixture<WebApplicationFactory<Program>>
             Total = 1, Page = 1, PageSize = 20
         };
         _paymentAppServiceMock.Setup(s => s.QueryPaymentsAsync(
-                null, null, null, null, null, 1, 20, It.IsAny<CancellationToken>()))
+                null, null, null, null, null, null, null, 1, 20, It.IsAny<CancellationToken>()))
             .ReturnsAsync(listResult);
 
         var response = await _client.GetAsync("/api/admin/payments?page=1&pageSize=20");
@@ -235,7 +235,9 @@ public class PaymentApiTests : IClassFixture<WebApplicationFactory<Program>>
         var listResult = new PaymentListResultDto { Items = [], Total = 0, Page = 1, PageSize = 10 };
         _paymentAppServiceMock.Setup(s => s.QueryPaymentsAsync(
                 UserId, PaymentChannel.WeChatPay, PaymentStatus.Paid,
-                It.IsAny<DateTime>(), It.IsAny<DateTime>(), 1, 10, It.IsAny<CancellationToken>()))
+                It.IsAny<DateTime>(), It.IsAny<DateTime>(),
+                null, null,
+                1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(listResult);
 
         var response = await _client.GetAsync(
@@ -257,7 +259,7 @@ public class PaymentApiTests : IClassFixture<WebApplicationFactory<Program>>
             Total = 1, Page = 1, PageSize = 20
         };
         _refundAppServiceMock.Setup(s => s.QueryRefundsAsync(
-                null, null, 1, 20, It.IsAny<CancellationToken>()))
+                null, null, null, null, null, 1, 20, It.IsAny<CancellationToken>()))
             .ReturnsAsync(listResult);
 
         var response = await _client.GetAsync("/api/admin/refunds?page=1&pageSize=20");
@@ -274,7 +276,7 @@ public class PaymentApiTests : IClassFixture<WebApplicationFactory<Program>>
         SetupAdminAuth();
         var listResult = new RefundListResultDto { Items = [], Total = 0, Page = 1, PageSize = 10 };
         _refundAppServiceMock.Setup(s => s.QueryRefundsAsync(
-                OrderId, RefundStatus.Succeeded, 1, 10, It.IsAny<CancellationToken>()))
+                OrderId, RefundStatus.Succeeded, null, null, null, 1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(listResult);
 
         var response = await _client.GetAsync(

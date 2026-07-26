@@ -33,14 +33,22 @@ public interface IRefundOrderRepository : IRepository<RefundOrderAggregate>
     /// </summary>
     /// <param name="orderId">订单标识过滤，为空不过滤。</param>
     /// <param name="status">退款状态过滤，为空不过滤。</param>
+    /// <param name="refundNo">商户退款单号（OutRefundNo）模糊匹配过滤，为空或空白不过滤。</param>
+    /// <param name="startDate">创建起始时间过滤，为空不过滤。</param>
+    /// <param name="endDate">创建结束时间过滤，为空不过滤。</param>
     /// <param name="page">页码（从 1 起）。</param>
     /// <param name="pageSize">每页大小。</param>
-    Task<List<RefundOrderAggregate>> QueryAsync(Guid? orderId, RefundStatus? status, int page, int pageSize, CancellationToken ct = default);
+    Task<List<RefundOrderAggregate>> QueryAsync(Guid? orderId, RefundStatus? status, string? refundNo, DateTime? startDate, DateTime? endDate, int page, int pageSize, CancellationToken ct = default);
 
     /// <summary>
     /// 条件查询退款单总数（配合 <see cref="QueryAsync"/> 分页）。
     /// </summary>
-    Task<int> CountAsync(Guid? orderId, RefundStatus? status, CancellationToken ct = default);
+    /// <param name="orderId">订单标识过滤，为空不过滤。</param>
+    /// <param name="status">退款状态过滤，为空不过滤。</param>
+    /// <param name="refundNo">商户退款单号（OutRefundNo）模糊匹配过滤，为空或空白不过滤。</param>
+    /// <param name="startDate">创建起始时间过滤，为空不过滤。</param>
+    /// <param name="endDate">创建结束时间过滤，为空不过滤。</param>
+    Task<int> CountAsync(Guid? orderId, RefundStatus? status, string? refundNo, DateTime? startDate, DateTime? endDate, CancellationToken ct = default);
 
     /// <summary>
     /// 查询指定支付单关联的已退款成功（<see cref="RefundStatus.Succeeded"/>）的退款单列表。

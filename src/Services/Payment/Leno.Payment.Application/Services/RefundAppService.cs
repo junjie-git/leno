@@ -29,12 +29,15 @@ public sealed class RefundAppService : IRefundAppService
     public async Task<RefundListResultDto> QueryRefundsAsync(
         Guid? orderId,
         RefundStatus? status,
+        string? refundNo,
+        DateTime? startDate,
+        DateTime? endDate,
         int page,
         int pageSize,
         CancellationToken ct = default)
     {
-        var items = await _refundOrderRepository.QueryAsync(orderId, status, page, pageSize, ct);
-        var total = await _refundOrderRepository.CountAsync(orderId, status, ct);
+        var items = await _refundOrderRepository.QueryAsync(orderId, status, refundNo, startDate, endDate, page, pageSize, ct);
+        var total = await _refundOrderRepository.CountAsync(orderId, status, refundNo, startDate, endDate, ct);
 
         return new RefundListResultDto
         {

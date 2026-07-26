@@ -42,13 +42,16 @@ public sealed class EfCoreRefundOrderRepository : IRefundOrderRepository
     public async Task<List<RefundOrderAggregate>> QueryAsync(
         Guid? orderId,
         RefundStatus? status,
+        string? refundNo,
+        DateTime? startDate,
+        DateTime? endDate,
         int page,
         int pageSize,
         CancellationToken ct = default)
     {
         var query = _context.RefundOrders.AsQueryable();
 
-        query = ApplyFilters(query, orderId, status);
+        query = ApplyFilters(query, orderId, status, refundNo, startDate, endDate);
 
         return await query
             .OrderByDescending(r => r.CreatedAt)
@@ -58,11 +61,17 @@ public sealed class EfCoreRefundOrderRepository : IRefundOrderRepository
     }
 
     /// <inheritdoc />
-    public async Task<int> CountAsync(Guid? orderId, RefundStatus? status, CancellationToken ct = default)
+    public async Task<int> CountAsync(
+        Guid? orderId,
+        RefundStatus? status,
+        string? refundNo,
+        DateTime? startDate,
+        DateTime? endDate,
+        CancellationToken ct = default)
     {
         var query = _context.RefundOrders.AsQueryable();
 
-        query = ApplyFilters(query, orderId, status);
+        query = ApplyFilters(query, orderId, status, refundNo, startDate, endDate);
 
         return await query.CountAsync(ct);
     }
@@ -102,7 +111,10 @@ public sealed class EfCoreRefundOrderRepository : IRefundOrderRepository
     private static IQueryable<RefundOrderAggregate> ApplyFilters(
         IQueryable<RefundOrderAggregate> query,
         Guid? orderId,
-        RefundStatus? status)
+        RefundStatus? status,
+        string? refundNo,
+        DateTime? startDate,
+        DateTime? endDate)
     {
         if (orderId.HasValue)
         {
@@ -112,6 +124,21 @@ public sealed class EfCoreRefundOrderRepository : IRefundOrderRepository
         if (status.HasValue)
         {
             query = query.Where(r => r.Status == status.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(refundNo))
+        {
+            query = query.Where(r => r.OutRefundNo.Contains(refundNo));
+        }
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(r => r.CreatedAt >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(r => r.CreatedAt <= endDate.Value);
         }
 
         return query;

@@ -58,11 +58,13 @@ public class PaymentStatusCheckJobOptionsTests
                 It.IsAny<PaymentStatus?>(),
                 It.IsAny<DateTime?>(),
                 It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<Guid?>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .Callback<Guid?, PaymentChannel?, PaymentStatus?, DateTime?, DateTime?, int, int, CancellationToken>(
-                (_, _, _, _, endDate, _, pageSize, _) =>
+            .Callback<Guid?, PaymentChannel?, PaymentStatus?, DateTime?, DateTime?, string?, Guid?, int, int, CancellationToken>(
+                (_, _, _, _, endDate, _, _, _, pageSize, _) =>
                 {
                     capturedEndDates.Add(endDate);
                     capturedPageSizes.Add(pageSize);
@@ -195,6 +197,8 @@ public class PaymentStatusCheckJobOptionsTests
                 It.IsAny<PaymentStatus?>(),
                 It.IsAny<DateTime?>(),
                 It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<Guid?>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))

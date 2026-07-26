@@ -135,11 +135,13 @@ public sealed class PaymentsController : PaymentControllerBase
         [FromQuery] PaymentStatus? status,
         [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate,
+        [FromQuery] string? paymentNo,
+        [FromQuery] Guid? orderId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
-        var result = await _paymentAppService.QueryPaymentsAsync(userId, channel, status, startDate, endDate, page, pageSize, ct);
+        var result = await _paymentAppService.QueryPaymentsAsync(userId, channel, status, startDate, endDate, paymentNo, orderId, page, pageSize, ct);
         return Ok(ApiResponse.Success(result));
     }
 
@@ -150,11 +152,14 @@ public sealed class PaymentsController : PaymentControllerBase
     public async Task<IActionResult> QueryRefundsAsync(
         [FromQuery] Guid? orderId,
         [FromQuery] RefundStatus? status,
+        [FromQuery] string? refundNo,
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
-        var result = await _refundAppService.QueryRefundsAsync(orderId, status, page, pageSize, ct);
+        var result = await _refundAppService.QueryRefundsAsync(orderId, status, refundNo, startDate, endDate, page, pageSize, ct);
         return Ok(ApiResponse.Success(result));
     }
 }

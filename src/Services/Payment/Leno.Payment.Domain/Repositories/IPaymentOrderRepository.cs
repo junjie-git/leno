@@ -30,14 +30,23 @@ public interface IPaymentOrderRepository : IRepository<PaymentOrderAggregate>
     /// <param name="status">支付状态过滤，为空不过滤。</param>
     /// <param name="startDate">创建起始时间过滤，为空不过滤。</param>
     /// <param name="endDate">创建结束时间过滤，为空不过滤。</param>
+    /// <param name="paymentNo">商户支付单号（OutTradeNo）模糊匹配过滤，为空或空白不过滤。</param>
+    /// <param name="orderId">订单标识精确匹配过滤，为空不过滤。</param>
     /// <param name="page">页码（从 1 起）。</param>
     /// <param name="pageSize">每页大小。</param>
-    Task<List<PaymentOrderAggregate>> QueryAsync(Guid? userId, PaymentChannel? channel, PaymentStatus? status, DateTime? startDate, DateTime? endDate, int page, int pageSize, CancellationToken ct = default);
+    Task<List<PaymentOrderAggregate>> QueryAsync(Guid? userId, PaymentChannel? channel, PaymentStatus? status, DateTime? startDate, DateTime? endDate, string? paymentNo, Guid? orderId, int page, int pageSize, CancellationToken ct = default);
 
     /// <summary>
     /// 条件查询支付单总数（配合 <see cref="QueryAsync"/> 分页）。
     /// </summary>
-    Task<int> CountAsync(Guid? userId, PaymentChannel? channel, PaymentStatus? status, DateTime? startDate, DateTime? endDate, CancellationToken ct = default);
+    /// <param name="userId">买家标识过滤，为空不过滤。</param>
+    /// <param name="channel">支付渠道过滤，为空不过滤。</param>
+    /// <param name="status">支付状态过滤，为空不过滤。</param>
+    /// <param name="startDate">创建起始时间过滤，为空不过滤。</param>
+    /// <param name="endDate">创建结束时间过滤，为空不过滤。</param>
+    /// <param name="paymentNo">商户支付单号（OutTradeNo）模糊匹配过滤，为空或空白不过滤。</param>
+    /// <param name="orderId">订单标识精确匹配过滤，为空不过滤。</param>
+    Task<int> CountAsync(Guid? userId, PaymentChannel? channel, PaymentStatus? status, DateTime? startDate, DateTime? endDate, string? paymentNo, Guid? orderId, CancellationToken ct = default);
 
     /// <summary>
     /// 按 <see cref="Aggregates.PaymentOrder.PaidAt"/>（支付成功时间）分页查询已支付支付单。

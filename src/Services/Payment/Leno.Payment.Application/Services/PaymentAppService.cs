@@ -309,12 +309,14 @@ public sealed class PaymentAppService : IPaymentAppService
         PaymentStatus? status,
         DateTime? startDate,
         DateTime? endDate,
+        string? paymentNo,
+        Guid? orderId,
         int page,
         int pageSize,
         CancellationToken ct = default)
     {
-        var items = await _paymentOrderRepository.QueryAsync(userId, channel, status, startDate, endDate, page, pageSize, ct);
-        var total = await _paymentOrderRepository.CountAsync(userId, channel, status, startDate, endDate, ct);
+        var items = await _paymentOrderRepository.QueryAsync(userId, channel, status, startDate, endDate, paymentNo, orderId, page, pageSize, ct);
+        var total = await _paymentOrderRepository.CountAsync(userId, channel, status, startDate, endDate, paymentNo, orderId, ct);
 
         return new PaymentListResultDto
         {

@@ -46,13 +46,15 @@ public sealed class EfCorePaymentOrderRepository : IPaymentOrderRepository
         PaymentStatus? status,
         DateTime? startDate,
         DateTime? endDate,
+        string? paymentNo,
+        Guid? orderId,
         int page,
         int pageSize,
         CancellationToken ct = default)
     {
         var query = _context.PaymentOrders.AsQueryable();
 
-        query = ApplyFilters(query, userId, channel, status, startDate, endDate);
+        query = ApplyFilters(query, userId, channel, status, startDate, endDate, paymentNo, orderId);
 
         return await query
             .OrderByDescending(o => o.CreatedAt)
@@ -68,11 +70,13 @@ public sealed class EfCorePaymentOrderRepository : IPaymentOrderRepository
         PaymentStatus? status,
         DateTime? startDate,
         DateTime? endDate,
+        string? paymentNo,
+        Guid? orderId,
         CancellationToken ct = default)
     {
         var query = _context.PaymentOrders.AsQueryable();
 
-        query = ApplyFilters(query, userId, channel, status, startDate, endDate);
+        query = ApplyFilters(query, userId, channel, status, startDate, endDate, paymentNo, orderId);
 
         return await query.CountAsync(ct);
     }
@@ -147,7 +151,9 @@ public sealed class EfCorePaymentOrderRepository : IPaymentOrderRepository
         PaymentChannel? channel,
         PaymentStatus? status,
         DateTime? startDate,
-        DateTime? endDate)
+        DateTime? endDate,
+        string? paymentNo,
+        Guid? orderId)
     {
         if (userId.HasValue)
         {
@@ -172,6 +178,16 @@ public sealed class EfCorePaymentOrderRepository : IPaymentOrderRepository
         if (endDate.HasValue)
         {
             query = query.Where(o => o.CreatedAt <= endDate.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(paymentNo))
+        {
+            query = query.Where(o => o.OutTradeNo.Contains(paymentNo));
+        }
+
+        if (orderId.HasValue)
+        {
+            query = query.Where(o => o.OrderId == orderId.Value);
         }
 
         return query;
