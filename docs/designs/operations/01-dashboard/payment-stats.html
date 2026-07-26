@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>支付统计 - Leno 运营管理后台</title>
+<style>
+:root{
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-width:1200px}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715;-webkit-font-smoothing:antialiased}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.app-header{height:var(--header-h);background:var(--n1);display:flex;align-items:center;padding:0 var(--s6);box-shadow:0 1px 4px rgba(0,21,41,.08);position:sticky;top:0;z-index:100;gap:var(--s4)}
+.app-logo{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);white-space:nowrap;width:calc(var(--sider-width) - var(--s4));flex-shrink:0}
+.app-logo .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--c-primary),#4096FF);border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700;flex-shrink:0}
+.app-header .breadcrumb{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-base);color:var(--n9);flex:1}
+.app-header .breadcrumb .sep{color:var(--n5)}
+.app-header .breadcrumb .current{color:var(--n10)}
+.app-header .header-search{display:flex;align-items:center;background:var(--n3);border-radius:var(--r-base);padding:0 var(--s3);height:32px;width:200px;gap:var(--s2)}
+.app-header .header-search input{border:none;background:transparent;outline:none;font-size:var(--fs-sm);flex:1;color:var(--n10);font-family:var(--ff-app)}
+.app-header .header-search input::placeholder{color:var(--n7)}
+.app-header .header-actions{display:flex;align-items:center;gap:var(--s4);margin-left:auto}
+.app-header .icon-btn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--n9);transition:all .2s;position:relative}
+.app-header .icon-btn:hover{background:var(--n3);color:var(--n10)}
+.app-header .icon-btn .badge-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;background:var(--c-error);border-radius:50%;border:2px solid var(--n1)}
+.app-header .user-menu{display:flex;align-items:center;gap:var(--s2);cursor:pointer;padding:0 var(--s2);height:var(--header-h)}
+.app-header .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#722ED1,var(--c-primary));color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);font-weight:var(--fw-semibold)}
+.app-header .user-name{font-size:var(--fs-sm);color:var(--n10)}
+.app-body{display:flex;flex:1}
+.app-sider{width:var(--sider-width);background:var(--sider-bg);flex-shrink:0;position:sticky;top:var(--header-h);height:calc(100vh - var(--header-h));overflow-y:auto;padding:var(--s2) 0}
+.app-sider .menu-group-title{padding:var(--s4) var(--s6) var(--s2);font-size:var(--fs-sm);color:#ffffff40;font-weight:var(--fw-normal);letter-spacing:.5px}
+.app-sider .menu-item{display:flex;align-items:center;gap:var(--s3);padding:0 var(--s6);height:40px;font-size:var(--fs-base);color:rgba(255,255,255,.85);cursor:pointer;transition:all .15s}
+.app-sider .menu-item:hover{color:#fff}
+.app-sider .menu-item .menu-icon{width:16px;height:16px;flex-shrink:0;opacity:.85}
+.app-sider .menu-item.active{background:var(--c-primary);color:#fff}
+.app-sider .menu-item.active .menu-icon{opacity:1}
+.app-content{flex:1;background:var(--n3);padding:var(--s6);min-width:0}
+.app-footer{height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7);padding:0 var(--s6)}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s6)}
+.page-header .page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--n10);display:flex;align-items:center;gap:var(--s2)}
+.page-header .page-desc{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1)}
+.page-header .page-actions{display:flex;align-items:center;gap:var(--s3)}
+.filter-bar{background:var(--n1);border-radius:var(--r-card);padding:var(--s4) var(--s6);display:flex;align-items:center;gap:var(--s4);margin-bottom:var(--s6);box-shadow:var(--sh-card);flex-wrap:wrap}
+.filter-bar .filter-label{font-size:var(--fs-sm);color:var(--n9);flex-shrink:0}
+.seg-group{display:inline-flex;background:var(--n3);border-radius:var(--r-base);padding:2px;gap:2px}
+.seg-btn{padding:4px var(--s3);font-size:var(--fs-sm);color:var(--n9);border:none;background:transparent;cursor:pointer;border-radius:4px;transition:all .15s;font-family:var(--ff-app);white-space:nowrap}
+.seg-btn:hover{color:var(--n10)}
+.seg-btn.active{background:var(--n1);color:var(--c-primary);font-weight:var(--fw-medium);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.range-picker{display:flex;align-items:center;gap:var(--s2);background:var(--n1);border:1px solid var(--n5);border-radius:var(--r-base);padding:4px var(--s3);height:32px;font-size:var(--fs-sm)}
+.range-picker:hover{border-color:var(--c-primary)}
+.range-picker input{border:none;outline:none;font-size:var(--fs-sm);font-family:var(--ff-app);color:var(--n10);width:110px;background:transparent}
+.range-picker .range-sep{color:var(--n7)}
+.btn{display:inline-flex;align-items:center;gap:var(--s2);padding:4px var(--s4);font-size:var(--fs-sm);border-radius:var(--r-base);cursor:pointer;transition:all .15s;font-family:var(--ff-app);border:1px solid var(--n5);background:var(--n1);color:var(--n10);height:32px;line-height:22px}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff}
+.btn-sm{height:24px;padding:0 var(--s2);font-size:var(--fs-sm)}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s6);margin-bottom:var(--s6)}
+.kpi-card{background:var(--n1);border-radius:var(--r-card);padding:var(--s6);box-shadow:var(--sh-card);position:relative;overflow:hidden;transition:box-shadow .2s}
+.kpi-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.kpi-card .kpi-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s4)}
+.kpi-card .kpi-title{font-size:var(--fs-base);color:var(--n9);font-weight:var(--fw-normal)}
+.kpi-card .kpi-icon{width:40px;height:40px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center}
+.kpi-card .kpi-value{font-size:var(--fs-3xl);font-weight:var(--fw-semibold);color:var(--n10);line-height:1.2;margin-bottom:var(--s2)}
+.kpi-card .kpi-value .unit{font-size:var(--fs-lg);font-weight:var(--fw-normal);color:var(--n9);margin-left:var(--s1)}
+.kpi-card .kpi-footer{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-sm)}
+.kpi-trend{display:inline-flex;align-items:center;gap:2px;font-size:var(--fs-sm);font-weight:var(--fw-medium)}
+.kpi-trend.up{color:var(--c-success)}
+.kpi-trend.down{color:var(--c-error)}
+.kpi-card .kpi-compare{color:var(--n7);font-size:var(--fs-sm)}
+.icon-bg-blue{background:#E6F4FF;color:var(--c-primary)}
+.icon-bg-green{background:#F6FFED;color:var(--c-success)}
+.icon-bg-gold{background:#FFFBE6;color:var(--c-warning)}
+.icon-bg-purple{background:#F9F0FF;color:#722ED1}
+.chart-row{display:grid;gap:var(--s6);margin-bottom:var(--s6)}
+.chart-row.two-col{grid-template-columns:1fr 1fr}
+.chart-row.two-col-wide{grid-template-columns:2fr 1fr}
+.chart-card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden}
+.chart-card .card-head{display:flex;align-items:center;justify-content:space-between;padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3)}
+.chart-card .card-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);display:flex;align-items:center;gap:var(--s2)}
+.chart-card .card-extra{display:flex;align-items:center;gap:var(--s3)}
+.chart-card .card-body{padding:var(--s6)}
+.chart-card .card-body.no-pad{padding:0}
+.data-table{width:100%;border-collapse:collapse;font-size:var(--fs-base)}
+.data-table th{background:var(--n2);color:var(--n9);font-weight:var(--fw-medium);text-align:left;padding:0 var(--s4);height:48px;font-size:var(--fs-sm);border-bottom:1px solid var(--n5);white-space:nowrap}
+.data-table td{padding:0 var(--s4);height:48px;border-bottom:1px solid var(--n3);color:var(--n10);font-size:var(--fs-base)}
+.data-table tr:hover td{background:var(--n2)}
+.data-table .num{font-family:var(--ff-mono);font-size:var(--fs-sm)}
+.data-table .right{text-align:right}
+.tag{display:inline-flex;align-items:center;padding:0 var(--s2);height:22px;border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;border:1px solid;white-space:nowrap}
+.tag-blue{background:#E6F4FF;color:var(--c-primary);border-color:#91CAFF}
+.tag-green{background:#F6FFED;color:var(--c-success);border-color:#B7EB8F}
+.tag-gold{background:#FFFBE6;color:var(--c-warning);border-color:#FFE58F}
+.tag-red{background:#FFF2F0;color:var(--c-error);border-color:#FFCCC7}
+.tag-gray{background:var(--n3);color:var(--n7);border-color:var(--n5)}
+/* Gauge */
+.gauge-wrap{display:flex;align-items:center;justify-content:center;flex-direction:column}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <div class="app-logo"><div class="logo-icon">L</div><span>Leno 运营后台</span></div>
+    <div class="breadcrumb"><span>数据看板</span><span class="sep">/</span><span class="current">支付统计</span></div>
+    <div class="header-search">
+      <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor" style="color:var(--n7)"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 714 478.4 714 408c0-168.4-136.6-305-305-305S104 239.6 104 408s136.6 305 305 305c70.4 0 134.7-23.8 186.8-64.1l259.7 259.6 54.1-54.1zM409 652.2c-134.8 0-244.2-109.4-244.2-244.2S274.2 163.8 409 163.8s244.2 109.4 244.2 244.2S543.8 652.2 409 652.2z"/></svg>
+      <input placeholder="搜索菜单、订单、商品..." />
+    </div>
+    <div class="header-actions">
+      <div class="icon-btn" title="待办事项">
+        <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112c-30.9 0-56 25.1-56 56 0 8.2 1.8 15.9 4.9 23L729.3 290.5C705.4 271.4 675.1 260 642 260c-21.5 0-41.8 4.7-60.1 13.1L449.2 140.4c4.4-11.4 6.8-23.7 6.8-36.4 0-55.2-44.8-100-100-100S256 48.8 256 104c0 12.7 2.4 25 6.8 36.4L162.1 240.9C143.8 232.4 123.5 228 102 228 46.8 228 2 272.8 2 328s44.8 100 100 100 100-44.8 100-100c0-18.6-5.1-36-14-51l122.7-122.7c15.6 6.3 32.7 9.7 50.4 9.7 17.7 0 34.8-3.4 50.4-9.7l122.7 122.7C634.1 291 629 308.4 629 327c0 55.2 44.8 100 100 100s100-44.8 100-100c0-12.7-2.4-25-6.8-36.4l98.6-98.6c8.8 3.2 18.4 5 28.2 5 30.9 0 56-25.1 56-56s-25.1-56-56-56z"/></svg>
+        <span class="badge-dot"></span>
+      </div>
+      <div class="icon-btn" title="通知">
+        <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a32 32 0 0 1 32 32v32h160a32 32 0 0 1 32 32v64a32 32 0 0 1-32 32H320a32 32 0 0 1-32-32V160a32 32 0 0 1 32-32h160V96a32 32 0 0 1 32-32zM256 256h512v352a256 256 0 0 1-512 0V256zm256 576a96 96 0 0 0 96-96H416a96 96 0 0 0 96 96z"/></svg>
+        <span class="badge-dot"></span>
+      </div>
+      <div class="user-menu">
+        <div class="avatar">运营</div>
+        <span class="user-name">运营管理员</span>
+        <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor" style="color:var(--n7)"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39.1 17.6 51.9 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+      </div>
+    </div>
+  </header>
+  <div class="app-body">
+    <aside class="app-sider">
+      <div class="menu-group-title">数据看板</div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 0 0-96-142.4 446.7 446.7 0 0 0-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 0 0-142.4 96 446.7 446.7 0 0 0-96 142.4C75.8 440.9 64 499.5 64 560c0 132.3 51.9 256.7 146 350.8a494.4 494.4 0 0 0 350.8 146c60.5 0 119.1-11.8 174.4-35.2a446.7 446.7 0 0 0 142.4-96 446.7 446.7 0 0 0 96-142.4c23.4-55.3 35.2-113.9 35.2-174.4s-11.8-119.1-35.2-174.4zM512 880c-176.7 0-320-143.3-320-320s143.3-320 320-320 320 143.3 320 320-143.3 320-320 320z"/></svg><span>运营总览</span></div>
+      <div class="menu-item active"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 820V180c0-37.6-30.4-68-68-68H180c-37.6 0-68 30.4-68 68v640c0 37.6 30.4 68 68 68h664c37.6 0 68-30.4 68-68zM180 180h664v640H180V180zm140 480h384a32 32 0 1 0 0-64H320a32 32 0 1 0 0 64zm0-160h384a32 32 0 1 0 0-64H320a32 32 0 1 0 0 64zm0-160h192a32 32 0 1 0 0-64H320a32 32 0 1 0 0 64z"/></svg><span>支付统计</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64L128 224v320c0 212.8 163.2 409.6 384 416 220.8-6.4 384-203.2 384-416V224L512 64z"/></svg><span>积分统计</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-44.2 0-80 35.8-80 80v560c0 44.2 35.8 80 80 80h736c44.2 0 80-35.8 80-80V192c0-44.2-35.8-80-80-80z"/></svg><span>通知送达率</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-44.2 0-80 35.8-80 80v560c0 44.2 35.8 80 80 80h736c44.2 0 80-35.8 80-80V192c0-44.2-35.8-80-80-80z"/></svg><span>售后统计</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v288c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32z"/></svg><span>店铺排行</span></div>
+      <div class="menu-group-title" style="margin-top:var(--s4)">商品运营</div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v288c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32z"/></svg><span>商品审核</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v288c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32z"/></svg><span>品牌管理</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v288c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32z"/></svg><span>分类管理</span></div>
+      <div class="menu-group-title" style="margin-top:var(--s4)">促销运营</div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-44.2 0-80 35.8-80 80v560c0 44.2 35.8 80 80 80h736c44.2 0 80-35.8 80-80V192c0-44.2-35.8-80-80-80z"/></svg><span>促销活动</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-44.2 0-80 35.8-80 80v560c0 44.2 35.8 80 80 80h736c44.2 0 80-35.8 80-80V192c0-44.2-35.8-80-80-80z"/></svg><span>优惠券管理</span></div>
+      <div class="menu-group-title" style="margin-top:var(--s4)">订单运营</div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-44.2 0-80 35.8-80 80v560c0 44.2 35.8 80 80 80h736c44.2 0 80-35.8 80-80V192c0-44.2-35.8-80-80-80z"/></svg><span>订单管理</span></div>
+      <div class="menu-item"><svg class="menu-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-44.2 0-80 35.8-80 80v560c0 44.2 35.8 80 80 80h736c44.2 0 80-35.8 80-80V192c0-44.2-35.8-80-80-80z"/></svg><span>售后处理</span></div>
+    </aside>
+    <main class="app-content">
+      <div class="page-header">
+        <div>
+          <div class="page-title">支付统计</div>
+          <div class="page-desc">监控全平台支付成功率、渠道分布与失败原因，定位支付链路异常</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn"><svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-44.1C745.9 128 576 100.7 471.5 121.3l-47.5 9c-39.9 7.6-76.1 28.1-101.5 57.9l-60.1 70.2c-20.9 24.4-37.4 52.3-48.8 82.4L162.7 490.4c-7.4 19.4-7.4 40.8 0 60.2L214 679.6c11.4 30.1 27.9 58 48.8 82.4l60.1 70.2c25.4 29.8 61.6 50.3 101.5 57.9l47.5 9C677.4 923.3 847.6 896 913 864.8l56.4-44.1c9.2-7.2 14.6-18.2 14.6-29.9V239.2c0-11.7-5.4-22.7-14.9-29.9z"/></svg>刷新</button>
+          <button class="btn"><svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M505.7 661a8 8 0 0 1 0-11.3L596.7 559a8 8 0 0 1 11.3 0L734.7 685.7a8 8 0 0 1 0 11.3l-366.4 366.4a8 8 0 0 1-11.3 0l-91-91a8 8 0 0 1 0-11.3L505.7 661z"/></svg>导出报表</button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <span class="filter-label">时间范围</span>
+        <div class="seg-group">
+          <button class="seg-btn">今日</button>
+          <button class="seg-btn">昨日</button>
+          <button class="seg-btn active">近7天</button>
+          <button class="seg-btn">近30天</button>
+          <button class="seg-btn">本月</button>
+        </div>
+        <div class="range-picker"><input value="2026-07-20" /><span class="range-sep">~</span><input value="2026-07-26" /></div>
+        <button class="btn btn-primary"><svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 714 478.4 714 408c0-168.4-136.6-305-305-305S104 239.6 104 408s136.6 305 305 305c70.4 0 134.7-23.8 186.8-64.1l259.7 259.6 54.1-54.1zM409 652.2c-134.8 0-244.2-109.4-244.2-244.2S274.2 163.8 409 163.8s244.2 109.4 244.2 244.2S543.8 652.2 409 652.2z"/></svg>查询</button>
+        <span style="margin-left:auto;font-size:var(--fs-sm);color:var(--n7)">数据更新于 2026-07-26 14:32:08</span>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-header"><span class="kpi-title">支付总额</span><div class="kpi-icon icon-bg-blue"><svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm0 832a384 384 0 1 0 0-768 384 384 0 0 0 0 768zm48-176a48 48 0 1 1-96 0 48 48 0 0 1 96 0zm-48-464a32 32 0 0 1 32 32v288a32 32 0 1 1-64 0V288a32 32 0 0 1 32-32z"/></svg></div></div>
+          <div class="kpi-value">¥986,580</div>
+          <div class="kpi-footer"><span class="kpi-trend up"><svg width="10" height="10" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.9 689L530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z"/></svg>10.2%</span><span class="kpi-compare">较上周</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-header"><span class="kpi-title">交易笔数</span><div class="kpi-icon icon-bg-green"><svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM428 726c-12.2 12.2-32 12.2-44.2 0L294 636.2c-12.2-12.2-12.2-32 0-44.2 12.2-12.2 32-12.2 44.2 0l68 68 290-290c12.2-12.2 32-12.2 44.2 0 12.2 12.2 12.2 32 0 44.2L428 726z"/></svg></div></div>
+          <div class="kpi-value">8,456</div>
+          <div class="kpi-footer"><span class="kpi-trend up"><svg width="10" height="10" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.9 689L530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z"/></svg>7.8%</span><span class="kpi-compare">较上周</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-header"><span class="kpi-title">支付成功率</span><div class="kpi-icon icon-bg-gold"><svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm0 832a384 384 0 1 0 0-768 384 384 0 0 0 0 768zm0-668c-110.5 0-200 89.5-200 200s89.5 200 200 200 200-89.5 200-200-89.5-200-200-200zm0 320c-66.3 0-120-53.7-120-120s53.7-120 120-120 120 53.7 120 120-53.7 120-120 120z"/></svg></div></div>
+          <div class="kpi-value">98.6<span class="unit">%</span></div>
+          <div class="kpi-footer"><span class="kpi-trend up"><svg width="10" height="10" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.9 689L530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z"/></svg>0.4%</span><span class="kpi-compare">较上周</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-header"><span class="kpi-title">平均单价</span><div class="kpi-icon icon-bg-purple"><svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v288c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32zM332 240c0-30.9 25.1-56 56-56h248c30.9 0 56 25.1 56 56v224H332V240z"/></svg></div></div>
+          <div class="kpi-value">¥116.7</div>
+          <div class="kpi-footer"><span class="kpi-trend up"><svg width="10" height="10" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.9 689L530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z"/></svg>2.1%</span><span class="kpi-compare">较上周</span></div>
+        </div>
+      </div>
+
+      <!-- Payment Trend + Payment Method Pie -->
+      <div class="chart-row two-col-wide">
+        <div class="chart-card">
+          <div class="card-head">
+            <span class="card-title">支付趋势</span>
+            <div class="card-extra">
+              <div class="seg-group">
+                <button class="seg-btn active">按日</button>
+                <button class="seg-btn">按周</button>
+                <button class="seg-btn">按月</button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <svg width="100%" height="300" viewBox="0 0 760 300" style="display:block">
+              <defs>
+                <linearGradient id="payGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1677FF" stop-opacity="0.25"/><stop offset="100%" stop-color="#1677FF" stop-opacity="0"/></linearGradient>
+              </defs>
+              <g stroke="#F0F0F0" stroke-width="1"><line x1="50" y1="20" x2="740" y2="20"/><line x1="50" y1="75" x2="740" y2="75"/><line x1="50" y1="130" x2="740" y2="130"/><line x1="50" y1="185" x2="740" y2="185"/><line x1="50" y1="240" x2="740" y2="240"/></g>
+              <g fill="#8C8C8C" font-size="11" font-family="var(--ff-mono)" text-anchor="end"><text x="42" y="24">180K</text><text x="42" y="79">135K</text><text x="42" y="134">90K</text><text x="42" y="189">45K</text><text x="42" y="244">0</text></g>
+              <g fill="#8C8C8C" font-size="11" text-anchor="middle"><text x="98" y="262">07-20</text><text x="198" y="262">07-21</text><text x="298" y="262">07-22</text><text x="398" y="262">07-23</text><text x="498" y="262">07-24</text><text x="598" y="262">07-25</text><text x="698" y="262">07-26</text></g>
+              <path d="M 98,172 C 148,160 168,140 198,135 S 248,118 298,100 S 348,90 398,78 S 448,60 498,55 S 548,42 598,38 S 648,28 698,30 L 698,240 L 98,240 Z" fill="url(#payGrad)"/>
+              <path d="M 98,172 C 148,160 168,140 198,135 S 248,118 298,100 S 348,90 398,78 S 448,60 498,55 S 548,42 598,38 S 648,28 698,30" fill="none" stroke="#1677FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <g fill="#fff" stroke="#1677FF" stroke-width="2"><circle cx="98" cy="172" r="4"/><circle cx="198" cy="135" r="4"/><circle cx="298" cy="100" r="4"/><circle cx="398" cy="78" r="4"/><circle cx="498" cy="55" r="4"/><circle cx="598" cy="38" r="4"/><circle cx="698" cy="30" r="4"/></g>
+              <circle cx="698" cy="30" r="6" fill="#1677FF" opacity="0.2"/>
+              <g transform="translate(580,40)"><rect x="0" y="0" width="120" height="42" rx="4" fill="rgba(0,0,0,0.78)"/><text x="10" y="17" fill="#fff" font-size="11">07-26 支付额</text><text x="10" y="33" fill="#fff" font-size="13" font-weight="600">¥168,250</text></g>
+            </svg>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="card-head"><span class="card-title">支付方式占比</span></div>
+          <div class="card-body" style="display:flex;align-items:center;justify-content:center;flex-direction:column">
+            <svg width="200" height="200" viewBox="0 0 200 200">
+              <circle cx="100" cy="100" r="70" fill="none" stroke="#1677FF" stroke-width="28" stroke-dasharray="197.9 439.8" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
+              <circle cx="100" cy="100" r="70" fill="none" stroke="#52C41A" stroke-width="28" stroke-dasharray="167.1 439.8" stroke-dashoffset="-197.9" transform="rotate(-90 100 100)"/>
+              <circle cx="100" cy="100" r="70" fill="none" stroke="#FAAD14" stroke-width="28" stroke-dasharray="52.8 439.8" stroke-dashoffset="-365.0" transform="rotate(-90 100 100)"/>
+              <circle cx="100" cy="100" r="70" fill="none" stroke="#722ED1" stroke-width="28" stroke-dasharray="22.0 439.8" stroke-dashoffset="-417.8" transform="rotate(-90 100 100)"/>
+              <text x="100" y="95" text-anchor="middle" font-size="12" fill="#8C8C8C">总交易</text>
+              <text x="100" y="115" text-anchor="middle" font-size="20" font-weight="600" fill="#000000D9">8,456笔</text>
+            </svg>
+            <div style="display:flex;flex-direction:column;gap:var(--s2);margin-top:var(--s3);width:100%">
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:var(--fs-sm)"><span style="display:flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#1677FF"></span>微信支付</span><span><span style="color:var(--n10);font-weight:500">¥443,961</span> <span style="color:var(--n7)">45%</span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:var(--fs-sm)"><span style="display:flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#52C41A"></span>支付宝</span><span><span style="color:var(--n10);font-weight:500">¥374,900</span> <span style="color:var(--n7)">38%</span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:var(--fs-sm)"><span style="display:flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#FAAD14"></span>银行卡</span><span><span style="color:var(--n10);font-weight:500">¥118,390</span> <span style="color:var(--n7)">12%</span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:var(--fs-sm)"><span style="display:flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#722ED1"></span>余额支付</span><span><span style="color:var(--n10);font-weight:500">¥49,329</span> <span style="color:var(--n7)">5%</span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Channel Distribution Bar + Failure Reasons Pie -->
+      <div class="chart-row two-col">
+        <div class="chart-card">
+          <div class="card-head"><span class="card-title">渠道分布（横向柱状图）</span><div class="card-extra"><span style="font-size:var(--fs-sm);color:var(--n7)">按笔数降序</span></div></div>
+          <div class="card-body">
+            <svg width="100%" height="260" viewBox="0 0 460 260" style="display:block">
+              <g fill="#8C8C8C" font-size="11" text-anchor="end"><text x="70" y="44">微信支付</text><text x="70" y="84">支付宝</text><text x="70" y="124">银行卡</text><text x="70" y="164">余额支付</text></g>
+              <g stroke="#F0F0F0" stroke-width="1"><line x1="80" y1="20" x2="80" y2="180"/><line x1="160" y1="20" x2="160" y2="180"/><line x1="240" y1="20" x2="240" y2="180"/><line x1="320" y1="20" x2="320" y2="180"/><line x1="400" y1="20" x2="400" y2="180"/></g>
+              <rect x="80" y="28" width="284" height="24" rx="3" fill="#1677FF"/>
+              <rect x="80" y="68" width="240" height="24" rx="3" fill="#52C41A"/>
+              <rect x="80" y="108" width="76" height="24" rx="3" fill="#FAAD14"/>
+              <rect x="80" y="148" width="32" height="24" rx="3" fill="#722ED1"/>
+              <g fill="#595959" font-size="11" font-family="var(--ff-mono)"><text x="370" y="44">3,805笔</text><text x="326" y="84">3,213笔</text><text x="162" y="124">1,015笔</text><text x="118" y="164">423笔</text></g>
+              <g fill="#8C8C8C" font-size="10" text-anchor="middle"><text x="120" y="200">0</text><text x="200" y="200">1K</text><text x="280" y="200">2K</text><text x="360" y="200">3K</text><text x="440" y="200">4K</text></g>
+            </svg>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="card-head"><span class="card-title">失败原因 Top5</span></div>
+          <div class="card-body" style="display:flex;align-items:center;justify-content:center;flex-direction:column">
+            <svg width="200" height="200" viewBox="0 0 200 200">
+              <circle cx="100" cy="100" r="70" fill="none" stroke="#FF4D4F" stroke-width="28" stroke-dasharray="110.0 439.8" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
+              <circle cx="100" cy="100" r="70" fill="none" stroke="#FAAD14" stroke-width="28" stroke-dasharray="88.0 439.8" stroke-dashoffset="-110.0" transform="rotate(-90 100 100)"/>
+              <circle cx="100" cy="100" r="70" fill="none" stroke="#722ED1" stroke-width="28" stroke-dasharray="66.0 439.8" stroke-dashoffset="-198.0" transform="rotate(-90 100 100)"/>
+              <circle cx="100" cy="100" r="70" fill="none" stroke="#13C2C2" stroke-width="28" stroke-dasharray="44.0 439.8" stroke-dashoffset="-264.0" transform="rotate(-90 100 100)"/>
+              <circle cx="100" cy="100" r="70" fill="none" stroke="#8C8C8C" stroke-width="28" stroke-dasharray="35.2 439.8" stroke-dashoffset="-308.0" transform="rotate(-90 100 100)"/>
+              <text x="100" y="95" text-anchor="middle" font-size="12" fill="#8C8C8C">失败总数</text>
+              <text x="100" y="115" text-anchor="middle" font-size="20" font-weight="600" fill="#FF4D4F">118笔</text>
+            </svg>
+            <div style="display:flex;flex-direction:column;gap:var(--s2);margin-top:var(--s3);width:100%">
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:var(--fs-sm)"><span style="display:flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#FF4D4F"></span>余额不足</span><span><span style="color:var(--n10);font-weight:500">42笔</span> <span style="color:var(--n7)">35.6%</span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:var(--fs-sm)"><span style="display:flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#FAAD14"></span>支付超时</span><span><span style="color:var(--n10);font-weight:500">35笔</span> <span style="color:var(--n7)">29.7%</span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:var(--fs-sm)"><span style="display:flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#722ED1"></span>风控拦截</span><span><span style="color:var(--n10);font-weight:500">26笔</span> <span style="color:var(--n7)">22.0%</span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:var(--fs-sm)"><span style="display:flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#13C2C2"></span>渠道异常</span><span><span style="color:var(--n10);font-weight:500">9笔</span> <span style="color:var(--n7)">7.6%</span></span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:var(--fs-sm)"><span style="display:flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#8C8C8C"></span>其他</span><span><span style="color:var(--n10);font-weight:500">6笔</span> <span style="color:var(--n7)">5.1%</span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Channel Detail Table -->
+      <div class="chart-card">
+        <div class="card-head"><span class="card-title">支付渠道明细</span><div class="card-extra"><button class="btn btn-sm">导出明细</button></div></div>
+        <div class="card-body no-pad">
+          <table class="data-table">
+            <thead><tr><th>支付渠道</th><th class="right">交易笔数</th><th class="right">交易金额</th><th class="right">成功率</th><th class="right">平均单价</th><th class="right">环比</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td><span style="display:inline-flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#1677FF"></span>微信支付</span></td><td class="num right">3,805</td><td class="num right">¥443,961</td><td class="num right" style="color:var(--c-success)">99.2%</td><td class="num right">¥116.7</td><td class="num right"><span class="kpi-trend up">↑3.2%</span></td><td><span class="tag tag-green">正常</span></td></tr>
+              <tr><td><span style="display:inline-flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#52C41A"></span>支付宝</span></td><td class="num right">3,213</td><td class="num right">¥374,900</td><td class="num right" style="color:var(--c-success)">99.0%</td><td class="num right">¥116.6</td><td class="num right"><span class="kpi-trend up">↑2.8%</span></td><td><span class="tag tag-green">正常</span></td></tr>
+              <tr><td><span style="display:inline-flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#FAAD14"></span>银行卡</span></td><td class="num right">1,015</td><td class="num right">¥118,390</td><td class="num right" style="color:var(--c-warning)">96.5%</td><td class="num right">¥116.6</td><td class="num right"><span class="kpi-trend down">↓1.5%</span></td><td><span class="tag tag-gold">需关注</span></td></tr>
+              <tr><td><span style="display:inline-flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#722ED1"></span>余额支付</span></td><td class="num right">423</td><td class="num right">¥49,329</td><td class="num right" style="color:var(--c-success)">98.1%</td><td class="num right">¥116.6</td><td class="num right"><span class="kpi-trend up">↑5.1%</span></td><td><span class="tag tag-green">正常</span></td></tr>
+              <tr><td><span style="display:inline-flex;align-items:center;gap:var(--s2)"><span style="width:8px;height:8px;border-radius:2px;background:#8C8C8C"></span>合计</span></td><td class="num right" style="font-weight:600">8,456</td><td class="num right" style="font-weight:600">¥986,580</td><td class="num right" style="font-weight:600;color:var(--c-success)">98.6%</td><td class="num right" style="font-weight:600">¥116.7</td><td class="num right"><span class="kpi-trend up">↑2.1%</span></td><td>--</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+  <footer class="app-footer">Leno 电商平台运营管理后台 &copy; 2026 &nbsp;|&nbsp; 数据更新于 2026-07-26 14:32:08 &nbsp;|&nbsp; SLA 99.95%</footer>
+</div>
+</body>
+</html>
