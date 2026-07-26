@@ -17,9 +17,21 @@ public sealed class UserDto
     /// <summary>邮箱（OAuth 注册可空）。</summary>
     public string? Email { get; set; }
 
+    /// <summary>手机号（E.164，OAuth 注册可空）。</summary>
+    public string? PhoneNumber { get; set; }
+
+    /// <summary>昵称。</summary>
+    public string Nickname { get; set; } = string.Empty;
+
+    /// <summary>头像 URL（HTTPS），可空。</summary>
+    public string? AvatarUrl { get; set; }
+
     /// <summary>账户状态。</summary>
     public AccountStatus Status { get; set; }
 
     /// <summary>账户创建时间（UTC）。</summary>
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>账户最后更新时间（UTC）。</summary>
+    public DateTime UpdatedAt { get; set; }
 }

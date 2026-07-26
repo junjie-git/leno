@@ -1,6 +1,7 @@
 using FluentValidation;
 using Grpc.Net.Client;
 using Leno.Identity.Application;
+using Leno.Identity.Application.Abstractions;
 using Leno.Identity.Application.Services;
 using Leno.Identity.Domain.Repositories;
 using Leno.Identity.Domain.Services;
@@ -131,6 +132,40 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOAuth2ProviderAdapter>(sp => sp.GetRequiredService<OidcProviderAdapter>());
         services.AddScoped<IOAuth2ProviderAdapter>(sp => sp.GetRequiredService<Saml2ProviderAdapter>());
         services.AddScoped<IOAuth2ProviderFactory, OAuth2ProviderFactory>();
+
+        // 7.2 Task A2 补齐：身份管理 / OAuth 客户端管理 / 内部查询应用服务
+        //     a) AES-256 加密服务（OAuth ClientSecret 加密存储）：fail-fast，密钥缺失时拒绝启动
+        var aesKey = configuration["OAuth2:AesKey"];
+        if (string.IsNullOrWhiteSpace(aesKey))
+        {
+            throw new InvalidOperationException(
+                "OAuth2:AesKey 配置缺失，无法启动 Identity 服务。" +
+                "请在配置中提供 256 位 AES 密钥（Base64 编码 32 字节）。");
+        }
+        services.AddSingleton<IClientSecretEncryptionService>(new AesEncryptionService(aesKey));
+
+        //     b) UserAdminAppService（含 AccessControl BC HTTP 跨域调用）：通过 HttpClientFactory 注册 typed client，
+        //        配置 BaseAddress 与 X-Internal-Key 头，调用 AccessControl api/admin/users/{id}/roles 端点
+        var accessControlHttpUrl = configuration["ServiceUrls:AccessControlApi"]
+            ?? configuration["AntiCorruption:GrpcEndpoints:AccessControl"]
+            ?? "http://localhost:8082";
+        var internalApiKey = configuration["InternalAuth:ApiKey"]
+            ?? configuration["Security:InternalApiKey:Shared"];
+
+        services.AddHttpClient<UserAdminAppService>(client =>
+        {
+            client.BaseAddress = new Uri(accessControlHttpUrl);
+            client.Timeout = TimeSpan.FromSeconds(30);
+            if (!string.IsNullOrWhiteSpace(internalApiKey))
+            {
+                client.DefaultRequestHeaders.Add("X-Internal-Key", internalApiKey);
+            }
+        });
+        services.AddScoped<IUserAdminAppService>(sp => sp.GetRequiredService<UserAdminAppService>());
+
+        //     c) OAuthClientAppService / UserInternalAppService（无 HttpClient 依赖，直接注册）
+        services.AddScoped<IOAuthClientAppService, OAuthClientAppService>();
+        services.AddScoped<IUserInternalAppService, UserInternalAppService>();
 
         // 8. FluentValidation 校验器自动扫描
         services.AddValidatorsFromAssembly(typeof(IAuthenticationAppService).Assembly);

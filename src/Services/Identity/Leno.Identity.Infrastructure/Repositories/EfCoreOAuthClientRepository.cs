@@ -47,6 +47,18 @@ public sealed class EfCoreOAuthClientRepository : IOAuthClientRepository
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<OAuthClient>> GetAllAsync(CancellationToken ct = default)
+    {
+        var items = await _context.OAuthClients
+            .AsNoTracking()
+            .OrderBy(c => c.Provider)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        return items;
+    }
+
+    /// <inheritdoc />
     public Task AddAsync(OAuthClient aggregate, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(aggregate);
