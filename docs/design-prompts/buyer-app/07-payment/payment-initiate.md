@@ -45,10 +45,11 @@
 | 方法 | 端点 | 用途 | 鉴权 |
 |-|-|-|-|
 | GET | `/api/orders/{id}` | 查询订单详情（含应付金额与截止时间） | Buyer |
-| POST | `/api/payments` | 发起支付（body: `{ orderId, channel: "wechat|alipay" }`，发布支付请求集成事件） | Buyer |
+| POST | `/api/payments` | 同步发起支付（body: `CreatePaymentRequest`，返回调起参数 `prepayId/codeUrl/h5Url`） | Buyer |
 
-- **请求参数**：`PayOrderDto`（orderId、channel: "wechat"|"alipay"）作为 body。
-- **响应字段**：`OrderDto` 含 `id`、`orderNo`、`status`、`totalAmount`、`expireAt`；发起支付返回 `ApiResponse`（无 data，支付参数经支付集成域异步返回，前端轮询订单状态或跳转第三方）。
+- **请求参数**：`CreatePaymentRequest` 含 `OrderId`（Guid，必填）、`Channel`（PaymentChannel?，可选，缺省由后端按场景默认 WeChatPay/Alipay）、`Scene`（PaymentScene?，可选，JSAPI/H5/Native/MiniProgram）、`IdempotencyKey`（string?，可选，前端生成的幂等键，避免重复发起）。前端老式 `{ orderId, channel: "wechat|alipay" }` 调用方式向后兼容（channel 字符串可映射到 PaymentChannel 枚举）。
+- **响应字段**：`OrderDto` 含 `id`、`orderNo`、`status`、`totalAmount`、`expireAt`；发起支付返回 `ApiResponse<PaymentInitiationResultDto>`，含 `PaymentId`（支付单标识）、`Channel`、`Scene`、`PrepayId`（微信 JSAPI）、`CodeUrl`（微信 Native）、`H5Url`（微信/支付宝 H5）、`Status`（Pending/Paid/Closed）。重复发起同一支付请求返回首次结果（INV-PAY-04 单订单单活跃支付单）。
+- **错误响应**：403 订单不属于当前买家（AC-PAY-022 越权）；404 订单不存在；409 订单非待支付态或已由其他支付单完成支付；503 订单域远程调用失败。
 - **数据加载策略**：进入页面调用 `GET /api/orders/{id}` 获取金额与截止时间；倒计时基于 `expireAt` 客户端计算。
 - **缓存策略**：不缓存，每次进入重新拉取订单状态。
 

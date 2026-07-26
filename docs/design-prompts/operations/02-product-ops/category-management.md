@@ -40,14 +40,14 @@
 
 | 方法 | 端点 | 用途 | 鉴权 |
 |-|-|-|-|
-| GET | `/api/categories/tree` | 查询分类树（仅启用，按层级与排序组装） | 已认证用户 |
+| GET | `/api/categories/tree` | 查询分类树（仅启用，按层级与排序组装，支持 keyword 过滤） | 已认证用户 |
 | GET | `/api/categories/{id}` | 查询分类详情 | 已认证用户 |
 | POST | `/api/admin/categories` | 创建分类 | Admin, Operator |
 | PUT | `/api/admin/categories/{id}` | 更新分类 | Admin, Operator |
 | POST | `/api/admin/categories/{id}/enable` | 启用分类 | Admin, Operator |
 | POST | `/api/admin/categories/{id}/disable` | 停用分类 | Admin, Operator |
 
-- **请求参数**：`CreateCategoryDto` 含 `ParentId`（可空，空为顶级）、`Name`（必填，1-30 字）、`Icon`、`SortOrder`、`Status`；`UpdateCategoryDto` 同构。
+- **请求参数**：分类树查询参数 `keyword`（string?，非空时只返回名称包含 keyword 的节点及其所有祖先节点，用于构建父链）；`CreateCategoryDto` 含 `ParentId`（可空，空为顶级）、`Name`（必填，1-30 字）、`Icon`、`SortOrder`、`Status`；`UpdateCategoryDto` 同构。
 - **响应字段**：`CategoryDto[]` 树形结构，每节点含 `Id`、`Name`、`ParentId`、`Level`、`Icon`、`SortOrder`、`Status`（Active/Inactive）、`Children`（`CategoryDto[]`）、`ProductCount`。
 - **数据加载策略**：进入页面加载完整分类树；选中节点加载详情（含 ProductCount）；编辑保存后局部更新树节点。
 - **缓存策略**：分类树缓存于 Pinia，10 分钟过期，供商品发布、搜索筛选、商品审核共享。

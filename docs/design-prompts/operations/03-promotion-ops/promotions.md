@@ -39,7 +39,7 @@
 
 | 方法 | 端点 | 用途 | 鉴权 |
 |-|-|-|-|
-| GET | `/api/admin/promotions` | 分页查询满减活动（按状态过滤） | Operator, Admin |
+| GET | `/api/admin/promotions` | 分页查询满减活动（按名称模糊/状态精确/时间区间过滤） | Operator, Admin |
 | GET | `/api/admin/promotions/{activityId}` | 查询活动详情 | Operator, Admin |
 | POST | `/api/admin/promotions` | 创建满减活动 | Operator, Admin |
 | PUT | `/api/admin/promotions/{activityId}` | 更新活动规则 | Operator, Admin |
@@ -47,7 +47,7 @@
 | POST | `/api/admin/promotions/{activityId}/pause` | 暂停活动 | Operator, Admin |
 | POST | `/api/admin/promotions/{activityId}/close` | 关闭活动（终态） | Operator, Admin |
 
-- **请求参数**：`CreatePromotionActivityDto` 含 `Name`（必填）、`Type`（FullReduction/FullDiscount/FullGift）、`StartTime`、`EndTime`、`Rules`（阶梯规则数组）、`Scope`（All/Category/Product）、`ScopeIds`；查询参数 `status`（PromotionStatus）、`page`、`pageSize`。
+- **请求参数**：`CreatePromotionActivityDto` 含 `Name`（必填）、`Type`（FullReduction/FullDiscount/FullGift）、`StartTime`、`EndTime`、`Rules`（阶梯规则数组）、`Scope`（All/Category/Product）、`ScopeIds`；查询参数 `name`（string?，名称模糊匹配）、`status`（PromotionStatus?，活动状态精确匹配）、`startTime`（DateTime?，活动开始时间下界）、`endTime`（DateTime?，活动结束时间上界）、`page`（int，默认 1）、`pageSize`（int，默认 20）。
 - **响应字段**：`List<PromotionActivityDto>`，每项含 `Id`、`Name`、`Type`、`Status`（Pending/Active/Paused/Closed）、`StartTime`、`EndTime`、`Rules`、`Scope`、`CreatedBy`、`CreatedAt`。
 - **数据加载策略**：进入页面加载进行中活动；切换状态重新请求；编辑时调用详情接口。
 - **缓存策略**：不缓存，活动状态实时性强。

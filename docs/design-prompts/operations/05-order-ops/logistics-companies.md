@@ -45,7 +45,7 @@
 | POST | `/api/admin/logistics-companies/{id}/enable` | 启用物流公司 | Operator, Admin |
 | POST | `/api/admin/logistics-companies/{id}/disable` | 停用物流公司 | Operator, Admin |
 
-- **请求参数**：`CreateLogisticsCompanyDto` 含 `Name`（必填，1-50 字）、`Code`（必填，唯一）、`LogoUrl`、`Phone`、`Website`、`SortOrder`；`UpdateLogisticsCompanyDto` 同构；查询参数 `page`、`pageSize`。
+- **请求参数**：`CreateLogisticsCompanyDto` 含 `Name`（必填，1-50 字）、`Code`（必填，唯一）、`LogoUrl`、`Phone`、`Website`、`SortOrder`；`UpdateLogisticsCompanyDto` 同构；查询参数 `keyword`（string?，按 Name/Code 模糊匹配）、`status`（LogisticsCompanyStatus?，按启停状态过滤）、`page`（int，默认 1）、`pageSize`（int，默认 20）。
 - **响应字段**：`List<LogisticsCompanyDto>`，每项含 `Id`、`Name`、`Code`、`LogoUrl`、`Phone`、`Website`、`SortOrder`、`Status`（Active/Inactive）、`CreatedAt`。
 - **数据加载策略**：进入页面加载启用物流公司；启停操作后局部更新状态列。
 - **缓存策略**：物流公司选项常驻 Pinia，30 分钟过期，供卖家发货、买家退货下拉使用。

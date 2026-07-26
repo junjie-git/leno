@@ -7,7 +7,7 @@
 - **目标用户**：卖家（Seller）
 - **核心目标**：卖家查看本店全部订单（含各状态），按状态/时间/订单号筛选，查看订单详情与物流轨迹。
 - **访问入口**：Sider「订单履约 → 全部订单」；URL `/orders`。
-- **实现状态**：➕ 补充功能
+- **实现状态**：✅ 已实现
 
 ## 2. 页面布局与信息架构
 - **整体布局**：顶部面包屑 + 状态标签页 + 筛选栏 + 订单表格 + 底部分页。
@@ -95,5 +95,3 @@
 - [ ] 操作列按状态动态显示按钮
 - **性能要求**：首屏加载 < 1.5s；表格 >100 行虚拟滚动；标签切换响应 < 500ms。
 - **可访问性**：表格有 `aria-label="订单列表"`；标签页有 `aria-label`；操作按钮有 `aria-label`；对比度满足 WCAG AA。
-
-> **补充功能说明**：当前后端 `OrdersController` 仅有买家端 `GET /api/orders`（Buyer）与运营端 `GET /api/admin/orders`（Operator/Admin），无卖家端订单列表端点。本页面需后端新增 `GET /api/seller/orders` 端点，复用 `OrderListQuery`（已支持 `SellerId`、`Status`、`StartDate`、`EndDate` 字段）与现有 `OrderListQueryHandler`，仅需在 Controller 层新增 Seller 角色端点，后端从 JWT 注入 SellerId 过滤本店订单。

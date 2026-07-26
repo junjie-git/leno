@@ -41,7 +41,7 @@
 |-|-|-|-|
 | GET | `/api/admin/payments` | 运营端分页查询全平台支付记录 | Operator, Admin |
 
-- **请求参数**：`userId`（Guid?）、`channel`（PaymentChannel?）、`status`（PaymentStatus?）、`startDate`（DateTime?）、`endDate`（DateTime?）、`page`、`pageSize`。
+- **请求参数**：`userId`（Guid?）、`channel`（PaymentChannel?）、`status`（PaymentStatus?）、`startDate`（DateTime?）、`endDate`（DateTime?）、`paymentNo`（string?，支付单号精确/模糊匹配）、`orderId`（Guid?，按订单标识过滤）、`page`（int，默认 1）、`pageSize`（int，默认 20）。
 - **响应字段**：`PaymentListResultDto`，含 `Items`（每项含 `Id`、`PaymentNo`、`OrderId`、`UserId`、`Amount`、`Channel`、`Status`、`PaidAt`、`ChannelTradeNo`）、`Total`、`SuccessRate`。
 - **数据加载策略**：进入页面加载已支付近7天记录；切换筛选重新请求；统计概览从列表元数据聚合。
 - **缓存策略**：不缓存，支付状态实时性强。

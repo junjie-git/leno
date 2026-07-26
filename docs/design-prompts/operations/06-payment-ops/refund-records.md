@@ -41,7 +41,7 @@
 |-|-|-|-|
 | GET | `/api/admin/refunds` | 运营端分页查询全平台退款记录 | Operator, Admin |
 
-- **请求参数**：`orderId`（Guid?）、`status`（RefundStatus?）、`page`、`pageSize`。
+- **请求参数**：`orderId`（Guid?，按订单标识过滤）、`status`（RefundStatus?，退款状态）、`refundNo`（string?，退款编号精确/模糊匹配）、`startDate`（DateTime?，申请时间下界）、`endDate`（DateTime?，申请时间上界）、`page`（int，默认 1）、`pageSize`（int，默认 20）。
 - **响应字段**：`RefundListResultDto`，含 `Items`（每项含 `Id`、`RefundNo`、`OrderId`、`UserId`、`Amount`、`Channel`、`Status`（Pending/Refunded/Failed）、`AfterSalesId`、`RequestedAt`、`CompletedAt`）、`Total`、`SuccessRate`。
 - **数据加载策略**：进入页面加载近7天退款记录；切换筛选重新请求；统计概览从列表元数据聚合。
 - **缓存策略**：不缓存，退款状态实时性强。

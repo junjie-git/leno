@@ -88,7 +88,7 @@
 ## 7. 异常处理与边界
 - **加载态**：统计条与表格 `<a-skeleton>`；趋势图 `<a-skeleton :active="true" />`；抽屉 `<a-spin>`。
 - **空数据**：`EmptyState` 兜底，CTA「刷新」。
-- **错误态**：API 未实现时显示 `<a-alert type="info" message="Outbox 监控功能规划中，API 待 SystemAdmin BC 实现发件箱积压查询端点" />`；网络错误 `message.error` 3s。
+- **错误态**：context 不存在返回 400，`message.error('限界上下文不存在')` 3s；网络错误 `message.error` 3s。
 - **权限控制**：页面级 `roles: ['Admin']`；重投/归档 `PermissionGuard permission="outbox:manage"`。
 - **并发与乐观锁**：无乐观锁（积压状态后端保证）；重投幂等。
 - **危险操作确认**：

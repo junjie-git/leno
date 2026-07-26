@@ -40,10 +40,10 @@
 
 | 方法 | 端点 | 用途 | 鉴权 |
 |-|-|-|-|
-| GET | `/api/admin/orders` | 分页查询全部订单（按用户/卖家/状态过滤，走 ES 读模型） | Operator, Admin |
+| GET | `/api/admin/orders` | 分页查询全部订单（按用户/卖家/订单号/状态/下单时间范围过滤，走 ES 读模型） | Operator, Admin |
 | POST | `/api/admin/orders/{id}/force-cancel` | 运营强制取消订单（待支付/已支付/已发货态） | Admin |
 
-- **请求参数**：查询参数 `userId`（Guid?）、`sellerId`（Guid?）、`status`（OrderStatus?）、`page`、`pageSize`；强制取消请求体 `ForceCancelOrderDto` 含 `Reason`（必填）。
+- **请求参数**：查询参数 `userId`（Guid?）、`sellerId`（Guid?）、`status`（OrderStatus?）、`orderNo`（string?，订单号模糊匹配）、`startDate`（DateTime?，下单时间下界）、`endDate`（DateTime?，下单时间上界）、`page`（int，默认 0）、`pageSize`（int，默认 20）；强制取消请求体 `ForceCancelOrderDto` 含 `Reason`（必填）。
 - **响应字段**：`OrderListResult`，含 `Items`（`OrderListItemDto[]`，每项含 `Id`、`OrderNo`、`UserId`、`SellerId`、`TotalAmount`、`Status`、`PaymentMethod`、`CreatedAt`、`ItemSummary`）、`Total`。
 - **数据加载策略**：进入页面加载全状态订单；切换筛选重新请求（走 ES 读模型）；强制取消后局部更新状态列。
 - **缓存策略**：不缓存，订单状态实时性强。
