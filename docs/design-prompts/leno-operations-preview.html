@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leno 运营后台 · 核心页面预览</title>
+<style>
+  /* ============ 设计令牌 ============ */
+  :root {
+    --c-primary:#1677FF; --c-primary-soft:#E6F0FF;
+    --c-success:#52C41A; --c-success-soft:#F0FBE6;
+    --c-warning:#FAAD14; --c-warning-soft:#FFF7E6;
+    --c-error:#FF4D4F; --c-error-soft:#FFF1F0;
+    --c-purple:#722ED1; --c-purple-soft:#F9F0FF;
+    --c-disabled:#00000040;
+    --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n4:#F0F0F0;
+    --n5:#D9D9D9; --n6:#BFBFBF; --n7:#8C8C8C; --n8:#7A7A7A;
+    --n9:#595959; --n10:#000000D9; --n-solid:#000000;
+    --sider-bg:#001529; --sider-bg-light:#000c17; --sider-active:#1677FF;
+    --r-base:6px; --r-card:8px; --r-lg:12px; --r-pill:999px;
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+    --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+    --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+    --lh-base:1.5715;
+    --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --ff-mono:"SF Mono","Cascadia Code","JetBrains Mono",Consolas,monospace;
+    --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+    --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+    --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+    --d-fast:100ms; --d-mid:200ms; --d-slow:300ms;
+    --ease-std:cubic-bezier(.2,0,0,1);
+  }
+
+  /* ============ Reset ============ */
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { font-family:var(--ff-app); font-size:var(--fs-base); color:var(--n10); line-height:var(--lh-base); -webkit-font-smoothing:antialiased; }
+  a { color:inherit; text-decoration:none; }
+  ul, li { list-style:none; }
+  button { font-family:inherit; cursor:pointer; border:none; background:none; }
+
+  /* ============ 画廊外壳 ============ */
+  body {
+    background:linear-gradient(180deg,#080D1A 0%,#0A1120 50%,#070B16 100%);
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+  body::before {
+    content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(circle at 18% 12%, rgba(22,119,255,.18) 0%, transparent 38%),
+      radial-gradient(circle at 82% 22%, rgba(114,46,209,.14) 0%, transparent 40%),
+      radial-gradient(circle at 50% 88%, rgba(22,119,255,.10) 0%, transparent 45%);
+  }
+  .gallery { position:relative; z-index:1; max-width:1320px; margin:0 auto; padding:48px 24px 72px; }
+
+  /* 画廊头部 */
+  .gallery-head { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:40px; flex-wrap:wrap; }
+  .brand { display:flex; align-items:center; gap:14px; }
+  .brand-logo {
+    width:44px; height:44px; border-radius:10px;
+    background:linear-gradient(135deg,#1677FF 0%,#4096FF 100%);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:22px; font-weight:700; font-family:var(--ff-app);
+    box-shadow:0 6px 18px rgba(22,119,255,.45);
+  }
+  .brand-text .brand-title { font-size:20px; font-weight:600; color:#fff; letter-spacing:.5px; }
+  .brand-text .brand-sub { font-size:12px; color:rgba(255,255,255,.45); letter-spacing:1.5px; margin-top:2px; text-transform:uppercase; }
+
+  .meta-chips { display:flex; gap:8px; flex-wrap:wrap; }
+  .chip {
+    padding:6px 12px; border-radius:var(--r-pill);
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+    color:rgba(255,255,255,.75); font-size:12px; font-weight:500;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .chip .chip-dot { width:6px; height:6px; border-radius:50%; background:#1677FF; }
+  .chip.accent { background:rgba(22,119,255,.16); border-color:rgba(22,119,255,.4); color:#69B1FF; }
+
+  /* 大标题 */
+  .gallery-title { margin-top:8px; }
+  .gallery-title h1 { font-size:38px; font-weight:700; color:#fff; letter-spacing:1px; line-height:1.2; }
+  .gallery-title h1 .accent { background:linear-gradient(90deg,#4096FF,#722ED1); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .gallery-title p { margin-top:14px; font-size:15px; color:rgba(255,255,255,.55); max-width:760px; line-height:1.7; }
+  .gallery-title p code { font-family:var(--ff-mono); color:#69B1FF; background:rgba(22,119,255,.12); padding:2px 7px; border-radius:4px; font-size:13px; }
+
+  /* ============ 预览区 ============ */
+  .previews { display:flex; flex-direction:column; gap:64px; margin-top:48px; }
+  .preview { display:flex; flex-direction:column; align-items:center; }
+  .preview-label { width:1280px; display:flex; align-items:baseline; gap:16px; margin-bottom:16px; padding:0 4px; }
+  .preview-num {
+    font-family:var(--ff-mono); font-size:14px; font-weight:600;
+    color:#1677FF; padding:3px 10px; border-radius:var(--r-base);
+    background:rgba(22,119,255,.14); border:1px solid rgba(22,119,255,.3);
+  }
+  .preview-name { font-size:20px; font-weight:600; color:#fff; }
+  .preview-route { font-family:var(--ff-mono); font-size:12px; color:rgba(255,255,255,.4); margin-left:auto; }
+  .preview-route .route-sep { color:rgba(255,255,255,.2); margin:0 6px; }
+
+  /* ============ 浏览器框架 ============ */
+  .browser {
+    width:1280px; background:var(--n1); border-radius:var(--r-lg);
+    overflow:hidden; box-shadow:var(--sh-modal);
+    border:1px solid rgba(255,255,255,.08);
+  }
+  .browser-bar {
+    height:36px; background:#E8EAED; display:flex; align-items:center; gap:8px;
+    padding:0 14px; border-bottom:1px solid #DADCE0;
+  }
+  .dot { width:12px; height:12px; border-radius:50%; }
+  .dot-r { background:#FF5F57; } .dot-y { background:#FEBC2E; } .dot-g { background:#28C840; }
+  .url {
+    flex:1; height:24px; background:#fff; border-radius:var(--r-pill);
+    display:flex; align-items:center; gap:8px; padding:0 14px; margin-left:8px;
+    font-size:12px; color:var(--n7); font-family:var(--ff-mono);
+    border:1px solid #E3E5E8;
+  }
+  .url .lock { width:10px; height:10px; color:var(--n7); }
+  .url .url-secure { color:var(--c-success); font-size:11px; }
+
+  .browser-content { height:720px; overflow:hidden; background:var(--n3); }
+
+  /* ============ 后台布局 ============ */
+  .backend { display:flex; flex-direction:column; height:100%; }
+
+  /* Header */
+  .app-header {
+    height:56px; background:var(--n1); border-bottom:1px solid var(--n4);
+    display:flex; align-items:center; padding:0 var(--s4); gap:var(--s4); flex-shrink:0;
+  }
+  .header-left { display:flex; align-items:center; gap:var(--s4); }
+  .collapse-btn {
+    width:32px; height:32px; border-radius:var(--r-base); display:flex; align-items:center; justify-content:center;
+    color:var(--n9); transition:all var(--d-fast) var(--ease-std);
+  }
+  .collapse-btn:hover { background:var(--n3); }
+  .header-logo { display:flex; align-items:center; gap:8px; font-size:15px; font-weight:600; color:var(--n-solid); }
+  .header-logo .logo-mark { width:24px; height:24px; border-radius:6px; background:var(--c-primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+
+  .breadcrumb { display:flex; align-items:center; gap:6px; font-size:var(--fs-base); color:var(--n7); margin-left:var(--s4); }
+  .breadcrumb .bc-item { color:var(--n7); }
+  .breadcrumb .bc-item.active { color:var(--n-solid); }
+  .breadcrumb .bc-sep { color:var(--n6); }
+
+  .header-right { margin-left:auto; display:flex; align-items:center; gap:var(--s2); }
+  .header-icon-btn {
+    width:36px; height:36px; border-radius:var(--r-base); display:flex; align-items:center; justify-content:center;
+    color:var(--n9); position:relative; transition:all var(--d-fast) var(--ease-std);
+  }
+  .header-icon-btn:hover { background:var(--n3); }
+  .badge-dot { position:absolute; top:7px; right:8px; width:7px; height:7px; border-radius:50%; background:var(--c-error); border:1.5px solid #fff; }
+  .badge-count {
+    position:absolute; top:2px; right:2px; min-width:16px; height:16px; padding:0 4px;
+    border-radius:var(--r-pill); background:var(--c-error); color:#fff; font-size:11px; font-weight:500;
+    display:flex; align-items:center; justify-content:center; border:1.5px solid #fff; line-height:1;
+  }
+  .header-search {
+    width:200px; height:32px; background:var(--n3); border-radius:var(--r-base);
+    display:flex; align-items:center; gap:8px; padding:0 10px; color:var(--n7); font-size:13px;
+  }
+  .user-chip { display:flex; align-items:center; gap:8px; padding:0 4px 0 8px; height:36px; border-radius:var(--r-base); cursor:pointer; }
+  .user-chip:hover { background:var(--n3); }
+  .avatar { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#1677FF,#722ED1); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+  .user-name { font-size:13px; color:var(--n-solid); }
+
+  /* Body (Sider + Content) */
+  .app-body { flex:1; display:flex; overflow:hidden; }
+
+  /* Sider */
+  .sider { width:180px; background:var(--sider-bg); flex-shrink:0; overflow-y:auto; padding:8px 0; }
+  .sider::-webkit-scrollbar { width:0; }
+  .menu-item {
+    display:flex; align-items:center; gap:10px; height:40px; padding:0 16px; margin:2px 8px;
+    color:rgba(255,255,255,.85); font-size:13px; border-radius:var(--r-base); cursor:pointer;
+    transition:all var(--d-fast) var(--ease-std); position:relative;
+  }
+  .menu-item:hover { background:rgba(255,255,255,.06); }
+  .menu-item.active { background:var(--sider-active); color:#fff; }
+  .menu-icon { width:16px; height:16px; flex-shrink:0; }
+  .menu-item .menu-arrow { margin-left:auto; width:10px; height:10px; color:rgba(255,255,255,.4); transition:transform var(--d-mid) var(--ease-std); }
+  .menu-item.expanded .menu-arrow { transform:rotate(90deg); }
+  .submenu { overflow:hidden; }
+  .submenu-item {
+    height:36px; padding-left:42px; color:rgba(255,255,255,.65); font-size:13px;
+    display:flex; align-items:center; cursor:pointer; transition:all var(--d-fast) var(--ease-std);
+  }
+  .submenu-item:hover { color:#fff; }
+  .submenu-item.active { color:#fff; background:var(--sider-bg-light); }
+  .submenu-item.active::before { content:""; position:absolute; left:8px; width:3px; height:18px; background:var(--c-primary); border-radius:2px; }
+
+  /* Content */
+  .content { flex:1; background:var(--n3); padding:20px; overflow:auto; }
+  .content::-webkit-scrollbar { width:6px; }
+  .content::-webkit-scrollbar-thumb { background:var(--n5); border-radius:3px; }
+
+  .page-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .page-title { font-size:20px; font-weight:600; color:var(--n-solid); }
+  .page-desc { font-size:13px; color:var(--n7); margin-top:2px; }
+
+  /* ============ 通用组件 ============ */
+  .card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:16px; border:1px solid var(--n4); }
+
+  /* 按钮 */
+  .btn {
+    height:32px; padding:0 15px; border-radius:var(--r-base); font-size:var(--fs-base);
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    transition:all var(--d-fast) var(--ease-std); white-space:nowrap; font-weight:400;
+  }
+  .btn-primary { background:var(--c-primary); color:#fff; border:1px solid var(--c-primary); }
+  .btn-primary:hover { background:#4096FF; border-color:#4096FF; }
+  .btn-default { background:var(--n1); color:var(--n10); border:1px solid var(--n5); }
+  .btn-default:hover { border-color:var(--c-primary); color:var(--c-primary); }
+  .btn-danger { background:var(--c-error); color:#fff; border:1px solid var(--c-error); }
+  .btn-danger:hover { background:#FF7875; border-color:#FF7875; }
+  .btn-link { color:var(--c-primary); padding:0 4px; height:auto; }
+  .btn-link:hover { color:#4096FF; }
+  .btn-link.danger { color:var(--c-error); }
+  .btn-link.danger:hover { color:#FF7875; }
+  .btn-sm { height:24px; padding:0 7px; font-size:var(--fs-sm); }
+
+  /* 标签 */
+  .tag { display:inline-flex; align-items:center; padding:0 8px; height:22px; border-radius:var(--r-base); font-size:var(--fs-sm); line-height:20px; font-weight:400; border:1px solid transparent; }
+  .tag-warning { background:var(--c-warning-soft); color:var(--c-warning); }
+  .tag-success { background:var(--c-success-soft); color:var(--c-success); }
+  .tag-error { background:var(--c-error-soft); color:var(--c-error); }
+  .tag-default { background:var(--n3); color:var(--n7); }
+  .tag-primary { background:var(--c-primary-soft); color:var(--c-primary); }
+  .tag-purple { background:var(--c-purple-soft); color:var(--c-purple); }
+  .tag-dot { width:6px; height:6px; border-radius:50%; margin-right:5px; }
+
+  /* 输入框 / 选择器 */
+  .input, .select {
+    height:32px; padding:0 11px; border-radius:var(--r-base); border:1px solid var(--n5);
+    font-size:var(--fs-base); color:var(--n10); background:var(--n1); display:inline-flex; align-items:center; gap:6px;
+    transition:all var(--d-fast) var(--ease-std); min-width:120px;
+  }
+  .input:hover, .select:hover { border-color:var(--n6); }
+  .input:focus-within, .select:focus-within { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+  .input input { border:none; outline:none; background:transparent; font-size:var(--fs-base); color:var(--n10); width:100%; font-family:inherit; }
+  .input input::placeholder { color:var(--n6); }
+  .select { justify-content:space-between; cursor:pointer; min-width:130px; }
+  .select .select-val { flex:1; }
+  .select .select-placeholder { color:var(--n6); }
+  .select .select-arrow { width:10px; height:10px; color:var(--n7); }
+
+  /* 表单行 */
+  .filter-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .filter-field { display:flex; align-items:center; gap:8px; }
+  .filter-label { font-size:var(--fs-base); color:var(--n9); white-space:nowrap; }
+
+  /* 表格 */
+  .table-wrap { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); overflow:hidden; border:1px solid var(--n4); }
+  .table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+  .table thead th {
+    background:var(--n2); font-weight:var(--fw-medium); color:var(--n9); text-align:left;
+    padding:12px 16px; border-bottom:1px solid var(--n4); white-space:nowrap; font-size:var(--fs-base);
+  }
+  .table tbody td { padding:12px 16px; border-bottom:1px solid var(--n4); color:var(--n10); vertical-align:middle; }
+  .table tbody tr:last-child td { border-bottom:none; }
+  .table tbody tr:hover { background:var(--n2); }
+  .table .col-center { text-align:center; }
+  .table .col-right { text-align:right; }
+  .table .num-mono { font-family:var(--ff-mono); font-size:13px; }
+  .price { color:var(--c-error); font-size:var(--fs-base); }
+  .price.medium { font-weight:var(--fw-medium); }
+  .thumb { width:48px; height:48px; border-radius:var(--r-base); background:var(--n3); border:1px solid var(--n4); display:flex; align-items:center; justify-content:center; color:var(--n6); font-size:10px; }
+  .checkbox { width:16px; height:16px; border-radius:3px; border:1px solid var(--n5); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+  .checkbox.checked { background:var(--c-primary); border-color:var(--c-primary); }
+  .checkbox.checked::after { content:""; width:8px; height:5px; border-left:2px solid #fff; border-bottom:2px solid #fff; transform:rotate(-45deg) translate(1px,-1px); }
+  .action-links { display:flex; gap:4px; align-items:center; }
+  .action-links .sep { width:1px; height:12px; background:var(--n4); margin:0 2px; }
+
+  /* 分页 */
+  .pagination { display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:16px; }
+  .pagination .total { font-size:var(--fs-base); color:var(--n9); margin-right:auto; }
+  .page-btn { min-width:32px; height:32px; padding:0 6px; border-radius:var(--r-base); border:1px solid var(--n5); background:var(--n1); color:var(--n10); font-size:var(--fs-base); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+  .page-btn:hover { border-color:var(--c-primary); color:var(--c-primary); }
+  .page-btn.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+  .page-btn.disabled { color:var(--n6); cursor:not-allowed; }
+  .page-sizer { font-size:var(--fs-base); color:var(--n9); display:flex; align-items:center; gap:6px; }
+  .page-sizer .select { min-width:90px; height:32px; }
+
+  /* 工具栏 */
+  .toolbar { display:flex; align-items:center; justify-content:space-between; margin:12px 0; }
+  .toolbar-left, .toolbar-right { display:flex; align-items:center; gap:8px; }
+
+  /* 指标卡 */
+  .metric-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:16px; }
+  .metric-card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:20px; border:1px solid var(--n4); position:relative; overflow:hidden; }
+  .metric-card .mc-title { font-size:var(--fs-base); color:var(--n7); font-weight:var(--fw-normal); }
+  .metric-card .mc-value { font-size:var(--fs-2xl); font-weight:var(--fw-semibold); color:var(--n-solid); margin-top:8px; line-height:1.2; font-family:var(--ff-mono); }
+  .metric-card .mc-trend { font-size:var(--fs-sm); margin-top:8px; display:flex; align-items:center; gap:4px; }
+  .mc-trend.up { color:var(--c-success); }
+  .mc-trend.down { color:var(--c-error); }
+  .mc-trend .trend-label { color:var(--n7); }
+  .metric-card .mc-icon { position:absolute; right:16px; top:16px; width:36px; height:36px; border-radius:var(--r-base); display:flex; align-items:center; justify-content:center; }
+  .mc-icon.blue { background:var(--c-primary-soft); color:var(--c-primary); }
+  .mc-icon.green { background:var(--c-success-soft); color:var(--c-success); }
+  .mc-icon.orange { background:var(--c-warning-soft); color:var(--c-warning); }
+  .mc-icon.purple { background:var(--c-purple-soft); color:var(--c-purple); }
+
+  /* 图表区栅格 */
+  .chart-grid { display:grid; grid-template-columns:16fr 8fr; gap:16px; }
+  .chart-card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:16px; border:1px solid var(--n4); }
+  .chart-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .chart-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n-solid); }
+  .chart-legend { display:flex; align-items:center; gap:16px; }
+  .legend-item { display:flex; align-items:center; gap:6px; font-size:var(--fs-sm); color:var(--n9); }
+  .legend-dot { width:8px; height:8px; border-radius:50%; }
+
+  /* 时间范围筛选条 */
+  .range-tabs { display:flex; align-items:center; gap:4px; background:var(--n3); border-radius:var(--r-base); padding:2px; }
+  .range-tab { padding:4px 12px; font-size:var(--fs-sm); color:var(--n9); border-radius:4px; cursor:pointer; transition:all var(--d-fast) var(--ease-std); }
+  .range-tab:hover { color:var(--n-solid); }
+  .range-tab.active { background:var(--n1); color:var(--c-primary); box-shadow:var(--sh-card); font-weight:var(--fw-medium); }
+
+  /* 统计概览条 */
+  .stat-bar { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:16px; }
+  .stat-mini { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:14px 16px; border:1px solid var(--n4); display:flex; align-items:center; gap:12px; }
+  .stat-mini .sm-bar { width:4px; height:32px; border-radius:2px; }
+  .stat-mini .sm-label { font-size:var(--fs-sm); color:var(--n7); }
+  .stat-mini .sm-value { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n-solid); font-family:var(--ff-mono); margin-top:2px; }
+
+  /* 图表 SVG 通用 */
+  .chart-svg { width:100%; display:block; }
+
+  /* 页脚说明 */
+  .preview-foot { width:1280px; margin-top:14px; padding:0 4px; display:flex; align-items:center; gap:12px; font-size:12px; color:rgba(255,255,255,.35); }
+  .preview-foot .pf-tag { padding:2px 8px; border-radius:4px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); font-family:var(--ff-mono); }
+
+  .gallery-footer { margin-top:72px; padding-top:32px; border-top:1px solid rgba(255,255,255,.08); text-align:center; color:rgba(255,255,255,.3); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="gallery">
+
+  <!-- 画廊头部 -->
+  <div class="gallery-head">
+    <div class="brand">
+      <div class="brand-logo">L</div>
+      <div class="brand-text">
+        <div class="brand-title">Leno 运营后台</div>
+        <div class="brand-sub">Operations Backend · Core Pages</div>
+      </div>
+    </div>
+    <div class="meta-chips">
+      <span class="chip"><span class="chip-dot"></span>Vue 3.5</span>
+      <span class="chip accent">Ant Design Vue 4</span>
+      <span class="chip">1440px</span>
+      <span class="chip">Operator</span>
+    </div>
+  </div>
+
+  <div class="gallery-title">
+    <h1>运营管理后台 <span class="accent">核心页面预览</span></h1>
+    <p>基于工作区 <code>operations/</code> 页面提示词生成，严格遵循 <code>shared/design-system.md</code> 设计令牌，覆盖数据看板、商品审核、订单管理三大核心场景的 PC 后台界面渲染。</p>
+  </div>
+
+  <div class="previews">
+
+    <!-- ==================== 页面 1：运营总览 ==================== -->
+    <section class="preview">
+      <div class="preview-label">
+        <span class="preview-num">01</span>
+        <span class="preview-name">运营总览</span>
+        <span class="preview-route">路由 <span class="route-sep">/</span> /dashboard/overview <span class="route-sep">·</span> 数据看板</span>
+      </div>
+      <div class="browser">
+        <div class="browser-bar">
+          <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+          <div class="url">
+            <span class="url-secure">●</span>
+            <span>https://ops.leno.com/dashboard/overview</span>
+          </div>
+        </div>
+        <div class="browser-content">
+          <div class="backend">
+            <!-- Header -->
+            <header class="app-header">
+              <div class="header-left">
+                <div class="collapse-btn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </div>
+                <div class="header-logo"><span class="logo-mark">L</span> Leno 运营</div>
+                <div class="breadcrumb">
+                  <span class="bc-item">首页</span><span class="bc-sep">/</span>
+                  <span class="bc-item">数据看板</span><span class="bc-sep">/</span>
+                  <span class="bc-item active">运营总览</span>
+                </div>
+              </div>
+              <div class="header-right">
+                <div class="header-search">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <span>搜索功能...</span>
+                </div>
+                <div class="header-icon-btn" title="待办">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  <span class="badge-dot"></span>
+                </div>
+                <div class="header-icon-btn" title="通知">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                  <span class="badge-count">5</span>
+                </div>
+                <div class="user-chip">
+                  <div class="avatar">运</div>
+                  <span class="user-name">运营管理员</span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--n7)"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+            </header>
+            <div class="app-body">
+              <!-- Sider -->
+              <aside class="sider">
+                <div class="menu-item active expanded">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                  <span>数据看板</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="submenu">
+                  <div class="submenu-item active" style="position:relative;">运营总览</div>
+                  <div class="submenu-item">实时监控</div>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                  <span>商品运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                  <span>促销运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 22V12h6v10"/></svg>
+                  <span>卖家运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+                  <span>订单运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                  <span>支付运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                  <span>通知运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <span>会员运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <span>个人中心</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>数据导出</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+              </aside>
+
+              <!-- Content -->
+              <main class="content">
+                <div class="page-head">
+                  <div>
+                    <div class="page-title">运营总览</div>
+                    <div class="page-desc">监控平台核心运营指标与趋势变化</div>
+                  </div>
+                  <div class="range-tabs">
+                    <span class="range-tab">今日</span>
+                    <span class="range-tab">昨日</span>
+                    <span class="range-tab active">近7天</span>
+                    <span class="range-tab">近30天</span>
+                    <span class="range-tab">本月</span>
+                    <span class="range-tab">自定义</span>
+                  </div>
+                </div>
+
+                <!-- 指标卡 -->
+                <div class="metric-grid">
+                  <div class="metric-card">
+                    <div class="mc-icon blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                    <div class="mc-title">订单量</div>
+                    <div class="mc-value">1,286</div>
+                    <div class="mc-trend up"><span>↑ 12.5%</span><span class="trend-label">较上周</span></div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="mc-icon green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+                    <div class="mc-title">GMV</div>
+                    <div class="mc-value">¥128,560</div>
+                    <div class="mc-trend up"><span>↑ 8.3%</span><span class="trend-label">较上周</span></div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="mc-icon orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+                    <div class="mc-title">转化率</div>
+                    <div class="mc-value">3.2%</div>
+                    <div class="mc-trend down"><span>↓ 0.5%</span><span class="trend-label">较上周</span></div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="mc-icon purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+                    <div class="mc-title">客单价</div>
+                    <div class="mc-value">¥99.9</div>
+                    <div class="mc-trend up"><span>↑ 2.1%</span><span class="trend-label">较上周</span></div>
+                  </div>
+                </div>
+
+                <!-- 图表区 -->
+                <div class="chart-grid">
+                  <div class="chart-card">
+                    <div class="chart-head">
+                      <div class="chart-title">GMV / 订单量趋势</div>
+                      <div class="chart-legend">
+                        <div class="legend-item"><span class="legend-dot" style="background:var(--c-primary)"></span>GMV</div>
+                        <div class="legend-item"><span class="legend-dot" style="background:var(--c-success)"></span>订单量</div>
+                      </div>
+                    </div>
+                    <svg class="chart-svg" viewBox="0 0 640 250" preserveAspectRatio="xMidYMid meet">
+                      <!-- 网格线 -->
+                      <g stroke="#F0F0F0" stroke-width="1">
+                        <line x1="40" y1="30" x2="624" y2="30"/>
+                        <line x1="40" y1="72.5" x2="624" y2="72.5"/>
+                        <line x1="40" y1="115" x2="624" y2="115"/>
+                        <line x1="40" y1="157.5" x2="624" y2="157.5"/>
+                        <line x1="40" y1="200" x2="624" y2="200"/>
+                      </g>
+                      <!-- Y轴标签 -->
+                      <g fill="#8C8C8C" font-size="11" font-family="SF Mono, monospace" text-anchor="end">
+                        <text x="32" y="34">150</text>
+                        <text x="32" y="76.5">112</text>
+                        <text x="32" y="119">75</text>
+                        <text x="32" y="161.5">37</text>
+                        <text x="32" y="204">0</text>
+                      </g>
+                      <!-- X轴标签 -->
+                      <g fill="#8C8C8C" font-size="11" font-family="SF Mono, monospace" text-anchor="middle">
+                        <text x="40" y="220">07-20</text>
+                        <text x="137" y="220">07-21</text>
+                        <text x="235" y="220">07-22</text>
+                        <text x="332" y="220">07-23</text>
+                        <text x="429" y="220">07-24</text>
+                        <text x="527" y="220">07-25</text>
+                        <text x="624" y="220">07-26</text>
+                      </g>
+                      <!-- GMV 面积填充 -->
+                      <defs>
+                        <linearGradient id="gmvGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stop-color="#1677FF" stop-opacity="0.18"/>
+                          <stop offset="100%" stop-color="#1677FF" stop-opacity="0"/>
+                        </linearGradient>
+                        <linearGradient id="ordGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stop-color="#52C41A" stop-opacity="0.14"/>
+                          <stop offset="100%" stop-color="#52C41A" stop-opacity="0"/>
+                        </linearGradient>
+                      </defs>
+                      <path d="M 40,122 Q 137,96.5 186,105 Q 235,113.5 283.5,92.25 Q 332,71 380.5,58.25 Q 429,45.5 478,54 Q 527,62.5 575.5,45.5 L 624,28.5 L 624,200 L 40,200 Z" fill="url(#gmvGrad)"/>
+                      <!-- GMV 线 -->
+                      <path d="M 40,122 Q 137,96.5 186,105 Q 235,113.5 283.5,92.25 Q 332,71 380.5,58.25 Q 429,45.5 478,54 Q 527,62.5 575.5,45.5 L 624,28.5" fill="none" stroke="#1677FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      <!-- 订单量面积 -->
+                      <path d="M 40,139 Q 137,122 186,126.25 Q 235,130.5 283.5,117.75 Q 332,105 380.5,96.5 Q 429,88 478,92.25 Q 527,96.5 575.5,83.75 L 624,71 L 624,200 L 40,200 Z" fill="url(#ordGrad)"/>
+                      <!-- 订单量线 -->
+                      <path d="M 40,139 Q 137,122 186,126.25 Q 235,130.5 283.5,117.75 Q 332,105 380.5,96.5 Q 429,88 478,92.25 Q 527,96.5 575.5,83.75 L 624,71" fill="none" stroke="#52C41A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      <!-- GMV 数据点 -->
+                      <g fill="#fff" stroke="#1677FF" stroke-width="2">
+                        <circle cx="40" cy="122" r="3.5"/><circle cx="137" cy="96.5" r="3.5"/><circle cx="235" cy="113.5" r="3.5"/><circle cx="332" cy="71" r="3.5"/><circle cx="429" cy="45.5" r="3.5"/><circle cx="527" cy="62.5" r="3.5"/><circle cx="624" cy="28.5" r="3.5"/>
+                      </g>
+                      <!-- 订单量数据点 -->
+                      <g fill="#fff" stroke="#52C41A" stroke-width="2">
+                        <circle cx="40" cy="139" r="3.5"/><circle cx="137" cy="122" r="3.5"/><circle cx="235" cy="130.5" r="3.5"/><circle cx="332" cy="105" r="3.5"/><circle cx="429" cy="88" r="3.5"/><circle cx="527" cy="96.5" r="3.5"/><circle cx="624" cy="71" r="3.5"/>
+                      </g>
+                    </svg>
+                  </div>
+
+                  <div class="chart-card">
+                    <div class="chart-head">
+                      <div class="chart-title">订单来源分布</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:16px;">
+                      <svg width="140" height="140" viewBox="0 0 140 140" style="flex-shrink:0;">
+                        <g transform="rotate(-90 70 70)">
+                          <circle cx="70" cy="70" r="50" fill="none" stroke="#1677FF" stroke-width="20" stroke-dasharray="204.2 314.16" stroke-dashoffset="0"/>
+                          <circle cx="70" cy="70" r="50" fill="none" stroke="#52C41A" stroke-width="20" stroke-dasharray="62.83 314.16" stroke-dashoffset="-204.2"/>
+                          <circle cx="70" cy="70" r="50" fill="none" stroke="#FAAD14" stroke-width="20" stroke-dasharray="47.12 314.16" stroke-dashoffset="-267.03"/>
+                        </g>
+                        <circle cx="70" cy="70" r="36" fill="#fff"/>
+                        <text x="70" y="66" text-anchor="middle" font-size="20" font-weight="600" fill="#000000D9" font-family="SF Mono, monospace">1,286</text>
+                        <text x="70" y="84" text-anchor="middle" font-size="11" fill="#8C8C8C">总订单</text>
+                      </svg>
+                      <div style="display:flex; flex-direction:column; gap:14px; flex:1;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span style="width:10px; height:10px; border-radius:2px; background:var(--c-primary);"></span>
+                          <div style="flex:1;">
+                            <div style="font-size:13px; color:var(--n10);">APP</div>
+                            <div style="font-size:12px; color:var(--n7); font-family:var(--ff-mono);">836 单 · 65%</div>
+                          </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span style="width:10px; height:10px; border-radius:2px; background:var(--c-success);"></span>
+                          <div style="flex:1;">
+                            <div style="font-size:13px; color:var(--n10);">Web</div>
+                            <div style="font-size:12px; color:var(--n7); font-family:var(--ff-mono);">257 单 · 20%</div>
+                          </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span style="width:10px; height:10px; border-radius:2px; background:var(--c-warning);"></span>
+                          <div style="flex:1;">
+                            <div style="font-size:13px; color:var(--n10);">小程序</div>
+                            <div style="font-size:12px; color:var(--n7); font-family:var(--ff-mono);">193 单 · 15%</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="preview-foot">
+        <span class="pf-tag">a-card</span><span class="pf-tag">a-statistic</span><span class="pf-tag">SVG chart</span><span class="pf-tag">a-radio-group</span>
+      </div>
+    </section>
+
+    <!-- ==================== 页面 2：商品审核 ==================== -->
+    <section class="preview">
+      <div class="preview-label">
+        <span class="preview-num">02</span>
+        <span class="preview-name">商品审核</span>
+        <span class="preview-route">路由 <span class="route-sep">/</span> /product-ops/product-audit <span class="route-sep">·</span> 商品运营</span>
+      </div>
+      <div class="browser">
+        <div class="browser-bar">
+          <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+          <div class="url">
+            <span class="url-secure">●</span>
+            <span>https://ops.leno.com/product-ops/product-audit</span>
+          </div>
+        </div>
+        <div class="browser-content">
+          <div class="backend">
+            <!-- Header -->
+            <header class="app-header">
+              <div class="header-left">
+                <div class="collapse-btn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </div>
+                <div class="header-logo"><span class="logo-mark">L</span> Leno 运营</div>
+                <div class="breadcrumb">
+                  <span class="bc-item">首页</span><span class="bc-sep">/</span>
+                  <span class="bc-item">商品运营</span><span class="bc-sep">/</span>
+                  <span class="bc-item active">商品审核</span>
+                </div>
+              </div>
+              <div class="header-right">
+                <div class="header-search">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <span>搜索功能...</span>
+                </div>
+                <div class="header-icon-btn" title="待办">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  <span class="badge-dot"></span>
+                </div>
+                <div class="header-icon-btn" title="通知">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                  <span class="badge-count">5</span>
+                </div>
+                <div class="user-chip">
+                  <div class="avatar">运</div>
+                  <span class="user-name">运营管理员</span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--n7)"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+            </header>
+            <div class="app-body">
+              <!-- Sider -->
+              <aside class="sider">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                  <span>数据看板</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item active expanded">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                  <span>商品运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="submenu">
+                  <div class="submenu-item">商品列表</div>
+                  <div class="submenu-item active" style="position:relative;">商品审核</div>
+                  <div class="submenu-item">品类管理</div>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                  <span>促销运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 22V12h6v10"/></svg>
+                  <span>卖家运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+                  <span>订单运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                  <span>支付运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                  <span>通知运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <span>会员运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <span>个人中心</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>数据导出</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+              </aside>
+
+              <!-- Content -->
+              <main class="content">
+                <div class="page-head">
+                  <div>
+                    <div class="page-title">商品审核</div>
+                    <div class="page-desc">审核卖家提交的商品上架申请</div>
+                  </div>
+                </div>
+
+                <!-- 筛选条 -->
+                <div class="card">
+                  <div class="filter-row">
+                    <div class="filter-field">
+                      <span class="filter-label">关键词</span>
+                      <div class="input" style="min-width:180px;"><input type="text" placeholder="商品名称/SKU"></div>
+                    </div>
+                    <div class="filter-field">
+                      <span class="filter-label">卖家ID</span>
+                      <div class="input" style="min-width:140px;"><input type="text" placeholder="请输入卖家ID"></div>
+                    </div>
+                    <div class="filter-field">
+                      <span class="filter-label">状态</span>
+                      <div class="select">
+                        <span class="select-val">待审核</span>
+                        <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                      </div>
+                    </div>
+                    <div class="filter-field">
+                      <span class="filter-label">分类</span>
+                      <div class="select">
+                        <span class="select-val">全部分类</span>
+                        <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                      </div>
+                    </div>
+                    <button class="btn btn-primary">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                      查询
+                    </button>
+                    <button class="btn btn-default">重置</button>
+                  </div>
+                </div>
+
+                <!-- 工具栏 -->
+                <div class="toolbar">
+                  <div class="toolbar-left">
+                    <button class="btn btn-default">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                      批量通过
+                    </button>
+                    <button class="btn btn-danger">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                      批量驳回
+                    </button>
+                  </div>
+                  <div class="toolbar-right">
+                    <button class="btn btn-default">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      导出
+                    </button>
+                    <button class="btn btn-default">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                      刷新
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 表格 -->
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th style="width:40px;" class="col-center"><span class="checkbox"></span></th>
+                        <th style="width:64px;">图片</th>
+                        <th>商品名称</th>
+                        <th style="width:60px;">SKU数</th>
+                        <th style="width:80px;">分类</th>
+                        <th style="width:130px;">卖家</th>
+                        <th style="width:110px;">价格区间</th>
+                        <th style="width:70px;">库存</th>
+                        <th style="width:90px;">状态</th>
+                        <th style="width:130px;">提交时间</th>
+                        <th style="width:180px;">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="col-center"><span class="checkbox checked"></span></td>
+                        <td><div class="thumb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div></td>
+                        <td>Leno 轻量降噪蓝牙耳机 Pro Max</td>
+                        <td>3</td>
+                        <td>数码</td>
+                        <td>Leno数码旗舰店</td>
+                        <td><span class="price">¥99-299</span></td>
+                        <td>200</td>
+                        <td><span class="tag tag-warning"><span class="tag-dot" style="background:var(--c-warning);"></span>待审核</span></td>
+                        <td class="num-mono">2026-07-25 14:30</td>
+                        <td><div class="action-links"><a class="btn-link">详情</a><span class="sep"></span><a class="btn-link">通过</a><span class="sep"></span><a class="btn-link danger">驳回</a></div></td>
+                      </tr>
+                      <tr>
+                        <td class="col-center"><span class="checkbox"></span></td>
+                        <td><div class="thumb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div></td>
+                        <td>纯棉圆领T恤 夏季短袖</td>
+                        <td>1</td>
+                        <td>服饰</td>
+                        <td>优酷服饰店</td>
+                        <td><span class="price">¥49</span></td>
+                        <td>50</td>
+                        <td><span class="tag tag-warning"><span class="tag-dot" style="background:var(--c-warning);"></span>待审核</span></td>
+                        <td class="num-mono">2026-07-25 13:20</td>
+                        <td><div class="action-links"><a class="btn-link">详情</a><span class="sep"></span><a class="btn-link">通过</a><span class="sep"></span><a class="btn-link danger">驳回</a></div></td>
+                      </tr>
+                      <tr>
+                        <td class="col-center"><span class="checkbox"></span></td>
+                        <td><div class="thumb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div></td>
+                        <td>智能手表运动版 GPS</td>
+                        <td>2</td>
+                        <td>数码</td>
+                        <td>极客数码</td>
+                        <td><span class="price">¥299-499</span></td>
+                        <td>120</td>
+                        <td><span class="tag tag-warning"><span class="tag-dot" style="background:var(--c-warning);"></span>待审核</span></td>
+                        <td class="num-mono">2026-07-25 10:15</td>
+                        <td><div class="action-links"><a class="btn-link">详情</a><span class="sep"></span><a class="btn-link">通过</a><span class="sep"></span><a class="btn-link danger">驳回</a></div></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div class="pagination">
+                    <span class="total">共 28 条</span>
+                    <div class="page-sizer">每页 <div class="select" style="min-width:80px;"><span class="select-val">20 条</span><svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div></div>
+                    <button class="page-btn disabled"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+                    <button class="page-btn active">1</button>
+                    <button class="page-btn">2</button>
+                    <button class="page-btn">3</button>
+                    <button class="page-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="preview-foot">
+        <span class="pf-tag">a-table</span><span class="pf-tag">a-form</span><span class="pf-tag">a-tag</span><span class="pf-tag">a-pagination</span>
+      </div>
+    </section>
+
+    <!-- ==================== 页面 3：订单管理 ==================== -->
+    <section class="preview">
+      <div class="preview-label">
+        <span class="preview-num">03</span>
+        <span class="preview-name">订单管理</span>
+        <span class="preview-route">路由 <span class="route-sep">/</span> /order-ops/orders <span class="route-sep">·</span> 订单运营</span>
+      </div>
+      <div class="browser">
+        <div class="browser-bar">
+          <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+          <div class="url">
+            <span class="url-secure">●</span>
+            <span>https://ops.leno.com/order-ops/orders</span>
+          </div>
+        </div>
+        <div class="browser-content">
+          <div class="backend">
+            <!-- Header -->
+            <header class="app-header">
+              <div class="header-left">
+                <div class="collapse-btn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </div>
+                <div class="header-logo"><span class="logo-mark">L</span> Leno 运营</div>
+                <div class="breadcrumb">
+                  <span class="bc-item">首页</span><span class="bc-sep">/</span>
+                  <span class="bc-item">订单运营</span><span class="bc-sep">/</span>
+                  <span class="bc-item active">订单管理</span>
+                </div>
+              </div>
+              <div class="header-right">
+                <div class="header-search">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <span>搜索功能...</span>
+                </div>
+                <div class="header-icon-btn" title="待办">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  <span class="badge-dot"></span>
+                </div>
+                <div class="header-icon-btn" title="通知">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                  <span class="badge-count">5</span>
+                </div>
+                <div class="user-chip">
+                  <div class="avatar">运</div>
+                  <span class="user-name">运营管理员</span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--n7)"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+            </header>
+            <div class="app-body">
+              <!-- Sider -->
+              <aside class="sider">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                  <span>数据看板</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                  <span>商品运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                  <span>促销运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 22V12h6v10"/></svg>
+                  <span>卖家运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item active expanded">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+                  <span>订单运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="submenu">
+                  <div class="submenu-item active" style="position:relative;">订单管理</div>
+                  <div class="submenu-item">售后管理</div>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                  <span>支付运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                  <span>通知运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <span>会员运营</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <span>个人中心</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>数据导出</span>
+                  <svg class="menu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+              </aside>
+
+              <!-- Content -->
+              <main class="content">
+                <div class="page-head">
+                  <div>
+                    <div class="page-title">订单管理</div>
+                    <div class="page-desc">查询与管理平台全量订单</div>
+                  </div>
+                </div>
+
+                <!-- 筛选条 -->
+                <div class="card">
+                  <div class="filter-row">
+                    <div class="filter-field">
+                      <span class="filter-label">订单号</span>
+                      <div class="input" style="min-width:160px;"><input type="text" placeholder="请输入订单号"></div>
+                    </div>
+                    <div class="filter-field">
+                      <span class="filter-label">买家ID</span>
+                      <div class="input" style="min-width:120px;"><input type="text" placeholder="买家ID"></div>
+                    </div>
+                    <div class="filter-field">
+                      <span class="filter-label">卖家ID</span>
+                      <div class="input" style="min-width:120px;"><input type="text" placeholder="卖家ID"></div>
+                    </div>
+                    <div class="filter-field">
+                      <span class="filter-label">状态</span>
+                      <div class="select">
+                        <span class="select-val">全部状态</span>
+                        <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                      </div>
+                    </div>
+                    <div class="filter-field">
+                      <span class="filter-label">时间范围</span>
+                      <div class="select" style="min-width:200px;">
+                        <span class="select-val">2026-07-20 ~ 2026-07-26</span>
+                        <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      </div>
+                    </div>
+                    <button class="btn btn-primary">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                      查询
+                    </button>
+                    <button class="btn btn-default">重置</button>
+                  </div>
+                </div>
+
+                <!-- 统计概览 -->
+                <div class="stat-bar">
+                  <div class="stat-mini">
+                    <div class="sm-bar" style="background:var(--c-warning);"></div>
+                    <div><div class="sm-label">待支付</div><div class="sm-value" style="color:var(--c-warning);">12</div></div>
+                  </div>
+                  <div class="stat-mini">
+                    <div class="sm-bar" style="background:var(--c-primary);"></div>
+                    <div><div class="sm-label">已支付</div><div class="sm-value" style="color:var(--c-primary);">56</div></div>
+                  </div>
+                  <div class="stat-mini">
+                    <div class="sm-bar" style="background:var(--c-purple);"></div>
+                    <div><div class="sm-label">已发货</div><div class="sm-value" style="color:var(--c-purple);">128</div></div>
+                  </div>
+                  <div class="stat-mini">
+                    <div class="sm-bar" style="background:var(--c-success);"></div>
+                    <div><div class="sm-label">已完成</div><div class="sm-value" style="color:var(--c-success);">340</div></div>
+                  </div>
+                </div>
+
+                <!-- 表格 -->
+                <div class="table-wrap">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th style="width:150px;">订单号</th>
+                        <th>商品摘要</th>
+                        <th style="width:80px;">买家</th>
+                        <th style="width:110px;">卖家</th>
+                        <th style="width:100px;">金额</th>
+                        <th style="width:100px;">支付方式</th>
+                        <th style="width:90px;">状态</th>
+                        <th style="width:120px;">下单时间</th>
+                        <th style="width:140px;">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="num-mono">NO20260726001</td>
+                        <td>蓝牙耳机×2</td>
+                        <td>买家A</td>
+                        <td>Leno数码</td>
+                        <td><span class="price medium">¥598</span></td>
+                        <td>支付宝</td>
+                        <td><span class="tag tag-purple"><span class="tag-dot" style="background:var(--c-purple);"></span>已发货</span></td>
+                        <td class="num-mono">07-26 09:30</td>
+                        <td><div class="action-links"><a class="btn-link">详情</a><span class="sep"></span><a class="btn-link danger">强制取消</a></div></td>
+                      </tr>
+                      <tr>
+                        <td class="num-mono">NO20260726002</td>
+                        <td>T恤×1</td>
+                        <td>买家B</td>
+                        <td>优酷服饰</td>
+                        <td><span class="price medium">¥49</span></td>
+                        <td>微信支付</td>
+                        <td><span class="tag tag-warning"><span class="tag-dot" style="background:var(--c-warning);"></span>待支付</span></td>
+                        <td class="num-mono">07-26 08:15</td>
+                        <td><div class="action-links"><a class="btn-link">详情</a></div></td>
+                      </tr>
+                      <tr>
+                        <td class="num-mono">NO20260725003</td>
+                        <td>手机壳×3</td>
+                        <td>买家C</td>
+                        <td>极客数码</td>
+                        <td><span class="price medium">¥87</span></td>
+                        <td>支付宝</td>
+                        <td><span class="tag tag-success"><span class="tag-dot" style="background:var(--c-success);"></span>已完成</span></td>
+                        <td class="num-mono">07-25 16:20</td>
+                        <td><div class="action-links"><a class="btn-link">详情</a></div></td>
+                      </tr>
+                      <tr>
+                        <td class="num-mono">NO20260725004</td>
+                        <td>运动鞋×1</td>
+                        <td>买家D</td>
+                        <td>优酷鞋坊</td>
+                        <td><span class="price medium">¥299</span></td>
+                        <td>微信支付</td>
+                        <td><span class="tag tag-primary"><span class="tag-dot" style="background:var(--c-primary);"></span>已支付</span></td>
+                        <td class="num-mono">07-25 14:00</td>
+                        <td><div class="action-links"><a class="btn-link">详情</a><span class="sep"></span><a class="btn-link danger">强制取消</a></div></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div class="pagination">
+                    <span class="total">共 536 条</span>
+                    <div class="page-sizer">每页 <div class="select" style="min-width:80px;"><span class="select-val">20 条</span><svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div></div>
+                    <button class="page-btn disabled"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+                    <button class="page-btn active">1</button>
+                    <button class="page-btn">2</button>
+                    <button class="page-btn">3</button>
+                    <button class="page-btn">4</button>
+                    <button class="page-btn">5</button>
+                    <button class="page-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                  </div>
+                </div>
+              </main>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="preview-foot">
+        <span class="pf-tag">a-table</span><span class="pf-tag">a-statistic</span><span class="pf-tag">a-tag</span><span class="pf-tag">a-range-picker</span>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="gallery-footer">
+    Leno Operations Backend Preview · 基于 shared/design-system.md 设计令牌生成 · 2026
+  </div>
+
+</div>
+</body>
+</html>
