@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>入驻审核 - Leno 运营管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+a{color:var(--c-primary);text-decoration:none;}
+svg{display:block;}
+
+/* Layout */
+.layout{min-height:100vh;display:flex;flex-direction:column;}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--n1);border-bottom:1px solid var(--n3);display:flex;align-items:center;padding:0 var(--s4);z-index:100;box-shadow:0 1px 4px rgba(0,21,41,.08);}
+.header .logo{width:var(--sider-width);display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);flex-shrink:0;}
+.header .logo .logo-icon{width:28px;height:28px;background:linear-gradient(135deg,#1677FF,#4096FF);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-lg);font-weight:var(--fw-semibold);}
+.header .breadcrumb{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-base);color:var(--n9);}
+.header .breadcrumb .bc-item{color:var(--n7);}
+.header .breadcrumb .bc-sep{color:var(--n5);font-size:12px;}
+.header .breadcrumb .bc-current{color:var(--n10);}
+.header .header-right{margin-left:auto;display:flex;align-items:center;gap:var(--s4);}
+.header .global-search{width:240px;height:32px;background:var(--n3);border:1px solid transparent;border-radius:var(--r-base);display:flex;align-items:center;padding:0 var(--s3);gap:var(--s2);transition:all .2s;}
+.header .global-search:hover{border-color:var(--c-primary);background:var(--n1);}
+.header .global-search svg{width:14px;height:14px;color:var(--n7);}
+.header .global-search input{flex:1;border:none;background:transparent;outline:none;font-size:var(--fs-base);color:var(--n10);}
+.header .global-search .shortcut{font-size:var(--fs-sm);color:var(--n7);background:var(--n1);border:1px solid var(--n5);border-radius:4px;padding:0 6px;line-height:18px;}
+.header .icon-btn{width:36px;height:36px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:var(--n9);position:relative;transition:background .2s;}
+.header .icon-btn:hover{background:var(--n3);}
+.header .icon-btn svg{width:18px;height:18px;}
+.header .icon-btn .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;font-size:10px;line-height:16px;border-radius:8px;text-align:center;font-weight:var(--fw-medium);}
+.header .user-menu{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s2);height:40px;border-radius:var(--r-base);transition:background .2s;cursor:pointer;}
+.header .user-menu:hover{background:var(--n3);}
+.header .user-menu .avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FA8C16,#FAAD14);display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-sm);font-weight:var(--fw-medium);}
+.header .user-menu .uname{font-size:var(--fs-base);color:var(--n10);}
+.header .user-menu .arrow{width:10px;height:10px;color:var(--n7);}
+
+.sider{position:fixed;top:var(--header-h);bottom:0;left:0;width:var(--sider-width);background:var(--sider-bg);overflow-y:auto;z-index:90;}
+.sider::-webkit-scrollbar{width:6px;}
+.sider::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:3px;}
+.menu-group{padding:var(--s2) 0;}
+.menu-item{display:flex;align-items:center;gap:var(--s3);height:40px;padding:0 var(--s6);color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;transition:all .2s;border-right:3px solid transparent;}
+.menu-item:hover{color:#fff;}
+.menu-item svg{width:16px;height:16px;flex-shrink:0;}
+.menu-item.active{color:#fff;background:var(--c-primary);border-right-color:var(--c-primary);}
+.menu-sub{padding-left:var(--s8);}
+.menu-sub .menu-item{font-size:var(--fs-sm);height:36px;padding-left:var(--s12);}
+.menu-sub .menu-item .sub-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);margin-left:-10px;margin-right:6px;}
+.menu-sub .menu-item.active .sub-dot{background:#fff;}
+
+.content{margin-left:var(--sider-width);margin-top:var(--header-h);padding:var(--s6);min-height:calc(100vh - var(--header-h));}
+.footer{margin-left:var(--sider-width);height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7);}
+
+/* Page header */
+.page-head{margin-bottom:var(--s4);}
+.page-head .page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--n10);margin-bottom:var(--s1);}
+.page-head .page-desc{font-size:var(--fs-sm);color:var(--n7);}
+
+/* Card */
+.card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4);margin-bottom:var(--s4);}
+.card .card-title{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);margin-bottom:var(--s4);display:flex;align-items:center;gap:var(--s2);}
+.card .card-title svg{width:18px;height:18px;color:var(--c-primary);}
+
+/* Filter bar */
+.filter-bar{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4) var(--s6);margin-bottom:var(--s4);display:flex;flex-wrap:wrap;gap:var(--s3) var(--s4);align-items:flex-end;}
+.filter-item{display:flex;flex-direction:column;gap:var(--s1);}
+.filter-item label{font-size:var(--fs-sm);color:var(--n9);}
+.input,.select{height:32px;border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);background:var(--n1);min-width:160px;transition:border-color .2s;outline:none;}
+.input:focus,.select:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1);}
+.select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238C8C8C' d='M6 8L2 4h8z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer;}
+
+/* Buttons */
+.btn{height:32px;padding:0 var(--s4);border-radius:var(--r-base);font-size:var(--fs-base);display:inline-flex;align-items:center;justify-content:center;gap:var(--s1);transition:all .2s;border:1px solid var(--n5);background:var(--n1);color:var(--n10);}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary);}
+.btn svg{width:14px;height:14px;}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff;}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff;}
+.btn-danger{border-color:var(--c-error);color:var(--c-error);}
+.btn-danger:hover{background:var(--c-error);color:#fff;}
+.btn-link{border:none;background:none;color:var(--c-primary);padding:0 var(--s1);height:auto;}
+.btn-link:hover{color:#4096FF;}
+.btn-link.danger{color:var(--c-error);}
+.btn-link.danger:hover{color:#ff7875;}
+.btn-sm{height:24px;padding:0 var(--s2);font-size:var(--fs-sm);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s3);}
+.toolbar .left{display:flex;gap:var(--s2);}
+.toolbar .right{display:flex;gap:var(--s2);align-items:center;}
+
+/* Stats overview */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s4);margin-bottom:var(--s4);}
+.stat-card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4) var(--s6);position:relative;overflow:hidden;}
+.stat-card .stat-label{font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s2);}
+.stat-card .stat-value{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);color:var(--n10);line-height:1.2;}
+.stat-card .stat-foot{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s2);}
+.stat-card .stat-accent{position:absolute;top:0;right:0;width:4px;height:100%;}
+.stat-card.pending .stat-accent{background:var(--c-warning);}
+.stat-card.passed .stat-accent{background:var(--c-success);}
+.stat-card.rejected .stat-accent{background:var(--c-error);}
+.stat-card.total .stat-accent{background:var(--c-primary);}
+
+/* Table */
+.table-wrap{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden;}
+.table-head{padding:var(--s4) var(--s6);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--n3);}
+.table-head .title{font-size:var(--fs-lg);font-weight:var(--fw-medium);}
+.table-scroll{overflow-x:auto;}
+table.data-table{width:100%;border-collapse:collapse;font-size:var(--fs-base);}
+.data-table thead th{background:var(--n2);color:var(--n9);font-weight:var(--fw-medium);text-align:left;padding:var(--s3) var(--s4);white-space:nowrap;border-bottom:1px solid var(--n3);font-size:var(--fs-sm);}
+.data-table tbody td{padding:0 var(--s4);height:48px;border-bottom:1px solid var(--n3);color:var(--n10);vertical-align:middle;}
+.data-table tbody tr{transition:background .2s;}
+.data-table tbody tr:hover{background:var(--n2);}
+.data-table tbody tr:last-child td{border-bottom:none;}
+.data-table .cell-main{font-weight:var(--fw-medium);color:var(--n10);}
+.data-table .cell-sub{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+.data-table .mono{font-family:var(--ff-mono);font-size:var(--fs-sm);color:var(--n9);}
+.data-table .action-cell{display:flex;gap:var(--s1);align-items:center;}
+.data-table .checkbox{width:16px;height:16px;border:1px solid var(--n5);border-radius:3px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+.data-table .checkbox.checked{background:var(--c-primary);border-color:var(--c-primary);}
+.data-table .checkbox.checked svg{width:10px;height:10px;color:#fff;}
+.data-table .checkbox.indeterminate{background:var(--c-primary);border-color:var(--c-primary);}
+
+/* Tag */
+.tag{display:inline-flex;align-items:center;gap:4px;padding:1px var(--s2);border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;font-weight:var(--fw-normal);white-space:nowrap;}
+.tag .dot{width:6px;height:6px;border-radius:50%;}
+.tag-warning{background:#FFF7E6;color:#D46B08;border:1px solid #FFD591;}
+.tag-warning .dot{background:var(--c-warning);}
+.tag-success{background:#F6FFED;color:#389E0D;border:1px solid #B7EB8F;}
+.tag-success .dot{background:var(--c-success);}
+.tag-error{background:#FFF1F0;color:#CF1322;border:1px solid #FFA39E;}
+.tag-error .dot{background:var(--c-error);}
+.tag-neutral{background:var(--n3);color:var(--n9);border:1px solid var(--n5);}
+.tag-neutral .dot{background:var(--n7);}
+.tag-primary{background:#E6F4FF;color:#0958D9;border:1px solid #91CAFF;}
+.tag-primary .dot{background:var(--c-primary);}
+
+/* Pagination */
+.pagination{padding:var(--s4) var(--s6);display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--n3);}
+.pagination .total{font-size:var(--fs-sm);color:var(--n9);}
+.pagination .pager{display:flex;align-items:center;gap:var(--s1);}
+.page-btn{min-width:32px;height:32px;border:1px solid var(--n5);border-radius:var(--r-base);background:var(--n1);display:flex;align-items:center;justify-content:center;font-size:var(--fs-base);color:var(--n10);transition:all .2s;}
+.page-btn:hover:not(:disabled){border-color:var(--c-primary);color:var(--c-primary);}
+.page-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff;}
+.page-btn:disabled{opacity:.4;cursor:not-allowed;}
+.page-size-select{height:32px;border:1px solid var(--n5);border-radius:var(--r-base);padding:0 24px 0 var(--s3);font-size:var(--fs-base);appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238C8C8C' d='M6 8L2 4h8z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;cursor:pointer;}
+
+/* Drawer */
+.drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;opacity:0;visibility:hidden;transition:opacity .3s;}
+.drawer-mask.open{opacity:1;visibility:visible;}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:720px;background:var(--n1);z-index:201;transform:translateX(100%);transition:transform .3s cubic-bezier(.2,0,0,1);display:flex;flex-direction:column;box-shadow:var(--sh-modal);}
+.drawer.open{transform:translateX(0);}
+.drawer-head{height:56px;padding:0 var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.drawer-head .title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);}
+.drawer-head .close{width:32px;height:32px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:var(--n7);}
+.drawer-head .close:hover{background:var(--n3);color:var(--n10);}
+.drawer-head .close svg{width:16px;height:16px;}
+.drawer-body{flex:1;overflow-y:auto;padding:var(--s4) var(--s6);}
+.drawer-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2);flex-shrink:0;background:var(--n2);}
+
+/* Descriptions */
+.desc-section{margin-bottom:var(--s6);}
+.desc-section .section-title{font-size:var(--fs-base);font-weight:var(--fw-semibold);color:var(--n10);margin-bottom:var(--s3);padding-left:var(--s2);border-left:3px solid var(--c-primary);}
+.desc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s3) var(--s4);}
+.desc-item{display:flex;flex-direction:column;gap:4px;}
+.desc-item .label{font-size:var(--fs-sm);color:var(--n7);}
+.desc-item .value{font-size:var(--fs-base);color:var(--n10);}
+.desc-item .value.mono{font-family:var(--ff-mono);font-size:var(--fs-sm);}
+
+/* Qualification list */
+.qual-item{display:flex;align-items:center;gap:var(--s3);padding:var(--s3);border:1px solid var(--n3);border-radius:var(--r-base);margin-bottom:var(--s2);}
+.qual-item .qual-thumb{width:64px;height:64px;border-radius:var(--r-base);background:var(--n3);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--n7);overflow:hidden;}
+.qual-item .qual-thumb svg{width:24px;height:24px;}
+.qual-item .qual-info{flex:1;min-width:0;}
+.qual-item .qual-type{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);margin-bottom:2px;}
+.qual-item .qual-meta{font-size:var(--fs-sm);color:var(--n7);}
+.qual-item .qual-actions{display:flex;gap:var(--s2);align-items:center;}
+
+/* Modal */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;opacity:0;visibility:hidden;transition:opacity .3s;display:flex;align-items:center;justify-content:center;}
+.modal-mask.open{opacity:1;visibility:visible;}
+.modal{background:var(--n1);border-radius:var(--r-card);width:440px;box-shadow:var(--sh-modal);transform:scale(.9);transition:transform .3s;max-height:90vh;display:flex;flex-direction:column;}
+.modal-mask.open .modal{transform:scale(1);}
+.modal-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between;}
+.modal-head .title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2);}
+.modal-head .title .danger-icon{width:22px;height:22px;color:var(--c-warning);}
+.modal-body{padding:var(--s4) var(--s6);overflow-y:auto;}
+.modal-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2);}
+.form-item{margin-bottom:var(--s4);}
+.form-item label{display:block;font-size:var(--fs-base);color:var(--n10);margin-bottom:var(--s1);}
+.form-item label .required{color:var(--c-error);margin-left:2px;}
+.form-item .hint{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1);}
+.textarea{width:100%;min-height:96px;border:1px solid var(--n5);border-radius:var(--r-base);padding:var(--s2) var(--s3);font-size:var(--fs-base);color:var(--n10);resize:vertical;font-family:inherit;outline:none;transition:border-color .2s;}
+.textarea:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1);}
+.radio-group{display:flex;flex-direction:column;gap:var(--s2);}
+.radio{display:flex;align-items:flex-start;gap:var(--s2);padding:var(--s2) var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);cursor:pointer;transition:all .2s;}
+.radio:hover{border-color:var(--c-primary);}
+.radio.checked{border-color:var(--c-primary);background:#E6F4FF;}
+.radio .radio-dot{width:16px;height:16px;border:1px solid var(--n5);border-radius:50%;margin-top:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.radio.checked .radio-dot{border-color:var(--c-primary);}
+.radio.checked .radio-dot::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--c-primary);}
+.radio .radio-label{font-size:var(--fs-base);color:var(--n10);}
+.radio .radio-desc{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+
+.impact-box{background:#FFF1F0;border:1px solid #FFCCC7;border-radius:var(--r-base);padding:var(--s3) var(--s4);margin-top:var(--s3);}
+.impact-box .impact-title{font-size:var(--fs-sm);color:#CF1322;font-weight:var(--fw-medium);margin-bottom:var(--s1);display:flex;align-items:center;gap:var(--s1);}
+.impact-box .impact-title svg{width:14px;height:14px;}
+.impact-box .impact-list{font-size:var(--fs-sm);color:var(--n9);line-height:1.8;}
+
+/* Empty */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px var(--s4);text-align:center;}
+.empty-state .empty-icon{width:80px;height:80px;color:var(--n5);margin-bottom:var(--s3);}
+.empty-state .empty-title{font-size:var(--fs-base);color:var(--n7);margin-bottom:var(--s2);}
+.empty-state .empty-desc{font-size:var(--fs-sm);color:var(--n7);}
+
+/* Toast */
+.toast{position:fixed;top:var(--header-h);left:50%;transform:translateX(-50%) translateY(-100%);background:var(--n10);color:#fff;padding:var(--s2) var(--s4);border-radius:var(--r-base);font-size:var(--fs-base);z-index:400;display:flex;align-items:center;gap:var(--s2);transition:transform .3s;box-shadow:var(--sh-modal);}
+.toast.show{transform:translateX(-50%) translateY(var(--s4));}
+.toast svg{width:16px;height:16px;}
+.toast.success svg{color:var(--c-success);}
+.toast.error svg{color:var(--c-error);}
+
+.fade-in{animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">L</div>
+      <span>Leno 运营后台</span>
+    </div>
+    <div class="breadcrumb">
+      <span class="bc-item">卖家运营</span>
+      <span class="bc-sep">/</span>
+      <span class="bc-current">入驻审核</span>
+    </div>
+    <div class="header-right">
+      <div class="global-search">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 410c0-167.7-136.3-304-304-304S104 242.3 104 410s136.3 304 304 304c52.7 0 102.2-13.4 145.5-37l131.7 131.7c12.5 12.5 32.8 12.5 45.3 0l82.1-82.1c12.5-12.5 12.5-32.8 0-45.3zM416 624c-118.4 0-214-95.6-214-214s95.6-214 214-214 214 95.6 214 214-95.6 214-214 214z"/></svg>
+        <input type="text" placeholder="搜索店铺、卖家、订单..." />
+        <span class="shortcut">Ctrl K</span>
+      </div>
+      <button class="icon-btn" title="待办工作台">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112c-167.7 0-304 136.3-304 304v176H144c-17.7 0-32 14.3-32 32v272c0 17.7 14.3 32 32 32h576c17.7 0 32-14.3 32-32V624c0-17.7-14.3-32-32-32h-32V416c0-118.4 95.6-214 214-214 22.1 0 40-17.9 40-40v-10c0-22.1-17.9-40-40-40z"/></svg>
+        <span class="badge">8</span>
+      </button>
+      <button class="icon-btn" title="通知">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428C792 278.9 673.1 158 512 158c-161.1 0-280 120.9-280 270v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c23.1 0 42.9 14.8 47.8 36.5C456.5 945.8 481.5 962 512 962s55.5-16.2 64.2-45.5C581.1 894.8 600.9 880 624 880h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM512 832a48 48 0 110-96 48 48 0 010 96zM680 768H344V428c0-94 75.8-170 168-170s168 76 168 170v340z"/></svg>
+        <span class="badge">12</span>
+      </button>
+      <div class="user-menu">
+        <div class="avatar">运</div>
+        <span class="uname">运营管理员</span>
+        <svg class="arrow" viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-752l376 512z"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sider -->
+  <aside class="sider">
+    <div class="menu-group">
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 385.6L470.4 134.4c-5.3-2.7-11.6-2.7-16.8 0L6.4 385.6c-5.6 2.8-9.2 8.5-9.2 14.8 0 6.3 3.6 12 9.2 14.8l157.6 78.8v234.4c0 6.3 3.6 12 9.2 14.8l304 152c2.6 1.3 5.5 2 8.4 2s5.8-.7 8.4-2l304-152c5.6-2.8 9.2-8.5 9.2-14.8V479.2l118.4-59.2V672c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V400.4c0-6.3-3.6-12-9.2-14.8zM462 197.6L830 384 462 570.4 94 384l368-186.4z"/></svg><span>数据看板</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-600 72h560v208H232V136zm560 480H232v-208h560v208zm0 272H232v-208h560v208z"/></svg><span>商品运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM704 536c-19.4 0-37.7-5.2-53.4-14.2L484 682.5c2.5 8 4 16.4 4 25.1 0 44.2-35.8 80-80 80s-80-35.8-80-80c0-8.7 1.5-17.1 4-25.1L193.4 552.8C177.7 561.8 159.4 567 140 567c-44.2 0-80-35.8-80-80s35.8-80 80-80c19.4 0 37.7 5.2 53.4 14.2L328 371.5c-2.5-8-4-16.4-4-25.1 0-44.2 35.8-80 80-80s80 35.8 80 80c0 8.7-1.5 17.1-4 25.1l166.6 134.3c15.7-9 33.9-14.2 53.4-14.2 44.2 0 80 35.8 80 80s-35.8 80-80 80z"/></svg><span>促销运营</span></div>
+      <div class="menu-item active"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 538.7 768 461.6 768 376c0-137-111-248-248-248S272 239 272 376c0 85.6 49 162.7 120.8 202.7-.4.2-.8.3-1.2.5-42.6 17.7-81 43.2-114 76.1a376.3 376.3 0 00-80.6 119.5 375.5 375.5 0 00-27.8 144.8c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-83.9 32.7-162.7 92.1-222.1C423.3 631.2 502.1 600 586 600c83.9 0 162.7 32.7 222.1 92.1 59.4 59.4 92.1 138.2 92.1 222.1 0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-50.2-9.8-99-29.1-144.8z"/></svg><span>卖家运营</span></div>
+      <div class="menu-group menu-sub">
+        <div class="menu-item active"><span class="sub-dot"></span>入驻审核</div>
+        <div class="menu-item"><span class="sub-dot"></span>店铺治理</div>
+        <div class="menu-item"><span class="sub-dot"></span>卖家统计</div>
+      </div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H536V32c0-8.8-7.2-16-16-16h-16c-8.8 0-16 7.2-16 16v80H144c-17.7 0-32 14.3-32 32v720c0 35.3 28.7 64 64 64h736c35.3 0 64-28.7 64-64V144c0-17.7-14.3-32-32-32zM432 888H176V632h256v256zm0-320H176V312h256v256zm416 320H592V632h256v256zm0-320H592V312h256v256z"/></svg><span>订单运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 100 896 448 448 0 000-896zm0 832a384 384 0 110-768 384 384 0 010 768zm-32-512h-32a8 8 0 00-8 8v272a8 8 0 008 8h32a8 8 0 008-8V392a8 8 0 00-8-8zm160 0h-32a8 8 0 00-8 8v272a8 8 0 008 8h32a8 8 0 008-8V392a8 8 0 00-8-8z"/></svg><span>支付运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428C792 278.9 673.1 158 512 158c-161.1 0-280 120.9-280 270v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c23.1 0 42.9 14.8 47.8 36.5C456.5 945.8 481.5 962 512 962s55.5-16.2 64.2-45.5C581.1 894.8 600.9 880 624 880h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32z"/></svg><span>通知运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 538.7 768 461.6 768 376c0-137-111-248-248-248S272 239 272 376c0 85.6 49 162.7 120.8 202.7-.4.2-.8.3-1.2.5-42.6 17.7-81 43.2-114 76.1a376.3 376.3 0 00-80.6 119.5 375.5 375.5 0 00-27.8 144.8c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-83.9 32.7-162.7 92.1-222.1C423.3 631.2 502.1 600 586 600c83.9 0 162.7 32.7 222.1 92.1 59.4 59.4 92.1 138.2 92.1 222.1 0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-50.2-9.8-99-29.1-144.8z"/></svg><span>会员运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M824.2 699.9a301.6 301.6 0 00-119.5-72.6 243.2 243.2 0 0055.5-166.3c0-124.9-99.6-226.7-223.4-226.7s-223.4 101.8-223.4 226.7c0 64.8 26.9 123.3 69.9 166.3a301.6 301.6 0 00-119.5 72.6C226.4 819.4 200 944 200 944h667c0-1.1-26.4-124.6-42.8-244.1z"/></svg><span>个人中心</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM432 832H208V592h224v240zm0-288H208V304h224v240zm384 288H592V592h224v240zm0-288H592V304h224v240z"/></svg><span>数据导出</span></div>
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <main class="content">
+    <div class="page-head fade-in">
+      <div class="page-title">入驻审核</div>
+      <div class="page-desc">审核卖家提交的店铺入驻申请与资质材料，保障平台卖家资质合规</div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar fade-in">
+      <div class="filter-item">
+        <label>店铺名称</label>
+        <input class="input" type="text" placeholder="请输入店铺名称" value="" />
+      </div>
+      <div class="filter-item">
+        <label>申请人</label>
+        <input class="input" type="text" placeholder="请输入申请人姓名" />
+      </div>
+      <div class="filter-item">
+        <label>主营类目</label>
+        <select class="select">
+          <option>全部类目</option>
+          <option>数码电器</option>
+          <option>服饰鞋包</option>
+          <option>美妆个护</option>
+          <option>食品生鲜</option>
+          <option>家居家装</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>审核状态</label>
+        <select class="select">
+          <option>全部状态</option>
+          <option>待审核</option>
+          <option>已通过</option>
+          <option>已驳回</option>
+          <option>已暂停</option>
+          <option>已关闭</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>提交时间</label>
+        <select class="select">
+          <option>全部时间</option>
+          <option>今日</option>
+          <option>近 7 天</option>
+          <option>近 30 天</option>
+          <option>本月</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <button class="btn btn-primary"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 410c0-167.7-136.3-304-304-304S104 242.3 104 410s136.3 304 304 304c52.7 0 102.2-13.4 145.5-37l131.7 131.7c12.5 12.5 32.8 12.5 45.3 0l82.1-82.1c12.5-12.5 12.5-32.8 0-45.3z"/></svg>查询</button>
+      </div>
+      <div class="filter-item">
+        <button class="btn">重置</button>
+      </div>
+    </div>
+
+    <!-- Stats overview -->
+    <div class="stats-row fade-in">
+      <div class="stat-card pending">
+        <div class="stat-accent"></div>
+        <div class="stat-label">待审核</div>
+        <div class="stat-value" style="color:var(--c-warning);">8</div>
+        <div class="stat-foot">较昨日 +2</div>
+      </div>
+      <div class="stat-card passed">
+        <div class="stat-accent"></div>
+        <div class="stat-label">已通过</div>
+        <div class="stat-value" style="color:var(--c-success);">156</div>
+        <div class="stat-foot">本月累计</div>
+      </div>
+      <div class="stat-card rejected">
+        <div class="stat-accent"></div>
+        <div class="stat-label">已驳回</div>
+        <div class="stat-value" style="color:var(--c-error);">12</div>
+        <div class="stat-foot">本月累计</div>
+      </div>
+      <div class="stat-card total">
+        <div class="stat-accent"></div>
+        <div class="stat-label">累计申请</div>
+        <div class="stat-value" style="color:var(--c-primary);">1,256</div>
+        <div class="stat-foot">通过率 87.6%</div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap fade-in">
+      <div class="table-head">
+        <div class="title">入驻申请列表</div>
+        <div class="right" style="display:flex;gap:var(--s2);">
+          <button class="btn"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-56.4c-12.5-12.5-32.8-12.5-45.3 0L342.4 617.9l-126-126c-12.5-12.5-32.8-12.5-45.3 0l-56.4 56.4c-12.5 12.5-12.5 32.8 0 45.3l227.4 227.4c12.5 12.5 32.8 12.5 45.3 0L909.1 254.6c12.5-12.5 12.5-32.8 0-45.3z"/></svg>批量通过</button>
+          <button class="btn btn-danger"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-262.5c12.5-12.5 12.5-32.8 0-45.3l-22.6-22.6c-12.5-12.5-32.8-12.5-45.3 0L512 444.2 249.5 181.6c-12.5-12.5-32.8-12.5-45.3 0l-22.6 22.6c-12.5 12.5-12.5 32.8 0 45.3L444.2 512 181.6 774.5c-12.5 12.5-12.5 32.8 0 45.3l22.6 22.6c12.5 12.5 32.8 12.5 45.3 0L512 579.8l262.5 262.5c12.5 12.5 32.8 12.5 45.3 0l22.6-22.6c12.5-12.5 12.5-32.8 0-45.3L563.8 512z"/></svg>批量驳回</button>
+          <button class="btn"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-56.4c-12.5-12.5-32.8-12.5-45.3 0L342.4 617.9l-126-126c-12.5-12.5-32.8-12.5-45.3 0l-56.4 56.4c-12.5 12.5-12.5 32.8 0 45.3l227.4 227.4c12.5 12.5 32.8 12.5 45.3 0L909.1 254.6c12.5-12.5 12.5-32.8 0-45.3z"/></svg>导出</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:40px;"><span class="checkbox" id="checkAll"></span></th>
+              <th>店铺名称</th>
+              <th>法人/申请人</th>
+              <th>主营类目</th>
+              <th>资质数</th>
+              <th>提交时间</th>
+              <th>状态</th>
+              <th style="width:200px;">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="checkbox"></span></td>
+              <td>
+                <div class="cell-main">南极人官方旗舰店</div>
+                <div class="cell-sub">联系人：张伟 ｜ 138****6688</div>
+              </td>
+              <td>
+                <div>张伟</div>
+                <div class="cell-sub mono">440106198703154812</div>
+              </td>
+              <td>服饰鞋包</td>
+              <td><span class="tag tag-primary"><span class="dot"></span>3 / 3</span></td>
+              <td>
+                <div>2026-07-26 09:23</div>
+                <div class="cell-sub">2 小时前提交</div>
+              </td>
+              <td><span class="tag tag-warning"><span class="dot"></span>待审核</span></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link">通过</button><button class="btn-link danger" onclick="openReject()">驳回</button></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox"></span></td>
+              <td>
+                <div class="cell-main">小米官方旗舰店</div>
+                <div class="cell-sub">联系人：李雷 ｜ 139****2233</div>
+              </td>
+              <td>
+                <div>李雷</div>
+                <div class="cell-sub mono">110108199105203456</div>
+              </td>
+              <td>数码电器</td>
+              <td><span class="tag tag-warning"><span class="dot"></span>2 / 3</span></td>
+              <td>
+                <div>2026-07-26 08:15</div>
+                <div class="cell-sub">3 小时前提交</div>
+              </td>
+              <td><span class="tag tag-warning"><span class="dot"></span>待审核</span></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link" disabled style="opacity:.4;cursor:not-allowed;">通过</button><button class="btn-link danger" onclick="openReject()">驳回</button></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox"></span></td>
+              <td>
+                <div class="cell-main">花西子美妆旗舰店</div>
+                <div class="cell-sub">联系人：王芳 ｜ 137****8899</div>
+              </td>
+              <td>
+                <div>王芳</div>
+                <div class="cell-sub mono">330106199308127624</div>
+              </td>
+              <td>美妆个护</td>
+              <td><span class="tag tag-primary"><span class="dot"></span>4 / 4</span></td>
+              <td>
+                <div>2026-07-25 16:42</div>
+                <div class="cell-sub">昨天提交</div>
+              </td>
+              <td><span class="tag tag-warning"><span class="dot"></span>待审核</span></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link">通过</button><button class="btn-link danger" onclick="openReject()">驳回</button></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox"></span></td>
+              <td>
+                <div class="cell-main">三只松鼠零食专营店</div>
+                <div class="cell-sub">联系人：陈强 ｜ 136****5566</div>
+              </td>
+              <td>
+                <div>陈强</div>
+                <div class="cell-sub mono">340202199011256733</div>
+              </td>
+              <td>食品生鲜</td>
+              <td><span class="tag tag-primary"><span class="dot"></span>5 / 5</span></td>
+              <td>
+                <div>2026-07-25 14:08</div>
+                <div class="cell-sub">昨天提交</div>
+              </td>
+              <td><span class="tag tag-success"><span class="dot"></span>已通过</span></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link" style="color:var(--n7);cursor:not-allowed;">查看店铺</button></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox"></span></td>
+              <td>
+                <div class="cell-main">宜家家居官方店</div>
+                <div class="cell-sub">联系人：刘洋 ｜ 135****1100</div>
+              </td>
+              <td>
+                <div>刘洋</div>
+                <div class="cell-sub mono">310104198506079821</div>
+              </td>
+              <td>家居家装</td>
+              <td><span class="tag tag-error"><span class="dot"></span>2 / 3</span></td>
+              <td>
+                <div>2026-07-24 11:30</div>
+                <div class="cell-sub">2 天前提交</div>
+              </td>
+              <td><span class="tag tag-error"><span class="dot"></span>已驳回</span></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><span style="font-size:var(--fs-sm);color:var(--n7);">资质不全</span></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox"></span></td>
+              <td>
+                <div class="cell-main">华为授权体验店</div>
+                <div class="cell-sub">联系人：赵敏 ｜ 133****7788</div>
+              </td>
+              <td>
+                <div>赵敏</div>
+                <div class="cell-sub mono">440304199212038815</div>
+              </td>
+              <td>数码电器</td>
+              <td><span class="tag tag-primary"><span class="dot"></span>3 / 3</span></td>
+              <td>
+                <div>2026-07-24 09:55</div>
+                <div class="cell-sub">2 天前提交</div>
+              </td>
+              <td><span class="tag tag-success"><span class="dot"></span>已通过</span></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link" style="color:var(--n7);cursor:not-allowed;">查看店铺</button></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox"></span></td>
+              <td>
+                <div class="cell-main">韩都衣舍女装店</div>
+                <div class="cell-sub">联系人：孙丽 ｜ 188****4422</div>
+              </td>
+              <td>
+                <div>孙丽</div>
+                <div class="cell-sub mono">370102199506184423</div>
+              </td>
+              <td>服饰鞋包</td>
+              <td><span class="tag tag-primary"><span class="dot"></span>3 / 3</span></td>
+              <td>
+                <div>2026-07-23 17:20</div>
+                <div class="cell-sub">3 天前提交</div>
+              </td>
+              <td><span class="tag tag-success"><span class="dot"></span>已通过</span></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link" style="color:var(--n7);cursor:not-allowed;">查看店铺</button></div></td>
+            </tr>
+            <tr>
+              <td><span class="checkbox"></span></td>
+              <td>
+                <div class="cell-main">百草味食品旗舰店</div>
+                <div class="cell-sub">联系人：周涛 ｜ 186****9900</div>
+              </td>
+              <td>
+                <div>周涛</div>
+                <div class="cell-sub mono">330106199709281122</div>
+              </td>
+              <td>食品生鲜</td>
+              <td><span class="tag tag-primary"><span class="dot"></span>4 / 4</span></td>
+              <td>
+                <div>2026-07-23 10:12</div>
+                <div class="cell-sub">3 天前提交</div>
+              </td>
+              <td><span class="tag tag-success"><span class="dot"></span>已通过</span></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link" style="color:var(--n7);cursor:not-allowed;">查看店铺</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div class="total">共 176 条记录，第 1 / 9 页</div>
+        <div class="pager">
+          <button class="page-btn" disabled><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M724 218.3V141.9c0-6.7-7.7-10.4-12.9-6.5L206.5 516.9c-7.2 5.4-7.2 16 0 21.3l504.6 381.4c5.2 3.9 12.9.2 12.9-6.5v-76.4c0-4.9-2.3-9.6-6.1-12.6l-360-272.1 360-272.1c3.8-3 6.1-7.7 6.1-12.6z"/></svg></button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">2</button>
+          <button class="page-btn">3</button>
+          <button class="page-btn">4</button>
+          <button class="page-btn">5</button>
+          <button class="page-btn">...</button>
+          <button class="page-btn">9</button>
+          <button class="page-btn"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M765.5 516.9L260.9 135.4c-5.2-3.9-12.9-.2-12.9 6.5v76.4c0 4.9 2.3 9.6 6.1 12.6l360 272.1-360 272.1c-3.8 3-6.1 7.7-6.1 12.6v76.4c0 6.7 7.7 10.4 12.9 6.5l504.6-381.4c7.2-5.4 7.2-16 0-21.3z"/></svg></button>
+          <select class="page-size-select"><option>20 条/页</option><option>50 条/页</option><option>100 条/页</option></select>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Leno 电商平台 · 运营管理后台 © 2026 ｜ 当前角色：运营管理员</footer>
+</div>
+
+<!-- Detail Drawer -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="title">入驻审核详情 · 南极人官方旗舰店</div>
+    <button class="close" onclick="closeDrawer()"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-262.5c12.5-12.5 12.5-32.8 0-45.3l-22.6-22.6c-12.5-12.5-32.8-12.5-45.3 0L512 444.2 249.5 181.6c-12.5-12.5-32.8-12.5-45.3 0l-22.6 22.6c-12.5 12.5-12.5 32.8 0 45.3L444.2 512 181.6 774.5c-12.5 12.5-12.5 32.8 0 45.3l22.6 22.6c12.5 12.5 32.8 12.5 45.3 0L512 579.8l262.5 262.5c12.5 12.5 32.8 12.5 45.3 0l22.6-22.6c12.5-12.5 12.5-32.8 0-45.3L563.8 512z"/></svg></button>
+  </div>
+  <div class="drawer-body">
+    <div class="desc-section">
+      <div class="section-title">店铺信息</div>
+      <div class="desc-grid">
+        <div class="desc-item"><span class="label">店铺名称</span><span class="value">南极人官方旗舰店</span></div>
+        <div class="desc-item"><span class="label">店铺类型</span><span class="value">品牌旗舰店</span></div>
+        <div class="desc-item"><span class="label">主营类目</span><span class="value">服饰鞋包</span></div>
+        <div class="desc-item"><span class="label">店铺简介</span><span class="value">南极人内衣品牌官方授权店铺，主营保暖内衣、家居服饰</span></div>
+        <div class="desc-item"><span class="label">申请编号</span><span class="value mono">APP20260726092301</span></div>
+        <div class="desc-item"><span class="label">提交时间</span><span class="value">2026-07-26 09:23:01</span></div>
+      </div>
+    </div>
+
+    <div class="desc-section">
+      <div class="section-title">法人信息</div>
+      <div class="desc-grid">
+        <div class="desc-item"><span class="label">法人姓名</span><span class="value">张伟</span></div>
+        <div class="desc-item"><span class="label">身份证号</span><span class="value mono">440106198703154812</span></div>
+        <div class="desc-item"><span class="label">联系电话</span><span class="value mono">138-6688-6688</span></div>
+        <div class="desc-item"><span class="label">联系邮箱</span><span class="value mono">zhangwei@nanjiren.com</span></div>
+        <div class="desc-item"><span class="label">注册地址</span><span class="value">广东省广州市天河区珠江新城兴民路 222 号</span></div>
+        <div class="desc-item"><span class="label">注册资本</span><span class="value">人民币 5,000 万元</span></div>
+      </div>
+    </div>
+
+    <div class="desc-section">
+      <div class="section-title">资质材料（3 / 3 已审核）</div>
+      <div class="qual-item">
+        <div class="qual-thumb" style="background:linear-gradient(135deg,#FFF7E6,#FFE7BA);">
+          <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-600 72h560v208H232V136zm160 288h320v32H392v-32zm0 96h320v32H392v-32zm0 96h320v32H392v-32z"/></svg>
+        </div>
+        <div class="qual-info">
+          <div class="qual-type">营业执照</div>
+          <div class="qual-meta">统一社会信用代码：91440101MA9XXXX8X ｜ 有效期至 2030-12-31</div>
+        </div>
+        <div class="qual-actions">
+          <span class="tag tag-success"><span class="dot"></span>已通过</span>
+          <button class="btn-link btn-sm">预览</button>
+        </div>
+      </div>
+      <div class="qual-item">
+        <div class="qual-thumb" style="background:linear-gradient(135deg,#E6F4FF,#BAE0FF);">
+          <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 538.7 768 461.6 768 376c0-137-111-248-248-248S272 239 272 376c0 85.6 49 162.7 120.8 202.7-.4.2-.8.3-1.2.5-42.6 17.7-81 43.2-114 76.1a376.3 376.3 0 00-80.6 119.5 375.5 375.5 0 00-27.8 144.8c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-83.9 32.7-162.7 92.1-222.1C423.3 631.2 502.1 600 586 600c83.9 0 162.7 32.7 222.1 92.1 59.4 59.4 92.1 138.2 92.1 222.1 0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-50.2-9.8-99-29.1-144.8z"/></svg>
+        </div>
+        <div class="qual-info">
+          <div class="qual-type">法人身份证</div>
+          <div class="qual-meta">张伟 ｜ 440106198703154812 ｜ 正反面已上传</div>
+        </div>
+        <div class="qual-actions">
+          <span class="tag tag-success"><span class="dot"></span>已通过</span>
+          <button class="btn-link btn-sm">预览</button>
+        </div>
+      </div>
+      <div class="qual-item">
+        <div class="qual-thumb" style="background:linear-gradient(135deg,#F6FFED,#D9F7BE);">
+          <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H536V32c0-8.8-7.2-16-16-16h-16c-8.8 0-16 7.2-16 16v80H144c-17.7 0-32 14.3-32 32v720c0 35.3 28.7 64 64 64h736c35.3 0 64-28.7 64-64V144c0-17.7-14.3-32-32-32zM480 864H208V640h272v224zm0-288H208V336h272v240zm336 288H544V640h272v224zm0-288H544V336h272v240z"/></svg>
+        </div>
+        <div class="qual-info">
+          <div class="qual-type">品牌授权书</div>
+          <div class="qual-meta">南极人（上海）纺织授权 ｜ 有效期至 2028-06-30</div>
+        </div>
+        <div class="qual-actions">
+          <span class="tag tag-success"><span class="dot"></span>已通过</span>
+          <button class="btn-link btn-sm">预览</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="desc-section">
+      <div class="section-title">审核意见</div>
+      <div class="form-item">
+        <label>审核意见（可选）</label>
+        <textarea class="textarea" placeholder="填写审核意见，将通知申请人">资质齐全有效，品牌授权清晰，建议通过审核。</textarea>
+        <div class="hint">审核意见将随审核结果通知申请人，最多 200 字</div>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-danger" onclick="openReject()"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-262.5c12.5-12.5 12.5-32.8 0-45.3l-22.6-22.6c-12.5-12.5-32.8-12.5-45.3 0L512 444.2 249.5 181.6c-12.5-12.5-32.8-12.5-45.3 0l-22.6 22.6c-12.5 12.5-12.5 32.8 0 45.3L444.2 512 181.6 774.5c-12.5 12.5-12.5 32.8 0 45.3l22.6 22.6c12.5 12.5 32.8 12.5 45.3 0L512 579.8l262.5 262.5c12.5 12.5 32.8 12.5 45.3 0l22.6-22.6c12.5-12.5 12.5-32.8 0-45.3L563.8 512z"/></svg>驳回申请</button>
+    <button class="btn btn-primary" onclick="openApprove()"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-56.4c-12.5-12.5-32.8-12.5-45.3 0L342.4 617.9l-126-126c-12.5-12.5-32.8-12.5-45.3 0l-56.4 56.4c-12.5 12.5-12.5 32.8 0 45.3l227.4 227.4c12.5 12.5 32.8 12.5 45.3 0L909.1 254.6c12.5-12.5 12.5-32.8 0-45.3z"/></svg>通过审核</button>
+  </div>
+</div>
+
+<!-- Approve Confirm Modal -->
+<div class="modal-mask" id="approveMask">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="title"><svg class="danger-icon" viewBox="0 0 1024 1024" style="color:var(--c-primary);" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L451.7 774.5l-160-160c-12.5-12.5-12.5-32.8 0-45.3l22.6-22.6c12.5-12.5 32.8-12.5 45.3 0L448 643.5 633.6 331c9.1-15.1 28.8-19.9 43.9-10.8l26.2 15.8c15.1 9.1 19.9 28.8 10.8 43.9z"/></svg>确认通过审核</div>
+      <button class="close" onclick="closeApprove()" style="width:32px;height:32px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:var(--n7);"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-262.5c12.5-12.5 12.5-32.8 0-45.3l-22.6-22.6c-12.5-12.5-32.8-12.5-45.3 0L512 444.2 249.5 181.6c-12.5-12.5-32.8-12.5-45.3 0l-22.6 22.6c-12.5 12.5-12.5 32.8 0 45.3L444.2 512 181.6 774.5c-12.5 12.5-12.5 32.8 0 45.3l22.6 22.6c12.5 12.5 32.8 12.5 45.3 0L512 579.8l262.5 262.5c12.5 12.5 32.8 12.5 45.3 0l22.6-22.6c12.5-12.5 12.5-32.8 0-45.3L563.8 512z"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:var(--fs-base);color:var(--n10);line-height:1.6;margin-bottom:var(--s3);">确认通过「<strong>南极人官方旗舰店</strong>」的入驻申请？</p>
+      <div class="impact-box" style="background:#E6F4FF;border-color:#91CAFF;">
+        <div class="impact-title" style="color:#0958D9;"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm32 664c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V456c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272zm-32-344a48.1 48.1 0 010-96 48.1 48.1 0 010 96z"/></svg>通过后影响</div>
+        <div class="impact-list">
+          · 店铺状态变更为「已通过」，卖家可登录商家后台开始经营<br>
+          · 系统将自动创建店铺聚合根并分配 ShopId<br>
+          · 申请人将收到短信与站内通知「入驻申请已通过」
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeApprove()">取消</button>
+      <button class="btn btn-primary" onclick="confirmApprove()">确认通过</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal-mask" id="rejectMask">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="title"><svg class="danger-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 336a48 48 0 1096 0 48 48 0 10-96 0zm72 112h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V456c0-4.4-3.6-8-8-8z"/></svg>确认驳回申请</div>
+      <button class="close" onclick="closeReject()" style="width:32px;height:32px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:var(--n7);"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-262.5c12.5-12.5 12.5-32.8 0-45.3l-22.6-22.6c-12.5-12.5-32.8-12.5-45.3 0L512 444.2 249.5 181.6c-12.5-12.5-32.8-12.5-45.3 0l-22.6 22.6c-12.5 12.5-12.5 32.8 0 45.3L444.2 512 181.6 774.5c-12.5 12.5-12.5 32.8 0 45.3l22.6 22.6c12.5 12.5 32.8 12.5 45.3 0L512 579.8l262.5 262.5c12.5 12.5 32.8 12.5 45.3 0l22.6-22.6c12.5-12.5 12.5-32.8 0-45.3L563.8 512z"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:var(--fs-base);color:var(--n10);line-height:1.6;margin-bottom:var(--s3);">确认驳回「<strong>南极人官方旗舰店</strong>」的入驻申请？驳回后申请人需修改资料重新提交。</p>
+      <div class="form-item">
+        <label>驳回原因分类<span class="required">*</span></label>
+        <div class="radio-group">
+          <div class="radio checked"><span class="radio-dot"></span><div><div class="radio-label">资质材料不齐全</div><div class="radio-desc">缺少必要的营业执照或品牌授权材料</div></div></div>
+          <div class="radio"><span class="radio-dot"></span><div><div class="radio-label">资质材料过期或失效</div><div class="radio-desc">证照不在有效期内或已注销</div></div></div>
+          <div class="radio"><span class="radio-dot"></span><div><div class="radio-label">信息填写不一致</div><div class="radio-desc">法人信息与证照信息不匹配</div></div></div>
+          <div class="radio"><span class="radio-dot"></span><div><div class="radio-label">其他</div><div class="radio-desc">其他需补充说明的原因</div></div></div>
+        </div>
+      </div>
+      <div class="form-item">
+        <label>详细原因<span class="required">*</span></label>
+        <textarea class="textarea" placeholder="请填写驳回的详细原因，将通知申请人">缺少《品牌授权书》原件扫描件，请补充上传有效的品牌授权材料。</textarea>
+        <div class="hint">驳回原因将随通知发送给申请人，最多 200 字</div>
+      </div>
+      <div class="impact-box">
+        <div class="impact-title"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 432a48.1 48.1 0 010-96 48.1 48.1 0 010 96z"/></svg>驳回影响</div>
+        <div class="impact-list">· 申请状态变更为「已驳回」，不可恢复为待审核<br>· 申请人可查看驳回原因并修改资料后重新提交申请<br>· 申请人将收到短信与站内通知「入驻申请已驳回」</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeReject()">取消</button>
+      <button class="btn btn-danger" onclick="confirmReject()">确认驳回</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast success" id="toast"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.4 724.9 207 489.5c-6.1-7.7-15.3-12.2-25.1-12.2H112c-12.6 0-20 14.4-12.3 24.5l274.8 337.8c12.5 15.4 35.5 15.4 48 0L924.3 214.5c7.7-10.1.3-24.5-12.3-24.5z"/></svg><span id="toastMsg">操作成功</span></div>
+
+<script>
+function openDrawer(){document.getElementById('drawerMask').classList.add('open');document.getElementById('drawer').classList.add('open');}
+function closeDrawer(){document.getElementById('drawerMask').classList.remove('open');document.getElementById('drawer').classList.remove('open');}
+function openApprove(){document.getElementById('approveMask').classList.add('open');}
+function closeApprove(){document.getElementById('approveMask').classList.remove('open');}
+function confirmApprove(){closeApprove();showToast('审核已通过，店铺创建成功');}
+function openReject(){closeDrawer();document.getElementById('rejectMask').classList.add('open');}
+function closeReject(){document.getElementById('rejectMask').classList.remove('open');}
+function confirmReject(){closeReject();showToast('已驳回申请，已通知申请人');}
+function showToast(msg){var t=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2000);}
+document.querySelectorAll('.radio').forEach(function(r){r.addEventListener('click',function(){this.parentElement.querySelectorAll('.radio').forEach(function(x){x.classList.remove('checked');});this.classList.add('checked');});});
+var checkAll=document.getElementById('checkAll');if(checkAll){checkAll.addEventListener('click',function(){var checked=this.classList.toggle('checked');document.querySelectorAll('tbody .checkbox').forEach(function(c){c.classList.toggle('checked',checked);});});}
+document.querySelectorAll('tbody .checkbox').forEach(function(c){c.addEventListener('click',function(){this.classList.toggle('checked');});});
+</script>
+</body>
+</html>

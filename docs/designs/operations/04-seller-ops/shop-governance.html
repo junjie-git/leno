@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>店铺治理 - Leno 运营管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+a{color:var(--c-primary);text-decoration:none;}
+svg{display:block;}
+
+.layout{min-height:100vh;display:flex;flex-direction:column;}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--n1);border-bottom:1px solid var(--n3);display:flex;align-items:center;padding:0 var(--s4);z-index:100;box-shadow:0 1px 4px rgba(0,21,41,.08);}
+.header .logo{width:var(--sider-width);display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);flex-shrink:0;}
+.header .logo .logo-icon{width:28px;height:28px;background:linear-gradient(135deg,#1677FF,#4096FF);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-lg);font-weight:var(--fw-semibold);}
+.header .breadcrumb{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-base);color:var(--n9);}
+.header .breadcrumb .bc-item{color:var(--n7);}
+.header .breadcrumb .bc-sep{color:var(--n5);font-size:12px;}
+.header .breadcrumb .bc-current{color:var(--n10);}
+.header .header-right{margin-left:auto;display:flex;align-items:center;gap:var(--s4);}
+.header .global-search{width:240px;height:32px;background:var(--n3);border:1px solid transparent;border-radius:var(--r-base);display:flex;align-items:center;padding:0 var(--s3);gap:var(--s2);transition:all .2s;}
+.header .global-search:hover{border-color:var(--c-primary);background:var(--n1);}
+.header .global-search svg{width:14px;height:14px;color:var(--n7);}
+.header .global-search input{flex:1;border:none;background:transparent;outline:none;font-size:var(--fs-base);color:var(--n10);}
+.header .global-search .shortcut{font-size:var(--fs-sm);color:var(--n7);background:var(--n1);border:1px solid var(--n5);border-radius:4px;padding:0 6px;line-height:18px;}
+.header .icon-btn{width:36px;height:36px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:var(--n9);position:relative;transition:background .2s;}
+.header .icon-btn:hover{background:var(--n3);}
+.header .icon-btn svg{width:18px;height:18px;}
+.header .icon-btn .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;font-size:10px;line-height:16px;border-radius:8px;text-align:center;font-weight:var(--fw-medium);}
+.header .user-menu{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s2);height:40px;border-radius:var(--r-base);transition:background .2s;cursor:pointer;}
+.header .user-menu:hover{background:var(--n3);}
+.header .user-menu .avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FA8C16,#FAAD14);display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-sm);font-weight:var(--fw-medium);}
+.header .user-menu .uname{font-size:var(--fs-base);color:var(--n10);}
+.header .user-menu .arrow{width:10px;height:10px;color:var(--n7);}
+
+.sider{position:fixed;top:var(--header-h);bottom:0;left:0;width:var(--sider-width);background:var(--sider-bg);overflow-y:auto;z-index:90;}
+.sider::-webkit-scrollbar{width:6px;}
+.sider::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:3px;}
+.menu-group{padding:var(--s2) 0;}
+.menu-item{display:flex;align-items:center;gap:var(--s3);height:40px;padding:0 var(--s6);color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;transition:all .2s;border-right:3px solid transparent;}
+.menu-item:hover{color:#fff;}
+.menu-item svg{width:16px;height:16px;flex-shrink:0;}
+.menu-item.active{color:#fff;background:var(--c-primary);border-right-color:var(--c-primary);}
+.menu-sub{padding-left:var(--s8);}
+.menu-sub .menu-item{font-size:var(--fs-sm);height:36px;padding-left:var(--s12);}
+.menu-sub .menu-item .sub-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);margin-left:-10px;margin-right:6px;}
+.menu-sub .menu-item.active .sub-dot{background:#fff;}
+
+.content{margin-left:var(--sider-width);margin-top:var(--header-h);padding:var(--s6);min-height:calc(100vh - var(--header-h));}
+.footer{margin-left:var(--sider-width);height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7);}
+
+.page-head{margin-bottom:var(--s4);}
+.page-head .page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--n10);margin-bottom:var(--s1);}
+.page-head .page-desc{font-size:var(--fs-sm);color:var(--n7);}
+
+.card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4);margin-bottom:var(--s4);}
+.card .card-title{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);margin-bottom:var(--s4);display:flex;align-items:center;gap:var(--s2);}
+.card .card-title svg{width:18px;height:18px;color:var(--c-primary);}
+
+.filter-bar{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4) var(--s6);margin-bottom:var(--s4);display:flex;flex-wrap:wrap;gap:var(--s3) var(--s4);align-items:flex-end;}
+.filter-item{display:flex;flex-direction:column;gap:var(--s1);}
+.filter-item label{font-size:var(--fs-sm);color:var(--n9);}
+.input,.select{height:32px;border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);background:var(--n1);min-width:160px;transition:border-color .2s;outline:none;}
+.input:focus,.select:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1);}
+.select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238C8C8C' d='M6 8L2 4h8z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer;}
+
+.btn{height:32px;padding:0 var(--s4);border-radius:var(--r-base);font-size:var(--fs-base);display:inline-flex;align-items:center;justify-content:center;gap:var(--s1);transition:all .2s;border:1px solid var(--n5);background:var(--n1);color:var(--n10);}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary);}
+.btn svg{width:14px;height:14px;}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff;}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff;}
+.btn-danger{border-color:var(--c-error);color:var(--c-error);}
+.btn-danger:hover{background:var(--c-error);color:#fff;}
+.btn-warning{border-color:var(--c-warning);color:var(--c-warning);}
+.btn-warning:hover{background:var(--c-warning);color:#fff;}
+.btn-link{border:none;background:none;color:var(--c-primary);padding:0 var(--s1);height:auto;}
+.btn-link:hover{color:#4096FF;}
+.btn-link.danger{color:var(--c-error);}
+.btn-link.danger:hover{color:#ff7875;}
+.btn-link.warning{color:var(--c-warning);}
+.btn-link.warning:hover{color:#ffc53d;}
+.btn-link.disabled{color:var(--n7);cursor:not-allowed;pointer-events:none;}
+.btn-sm{height:24px;padding:0 var(--s2);font-size:var(--fs-sm);}
+
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s3);}
+.toolbar .left{display:flex;gap:var(--s2);}
+.toolbar .right{display:flex;gap:var(--s2);align-items:center;}
+
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s4);margin-bottom:var(--s4);}
+.stat-card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4) var(--s6);position:relative;overflow:hidden;}
+.stat-card .stat-label{font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s2);}
+.stat-card .stat-value{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);color:var(--n10);line-height:1.2;}
+.stat-card .stat-foot{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s2);}
+.stat-card .stat-accent{position:absolute;top:0;right:0;width:4px;height:100%;}
+.stat-card.active .stat-accent{background:var(--c-success);}
+.stat-card.warn .stat-accent{background:var(--c-warning);}
+.stat-card.banned .stat-accent{background:var(--c-error);}
+.stat-card.total .stat-accent{background:var(--c-primary);}
+
+.table-wrap{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden;}
+.table-head{padding:var(--s4) var(--s6);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--n3);}
+.table-head .title{font-size:var(--fs-lg);font-weight:var(--fw-medium);}
+.table-scroll{overflow-x:auto;}
+table.data-table{width:100%;border-collapse:collapse;font-size:var(--fs-base);}
+.data-table thead th{background:var(--n2);color:var(--n9);font-weight:var(--fw-medium);text-align:left;padding:var(--s3) var(--s4);white-space:nowrap;border-bottom:1px solid var(--n3);font-size:var(--fs-sm);}
+.data-table tbody td{padding:0 var(--s4);height:48px;border-bottom:1px solid var(--n3);color:var(--n10);vertical-align:middle;}
+.data-table tbody tr{transition:background .2s;}
+.data-table tbody tr:hover{background:var(--n2);}
+.data-table tbody tr:last-child td{border-bottom:none;}
+.data-table tbody tr.row-warn{background:#FFFBE6;}
+.data-table tbody tr.row-warn:hover{background:#FFF7E6;}
+.data-table .cell-main{font-weight:var(--fw-medium);color:var(--n10);}
+.data-table .cell-sub{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+.data-table .mono{font-family:var(--ff-mono);font-size:var(--fs-sm);color:var(--n9);}
+.data-table .action-cell{display:flex;gap:var(--s1);align-items:center;}
+.rating{display:flex;align-items:center;gap:var(--s1);}
+.rating .rating-num{font-size:var(--fs-lg);font-weight:var(--fw-semibold);}
+.rating.good .rating-num{color:var(--c-success);}
+.rating.mid .rating-num{color:var(--c-warning);}
+.rating.low .rating-num{color:var(--c-error);}
+.rating .stars{display:flex;gap:1px;color:var(--c-warning);}
+.rating .stars svg{width:12px;height:12px;}
+
+.tag{display:inline-flex;align-items:center;gap:4px;padding:1px var(--s2);border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;font-weight:var(--fw-normal);white-space:nowrap;}
+.tag .dot{width:6px;height:6px;border-radius:50%;}
+.tag-warning{background:#FFF7E6;color:#D46B08;border:1px solid #FFD591;}
+.tag-warning .dot{background:var(--c-warning);}
+.tag-success{background:#F6FFED;color:#389E0D;border:1px solid #B7EB8F;}
+.tag-success .dot{background:var(--c-success);}
+.tag-error{background:#FFF1F0;color:#CF1322;border:1px solid #FFA39E;}
+.tag-error .dot{background:var(--c-error);}
+.tag-neutral{background:var(--n3);color:var(--n9);border:1px solid var(--n5);}
+.tag-neutral .dot{background:var(--n7);}
+.tag-primary{background:#E6F4FF;color:#0958D9;border:1px solid #91CAFF;}
+.tag-primary .dot{background:var(--c-primary);}
+
+.pagination{padding:var(--s4) var(--s6);display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--n3);}
+.pagination .total{font-size:var(--fs-sm);color:var(--n9);}
+.pagination .pager{display:flex;align-items:center;gap:var(--s1);}
+.page-btn{min-width:32px;height:32px;border:1px solid var(--n5);border-radius:var(--r-base);background:var(--n1);display:flex;align-items:center;justify-content:center;font-size:var(--fs-base);color:var(--n10);transition:all .2s;}
+.page-btn:hover:not(:disabled){border-color:var(--c-primary);color:var(--c-primary);}
+.page-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff;}
+.page-btn:disabled{opacity:.4;cursor:not-allowed;}
+.page-size-select{height:32px;border:1px solid var(--n5);border-radius:var(--r-base);padding:0 24px 0 var(--s3);font-size:var(--fs-base);appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238C8C8C' d='M6 8L2 4h8z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;cursor:pointer;}
+
+.drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;opacity:0;visibility:hidden;transition:opacity .3s;}
+.drawer-mask.open{opacity:1;visibility:visible;}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:720px;background:var(--n1);z-index:201;transform:translateX(100%);transition:transform .3s cubic-bezier(.2,0,0,1);display:flex;flex-direction:column;box-shadow:var(--sh-modal);}
+.drawer.open{transform:translateX(0);}
+.drawer-head{height:56px;padding:0 var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.drawer-head .title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);}
+.drawer-head .close{width:32px;height:32px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:var(--n7);}
+.drawer-head .close:hover{background:var(--n3);color:var(--n10);}
+.drawer-head .close svg{width:16px;height:16px;}
+.drawer-body{flex:1;overflow-y:auto;padding:var(--s4) var(--s6);}
+.drawer-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2);flex-shrink:0;background:var(--n2);}
+
+.desc-section{margin-bottom:var(--s6);}
+.desc-section .section-title{font-size:var(--fs-base);font-weight:var(--fw-semibold);color:var(--n10);margin-bottom:var(--s3);padding-left:var(--s2);border-left:3px solid var(--c-primary);display:flex;align-items:center;justify-content:space-between;}
+.desc-section .section-title .title-action{font-size:var(--fs-sm);font-weight:var(--fw-normal);color:var(--c-primary);}
+.desc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s3) var(--s4);}
+.desc-item{display:flex;flex-direction:column;gap:4px;}
+.desc-item .label{font-size:var(--fs-sm);color:var(--n7);}
+.desc-item .value{font-size:var(--fs-base);color:var(--n10);}
+.desc-item .value.mono{font-family:var(--ff-mono);font-size:var(--fs-sm);}
+
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3);}
+.metric-box{background:var(--n2);border-radius:var(--r-base);padding:var(--s3);text-align:center;}
+.metric-box .metric-label{font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s1);}
+.metric-box .metric-value{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--n10);}
+.metric-box .metric-value.primary{color:var(--c-primary);}
+.metric-box .metric-value.success{color:var(--c-success);}
+
+.timeline{padding-left:var(--s2);}
+.timeline-item{position:relative;padding:0 0 var(--s4) var(--s6);}
+.timeline-item:last-child{padding-bottom:0;}
+.timeline-item::before{content:"";position:absolute;left:5px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--c-primary);border:2px solid var(--n1);box-shadow:0 0 0 1px var(--c-primary);}
+.timeline-item.warn::before{background:var(--c-warning);box-shadow:0 0 0 1px var(--c-warning);}
+.timeline-item.error::before{background:var(--c-error);box-shadow:0 0 0 1px var(--c-error);}
+.timeline-item.success::before{background:var(--c-success);box-shadow:0 0 0 1px var(--c-success);}
+.timeline-item:not(:last-child)::after{content:"";position:absolute;left:8px;top:14px;bottom:0;width:2px;background:var(--n3);}
+.timeline-item .tl-time{font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s1);}
+.timeline-item .tl-title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);margin-bottom:2px;}
+.timeline-item .tl-desc{font-size:var(--fs-sm);color:var(--n9);line-height:1.6;}
+.timeline-item .tl-tag{margin-top:var(--s1);}
+
+.violation-item{background:var(--n2);border-radius:var(--r-base);padding:var(--s3);margin-bottom:var(--s2);border-left:3px solid var(--c-warning);}
+.violation-item.severe{border-left-color:var(--c-error);}
+.violation-item .v-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s1);}
+.violation-item .v-type{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);}
+.violation-item .v-time{font-size:var(--fs-sm);color:var(--n7);}
+.violation-item .v-desc{font-size:var(--fs-sm);color:var(--n9);line-height:1.6;}
+.violation-item .v-penalty{margin-top:var(--s1);font-size:var(--fs-sm);color:var(--c-warning);}
+.violation-item.severe .v-penalty{color:var(--c-error);}
+
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;opacity:0;visibility:hidden;transition:opacity .3s;display:flex;align-items:center;justify-content:center;}
+.modal-mask.open{opacity:1;visibility:visible;}
+.modal{background:var(--n1);border-radius:var(--r-card);width:480px;box-shadow:var(--sh-modal);transform:scale(.9);transition:transform .3s;max-height:90vh;display:flex;flex-direction:column;}
+.modal-mask.open .modal{transform:scale(1);}
+.modal-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between;}
+.modal-head .title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2);}
+.modal-head .danger-icon{width:22px;height:22px;color:var(--c-error);}
+.modal-head .warn-icon{width:22px;height:22px;color:var(--c-warning);}
+.modal-body{padding:var(--s4) var(--s6);overflow-y:auto;}
+.modal-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2);}
+.form-item{margin-bottom:var(--s4);}
+.form-item label{display:block;font-size:var(--fs-base);color:var(--n10);margin-bottom:var(--s1);}
+.form-item label .required{color:var(--c-error);margin-left:2px;}
+.form-item .hint{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1);}
+.textarea{width:100%;min-height:96px;border:1px solid var(--n5);border-radius:var(--r-base);padding:var(--s2) var(--s3);font-size:var(--fs-base);color:var(--n10);resize:vertical;font-family:inherit;outline:none;transition:border-color .2s;}
+.textarea:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1);}
+.radio-group{display:flex;flex-direction:column;gap:var(--s2);}
+.radio{display:flex;align-items:flex-start;gap:var(--s2);padding:var(--s2) var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);cursor:pointer;transition:all .2s;}
+.radio:hover{border-color:var(--c-primary);}
+.radio.checked{border-color:var(--c-primary);background:#E6F4FF;}
+.radio .radio-dot{width:16px;height:16px;border:1px solid var(--n5);border-radius:50%;margin-top:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.radio.checked .radio-dot{border-color:var(--c-primary);}
+.radio.checked .radio-dot::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--c-primary);}
+.radio .radio-label{font-size:var(--fs-base);color:var(--n10);}
+.radio .radio-desc{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+
+.impact-box{background:#FFF1F0;border:1px solid #FFCCC7;border-radius:var(--r-base);padding:var(--s3) var(--s4);margin-top:var(--s3);}
+.impact-box .impact-title{font-size:var(--fs-sm);color:#CF1322;font-weight:var(--fw-medium);margin-bottom:var(--s1);display:flex;align-items:center;gap:var(--s1);}
+.impact-box .impact-title svg{width:14px;height:14px;}
+.impact-box .impact-list{font-size:var(--fs-sm);color:var(--n9);line-height:1.8;}
+.impact-box.warning{background:#FFFBE6;border-color:#FFE58F;}
+.impact-box.warning .impact-title{color:#D46B08;}
+.impact-box.warning .impact-list{color:var(--n9);}
+
+.toast{position:fixed;top:var(--header-h);left:50%;transform:translateX(-50%) translateY(-100%);background:var(--n10);color:#fff;padding:var(--s2) var(--s4);border-radius:var(--r-base);font-size:var(--fs-base);z-index:400;display:flex;align-items:center;gap:var(--s2);transition:transform .3s;box-shadow:var(--sh-modal);}
+.toast.show{transform:translateX(-50%) translateY(var(--s4));}
+.toast svg{width:16px;height:16px;}
+.toast.success svg{color:var(--c-success);}
+.toast.error svg{color:var(--c-error);}
+
+.fade-in{animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div class="layout">
+  <header class="header">
+    <div class="logo"><div class="logo-icon">L</div><span>Leno 运营后台</span></div>
+    <div class="breadcrumb"><span class="bc-item">卖家运营</span><span class="bc-sep">/</span><span class="bc-current">店铺治理</span></div>
+    <div class="header-right">
+      <div class="global-search"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 410c0-167.7-136.3-304-304-304S104 242.3 104 410s136.3 304 304 304c52.7 0 102.2-13.4 145.5-37l131.7 131.7c12.5 12.5 32.8 12.5 45.3 0l82.1-82.1c12.5-12.5 12.5-32.8 0-45.3zM416 624c-118.4 0-214-95.6-214-214s95.6-214 214-214 214 95.6 214 214-95.6 214-214 214z"/></svg><input type="text" placeholder="搜索店铺、卖家、订单..." /><span class="shortcut">Ctrl K</span></div>
+      <button class="icon-btn" title="待办工作台"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112c-167.7 0-304 136.3-304 304v176H144c-17.7 0-32 14.3-32 32v272c0 17.7 14.3 32 32 32h576c17.7 0 32-14.3 32-32V624c0-17.7-14.3-32-32-32h-32V416c0-118.4 95.6-214 214-214 22.1 0 40-17.9 40-40v-10c0-22.1-17.9-40-40-40z"/></svg><span class="badge">5</span></button>
+      <button class="icon-btn" title="通知"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428C792 278.9 673.1 158 512 158c-161.1 0-280 120.9-280 270v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c23.1 0 42.9 14.8 47.8 36.5C456.5 945.8 481.5 962 512 962s55.5-16.2 64.2-45.5C581.1 894.8 600.9 880 624 880h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM512 832a48 48 0 110-96 48 48 0 010 96zM680 768H344V428c0-94 75.8-170 168-170s168 76 168 170v340z"/></svg><span class="badge">12</span></button>
+      <div class="user-menu"><div class="avatar">运</div><span class="uname">运营管理员</span><svg class="arrow" viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-752l376 512z"/></svg></div>
+    </div>
+  </header>
+
+  <aside class="sider">
+    <div class="menu-group">
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 385.6L470.4 134.4c-5.3-2.7-11.6-2.7-16.8 0L6.4 385.6c-5.6 2.8-9.2 8.5-9.2 14.8 0 6.3 3.6 12 9.2 14.8l157.6 78.8v234.4c0 6.3 3.6 12 9.2 14.8l304 152c2.6 1.3 5.5 2 8.4 2s5.8-.7 8.4-2l304-152c5.6-2.8 9.2-8.5 9.2-14.8V479.2l118.4-59.2V672c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V400.4c0-6.3-3.6-12-9.2-14.8zM462 197.6L830 384 462 570.4 94 384l368-186.4z"/></svg><span>数据看板</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-600 72h560v208H232V136zm560 480H232v-208h560v208zm0 272H232v-208h560v208z"/></svg><span>商品运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>促销运营</span></div>
+      <div class="menu-item active"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 538.7 768 461.6 768 376c0-137-111-248-248-248S272 239 272 376c0 85.6 49 162.7 120.8 202.7-.4.2-.8.3-1.2.5-42.6 17.7-81 43.2-114 76.1a376.3 376.3 0 00-80.6 119.5 375.5 375.5 0 00-27.8 144.8c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-83.9 32.7-162.7 92.1-222.1C423.3 631.2 502.1 600 586 600c83.9 0 162.7 32.7 222.1 92.1 59.4 59.4 92.1 138.2 92.1 222.1 0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-50.2-9.8-99-29.1-144.8z"/></svg><span>卖家运营</span></div>
+      <div class="menu-group menu-sub">
+        <div class="menu-item"><span class="sub-dot"></span>入驻审核</div>
+        <div class="menu-item active"><span class="sub-dot"></span>店铺治理</div>
+        <div class="menu-item"><span class="sub-dot"></span>卖家统计</div>
+      </div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H536V32c0-8.8-7.2-16-16-16h-16c-8.8 0-16 7.2-16 16v80H144c-17.7 0-32 14.3-32 32v720c0 35.3 28.7 64 64 64h736c35.3 0 64-28.7 64-64V144c0-17.7-14.3-32-32-32z"/></svg><span>订单运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 100 896 448 448 0 000-896zm0 832a384 384 0 110-768 384 384 0 010 768z"/></svg><span>支付运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428C792 278.9 673.1 158 512 158c-161.1 0-280 120.9-280 270v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c23.1 0 42.9 14.8 47.8 36.5C456.5 945.8 481.5 962 512 962s55.5-16.2 64.2-45.5C581.1 894.8 600.9 880 624 880h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32z"/></svg><span>通知运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 538.7 768 461.6 768 376c0-137-111-248-248-248S272 239 272 376c0 85.6 49 162.7 120.8 202.7-.4.2-.8.3-1.2.5-42.6 17.7-81 43.2-114 76.1a376.3 376.3 0 00-80.6 119.5 375.5 375.5 0 00-27.8 144.8c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-83.9 32.7-162.7 92.1-222.1C423.3 631.2 502.1 600 586 600c83.9 0 162.7 32.7 222.1 92.1 59.4 59.4 92.1 138.2 92.1 222.1 0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-50.2-9.8-99-29.1-144.8z"/></svg><span>会员运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M824.2 699.9a301.6 301.6 0 00-119.5-72.6 243.2 243.2 0 0055.5-166.3c0-124.9-99.6-226.7-223.4-226.7s-223.4 101.8-223.4 226.7c0 64.8 26.9 123.3 69.9 166.3a301.6 301.6 0 00-119.5 72.6C226.4 819.4 200 944 200 944h667c0-1.1-26.4-124.6-42.8-244.1z"/></svg><span>个人中心</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>数据导出</span></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="page-head fade-in">
+      <div class="page-title">店铺治理</div>
+      <div class="page-desc">对已上线店铺进行治理，支持警告、暂停、封禁、解封操作，复审资质，处置违规店铺</div>
+    </div>
+
+    <div class="filter-bar fade-in">
+      <div class="filter-item"><label>店铺名称</label><input class="input" type="text" placeholder="请输入店铺名称" /></div>
+      <div class="filter-item"><label>治理状态</label><select class="select"><option>全部状态</option><option>正常</option><option>警告</option><option>已暂停</option><option>已封禁</option></select></div>
+      <div class="filter-item"><label>主营类目</label><select class="select"><option>全部类目</option><option>数码电器</option><option>服饰鞋包</option><option>美妆个护</option><option>食品生鲜</option><option>家居家装</option></select></div>
+      <div class="filter-item"><label>最后治理时间</label><select class="select"><option>全部时间</option><option>今日</option><option>近 7 天</option><option>近 30 天</option></select></div>
+      <div class="filter-item"><button class="btn btn-primary"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 410c0-167.7-136.3-304-304-304S104 242.3 104 410s136.3 304 304 304c52.7 0 102.2-13.4 145.5-37l131.7 131.7c12.5 12.5 32.8 12.5 45.3 0l82.1-82.1c12.5-12.5 12.5-32.8 0-45.3z"/></svg>查询</button></div>
+      <div class="filter-item"><button class="btn">重置</button></div>
+    </div>
+
+    <div class="stats-row fade-in">
+      <div class="stat-card active"><div class="stat-accent"></div><div class="stat-label">正常营业</div><div class="stat-value" style="color:var(--c-success);">156</div><div class="stat-foot">占比 91.2%</div></div>
+      <div class="stat-card warn"><div class="stat-accent"></div><div class="stat-label">警告中</div><div class="stat-value" style="color:var(--c-warning);">5</div><div class="stat-foot">需关注</div></div>
+      <div class="stat-card banned"><div class="stat-accent"></div><div class="stat-label">已封禁</div><div class="stat-value" style="color:var(--c-error);">3</div><div class="stat-foot">本月封禁 1 家</div></div>
+      <div class="stat-card total"><div class="stat-accent"></div><div class="stat-label">在售店铺总数</div><div class="stat-value" style="color:var(--c-primary);">176</div><div class="stat-foot">较上周 +4</div></div>
+    </div>
+
+    <div class="table-wrap fade-in">
+      <div class="table-head">
+        <div class="title">店铺治理列表</div>
+        <div class="right" style="display:flex;gap:var(--s2);"><button class="btn"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-56.4c-12.5-12.5-32.8-12.5-45.3 0L342.4 617.9l-126-126c-12.5-12.5-32.8-12.5-45.3 0l-56.4 56.4c-12.5 12.5-12.5 32.8 0 45.3l227.4 227.4c12.5 12.5 32.8 12.5 45.3 0L909.1 254.6c12.5-12.5 12.5-32.8 0-45.3z"/></svg>导出</button><button class="btn"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-56.4c-12.5-12.5-32.8-12.5-45.3 0L342.4 617.9l-126-126c-12.5-12.5-32.8-12.5-45.3 0l-56.4 56.4c-12.5 12.5-12.5 32.8 0 45.3l227.4 227.4c12.5 12.5 32.8 12.5 45.3 0L909.1 254.6c12.5-12.5 12.5-32.8 0-45.3z"/></svg>刷新</button></div>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>店铺名称</th>
+              <th>主营类目</th>
+              <th>店铺评分</th>
+              <th>违规次数</th>
+              <th>商品数</th>
+              <th>订单数</th>
+              <th>状态</th>
+              <th>最后治理</th>
+              <th style="width:220px;">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="cell-main">南极人官方旗舰店</div><div class="cell-sub">卖家：张伟 ｜ 138****6688</div></td>
+              <td>服饰鞋包</td>
+              <td><div class="rating good"><span class="rating-num">4.8</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-neutral">0 次</span></td>
+              <td>156</td>
+              <td>2,368</td>
+              <td><span class="tag tag-success"><span class="dot"></span>正常</span></td>
+              <td>2026-07-25 10:30</td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link warning">警告</button><button class="btn-link danger">封禁</button></div></td>
+            </tr>
+            <tr class="row-warn">
+              <td><div class="cell-main">小米官方旗舰店</div><div class="cell-sub">卖家：李雷 ｜ 139****2233</div></td>
+              <td>数码电器</td>
+              <td><div class="rating mid"><span class="rating-num">4.2</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-warning">2 次</span></td>
+              <td>89</td>
+              <td>1,560</td>
+              <td><span class="tag tag-warning"><span class="dot"></span>警告</span></td>
+              <td>2026-07-24 15:22</td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link warning">再次警告</button><button class="btn-link danger" onclick="openBan()">封禁</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-main">花西子美妆旗舰店</div><div class="cell-sub">卖家：王芳 ｜ 137****8899</div></td>
+              <td>美妆个护</td>
+              <td><div class="rating good"><span class="rating-num">4.9</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-neutral">0 次</span></td>
+              <td>234</td>
+              <td>3,892</td>
+              <td><span class="tag tag-success"><span class="dot"></span>正常</span></td>
+              <td>2026-07-23 11:08</td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link warning">警告</button><button class="btn-link danger">封禁</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-main">三只松鼠零食专营店</div><div class="cell-sub">卖家：陈强 ｜ 136****5566</div></td>
+              <td>食品生鲜</td>
+              <td><div class="rating good"><span class="rating-num">4.7</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-neutral">1 次</span></td>
+              <td>178</td>
+              <td>2,104</td>
+              <td><span class="tag tag-success"><span class="dot"></span>正常</span></td>
+              <td>2026-07-22 09:45</td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link warning">警告</button><button class="btn-link danger">封禁</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-main">韩都衣舍女装店</div><div class="cell-sub">卖家：孙丽 ｜ 188****4422</div></td>
+              <td>服饰鞋包</td>
+              <td><div class="rating low"><span class="rating-num">3.6</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-warning">3 次</span></td>
+              <td>67</td>
+              <td>420</td>
+              <td><span class="tag tag-warning"><span class="dot"></span>已暂停</span></td>
+              <td>2026-07-21 14:30</td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link">恢复营业</button><button class="btn-link danger" onclick="openBan()">封禁</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-main">百草味食品旗舰店</div><div class="cell-sub">卖家：周涛 ｜ 186****9900</div></td>
+              <td>食品生鲜</td>
+              <td><div class="rating good"><span class="rating-num">4.6</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-neutral">0 次</span></td>
+              <td>145</td>
+              <td>1,892</td>
+              <td><span class="tag tag-success"><span class="dot"></span>正常</span></td>
+              <td>2026-07-20 16:12</td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link warning">警告</button><button class="btn-link danger">封禁</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-main">劣质数码专营店</div><div class="cell-sub">卖家：吴用 ｜ 159****3344</div></td>
+              <td>数码电器</td>
+              <td><div class="rating low"><span class="rating-num">2.8</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-error">6 次</span></td>
+              <td>23</td>
+              <td>88</td>
+              <td><span class="tag tag-error"><span class="dot"></span>已封禁</span></td>
+              <td>2026-07-19 10:00</td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><span style="font-size:var(--fs-sm);color:var(--n7);">终态不可恢复</span></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-main">华为授权体验店</div><div class="cell-sub">卖家：赵敏 ｜ 133****7788</div></td>
+              <td>数码电器</td>
+              <td><div class="rating good"><span class="rating-num">4.9</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-neutral">0 次</span></td>
+              <td>312</td>
+              <td>5,672</td>
+              <td><span class="tag tag-success"><span class="dot"></span>正常</span></td>
+              <td>2026-07-18 11:30</td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link warning">警告</button><button class="btn-link danger">封禁</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div class="total">共 176 条记录，第 1 / 9 页</div>
+        <div class="pager">
+          <button class="page-btn" disabled><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M724 218.3V141.9c0-6.7-7.7-10.4-12.9-6.5L206.5 516.9c-7.2 5.4-7.2 16 0 21.3l504.6 381.4c5.2 3.9 12.9.2 12.9-6.5v-76.4c0-4.9-2.3-9.6-6.1-12.6l-360-272.1 360-272.1c3.8-3 6.1-7.7 6.1-12.6z"/></svg></button>
+          <button class="page-btn active">1</button><button class="page-btn">2</button><button class="page-btn">3</button><button class="page-btn">4</button><button class="page-btn">5</button><button class="page-btn">...</button><button class="page-btn">9</button>
+          <button class="page-btn"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M765.5 516.9L260.9 135.4c-5.2-3.9-12.9-.2-12.9 6.5v76.4c0 4.9 2.3 9.6 6.1 12.6l360 272.1-360 272.1c-3.8 3-6.1 7.7-6.1 12.6v76.4c0 6.7 7.7 10.4 12.9 6.5l504.6-381.4c7.2-5.4 7.2-16 0-21.3z"/></svg></button>
+          <select class="page-size-select"><option>20 条/页</option><option>50 条/页</option></select>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Leno 电商平台 · 运营管理后台 © 2026 ｜ 当前角色：运营管理员</footer>
+</div>
+
+<!-- Detail Drawer -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="title">店铺治理详情 · 小米官方旗舰店</div>
+    <button class="close" onclick="closeDrawer()"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-262.5c12.5-12.5 12.5-32.8 0-45.3l-22.6-22.6c-12.5-12.5-32.8-12.5-45.3 0L512 444.2 249.5 181.6c-12.5-12.5-32.8-12.5-45.3 0l-22.6 22.6c-12.5 12.5-12.5 32.8 0 45.3L444.2 512 181.6 774.5c-12.5 12.5-12.5 32.8 0 45.3l22.6 22.6c12.5 12.5 32.8 12.5 45.3 0L512 579.8l262.5 262.5c12.5 12.5 32.8 12.5 45.3 0l22.6-22.6c12.5-12.5 12.5-32.8 0-45.3L563.8 512z"/></svg></button>
+  </div>
+  <div class="drawer-body">
+    <div class="desc-section">
+      <div class="section-title">基本信息</div>
+      <div class="desc-grid">
+        <div class="desc-item"><span class="label">店铺名称</span><span class="value">小米官方旗舰店</span></div>
+        <div class="desc-item"><span class="label">店铺标识</span><span class="value mono">SHOP2026061500123</span></div>
+        <div class="desc-item"><span class="label">主营类目</span><span class="value">数码电器</span></div>
+        <div class="desc-item"><span class="label">入驻时间</span><span class="value">2026-06-15</span></div>
+        <div class="desc-item"><span class="label">卖家姓名</span><span class="value">李雷</span></div>
+        <div class="desc-item"><span class="label">联系电话</span><span class="value mono">139-2233-2233</span></div>
+        <div class="desc-item"><span class="label">店铺评分</span><span class="value" style="color:var(--c-warning);font-weight:var(--fw-semibold);">4.2 分（待治理）</span></div>
+        <div class="desc-item"><span class="label">累计违规</span><span class="value" style="color:var(--c-warning);font-weight:var(--fw-semibold);">2 次</span></div>
+      </div>
+    </div>
+
+    <div class="desc-section">
+      <div class="section-title">经营指标<span class="title-action">近 30 天</span></div>
+      <div class="metric-grid">
+        <div class="metric-box"><div class="metric-label">成交 GMV</div><div class="metric-value primary">¥856,420</div></div>
+        <div class="metric-box"><div class="metric-label">订单数</div><div class="metric-value">1,560</div></div>
+        <div class="metric-box"><div class="metric-label">商品数</div><div class="metric-value">89</div></div>
+      </div>
+    </div>
+
+    <div class="desc-section">
+      <div class="section-title">违规记录<span class="title-action">共 2 条</span></div>
+      <div class="violation-item severe">
+        <div class="v-head"><span class="v-type">虚假宣传</span><span class="v-time">2026-07-24 15:22</span></div>
+        <div class="v-desc">商品「小米手环 8 Pro」详情页宣传参数与实物不符，涉嫌夸大续航能力描述。买家投诉 3 次。</div>
+        <div class="v-penalty">处罚：商品下架 + 店铺警告（第 2 次）</div>
+      </div>
+      <div class="violation-item">
+        <div class="v-head"><span class="v-type">延迟发货</span><span class="v-time">2026-07-10 09:30</span></div>
+        <div class="v-desc">7 月 8 日 - 10 日期间累计 12 单超过 48 小时未发货，触发延迟发货预警。</div>
+        <div class="v-penalty">处罚：店铺警告（第 1 次）</div>
+      </div>
+    </div>
+
+    <div class="desc-section">
+      <div class="section-title">处罚历史</div>
+      <div class="timeline">
+        <div class="timeline-item warn">
+          <div class="tl-time">2026-07-24 15:22</div>
+          <div class="tl-title">店铺警告（第 2 次）</div>
+          <div class="tl-desc">运营管理员 张三 处置，原因：虚假宣传，关联商品已下架。</div>
+          <div class="tl-tag"><span class="tag tag-warning"><span class="dot"></span>警告</span></div>
+        </div>
+        <div class="timeline-item warn">
+          <div class="tl-time">2026-07-10 09:30</div>
+          <div class="tl-title">店铺警告（第 1 次）</div>
+          <div class="tl-desc">运营管理员 李四 处置，原因：延迟发货，已通知卖家整改。</div>
+          <div class="tl-tag"><span class="tag tag-warning"><span class="dot"></span>警告</span></div>
+        </div>
+        <div class="timeline-item success">
+          <div class="tl-time">2026-06-15 10:00</div>
+          <div class="tl-title">入驻审核通过</div>
+          <div class="tl-desc">店铺正式上线营业，分配 ShopId。</div>
+          <div class="tl-tag"><span class="tag tag-success"><span class="dot"></span>已通过</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="desc-section">
+      <div class="section-title">资质复审</div>
+      <div class="desc-grid">
+        <div class="desc-item"><span class="label">营业执照</span><span class="value" style="color:var(--c-success);">有效（2030-12-31 到期）</span></div>
+        <div class="desc-item"><span class="label">品牌授权书</span><span class="value" style="color:var(--c-warning);">即将到期（2026-08-30）</span></div>
+        <div class="desc-item"><span class="label">法人身份证</span><span class="value" style="color:var(--c-success);">有效</span></div>
+        <div class="desc-item"><span class="label">特殊经营许可</span><span class="value" style="color:var(--n7);">无需</span></div>
+      </div>
+      <button class="btn btn-sm" style="margin-top:var(--s3);"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z"/></svg>发起资质复审</button>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-warning" onclick="closeDrawer()"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm32 664c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V456c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272zm-32-344a48.1 48.1 0 010-96 48.1 48.1 0 010 96z"/></svg>警告店铺</button>
+    <button class="btn btn-danger" onclick="openBan()"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M864 170h-60c-4.4 0-7.9 3.5-8 7.8L789 286H235l-7-108.2c-.1-4.3-3.6-7.8-8-7.8h-60c-4.4 0-8 3.6-8 8v4l48 744c.2 33.2 27.4 60 60.6 60h392.8c33.2 0 60.4-26.8 60.6-60l48-744v-4c0-4.4-3.6-8-8-8z"/></svg>封禁店铺</button>
+  </div>
+</div>
+
+<!-- Ban Confirm Modal -->
+<div class="modal-mask" id="banMask">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="title"><svg class="danger-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M864 170h-60c-4.4 0-7.9 3.5-8 7.8L789 286H235l-7-108.2c-.1-4.3-3.6-7.8-8-7.8h-60c-4.4 0-8 3.6-8 8v4l48 744c.2 33.2 27.4 60 60.6 60h392.8c33.2 0 60.4-26.8 60.6-60l48-744v-4c0-4.4-3.6-8-8-8zM760.6 910H263.4l-40-630h577.2l-40 630zM512 712c97.2 0 176-78.8 176-176s-78.8-176-176-176-176 78.8-176 176 78.8 176 176 176zm0-288c61.9 0 112 50.1 112 112s-50.1 112-112 112-112-50.1-112-112 50.1-112 112-112z"/></svg>确认封禁店铺</div>
+      <button class="close" onclick="closeBan()" style="width:32px;height:32px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:var(--n7);"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-262.5c12.5-12.5 12.5-32.8 0-45.3l-22.6-22.6c-12.5-12.5-32.8-12.5-45.3 0L512 444.2 249.5 181.6c-12.5-12.5-32.8-12.5-45.3 0l-22.6 22.6c-12.5 12.5-12.5 32.8 0 45.3L444.2 512 181.6 774.5c-12.5 12.5-12.5 32.8 0 45.3l22.6 22.6c12.5 12.5 32.8 12.5 45.3 0L512 579.8l262.5 262.5c12.5 12.5 32.8 12.5 45.3 0l22.6-22.6c12.5-12.5 12.5-32.8 0-45.3L563.8 512z"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:var(--fs-base);color:var(--n10);line-height:1.6;margin-bottom:var(--s3);">确认封禁「<strong style="color:var(--c-error);">小米官方旗舰店</strong>」？此操作为<strong style="color:var(--c-error);">终态不可逆</strong>，封禁后店铺将永久下线。</p>
+      <div class="form-item">
+        <label>封禁原因分类<span class="required">*</span></label>
+        <div class="radio-group">
+          <div class="radio checked"><span class="radio-dot"></span><div><div class="radio-label">严重违规</div><div class="radio-desc">累计违规次数超过阈值或单次严重违规</div></div></div>
+          <div class="radio"><span class="radio-dot"></span><div><div class="radio-label">资质失效</div><div class="radio-desc">营业执照被吊销或品牌授权终止</div></div></div>
+          <div class="radio"><span class="radio-dot"></span><div><div class="radio-label">违法行为</div><div class="radio-desc">涉及售假、欺诈等违法行为</div></div></div>
+          <div class="radio"><span class="radio-dot"></span><div><div class="radio-label">其他</div><div class="radio-desc">其他需补充说明的原因</div></div></div>
+        </div>
+      </div>
+      <div class="form-item">
+        <label>详细原因<span class="required">*</span></label>
+        <textarea class="textarea" placeholder="请填写封禁的详细原因">该店铺累计违规 6 次，多次警告未整改，近期收到买家售假投诉 5 起，已构成严重违规，予以封禁处理。</textarea>
+        <div class="hint">封禁原因将记录至审计日志并通知卖家，最多 200 字</div>
+      </div>
+      <div class="impact-box">
+        <div class="impact-title"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 432a48.1 48.1 0 010-96 48.1 48.1 0 010 96z"/></svg>封禁影响（不可逆）</div>
+        <div class="impact-list">
+          · 店铺状态变更为「已封禁」，<strong style="color:var(--c-error);">永久不可恢复</strong><br>
+          · 店铺下所有在售商品<strong>强制下架</strong>，买家端不可见<br>
+          · 进行中的订单照常履约，但卖家不可发起新交易<br>
+          · 待结算货款冻结，需人工介入处理退款与结算<br>
+          · 操作记录写入审计日志，不可删除
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeBan()">取消</button>
+      <button class="btn btn-danger" onclick="confirmBan()">确认封禁（不可逆）</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast success" id="toast"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.4 724.9 207 489.5c-6.1-7.7-15.3-12.2-25.1-12.2H112c-12.6 0-20 14.4-12.3 24.5l274.8 337.8c12.5 15.4 35.5 15.4 48 0L924.3 214.5c7.7-10.1.3-24.5-12.3-24.5z"/></svg><span id="toastMsg">操作成功</span></div>
+
+<script>
+function openDrawer(){document.getElementById('drawerMask').classList.add('open');document.getElementById('drawer').classList.add('open');}
+function closeDrawer(){document.getElementById('drawerMask').classList.remove('open');document.getElementById('drawer').classList.remove('open');}
+function openBan(){closeDrawer();document.getElementById('banMask').classList.add('open');}
+function closeBan(){document.getElementById('banMask').classList.remove('open');}
+function confirmBan(){closeBan();showToast('店铺已封禁，已通知卖家并记录审计日志');}
+function showToast(msg){var t=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2000);}
+document.querySelectorAll('.radio').forEach(function(r){r.addEventListener('click',function(){this.parentElement.querySelectorAll('.radio').forEach(function(x){x.classList.remove('checked');});this.classList.add('checked');});});
+</script>
+</body>
+</html>

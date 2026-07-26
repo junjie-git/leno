@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卖家统计 - Leno 运营管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F; --c-purple:#722ED1; --c-cyan:#13C2C2; --c-gold:#FA8C16;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+a{color:var(--c-primary);text-decoration:none;}
+svg{display:block;}
+
+.layout{min-height:100vh;display:flex;flex-direction:column;}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--n1);border-bottom:1px solid var(--n3);display:flex;align-items:center;padding:0 var(--s4);z-index:100;box-shadow:0 1px 4px rgba(0,21,41,.08);}
+.header .logo{width:var(--sider-width);display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);flex-shrink:0;}
+.header .logo .logo-icon{width:28px;height:28px;background:linear-gradient(135deg,#1677FF,#4096FF);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-lg);font-weight:var(--fw-semibold);}
+.header .breadcrumb{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-base);color:var(--n9);}
+.header .breadcrumb .bc-item{color:var(--n7);}
+.header .breadcrumb .bc-sep{color:var(--n5);font-size:12px;}
+.header .breadcrumb .bc-current{color:var(--n10);}
+.header .header-right{margin-left:auto;display:flex;align-items:center;gap:var(--s4);}
+.header .global-search{width:240px;height:32px;background:var(--n3);border:1px solid transparent;border-radius:var(--r-base);display:flex;align-items:center;padding:0 var(--s3);gap:var(--s2);transition:all .2s;}
+.header .global-search:hover{border-color:var(--c-primary);background:var(--n1);}
+.header .global-search svg{width:14px;height:14px;color:var(--n7);}
+.header .global-search input{flex:1;border:none;background:transparent;outline:none;font-size:var(--fs-base);color:var(--n10);}
+.header .global-search .shortcut{font-size:var(--fs-sm);color:var(--n7);background:var(--n1);border:1px solid var(--n5);border-radius:4px;padding:0 6px;line-height:18px;}
+.header .icon-btn{width:36px;height:36px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:var(--n9);position:relative;transition:background .2s;}
+.header .icon-btn:hover{background:var(--n3);}
+.header .icon-btn svg{width:18px;height:18px;}
+.header .icon-btn .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;font-size:10px;line-height:16px;border-radius:8px;text-align:center;font-weight:var(--fw-medium);}
+.header .user-menu{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s2);height:40px;border-radius:var(--r-base);transition:background .2s;cursor:pointer;}
+.header .user-menu:hover{background:var(--n3);}
+.header .user-menu .avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FA8C16,#FAAD14);display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-sm);font-weight:var(--fw-medium);}
+.header .user-menu .uname{font-size:var(--fs-base);color:var(--n10);}
+.header .user-menu .arrow{width:10px;height:10px;color:var(--n7);}
+
+.sider{position:fixed;top:var(--header-h);bottom:0;left:0;width:var(--sider-width);background:var(--sider-bg);overflow-y:auto;z-index:90;}
+.sider::-webkit-scrollbar{width:6px;}
+.sider::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:3px;}
+.menu-group{padding:var(--s2) 0;}
+.menu-item{display:flex;align-items:center;gap:var(--s3);height:40px;padding:0 var(--s6);color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;transition:all .2s;border-right:3px solid transparent;}
+.menu-item:hover{color:#fff;}
+.menu-item svg{width:16px;height:16px;flex-shrink:0;}
+.menu-item.active{color:#fff;background:var(--c-primary);border-right-color:var(--c-primary);}
+.menu-sub{padding-left:var(--s8);}
+.menu-sub .menu-item{font-size:var(--fs-sm);height:36px;padding-left:var(--s12);}
+.menu-sub .menu-item .sub-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);margin-left:-10px;margin-right:6px;}
+.menu-sub .menu-item.active .sub-dot{background:#fff;}
+
+.content{margin-left:var(--sider-width);margin-top:var(--header-h);padding:var(--s6);min-height:calc(100vh - var(--header-h));}
+.footer{margin-left:var(--sider-width);height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7);}
+
+.page-head{margin-bottom:var(--s4);display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:var(--s3);}
+.page-head .page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--n10);margin-bottom:var(--s1);}
+.page-head .page-desc{font-size:var(--fs-sm);color:var(--n7);}
+.filter-bar{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s3) var(--s4);display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;}
+.seg{display:inline-flex;background:var(--n3);border-radius:var(--r-base);padding:2px;}
+.seg button{height:28px;padding:0 var(--s3);font-size:var(--fs-sm);color:var(--n9);border-radius:4px;transition:all .2s;}
+.seg button.active{background:var(--n1);color:var(--c-primary);font-weight:var(--fw-medium);box-shadow:0 1px 2px rgba(0,0,0,.1);}
+.select{height:32px;border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);background:var(--n1);min-width:140px;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238C8C8C' d='M6 8L2 4h8z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer;}
+.btn{height:32px;padding:0 var(--s4);border-radius:var(--r-base);font-size:var(--fs-base);display:inline-flex;align-items:center;justify-content:center;gap:var(--s1);transition:all .2s;border:1px solid var(--n5);background:var(--n1);color:var(--n10);}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary);}
+.btn svg{width:14px;height:14px;}
+
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s4);margin-bottom:var(--s4);}
+.stat-card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4) var(--s6);position:relative;overflow:hidden;}
+.stat-card .stat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s3);}
+.stat-card .stat-label{font-size:var(--fs-sm);color:var(--n7);}
+.stat-card .stat-icon{width:40px;height:40px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;}
+.stat-card .stat-icon svg{width:20px;height:20px;}
+.stat-card .stat-value{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);color:var(--n10);line-height:1.2;}
+.stat-card .stat-foot{display:flex;align-items:center;gap:var(--s2);margin-top:var(--s2);font-size:var(--fs-sm);color:var(--n7);}
+.trend{display:inline-flex;align-items:center;gap:2px;font-weight:var(--fw-medium);}
+.trend.up{color:var(--c-success);}
+.trend.down{color:var(--c-error);}
+.trend svg{width:10px;height:10px;}
+
+.chart-row{display:grid;grid-template-columns:1.6fr 1fr;gap:var(--s4);margin-bottom:var(--s4);}
+.chart-row.region{grid-template-columns:1fr 1fr;}
+.card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4) var(--s6);}
+.card .card-title{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);margin-bottom:var(--s4);display:flex;align-items:center;justify-content:space-between;}
+.card .card-title .left{display:flex;align-items:center;gap:var(--s2);}
+.card .card-title .left svg{width:18px;height:18px;color:var(--c-primary);}
+.card .card-title .title-tag{font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal);}
+.chart-container{width:100%;}
+
+.region-list{display:flex;flex-direction:column;gap:var(--s3);}
+.region-item{display:flex;align-items:center;gap:var(--s3);}
+.region-item .region-name{width:64px;font-size:var(--fs-sm);color:var(--n9);flex-shrink:0;}
+.region-item .region-bar{flex:1;height:16px;background:var(--n3);border-radius:var(--r-base);overflow:hidden;position:relative;}
+.region-item .region-bar .bar-fill{height:100%;background:linear-gradient(90deg,var(--c-primary),#4096FF);border-radius:var(--r-base);transition:width .6s cubic-bezier(.2,0,0,1);}
+.region-item .region-value{width:60px;text-align:right;font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--n10);flex-shrink:0;}
+
+.table-wrap{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden;}
+.table-head{padding:var(--s4) var(--s6);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--n3);}
+.table-head .title{font-size:var(--fs-lg);font-weight:var(--fw-medium);}
+.table-scroll{overflow-x:auto;}
+table.data-table{width:100%;border-collapse:collapse;font-size:var(--fs-base);}
+.data-table thead th{background:var(--n2);color:var(--n9);font-weight:var(--fw-medium);text-align:left;padding:var(--s3) var(--s4);white-space:nowrap;border-bottom:1px solid var(--n3);font-size:var(--fs-sm);}
+.data-table tbody td{padding:0 var(--s4);height:48px;border-bottom:1px solid var(--n3);color:var(--n10);vertical-align:middle;}
+.data-table tbody tr{transition:background .2s;}
+.data-table tbody tr:hover{background:var(--n2);}
+.data-table tbody tr:last-child td{border-bottom:none;}
+.data-table tbody tr.row-warn{background:#FFF1F0;}
+.data-table tbody tr.row-warn:hover{background:#FFE9E6;}
+.data-table .cell-main{font-weight:var(--fw-medium);color:var(--n10);}
+.data-table .cell-sub{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+.data-table .mono{font-family:var(--ff-mono);font-size:var(--fs-sm);color:var(--n9);}
+.data-table .action-cell{display:flex;gap:var(--s1);align-items:center;}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-size:var(--fs-sm);font-weight:var(--fw-semibold);background:var(--n3);color:var(--n9);}
+.rank-badge.top1{background:#FAAD14;color:#fff;}
+.rank-badge.top2{background:#8C8C8C;color:#fff;}
+.rank-badge.top3{background:#FA8C16;color:#fff;}
+.rating{display:flex;align-items:center;gap:var(--s1);}
+.rating .rating-num{font-size:var(--fs-base);font-weight:var(--fw-semibold);}
+.rating.good .rating-num{color:var(--c-success);}
+.rating.mid .rating-num{color:var(--c-warning);}
+.rating.low .rating-num{color:var(--c-error);}
+.rating .stars{display:flex;gap:1px;color:var(--c-warning);}
+.rating .stars svg{width:12px;height:12px;}
+
+.tag{display:inline-flex;align-items:center;gap:4px;padding:1px var(--s2);border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;font-weight:var(--fw-normal);white-space:nowrap;}
+.tag .dot{width:6px;height:6px;border-radius:50%;}
+.tag-success{background:#F6FFED;color:#389E0D;border:1px solid #B7EB8F;}
+.tag-success .dot{background:var(--c-success);}
+.tag-warning{background:#FFF7E6;color:#D46B08;border:1px solid #FFD591;}
+.tag-warning .dot{background:var(--c-warning);}
+.tag-error{background:#FFF1F0;color:#CF1322;border:1px solid #FFA39E;}
+.tag-error .dot{background:var(--c-error);}
+.tag-primary{background:#E6F4FF;color:#0958D9;border:1px solid #91CAFF;}
+.tag-primary .dot{background:var(--c-primary);}
+.tag-neutral{background:var(--n3);color:var(--n9);border:1px solid var(--n5);}
+.tag-neutral .dot{background:var(--n7);}
+
+.btn-link{border:none;background:none;color:var(--c-primary);padding:0 var(--s1);height:auto;font-size:var(--fs-base);}
+.btn-link:hover{color:#4096FF;}
+
+.toast{position:fixed;top:var(--header-h);left:50%;transform:translateX(-50%) translateY(-100%);background:var(--n10);color:#fff;padding:var(--s2) var(--s4);border-radius:var(--r-base);font-size:var(--fs-base);z-index:400;display:flex;align-items:center;gap:var(--s2);transition:transform .3s;box-shadow:var(--sh-modal);}
+.toast.show{transform:translateX(-50%) translateY(var(--s4));}
+.toast svg{width:16px;height:16px;color:var(--c-success);}
+
+.fade-in{animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.foot-note{background:#E6F4FF;border:1px solid #91CAFF;border-radius:var(--r-base);padding:var(--s3) var(--s4);margin-top:var(--s4);font-size:var(--fs-sm);color:#0958D9;display:flex;align-items:center;gap:var(--s2);}
+.foot-note svg{width:14px;height:14px;flex-shrink:0;}
+</style>
+</head>
+<body>
+<div class="layout">
+  <header class="header">
+    <div class="logo"><div class="logo-icon">L</div><span>Leno 运营后台</span></div>
+    <div class="breadcrumb"><span class="bc-item">卖家运营</span><span class="bc-sep">/</span><span class="bc-current">卖家统计</span></div>
+    <div class="header-right">
+      <div class="global-search"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 410c0-167.7-136.3-304-304-304S104 242.3 104 410s136.3 304 304 304c52.7 0 102.2-13.4 145.5-37l131.7 131.7c12.5 12.5 32.8 12.5 45.3 0l82.1-82.1c12.5-12.5 12.5-32.8 0-45.3zM416 624c-118.4 0-214-95.6-214-214s95.6-214 214-214 214 95.6 214 214-95.6 214-214 214z"/></svg><input type="text" placeholder="搜索店铺、卖家、订单..." /><span class="shortcut">Ctrl K</span></div>
+      <button class="icon-btn" title="待办工作台"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112c-167.7 0-304 136.3-304 304v176H144c-17.7 0-32 14.3-32 32v272c0 17.7 14.3 32 32 32h576c17.7 0 32-14.3 32-32V624c0-17.7-14.3-32-32-32h-32V416c0-118.4 95.6-214 214-214 22.1 0 40-17.9 40-40v-10c0-22.1-17.9-40-40-40z"/></svg><span class="badge">5</span></button>
+      <button class="icon-btn" title="通知"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428C792 278.9 673.1 158 512 158c-161.1 0-280 120.9-280 270v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c23.1 0 42.9 14.8 47.8 36.5C456.5 945.8 481.5 962 512 962s55.5-16.2 64.2-45.5C581.1 894.8 600.9 880 624 880h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32z"/></svg><span class="badge">12</span></button>
+      <div class="user-menu"><div class="avatar">运</div><span class="uname">运营管理员</span><svg class="arrow" viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-752l376 512z"/></svg></div>
+    </div>
+  </header>
+
+  <aside class="sider">
+    <div class="menu-group">
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 385.6L470.4 134.4c-5.3-2.7-11.6-2.7-16.8 0L6.4 385.6c-5.6 2.8-9.2 8.5-9.2 14.8 0 6.3 3.6 12 9.2 14.8l157.6 78.8v234.4c0 6.3 3.6 12 9.2 14.8l304 152c2.6 1.3 5.5 2 8.4 2s5.8-.7 8.4-2l304-152c5.6-2.8 9.2-8.5 9.2-14.8V479.2l118.4-59.2V672c0 8.8 7.2 16 16 16h32c8.8 0 16-7.2 16-16V400.4c0-6.3-3.6-12-9.2-14.8z"/></svg><span>数据看板</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32z"/></svg><span>商品运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>促销运营</span></div>
+      <div class="menu-item active"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 538.7 768 461.6 768 376c0-137-111-248-248-248S272 239 272 376c0 85.6 49 162.7 120.8 202.7-.4.2-.8.3-1.2.5-42.6 17.7-81 43.2-114 76.1a376.3 376.3 0 00-80.6 119.5 375.5 375.5 0 00-27.8 144.8c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-83.9 32.7-162.7 92.1-222.1C423.3 631.2 502.1 600 586 600c83.9 0 162.7 32.7 222.1 92.1 59.4 59.4 92.1 138.2 92.1 222.1 0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-50.2-9.8-99-29.1-144.8z"/></svg><span>卖家运营</span></div>
+      <div class="menu-group menu-sub">
+        <div class="menu-item"><span class="sub-dot"></span>入驻审核</div>
+        <div class="menu-item"><span class="sub-dot"></span>店铺治理</div>
+        <div class="menu-item active"><span class="sub-dot"></span>卖家统计</div>
+      </div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H536V32c0-8.8-7.2-16-16-16h-16c-8.8 0-16 7.2-16 16v80H144c-17.7 0-32 14.3-32 32v720c0 35.3 28.7 64 64 64h736c35.3 0 64-28.7 64-64V144c0-17.7-14.3-32-32-32z"/></svg><span>订单运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 100 896 448 448 0 000-896zm0 832a384 384 0 110-768 384 384 0 010 768z"/></svg><span>支付运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428C792 278.9 673.1 158 512 158c-161.1 0-280 120.9-280 270v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c23.1 0 42.9 14.8 47.8 36.5C456.5 945.8 481.5 962 512 962s55.5-16.2 64.2-45.5C581.1 894.8 600.9 880 624 880h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32z"/></svg><span>通知运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 538.7 768 461.6 768 376c0-137-111-248-248-248S272 239 272 376c0 85.6 49 162.7 120.8 202.7-.4.2-.8.3-1.2.5-42.6 17.7-81 43.2-114 76.1a376.3 376.3 0 00-80.6 119.5 375.5 375.5 0 00-27.8 144.8c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-83.9 32.7-162.7 92.1-222.1C423.3 631.2 502.1 600 586 600c83.9 0 162.7 32.7 222.1 92.1 59.4 59.4 92.1 138.2 92.1 222.1 0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-50.2-9.8-99-29.1-144.8z"/></svg><span>会员运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M824.2 699.9a301.6 301.6 0 00-119.5-72.6 243.2 243.2 0 0055.5-166.3c0-124.9-99.6-226.7-223.4-226.7s-223.4 101.8-223.4 226.7c0 64.8 26.9 123.3 69.9 166.3a301.6 301.6 0 00-119.5 72.6C226.4 819.4 200 944 200 944h667c0-1.1-26.4-124.6-42.8-244.1z"/></svg><span>个人中心</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>数据导出</span></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="page-head fade-in">
+      <div>
+        <div class="page-title">卖家统计</div>
+        <div class="page-desc">跨店铺聚合统计卖家经营指标，识别头部卖家与待治理卖家，辅助运营决策</div>
+      </div>
+      <div class="filter-bar">
+        <div class="seg" id="timeSeg">
+          <button>今日</button><button>近 7 天</button><button class="active">近 30 天</button><button>本月</button>
+        </div>
+        <select class="select"><option>全部类目</option><option>数码电器</option><option>服饰鞋包</option><option>美妆个护</option><option>食品生鲜</option></select>
+        <button class="btn" onclick="showToast('已刷新统计数据')"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-56.4c-12.5-12.5-32.8-12.5-45.3 0L342.4 617.9l-126-126c-12.5-12.5-32.8-12.5-45.3 0l-56.4 56.4c-12.5 12.5-12.5 32.8 0 45.3l227.4 227.4c12.5 12.5 32.8 12.5 45.3 0L909.1 254.6c12.5-12.5 12.5-32.8 0-45.3z"/></svg>刷新</button>
+      </div>
+    </div>
+
+    <!-- Stats cards -->
+    <div class="stats-row fade-in">
+      <div class="stat-card">
+        <div class="stat-head"><span class="stat-label">卖家总数</span><div class="stat-icon" style="background:#E6F4FF;"><svg viewBox="0 0 1024 1024" fill="#1677FF"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 538.7 768 461.6 768 376c0-137-111-248-248-248S272 239 272 376c0 85.6 49 162.7 120.8 202.7-.4.2-.8.3-1.2.5-42.6 17.7-81 43.2-114 76.1a376.3 376.3 0 00-80.6 119.5 375.5 375.5 0 00-27.8 144.8c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-83.9 32.7-162.7 92.1-222.1C423.3 631.2 502.1 600 586 600c83.9 0 162.7 32.7 222.1 92.1 59.4 59.4 92.1 138.2 92.1 222.1 0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8 0-50.2-9.8-99-29.1-144.8z"/></svg></div></div>
+        <div class="stat-value" style="color:var(--c-primary);">1,256</div>
+        <div class="stat-foot"><span class="trend up"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.9 422.3c0-9.3-3.7-18.2-10.4-24.9L671.9 220.6c-6.6-6.6-15.6-10.3-24.9-10.3s-18.2 3.7-24.9 10.3l-176.4 176.4c-6.6 6.6-10.3 15.6-10.3 24.9 0 9.3 3.7 18.2 10.3 24.9 6.6 6.6 15.6 10.3 24.9 10.3s18.2-3.7 24.9-10.3l120.7-120.7v552.6c0 19.5 15.8 35.3 35.3 35.3s35.3-15.8 35.3-35.3V319.8l120.7 120.7c6.6 6.6 15.6 10.3 24.9 10.3s18.2-3.7 24.9-10.3c6.6-6.6 10.3-15.6 10.3-24.9z"/></svg>3.1%</span>较上月</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-head"><span class="stat-label">本月新增</span><div class="stat-icon" style="background:#F6FFED;"><svg viewBox="0 0 1024 1024" fill="#52C41A"><path d="M399.8 401.7L291.9 509.7c-14.2 14.2-14.2 37.2 0 51.4s37.2 14.2 51.4 0L400 504.4v316.7c0 20 16.2 36.3 36.3 36.3s36.3-16.2 36.3-36.3V504.4l56.7 56.7c14.2 14.2 37.2 14.2 51.4 0s14.2-37.2 0-51.4L460.7 401.7c-14.2-14.2-37.2-14.2-51.4 0z"/><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z"/></svg></div></div>
+        <div class="stat-value" style="color:var(--c-success);">38</div>
+        <div class="stat-foot"><span class="trend up"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.9 422.3c0-9.3-3.7-18.2-10.4-24.9L671.9 220.6c-6.6-6.6-15.6-10.3-24.9-10.3s-18.2 3.7-24.9 10.3l-176.4 176.4c-6.6 6.6-10.3 15.6-10.3 24.9 0 9.3 3.7 18.2 10.3 24.9 6.6 6.6 15.6 10.3 24.9 10.3s18.2-3.7 24.9-10.3l120.7-120.7v552.6c0 19.5 15.8 35.3 35.3 35.3s35.3-15.8 35.3-35.3V319.8l120.7 120.7c6.6 6.6 15.6 10.3 24.9 10.3s18.2-3.7 24.9-10.3c6.6-6.6 10.3-15.6 10.3-24.9z"/></svg>12.5%</span>较上月</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-head"><span class="stat-label">活跃卖家</span><div class="stat-icon" style="background:#FFF7E6;"><svg viewBox="0 0 1024 1024" fill="#FAAD14"><path d="M512 64a448 448 0 100 896 448 448 0 000-896zm0 832a384 384 0 110-768 384 384 0 010 768z"/><path d="M512 288a48 48 0 100 96 48 48 0 000-96zm0 128c-22.1 0-40 17.9-40 40v224c0 22.1 17.9 40 40 40s40-17.9 40-40V456c0-22.1-17.9-40-40-40z"/></svg></div></div>
+        <div class="stat-value" style="color:var(--c-warning);">892</div>
+        <div class="stat-foot">活跃率 71.0%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-head"><span class="stat-label">冻结中</span><div class="stat-icon" style="background:#FFF1F0;"><svg viewBox="0 0 1024 1024" fill="#FF4D4F"><path d="M864 170h-60c-4.4 0-7.9 3.5-8 7.8L789 286H235l-7-108.2c-.1-4.3-3.6-7.8-8-7.8h-60c-4.4 0-8 3.6-8 8v4l48 744c.2 33.2 27.4 60 60.6 60h392.8c33.2 0 60.4-26.8 60.6-60l48-744v-4c0-4.4-3.6-8-8-8zM760.6 910H263.4l-40-630h577.2l-40 630z"/><path d="M512 712c97.2 0 176-78.8 176-176s-78.8-176-176-176-176 78.8-176 176 78.8 176 176 176zm0-288c61.9 0 112 50.1 112 112s-50.1 112-112 112-112-50.1-112-112 50.1-112 112-112z"/></svg></div></div>
+        <div class="stat-value" style="color:var(--c-error);">23</div>
+        <div class="stat-foot"><span class="trend down"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.9 684.1c0-9.3-3.7-18.2-10.4-24.9L671.9 482.4c-6.6-6.6-15.6-10.3-24.9-10.3s-18.2 3.7-24.9 10.3L445.7 658.8c-6.6 6.6-10.3 15.6-10.3 24.9 0 9.3 3.7 18.2 10.3 24.9 6.6 6.6 15.6 10.3 24.9 10.3s18.2-3.7 24.9-10.3l120.7-120.7v552.6c0 19.5 15.8 35.3 35.3 35.3s35.3-15.8 35.3-35.3V581.6L812 702.3c6.6 6.6 15.6 10.3 24.9 10.3s18.2-3.7 24.9-10.3c6.6-6.6 10.3-15.6 10.3-24.9z"/></svg>2.1%</span>较上月</div>
+      </div>
+    </div>
+
+    <!-- Charts: trend + category pie -->
+    <div class="chart-row fade-in">
+      <div class="card">
+        <div class="card-title"><div class="left"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/><path d="M280 660a8 8 0 0012.6 1.2l144-158.8c3.4-3.7 9.1-3.9 12.7-.4l92.9 91.5c3.8 3.7 9.8 3.5 13.3-.4l203-221.4a8 8 0 0113.4 2.2l62.9 138.1c1.9 4.1 6 6.7 10.5 6.7h36.6c8.8 0 14.6-9.2 11-17.2L842.7 349a8 8 0 00-13.4-2.2L612.8 583.8c-3.5 3.9-9.5 4.1-13.3.4l-92.9-91.5c-3.6-3.5-9.3-3.3-12.7.4l-144 158.8A8 8 0 00256 658z"/></svg>卖家增长趋势</div><span class="title-tag">近 30 天 · 日均新增卖家</span></div>
+        <div class="chart-container">
+          <svg viewBox="0 0 720 300" width="100%" height="300" style="overflow:visible;">
+            <defs>
+              <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#1677FF" stop-opacity="0.25"/>
+                <stop offset="100%" stop-color="#1677FF" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <!-- grid -->
+            <g stroke="#F0F0F0" stroke-width="1">
+              <line x1="40" y1="40" x2="700" y2="40"/>
+              <line x1="40" y1="100" x2="700" y2="100"/>
+              <line x1="40" y1="160" x2="700" y2="160"/>
+              <line x1="40" y1="220" x2="700" y2="220"/>
+              <line x1="40" y1="260" x2="700" y2="260"/>
+            </g>
+            <!-- y axis labels -->
+            <g font-size="11" fill="#8C8C8C" font-family="var(--ff-app)">
+              <text x="34" y="44" text-anchor="end">60</text>
+              <text x="34" y="104" text-anchor="end">45</text>
+              <text x="34" y="164" text-anchor="end">30</text>
+              <text x="34" y="224" text-anchor="end">15</text>
+              <text x="34" y="264" text-anchor="end">0</text>
+            </g>
+            <!-- area -->
+            <path d="M40,232 L61,224 L82,212 L104,216 L125,200 L146,188 L167,196 L189,180 L210,168 L231,172 L253,156 L274,148 L295,152 L316,140 L338,128 L359,132 L380,120 L401,108 L423,116 L444,100 L465,92 L486,104 L508,88 L529,80 L550,76 L571,84 L593,72 L614,64 L635,68 L656,56 L678,48 L699,44 L699,260 L40,260 Z" fill="url(#lineGrad)"/>
+            <!-- line -->
+            <path d="M40,232 L61,224 L82,212 L104,216 L125,200 L146,188 L167,196 L189,180 L210,168 L231,172 L253,156 L274,148 L295,152 L316,140 L338,128 L359,132 L380,120 L401,108 L423,116 L444,100 L465,92 L486,104 L508,88 L529,80 L550,76 L571,84 L593,72 L614,64 L635,68 L656,56 L678,48 L699,44" fill="none" stroke="#1677FF" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            <!-- points -->
+            <g fill="#1677FF">
+              <circle cx="40" cy="232" r="3"/><circle cx="167" cy="196" r="3"/><circle cx="295" cy="152" r="3"/><circle cx="423" cy="116" r="3"/><circle cx="550" cy="76" r="3"/><circle cx="699" cy="44" r="4" stroke="#fff" stroke-width="2"/>
+            </g>
+            <!-- highlight tooltip -->
+            <g>
+              <line x1="699" y1="40" x2="699" y2="260" stroke="#1677FF" stroke-width="1" stroke-dasharray="4 3"/>
+              <rect x="620" y="14" width="92" height="32" rx="4" fill="#000000D9"/>
+              <text x="666" y="28" font-size="11" fill="#fff" text-anchor="middle" font-family="var(--ff-app)">07-26 新增</text>
+              <text x="666" y="42" font-size="13" fill="#fff" text-anchor="middle" font-weight="600" font-family="var(--ff-app)">5.2 家/日</text>
+            </g>
+            <!-- x axis labels -->
+            <g font-size="11" fill="#8C8C8C" font-family="var(--ff-app)" text-anchor="middle">
+              <text x="40" y="282">06-27</text>
+              <text x="167" y="282">07-04</text>
+              <text x="295" y="282">07-11</text>
+              <text x="423" y="282">07-18</text>
+              <text x="550" y="282">07-25</text>
+              <text x="699" y="282">07-26</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="left"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H536V32c0-8.8-7.2-16-16-16h-16c-8.8 0-16 7.2-16 16v80H144c-17.7 0-32 14.3-32 32v720c0 35.3 28.7 64 64 64h736c35.3 0 64-28.7 64-64V144c0-17.7-14.3-32-32-32z"/></svg>类目分布</div><span class="title-tag">按主营类目</span></div>
+        <div class="chart-container" style="display:flex;align-items:center;gap:var(--s4);">
+          <svg viewBox="0 0 200 200" width="180" height="180" style="flex-shrink:0;">
+            <!-- donut segments. Total 1256. segments computed as arc paths -->
+            <!-- 数码电器 412 (32.8%) -->
+            <path d="M100,100 L100,10 A90,90 0 0,1 188.6,86.4 Z" fill="#1677FF"/>
+            <!-- 服饰鞋包 358 (28.5%) -->
+            <path d="M100,100 L188.6,86.4 A90,90 0 0,1 91.7,189.5 Z" fill="#722ED1"/>
+            <!-- 美妆个护 214 (17.0%) -->
+            <path d="M100,100 L91.7,189.5 A90,90 0 0,1 14.5,131.3 Z" fill="#13C2C2"/>
+            <!-- 食品生鲜 156 (12.4%) -->
+            <path d="M100,100 L14.5,131.3 A90,90 0 0,1 32.6,42.7 Z" fill="#FAAD14"/>
+            <!-- 家居家装 76 (6.1%) -->
+            <path d="M100,100 L32.6,42.7 A90,90 0 0,1 78.5,12.8 Z" fill="#FA8C16"/>
+            <!-- 其他 40 (3.2%) -->
+            <path d="M100,100 L78.5,12.8 A90,90 0 0,1 100,10 Z" fill="#8C8C8C"/>
+            <circle cx="100" cy="100" r="48" fill="#fff"/>
+            <text x="100" y="96" text-anchor="middle" font-size="12" fill="#8C8C8C" font-family="var(--ff-app)">总卖家</text>
+            <text x="100" y="116" text-anchor="middle" font-size="20" font-weight="600" fill="#000000D9" font-family="var(--ff-app)">1,256</text>
+          </svg>
+          <div style="flex:1;display:flex;flex-direction:column;gap:var(--s2);">
+            <div style="display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-sm);"><span style="width:10px;height:10px;border-radius:2px;background:#1677FF;"></span><span style="flex:1;color:var(--n9);">数码电器</span><span style="font-weight:var(--fw-medium);">412</span><span style="color:var(--n7);width:44px;text-align:right;">32.8%</span></div>
+            <div style="display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-sm);"><span style="width:10px;height:10px;border-radius:2px;background:#722ED1;"></span><span style="flex:1;color:var(--n9);">服饰鞋包</span><span style="font-weight:var(--fw-medium);">358</span><span style="color:var(--n7);width:44px;text-align:right;">28.5%</span></div>
+            <div style="display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-sm);"><span style="width:10px;height:10px;border-radius:2px;background:#13C2C2;"></span><span style="flex:1;color:var(--n9);">美妆个护</span><span style="font-weight:var(--fw-medium);">214</span><span style="color:var(--n7);width:44px;text-align:right;">17.0%</span></div>
+            <div style="display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-sm);"><span style="width:10px;height:10px;border-radius:2px;background:#FAAD14;"></span><span style="flex:1;color:var(--n9);">食品生鲜</span><span style="font-weight:var(--fw-medium);">156</span><span style="color:var(--n7);width:44px;text-align:right;">12.4%</span></div>
+            <div style="display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-sm);"><span style="width:10px;height:10px;border-radius:2px;background:#FA8C16;"></span><span style="flex:1;color:var(--n9);">家居家装</span><span style="font-weight:var(--fw-medium);">76</span><span style="color:var(--n7);width:44px;text-align:right;">6.1%</span></div>
+            <div style="display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-sm);"><span style="width:10px;height:10px;border-radius:2px;background:#8C8C8C;"></span><span style="flex:1;color:var(--n9);">其他</span><span style="font-weight:var(--fw-medium);">40</span><span style="color:var(--n7);width:44px;text-align:right;">3.2%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Region distribution + Top categories bar -->
+    <div class="chart-row region fade-in">
+      <div class="card">
+        <div class="card-title"><div class="left"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M512 336c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/></svg>地域分布</div><span class="title-tag">卖家所在省份 Top 8</span></div>
+        <div class="region-list">
+          <div class="region-item"><span class="region-name">广东省</span><div class="region-bar"><div class="bar-fill" style="width:88%;"></div></div><span class="region-value">328</span></div>
+          <div class="region-item"><span class="region-name">浙江省</span><div class="region-bar"><div class="bar-fill" style="width:72%;background:linear-gradient(90deg,#722ED1,#9254DE);"></div></div><span class="region-value">268</span></div>
+          <div class="region-item"><span class="region-name">江苏省</span><div class="region-bar"><div class="bar-fill" style="width:58%;background:linear-gradient(90deg,#13C2C2,#36CFC9);"></div></div><span class="region-value">216</span></div>
+          <div class="region-item"><span class="region-name">上海市</span><div class="region-bar"><div class="bar-fill" style="width:46%;background:linear-gradient(90deg,#FAAD14,#FFC53D);"></div></div><span class="region-value">172</span></div>
+          <div class="region-item"><span class="region-name">北京市</span><div class="region-bar"><div class="bar-fill" style="width:38%;background:linear-gradient(90deg,#FA8C16,#FFA940);"></div></div><span class="region-value">142</span></div>
+          <div class="region-item"><span class="region-name">福建省</span><div class="region-bar"><div class="bar-fill" style="width:26%;background:linear-gradient(90deg,#52C41A,#73D13D);"></div></div><span class="region-value">98</span></div>
+          <div class="region-item"><span class="region-name">山东省</span><div class="region-bar"><div class="bar-fill" style="width:18%;background:linear-gradient(90deg,#1677FF,#4096FF);"></div></div><span class="region-value">66</span></div>
+          <div class="region-item"><span class="region-name">四川省</span><div class="region-bar"><div class="bar-fill" style="width:12%;background:linear-gradient(90deg,#8C8C8C,#BFBFBF);"></div></div><span class="region-value">44</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="left"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H536V32c0-8.8-7.2-16-16-16h-16c-8.8 0-16 7.2-16 16v80H144c-17.7 0-32 14.3-32 32v720c0 35.3 28.7 64 64 64h736c35.3 0 64-28.7 64-64V144c0-17.7-14.3-32-32-32z"/></svg>类目 GMV 贡献</div><span class="title-tag">近 30 天</span></div>
+        <div class="region-list">
+          <div class="region-item"><span class="region-name" style="width:84px;">数码电器</span><div class="region-bar"><div class="bar-fill" style="width:92%;"></div></div><span class="region-value" style="width:96px;">¥2.86M</span></div>
+          <div class="region-item"><span class="region-name" style="width:84px;">服饰鞋包</span><div class="region-bar"><div class="bar-fill" style="width:78%;background:linear-gradient(90deg,#722ED1,#9254DE);"></div></div><span class="region-value" style="width:96px;">¥2.42M</span></div>
+          <div class="region-item"><span class="region-name" style="width:84px;">美妆个护</span><div class="region-bar"><div class="bar-fill" style="width:54%;background:linear-gradient(90deg,#13C2C2,#36CFC9);"></div></div><span class="region-value" style="width:96px;">¥1.68M</span></div>
+          <div class="region-item"><span class="region-name" style="width:84px;">食品生鲜</span><div class="region-bar"><div class="bar-fill" style="width:36%;background:linear-gradient(90deg,#FAAD14,#FFC53D);"></div></div><span class="region-value" style="width:96px;">¥1.12M</span></div>
+          <div class="region-item"><span class="region-name" style="width:84px;">家居家装</span><div class="region-bar"><div class="bar-fill" style="width:20%;background:linear-gradient(90deg,#FA8C16,#FFA940);"></div></div><span class="region-value" style="width:96px;">¥620K</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ranking table -->
+    <div class="table-wrap fade-in">
+      <div class="table-head">
+        <div class="title">卖家排行榜 · GMV Top 10</div>
+        <div style="display:flex;gap:var(--s2);">
+          <button class="btn"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-56.4c-12.5-12.5-32.8-12.5-45.3 0L342.4 617.9l-126-126c-12.5-12.5-32.8-12.5-45.3 0l-56.4 56.4c-12.5 12.5-12.5 32.8 0 45.3l227.4 227.4c12.5 12.5 32.8 12.5 45.3 0L909.1 254.6c12.5-12.5 12.5-32.8 0-45.3z"/></svg>导出</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:60px;">排名</th>
+              <th>卖家 / 店铺</th>
+              <th>主营类目</th>
+              <th>GMV（近 30 天）</th>
+              <th>订单数</th>
+              <th>商品数</th>
+              <th>店铺评分</th>
+              <th>状态</th>
+              <th style="width:120px;">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="rank-badge top1">1</span></td>
+              <td><div class="cell-main">华为授权体验店</div><div class="cell-sub">赵敏 ｜ 133****7788</div></td>
+              <td>数码电器</td>
+              <td><span style="color:var(--c-error);font-weight:var(--fw-semibold);">¥1,256,800</span></td>
+              <td>5,672</td><td>312</td>
+              <td><div class="rating good"><span class="rating-num">4.9</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-success"><span class="dot"></span>正常</span></td>
+              <td><button class="btn-link">查看治理</button></td>
+            </tr>
+            <tr>
+              <td><span class="rank-badge top2">2</span></td>
+              <td><div class="cell-main">花西子美妆旗舰店</div><div class="cell-sub">王芳 ｜ 137****8899</div></td>
+              <td>美妆个护</td>
+              <td><span style="color:var(--c-error);font-weight:var(--fw-semibold);">¥986,400</span></td>
+              <td>3,892</td><td>234</td>
+              <td><div class="rating good"><span class="rating-num">4.9</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-success"><span class="dot"></span>正常</span></td>
+              <td><button class="btn-link">查看治理</button></td>
+            </tr>
+            <tr>
+              <td><span class="rank-badge top3">3</span></td>
+              <td><div class="cell-main">南极人官方旗舰店</div><div class="cell-sub">张伟 ｜ 138****6688</div></td>
+              <td>服饰鞋包</td>
+              <td><span style="color:var(--c-error);font-weight:var(--fw-semibold);">¥856,420</span></td>
+              <td>2,368</td><td>156</td>
+              <td><div class="rating good"><span class="rating-num">4.8</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-success"><span class="dot"></span>正常</span></td>
+              <td><button class="btn-link">查看治理</button></td>
+            </tr>
+            <tr>
+              <td><span class="rank-badge">4</span></td>
+              <td><div class="cell-main">百草味食品旗舰店</div><div class="cell-sub">周涛 ｜ 186****9900</div></td>
+              <td>食品生鲜</td>
+              <td><span style="color:var(--c-error);font-weight:var(--fw-semibold);">¥724,160</span></td>
+              <td>1,892</td><td>145</td>
+              <td><div class="rating good"><span class="rating-num">4.6</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-success"><span class="dot"></span>正常</span></td>
+              <td><button class="btn-link">查看治理</button></td>
+            </tr>
+            <tr>
+              <td><span class="rank-badge">5</span></td>
+              <td><div class="cell-main">三只松鼠零食专营店</div><div class="cell-sub">陈强 ｜ 136****5566</div></td>
+              <td>食品生鲜</td>
+              <td><span style="color:var(--c-error);font-weight:var(--fw-semibold);">¥658,900</span></td>
+              <td>2,104</td><td>178</td>
+              <td><div class="rating good"><span class="rating-num">4.7</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-success"><span class="dot"></span>正常</span></td>
+              <td><button class="btn-link">查看治理</button></td>
+            </tr>
+            <tr class="row-warn">
+              <td><span class="rank-badge">6</span></td>
+              <td><div class="cell-main">小米官方旗舰店</div><div class="cell-sub">李雷 ｜ 139****2233 ｜ 待治理</div></td>
+              <td>数码电器</td>
+              <td><span style="color:var(--c-error);font-weight:var(--fw-semibold);">¥486,200</span></td>
+              <td>1,560</td><td>89</td>
+              <td><div class="rating mid"><span class="rating-num">4.2</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-warning"><span class="dot"></span>警告</span></td>
+              <td><button class="btn-link" style="color:var(--c-error);">查看治理</button></td>
+            </tr>
+            <tr>
+              <td><span class="rank-badge">7</span></td>
+              <td><div class="cell-main">宜家家居官方店</div><div class="cell-sub">刘洋 ｜ 135****1100</div></td>
+              <td>家居家装</td>
+              <td><span style="color:var(--c-error);font-weight:var(--fw-semibold);">¥412,800</span></td>
+              <td>1,248</td><td>67</td>
+              <td><div class="rating good"><span class="rating-num">4.5</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-success"><span class="dot"></span>正常</span></td>
+              <td><button class="btn-link">查看治理</button></td>
+            </tr>
+            <tr>
+              <td><span class="rank-badge">8</span></td>
+              <td><div class="cell-main">韩都衣舍女装店</div><div class="cell-sub">孙丽 ｜ 188****4422</div></td>
+              <td>服饰鞋包</td>
+              <td><span style="color:var(--c-error);font-weight:var(--fw-semibold);">¥368,400</span></td>
+              <td>420</td><td>67</td>
+              <td><div class="rating low"><span class="rating-num">3.6</span><span class="stars"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-9.6-14.7-9.6-6.5 0-11.6 3.3-14.7 9.6L397.8 316.2 143.9 353.1c-7.3 1-12.6 4.8-14.9 11.3-2.4 6.5-1 12.5 4.1 18l183.8 179.1-43.4 252.9c-1.2 7.6 1 13.7 6.4 18.4 5.5 4.7 11.8 5.4 18.8 2.1L526 827.4l227.2 119.6c7 3.3 13.3 2.6 18.8-2.1 5.4-4.7 7.6-10.8 6.4-18.4l-43.4-252.9 183.8-179.1c5.1-5.5 6.5-11.5 4.1-18-2.3-6.5-7.6-10.3-14.9-11.3z"/></svg></span></div></td>
+              <td><span class="tag tag-warning"><span class="dot"></span>已暂停</span></td>
+              <td><button class="btn-link" style="color:var(--c-error);">查看治理</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" style="padding:var(--s4) var(--s6);display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--n3);">
+        <div style="font-size:var(--fs-sm);color:var(--n9);">共 1,256 个卖家，显示 Top 8</div>
+        <div style="display:flex;gap:var(--s1);">
+          <button class="page-btn" style="min-width:32px;height:32px;border:1px solid var(--n5);border-radius:var(--r-base);background:var(--n1);display:flex;align-items:center;justify-content:center;font-size:var(--fs-base);color:var(--n10);" onclick="showToast('查看更多卖家排行')">查看全部</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot-note">
+      <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm32 664c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V456c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272zm-32-344a48.1 48.1 0 010-96 48.1 48.1 0 010 96z"/></svg>
+      数据说明：跨店铺聚合端点 <code style="font-family:var(--ff-mono);">/api/admin/seller-statistics/overview</code> 当前基于 dashboard shop-ranking 与店铺列表二次聚合，存在轻微性能损耗，待后端补充端点后替换。
+    </div>
+  </main>
+
+  <footer class="footer">Leno 电商平台 · 运营管理后台 © 2026 ｜ 当前角色：运营管理员</footer>
+</div>
+
+<div class="toast" id="toast"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.4 724.9 207 489.5c-6.1-7.7-15.3-12.2-25.1-12.2H112c-12.6 0-20 14.4-12.3 24.5l274.8 337.8c12.5 15.4 35.5 15.4 48 0L924.3 214.5c7.7-10.1.3-24.5-12.3-24.5z"/></svg><span id="toastMsg">操作成功</span></div>
+
+<script>
+function showToast(msg){var t=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2000);}
+document.querySelectorAll('#timeSeg button').forEach(function(b){b.addEventListener('click',function(){this.parentElement.querySelectorAll('button').forEach(function(x){x.classList.remove('active');});this.classList.add('active');showToast('已切换时间范围：'+this.textContent);});});
+</script>
+</body>
+</html>

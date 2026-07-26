@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>订单管理 - Leno 运营管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F; --c-purple:#722ED1;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+a{color:var(--c-primary);text-decoration:none;}
+svg{display:block;}
+
+.layout{min-height:100vh;display:flex;flex-direction:column;}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--n1);border-bottom:1px solid var(--n3);display:flex;align-items:center;padding:0 var(--s4);z-index:100;box-shadow:0 1px 4px rgba(0,21,41,.08);}
+.header .logo{width:var(--sider-width);display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);flex-shrink:0;}
+.header .logo .logo-icon{width:28px;height:28px;background:linear-gradient(135deg,#1677FF,#4096FF);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-lg);font-weight:var(--fw-semibold);}
+.header .breadcrumb{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-base);color:var(--n9);}
+.header .breadcrumb .bc-item{color:var(--n7);}
+.header .breadcrumb .bc-sep{color:var(--n5);font-size:12px;}
+.header .breadcrumb .bc-current{color:var(--n10);}
+.header .header-right{margin-left:auto;display:flex;align-items:center;gap:var(--s4);}
+.header .global-search{width:240px;height:32px;background:var(--n3);border:1px solid transparent;border-radius:var(--r-base);display:flex;align-items:center;padding:0 var(--s3);gap:var(--s2);transition:all .2s;}
+.header .global-search:hover{border-color:var(--c-primary);background:var(--n1);}
+.header .global-search svg{width:14px;height:14px;color:var(--n7);}
+.header .global-search input{flex:1;border:none;background:transparent;outline:none;font-size:var(--fs-base);color:var(--n10);}
+.header .global-search .shortcut{font-size:var(--fs-sm);color:var(--n7);background:var(--n1);border:1px solid var(--n5);border-radius:4px;padding:0 6px;line-height:18px;}
+.header .icon-btn{width:36px;height:36px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:var(--n9);position:relative;transition:background .2s;}
+.header .icon-btn:hover{background:var(--n3);}
+.header .icon-btn svg{width:18px;height:18px;}
+.header .icon-btn .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;font-size:10px;line-height:16px;border-radius:8px;text-align:center;font-weight:var(--fw-medium);}
+.header .user-menu{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s2);height:40px;border-radius:var(--r-base);transition:background .2s;cursor:pointer;}
+.header .user-menu:hover{background:var(--n3);}
+.header .user-menu .avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FA541C,#FA8C16);display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-sm);font-weight:var(--fw-medium);}
+.header .user-menu .uname{font-size:var(--fs-base);color:var(--n10);}
+.header .user-menu .arrow{width:10px;height:10px;color:var(--n7);}
+
+.sider{position:fixed;top:var(--header-h);bottom:0;left:0;width:var(--sider-width);background:var(--sider-bg);overflow-y:auto;z-index:90;}
+.sider::-webkit-scrollbar{width:6px;}
+.sider::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:3px;}
+.menu-group{padding:var(--s2) 0;}
+.menu-item{display:flex;align-items:center;gap:var(--s3);height:40px;padding:0 var(--s6);color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;transition:all .2s;border-right:3px solid transparent;}
+.menu-item:hover{color:#fff;}
+.menu-item svg{width:16px;height:16px;flex-shrink:0;}
+.menu-item.active{color:#fff;background:var(--c-primary);border-right-color:var(--c-primary);}
+.menu-sub{padding-left:var(--s8);}
+.menu-sub .menu-item{font-size:var(--fs-sm);height:36px;padding-left:var(--s12);}
+.menu-sub .menu-item .sub-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);margin-left:-10px;margin-right:6px;}
+.menu-sub .menu-item.active .sub-dot{background:#fff;}
+
+.content{margin-left:var(--sider-width);margin-top:var(--header-h);padding:var(--s6);min-height:calc(100vh - var(--header-h));}
+.footer{margin-left:var(--sider-width);height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7);}
+
+.page-head{margin-bottom:var(--s4);}
+.page-head .page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--n10);margin-bottom:var(--s1);}
+.page-head .page-desc{font-size:var(--fs-sm);color:var(--n7);}
+
+.filter-bar{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4) var(--s6);margin-bottom:var(--s4);display:flex;flex-wrap:wrap;gap:var(--s3) var(--s4);align-items:flex-end;}
+.filter-item{display:flex;flex-direction:column;gap:var(--s1);}
+.filter-item label{font-size:var(--fs-sm);color:var(--n9);}
+.input,.select{height:32px;border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);background:var(--n1);min-width:160px;transition:border-color .2s;outline:none;}
+.input:focus,.select:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1);}
+.select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238C8C8C' d='M6 8L2 4h8z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer;}
+
+.btn{height:32px;padding:0 var(--s4);border-radius:var(--r-base);font-size:var(--fs-base);display:inline-flex;align-items:center;justify-content:center;gap:var(--s1);transition:all .2s;border:1px solid var(--n5);background:var(--n1);color:var(--n10);}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary);}
+.btn svg{width:14px;height:14px;}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff;}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff;}
+.btn-danger{border-color:var(--c-error);color:var(--c-error);}
+.btn-danger:hover{background:var(--c-error);color:#fff;}
+.btn-link{border:none;background:none;color:var(--c-primary);padding:0 var(--s1);height:auto;}
+.btn-link:hover{color:#4096FF;}
+.btn-link.danger{color:var(--c-error);}
+.btn-link.danger:hover{color:#ff7875;}
+.btn-link.disabled{color:var(--n7);cursor:not-allowed;pointer-events:none;}
+.btn-sm{height:24px;padding:0 var(--s2);font-size:var(--fs-sm);}
+
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--s4);margin-bottom:var(--s4);}
+.stat-card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4) var(--s6);position:relative;overflow:hidden;}
+.stat-card .stat-label{font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s2);}
+.stat-card .stat-value{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);line-height:1.2;}
+.stat-card .stat-foot{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s2);}
+.stat-card .stat-accent{position:absolute;top:0;right:0;width:4px;height:100%;}
+
+.table-wrap{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden;}
+.table-head{padding:var(--s4) var(--s6);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--n3);}
+.table-head .title{font-size:var(--fs-lg);font-weight:var(--fw-medium);}
+.table-scroll{overflow-x:auto;}
+table.data-table{width:100%;border-collapse:collapse;font-size:var(--fs-base);}
+.data-table thead th{background:var(--n2);color:var(--n9);font-weight:var(--fw-medium);text-align:left;padding:var(--s3) var(--s4);white-space:nowrap;border-bottom:1px solid var(--n3);font-size:var(--fs-sm);}
+.data-table tbody td{padding:0 var(--s4);height:48px;border-bottom:1px solid var(--n3);color:var(--n10);vertical-align:middle;}
+.data-table tbody tr{transition:background .2s;}
+.data-table tbody tr:hover{background:var(--n2);}
+.data-table tbody tr:last-child td{border-bottom:none;}
+.data-table .cell-main{font-weight:var(--fw-medium);color:var(--n10);}
+.data-table .cell-sub{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+.data-table .mono{font-family:var(--ff-mono);font-size:var(--fs-sm);color:var(--n9);}
+.data-table .amount{color:var(--c-error);font-weight:var(--fw-medium);}
+.data-table .action-cell{display:flex;gap:var(--s1);align-items:center;}
+.goods-summary{display:flex;align-items:center;gap:var(--s2);max-width:280px;}
+.goods-summary .goods-thumb{width:32px;height:32px;border-radius:var(--r-base);background:var(--n3);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--n7);font-size:var(--fs-sm);}
+.goods-summary .goods-text{flex:1;min-width:0;}
+.goods-summary .goods-name{font-size:var(--fs-base);color:var(--n10);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.goods-summary .goods-qty{font-size:var(--fs-sm);color:var(--n7);}
+
+.tag{display:inline-flex;align-items:center;gap:4px;padding:1px var(--s2);border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;font-weight:var(--fw-normal);white-space:nowrap;}
+.tag .dot{width:6px;height:6px;border-radius:50%;}
+.tag-warning{background:#FFF7E6;color:#D46B08;border:1px solid #FFD591;}
+.tag-warning .dot{background:var(--c-warning);}
+.tag-success{background:#F6FFED;color:#389E0D;border:1px solid #B7EB8F;}
+.tag-success .dot{background:var(--c-success);}
+.tag-error{background:#FFF1F0;color:#CF1322;border:1px solid #FFA39E;}
+.tag-error .dot{background:var(--c-error);}
+.tag-neutral{background:var(--n3);color:var(--n9);border:1px solid var(--n5);}
+.tag-neutral .dot{background:var(--n7);}
+.tag-primary{background:#E6F4FF;color:#0958D9;border:1px solid #91CAFF;}
+.tag-primary .dot{background:var(--c-primary);}
+.tag-purple{background:#F9F0FF;color:#531DAB;border:1px solid #D3ADF7;}
+.tag-purple .dot{background:var(--c-purple);}
+
+.pagination{padding:var(--s4) var(--s6);display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--n3);}
+.pagination .total{font-size:var(--fs-sm);color:var(--n9);}
+.pagination .pager{display:flex;align-items:center;gap:var(--s1);}
+.page-btn{min-width:32px;height:32px;border:1px solid var(--n5);border-radius:var(--r-base);background:var(--n1);display:flex;align-items:center;justify-content:center;font-size:var(--fs-base);color:var(--n10);transition:all .2s;}
+.page-btn:hover:not(:disabled){border-color:var(--c-primary);color:var(--c-primary);}
+.page-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff;}
+.page-btn:disabled{opacity:.4;cursor:not-allowed;}
+.page-size-select{height:32px;border:1px solid var(--n5);border-radius:var(--r-base);padding:0 24px 0 var(--s3);font-size:var(--fs-base);appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238C8C8C' d='M6 8L2 4h8z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;cursor:pointer;}
+
+.drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;opacity:0;visibility:hidden;transition:opacity .3s;}
+.drawer-mask.open{opacity:1;visibility:visible;}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:800px;background:var(--n1);z-index:201;transform:translateX(100%);transition:transform .3s cubic-bezier(.2,0,0,1);display:flex;flex-direction:column;box-shadow:var(--sh-modal);}
+.drawer.open{transform:translateX(0);}
+.drawer-head{height:56px;padding:0 var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.drawer-head .title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);}
+.drawer-head .close{width:32px;height:32px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:var(--n7);}
+.drawer-head .close:hover{background:var(--n3);color:var(--n10);}
+.drawer-head .close svg{width:16px;height:16px;}
+.drawer-body{flex:1;overflow-y:auto;padding:var(--s4) var(--s6);}
+.drawer-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2);flex-shrink:0;background:var(--n2);}
+
+.desc-section{margin-bottom:var(--s6);}
+.desc-section .section-title{font-size:var(--fs-base);font-weight:var(--fw-semibold);color:var(--n10);margin-bottom:var(--s3);padding-left:var(--s2);border-left:3px solid var(--c-primary);display:flex;align-items:center;justify-content:space-between;}
+.desc-section .section-title .title-tag{font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal);}
+.desc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s3) var(--s4);}
+.desc-item{display:flex;flex-direction:column;gap:4px;}
+.desc-item .label{font-size:var(--fs-sm);color:var(--n7);}
+.desc-item .value{font-size:var(--fs-base);color:var(--n10);}
+.desc-item .value.mono{font-family:var(--ff-mono);font-size:var(--fs-sm);}
+
+.order-line{display:flex;gap:var(--s3);padding:var(--s3);border:1px solid var(--n3);border-radius:var(--r-base);margin-bottom:var(--s2);align-items:center;}
+.order-line .line-thumb{width:48px;height:48px;border-radius:var(--r-base);background:var(--n3);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--n7);font-size:var(--fs-sm);}
+.order-line .line-info{flex:1;min-width:0;}
+.order-line .line-name{font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium);}
+.order-line .line-spec{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+.order-line .line-price{text-align:right;flex-shrink:0;}
+.order-line .line-amount{font-size:var(--fs-base);color:var(--c-error);font-weight:var(--fw-medium);}
+.order-line .line-qty{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+
+.timeline{padding-left:var(--s2);}
+.timeline-item{position:relative;padding:0 0 var(--s4) var(--s6);}
+.timeline-item:last-child{padding-bottom:0;}
+.timeline-item::before{content:"";position:absolute;left:5px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--c-primary);border:2px solid var(--n1);box-shadow:0 0 0 1px var(--c-primary);}
+.timeline-item.success::before{background:var(--c-success);box-shadow:0 0 0 1px var(--c-success);}
+.timeline-item.purple::before{background:var(--c-purple);box-shadow:0 0 0 1px var(--c-purple);}
+.timeline-item.muted::before{background:var(--n7);box-shadow:0 0 0 1px var(--n7);}
+.timeline-item.current::before{background:var(--c-primary);box-shadow:0 0 0 4px rgba(22,119,255,.15);}
+.timeline-item:not(:last-child)::after{content:"";position:absolute;left:8px;top:14px;bottom:0;width:2px;background:var(--n3);}
+.timeline-item .tl-time{font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s1);}
+.timeline-item .tl-title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);margin-bottom:2px;}
+.timeline-item .tl-desc{font-size:var(--fs-sm);color:var(--n9);line-height:1.6;}
+
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;opacity:0;visibility:hidden;transition:opacity .3s;display:flex;align-items:center;justify-content:center;}
+.modal-mask.open{opacity:1;visibility:visible;}
+.modal{background:var(--n1);border-radius:var(--r-card);width:520px;box-shadow:var(--sh-modal);transform:scale(.9);transition:transform .3s;max-height:90vh;display:flex;flex-direction:column;}
+.modal-mask.open .modal{transform:scale(1);}
+.modal-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between;}
+.modal-head .title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2);}
+.modal-head .danger-icon{width:22px;height:22px;color:var(--c-error);}
+.modal-body{padding:var(--s4) var(--s6);overflow-y:auto;}
+.modal-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2);}
+.form-item{margin-bottom:var(--s4);}
+.form-item label{display:block;font-size:var(--fs-base);color:var(--n10);margin-bottom:var(--s1);}
+.form-item label .required{color:var(--c-error);margin-left:2px;}
+.form-item .hint{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1);}
+.textarea{width:100%;min-height:96px;border:1px solid var(--n5);border-radius:var(--r-base);padding:var(--s2) var(--s3);font-size:var(--fs-base);color:var(--n10);resize:vertical;font-family:inherit;outline:none;transition:border-color .2s;}
+.textarea:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1);}
+.radio-group{display:flex;flex-direction:column;gap:var(--s2);}
+.radio{display:flex;align-items:flex-start;gap:var(--s2);padding:var(--s2) var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);cursor:pointer;transition:all .2s;}
+.radio:hover{border-color:var(--c-primary);}
+.radio.checked{border-color:var(--c-primary);background:#E6F4FF;}
+.radio .radio-dot{width:16px;height:16px;border:1px solid var(--n5);border-radius:50%;margin-top:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.radio.checked .radio-dot{border-color:var(--c-primary);}
+.radio.checked .radio-dot::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--c-primary);}
+.radio .radio-label{font-size:var(--fs-base);color:var(--n10);}
+.radio .radio-desc{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+
+.impact-box{background:#FFF1F0;border:1px solid #FFCCC7;border-radius:var(--r-base);padding:var(--s3) var(--s4);margin-top:var(--s3);}
+.impact-box .impact-title{font-size:var(--fs-sm);color:#CF1322;font-weight:var(--fw-medium);margin-bottom:var(--s1);display:flex;align-items:center;gap:var(--s1);}
+.impact-box .impact-title svg{width:14px;height:14px;}
+.impact-box .impact-list{font-size:var(--fs-sm);color:var(--n9);line-height:1.8;}
+.impact-box .impact-list strong{color:var(--c-error);}
+
+.toast{position:fixed;top:var(--header-h);left:50%;transform:translateX(-50%) translateY(-100%);background:var(--n10);color:#fff;padding:var(--s2) var(--s4);border-radius:var(--r-base);font-size:var(--fs-base);z-index:400;display:flex;align-items:center;gap:var(--s2);transition:transform .3s;box-shadow:var(--sh-modal);}
+.toast.show{transform:translateX(-50%) translateY(var(--s4));}
+.toast svg{width:16px;height:16px;color:var(--c-success);}
+
+.fade-in{animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div class="layout">
+  <header class="header">
+    <div class="logo"><div class="logo-icon">L</div><span>Leno 运营后台</span></div>
+    <div class="breadcrumb"><span class="bc-item">订单运营</span><span class="bc-sep">/</span><span class="bc-current">订单管理</span></div>
+    <div class="header-right">
+      <div class="global-search"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 410c0-167.7-136.3-304-304-304S104 242.3 104 410s136.3 304 304 304c52.7 0 102.2-13.4 145.5-37l131.7 131.7c12.5 12.5 32.8 12.5 45.3 0l82.1-82.1c12.5-12.5 12.5-32.8 0-45.3z"/></svg><input type="text" placeholder="搜索订单号、买家、卖家..." /><span class="shortcut">Ctrl K</span></div>
+      <button class="icon-btn" title="待办工作台"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112c-167.7 0-304 136.3-304 304v176H144c-17.7 0-32 14.3-32 32v272c0 17.7 14.3 32 32 32h576c17.7 0 32-14.3 32-32V624c0-17.7-14.3-32-32-32h-32V416c0-118.4 95.6-214 214-214 22.1 0 40-17.9 40-40v-10c0-22.1-17.9-40-40-40z"/></svg><span class="badge">5</span></button>
+      <button class="icon-btn" title="通知"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428C792 278.9 673.1 158 512 158c-161.1 0-280 120.9-280 270v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c23.1 0 42.9 14.8 47.8 36.5C456.5 945.8 481.5 962 512 962s55.5-16.2 64.2-45.5C581.1 894.8 600.9 880 624 880h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32z"/></svg><span class="badge">12</span></button>
+      <div class="user-menu"><div class="avatar">A</div><span class="uname">系统管理员</span><svg class="arrow" viewBox="0 0 1024 1024" fill="currentColor"><path d="M884 256h-752l376 512z"/></svg></div>
+    </div>
+  </header>
+
+  <aside class="sider">
+    <div class="menu-group">
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 385.6L470.4 134.4c-5.3-2.7-11.6-2.7-16.8 0L6.4 385.6c-5.6 2.8-9.2 8.5-9.2 14.8 0 6.3 3.6 12 9.2 14.8z"/></svg><span>数据看板</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32z"/></svg><span>商品运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg><span>促销运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6z"/></svg><span>卖家运营</span></div>
+      <div class="menu-item active"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H536V32c0-8.8-7.2-16-16-16h-16c-8.8 0-16 7.2-16 16v80H144c-17.7 0-32 14.3-32 32v720c0 35.3 28.7 64 64 64h736c35.3 0 64-28.7 64-64V144c0-17.7-14.3-32-32-32z"/></svg><span>订单运营</span></div>
+      <div class="menu-group menu-sub">
+        <div class="menu-item active"><span class="sub-dot"></span>订单管理</div>
+        <div class="menu-item"><span class="sub-dot"></span>售后处理</div>
+        <div class="menu-item"><span class="sub-dot"></span>评价审核</div>
+        <div class="menu-item"><span class="sub-dot"></span>物流公司管理</div>
+      </div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 100 896 448 448 0 000-896z"/></svg><span>支付运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428C792 278.9 673.1 158 512 158z"/></svg><span>通知运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6z"/></svg><span>会员运营</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M824.2 699.9z"/></svg><span>个人中心</span></div>
+      <div class="menu-item"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144z"/></svg><span>数据导出</span></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="page-head fade-in">
+      <div class="page-title">订单管理</div>
+      <div class="page-desc">全平台订单查询（按用户/卖家/状态过滤），处置异常订单（强制取消），保障订单链路合规</div>
+    </div>
+
+    <div class="filter-bar fade-in">
+      <div class="filter-item"><label>订单编号</label><input class="input" type="text" placeholder="请输入订单编号" value="NO202607261523001" /></div>
+      <div class="filter-item"><label>买家</label><input class="input" type="text" placeholder="买家 ID 或姓名" /></div>
+      <div class="filter-item"><label>卖家</label><input class="input" type="text" placeholder="卖家 ID 或店铺名" /></div>
+      <div class="filter-item"><label>订单状态</label><select class="select"><option>全部状态</option><option>待支付</option><option>已支付</option><option>已发货</option><option>已完成</option><option>已取消</option></select></div>
+      <div class="filter-item"><label>支付方式</label><select class="select"><option>全部方式</option><option>支付宝</option><option>微信支付</option><option>银联</option></select></div>
+      <div class="filter-item"><label>下单时间</label><select class="select"><option>全部时间</option><option>今日</option><option>近 7 天</option><option>近 30 天</option><option>本月</option></select></div>
+      <div class="filter-item"><button class="btn btn-primary"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 410c0-167.7-136.3-304-304-304S104 242.3 104 410s136.3 304 304 304c52.7 0 102.2-13.4 145.5-37l131.7 131.7c12.5 12.5 32.8 12.5 45.3 0l82.1-82.1c12.5-12.5 12.5-32.8 0-45.3z"/></svg>查询</button></div>
+      <div class="filter-item"><button class="btn">重置</button></div>
+    </div>
+
+    <div class="stats-row fade-in">
+      <div class="stat-card"><div class="stat-accent" style="background:var(--c-warning);"></div><div class="stat-label">待支付</div><div class="stat-value" style="color:var(--c-warning);">12</div><div class="stat-foot">需关注超时</div></div>
+      <div class="stat-card"><div class="stat-accent" style="background:var(--c-primary);"></div><div class="stat-label">已支付</div><div class="stat-value" style="color:var(--c-primary);">56</div><div class="stat-foot">待卖家发货</div></div>
+      <div class="stat-card"><div class="stat-accent" style="background:var(--c-purple);"></div><div class="stat-label">已发货</div><div class="stat-value" style="color:var(--c-purple);">128</div><div class="stat-foot">在途配送中</div></div>
+      <div class="stat-card"><div class="stat-accent" style="background:var(--c-success);"></div><div class="stat-label">已完成</div><div class="stat-value" style="color:var(--c-success);">856</div><div class="stat-foot">本月累计</div></div>
+      <div class="stat-card"><div class="stat-accent" style="background:var(--n7);"></div><div class="stat-label">已取消</div><div class="stat-value" style="color:var(--n7);">34</div><div class="stat-foot">含强制取消 6 单</div></div>
+    </div>
+
+    <div class="table-wrap fade-in">
+      <div class="table-head">
+        <div class="title">订单列表</div>
+        <div style="display:flex;gap:var(--s2);"><button class="btn"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-56.4c-12.5-12.5-32.8-12.5-45.3 0L342.4 617.9l-126-126c-12.5-12.5-32.8-12.5-45.3 0l-56.4 56.4c-12.5 12.5-12.5 32.8 0 45.3l227.4 227.4c12.5 12.5 32.8 12.5 45.3 0L909.1 254.6c12.5-12.5 12.5-32.8 0-45.3z"/></svg>导出</button><button class="btn" onclick="showToast('已刷新订单列表')"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-56.4c-12.5-12.5-32.8-12.5-45.3 0L342.4 617.9l-126-126c-12.5-12.5-32.8-12.5-45.3 0l-56.4 56.4c-12.5 12.5-12.5 32.8 0 45.3l227.4 227.4c12.5 12.5 32.8 12.5 45.3 0L909.1 254.6c12.5-12.5 12.5-32.8 0-45.3z"/></svg>刷新</button></div>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>订单编号</th>
+              <th>商品摘要</th>
+              <th>买家</th>
+              <th>卖家</th>
+              <th>金额</th>
+              <th>支付方式</th>
+              <th>状态</th>
+              <th>下单时间</th>
+              <th style="width:180px;">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="cell-main mono">NO202607261523001</div><div class="cell-sub">微信支付 · WX2607261523</div></td>
+              <td><div class="goods-summary"><div class="goods-thumb">图</div><div class="goods-text"><div class="goods-name">南极人保暖内衣套装</div><div class="goods-qty">x 2</div></div></div></td>
+              <td><div>买家_林娜</div><div class="cell-sub mono">U20240588</div></td>
+              <td><div class="cell-main">南极人官方旗舰店</div><div class="cell-sub">张伟</div></td>
+              <td><span class="amount">¥299.00</span></td>
+              <td><span class="tag tag-success"><span class="dot"></span>微信支付</span></td>
+              <td><span class="tag tag-purple"><span class="dot"></span>已发货</span></td>
+              <td><div>2026-07-26 15:23</div><div class="cell-sub">5 分钟前</div></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link danger" onclick="openCancel()">强制取消</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-main mono">NO202607261012008</div><div class="cell-sub">支付宝 · ZF2607261012</div></td>
+              <td><div class="goods-summary"><div class="goods-thumb">图</div><div class="goods-text"><div class="goods-name">小米手环 8 Pro</div><div class="goods-qty">x 1</div></div></div></td>
+              <td><div>买家_陈晨</div><div class="cell-sub mono">U20240612</div></td>
+              <td><div class="cell-main">小米官方旗舰店</div><div class="cell-sub">李雷</div></td>
+              <td><span class="amount">¥399.00</span></td>
+              <td><span class="tag tag-primary"><span class="dot"></span>支付宝</span></td>
+              <td><span class="tag tag-primary"><span class="dot"></span>已支付</span></td>
+              <td><div>2026-07-26 10:12</div><div class="cell-sub">5 小时前</div></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link danger" onclick="openCancel()">强制取消</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-main mono">NO202607252045663</div><div class="cell-sub">待支付 · 剩 23 分钟</div></td>
+              <td><div class="goods-summary"><div class="goods-thumb">图</div><div class="goods-text"><div class="goods-name">花西子同心锁口红</div><div class="goods-qty">x 1</div></div></div></td>
+              <td><div>买家_王雪</div><div class="cell-sub mono">U20240345</div></td>
+              <td><div class="cell-main">花西子美妆旗舰店</div><div class="cell-sub">王芳</div></td>
+              <td><span class="amount">¥189.00</span></td>
+              <td><span class="tag tag-neutral"><span class="dot"></span>未支付</span></td>
+              <td><span class="tag tag-warning"><span class="dot"></span>待支付</span></td>
+              <td><div>2026-07-25 20:45</div><div class="cell-sub">昨天</div></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link danger" onclick="openCancel()">强制取消</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-main mono">NO202607241830112</div><div class="cell-sub">微信支付 · WX2607241830</div></td>
+              <td><div class="goods-summary"><div class="goods-thumb">图</div><div class="goods-text"><div class="goods-name">三只松鼠每日坚果 30 包</div><div class="goods-qty">x 3</div></div></div></td>
+              <td><div>买家_赵磊</div><div class="cell-sub mono">U20240789</div></td>
+              <td><div class="cell-main">三只松鼠零食专营店</div><div class="cell-sub">陈强</div></td>
+              <td><span class="amount">¥267.00</span></td>
+              <td><span class="tag tag-success"><span class="dot"></span>微信支付</span></td>
+              <td><span class="tag tag-success"><span class="dot"></span>已完成</span></td>
+              <td><div>2026-07-24 18:30</div><div class="cell-sub">2 天前</div></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><span style="font-size:var(--fs-sm);color:var(--n7);">不可取消</span></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-main mono">NO202607240915447</div><div class="cell-sub">支付宝 · ZF2607240915</div></td>
+              <td><div class="goods-summary"><div class="goods-thumb">图</div><div class="goods-text"><div class="goods-name">华为 MatePad 11.5 平板</div><div class="goods-qty">x 1</div></div></div></td>
+              <td><div>买家_孙浩</div><div class="cell-sub mono">U20240901</div></td>
+              <td><div class="cell-main">华为授权体验店</div><div class="cell-sub">赵敏</div></td>
+              <td><span class="amount">¥3,299.00</span></td>
+              <td><span class="tag tag-primary"><span class="dot"></span>支付宝</span></td>
+              <td><span class="tag tag-purple"><span class="dot"></span>已发货</span></td>
+              <td><div>2026-07-24 09:15</div><div class="cell-sub">2 天前</div></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><button class="btn-link danger" onclick="openCancel()">强制取消</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-main mono">NO202607231622089</div><div class="cell-sub">银联 · UN2607231622</div></td>
+              <td><div class="goods-summary"><div class="goods-thumb">图</div><div class="goods-text"><div class="goods-name">百草味肉松饼 礼盒装</div><div class="goods-qty">x 2</div></div></div></td>
+              <td><div>买家_周婷</div><div class="cell-sub mono">U20241023</div></td>
+              <td><div class="cell-main">百草味食品旗舰店</div><div class="cell-sub">周涛</div></td>
+              <td><span class="amount">¥156.00</span></td>
+              <td><span class="tag tag-neutral"><span class="dot"></span>银联</span></td>
+              <td><span class="tag tag-neutral"><span class="dot"></span>已取消</span></td>
+              <td><div>2026-07-23 16:22</div><div class="cell-sub">3 天前</div></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><span style="font-size:var(--fs-sm);color:var(--n7);">已取消</span></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-main mono">NO202607221408301</div><div class="cell-sub">微信支付 · WX2607221408</div></td>
+              <td><div class="goods-summary"><div class="goods-thumb">图</div><div class="goods-text"><div class="goods-name">宜家马克杯套装 6 件</div><div class="goods-qty">x 1</div></div></div></td>
+              <td><div>买家_吴桐</div><div class="cell-sub mono">U20241156</div></td>
+              <td><div class="cell-main">宜家家居官方店</div><div class="cell-sub">刘洋</div></td>
+              <td><span class="amount">¥129.00</span></td>
+              <td><span class="tag tag-success"><span class="dot"></span>微信支付</span></td>
+              <td><span class="tag tag-success"><span class="dot"></span>已完成</span></td>
+              <td><div>2026-07-22 14:08</div><div class="cell-sub">4 天前</div></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><span style="font-size:var(--fs-sm);color:var(--n7);">不可取消</span></div></td>
+            </tr>
+            <tr>
+              <td><div class="cell-main mono">NO202607211030772</div><div class="cell-sub">支付宝 · ZF2607211030</div></td>
+              <td><div class="goods-summary"><div class="goods-thumb">图</div><div class="goods-text"><div class="goods-name">韩都衣舍碎花连衣裙</div><div class="goods-qty">x 1</div></div></div></td>
+              <td><div>买家_郑颖</div><div class="cell-sub mono">U20241288</div></td>
+              <td><div class="cell-main">韩都衣舍女装店</div><div class="cell-sub">孙丽</div></td>
+              <td><span class="amount">¥259.00</span></td>
+              <td><span class="tag tag-primary"><span class="dot"></span>支付宝</span></td>
+              <td><span class="tag tag-success"><span class="dot"></span>已完成</span></td>
+              <td><div>2026-07-21 10:30</div><div class="cell-sub">5 天前</div></td>
+              <td><div class="action-cell"><button class="btn-link" onclick="openDrawer()">详情</button><span style="font-size:var(--fs-sm);color:var(--n7);">不可取消</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div class="total">共 1,086 条记录，第 1 / 55 页</div>
+        <div class="pager">
+          <button class="page-btn" disabled><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M724 218.3V141.9c0-6.7-7.7-10.4-12.9-6.5L206.5 516.9c-7.2 5.4-7.2 16 0 21.3l504.6 381.4c5.2 3.9 12.9.2 12.9-6.5v-76.4c0-4.9-2.3-9.6-6.1-12.6l-360-272.1 360-272.1c3.8-3 6.1-7.7 6.1-12.6z"/></svg></button>
+          <button class="page-btn active">1</button><button class="page-btn">2</button><button class="page-btn">3</button><button class="page-btn">4</button><button class="page-btn">5</button><button class="page-btn">...</button><button class="page-btn">55</button>
+          <button class="page-btn"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M765.5 516.9L260.9 135.4c-5.2-3.9-12.9-.2-12.9 6.5v76.4c0 4.9 2.3 9.6 6.1 12.6l360 272.1-360 272.1c-3.8 3-6.1 7.7-6.1 12.6v76.4c0 6.7 7.7 10.4 12.9 6.5l504.6-381.4c7.2-5.4 7.2-16 0-21.3z"/></svg></button>
+          <select class="page-size-select"><option>20 条/页</option><option>50 条/页</option><option>100 条/页</option></select>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Leno 电商平台 · 运营管理后台 © 2026 ｜ 当前角色：系统管理员（Admin）</footer>
+</div>
+
+<!-- Detail Drawer -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="title">订单详情 · NO202607261523001</div>
+    <button class="close" onclick="closeDrawer()"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-262.5c12.5-12.5 12.5-32.8 0-45.3l-22.6-22.6c-12.5-12.5-32.8-12.5-45.3 0L512 444.2 249.5 181.6c-12.5-12.5-32.8-12.5-45.3 0l-22.6 22.6c-12.5 12.5-12.5 32.8 0 45.3L444.2 512 181.6 774.5c-12.5 12.5-12.5 32.8 0 45.3l22.6 22.6c12.5 12.5 32.8 12.5 45.3 0L512 579.8l262.5 262.5c12.5 12.5 32.8 12.5 45.3 0l22.6-22.6c12.5-12.5 12.5-32.8 0-45.3L563.8 512z"/></svg></button>
+  </div>
+  <div class="drawer-body">
+    <div class="desc-section">
+      <div class="section-title">订单基础信息<span class="title-tag"><span class="tag tag-purple"><span class="dot"></span>已发货</span></span></div>
+      <div class="desc-grid">
+        <div class="desc-item"><span class="label">订单编号</span><span class="value mono">NO202607261523001</span></div>
+        <div class="desc-item"><span class="label">订单标识</span><span class="value mono">ORD-7f3a9c2b-1523</span></div>
+        <div class="desc-item"><span class="label">下单时间</span><span class="value">2026-07-26 15:23:01</span></div>
+        <div class="desc-item"><span class="label">支付时间</span><span class="value">2026-07-26 15:23:48</span></div>
+        <div class="desc-item"><span class="label">订单总额</span><span class="value" style="color:var(--c-error);font-weight:var(--fw-semibold);">¥299.00</span></div>
+        <div class="desc-item"><span class="label">实付金额</span><span class="value" style="color:var(--c-error);font-weight:var(--fw-semibold);">¥299.00</span></div>
+      </div>
+    </div>
+
+    <div class="desc-section">
+      <div class="section-title">订单商品</div>
+      <div class="order-line">
+        <div class="line-thumb">图</div>
+        <div class="line-info"><div class="line-name">南极人保暖内衣套装（男款深灰 XL）</div><div class="line-spec">规格：深灰 / XL ｜ SKU: NJR-NW001-XL</div></div>
+        <div class="line-price"><div class="line-amount">¥299.00</div><div class="line-qty">x 2</div></div>
+      </div>
+      <div class="desc-grid">
+        <div class="desc-item"><span class="label">商品小计</span><span class="value">¥299.00 × 2 = ¥598.00</span></div>
+        <div class="desc-item"><span class="label">运费</span><span class="value">¥0.00（满 99 包邮）</span></div>
+        <div class="desc-item"><span class="label">优惠券抵扣</span><span class="value" style="color:var(--c-success);">-¥100.00</span></div>
+        <div class="desc-item"><span class="label">实付</span><span class="value" style="color:var(--c-error);font-weight:var(--fw-semibold);">¥299.00</span></div>
+      </div>
+    </div>
+
+    <div class="desc-section">
+      <div class="section-title">收货地址</div>
+      <div class="desc-grid">
+        <div class="desc-item"><span class="label">收货人</span><span class="value">林娜</span></div>
+        <div class="desc-item"><span class="label">联系电话</span><span class="value mono">138-5500-1234</span></div>
+        <div class="desc-item" style="grid-column:span 2;"><span class="label">收货地址</span><span class="value">广东省深圳市南山区科技园路 88 号 创维大厦 12 楼 1203 室</span></div>
+      </div>
+    </div>
+
+    <div class="desc-section">
+      <div class="section-title">支付信息</div>
+      <div class="desc-grid">
+        <div class="desc-item"><span class="label">支付方式</span><span class="value"><span class="tag tag-success"><span class="dot"></span>微信支付</span></span></div>
+        <div class="desc-item"><span class="label">支付单号</span><span class="value mono">WX26072615234801</span></div>
+        <div class="desc-item"><span class="label">支付时间</span><span class="value">2026-07-26 15:23:48</span></div>
+        <div class="desc-item"><span class="label">支付渠道</span><span class="value">微信支付（JSAPI）</span></div>
+      </div>
+    </div>
+
+    <div class="desc-section">
+      <div class="section-title">物流轨迹<span class="title-tag">顺丰速运 · SF1234567890</span></div>
+      <div class="timeline">
+        <div class="timeline-item current">
+          <div class="tl-time">2026-07-26 18:45</div>
+          <div class="tl-title">运输中</div>
+          <div class="tl-desc">快件已到达【深圳南山集散中心】，正发往【深圳科技园营业点】，预计今日送达。</div>
+        </div>
+        <div class="timeline-item success">
+          <div class="tl-time">2026-07-26 16:20</div>
+          <div class="tl-title">已揽收</div>
+          <div class="tl-desc">顺丰速运已揽收，运单号 SF1234567890，卖家张伟已发货。</div>
+        </div>
+        <div class="timeline-item purple">
+          <div class="tl-time">2026-07-26 15:24</div>
+          <div class="tl-title">卖家已发货</div>
+          <div class="tl-desc">南极人官方旗舰店 已发货，物流公司：顺丰速运。</div>
+        </div>
+        <div class="timeline-item success">
+          <div class="tl-time">2026-07-26 15:23:48</div>
+          <div class="tl-title">买家已支付</div>
+          <div class="tl-desc">微信支付成功，支付金额 ¥299.00，支付单号 WX26072615234801。</div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-time">2026-07-26 15:23:01</div>
+          <div class="tl-title">订单创建</div>
+          <div class="tl-desc">买家林娜下单，订单进入待支付状态，预占库存已锁定。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="desc-section">
+      <div class="section-title">状态变更历史</div>
+      <div class="timeline">
+        <div class="timeline-item purple"><div class="tl-time">2026-07-26 15:24</div><div class="tl-title">Shipped（已发货）</div><div class="tl-desc">系统自动流转：卖家发货后状态变更为已发货。</div></div>
+        <div class="timeline-item primary"><div class="tl-time">2026-07-26 15:23:48</div><div class="tl-title">Paid（已支付）</div><div class="tl-desc">系统自动流转：支付成功后状态变更，真实库存已扣减。</div></div>
+        <div class="timeline-item warning"><div class="tl-time">2026-07-26 15:23:01</div><div class="tl-title">PendingPayment（待支付）</div><div class="tl-desc">订单创建，预占库存已锁定，等待买家支付。</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-danger" onclick="openCancel()"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M864 170h-60c-4.4 0-7.9 3.5-8 7.8L789 286H235l-7-108.2c-.1-4.3-3.6-7.8-8-7.8h-60c-4.4 0-8 3.6-8 8v4l48 744c.2 33.2 27.4 60 60.6 60h392.8c33.2 0 60.4-26.8 60.6-60l48-744v-4c0-4.4-3.6-8-8-8z"/></svg>强制取消订单</button>
+  </div>
+</div>
+
+<!-- Force Cancel Modal -->
+<div class="modal-mask" id="cancelMask">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="title"><svg class="danger-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M864 170h-60c-4.4 0-7.9 3.5-8 7.8L789 286H235l-7-108.2c-.1-4.3-3.6-7.8-8-7.8h-60c-4.4 0-8 3.6-8 8v4l48 744c.2 33.2 27.4 60 60.6 60h392.8c33.2 0 60.4-26.8 60.6-60l48-744v-4c0-4.4-3.6-8-8-8zM760.6 910H263.4l-40-630h577.2l-40 630z"/><path d="M512 712c97.2 0 176-78.8 176-176s-78.8-176-176-176-176 78.8-176 176 78.8 176 176 176zm0-288c61.9 0 112 50.1 112 112s-50.1 112-112 112-112-50.1-112-112 50.1-112 112-112z"/></svg>确认强制取消订单</div>
+      <button class="close" onclick="closeCancel()" style="width:32px;height:32px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:var(--n7);"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-262.5c12.5-12.5 12.5-32.8 0-45.3l-22.6-22.6c-12.5-12.5-32.8-12.5-45.3 0L512 444.2 249.5 181.6c-12.5-12.5-32.8-12.5-45.3 0l-22.6 22.6c-12.5 12.5-12.5 32.8 0 45.3L444.2 512 181.6 774.5c-12.5 12.5-12.5 32.8 0 45.3l22.6 22.6c12.5 12.5 32.8 12.5 45.3 0L512 579.8l262.5 262.5c12.5 12.5 32.8 12.5 45.3 0l22.6-22.6c12.5-12.5 12.5-32.8 0-45.3L563.8 512z"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:var(--fs-base);color:var(--n10);line-height:1.6;margin-bottom:var(--s3);">确认强制取消订单「<strong style="color:var(--c-error);" class="mono">NO202607261523001</strong>」？此操作需 <strong>Admin 权限</strong>，不可撤销。</p>
+      <div class="desc-grid" style="margin-bottom:var(--s4);background:var(--n2);padding:var(--s3);border-radius:var(--r-base);">
+        <div class="desc-item"><span class="label">订单状态</span><span class="value"><span class="tag tag-purple"><span class="dot"></span>已发货</span></span></div>
+        <div class="desc-item"><span class="label">实付金额</span><span class="value" style="color:var(--c-error);font-weight:var(--fw-semibold);">¥299.00</span></div>
+        <div class="desc-item"><span class="label">买家</span><span class="value">林娜</span></div>
+        <div class="desc-item"><span class="label">卖家</span><span class="value">南极人官方旗舰店</span></div>
+      </div>
+      <div class="form-item">
+        <label>取消原因分类<span class="required">*</span></label>
+        <div class="radio-group">
+          <div class="radio checked"><span class="radio-dot"></span><div><div class="radio-label">买家投诉/纠纷</div><div class="radio-desc">买家发起投诉，运营介入判定取消</div></div></div>
+          <div class="radio"><span class="radio-dot"></span><div><div class="radio-label">卖家违规</div><div class="radio-desc">卖家违规经营，强制取消关联订单</div></div></div>
+          <div class="radio"><span class="radio-dot"></span><div><div class="radio-label">商品缺货/无法履约</div><div class="radio-desc">商品实际无库存或物流受阻</div></div></div>
+          <div class="radio"><span class="radio-dot"></span><div><div class="radio-label">其他</div><div class="radio-desc">其他需补充说明的原因</div></div></div>
+        </div>
+      </div>
+      <div class="form-item">
+        <label>详细原因<span class="required">*</span></label>
+        <textarea class="textarea" placeholder="请填写强制取消的详细原因">买家投诉卖家虚假宣传商品材质，经核实属实，运营介入强制取消订单并启动退款流程。</textarea>
+        <div class="hint">取消原因将记录至审计日志并通知买卖双方，最多 200 字</div>
+      </div>
+      <div class="impact-box">
+        <div class="impact-title"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 432a48.1 48.1 0 010-96 48.1 48.1 0 010 96z"/></svg>强制取消影响（不可逆）</div>
+        <div class="impact-list">
+          · 订单状态变更为「已取消」，<strong>不可恢复</strong><br>
+          · 已支付订单触发<strong>自动退款流程</strong>：¥299.00 原路退回买家微信支付账户<br>
+          · 触发<strong>库存回写</strong>：已扣减的真实库存 2 件回写至卖家库存（SKU NJR-NW001-XL）<br>
+          · 已发货订单需协调物流<strong>拦截返货</strong>，顺丰运单 SF1234567890<br>
+          · 操作记录写入审计日志，通知买卖双方
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeCancel()">取消</button>
+      <button class="btn btn-danger" onclick="confirmCancel()">确认强制取消（不可逆）</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.4 724.9 207 489.5c-6.1-7.7-15.3-12.2-25.1-12.2H112c-12.6 0-20 14.4-12.3 24.5l274.8 337.8c12.5 15.4 35.5 15.4 48 0L924.3 214.5c7.7-10.1.3-24.5-12.3-24.5z"/></svg><span id="toastMsg">操作成功</span></div>
+
+<script>
+function openDrawer(){document.getElementById('drawerMask').classList.add('open');document.getElementById('drawer').classList.add('open');}
+function closeDrawer(){document.getElementById('drawerMask').classList.remove('open');document.getElementById('drawer').classList.remove('open');}
+function openCancel(){closeDrawer();document.getElementById('cancelMask').classList.add('open');}
+function closeCancel(){document.getElementById('cancelMask').classList.remove('open');}
+function confirmCancel(){closeCancel();showToast('订单已强制取消，退款与库存回写已触发');}
+function showToast(msg){var t=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2000);}
+document.querySelectorAll('.radio').forEach(function(r){r.addEventListener('click',function(){this.parentElement.querySelectorAll('.radio').forEach(function(x){x.classList.remove('checked');});this.classList.add('checked');});});
+</script>
+</body>
+</html>
