@@ -45,9 +45,9 @@
 | 方法 | 端点 | 用途 | 鉴权 |
 |-|-|-|-|
 | GET | `/api/orders/{id}` | 查询订单详情（含应付金额与截止时间） | Buyer |
-| POST | `/api/payments?orderId={id}` | 发起支付（发布支付请求集成事件） | Buyer |
+| POST | `/api/payments` | 发起支付（body: `{ orderId, channel: "wechat|alipay" }`，发布支付请求集成事件） | Buyer |
 
-- **请求参数**：`orderId` query 参数；`PayOrderDto`（paymentMethod: Alipay/WeChat）。
+- **请求参数**：`PayOrderDto`（orderId、channel: "wechat"|"alipay"）作为 body。
 - **响应字段**：`OrderDto` 含 `id`、`orderNo`、`status`、`totalAmount`、`expireAt`；发起支付返回 `ApiResponse`（无 data，支付参数经支付集成域异步返回，前端轮询订单状态或跳转第三方）。
 - **数据加载策略**：进入页面调用 `GET /api/orders/{id}` 获取金额与截止时间；倒计时基于 `expireAt` 客户端计算。
 - **缓存策略**：不缓存，每次进入重新拉取订单状态。
@@ -56,7 +56,7 @@
 - **主流程**：
   1. 进入页面读取 `orderId` → `GET /api/orders/{id}` → 渲染订单摘要与倒计时。
   2. 选择支付方式 → `van-radio-group` change → 更新 `paymentMethod`。
-  3. 点击「确认支付」→ 按钮 disabled + loading → `POST /api/payments?orderId={id}` → 跳转第三方支付页面或调起原生支付。
+  3. 点击「确认支付」→ 按钮 disabled + loading → `POST /api/payments`（body: `{ orderId, channel }`）→ 跳转第三方支付页面或调起原生支付。
   4. 支付完成后第三方回调通知服务端，前端轮询订单状态或跳 `/payment/result/:orderId`。
   5. 倒计时结束 → 标记「订单已超时」+ 「返回订单」CTA。
 - **分支流程**：

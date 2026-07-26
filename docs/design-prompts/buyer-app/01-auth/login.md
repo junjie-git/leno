@@ -39,19 +39,19 @@
 
 | 方法 | 端点 | 用途 | 鉴权 |
 |-|-|-|-|
-| POST | `/api/auth/login` | 账号密码登录 | 匿名 |
-| POST | `/api/auth/refresh-token` | 刷新令牌 | 匿名 |
+| POST | `/api/account/login` | 账号密码登录 | 匿名 |
+| POST | `/api/auth/refresh` | 刷新令牌 | 匿名 |
 | GET | `/api/auth/oauth/{provider}/login` | 获取第三方授权 URL | 匿名 |
 
-- **请求参数**：`LoginDto` 含 `userName`/`email`/`phone`（任一）、`password`；`refresh-token` 端点需 `refreshToken`。
+- **请求参数**：`LoginDto` 含 `userName`/`email`/`phone`（任一）、`password`；`refresh` 端点需 `refreshToken`。
 - **响应字段**：`TokenDto` 含 `accessToken`、`refreshToken`、`expiresIn`、`tokenType`；accessToken 写入 Pinia `useUserStore` 与 localStorage，refreshToken 写入 localStorage。
 - **数据加载策略**：进入页面无数据加载；提交时调用登录端点。
-- **缓存策略**：登录成功后 token 持久化至 localStorage（key: `leno_token`、`leno_refresh_token`），启动时读取并校验过期时间，过期则静默调用 refresh-token 续期。
+- **缓存策略**：登录成功后 token 持久化至 localStorage（key: `leno_token`、`leno_refresh_token`），启动时读取并校验过期时间，过期则静默调用 refresh 续期。
 
 ## 4. 交互流程
 - **主流程**：
   1. 用户输入用户名/邮箱/手机号 → 失焦校验非空 → 输入密码 → 失焦校验长度 6-32。
-  2. 点击「登录」→ 按钮 loading + disabled → 调用 `POST /api/auth/login` → 成功存 token → `showToast('登录成功')` → 跳转 `redirect` 或 `/`。
+  2. 点击「登录」→ 按钮 loading + disabled → 调用 `POST /api/account/login` → 成功存 token → `showToast('登录成功')` → 跳转 `redirect` 或 `/`。
   3. 失败 → `showToast(err.message)` 显示 3s → 按钮恢复 → 密码框清空。
 - **分支流程**：
   - 后端返回需双因子：跳 `/two-factor` 携带临时凭证。

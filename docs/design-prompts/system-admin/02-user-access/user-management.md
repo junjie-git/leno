@@ -37,11 +37,10 @@
 |-|-|-|-|
 | GET | `/api/admin/users` | 分页查询用户列表 | Admin,Operator |
 | GET | `/api/admin/users/{id}` | 查询用户详情 | Admin,Operator |
-| POST | `/api/admin/users/{id}/roles` | 为用户分配角色（幂等） | Admin,Operator |
-| POST | `/api/admin/users/{id}/suspend` | 锁定用户账户 | Admin,Operator |
-| POST | `/api/admin/users/{id}/resume` | 恢复用户账户 | Admin,Operator |
+| PUT | `/api/admin/users/{id}/roles` | 为用户分配角色（幂等） | Admin,Operator |
+| PUT | `/api/admin/users/{id}/status` | 锁定/恢复用户账户（body: `{ status: "suspended" }` / `{ status: "active" }`） | Admin,Operator |
 
-- **请求参数**：列表 `AdminUserQueryDto`（keyword/roles/statuses/fromTime/toTime/page/pageSize）；锁定 `SuspendUserDto`（reason）。
+- **请求参数**：列表 `AdminUserQueryDto`（keyword/roles/statuses/fromTime/toTime/page/pageSize）；状态变更 body `{ status: "suspended" | "active", reason? }`。
 - **响应字段**：`AdminUserDto` 含 `Id`、`Username`、`Email`、`Phone`、`Roles`、`Status`、`CreatedAt`、`LastLoginAt`、`LastLoginIp`。
 - **数据加载策略**：进入页面加载首页；分页/筛选重新请求；详情按需点击加载。
 - **缓存策略**：列表不缓存（数据敏感且高频变化）；详情缓存 1 分钟。
@@ -51,8 +50,8 @@
   1. 进入页面 → GET `/api/admin/users?page=1&pageSize=20` → 表格渲染。
   2. 输入搜索 + 筛选 → 300ms 防抖后重新请求。
   3. 点击「查看」 → GET `/api/admin/users/{id}` → 抽屉展示。
-  4. 点击「分配角色」 → 弹窗穿梭框 → 提交 POST `/api/admin/users/{id}/roles` → `message.success('角色已分配')`。
-  5. 点击「锁定」 → `ConfirmDialog`（见 shared/components.md §10）→ POST `/api/admin/users/{id}/suspend` → 表格状态更新。
+  4. 点击「分配角色」 → 弹窗穿梭框 → 提交 PUT `/api/admin/users/{id}/roles` → `message.success('角色已分配')`。
+  5. 点击「锁定」 → `ConfirmDialog`（见 shared/components.md §10）→ PUT `/api/admin/users/{id}/status`（body: `{ status: "suspended" }`）→ 表格状态更新。
 - **分支流程**：
   - 用户已是 Suspended 状态：「锁定」按钮 disabled，显示「恢复」按钮。
   - 分配角色幂等冲突：后端返回成功但提示「角色无变化」。

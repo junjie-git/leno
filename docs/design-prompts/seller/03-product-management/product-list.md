@@ -39,10 +39,9 @@
 
 | 方法 | 端点 | 用途 | 鉴权 |
 |-|-|-|-|
-| GET | `/api/products` | 分页查询本店商品（后端按 ShopId 过滤） | Seller |
-| POST | `/api/products/{id}/submit` | 提交审核 | Seller |
-| POST | `/api/products/{id}/take-down` | 下架商品 | Seller |
-| POST | `/api/products/{id}/republish` | 重新上架（进入待审核） | Seller |
+| GET | `/api/seller/products` | 分页查询本店商品（后端按 ShopId 过滤） | Seller |
+| POST | `/api/seller/products/{id}/submit-review` | 提交审核 | Seller |
+| POST | `/api/seller/products/{id}/take-down` | 下架商品 | Seller |
 
 - **请求参数**：`ProductQueryDto` 含 `keyword`、`status`、`categoryId`、`page`、`pageSize`。后端 `ApplyShopScope` 自动注入当前卖家 ShopId，仅返回本店商品。
 - **响应字段**：`PageResult<ProductDto>` 含 `items[]`（每个商品含 `id`、`title`、`mainImageUrl`、`status`、`skus[]`（含 `price`、`stockQty`）、`createdAt`、`updatedAt`）。前端聚合 SKU 价格得出 `priceRange`（最小-最大），聚合 `stockQty` 得出库存合计。
@@ -51,14 +50,14 @@
 
 ## 4. 交互流程
 - **主流程**：
-  1. 卖家进入页面 → 调用 `GET /api/products?page=1&pageSize=20` → 渲染表格。
+  1. 卖家进入页面 → 调用 `GET /api/seller/products?page=1&pageSize=20` → 渲染表格。
   2. 卖家输入关键词 → 防抖 300ms 后带 `keyword` 重新查询。
   3. 卖家选择状态/分类筛选 → 重新查询。
   4. 卖家点击「新增商品」→ 跳转 `/products/new`。
   5. 卖家点击「编辑」→ 跳转 `/products/:id/edit`。
-  6. 卖家点击「提交审核」（草稿/已驳回态）→ `Modal.confirm` 确认 → 调用 `POST /api/products/{id}/submit` → `message.success('已提交审核')` → 刷新当前行。
-  7. 卖家点击「下架」（已上架态）→ `Modal.confirm` 确认（危险操作）→ 输入下架原因 → 调用 `POST /api/products/{id}/take-down` → `message.success('已下架')` → 刷新。
-  8. 卖家点击「重新上架」（已下架态）→ 调用 `POST /api/products/{id}/republish` → `message.success('已重新提交审核')` → 刷新。
+  6. 卖家点击「提交审核」（草稿/已驳回态）→ `Modal.confirm` 确认 → 调用 `POST /api/seller/products/{id}/submit-review` → `message.success('已提交审核')` → 刷新当前行。
+  7. 卖家点击「下架」（已上架态）→ `Modal.confirm` 确认（危险操作）→ 输入下架原因 → 调用 `POST /api/seller/products/{id}/take-down` → `message.success('已下架')` → 刷新。
+  8. 卖家点击「重新上架」（已下架态）→ 调用 `POST /api/seller/products/{id}/submit-review` → `message.success('已重新提交审核')` → 刷新。
 - **分支流程**：
   - 草稿/待审核/已驳回态：操作列仅显示「编辑」，无下架/上架按钮。
   - 已上架态：操作列显示「编辑」「下架」。
