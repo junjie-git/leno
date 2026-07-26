@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>秒杀活动 - Leno 运营管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { font-family:var(--ff-app); color:var(--n10); background:var(--n3); font-size:var(--fs-base); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+body { min-height:100vh; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+button { font-family:inherit; cursor:pointer; }
+svg { display:inline-block; vertical-align:middle; }
+
+.app { display:flex; flex-direction:column; min-height:100vh; }
+.app-header { height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5); display:flex; align-items:center; padding:0 24px 0 0; position:sticky; top:0; z-index:200; box-shadow:0 1px 4px rgba(0,21,41,.08); }
+.app-header .logo { width:var(--sider-width); height:100%; display:flex; align-items:center; gap:10px; padding:0 20px; flex-shrink:0; }
+.app-header .logo-mark { width:32px; height:32px; border-radius:6px; background:linear-gradient(135deg,#1677FF 0%,#4096FF 100%); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:var(--fw-semibold); font-size:18px; box-shadow:0 2px 8px rgba(22,119,255,.35); }
+.app-header .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); white-space:nowrap; }
+.app-header .logo-text small { display:block; font-size:var(--fs-sm); font-weight:var(--fw-normal); color:var(--n7); margin-top:-2px; }
+.app-header .header-body { flex:1; display:flex; align-items:center; justify-content:space-between; padding-left:24px; }
+.collapse-btn { width:40px; height:var(--header-h); display:flex; align-items:center; justify-content:center; color:var(--n9); background:none; border:none; font-size:18px; cursor:pointer; }
+.collapse-btn:hover { color:var(--c-primary); background:var(--n3); }
+.breadcrumb { display:flex; align-items:center; gap:6px; font-size:var(--fs-base); color:var(--n9); }
+.breadcrumb a { color:var(--n9); }
+.breadcrumb a:hover { color:var(--c-primary); }
+.breadcrumb .sep { color:var(--n5); font-size:12px; }
+.breadcrumb .current { color:var(--n10); }
+.header-actions { display:flex; align-items:center; gap:8px; }
+.global-search { width:220px; height:32px; background:var(--n3); border:1px solid transparent; border-radius:var(--r-base); display:flex; align-items:center; padding:0 12px; gap:8px; transition:all .2s; }
+.global-search:hover { border-color:var(--c-primary); background:var(--n1); }
+.global-search input { flex:1; border:none; outline:none; background:transparent; font-size:var(--fs-sm); color:var(--n10); }
+.global-search input::placeholder { color:var(--n7); }
+.global-search .kbd { font-size:11px; color:var(--n7); background:var(--n1); border:1px solid var(--n5); border-radius:4px; padding:0 5px; line-height:18px; }
+.icon-btn { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--n9); position:relative; background:none; border:none; font-size:18px; }
+.icon-btn:hover { background:var(--n3); color:var(--c-primary); }
+.icon-btn .badge-dot { position:absolute; top:6px; right:6px; min-width:16px; height:16px; padding:0 4px; background:var(--c-error); color:#fff; border-radius:8px; font-size:10px; line-height:16px; font-weight:var(--fw-medium); border:2px solid var(--n1); }
+.avatar-wrap { display:flex; align-items:center; gap:8px; padding:4px 8px 4px 4px; border-radius:var(--r-base); cursor:pointer; }
+.avatar-wrap:hover { background:var(--n3); }
+.avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#722ED1,#9254DE); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:var(--fw-medium); }
+.avatar-name { font-size:var(--fs-base); color:var(--n10); }
+.avatar-role { font-size:var(--fs-sm); color:var(--n7); }
+.app-body { flex:1; display:flex; }
+.app-sider { width:var(--sider-width); background:var(--sider-bg); flex-shrink:0; display:flex; flex-direction:column; position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto; }
+.menu { list-style:none; padding:8px 0; flex:1; }
+.menu-item { position:relative; }
+.menu-link { display:flex; align-items:center; gap:10px; height:40px; padding:0 16px 0 24px; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .15s; position:relative; }
+.menu-link:hover { color:#fff; }
+.menu-link .m-icon { width:16px; height:16px; flex-shrink:0; }
+.menu-link .m-arrow { margin-left:auto; font-size:10px; transition:transform .2s; }
+.menu-item.open > .menu-link .m-arrow { transform:rotate(90deg); }
+.menu-item.active > .menu-link { color:#fff; background:var(--c-primary); }
+.menu-item.active > .menu-link::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#fff; }
+.menu-sub { list-style:none; max-height:0; overflow:hidden; transition:max-height .25s ease; }
+.menu-item.open > .menu-sub { max-height:500px; }
+.menu-sub .menu-link { height:36px; padding-left:48px; font-size:var(--fs-sm); }
+.menu-sub .menu-link.active { color:#fff; background:rgba(22,119,255,.15); }
+.menu-sub .menu-link.active::before { display:none; }
+.app-content { flex:1; display:flex; flex-direction:column; min-width:0; }
+.page-scroll { flex:1; overflow-y:auto; padding:var(--s6); }
+.app-footer { height:32px; background:var(--n1); border-top:1px solid var(--n3); display:flex; align-items:center; justify-content:center; font-size:var(--fs-sm); color:var(--n7); padding:0 24px; }
+.page-header { margin-bottom:var(--s4); display:flex; align-items:flex-start; justify-content:space-between; }
+.page-header h1 { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); }
+.page-header .sub { margin-top:4px; font-size:var(--fs-sm); color:var(--n7); }
+.session-bar { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; padding:var(--s4) var(--s6); margin-bottom:var(--s4); display:flex; align-items:center; gap:var(--s6); }
+.session-tabs { display:flex; gap:var(--s2); }
+.session-tab { display:flex; flex-direction:column; align-items:center; padding:10px 20px; border:1px solid var(--n5); border-radius:var(--r-base); cursor:pointer; transition:all .15s; min-width:96px; background:var(--n1); }
+.session-tab:hover { border-color:var(--c-primary); }
+.session-tab.active { border-color:var(--c-primary); background:linear-gradient(135deg,#1677FF 0%,#4096FF 100%); color:#fff; box-shadow:0 4px 12px rgba(22,119,255,.3); }
+.session-tab .st-time { font-size:var(--fs-lg); font-weight:var(--fw-semibold); font-family:var(--ff-mono); }
+.session-tab .st-label { font-size:var(--fs-sm); margin-top:2px; opacity:.8; }
+.session-tab.ended { opacity:.55; }
+.session-tab.ended .st-label { color:var(--n7); }
+.session-tab.active.ended { opacity:1; }
+.countdown-box { margin-left:auto; display:flex; align-items:center; gap:var(--s3); padding:8px 16px; background:#FFF7E6; border:1px solid #FFD591; border-radius:var(--r-base); }
+.countdown-box.urgent { background:#FFF1F0; border-color:#FFA39E; }
+.countdown-box .cd-icon { width:18px; height:18px; color:var(--c-warning); flex-shrink:0; }
+.countdown-box.urgent .cd-icon { color:var(--c-error); }
+.countdown-box .cd-label { font-size:var(--fs-sm); color:var(--n9); }
+.countdown-box .cd-time { font-family:var(--ff-mono); font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--c-warning); display:flex; align-items:center; gap:2px; }
+.countdown-box.urgent .cd-time { color:var(--c-error); }
+.countdown-box .cd-num { background:var(--n10); color:#fff; padding:2px 6px; border-radius:3px; min-width:24px; text-align:center; }
+.countdown-box .cd-sep { color:var(--n7); }
+.stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--s4); margin-bottom:var(--s4); }
+.stat-card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; padding:var(--s4) var(--s6); display:flex; align-items:center; gap:var(--s4); }
+.stat-card .stat-icon { width:48px; height:48px; border-radius:var(--r-card); display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0; }
+.stat-icon.warning { background:#FFF7E6; color:var(--c-warning); }
+.stat-icon.success { background:#F6FFED; color:var(--c-success); }
+.stat-icon.neutral { background:var(--n3); color:var(--n7); }
+.stat-icon.primary { background:#E6F4FF; color:var(--c-primary); }
+.stat-icon.error { background:#FFF1F0; color:var(--c-error); }
+.stat-card .stat-label { font-size:var(--fs-sm); color:var(--n7); }
+.stat-card .stat-value { font-size:var(--fs-2xl); font-weight:var(--fw-semibold); color:var(--n10); line-height:1.2; margin-top:4px; }
+.stat-card .stat-trend { font-size:var(--fs-sm); color:var(--n7); margin-top:4px; }
+.card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; }
+.card + .card { margin-top:var(--s4); }
+.filter-bar { padding:var(--s4) var(--s4) var(--s2); }
+.filter-row { display:flex; flex-wrap:wrap; gap:var(--s3) var(--s4); align-items:flex-start; }
+.filter-item { display:flex; flex-direction:column; gap:6px; }
+.filter-item label { font-size:var(--fs-sm); color:var(--n9); }
+.form-control { height:32px; min-width:160px; padding:0 11px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:flex; align-items:center; gap:6px; transition:border-color .2s,box-shadow .2s; }
+.form-control:hover { border-color:var(--c-primary); }
+.form-control:focus-within { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.form-control input { flex:1; border:none; outline:none; background:transparent; font-size:var(--fs-base); color:var(--n10); min-width:0; }
+.form-control input::placeholder { color:var(--n7); }
+.form-control .ctrl-suffix { color:var(--n7); font-size:12px; flex-shrink:0; }
+.form-control.select { cursor:pointer; position:relative; min-width:160px; }
+.form-control.select::after { content:''; width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:5px solid var(--n7); margin-left:auto; flex-shrink:0; }
+.btn { height:32px; padding:0 15px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; gap:6px; transition:all .15s; white-space:nowrap; }
+.btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.btn .b-icon { width:14px; height:14px; }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-danger { background:var(--n1); border-color:var(--c-error); color:var(--c-error); }
+.btn-danger:hover { background:var(--c-error); color:#fff; }
+.btn-danger.solid { background:var(--c-error); color:#fff; }
+.btn-link { background:none; border:none; color:var(--c-primary); padding:0 4px; height:auto; }
+.btn-link:hover { color:#4096FF; }
+.btn-link.danger { color:var(--c-error); }
+.btn-link.danger:hover { color:#FF7875; }
+.btn-link[disabled] { color:var(--n7); cursor:not-allowed; pointer-events:none; }
+.btn-sm { height:24px; padding:0 7px; font-size:var(--fs-sm); }
+.btn[disabled] { color:var(--n7); background:var(--n3); border-color:var(--n5); cursor:not-allowed; }
+.toolbar { display:flex; align-items:center; justify-content:space-between; padding:var(--s3) var(--s4); border-top:1px solid var(--n3); }
+.toolbar-left, .toolbar-right { display:flex; align-items:center; gap:var(--s2); }
+.toolbar-hint { font-size:var(--fs-sm); color:var(--n9); margin-left:var(--s2); }
+.toolbar-hint .num { color:var(--c-primary); font-weight:var(--fw-medium); }
+.table-wrap { overflow-x:auto; }
+table.data-table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+.data-table thead th { background:var(--n2); color:var(--n9); font-weight:var(--fw-medium); font-size:var(--fs-sm); text-align:left; padding:10px 12px; border-bottom:1px solid var(--n5); white-space:nowrap; }
+.data-table tbody td { padding:12px; border-bottom:1px solid #F0F0F0; color:var(--n10); vertical-align:middle; }
+.data-table tbody tr { transition:background .15s; }
+.data-table tbody tr:hover { background:var(--n2); }
+.data-table .col-actions { width:180px; white-space:nowrap; }
+.data-table .cell-actions { display:flex; gap:4px; align-items:center; }
+.text-muted { color:var(--n7); font-size:var(--fs-sm); }
+.text-mono { font-family:var(--ff-mono); font-size:var(--fs-sm); }
+.text-error { color:var(--c-error); font-weight:var(--fw-medium); }
+.seckill-price { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--c-error); }
+.original-price { font-size:var(--fs-sm); color:var(--n7); text-decoration:line-through; }
+.sku-cell { display:flex; align-items:center; gap:8px; }
+.sku-thumb { width:36px; height:36px; border-radius:var(--r-base); background:var(--n3); display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid var(--n3); }
+.sku-thumb svg { color:var(--n7); }
+.redis-stock { display:flex; align-items:center; gap:6px; }
+.redis-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.redis-dot.active { background:var(--c-success); box-shadow:0 0 0 3px rgba(82,196,26,.15); }
+.redis-dot.pending { background:var(--n7); }
+.stock-num { font-weight:var(--fw-medium); }
+.stock-num .remaining { color:var(--c-success); }
+.stock-num .remaining.low { color:var(--c-warning); }
+.stock-num .remaining.zero { color:var(--n7); }
+.tag { display:inline-flex; align-items:center; gap:4px; height:22px; padding:0 8px; border-radius:var(--r-base); font-size:var(--fs-sm); line-height:20px; border:1px solid; }
+.tag .dot { width:6px; height:6px; border-radius:50%; }
+.tag.success { color:#389E0D; background:#F6FFED; border-color:#B7EB8F; }
+.tag.success .dot { background:var(--c-success); }
+.tag.warning { color:#D48806; background:#FFF7E6; border-color:#FFD591; }
+.tag.warning .dot { background:var(--c-warning); }
+.tag.neutral { color:var(--n9); background:var(--n3); border-color:var(--n5); }
+.tag.neutral .dot { background:var(--n7); }
+.tag.primary { color:#0958D9; background:#E6F4FF; border-color:#91CAFF; }
+.tag.primary .dot { background:var(--c-primary); }
+.pagination { display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:16px; }
+.pagination .total { font-size:var(--fs-sm); color:var(--n9); margin-right:auto; }
+.page-btn { min-width:32px; height:32px; padding:0 8px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; justify-content:center; }
+.page-btn:hover:not(.disabled):not(.active) { border-color:var(--c-primary); color:var(--c-primary); }
+.page-btn.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.page-btn.disabled { color:var(--n7); cursor:not-allowed; background:var(--n3); }
+.page-size { height:32px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); padding:0 8px; display:inline-flex; align-items:center; gap:4px; cursor:pointer; }
+.pagination-jump { display:flex; align-items:center; gap:4px; font-size:var(--fs-sm); color:var(--n9); }
+.pagination-jump input { width:48px; height:32px; border:1px solid var(--n5); border-radius:var(--r-base); text-align:center; font-size:var(--fs-base); }
+.mask { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; opacity:0; visibility:hidden; transition:opacity .25s; }
+.mask.show { opacity:1; visibility:visible; }
+.drawer { position:fixed; top:0; right:0; bottom:0; width:800px; background:var(--n1); z-index:1001; transform:translateX(100%); transition:transform .25s cubic-bezier(.2,0,0,1); display:flex; flex-direction:column; box-shadow:-8px 0 24px rgba(0,0,0,.08); }
+.drawer.show { transform:translateX(0); }
+.drawer-header { height:56px; padding:0 24px; border-bottom:1px solid var(--n3); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.drawer-header h3 { font-size:var(--fs-lg); font-weight:var(--fw-semibold); }
+.drawer-close { width:32px; height:32px; border:none; background:none; font-size:18px; color:var(--n7); border-radius:4px; display:flex; align-items:center; justify-content:center; }
+.drawer-close:hover { background:var(--n3); color:var(--n10); }
+.drawer-body { flex:1; overflow-y:auto; padding:24px; }
+.drawer-footer { padding:12px 24px; border-top:1px solid var(--n3); display:flex; justify-content:flex-end; gap:8px; flex-shrink:0; background:var(--n1); }
+.modal-wrap { position:fixed; top:0; left:0; right:0; bottom:0; z-index:1001; display:flex; align-items:flex-start; justify-content:center; padding-top:100px; opacity:0; visibility:hidden; transition:all .25s; }
+.modal-wrap.show { opacity:1; visibility:visible; }
+.modal { width:440px; max-width:90vw; background:var(--n1); border-radius:var(--r-lg); box-shadow:var(--sh-modal); transform:translateY(-20px); transition:transform .25s; }
+.modal-wrap.show .modal { transform:translateY(0); }
+.modal-body { padding:8px 24px 24px; }
+.modal-body .confirm-icon-wrap { display:flex; align-items:flex-start; gap:12px; }
+.modal-body .confirm-icon { width:22px; height:22px; flex-shrink:0; margin-top:1px; }
+.modal-body .confirm-icon.danger { color:var(--c-error); }
+.modal-body .confirm-icon.warning { color:var(--c-warning); }
+.modal-body .confirm-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); }
+.modal-body .confirm-content { margin-top:8px; font-size:var(--fs-base); color:var(--n9); line-height:1.6; }
+.modal-body .confirm-content .highlight { color:var(--c-error); font-weight:var(--fw-medium); }
+.modal-body .confirm-content .highlight-blue { color:var(--c-primary); font-weight:var(--fw-medium); }
+.modal-footer { padding:12px 24px 24px; display:flex; justify-content:flex-end; gap:8px; }
+.section-title { font-size:var(--fs-base); font-weight:var(--fw-semibold); color:var(--n10); margin-bottom:var(--s3); display:flex; align-items:center; gap:8px; }
+.section-title::before { content:''; width:3px; height:14px; background:var(--c-primary); border-radius:2px; }
+.section + .section { margin-top:var(--s6); }
+.form-item { margin-bottom:var(--s4); }
+.form-item label { display:block; font-size:var(--fs-base); color:var(--n10); margin-bottom:6px; }
+.form-item label .req { color:var(--c-error); margin-right:4px; }
+.form-item .req-hint { font-size:var(--fs-sm); color:var(--n7); margin-top:4px; }
+.form-item .form-control { width:100%; min-width:0; }
+.form-row { display:flex; gap:var(--s4); }
+.form-row .form-item { flex:1; }
+.sku-config { border:1px solid var(--n5); border-radius:var(--r-base); overflow:hidden; }
+.sku-config-header { display:flex; background:var(--n2); padding:10px 12px; font-size:var(--fs-sm); color:var(--n9); font-weight:var(--fw-medium); gap:12px; border-bottom:1px solid var(--n5); }
+.sku-config-header .sch-name { flex:1; }
+.sku-config-header .sch-price { width:120px; text-align:center; }
+.sku-config-header .sch-stock { width:100px; text-align:center; }
+.sku-config-header .sch-action { width:40px; text-align:center; }
+.sku-config-row { display:flex; align-items:center; padding:10px 12px; gap:12px; border-bottom:1px solid #F0F0F0; }
+.sku-config-row:last-child { border-bottom:none; }
+.sku-config-row .scr-name { flex:1; display:flex; align-items:center; gap:8px; }
+.sku-config-row .scr-thumb { width:32px; height:32px; border-radius:4px; background:var(--n3); flex-shrink:0; }
+.sku-config-row .scr-info { font-size:var(--fs-sm); }
+.sku-config-row .scr-info .scr-title { font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-medium); }
+.sku-config-row .scr-info .scr-sku { color:var(--n7); font-size:var(--fs-sm); }
+.sku-config-row .scr-price { width:120px; }
+.sku-config-row .scr-stock { width:100px; }
+.sku-config-row .scr-action { width:40px; display:flex; justify-content:center; }
+.sku-config-row .form-control { height:30px; }
+.sku-remove { width:28px; height:28px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); color:var(--n7); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.sku-remove:hover { color:var(--c-error); border-color:var(--c-error); }
+.skeleton { background:var(--n3); border-radius:var(--r-base); position:relative; overflow:hidden; }
+.skeleton::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent); animation:shimmer 1.4s infinite; }
+@keyframes shimmer { 0%{transform:translateX(-100%);} 100%{transform:translateX(100%);} }
+.sk-row { display:flex; gap:12px; padding:14px 12px; border-bottom:1px solid #F0F0F0; align-items:center; }
+.sk-line { height:14px; flex:1; }
+.sk-line.short { max-width:120px; }
+.empty-state { padding:64px 0; text-align:center; }
+.empty-state .empty-icon { width:64px; height:64px; margin:0 auto 16px; color:#D9D9D9; }
+.empty-state .empty-title { font-size:var(--fs-base); color:var(--n9); }
+.empty-state .empty-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:4px; }
+.empty-state .empty-cta { margin-top:16px; }
+.state-preview { position:fixed; bottom:48px; right:24px; z-index:500; display:flex; flex-direction:column; gap:8px; background:var(--n1); padding:10px; border-radius:var(--r-card); box-shadow:var(--sh-dropdown); border:1px solid var(--n5); }
+.state-preview .sp-title { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-medium); padding:0 4px; }
+.state-preview .sp-btn { height:28px; padding:0 12px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-sm); color:var(--n9); display:flex; align-items:center; gap:4px; }
+.state-preview .sp-btn:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.state-preview .sp-btn.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.toast { position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-20px); background:var(--n1); border-radius:var(--r-base); box-shadow:var(--sh-dropdown); padding:9px 16px; display:flex; align-items:center; gap:8px; font-size:var(--fs-base); z-index:2000; opacity:0; visibility:hidden; transition:all .25s; border:1px solid var(--n5); }
+.toast.show { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+.toast.success .toast-icon { color:var(--c-success); }
+.toast.error .toast-icon { color:var(--c-error); }
+.toast .toast-icon { width:16px; height:16px; }
+.hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-mark">L</div>
+      <div class="logo-text">Leno<small>运营管理后台</small></div>
+    </div>
+    <div class="header-body">
+      <div style="display:flex;align-items:center;gap:0;">
+        <button class="collapse-btn" aria-label="折叠菜单">
+          <svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"/></svg>
+        </button>
+        <nav class="breadcrumb" style="margin-left:16px;">
+          <a href="#">促销运营</a>
+          <span class="sep">/</span>
+          <span class="current">秒杀活动</span>
+        </nav>
+      </div>
+      <div class="header-actions">
+        <div class="global-search">
+          <svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"/></svg>
+          <input placeholder="搜索活动名称、商品名称" />
+          <span class="kbd">Ctrl K</span>
+        </div>
+        <button class="icon-btn" aria-label="待办" title="待办工作台">
+          <svg viewBox="64 64 896 896" width="18" height="18" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM304.8 524h50.4c3.4 0 6.3-2.7 6.6-6.1C367 443.5 432.4 384 512 384s145 59.5 150.2 133.9c.3 3.4 3.2 6.1 6.6 6.1h50.4c3.8 0 6.9-3.2 6.6-7C720.2 413 626 336 512 336s-208.2 77-216.6 181c-.3 3.8 2.8 7 6.6 7zM484 700h56v-56h-56v56z"/></svg>
+          <span class="badge-dot">12</span>
+        </button>
+        <button class="icon-btn" aria-label="通知" title="通知中心">
+          <svg viewBox="64 64 896 896" width="18" height="18" fill="currentColor"><path d="M880 112c-3.8 0-7.7.7-11.6 2.1L111.9 459.3c-18.7 7.1-27.4 27.7-19.7 46.2 4.4 10.6 12.7 18.4 22.9 22.1l142.5 49.2 49.2 142.5c3.7 10.2 11.5 18.5 22.1 22.9 18.5 7.7 39.1-1 46.2-19.7L713.9 84.4C722.3 62.5 705 41.6 684 41.6c-4.3 0-8.6.8-12.6 2.4l-90.9 34.5c-1.9.7-3.9 1.1-5.9 1.1H880z"/></svg>
+          <span class="badge-dot" style="background:var(--c-warning);">5</span>
+        </button>
+        <div class="avatar-wrap">
+          <div class="avatar">周</div>
+          <div><div class="avatar-name">周慧</div><div class="avatar-role">运营管理员</div></div>
+          <svg viewBox="64 64 896 896" width="12" height="12" fill="currentColor" style="color:var(--n7);"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div class="app-body">
+    <aside class="app-sider">
+      <ul class="menu">
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01136 560c0-98.8 38.5-191.6 108.4-261.4C314.3 228.5 407 190 505.9 190c98.8 0 191.6 38.5 261.4 108.4C837.5 368.4 876 461.2 876 560c0 110.7-44.2 213.9-114.6 276z M484 560c0-21.6 6.2-42.8 17.9-61.2 11.7-18.4 28.4-33.2 48.3-42.6 19.9-9.4 42.2-13.4 64.3-11.6 22.1 1.8 43.4 9.3 61.6 21.6l-58.9 58.9 45.1 45.1 58.9-58.9c12.3 18.2 19.8 39.5 21.6 61.6 1.8 22.1-2.2 44.4-11.6 64.3-9.4 19.9-24.2 36.6-42.6 48.3-18.4 11.7-39.6 17.9-61.2 17.9-27.9 0-54.7-11.1-74.5-30.9S484 587.9 484 560z"/></svg></span>数据看板<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM528 722c0 17.7-14.3 32-32 32H320c-17.7 0-32-14.3-32-32V544c0-17.7 14.3-32 32-32h176c17.7 0 32 14.3 32 32v178zm0-302c0 17.7-14.3 32-32 32H320c-17.7 0-32-14.3-32-32V320c0-17.7 14.3-32 32-32h176c17.7 0 32 14.3 32 32v100zm176 302c0 17.7-14.3 32-32 32H640c-17.7 0-32-14.3-32-32V544c0-17.7 14.3-32 32-32h32c17.7 0 32 14.3 32 32v178zm0-302c0 17.7-14.3 32-32 32h-32c-17.7 0-32-14.3-32-32V320c0-17.7 14.3-32 32-32h32c17.7 0 32 14.3 32 32v100z"/></svg></span>商品运营<span class="m-arrow">›</span></div></li>
+        <li class="menu-item open active">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-260 72h96v209.9L621.5 312 572 347.4V136zm220 752H232V136h280v296.9c0 3.3 1.4 6.5 3.9 8.8a12.1 12.1 0 0017.3-1.1l55.8-66.1 55.8 66.1c2.3 2.7 5.6 4.2 9 4.2 4.3 0 8.3-2.1 10.8-5.6 1.6-2.3 2.5-5.1 2.5-7.9V136h144v752z"/></svg></span>促销运营<span class="m-arrow">›</span></div>
+          <ul class="menu-sub">
+            <li><div class="menu-link">促销活动</div></li>
+            <li><div class="menu-link">优惠券管理</div></li>
+            <li><div class="menu-link active">秒杀活动</div></li>
+          </ul>
+        </li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.3 44.5-118.6 78.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C779 752.7 810 825 812 902.2c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.2zM512 534c-45.9 0-89.1-17.9-121.6-50.4S340 407.9 340 362c0-45.9 17.9-89.1 50.4-121.6S466.1 190 512 190s89.1 17.9 121.6 50.4S684 316.1 684 362c0 45.9-17.9 89.1-50.4 121.6S557.9 534 512 534z"/></svg></span>卖家运营<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM641.7 599.6c0 4.6-3.7 8.3-8.3 8.3h-67.5v67.5c0 4.6-3.7 8.3-8.3 8.3h-77.2c-4.6 0-8.3-3.7-8.3-8.3v-67.5h-67.5c-4.6 0-8.3-3.7-8.3-8.3v-77.2c0-4.6 3.7-8.3 8.3-8.3h67.5v-67.5c0-4.6 3.7-8.3 8.3-8.3h77.2c4.6 0 8.3 3.7 8.3 8.3v67.5h67.5c4.6 0 8.3 3.7 8.3 8.3v77.2z"/></svg></span>订单运营<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372zm47.7-268.2l-99.8-99.8L403.1 600.7l99.8 99.8c6.7 6.7 17.5 6.7 24.2 0L768.4 259.2c6.7-6.7 6.7-17.5 0-24.2l-43.2-43.2c-6.7-6.7-17.5-6.7-24.2 0L449.8 453.9z"/></svg></span>支付运营<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M512 128c-212.1 0-384 171.9-384 384v360c0 13.3 10.7 24 24 24h184c35.3 0 64-28.7 64-64V640c0-35.3-28.7-64-64-64H200v-64c0-172.3 139.7-312 312-312s312 139.7 312 312v64H680c-35.3 0-64 28.7-64 64v192c0 35.3 28.7 64 64 64h184c13.3 0 24-10.7 24-24V512c0-212.1-171.9-384-384-384z"/></svg></span>通知运营<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M742 318V184h86c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H196c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h86v134c0 81.9 49.2 152.3 119.4 183.2.4.2.8.3 1.2.5-22.9 24.3-36.2 56.5-36.2 90.8v224c0 4.4 3.6 8 8 8h268c4.4 0 8-3.6 8-8V593.5c0-34.3-13.3-66.5-36.2-90.8.4-.2.8-.3 1.2-.5C692.8 470.3 742 399.9 742 318z"/></svg></span>会员运营<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M505.7 661a8 8 0 0012.6 0l112-141.7c4.1-5.2.4-12.9-6.3-12.9h-74.1V168c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v338.3H400c-6.7 0-10.4 7.7-6.3 12.9l112 141.8zM878 626h-60c-4.4 0-8 3.6-8 8v154H214V634c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v198c0 17.7 14.3 32 32 32h684c17.7 0 32-14.3 32-32V634c0-4.4-3.6-8-8-8z"/></svg></span>数据导出<span class="m-arrow">›</span></div></li>
+      </ul>
+      <div style="padding:16px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.35);text-align:center;">Leno Operations v1.0.0</div>
+    </aside>
+    <main class="app-content">
+      <div class="page-scroll">
+        <div class="page-header">
+          <div>
+            <h1>秒杀活动</h1>
+            <div class="sub">创建与控制秒杀活动生命周期（待生效/进行中/已关闭），活动激活时初始化 Redis 多 SKU 库存，关闭时回写 DB。</div>
+          </div>
+        </div>
+        <div class="session-bar">
+          <div class="session-tabs">
+            <div class="session-tab ended" onclick="switchSession(this,'10:00')"><div class="st-time">10:00</div><div class="st-label">已结束</div></div>
+            <div class="session-tab active" onclick="switchSession(this,'12:00')"><div class="st-time">12:00</div><div class="st-label">进行中</div></div>
+            <div class="session-tab" onclick="switchSession(this,'14:00')"><div class="st-time">14:00</div><div class="st-label">待开始</div></div>
+            <div class="session-tab" onclick="switchSession(this,'20:00')"><div class="st-time">20:00</div><div class="st-label">待开始</div></div>
+          </div>
+          <div class="countdown-box" id="countdownBox">
+            <svg class="cd-icon" viewBox="64 64 896 896" width="18" height="18" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 01-11.2 1.7l-146.5-107.8a8.03 8.03 0 01-3.2-6.4V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v269.7l130.6 95.8c3.6 2.6 4.3 7.6 1.7 11.2z"/></svg>
+            <span class="cd-label">距本场结束</span>
+            <div class="cd-time" id="countdownTime">
+              <span class="cd-num" id="cdHour">01</span><span class="cd-sep">:</span><span class="cd-num" id="cdMin">32</span><span class="cd-sep">:</span><span class="cd-num" id="cdSec">45</span>
+            </div>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon success"><svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L423.4 811.6c-1.5 2.1-3.9 3.4-6.5 3.4h-67.6c-2.6 0-5.1-1.3-6.6-3.5L201.9 596.5c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l93.6 138.6c1.6 2.3 4.8 3 7.2 1.5l.2-.1c2.4-1.5 3.1-4.6 1.6-7L348.8 526.9c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l272.8 404.5c2.3 3.4 1.4 8-2 10.3l-59.5 40.4c-3.4 2.3-8 1.4-10.3-2z"/></svg></div>
+            <div><div class="stat-label">进行中</div><div class="stat-value">3</div><div class="stat-trend">12点场次 2 · 20点场次 1</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon warning"><svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 768c-176.7 0-320-143.3-320-320s143.3-320 320-320 320 143.3 320 320-143.3 320-320 320zm-32-464v224c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V368c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8zm0-128c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8z"/></svg></div>
+            <div><div class="stat-label">待生效</div><div class="stat-value">2</div><div class="stat-trend">14点 1 · 20点 1</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon neutral"><svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-72c-5.5 0-10-4.5-10-10v-72c0-5.5 4.5-10 10-10h72c5.5 0 10 4.5 10 10v72zm0-160c0 5.5-4.5 10-10 10h-72c-5.5 0-10-4.5-10-10v-72c0-5.5 4.5-10 10-10h72c5.5 0 10 4.5 10 10v72zm304 0c0 5.5-4.5 10-10 10H500c-5.5 0-10-4.5-10-10v-72c0-5.5 4.5-10 10-10h198c5.5 0 10 4.5 10 10v72z"/></svg></div>
+            <div><div class="stat-label">已关闭</div><div class="stat-value">8</div><div class="stat-trend">累计 13 场</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon error"><svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L423.4 811.6c-1.5 2.1-3.9 3.4-6.5 3.4h-67.6c-2.6 0-5.1-1.3-6.6-3.5L201.9 596.5c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l93.6 138.6c1.6 2.3 4.8 3 7.2 1.5l.2-.1c2.4-1.5 3.1-4.6 1.6-7L348.8 526.9c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l272.8 404.5c2.3 3.4 1.4 8-2 10.3l-59.5 40.4c-3.4 2.3-8 1.4-10.3-2z"/></svg></div>
+            <div><div class="stat-label">今日秒杀 GMV</div><div class="stat-value">¥86<span style="font-size:16px;color:var(--n7);">.5万</span></div><div class="stat-trend"><span style="color:var(--c-success);">↑ 23.6%</span> 较昨日</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="filter-bar">
+            <div class="filter-row">
+              <div class="filter-item"><label>活动名称</label><div class="form-control"><input placeholder="输入活动名称关键词" /></div></div>
+              <div class="filter-item"><label>状态</label><div class="form-control select"><span>全部</span></div></div>
+              <div class="filter-item" style="justify-content:flex-end;padding-top:22px;"><div style="display:flex;gap:8px;"><button class="btn btn-primary">查询</button><button class="btn">重置</button></div></div>
+            </div>
+          </div>
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <button class="btn btn-primary" id="addSeckillBtn"><svg class="b-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"/><path d="M176 474h672q8 0 8 8v60q0 8-8 8H176q-8 0-8-8v-60q0-8 8-8z"/></svg>新增活动</button>
+              <button class="btn"><svg class="b-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M909.1 209.3l-40.4-40.4c-3.1-3.1-8.2-3.1-11.3 0L364.8 761.5l-194.1-194c-3.1-3.1-8.2-3.1-11.3 0l-40.4 40.4c-3.1 3.1-3.1 8.2 0 11.3l240.1 240c3.1 3.1 8.2 3.1 11.3 0l538.7-538.7c3.1-3.1 3.1-8.2 0-11.2z"/></svg>刷新</button>
+              <button class="btn"><svg class="b-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M880 912H144c-17.7 0-32-14.3-32-32V144c0-17.7 14.3-32 32-32h736c17.7 0 32 14.3 32 32v736c0 17.7-14.3 32-32 32zm-40-824H184v760h656V88z M424 400h-32V224H256v176h-32V224H128v624h768V224H768v176h-32V224H600v176h-32V224H424z"/></svg>导出</button>
+            </div>
+            <div class="toolbar-right"><span class="toolbar-hint">共 <span class="num">13</span> 场活动</span></div>
+          </div>
+          <div class="table-wrap" id="tableContent">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>活动名称</th>
+                  <th>秒杀商品</th>
+                  <th>秒杀价</th>
+                  <th>原价</th>
+                  <th>时间段</th>
+                  <th>Redis 库存</th>
+                  <th>状态</th>
+                  <th class="col-actions">操作</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr>
+                  <td><div style="font-weight:var(--fw-medium);">12点数码秒杀</div><div class="text-muted">创建人：周慧 · 限购 1 件</div></td>
+                  <td><div class="sku-cell"><div class="sku-thumb"><svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg></div><div><div style="font-weight:var(--fw-medium);">小米 Redmi Note 13</div><div class="text-muted">SKU: RN13-256G-BK</div></div></div></td>
+                  <td><span class="seckill-price">¥1,099</span></td>
+                  <td><span class="original-price">¥1,299</span></td>
+                  <td><span class="text-mono">12:00 - 14:00</span></td>
+                  <td><div class="redis-stock"><span class="redis-dot active"></span><div class="stock-num"><span class="remaining low">44</span> <span class="text-muted">/ 200</span></div></div></td>
+                  <td><span class="tag success"><span class="dot"></span>进行中</span></td>
+                  <td><div class="cell-actions"><button class="btn-link btn-sm danger" onclick="openCloseConfirm('12点数码秒杀')">关闭</button><button class="btn-link btn-sm">详情</button></div></td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:var(--fw-medium);">12点美妆秒杀</div><div class="text-muted">创建人：李明 · 限购 2 件</div></td>
+                  <td><div class="sku-cell"><div class="sku-thumb"><svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg></div><div><div style="font-weight:var(--fw-medium);">完美日记口红</div><div class="text-muted">SKU: PD-LIP-215</div></div></div></td>
+                  <td><span class="seckill-price">¥39</span></td>
+                  <td><span class="original-price">¥79</span></td>
+                  <td><span class="text-mono">12:00 - 14:00</span></td>
+                  <td><div class="redis-stock"><span class="redis-dot pending"></span><div class="stock-num"><span class="remaining zero">0</span> <span class="text-muted">/ 200</span></div></div></td>
+                  <td><span class="tag warning"><span class="dot"></span>待生效</span></td>
+                  <td><div class="cell-actions"><button class="btn-link btn-sm" onclick="openActivateConfirm('12点美妆秒杀')">激活</button><button class="btn-link btn-sm" onclick="openEditDrawer('12点美妆秒杀')">编辑</button></div></td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:var(--fw-medium);">10点数码秒杀</div><div class="text-muted">创建人：周慧 · 限购 1 件</div></td>
+                  <td><div class="sku-cell"><div class="sku-thumb"><svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg></div><div><div style="font-weight:var(--fw-medium);">小米 Redmi Buds 5</div><div class="text-muted">SKU: RB5-WHT</div></div></div></td>
+                  <td><span class="seckill-price">¥99</span></td>
+                  <td><span class="original-price">¥149</span></td>
+                  <td><span class="text-mono">10:00 - 12:00</span></td>
+                  <td><div class="redis-stock"><span class="redis-dot active"></span><div class="stock-num"><span class="remaining">66</span> <span class="text-muted">/ 300</span></div></div></td>
+                  <td><span class="tag success"><span class="dot"></span>进行中</span></td>
+                  <td><div class="cell-actions"><button class="btn-link btn-sm danger" onclick="openCloseConfirm('10点数码秒杀')">关闭</button><button class="btn-link btn-sm">详情</button></div></td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:var(--fw-medium);">20点服装秒杀</div><div class="text-muted">创建人：周慧 · 限购 3 件</div></td>
+                  <td><div class="sku-cell"><div class="sku-thumb"><svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg></div><div><div style="font-weight:var(--fw-medium);">南极人纯棉短袖T恤</div><div class="text-muted">SKU: NJ-TS-WHT-L</div></div></div></td>
+                  <td><span class="seckill-price">¥29</span></td>
+                  <td><span class="original-price">¥59</span></td>
+                  <td><span class="text-mono">20:00 - 22:00</span></td>
+                  <td><div class="redis-stock"><span class="redis-dot pending"></span><div class="stock-num"><span class="remaining zero">0</span> <span class="text-muted">/ 500</span></div></div></td>
+                  <td><span class="tag warning"><span class="dot"></span>待生效</span></td>
+                  <td><div class="cell-actions"><button class="btn-link btn-sm" onclick="openActivateConfirm('20点服装秒杀')">激活</button><button class="btn-link btn-sm" onclick="openEditDrawer('20点服装秒杀')">编辑</button></div></td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:var(--fw-medium);">14点家电秒杀</div><div class="text-muted">创建人：李明 · 限购 1 件</div></td>
+                  <td><div class="sku-cell"><div class="sku-thumb"><svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg></div><div><div style="font-weight:var(--fw-medium);">美的电磁炉</div><div class="text-muted">SKU: MD-IF-BLK</div></div></div></td>
+                  <td><span class="seckill-price">¥159</span></td>
+                  <td><span class="original-price">¥199</span></td>
+                  <td><span class="text-mono">14:00 - 16:00</span></td>
+                  <td><div class="redis-stock"><span class="redis-dot pending"></span><div class="stock-num"><span class="remaining zero">0</span> <span class="text-muted">/ 100</span></div></div></td>
+                  <td><span class="tag warning"><span class="dot"></span>待生效</span></td>
+                  <td><div class="cell-actions"><button class="btn-link btn-sm" onclick="openActivateConfirm('14点家电秒杀')">激活</button><button class="btn-link btn-sm" onclick="openEditDrawer('14点家电秒杀')">编辑</button></div></td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:var(--fw-medium);">10点食品秒杀</div><div class="text-muted">创建人：周慧 · 限购 2 件</div></td>
+                  <td><div class="sku-cell"><div class="sku-thumb"><svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg></div><div><div style="font-weight:var(--fw-medium);">三只松鼠坚果礼盒</div><div class="text-muted">SKU: SZS-NUT-800G</div></div></div></td>
+                  <td><span class="seckill-price">¥69</span></td>
+                  <td><span class="original-price">¥99</span></td>
+                  <td><span class="text-mono">10:00 - 12:00</span></td>
+                  <td><div class="redis-stock"><span class="redis-dot active"></span><div class="stock-num"><span class="remaining zero">0</span> <span class="text-muted">/ 300</span></div></div></td>
+                  <td><span class="tag neutral"><span class="dot"></span>已关闭</span></td>
+                  <td><div class="cell-actions"><button class="btn-link btn-sm">详情</button></div></td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:var(--fw-medium);">昨日20点数码秒杀</div><div class="text-muted">创建人：周慧 · 限购 1 件</div></td>
+                  <td><div class="sku-cell"><div class="sku-thumb"><svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg></div><div><div style="font-weight:var(--fw-medium);">小米 Redmi Note 13</div><div class="text-muted">SKU: RN13-128G-BL</div></div></div></td>
+                  <td><span class="seckill-price">¥999</span></td>
+                  <td><span class="original-price">¥1,199</span></td>
+                  <td><span class="text-mono">昨日 20:00 - 22:00</span></td>
+                  <td><div class="redis-stock"><span class="redis-dot active"></span><div class="stock-num"><span class="remaining zero">0</span> <span class="text-muted">/ 150</span></div></div></td>
+                  <td><span class="tag neutral"><span class="dot"></span>已关闭</span></td>
+                  <td><div class="cell-actions"><button class="btn-link btn-sm">详情</button></div></td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:var(--fw-medium);">昨日14点食品秒杀</div><div class="text-muted">创建人：李明 · 限购 2 件</div></td>
+                  <td><div class="sku-cell"><div class="sku-thumb"><svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg></div><div><div style="font-weight:var(--fw-medium);">三只松鼠每日坚果</div><div class="text-muted">SKU: SZS-DN-750G</div></div></div></td>
+                  <td><span class="seckill-price">¥49</span></td>
+                  <td><span class="original-price">¥89</span></td>
+                  <td><span class="text-mono">昨日 14:00 - 16:00</span></td>
+                  <td><div class="redis-stock"><span class="redis-dot active"></span><div class="stock-num"><span class="remaining">23</span> <span class="text-muted">/ 200</span></div></div></td>
+                  <td><span class="tag neutral"><span class="dot"></span>已关闭</span></td>
+                  <td><div class="cell-actions"><button class="btn-link btn-sm">详情</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-wrap hidden" id="skeletonContent">
+            <div class="sk-row"><div class="sk-line skeleton"></div><div class="sk-line short skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div></div>
+            <div class="sk-row"><div class="sk-line skeleton"></div><div class="sk-line short skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div></div>
+            <div class="sk-row"><div class="sk-line skeleton"></div><div class="sk-line short skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div></div>
+            <div class="sk-row"><div class="sk-line skeleton"></div><div class="sk-line short skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div></div>
+            <div class="sk-row"><div class="sk-line skeleton"></div><div class="sk-line short skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div></div>
+          </div>
+          <div class="empty-state hidden" id="emptyContent">
+            <svg class="empty-icon" viewBox="64 64 896 896" width="64" height="64" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4z"/></svg>
+            <div class="empty-title">暂无秒杀活动</div>
+            <div class="empty-desc">点击下方按钮创建第一场秒杀活动</div>
+            <div class="empty-cta"><button class="btn btn-primary" onclick="openAddDrawer()"><svg class="b-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"/><path d="M176 474h672q8 0 8 8v60q0 8-8 8H176q-8 0-8-8v-60q0-8 8-8z"/></svg>新增活动</button></div>
+          </div>
+          <div class="pagination">
+            <span class="total">共 13 条</span>
+            <button class="page-size">10 条/页 <svg viewBox="64 64 896 896" width="10" height="10" fill="currentColor"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg></button>
+            <button class="page-btn disabled">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">›</button>
+            <div class="pagination-jump">跳至<input value="1" />页</div>
+          </div>
+        </div>
+      </div>
+      <footer class="app-footer">Leno 电商平台 · 运营管理后台 · Copyright 2026 Leno Inc.</footer>
+    </main>
+  </div>
+</div>
+
+<!-- Drawer: 新增/编辑秒杀活动 -->
+<div class="mask" id="drawerMask"></div>
+<div class="drawer" id="seckillDrawer">
+  <div class="drawer-header">
+    <h3 id="drawerTitle">新增秒杀活动</h3>
+    <button class="drawer-close" onclick="closeDrawer()">
+      <svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <div class="section">
+      <div class="section-title">基础信息</div>
+      <div class="form-item">
+        <label><span class="req">*</span>活动名称</label>
+        <div class="form-control"><input placeholder="请输入活动名称（如：12点数码秒杀）" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-item"><label><span class="req">*</span>开始时间</label><div class="form-control"><input placeholder="2026-07-27 12:00" /></div></div>
+        <div class="form-item"><label><span class="req">*</span>结束时间</label><div class="form-control"><input placeholder="2026-07-27 14:00" /></div></div>
+      </div>
+      <div class="form-item">
+        <label>每人限购</label>
+        <div class="form-control" style="max-width:200px;"><input placeholder="1" /><span class="ctrl-suffix">件</span></div>
+        <div class="req-hint">同一买家最多可购买的件数，默认 1 件</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">SKU 库存配置</div>
+      <div class="sku-config">
+        <div class="sku-config-header">
+          <div class="sch-name">秒杀商品</div>
+          <div class="sch-price">秒杀价（元）</div>
+          <div class="sch-stock">秒杀库存</div>
+          <div class="sch-action">操作</div>
+        </div>
+        <div class="sku-config-row">
+          <div class="scr-name">
+            <div class="scr-thumb"></div>
+            <div class="scr-info"><div class="scr-title">小米 Redmi Note 13</div><div class="scr-sku">SKU: RN13-256G-BK · 原价 ¥1,299</div></div>
+          </div>
+          <div class="scr-price"><div class="form-control"><input placeholder="1099" /></div></div>
+          <div class="scr-stock"><div class="form-control"><input placeholder="200" /></div></div>
+          <div class="scr-action"><button class="sku-remove"><svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M360 184h-8c4.4 0 8-3.6 8-8v8h304v-8c0 4.4 3.6 8 8 8h-8v72h72v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80h72v-72zm504 72H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h61.8l28.2 493.6c1.6 28.8 25.2 51.4 54 51.4h488c28.8 0 52.4-22.6 54-51.4L850.2 328H912c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32z"/></svg></button></div>
+        </div>
+        <div class="sku-config-row">
+          <div class="scr-name">
+            <div class="scr-thumb"></div>
+            <div class="scr-info"><div class="scr-title">完美日记口红</div><div class="scr-sku">SKU: PD-LIP-215 · 原价 ¥79</div></div>
+          </div>
+          <div class="scr-price"><div class="form-control"><input placeholder="39" /></div></div>
+          <div class="scr-stock"><div class="form-control"><input placeholder="200" /></div></div>
+          <div class="scr-action"><button class="sku-remove"><svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M360 184h-8c4.4 0 8-3.6 8-8v8h304v-8c0 4.4 3.6 8 8 8h-8v72h72v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80h72v-72zm504 72H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h61.8l28.2 493.6c1.6 28.8 25.2 51.4 54 51.4h488c28.8 0 52.4-22.6 54-51.4L850.2 328H912c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32z"/></svg></button></div>
+        </div>
+      </div>
+      <button class="btn" style="margin-top:12px;width:100%;justify-content:center;border-style:dashed;"><svg class="b-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"/><path d="M176 474h672q8 0 8 8v60q0 8-8 8H176q-8 0-8-8v-60q0-8 8-8z"/></svg>添加秒杀商品</button>
+      <div class="req-hint" style="margin-top:8px;">秒杀价须低于原价，库存须大于 0；激活后 Redis 将初始化各 SKU 库存</div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn" onclick="closeDrawer()">取消</button>
+    <button class="btn btn-primary" onclick="submitSeckill()">提交</button>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-wrap" id="confirmModalWrap">
+  <div class="modal">
+    <div class="modal-body">
+      <div class="confirm-icon-wrap">
+        <svg class="confirm-icon" id="confirmIcon" viewBox="64 64 896 896" width="22" height="22" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+        <div>
+          <div class="confirm-title" id="confirmTitle">确认操作</div>
+          <div class="confirm-content" id="confirmContent">确认执行此操作？</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeConfirm()">取消</button>
+      <button class="btn" id="confirmOkBtn" onclick="confirmAction()">确认</button>
+    </div>
+  </div>
+</div>
+
+<div class="state-preview">
+  <div class="sp-title">状态预览</div>
+  <button class="sp-btn active" onclick="switchState('default',this)">数据列表</button>
+  <button class="sp-btn" onclick="switchState('loading',this)">加载中</button>
+  <button class="sp-btn" onclick="switchState('empty',this)">空数据</button>
+</div>
+
+<div class="toast" id="toast">
+  <svg class="toast-icon" viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L423.4 811.6c-1.5 2.1-3.9 3.4-6.5 3.4h-67.6c-2.6 0-5.1-1.3-6.6-3.5L201.9 596.5c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l93.6 138.6c1.6 2.3 4.8 3 7.2 1.5l.2-.1c2.4-1.5 3.1-4.6 1.6-7L348.8 526.9c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l272.8 404.5c2.3 3.4 1.4 8-2 10.3l-59.5 40.4c-3.4 2.3-8 1.4-10.3-2z"/></svg>
+  <span id="toastText">操作成功</span>
+</div>
+
+<script>
+  var tableContent = document.getElementById('tableContent');
+  var skeletonContent = document.getElementById('skeletonContent');
+  var emptyContent = document.getElementById('emptyContent');
+  var drawerMask = document.getElementById('drawerMask');
+  var seckillDrawer = document.getElementById('seckillDrawer');
+  var drawerTitle = document.getElementById('drawerTitle');
+  var confirmModalWrap = document.getElementById('confirmModalWrap');
+  var confirmTitle = document.getElementById('confirmTitle');
+  var confirmContent = document.getElementById('confirmContent');
+  var confirmIcon = document.getElementById('confirmIcon');
+  var confirmOkBtn = document.getElementById('confirmOkBtn');
+  var toast = document.getElementById('toast');
+  var toastText = document.getElementById('toastText');
+  var pendingAction = '';
+  var countdownTimer = null;
+
+  function switchState(state, btn) {
+    document.querySelectorAll('.sp-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    if (state === 'default') { tableContent.classList.remove('hidden'); skeletonContent.classList.add('hidden'); emptyContent.classList.add('hidden'); }
+    else if (state === 'loading') { tableContent.classList.add('hidden'); skeletonContent.classList.remove('hidden'); emptyContent.classList.add('hidden'); }
+    else if (state === 'empty') { tableContent.classList.add('hidden'); skeletonContent.classList.add('hidden'); emptyContent.classList.remove('hidden'); }
+  }
+
+  function switchSession(el, time) {
+    document.querySelectorAll('.session-tab').forEach(function(t) { t.classList.remove('active'); });
+    el.classList.add('active');
+    if (countdownTimer) { clearInterval(countdownTimer); }
+    var box = document.getElementById('countdownBox');
+    var label = box.querySelector('.cd-label');
+    if (time === '12:00') {
+      label.textContent = '距本场结束';
+      box.className = 'countdown-box';
+      startCountdown(1, 32, 45);
+    } else if (time === '14:00') {
+      label.textContent = '距开场开始';
+      box.className = 'countdown-box';
+      startCountdown(1, 28, 15);
+    } else if (time === '20:00') {
+      label.textContent = '距开场开始';
+      box.className = 'countdown-box';
+      startCountdown(7, 28, 15);
+    } else if (time === '10:00') {
+      label.textContent = '本场已结束';
+      box.className = 'countdown-box';
+      document.getElementById('cdHour').textContent = '00';
+      document.getElementById('cdMin').textContent = '00';
+      document.getElementById('cdSec').textContent = '00';
+    }
+  }
+
+  function startCountdown(h, m, s) {
+    var total = h * 3600 + m * 60 + s;
+    var hourEl = document.getElementById('cdHour');
+    var minEl = document.getElementById('cdMin');
+    var secEl = document.getElementById('cdSec');
+    var box = document.getElementById('countdownBox');
+    function update() {
+      if (total <= 0) {
+        clearInterval(countdownTimer);
+        hourEl.textContent = '00';
+        minEl.textContent = '00';
+        secEl.textContent = '00';
+        return;
+      }
+      total--;
+      var hh = Math.floor(total / 3600);
+      var mm = Math.floor((total % 3600) / 60);
+      var ss = total % 60;
+      hourEl.textContent = hh < 10 ? '0' + hh : '' + hh;
+      minEl.textContent = mm < 10 ? '0' + mm : '' + mm;
+      secEl.textContent = ss < 10 ? '0' + ss : '' + ss;
+      if (total <= 600) { box.classList.add('urgent'); } else { box.classList.remove('urgent'); }
+    }
+    update();
+    countdownTimer = setInterval(update, 1000);
+  }
+
+  function openAddDrawer() { drawerTitle.textContent = '新增秒杀活动'; drawerMask.classList.add('show'); seckillDrawer.classList.add('show'); }
+  function openEditDrawer(name) { drawerTitle.textContent = '编辑秒杀活动 - ' + name; drawerMask.classList.add('show'); seckillDrawer.classList.add('show'); }
+  function closeDrawer() { drawerMask.classList.remove('show'); seckillDrawer.classList.remove('show'); }
+
+  function submitSeckill() { closeDrawer(); showToast('success', '活动保存成功，状态为待生效'); }
+
+  function openActivateConfirm(name) {
+    confirmTitle.textContent = '确认激活活动';
+    confirmContent.innerHTML = '激活后，活动「<span class="highlight-blue">' + name + '</span>」将<span class="highlight">初始化 Redis 多 SKU 库存</span>，买家端立即开放秒杀。激活后活动不可编辑。';
+    confirmIcon.className = 'confirm-icon warning';
+    confirmIcon.innerHTML = '<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/>';
+    confirmOkBtn.className = 'btn btn-primary';
+    confirmOkBtn.textContent = '确认激活';
+    pendingAction = 'activate:' + name;
+    confirmModalWrap.classList.add('show');
+  }
+
+  function openCloseConfirm(name) {
+    confirmTitle.textContent = '确认关闭活动';
+    confirmContent.innerHTML = '关闭后，活动「<span class="highlight">' + name + '</span>」将永久终止，<span class="highlight">Redis 剩余库存将回写 DB</span>，买家端立即下架。<span class="highlight">此操作不可逆</span>。';
+    confirmIcon.className = 'confirm-icon danger';
+    confirmIcon.innerHTML = '<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/>';
+    confirmOkBtn.className = 'btn btn-danger solid';
+    confirmOkBtn.textContent = '确认关闭';
+    pendingAction = 'close:' + name;
+    confirmModalWrap.classList.add('show');
+  }
+
+  function closeConfirm() { confirmModalWrap.classList.remove('show'); }
+
+  function confirmAction() {
+    closeConfirm();
+    var parts = pendingAction.split(':');
+    var action = parts[0]; var name = parts[1];
+    var msg = '';
+    if (action === 'activate') msg = '活动「' + name + '」已激活，Redis 库存已初始化';
+    else if (action === 'close') msg = '活动「' + name + '」已关闭，库存已回写 DB';
+    showToast('success', msg);
+  }
+
+  function showToast(type, text) {
+    toast.className = 'toast ' + type;
+    toastText.textContent = text;
+    var icon = toast.querySelector('.toast-icon');
+    if (type === 'success') {
+      icon.innerHTML = '<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L423.4 811.6c-1.5 2.1-3.9 3.4-6.5 3.4h-67.6c-2.6 0-5.1-1.3-6.6-3.5L201.9 596.5c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l93.6 138.6c1.6 2.3 4.8 3 7.2 1.5l.2-.1c2.4-1.5 3.1-4.6 1.6-7L348.8 526.9c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l272.8 404.5c2.3 3.4 1.4 8-2 10.3l-59.5 40.4c-3.4 2.3-8 1.4-10.3-2z"/>';
+    } else {
+      icon.innerHTML = '<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/>';
+    }
+    toast.classList.add('show');
+    setTimeout(function() { toast.classList.remove('show'); }, 2500);
+  }
+
+  document.getElementById('addSeckillBtn').addEventListener('click', openAddDrawer);
+  drawerMask.addEventListener('click', closeDrawer);
+  confirmModalWrap.addEventListener('click', function(e) { if (e.target === this) closeConfirm(); });
+  startCountdown(1, 32, 45);
+</script>
+</body>
+</html>
