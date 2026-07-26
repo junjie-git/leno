@@ -61,6 +61,7 @@
 - **响应字段**：`CartDto` 含 `items`（cartItemId、skuId、productName、skuCode、mainImage、unitPrice、quantity、isSelected、isValid、invalidReason、sellerId、sellerName、stockStatus）、`totalAmount`、`totalCount`、`selectedCount`、`selectedAmount`。
 - **数据加载策略**：进入页面调用 `GET /api/cart` 全量加载；操作后局部更新对应项，避免整页刷新。
 - **缓存策略**：购物车不缓存（价格实时性要求），登录态下每次进入重新拉取；登录后自动调用 `POST /api/cart/merge` 合并匿名购物车。
+- **匿名购物车能力说明（后端预留）**：后端 `AnonymousCartsController` 已提供完整的匿名购物车能力（共 7 个端点：`POST /api/cart/anonymous` 创建匿名会话、`GET /api/cart/anonymous` 查询、`POST /api/cart/anonymous/items` 加购、`PUT /api/cart/anonymous/items/{skuId}` 改数量、`DELETE /api/cart/anonymous/items/{skuId}` 删除、`POST /api/cart/anonymous/items/select` 批量选中、`POST /api/cart/anonymous/preview` 结算预览），鉴权为匿名+`X-Cart-Session` 头+IP 限流（10 次/分钟）。buyer-app 当前购物车页强制登录访问（未登录跳 `/login?redirect=/cart`），未直接调用上述匿名端点；仅 `POST /api/cart/merge` 在登录后被动消费匿名购物车数据。后续若产品决策开放「未登录加购」流程，可在 buyer-app 增加匿名加购入口并补充匿名端点调用，前端需额外管理 `X-Cart-Session` 头与会话生命周期。
 
 ## 4. 交互流程
 - **主流程**：

@@ -41,16 +41,17 @@
 | 方法 | 端点 | 用途 | 鉴权 |
 |-|-|-|-|
 | GET | `/api/orders/{id}` | 查询订单详情（含支付状态） | Buyer |
-| GET | `/api/payments/result/{orderId}` | 查询支付结果（含渠道信息） | Buyer |
+| GET | `/api/payments/{orderId}` | 查询支付结果（含渠道信息） | Buyer |
 
 - **请求参数**：`orderId` 路径参数。
 - **响应字段**：`OrderDto` 含 `id`、`orderNo`、`status`、`totalAmount`、`paymentMethod`、`paidAt`、`tradeNo`；`PaymentOrderDto` 含 `paymentId`、`orderId`、`amount`、`channel`、`channelTradeNo`、`status`、`paidAt`、`failReason`。
-- **数据加载策略**：进入页面调用 `GET /api/payments/result/{orderId}` 获取支付结果；处理中状态每 3 秒轮询，最多 10 次。
+- **数据加载策略**：进入页面调用 `GET /api/payments/{orderId}` 获取支付结果；处理中状态每 3 秒轮询，最多 10 次。
 - **缓存策略**：不缓存，每次进入重新拉取；轮询期间不重复请求。
+- **支付状态补偿查询端点（后端预留）**：后端 `PaymentsController` 另提供 `GET /api/payments/{paymentId}/status` 端点（Buyer 鉴权），主动查询渠道支付状态，若已支付则补偿更新支付单。当订单状态长时间停留在「处理中」且 `GET /api/payments/{orderId}` 未返回终态时，前端可改用此端点按 `paymentId` 主动查询渠道，触发服务端补偿更新。当前 buyer-app 默认使用 `GET /api/payments/{orderId}` 轮询即可满足多数场景，`GET /api/payments/{paymentId}/status` 作为补偿查询能力保留观察，待支付回调丢失场景增多时启用。
 
 ## 4. 交互流程
 - **主流程**：
-  1. 进入页面读取 `orderId` → `GET /api/payments/result/{orderId}` → 渲染结果图标与文案。
+  1. 进入页面读取 `orderId` → `GET /api/payments/{orderId}` → 渲染结果图标与文案。
   2. 支付成功 → 展示绿色图标+「支付成功」+订单摘要+「查看订单」「继续购物」按钮。
   3. 支付失败 → 展示红色图标+「支付失败」+失败原因+「重新支付」「返回订单」按钮。
   4. 支付处理中 → 展示主色图标+「支付处理中」+每 3 秒轮询，状态变更后更新结果。

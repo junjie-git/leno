@@ -7,7 +7,7 @@
 - **目标用户**：买家（Buyer）
 - **核心目标**：买家查看自己已提交的评价列表，了解审核状态（待审核/已通过/已驳回），并可对已通过评价追评。
 - **访问入口**：「我的」页评价入口；评价提交成功后跳转。
-- **实现状态**：✅ 已实现
+- **实现状态**：✅ 已实现（列表查询）；🚧 追评功能规划中（源码 ReviewsController 未实现 append 端点）
 
 ## 2. 页面布局与信息架构
 - **整体布局**：顶部 `van-nav-bar`（返回+标题「我的评价」）+ `van-tabs` 状态筛选（全部/待审核/已通过/已驳回）+ `van-list` 评价卡片列表，无 Tabbar。
@@ -42,10 +42,10 @@
 ## 3. 数据模型与 API 对接
 - **主要 API**：
 
-| 方法 | 端点 | 用途 | 鉴权 |
-|-|-|-|-|
-| GET | `/api/reviews/mine` | 查询我的评价列表（按状态过滤） | Buyer |
-| POST | `/api/reviews/{reviewId}/append` | 追评 | Buyer |
+| 方法 | 端点 | 用途 | 鉴权 | 实现状态 |
+|-|-|-|-|-|
+| GET | `/api/reviews/mine` | 查询我的评价列表（按状态过滤） | Buyer | ✅ |
+| POST | `/api/reviews/{reviewId}/append` | 追评 | Buyer | 🚧 规划中（源码 ReviewsController 未实现 append 端点，待补充） |
 
 - **请求参数**：`GET /api/reviews/mine?status={ReviewStatus}&page={page}&pageSize=20`；status 可空表示全部，枚举 `PendingReview/Approved/Rejected`；追评 body `{ content, images }`。
 - **响应字段**：`{ items, total, page, pageSize }`；item 含 `reviewId`、`productId`、`productName`、`skuId`、`skuName`、`mainImage`、`rating`、`content`、`images`、`status`、`createdAt`、`appendContent`、`appendAt`。
@@ -58,7 +58,7 @@
   2. 切换状态 Tab → 重置列表 → `GET /api/reviews/mine?status={status}&page=0`。
   3. 滚动到底部 → `van-list` load → 追加下一页。
   4. 点击图片缩略图 → 全屏预览。
-  5. 已通过评价点击「追评」→ `van-popup` 弹出追评输入框 → 输入内容 → `POST /api/reviews/{reviewId}/append` → 成功 `showToast` 「追评成功」+ 更新卡片。
+  5. 已通过评价点击「追评」→ `van-popup` 弹出追评输入框 → 输入内容 → `POST /api/reviews/{reviewId}/append` → 成功 `showToast` 「追评成功」+ 更新卡片。**（🚧 规划中：源码 ReviewsController 未实现 append 端点，待补充 `[HttpPost("api/reviews/{id:guid}/append")]` 调用 `Review.AppendAdditionalReview` 聚合方法后启用）**
   6. 点击商品图 → 跳商品详情页。
 - **分支流程**：
   - 空列表：`van-empty`「暂无评价」+ 「去逛逛」CTA。
@@ -93,7 +93,7 @@
 - [ ] 状态 Tab 切换后列表正确筛选。
 - [ ] 评价卡片展示商品、评分、内容、图片、状态。
 - [ ] 图片缩略图点击全屏预览。
-- [ ] 已通过评价显示「追评」按钮，追评成功更新卡片。
+- [ ] 已通过评价显示「追评」按钮，追评成功更新卡片。**（🚧 追评功能待源码补充 append 端点后实现）**
 - [ ] 已驳回评价展示驳回原因，无追评按钮。
 - [ ] 空列表展示「去逛逛」CTA。
 - **性能要求**：首屏 < 1s；图片懒加载；列表无限滚动无卡顿。
