@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leno 系统管理后台 - 核心页面预览</title>
+<style>
+/* ===================== Design Tokens ===================== */
+:root{
+  --c-primary:#1677FF; --c-primary-soft:#E6F0FF;
+  --c-success:#52C41A; --c-success-soft:#F0FBE6;
+  --c-warning:#FAAD14; --c-warning-soft:#FFF7E6;
+  --c-error:#FF4D4F; --c-error-soft:#FFF1F0;
+  --c-purple:#722ED1; --c-purple-soft:#F9F0FF;
+  --c-disabled:#00000040;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n4:#F0F0F0;
+  --n5:#D9D9D9; --n6:#BFBFBF; --n7:#8C8C8C; --n8:#7A7A7A;
+  --n9:#595959; --n10:#000000D9; --n-solid:#000000;
+  --sider-bg:#001529; --sider-bg-light:#000c17; --sider-active:#1677FF;
+  --r-base:6px; --r-card:8px; --r-lg:12px; --r-pill:999px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --lh-base:1.5715;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code","JetBrains Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --d-fast:100ms; --d-mid:200ms; --d-slow:300ms;
+  --ease-std:cubic-bezier(.2,0,0,1);
+}
+
+/* ===================== Reset ===================== */
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{font-family:var(--ff-app);font-size:var(--fs-base);line-height:var(--lh-base);color:var(--n10);-webkit-font-smoothing:antialiased;}
+svg{display:block;}
+
+/* ===================== Gallery Shell ===================== */
+body{
+  background:linear-gradient(180deg,#080D1A 0%,#0A1120 50%,#070B16 100%);
+  background-attachment:fixed;
+  min-height:100vh;
+  padding:48px 0 64px;
+  position:relative;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 800px 500px at 20% 0%,rgba(22,119,255,.10),transparent 70%),
+    radial-gradient(ellipse 600px 400px at 80% 30%,rgba(114,46,209,.08),transparent 70%);
+}
+.gallery{max-width:1320px;margin:0 auto;padding:0 20px;position:relative;z-index:1;}
+
+/* Gallery Header */
+.gallery-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;}
+.gallery-logo{display:flex;align-items:center;gap:14px;}
+.logo-mark{
+  width:40px;height:40px;border-radius:10px;
+  background:linear-gradient(135deg,#722ED1,#B37FEB);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:700;color:#fff;
+  box-shadow:0 4px 16px rgba(114,46,209,.4);
+}
+.logo-title{font-size:18px;font-weight:600;color:#E8ECF4;letter-spacing:.02em;}
+.logo-sub{font-size:11px;color:#5A6378;letter-spacing:.12em;font-weight:500;margin-top:2px;}
+
+.meta-chips{display:flex;gap:8px;flex-wrap:wrap;}
+.meta-chip{
+  font-size:12px;font-weight:500;color:#9CA8BE;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:var(--r-pill);padding:5px 14px;
+  backdrop-filter:blur(8px);
+}
+
+/* Gallery Title */
+.gallery-title{
+  font-size:32px;font-weight:600;color:#F0F4FA;
+  letter-spacing:.01em;margin-bottom:10px;
+}
+.gallery-subtitle{
+  font-size:14px;color:#7A8499;line-height:1.6;
+  max-width:680px;margin-bottom:48px;
+}
+
+/* ===================== Page Preview ===================== */
+.page-preview{margin-bottom:56px;}
+.page-header{
+  display:flex;align-items:center;gap:14px;
+  margin-bottom:16px;padding-left:4px;
+}
+.page-label{
+  font-size:13px;font-weight:600;color:#C8D2E0;
+  background:rgba(22,119,255,.12);
+  border:1px solid rgba(22,119,255,.25);
+  border-radius:var(--r-pill);padding:4px 14px;
+}
+.page-route{
+  font-family:var(--ff-mono);font-size:12px;color:#5A6378;
+}
+
+/* ===================== Browser Frame ===================== */
+.browser-frame{
+  width:1280px;margin:0 auto;
+  border-radius:var(--r-lg);overflow:hidden;
+  box-shadow:var(--sh-modal);
+  background:var(--n1);
+}
+.browser-bar{
+  height:36px;background:var(--n3);
+  display:flex;align-items:center;gap:12px;
+  padding:0 16px;
+  border-bottom:1px solid var(--n4);
+}
+.browser-dots{display:flex;gap:7px;}
+.browser-dots span{width:11px;height:11px;border-radius:50%;}
+.browser-dots span:nth-child(1){background:#FF5F57;}
+.browser-dots span:nth-child(2){background:#FFBD2E;}
+.browser-dots span:nth-child(3){background:#28C840;}
+.browser-url{
+  flex:1;max-width:560px;height:24px;
+  background:var(--n1);border-radius:var(--r-pill);
+  display:flex;align-items:center;gap:6px;
+  padding:0 12px;font-size:12px;color:var(--n7);
+  border:1px solid var(--n4);
+}
+.browser-url svg{flex-shrink:0;}
+.browser-content{display:flex;flex-direction:column;}
+
+/* ===================== Admin Layout ===================== */
+.admin-header{
+  height:56px;background:var(--n1);
+  border-bottom:1px solid var(--n4);
+  display:flex;align-items:center;
+  padding:0 16px;gap:16px;flex-shrink:0;
+}
+.header-left{display:flex;align-items:center;gap:12px;width:180px;flex-shrink:0;}
+.header-collapse{
+  width:32px;height:32px;border:none;background:transparent;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  border-radius:var(--r-base);color:var(--n9);
+}
+.header-collapse:hover{background:var(--n3);}
+.header-logo{font-size:15px;font-weight:600;color:var(--n10);white-space:nowrap;}
+.header-center{flex:1;display:flex;align-items:center;}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:14px;}
+.breadcrumb-item{color:var(--n7);}
+.breadcrumb-item:last-child{color:var(--n10);font-weight:500;}
+.breadcrumb-sep{color:var(--n6);font-size:12px;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.header-search{
+  display:flex;align-items:center;gap:6px;
+  height:32px;width:200px;padding:0 10px;
+  background:var(--n3);border-radius:var(--r-pill);
+  border:1px solid transparent;cursor:text;
+}
+.header-search svg{color:var(--n7);flex-shrink:0;}
+.header-search span{font-size:13px;color:var(--n7);flex:1;}
+.search-shortcut{
+  font-size:11px;color:var(--n7);
+  background:var(--n1);border:1px solid var(--n4);
+  border-radius:var(--r-base);padding:1px 6px;
+  font-family:var(--ff-mono);
+}
+.header-bell{position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:var(--r-base);}
+.header-bell:hover{background:var(--n3);}
+.header-bell svg{color:var(--n9);}
+.header-bell .a-badge{
+  position:absolute;top:2px;right:2px;
+  min-width:16px;height:16px;padding:0 4px;
+  background:var(--c-error);color:#fff;
+  border-radius:var(--r-pill);font-size:10px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--n1);
+}
+.header-avatar{
+  display:flex;align-items:center;gap:6px;
+  cursor:pointer;padding:0 4px 0 0;height:32px;
+}
+.avatar-circle{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--c-primary);color:#fff;
+  font-size:12px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;
+}
+.header-avatar span{font-size:13px;color:var(--n10);}
+.header-avatar svg{color:var(--n7);}
+
+.admin-body{display:flex;flex:1;min-height:0;}
+
+/* ===================== Sider ===================== */
+.admin-sider{
+  width:180px;flex-shrink:0;
+  background:var(--sider-bg);
+  padding:8px 0;
+  overflow-y:auto;
+}
+.sider-logo{
+  height:40px;display:flex;align-items:center;gap:8px;
+  padding:0 16px;margin-bottom:4px;
+}
+.sider-logo-mark{
+  width:24px;height:24px;border-radius:6px;
+  background:linear-gradient(135deg,#722ED1,#B37FEB);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.sider-logo-text{font-size:13px;font-weight:600;color:rgba(255,255,255,.85);white-space:nowrap;}
+
+.sider-menu{list-style:none;}
+.menu-group{margin-bottom:2px;}
+.menu-item{
+  display:flex;align-items:center;gap:10px;
+  height:40px;padding:0 16px;cursor:pointer;
+  color:rgba(255,255,255,.65);font-size:14px;
+  position:relative;transition:all var(--d-fast) var(--ease-std);
+}
+.menu-item:hover{color:#fff;}
+.menu-item .menu-icon{width:16px;height:16px;flex-shrink:0;}
+.menu-item .menu-label{flex:1;white-space:nowrap;}
+.menu-item .menu-arrow{
+  width:10px;height:10px;flex-shrink:0;
+  transition:transform var(--d-mid) var(--ease-std);
+  opacity:.6;
+}
+.menu-group.expanded .menu-arrow{transform:rotate(90deg);}
+.menu-group.expanded > .menu-item{color:#fff;}
+.menu-sub{
+  list-style:none;overflow:hidden;max-height:0;
+  transition:max-height var(--d-slow) var(--ease-std);
+}
+.menu-group.expanded .menu-sub{max-height:240px;}
+.sub-item{
+  display:flex;align-items:center;
+  height:36px;padding-left:42px;
+  font-size:13px;color:rgba(255,255,255,.55);
+  cursor:pointer;position:relative;
+  transition:all var(--d-fast) var(--ease-std);
+}
+.sub-item:hover{color:#fff;background:rgba(255,255,255,.04);}
+.sub-item.active{
+  color:#fff;background:rgba(22,119,255,.15);
+  border-right:3px solid var(--sider-active);
+}
+.sub-item.active::before{
+  content:"";position:absolute;left:16px;top:50%;transform:translateY(-50%);
+  width:6px;height:6px;border-radius:50%;background:var(--sider-active);
+}
+
+/* ===================== Content Area ===================== */
+.admin-content{
+  flex:1;background:var(--n3);padding:20px;
+  overflow-y:auto;min-width:0;
+}
+.page-title-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;
+}
+.page-title{font-size:20px;font-weight:600;color:var(--n10);}
+.page-actions{display:flex;gap:8px;align-items:center;}
+
+/* ===================== Components ===================== */
+/* Card */
+.a-card{
+  background:var(--n1);border-radius:var(--r-card);
+  box-shadow:var(--sh-card);border:1px solid var(--n4);
+  padding:16px;
+}
+.a-card + .a-card{margin-top:16px;}
+
+/* Button */
+.a-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:32px;padding:0 15px;border-radius:var(--r-base);
+  font-size:14px;font-weight:400;cursor:pointer;
+  border:1px solid transparent;white-space:nowrap;
+  transition:all var(--d-fast) var(--ease-std);
+  line-height:1;
+}
+.a-btn svg{flex-shrink:0;}
+.a-btn-primary{background:var(--c-primary);color:#fff;border-color:var(--c-primary);}
+.a-btn-primary:hover{background:#4096FF;border-color:#4096FF;}
+.a-btn-default{background:var(--n1);border-color:var(--n5);color:var(--n10);}
+.a-btn-default:hover{border-color:var(--c-primary);color:var(--c-primary);}
+.a-btn-link{background:transparent;border:none;color:var(--c-primary);padding:0 4px;height:auto;font-size:14px;}
+.a-btn-link:hover{color:#4096FF;}
+.a-btn-link + .a-btn-link{margin-left:12px;}
+.a-btn-link.danger{color:var(--c-error);}
+.a-btn-sm{height:24px;padding:0 8px;font-size:12px;}
+
+/* Tag */
+.a-tag{
+  display:inline-flex;align-items:center;
+  padding:0 7px;height:22px;border-radius:var(--r-base);
+  font-size:12px;line-height:20px;border:1px solid;
+  white-space:nowrap;
+}
+.tag-success{color:var(--c-success);background:var(--c-success-soft);border-color:#B7EB8F;}
+.tag-error{color:var(--c-error);background:var(--c-error-soft);border-color:#FFA39E;}
+.tag-warning{color:var(--c-warning);background:var(--c-warning-soft);border-color:#FFD666;}
+.tag-primary{color:var(--c-primary);background:var(--c-primary-soft);border-color:#91D5FF;}
+.tag-default{color:var(--n9);background:var(--n3);border-color:var(--n5);}
+.tag-purple{color:var(--c-purple);background:var(--c-purple-soft);border-color:#D3ADF7;}
+
+/* Table */
+.a-table-wrap{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);border:1px solid var(--n4);overflow:hidden;}
+.a-table{width:100%;border-collapse:collapse;font-size:14px;}
+.a-table thead th{
+  background:var(--n2);font-weight:var(--fw-medium);text-align:left;
+  padding:0 16px;height:48px;border-bottom:1px solid var(--n4);
+  color:var(--n9);font-size:14px;white-space:nowrap;
+}
+.a-table tbody td{
+  padding:0 16px;height:48px;border-bottom:1px solid var(--n4);
+  color:var(--n10);font-size:14px;white-space:nowrap;
+}
+.a-table tbody tr:last-child td{border-bottom:none;}
+.a-table tbody tr:hover{background:var(--n2);}
+.td-mono{font-family:var(--ff-mono);font-size:13px;color:var(--n10);}
+.td-mono-sm{font-family:var(--ff-mono);font-size:12px;color:var(--n7);}
+.td-muted{color:var(--n7);font-size:12px;}
+
+/* Tabs */
+.a-tabs{display:flex;gap:32px;border-bottom:1px solid var(--n4);margin-bottom:16px;}
+.a-tab{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 0;font-size:14px;color:var(--n7);
+  cursor:pointer;position:relative;transition:color var(--d-fast);
+}
+.a-tab:hover{color:var(--c-primary);}
+.a-tab.active{color:var(--c-primary);font-weight:500;}
+.a-tab.active::after{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;
+  height:2px;background:var(--c-primary);border-radius:1px;
+}
+.a-tab .tab-count{
+  font-size:12px;background:var(--n3);color:var(--n7);
+  padding:0 6px;border-radius:var(--r-pill);height:18px;
+  display:inline-flex;align-items:center;line-height:1;
+}
+.a-tab.active .tab-count{background:var(--c-primary-soft);color:var(--c-primary);}
+
+/* Input / Select */
+.a-input,.a-select{
+  display:inline-flex;align-items:center;gap:6px;
+  height:32px;padding:0 11px;
+  background:var(--n1);border:1px solid var(--n5);
+  border-radius:var(--r-base);font-size:14px;
+  color:var(--n10);cursor:pointer;
+  transition:border-color var(--d-fast);
+}
+.a-input:hover,.a-select:hover{border-color:var(--c-primary);}
+.a-input input{
+  border:none;outline:none;background:transparent;
+  font-size:14px;color:var(--n10);flex:1;width:100%;
+  font-family:var(--ff-app);
+}
+.a-input{cursor:text;}
+.a-input svg,.a-select svg{color:var(--n7);flex-shrink:0;}
+.select-value{flex:1;white-space:nowrap;}
+.select-placeholder{color:var(--n7);}
+
+/* Pagination */
+.a-pagination{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px;
+}
+.pagination-total{font-size:13px;color:var(--n7);}
+.pagination-pages{display:flex;align-items:center;gap:6px;}
+.page-btn{
+  min-width:32px;height:32px;padding:0 6px;
+  border:1px solid var(--n5);background:var(--n1);
+  border-radius:var(--r-base);font-size:14px;color:var(--n10);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all var(--d-fast);
+}
+.page-btn:hover:not(.active):not(.disabled){border-color:var(--c-primary);color:var(--c-primary);}
+.page-btn.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff;}
+.page-btn.disabled{color:var(--n6);cursor:not-allowed;background:var(--n3);}
+.page-ellipsis{color:var(--n7);padding:0 4px;}
+.page-size-select{
+  height:32px;padding:0 28px 0 11px;
+  border:1px solid var(--n5);background:var(--n1);
+  border-radius:var(--r-base);font-size:14px;color:var(--n10);
+  appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238C8C8C' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+}
+
+/* ===================== Dashboard Specific ===================== */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-bottom:20px;}
+.kpi-card{position:relative;overflow:hidden;}
+.kpi-label{font-size:14px;color:var(--n7);margin-bottom:8px;}
+.kpi-value{font-size:24px;font-weight:600;color:var(--n10);line-height:1.2;margin-bottom:8px;font-family:var(--ff-mono);}
+.kpi-change{font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:2px;}
+.kpi-change.up{color:var(--c-success);}
+.kpi-change.down{color:var(--c-error);}
+.kpi-icon{
+  position:absolute;right:16px;top:16px;
+  width:36px;height:36px;border-radius:var(--r-base);
+  display:flex;align-items:center;justify-content:center;
+}
+.kpi-icon.blue{background:var(--c-primary-soft);color:var(--c-primary);}
+.kpi-icon.green{background:var(--c-success-soft);color:var(--c-success);}
+.kpi-icon.orange{background:var(--c-warning-soft);color:var(--c-warning);}
+.kpi-icon.purple{background:var(--c-purple-soft);color:var(--c-purple);}
+
+/* Chart common */
+.chart-card{margin-bottom:20px;}
+.chart-card .chart-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;
+}
+.chart-title{font-size:16px;font-weight:600;color:var(--n10);}
+.chart-legend{display:flex;gap:16px;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--n9);}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.legend-dot.blue{background:var(--c-primary);}
+.legend-dot.green{background:var(--c-success);}
+
+.dual-charts{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+
+/* Funnel */
+.funnel-list{display:flex;flex-direction:column;gap:12px;padding-top:4px;}
+.funnel-row{display:flex;align-items:center;gap:12px;}
+.funnel-label{width:50px;font-size:13px;color:var(--n9);text-align:right;flex-shrink:0;}
+.funnel-bar-track{flex:1;display:flex;align-items:center;justify-content:center;}
+.funnel-bar{
+  height:32px;border-radius:var(--r-base);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:13px;font-weight:500;
+  background:linear-gradient(90deg,#1677FF,rgba(22,119,255,.55));
+  transition:width var(--d-slow) var(--ease-std);
+  min-width:60px;
+}
+
+/* ===================== Filter Bar ===================== */
+.filter-bar{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  margin-bottom:16px;
+}
+.filter-item{display:flex;align-items:center;gap:6px;}
+.filter-label{font-size:13px;color:var(--n9);white-space:nowrap;}
+
+/* ===================== Misc ===================== */
+.text-success{color:var(--c-success);}
+.text-error{color:var(--c-error);}
+.text-warning{color:var(--c-warning);}
+.text-primary{color:var(--c-primary);}
+.text-muted{color:var(--n7);}
+.font-mono{font-family:var(--ff-mono);}
+.divider-v{width:1px;height:20px;background:var(--n4);margin:0 4px;}
+
+/* scrollbar */
+.admin-sider::-webkit-scrollbar,.admin-content::-webkit-scrollbar{width:6px;}
+.admin-sider::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px;}
+.admin-content::-webkit-scrollbar-thumb{background:var(--n5);border-radius:3px;}
+</style>
+</head>
+<body>
+<div class="gallery">
+
+  <!-- ============ Gallery Header ============ -->
+  <div class="gallery-header">
+    <div class="gallery-logo">
+      <div class="logo-mark">A</div>
+      <div>
+        <div class="logo-title">Leno 系统管理</div>
+        <div class="logo-sub">SYSTEM ADMIN · CORE PAGES</div>
+      </div>
+    </div>
+    <div class="meta-chips">
+      <span class="meta-chip">Vue 3.5</span>
+      <span class="meta-chip">Ant Design Vue 4</span>
+      <span class="meta-chip">1440px</span>
+      <span class="meta-chip">Admin</span>
+    </div>
+  </div>
+
+  <h1 class="gallery-title">系统管理后台 核心页面预览</h1>
+  <p class="gallery-subtitle">基于工作区 system-admin/ 页面提示词生成，严格遵循 shared/design-system.md 设计令牌</p>
+
+  <!-- ============================================================ -->
+  <!-- PAGE 1: 运营总览 (Dashboard / Operations Overview)           -->
+  <!-- ============================================================ -->
+  <div class="page-preview">
+    <div class="page-header">
+      <span class="page-label">01 · 运营总览</span>
+      <span class="page-route">/dashboard/operations-overview</span>
+    </div>
+    <div class="browser-frame">
+      <div class="browser-bar">
+        <div class="browser-dots"><span></span><span></span><span></span></div>
+        <div class="browser-url">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          <span>https://admin.leno.com/dashboard/operations-overview</span>
+        </div>
+      </div>
+      <div class="browser-content">
+        <!-- Header -->
+        <div class="admin-header">
+          <div class="header-left">
+            <button class="header-collapse">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            </button>
+            <span class="header-logo">Leno 系统管理</span>
+          </div>
+          <div class="header-center">
+            <div class="breadcrumb">
+              <span class="breadcrumb-item">仪表盘</span>
+              <span class="breadcrumb-sep">/</span>
+              <span class="breadcrumb-item">运营总览</span>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="header-search">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <span>搜索</span>
+              <span class="search-shortcut">Ctrl+K</span>
+            </div>
+            <div class="header-bell">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg>
+              <span class="a-badge">5</span>
+            </div>
+            <div class="header-avatar">
+              <div class="avatar-circle">A</div>
+              <span>admin</span>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+        </div>
+        <!-- Body -->
+        <div class="admin-body">
+          <!-- Sider -->
+          <div class="admin-sider">
+            <div class="sider-logo">
+              <div class="sider-logo-mark">L</div>
+              <span class="sider-logo-text">Leno Admin</span>
+            </div>
+            <ul class="sider-menu">
+              <li class="menu-group expanded">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                  <span class="menu-label">仪表盘</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item active">运营总览</li>
+                  <li class="sub-item">实时监控</li>
+                  <li class="sub-item">数据看板</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+                  <span class="menu-label">用户与权限</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">用户管理</li>
+                  <li class="sub-item">角色管理</li>
+                  <li class="sub-item">权限配置</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-4 9-8 10-4-1-8-5-8-10V6l8-4z"/></svg>
+                  <span class="menu-label">系统治理</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">平台配置</li>
+                  <li class="sub-item">业务参数</li>
+                  <li class="sub-item">功能开关</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="6" rx="1"/><rect x="3" y="14" width="18" height="6" rx="1"/><circle cx="7" cy="7" r="1" fill="currentColor"/><circle cx="7" cy="17" r="1" fill="currentColor"/></svg>
+                  <span class="menu-label">运行时运维</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">服务健康</li>
+                  <li class="sub-item">缓存管理</li>
+                  <li class="sub-item">任务调度</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
+                  <span class="menu-label">审计与对账</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">审计日志</li>
+                  <li class="sub-item">操作日志</li>
+                  <li class="sub-item">对账记录</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M5 16c0-2 2-3 3-3s3 1 3 3M14 10h5M14 14h5"/></svg>
+                  <span class="menu-label">个人账号</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">账号信息</li>
+                  <li class="sub-item">安全设置</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+                  <span class="menu-label">系统监控</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">性能监控</li>
+                  <li class="sub-item">告警中心</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+          <!-- Content -->
+          <div class="admin-content">
+            <div class="page-title-row">
+              <div class="page-title">运营总览</div>
+              <div class="page-actions">
+                <div class="a-select"><span class="select-value">近 7 天</span><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg></div>
+                <button class="a-btn a-btn-default">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.5 9a9 9 0 0114.8-3.4L23 10M1 14l4.7 4.4A9 9 0 0020.5 15"/></svg>
+                  刷新
+                </button>
+                <button class="a-btn a-btn-default">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                  导出 CSV
+                </button>
+              </div>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="kpi-grid">
+              <div class="a-card kpi-card">
+                <div class="kpi-label">订单量</div>
+                <div class="kpi-value">12,560</div>
+                <div class="kpi-change up">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>
+                  12.5% 较上周
+                </div>
+                <div class="kpi-icon blue">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg>
+                </div>
+              </div>
+              <div class="a-card kpi-card">
+                <div class="kpi-label">GMV</div>
+                <div class="kpi-value">¥128万</div>
+                <div class="kpi-change up">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>
+                  9.8% 较上周
+                </div>
+                <div class="kpi-icon green">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                </div>
+              </div>
+              <div class="a-card kpi-card">
+                <div class="kpi-label">转化率</div>
+                <div class="kpi-value">8.5%</div>
+                <div class="kpi-change down">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 7l10 10M17 17H8M17 17V8"/></svg>
+                  0.3% 较上周
+                </div>
+                <div class="kpi-icon orange">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M19 9l-5 5-4-4-3 3"/></svg>
+                </div>
+              </div>
+              <div class="a-card kpi-card">
+                <div class="kpi-label">客单价</div>
+                <div class="kpi-value">¥102</div>
+                <div class="kpi-change up">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>
+                  2.1% 较上周
+                </div>
+                <div class="kpi-icon purple">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Trend Chart -->
+            <div class="a-card chart-card">
+              <div class="chart-head">
+                <div class="chart-title">GMV 与订单量趋势</div>
+                <div class="chart-legend">
+                  <div class="legend-item"><span class="legend-dot blue"></span>GMV（万元）</div>
+                  <div class="legend-item"><span class="legend-dot green"></span>订单量（笔）</div>
+                </div>
+              </div>
+              <svg width="100%" viewBox="0 0 760 240" style="overflow:visible;">
+                <!-- Y axis labels (left - GMV) -->
+                <text x="32" y="28" font-size="11" fill="#8C8C8C" text-anchor="end">30</text>
+                <text x="32" y="70" font-size="11" fill="#8C8C8C" text-anchor="end">25</text>
+                <text x="32" y="112" font-size="11" fill="#8C8C8C" text-anchor="end">20</text>
+                <text x="32" y="154" font-size="11" fill="#8C8C8C" text-anchor="end">15</text>
+                <text x="32" y="196" font-size="11" fill="#8C8C8C" text-anchor="end">10</text>
+                <text x="14" y="14" font-size="10" fill="#BFBFBF" text-anchor="start">万</text>
+                <!-- Y axis labels (right - orders) -->
+                <text x="748" y="28" font-size="11" fill="#8C8C8C" text-anchor="start">2000</text>
+                <text x="748" y="70" font-size="11" fill="#8C8C8C" text-anchor="start">1750</text>
+                <text x="748" y="112" font-size="11" fill="#8C8C8C" text-anchor="start">1500</text>
+                <text x="748" y="154" font-size="11" fill="#8C8C8C" text-anchor="start">1250</text>
+                <text x="748" y="196" font-size="11" fill="#8C8C8C" text-anchor="start">1000</text>
+                <!-- Grid lines -->
+                <line x1="40" y1="24" x2="730" y2="24" stroke="#F0F0F0" stroke-width="1"/>
+                <line x1="40" y1="66" x2="730" y2="66" stroke="#F0F0F0" stroke-width="1"/>
+                <line x1="40" y1="108" x2="730" y2="108" stroke="#F0F0F0" stroke-width="1"/>
+                <line x1="40" y1="150" x2="730" y2="150" stroke="#F0F0F0" stroke-width="1"/>
+                <line x1="40" y1="192" x2="730" y2="192" stroke="#F0F0F0" stroke-width="1"/>
+                <!-- X axis -->
+                <line x1="40" y1="192" x2="730" y2="192" stroke="#D9D9D9" stroke-width="1"/>
+                <!-- X axis labels -->
+                <text x="40" y="212" font-size="11" fill="#8C8C8C" text-anchor="middle">07-20</text>
+                <text x="155" y="212" font-size="11" fill="#8C8C8C" text-anchor="middle">07-21</text>
+                <text x="270" y="212" font-size="11" fill="#8C8C8C" text-anchor="middle">07-22</text>
+                <text x="385" y="212" font-size="11" fill="#8C8C8C" text-anchor="middle">07-23</text>
+                <text x="500" y="212" font-size="11" fill="#8C8C8C" text-anchor="middle">07-24</text>
+                <text x="615" y="212" font-size="11" fill="#8C8C8C" text-anchor="middle">07-25</text>
+                <text x="730" y="212" font-size="11" fill="#8C8C8C" text-anchor="middle">07-26</text>
+                <!-- GMV area fill (blue) -->
+                <defs>
+                  <linearGradient id="gmvGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#1677FF" stop-opacity="0.15"/>
+                    <stop offset="100%" stop-color="#1677FF" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M40,95 C98.33,95 98.33,80 155,80 C213.33,80 213.33,90 270,90 C328.33,90 328.33,60 385,60 C443.33,60 443.33,70 500,70 C558.33,70 558.33,45 615,45 C673.33,45 673.33,30 730,30 L730,192 L40,192 Z" fill="url(#gmvGrad)"/>
+                <!-- GMV line (blue) -->
+                <path d="M40,95 C98.33,95 98.33,80 155,80 C213.33,80 213.33,90 270,90 C328.33,90 328.33,60 385,60 C443.33,60 443.33,70 500,70 C558.33,70 558.33,45 615,45 C673.33,45 673.33,30 730,30" fill="none" stroke="#1677FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- Order line (green) -->
+                <path d="M40,87.5 C98.33,87.5 98.33,80 155,80 C213.33,80 213.33,83.75 270,83.75 C328.33,83.75 328.33,65 385,65 C443.33,65 443.33,68.75 500,68.75 C558.33,68.75 558.33,57.5 615,57.5 C673.33,57.5 673.33,50 730,50" fill="none" stroke="#52C41A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0"/>
+                <!-- GMV data dots -->
+                <circle cx="40" cy="95" r="3.5" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                <circle cx="155" cy="80" r="3.5" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                <circle cx="270" cy="90" r="3.5" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                <circle cx="385" cy="60" r="3.5" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                <circle cx="500" cy="70" r="3.5" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                <circle cx="615" cy="45" r="3.5" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                <circle cx="730" cy="30" r="3.5" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                <!-- Order data dots -->
+                <circle cx="40" cy="87.5" r="3" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+                <circle cx="155" cy="80" r="3" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+                <circle cx="270" cy="83.75" r="3" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+                <circle cx="385" cy="65" r="3" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+                <circle cx="500" cy="68.75" r="3" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+                <circle cx="615" cy="57.5" r="3" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+                <circle cx="730" cy="50" r="3" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+              </svg>
+            </div>
+
+            <!-- Dual Charts -->
+            <div class="dual-charts">
+              <!-- Pie Chart -->
+              <div class="a-card chart-card" style="margin-bottom:0;">
+                <div class="chart-head">
+                  <div class="chart-title">订单来源分布</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:20px;">
+                  <svg width="160" height="160" viewBox="0 0 160 160">
+                    <g transform="rotate(-90 80 80)">
+                      <circle cx="80" cy="80" r="60" fill="none" stroke="#F0F0F0" stroke-width="24"/>
+                      <!-- APP 65% -->
+                      <circle cx="80" cy="80" r="60" fill="none" stroke="#1677FF" stroke-width="24" stroke-dasharray="245.04 376.99" stroke-dashoffset="0"/>
+                      <!-- Web 20% -->
+                      <circle cx="80" cy="80" r="60" fill="none" stroke="#52C41A" stroke-width="24" stroke-dasharray="75.40 376.99" stroke-dashoffset="-245.04"/>
+                      <!-- 小程序 15% -->
+                      <circle cx="80" cy="80" r="60" fill="none" stroke="#FAAD14" stroke-width="24" stroke-dasharray="56.55 376.99" stroke-dashoffset="-320.44"/>
+                    </g>
+                    <text x="80" y="76" font-size="22" font-weight="600" fill="#000000D9" text-anchor="middle">12,560</text>
+                    <text x="80" y="94" font-size="11" fill="#8C8C8C" text-anchor="middle">总订单</text>
+                  </svg>
+                  <div style="display:flex;flex-direction:column;gap:14px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span style="width:10px;height:10px;border-radius:2px;background:#1677FF;display:inline-block;"></span>
+                      <span style="font-size:13px;color:#595959;">APP</span>
+                      <span style="font-size:13px;font-weight:600;color:#000000D9;margin-left:auto;">65%</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span style="width:10px;height:10px;border-radius:2px;background:#52C41A;display:inline-block;"></span>
+                      <span style="font-size:13px;color:#595959;">Web</span>
+                      <span style="font-size:13px;font-weight:600;color:#000000D9;margin-left:auto;">20%</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span style="width:10px;height:10px;border-radius:2px;background:#FAAD14;display:inline-block;"></span>
+                      <span style="font-size:13px;color:#595959;">小程序</span>
+                      <span style="font-size:13px;font-weight:600;color:#000000D9;margin-left:auto;">15%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Funnel Chart -->
+              <div class="a-card chart-card" style="margin-bottom:0;">
+                <div class="chart-head">
+                  <div class="chart-title">转化漏斗</div>
+                </div>
+                <div class="funnel-list">
+                  <div class="funnel-row">
+                    <span class="funnel-label">浏览</span>
+                    <div class="funnel-bar-track"><div class="funnel-bar" style="width:100%;">10,000</div></div>
+                  </div>
+                  <div class="funnel-row">
+                    <span class="funnel-label">加购</span>
+                    <div class="funnel-bar-track"><div class="funnel-bar" style="width:32%;">3,200</div></div>
+                  </div>
+                  <div class="funnel-row">
+                    <span class="funnel-label">下单</span>
+                    <div class="funnel-bar-track"><div class="funnel-bar" style="width:16%;">1,280</div></div>
+                  </div>
+                  <div class="funnel-row">
+                    <span class="funnel-label">支付</span>
+                    <div class="funnel-bar-track"><div class="funnel-bar" style="width:13.6%;">1,088</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- PAGE 2: 用户管理 (User Management)                          -->
+  <!-- ============================================================ -->
+  <div class="page-preview">
+    <div class="page-header">
+      <span class="page-label">02 · 用户管理</span>
+      <span class="page-route">/user-access/users</span>
+    </div>
+    <div class="browser-frame">
+      <div class="browser-bar">
+        <div class="browser-dots"><span></span><span></span><span></span></div>
+        <div class="browser-url">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          <span>https://admin.leno.com/user-access/users</span>
+        </div>
+      </div>
+      <div class="browser-content">
+        <!-- Header -->
+        <div class="admin-header">
+          <div class="header-left">
+            <button class="header-collapse">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            </button>
+            <span class="header-logo">Leno 系统管理</span>
+          </div>
+          <div class="header-center">
+            <div class="breadcrumb">
+              <span class="breadcrumb-item">用户与权限</span>
+              <span class="breadcrumb-sep">/</span>
+              <span class="breadcrumb-item">用户管理</span>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="header-search">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <span>搜索</span>
+              <span class="search-shortcut">Ctrl+K</span>
+            </div>
+            <div class="header-bell">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg>
+              <span class="a-badge">5</span>
+            </div>
+            <div class="header-avatar">
+              <div class="avatar-circle">A</div>
+              <span>admin</span>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+        </div>
+        <!-- Body -->
+        <div class="admin-body">
+          <!-- Sider -->
+          <div class="admin-sider">
+            <div class="sider-logo">
+              <div class="sider-logo-mark">L</div>
+              <span class="sider-logo-text">Leno Admin</span>
+            </div>
+            <ul class="sider-menu">
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                  <span class="menu-label">仪表盘</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">运营总览</li>
+                  <li class="sub-item">实时监控</li>
+                  <li class="sub-item">数据看板</li>
+                </ul>
+              </li>
+              <li class="menu-group expanded">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+                  <span class="menu-label">用户与权限</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item active">用户管理</li>
+                  <li class="sub-item">角色管理</li>
+                  <li class="sub-item">权限配置</li>
+                  <li class="sub-item">角色映射矩阵</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-4 9-8 10-4-1-8-5-8-10V6l8-4z"/></svg>
+                  <span class="menu-label">系统治理</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">平台配置</li>
+                  <li class="sub-item">业务参数</li>
+                  <li class="sub-item">功能开关</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="6" rx="1"/><rect x="3" y="14" width="18" height="6" rx="1"/><circle cx="7" cy="7" r="1" fill="currentColor"/><circle cx="7" cy="17" r="1" fill="currentColor"/></svg>
+                  <span class="menu-label">运行时运维</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">服务健康</li>
+                  <li class="sub-item">缓存管理</li>
+                  <li class="sub-item">任务调度</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
+                  <span class="menu-label">审计与对账</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">审计日志</li>
+                  <li class="sub-item">操作日志</li>
+                  <li class="sub-item">对账记录</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M5 16c0-2 2-3 3-3s3 1 3 3M14 10h5M14 14h5"/></svg>
+                  <span class="menu-label">个人账号</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">账号信息</li>
+                  <li class="sub-item">安全设置</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+                  <span class="menu-label">系统监控</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">性能监控</li>
+                  <li class="sub-item">告警中心</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+          <!-- Content -->
+          <div class="admin-content">
+            <div class="page-title-row">
+              <div class="page-title">用户管理</div>
+              <div class="page-actions">
+                <button class="a-btn a-btn-primary">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                  新建用户
+                </button>
+              </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="a-card" style="margin-bottom:16px;">
+              <div class="filter-bar">
+                <div class="filter-item">
+                  <div class="a-input" style="width:220px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                    <input type="text" placeholder="搜索用户名/邮箱" />
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">角色</span>
+                  <div class="a-select" style="width:130px;"><span class="select-value">全部角色</span><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg></div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">状态</span>
+                  <div class="a-select" style="width:130px;"><span class="select-value">全部状态</span><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg></div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">注册时间</span>
+                  <div class="a-select" style="width:200px;"><span class="select-placeholder select-value">请选择日期范围</span><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg></div>
+                </div>
+                <button class="a-btn a-btn-primary">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                  查询
+                </button>
+                <button class="a-btn a-btn-link">重置</button>
+              </div>
+            </div>
+
+            <!-- User Table -->
+            <div class="a-table-wrap">
+              <table class="a-table">
+                <thead>
+                  <tr>
+                    <th style="width:80px;">用户ID</th>
+                    <th style="width:110px;">用户名</th>
+                    <th style="width:170px;">邮箱</th>
+                    <th style="width:100px;">角色</th>
+                    <th style="width:100px;">状态</th>
+                    <th style="width:120px;">注册时间</th>
+                    <th style="width:140px;">最近登录</th>
+                    <th style="width:120px;">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="td-mono">U001</td>
+                    <td>admin</td>
+                    <td class="td-muted">admin@leno.com</td>
+                    <td><span class="a-tag tag-error">Admin</span></td>
+                    <td><span class="a-tag tag-success">Active</span></td>
+                    <td class="td-muted">2026-01-01</td>
+                    <td class="td-muted">2026-07-26 09:00</td>
+                    <td><a class="a-btn a-btn-link">查看</a><a class="a-btn a-btn-link">锁定</a></td>
+                  </tr>
+                  <tr>
+                    <td class="td-mono">U002</td>
+                    <td>operator01</td>
+                    <td class="td-muted">op01@leno.com</td>
+                    <td><span class="a-tag tag-primary">Operator</span></td>
+                    <td><span class="a-tag tag-success">Active</span></td>
+                    <td class="td-muted">2026-02-15</td>
+                    <td class="td-muted">2026-07-26 08:30</td>
+                    <td><a class="a-btn a-btn-link">查看</a><a class="a-btn a-btn-link">锁定</a></td>
+                  </tr>
+                  <tr>
+                    <td class="td-mono">U003</td>
+                    <td>seller01</td>
+                    <td class="td-muted">seller@shop.com</td>
+                    <td><span class="a-tag tag-success">Seller</span></td>
+                    <td><span class="a-tag tag-success">Active</span></td>
+                    <td class="td-muted">2026-03-01</td>
+                    <td class="td-muted">2026-07-25 16:00</td>
+                    <td><a class="a-btn a-btn-link">查看</a><a class="a-btn a-btn-link">锁定</a></td>
+                  </tr>
+                  <tr>
+                    <td class="td-mono">U004</td>
+                    <td>buyer_li</td>
+                    <td class="td-muted">li@qq.com</td>
+                    <td><span class="a-tag tag-default">Buyer</span></td>
+                    <td><span class="a-tag tag-error">Suspended</span></td>
+                    <td class="td-muted">2026-05-10</td>
+                    <td class="td-muted">2026-07-20 12:00</td>
+                    <td><a class="a-btn a-btn-link">查看</a><a class="a-btn a-btn-link">恢复</a></td>
+                  </tr>
+                  <tr>
+                    <td class="td-mono">U005</td>
+                    <td>buyer_wang</td>
+                    <td class="td-muted">wang@qq.com</td>
+                    <td><span class="a-tag tag-default">Buyer</span></td>
+                    <td><span class="a-tag tag-warning">Locked</span></td>
+                    <td class="td-muted">2026-06-01</td>
+                    <td class="td-muted">2026-07-15 10:00</td>
+                    <td><a class="a-btn a-btn-link">查看</a><a class="a-btn a-btn-link">恢复</a></td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="a-pagination">
+                <span class="pagination-total">共 128 条</span>
+                <div class="pagination-pages">
+                  <button class="page-btn disabled">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                  </button>
+                  <button class="page-btn active">1</button>
+                  <button class="page-btn">2</button>
+                  <button class="page-btn">3</button>
+                  <button class="page-btn">4</button>
+                  <button class="page-btn">5</button>
+                  <span class="page-ellipsis">...</span>
+                  <button class="page-btn">7</button>
+                  <button class="page-btn">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                  </button>
+                  <select class="page-size-select"><option>20 条/页</option><option>50 条/页</option></select>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- PAGE 3: 审计日志 (Audit Logs)                               -->
+  <!-- ============================================================ -->
+  <div class="page-preview">
+    <div class="page-header">
+      <span class="page-label">03 · 审计日志</span>
+      <span class="page-route">/audit/audit-logs</span>
+    </div>
+    <div class="browser-frame">
+      <div class="browser-bar">
+        <div class="browser-dots"><span></span><span></span><span></span></div>
+        <div class="browser-url">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          <span>https://admin.leno.com/audit/audit-logs</span>
+        </div>
+      </div>
+      <div class="browser-content">
+        <!-- Header -->
+        <div class="admin-header">
+          <div class="header-left">
+            <button class="header-collapse">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            </button>
+            <span class="header-logo">Leno 系统管理</span>
+          </div>
+          <div class="header-center">
+            <div class="breadcrumb">
+              <span class="breadcrumb-item">审计与对账</span>
+              <span class="breadcrumb-sep">/</span>
+              <span class="breadcrumb-item">审计日志</span>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="header-search">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <span>搜索</span>
+              <span class="search-shortcut">Ctrl+K</span>
+            </div>
+            <div class="header-bell">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg>
+              <span class="a-badge">5</span>
+            </div>
+            <div class="header-avatar">
+              <div class="avatar-circle">A</div>
+              <span>admin</span>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+            </div>
+          </div>
+        </div>
+        <!-- Body -->
+        <div class="admin-body">
+          <!-- Sider -->
+          <div class="admin-sider">
+            <div class="sider-logo">
+              <div class="sider-logo-mark">L</div>
+              <span class="sider-logo-text">Leno Admin</span>
+            </div>
+            <ul class="sider-menu">
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                  <span class="menu-label">仪表盘</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">运营总览</li>
+                  <li class="sub-item">实时监控</li>
+                  <li class="sub-item">数据看板</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+                  <span class="menu-label">用户与权限</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">用户管理</li>
+                  <li class="sub-item">角色管理</li>
+                  <li class="sub-item">权限配置</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-4 9-8 10-4-1-8-5-8-10V6l8-4z"/></svg>
+                  <span class="menu-label">系统治理</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">平台配置</li>
+                  <li class="sub-item">业务参数</li>
+                  <li class="sub-item">功能开关</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="6" rx="1"/><rect x="3" y="14" width="18" height="6" rx="1"/><circle cx="7" cy="7" r="1" fill="currentColor"/><circle cx="7" cy="17" r="1" fill="currentColor"/></svg>
+                  <span class="menu-label">运行时运维</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">服务健康</li>
+                  <li class="sub-item">缓存管理</li>
+                  <li class="sub-item">任务调度</li>
+                </ul>
+              </li>
+              <li class="menu-group expanded">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
+                  <span class="menu-label">审计与对账</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item active">审计日志</li>
+                  <li class="sub-item">操作日志</li>
+                  <li class="sub-item">跨域审计条目</li>
+                  <li class="sub-item">对账记录</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M5 16c0-2 2-3 3-3s3 1 3 3M14 10h5M14 14h5"/></svg>
+                  <span class="menu-label">个人账号</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">账号信息</li>
+                  <li class="sub-item">安全设置</li>
+                </ul>
+              </li>
+              <li class="menu-group">
+                <div class="menu-item">
+                  <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+                  <span class="menu-label">系统监控</span>
+                  <svg class="menu-arrow" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+                </div>
+                <ul class="menu-sub">
+                  <li class="sub-item">性能监控</li>
+                  <li class="sub-item">告警中心</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+          <!-- Content -->
+          <div class="admin-content">
+            <div class="page-title-row">
+              <div class="page-title">审计日志</div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="a-tabs">
+              <div class="a-tab active">审计日志<span class="tab-count">1,256</span></div>
+              <div class="a-tab">操作日志<span class="tab-count">3,840</span></div>
+              <div class="a-tab">跨域审计条目<span class="tab-count">42</span></div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="filter-bar" style="margin-bottom:16px;">
+              <div class="filter-item">
+                <span class="filter-label">操作人</span>
+                <div class="a-select" style="width:130px;"><span class="select-value">全部</span><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg></div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">资源类型</span>
+                <div class="a-select" style="width:130px;"><span class="select-value">全部</span><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg></div>
+              </div>
+              <div class="filter-item">
+                <div class="a-input" style="width:160px;">
+                  <input type="text" placeholder="操作动作" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">时间范围</span>
+                <div class="a-select" style="width:180px;"><span class="select-value">近 24 小时</span><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg></div>
+              </div>
+              <button class="a-btn a-btn-primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                查询
+              </button>
+              <button class="a-btn a-btn-default">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                导出 CSV
+              </button>
+            </div>
+
+            <!-- Audit Table -->
+            <div class="a-table-wrap">
+              <table class="a-table">
+                <thead>
+                  <tr>
+                    <th style="width:80px;">日志ID</th>
+                    <th style="width:90px;">操作人</th>
+                    <th style="width:90px;">角色</th>
+                    <th style="width:80px;">模块</th>
+                    <th style="width:110px;">动作</th>
+                    <th style="width:80px;">资源类型</th>
+                    <th style="width:80px;">资源ID</th>
+                    <th style="width:70px;">状态</th>
+                    <th style="width:110px;">IP</th>
+                    <th style="width:90px;">发生时间</th>
+                    <th style="width:70px;">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="td-mono-sm">LOG001</td>
+                    <td>admin</td>
+                    <td><span class="a-tag tag-error">Admin</span></td>
+                    <td>Order</td>
+                    <td class="td-muted">force-cancel</td>
+                    <td>Order</td>
+                    <td class="td-mono-sm">ORD001</td>
+                    <td><span class="a-tag tag-success">200</span></td>
+                    <td class="td-mono-sm">192.168.1.1</td>
+                    <td class="td-muted">14:30:15</td>
+                    <td><a class="a-btn a-btn-link">详情</a></td>
+                  </tr>
+                  <tr>
+                    <td class="td-mono-sm">LOG002</td>
+                    <td>operator01</td>
+                    <td><span class="a-tag tag-primary">Operator</span></td>
+                    <td>Product</td>
+                    <td class="td-muted">approve</td>
+                    <td>Product</td>
+                    <td class="td-mono-sm">PRD005</td>
+                    <td><span class="a-tag tag-success">200</span></td>
+                    <td class="td-mono-sm">192.168.1.2</td>
+                    <td class="td-muted">14:25:08</td>
+                    <td><a class="a-btn a-btn-link">详情</a></td>
+                  </tr>
+                  <tr>
+                    <td class="td-mono-sm">LOG003</td>
+                    <td>admin</td>
+                    <td><span class="a-tag tag-error">Admin</span></td>
+                    <td>User</td>
+                    <td class="td-muted">suspend</td>
+                    <td>User</td>
+                    <td class="td-mono-sm">U004</td>
+                    <td><span class="a-tag tag-success">200</span></td>
+                    <td class="td-mono-sm">192.168.1.1</td>
+                    <td class="td-muted">13:45:30</td>
+                    <td><a class="a-btn a-btn-link">详情</a></td>
+                  </tr>
+                  <tr>
+                    <td class="td-mono-sm">LOG004</td>
+                    <td>operator01</td>
+                    <td><span class="a-tag tag-primary">Operator</span></td>
+                    <td>Order</td>
+                    <td class="td-muted">query</td>
+                    <td>Order</td>
+                    <td class="td-mono-sm">—</td>
+                    <td><span class="a-tag tag-success">200</span></td>
+                    <td class="td-mono-sm">192.168.1.2</td>
+                    <td class="td-muted">13:20:00</td>
+                    <td><a class="a-btn a-btn-link">详情</a></td>
+                  </tr>
+                  <tr>
+                    <td class="td-mono-sm">LOG005</td>
+                    <td>admin</td>
+                    <td><span class="a-tag tag-error">Admin</span></td>
+                    <td>Payment</td>
+                    <td class="td-muted">refund</td>
+                    <td>Payment</td>
+                    <td class="td-mono-sm">PAY001</td>
+                    <td><span class="a-tag tag-error">500</span></td>
+                    <td class="td-mono-sm">192.168.1.1</td>
+                    <td class="td-muted">12:15:42</td>
+                    <td><a class="a-btn a-btn-link">详情</a></td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="a-pagination">
+                <span class="pagination-total">共 1,256 条</span>
+                <div class="pagination-pages">
+                  <button class="page-btn disabled">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                  </button>
+                  <button class="page-btn active">1</button>
+                  <button class="page-btn">2</button>
+                  <button class="page-btn">3</button>
+                  <button class="page-btn">4</button>
+                  <button class="page-btn">5</button>
+                  <span class="page-ellipsis">...</span>
+                  <button class="page-btn">63</button>
+                  <button class="page-btn">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                  </button>
+                  <select class="page-size-select"><option>20 条/页</option><option>50 条/页</option></select>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
