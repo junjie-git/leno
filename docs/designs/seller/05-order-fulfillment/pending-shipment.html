@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>待发货订单 - Leno 商家管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { font-family:var(--ff-app); color:var(--n10); background:var(--n3); font-size:var(--fs-base); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+body { min-height:100vh; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+button { font-family:inherit; cursor:pointer; }
+svg { display:inline-block; vertical-align:middle; }
+
+/* ===== Layout ===== */
+.app { display:flex; flex-direction:column; min-height:100vh; }
+.app-header { height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5); display:flex; align-items:center; padding:0 24px 0 0; position:sticky; top:0; z-index:200; box-shadow:0 1px 4px rgba(0,21,41,.08); }
+.app-header .logo { width:var(--sider-width); height:100%; display:flex; align-items:center; gap:10px; padding:0 20px; flex-shrink:0; }
+.app-header .logo-mark { width:32px; height:32px; border-radius:6px; background:linear-gradient(135deg,#1677FF 0%,#4096FF 100%); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:var(--fw-semibold); font-size:18px; box-shadow:0 2px 8px rgba(22,119,255,.35); }
+.app-header .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); white-space:nowrap; }
+.app-header .logo-text small { display:block; font-size:var(--fs-sm); font-weight:var(--fw-normal); color:var(--n7); margin-top:-2px; }
+.app-header .header-body { flex:1; display:flex; align-items:center; justify-content:space-between; padding-left:24px; }
+.collapse-btn { width:40px; height:var(--header-h); display:flex; align-items:center; justify-content:center; color:var(--n9); background:none; border:none; font-size:18px; cursor:pointer; }
+.collapse-btn:hover { color:var(--c-primary); background:var(--n3); }
+.breadcrumb { display:flex; align-items:center; gap:6px; font-size:var(--fs-base); color:var(--n9); }
+.breadcrumb a { color:var(--n9); }
+.breadcrumb a:hover { color:var(--c-primary); }
+.breadcrumb .sep { color:var(--n5); font-size:12px; }
+.breadcrumb .current { color:var(--n10); }
+.header-actions { display:flex; align-items:center; gap:8px; }
+.global-search { width:220px; height:32px; background:var(--n3); border:1px solid transparent; border-radius:var(--r-base); display:flex; align-items:center; padding:0 12px; gap:8px; transition:all .2s; }
+.global-search:hover { border-color:var(--c-primary); background:var(--n1); }
+.global-search input { flex:1; border:none; outline:none; background:transparent; font-size:var(--fs-sm); color:var(--n10); }
+.global-search input::placeholder { color:var(--n7); }
+.global-search .kbd { font-size:11px; color:var(--n7); background:var(--n1); border:1px solid var(--n5); border-radius:4px; padding:0 5px; line-height:18px; }
+.icon-btn { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--n9); position:relative; background:none; border:none; font-size:18px; }
+.icon-btn:hover { background:var(--n3); color:var(--c-primary); }
+.icon-btn .badge-dot { position:absolute; top:6px; right:6px; min-width:16px; height:16px; padding:0 4px; background:var(--c-error); color:#fff; border-radius:8px; font-size:10px; line-height:16px; font-weight:var(--fw-medium); border:2px solid var(--n1); }
+.avatar-wrap { display:flex; align-items:center; gap:8px; padding:4px 8px 4px 4px; border-radius:var(--r-base); cursor:pointer; }
+.avatar-wrap:hover { background:var(--n3); }
+.avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#1677FF,#4096FF); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:var(--fw-medium); }
+.avatar-name { font-size:var(--fs-base); color:var(--n10); }
+.avatar-role { font-size:var(--fs-sm); color:var(--n7); }
+
+.app-body { flex:1; display:flex; }
+.app-sider { width:var(--sider-width); background:var(--sider-bg); flex-shrink:0; display:flex; flex-direction:column; position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto; }
+.menu { list-style:none; padding:8px 0; flex:1; }
+.menu-link { display:flex; align-items:center; gap:10px; height:40px; padding:0 16px 0 24px; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .15s; position:relative; }
+.menu-link:hover { color:#fff; }
+.menu-link .m-icon { width:16px; height:16px; flex-shrink:0; font-size:16px; }
+.menu-link .m-arrow { margin-left:auto; font-size:10px; transition:transform .2s; }
+.menu-item.open > .menu-link .m-arrow { transform:rotate(90deg); }
+.menu-item.active > .menu-link { color:#fff; background:var(--c-primary); }
+.menu-item.active > .menu-link::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#fff; }
+.menu-sub { list-style:none; max-height:0; overflow:hidden; transition:max-height .25s ease; }
+.menu-item.open > .menu-sub { max-height:500px; }
+.menu-sub .menu-link { height:36px; padding-left:48px; font-size:var(--fs-sm); }
+.menu-sub .menu-link.active { color:#fff; background:rgba(22,119,255,.15); }
+.menu-sub .menu-link.active::before { display:none; }
+
+.app-content { flex:1; display:flex; flex-direction:column; min-width:0; }
+.page-scroll { flex:1; overflow-y:auto; padding:var(--s6); }
+.app-footer { height:32px; background:var(--n1); border-top:1px solid var(--n3); display:flex; align-items:center; justify-content:center; font-size:var(--fs-sm); color:var(--n7); padding:0 24px; }
+
+/* ===== Page Header ===== */
+.page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--s4); }
+.page-header h1 { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); }
+.page-header .sub { margin-top:4px; font-size:var(--fs-sm); color:var(--n7); }
+
+/* ===== Alert ===== */
+.alert { display:flex; align-items:flex-start; gap:8px; padding:9px 16px; border-radius:var(--r-base); margin-bottom:var(--s3); font-size:var(--fs-base); border:1px solid; }
+.alert.warning { background:#FFFBE6; border-color:#FFE58F; color:#AD6800; }
+.alert .alert-icon { color:var(--c-warning); flex-shrink:0; margin-top:1px; }
+.alert .alert-content { flex:1; line-height:1.5; }
+.alert .alert-content strong { color:#D48806; font-weight:var(--fw-semibold); }
+
+/* ===== Stats Row ===== */
+.stats-row { display:flex; gap:var(--s4); margin-bottom:var(--s4); }
+.stat-card { flex:1; background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; padding:var(--s4) var(--s6); display:flex; align-items:center; gap:var(--s4); }
+.stat-card .stat-icon { width:48px; height:48px; border-radius:var(--r-base); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.stat-card .stat-icon.warning { background:#FFF7E6; color:var(--c-warning); }
+.stat-card .stat-icon.error { background:#FFF2F0; color:var(--c-error); }
+.stat-card .stat-icon.primary { background:#E6F4FF; color:var(--c-primary); }
+.stat-card .stat-icon.success { background:#F6FFED; color:var(--c-success); }
+.stat-card .stat-info { flex:1; }
+.stat-card .stat-label { font-size:var(--fs-sm); color:var(--n7); margin-bottom:4px; }
+.stat-card .stat-value { font-size:var(--fs-2xl); font-weight:var(--fw-semibold); color:var(--n10); line-height:1; }
+.stat-card .stat-value .unit { font-size:var(--fs-sm); font-weight:var(--fw-normal); color:var(--n7); margin-left:4px; }
+
+/* ===== Card ===== */
+.card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; }
+.card-pad { padding:var(--s6); }
+.card + .card { margin-top:var(--s4); }
+.card-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); padding:var(--s4) var(--s6); border-bottom:1px solid var(--n3); display:flex; align-items:center; gap:8px; }
+.card-title .ct-icon { color:var(--c-primary); display:flex; align-items:center; }
+.card-title .ct-extra { margin-left:auto; font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-normal); }
+
+/* ===== Filter Bar ===== */
+.filter-bar { display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap; padding:var(--s4) var(--s6); border-bottom:1px solid var(--n3); }
+.filter-item { display:flex; align-items:center; gap:6px; }
+.filter-item label { font-size:var(--fs-sm); color:var(--n9); white-space:nowrap; }
+.form-control { height:32px; padding:0 11px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:flex; align-items:center; gap:6px; transition:border-color .2s,box-shadow .2s; }
+.form-control:hover { border-color:var(--c-primary); }
+.form-control:focus-within { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.form-control input { flex:1; border:none; outline:none; background:transparent; font-size:var(--fs-base); color:var(--n10); min-width:0; height:100%; }
+.form-control input::placeholder { color:var(--n7); }
+.form-control .ctrl-icon { color:var(--n7); flex-shrink:0; display:flex; align-items:center; }
+.form-control.select { cursor:pointer; position:relative; padding-right:28px; min-width:120px; }
+.form-control.select::after { content:''; width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:5px solid var(--n7); position:absolute; right:11px; }
+.form-control .placeholder { color:var(--n7); }
+
+/* ===== Buttons ===== */
+.btn { height:32px; padding:0 15px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; gap:6px; transition:all .15s; white-space:nowrap; }
+.btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.btn .b-icon { width:14px; height:14px; font-size:14px; }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-danger { background:var(--n1); border-color:var(--c-error); color:var(--c-error); }
+.btn-danger:hover { background:var(--c-error); color:#fff; }
+.btn-link { background:none; border:none; color:var(--c-primary); padding:0 4px; height:auto; font-size:var(--fs-base); }
+.btn-link:hover { color:#4096FF; background:none; }
+.btn-link.danger { color:var(--c-error); }
+.btn-link.danger:hover { color:#FF7875; }
+.btn-sm { height:24px; padding:0 7px; font-size:var(--fs-sm); }
+.btn-sm .b-icon { width:12px; height:12px; font-size:12px; }
+.btn[disabled] { color:var(--n7); background:var(--n3); border-color:var(--n5); cursor:not-allowed; }
+
+/* ===== Table ===== */
+.table-wrap { overflow-x:auto; }
+.table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+.table thead th { background:var(--n2); color:var(--n9); font-weight:var(--fw-medium); text-align:left; padding:12px 16px; border-bottom:1px solid var(--n5); white-space:nowrap; }
+.table tbody td { padding:12px 16px; border-bottom:1px solid #F0F0F0; color:var(--n10); vertical-align:middle; }
+.table tbody tr { transition:background .15s; }
+.table tbody tr:hover { background:var(--n2); }
+.table .col-num { font-family:var(--ff-mono); font-size:var(--fs-sm); color:var(--c-primary); cursor:pointer; }
+.table .col-num:hover { color:#4096FF; }
+.table .col-amount { font-weight:var(--fw-semibold); color:var(--n10); }
+.table .col-time { font-size:var(--fs-sm); color:var(--n9); }
+.table .actions { display:flex; gap:8px; }
+
+/* ===== Product Cell ===== */
+.prod-cell { display:flex; align-items:center; gap:8px; }
+.prod-thumb { width:40px; height:40px; border-radius:4px; background:linear-gradient(135deg,#F0F5FF,#E6F4FF); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--c-primary); font-size:11px; font-weight:var(--fw-medium); border:1px solid #D6E4FF; }
+.prod-info { min-width:0; }
+.prod-name { font-size:var(--fs-base); color:var(--n10); line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
+.prod-sku { font-size:var(--fs-sm); color:var(--n7); margin-top:2px; }
+.prod-qty { font-size:var(--fs-sm); color:var(--n9); margin-top:2px; }
+
+/* ===== Wait Time Badge ===== */
+.wait-time { display:inline-flex; align-items:center; gap:4px; font-weight:var(--fw-semibold); font-size:var(--fs-base); }
+.wait-time .wt-icon { width:14px; height:14px; }
+.wait-time.danger { color:var(--c-error); }
+.wait-time.warning { color:var(--c-warning); }
+.wait-time.success { color:var(--c-success); }
+
+/* ===== Pagination ===== */
+.pagination { display:flex; align-items:center; justify-content:flex-end; gap:4px; padding:var(--s4) var(--s6); border-top:1px solid var(--n3); }
+.page-btn { min-width:32px; height:32px; padding:0 8px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:all .15s; }
+.page-btn:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.page-btn.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.page-btn[disabled] { color:var(--n7); background:var(--n3); border-color:var(--n5); cursor:not-allowed; }
+.page-size { display:flex; align-items:center; gap:6px; font-size:var(--fs-sm); color:var(--n9); margin-left:var(--s4); }
+.page-size .form-control { min-width:90px; height:32px; }
+.pagination .total { font-size:var(--fs-sm); color:var(--n9); margin-right:auto; }
+
+/* ===== Tag ===== */
+.tag { display:inline-flex; align-items:center; gap:4px; height:22px; padding:0 8px; border-radius:var(--r-base); font-size:var(--fs-sm); line-height:20px; border:1px solid; }
+.tag .dot { width:6px; height:6px; border-radius:50%; }
+.tag.warning { color:#D48806; background:#FFF7E6; border-color:#FFD591; }
+.tag.warning .dot { background:var(--c-warning); }
+.tag.primary { color:#0958D9; background:#E6F4FF; border-color:#91CAFF; }
+.tag.primary .dot { background:var(--c-primary); }
+.tag.success { color:#389E0D; background:#F6FFED; border-color:#B7EB8F; }
+.tag.success .dot { background:var(--c-success); }
+
+/* ===== Checkbox ===== */
+.cb { width:16px; height:16px; border:1px solid var(--n5); border-radius:3px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; transition:all .15s; background:var(--n1); }
+.cb.checked { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+
+/* ===== Toolbar ===== */
+.toolbar { display:flex; align-items:center; justify-content:space-between; padding:var(--s3) var(--s6); border-bottom:1px solid var(--n3); background:var(--n2); }
+.toolbar-left { display:flex; align-items:center; gap:var(--s3); }
+.toolbar-right { display:flex; align-items:center; gap:var(--s3); font-size:var(--fs-sm); color:var(--n9); }
+.selected-count { color:var(--c-primary); font-weight:var(--fw-medium); }
+
+/* ===== Modal ===== */
+.mask { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; opacity:0; visibility:hidden; transition:opacity .25s; }
+.mask.show { opacity:1; visibility:visible; }
+.modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(.96); width:480px; max-width:calc(100vw - 32px); background:var(--n1); border-radius:var(--r-lg); z-index:1001; opacity:0; visibility:hidden; transition:all .25s; box-shadow:var(--sh-modal); }
+.modal.show { opacity:1; visibility:visible; transform:translate(-50%,-50%) scale(1); }
+.modal-header { height:56px; padding:0 24px; border-bottom:1px solid var(--n5); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.modal-header h3 { font-size:var(--fs-lg); font-weight:var(--fw-semibold); }
+.modal-close { width:28px; height:28px; border:none; background:none; font-size:16px; color:var(--n7); border-radius:4px; display:flex; align-items:center; justify-content:center; }
+.modal-close:hover { background:var(--n3); color:var(--n10); }
+.modal-body { padding:24px; }
+.modal-footer { padding:12px 24px; border-top:1px solid var(--n5); display:flex; justify-content:flex-end; gap:8px; flex-shrink:0; }
+
+/* ===== Form Item ===== */
+.form-item { margin-bottom:var(--s4); }
+.form-item label { display:block; font-size:var(--fs-base); color:var(--n10); margin-bottom:6px; }
+.form-item label .req { color:var(--c-error); margin-right:4px; }
+.form-item .req-hint { font-size:var(--fs-sm); color:var(--n7); margin-top:4px; }
+.form-item .error-msg { font-size:var(--fs-sm); color:var(--c-error); margin-top:4px; display:flex; align-items:center; gap:4px; }
+.form-control.error { border-color:var(--c-error); }
+.form-control.error:focus-within { box-shadow:0 0 0 2px rgba(255,77,79,.1); }
+
+/* ===== Order Summary in Modal ===== */
+.order-summary { background:var(--n2); border:1px solid var(--n3); border-radius:var(--r-base); padding:12px 16px; margin-bottom:var(--s6); }
+.order-summary .os-row { display:flex; align-items:center; gap:12px; }
+.order-summary .os-thumb { width:48px; height:48px; border-radius:4px; background:linear-gradient(135deg,#F0F5FF,#E6F4FF); display:flex; align-items:center; justify-content:center; color:var(--c-primary); font-size:12px; font-weight:var(--fw-medium); border:1px solid #D6E4FF; flex-shrink:0; }
+.order-summary .os-info { flex:1; }
+.order-summary .os-name { font-size:var(--fs-base); color:var(--n10); }
+.order-summary .os-meta { font-size:var(--fs-sm); color:var(--n7); margin-top:2px; }
+.order-summary .os-amount { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); }
+
+/* ===== Toast ===== */
+.toast { position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-20px); background:var(--n1); border-radius:var(--r-base); box-shadow:var(--sh-dropdown); padding:9px 16px; display:flex; align-items:center; gap:8px; font-size:var(--fs-base); z-index:2000; opacity:0; visibility:hidden; transition:all .25s; border:1px solid var(--n5); }
+.toast.show { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+.toast.success .toast-icon { color:var(--c-success); }
+.toast.error .toast-icon { color:var(--c-error); }
+.toast .toast-icon { width:16px; height:16px; }
+
+/* ===== Skeleton ===== */
+.skeleton-row { padding:12px 16px; border-bottom:1px solid #F0F0F0; }
+.sk-line { height:14px; background:linear-gradient(90deg,#f2f2f2 25%,#e6e6e6 37%,#f2f2f2 63%); background-size:400% 100%; border-radius:4px; animation:skLoad 1.4s ease infinite; }
+@keyframes skLoad { 0% { background-position:100% 50%; } 100% { background-position:0 50%; } }
+
+.hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-mark">L</div>
+      <div class="logo-text">Leno<small>商家管理后台</small></div>
+    </div>
+    <div class="header-body">
+      <div style="display:flex;align-items:center;gap:0;">
+        <button class="collapse-btn" aria-label="折叠菜单">
+          <svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"/></svg>
+        </button>
+        <nav class="breadcrumb" style="margin-left:16px;">
+          <a href="#">首页</a>
+          <span class="sep">/</span>
+          <a href="#">订单履约</a>
+          <span class="sep">/</span>
+          <span class="current">待发货订单</span>
+        </nav>
+      </div>
+      <div class="header-actions">
+        <div class="global-search">
+          <svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"/></svg>
+          <input placeholder="搜索订单号、商品、买家" />
+          <span class="kbd">Ctrl K</span>
+        </div>
+        <button class="icon-btn" aria-label="待发货" title="待发货订单">
+          <svg viewBox="64 64 896 896" width="18" height="18" fill="currentColor"><path d="M832 112H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM440.4 501.5l72.4 72.4-45.2 45.2-72.4-72.4 45.2-45.2zM820 676H324V324h496v352z"/></svg>
+          <span class="badge-dot">5</span>
+        </button>
+        <button class="icon-btn" aria-label="售后" title="售后待处理">
+          <svg viewBox="64 64 896 896" width="18" height="18" fill="currentColor"><path d="M912 820c0-21.7-17.6-39.3-39.3-39.3H151.3C129.6 780.7 112 798.3 112 820v20c0 21.7 17.6 39.3 39.3 39.3h721.4c21.7 0 39.3-17.6 39.3-39.3v-20zM920 388H744v-92c0-78.2-63.8-142-142-142s-142 63.8-142 142v92H284c-17.7 0-32 14.3-32 32v252c0 17.7 14.3 32 32 32h636c17.7 0 32-14.3 32-32V420c0-17.7-14.3-32-32-32zM624 388H496v-92c0-66.3 53.7-120 120-120s120 53.7 120 120v92z"/></svg>
+          <span class="badge-dot" style="background:var(--c-warning);">3</span>
+        </button>
+        <button class="icon-btn" aria-label="通知" title="通知中心">
+          <svg viewBox="64 64 896 896" width="18" height="18" fill="currentColor"><path d="M880 112c-3.8 0-7.7.7-11.6 2.1L111.9 459.3c-18.7 7.1-27.4 27.7-19.7 46.2 4.4 10.6 12.7 18.4 22.9 22.1l142.5 49.2 49.2 142.5c3.7 10.2 11.5 18.5 22.1 22.9 18.5 7.7 39.1-1 46.2-19.7L713.9 84.4C722.3 62.5 705 41.6 684 41.6c-4.3 0-8.6.8-12.6 2.4l-90.9 34.5c-1.9.7-3.9 1.1-5.9 1.1H880z"/></svg>
+          <span class="badge-dot">8</span>
+        </button>
+        <div class="avatar-wrap">
+          <div class="avatar">张</div>
+          <div>
+            <div class="avatar-name">张老板</div>
+            <div class="avatar-role">卖家 · 南极人旗舰店</div>
+          </div>
+          <svg viewBox="64 64 896 896" width="12" height="12" fill="currentColor" style="color:var(--n7);"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- Sider -->
+    <aside class="app-sider">
+      <ul class="menu">
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01136 560c0-98.8 38.5-191.6 108.4-261.4C314.3 228.5 407 190 505.9 190c98.8 0 191.6 38.5 261.4 108.4C837.5 368.4 876 461.2 876 560c0 110.7-44.2 213.9-114.6 276z"/></svg></span>工作台<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM528 722c0 17.7-14.3 32-32 32H320c-17.7 0-32-14.3-32-32V544c0-17.7 14.3-32 32-32h176c17.7 0 32 14.3 32 32v178zm0-302c0 17.7-14.3 32-32 32H320c-17.7 0-32-14.3-32-32V320c0-17.7 14.3-32 32-32h176c17.7 0 32 14.3 32 32v100zm176 302c0 17.7-14.3 32-32 32H640c-17.7 0-32-14.3-32-32V544c0-17.7 14.3-32 32-32h32c17.7 0 32 14.3 32 32v178zm0-302c0 17.7-14.3 32-32 32h-32c-17.7 0-32-14.3-32-32V320c0-17.7 14.3-32 32-32h32c17.7 0 32 14.3 32 32v100z"/></svg></span>商品管理<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M464 144H160c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V160c0-8.8-7.2-16-16-16zm-52 268H212V212h200v200zM864 144H560c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V160c0-8.8-7.2-16-16-16zm-52 268H612V212h200v200zM464 544H160c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V560c0-8.8-7.2-16-16-16zm-52 268H212V612h200v200zM864 544H560c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V560c0-8.8-7.2-16-16-16zm-52 268H612V612h200v200z"/></svg></span>物流管理<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item open active">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM641.7 599.6c0 4.6-3.7 8.3-8.3 8.3h-67.5v67.5c0 4.6-3.7 8.3-8.3 8.3h-77.2c-4.6 0-8.3-3.7-8.3-8.3v-67.5h-67.5c-4.6 0-8.3-3.7-8.3-8.3v-77.2c0-4.6 3.7-8.3 8.3-8.3h67.5v-67.5c0-4.6 3.7-8.3 8.3-8.3h77.2c4.6 0 8.3 3.7 8.3 8.3v67.5h67.5c4.6 0 8.3 3.7 8.3 8.3v77.2z"/></svg></span>订单履约<span class="m-arrow">›</span></div>
+          <ul class="menu-sub">
+            <li><div class="menu-link active">待发货订单</div></li>
+            <li><div class="menu-link">全部订单</div></li>
+            <li><div class="menu-link">物流轨迹</div></li>
+          </ul>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M912 820c0-21.7-17.6-39.3-39.3-39.3H151.3C129.6 780.7 112 798.3 112 820v20c0 21.7 17.6 39.3 39.3 39.3h721.4c21.7 0 39.3-17.6 39.3-39.3v-20zM920 388H744v-92c0-78.2-63.8-142-142-142s-142 63.8-142 142v92H284c-17.7 0-32 14.3-32 32v252c0 17.7 14.3 32 32 32h636c17.7 0 32-14.3 32-32V420c0-17.7-14.3-32-32-32zM624 388H496v-92c0-66.3 53.7-120 120-120s120 53.7 120 120v92z"/></svg></span>售后处理<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg></span>评价管理<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-260 72h96v209.9L621.5 312 572 347.4V136zm220 752H232V136h280v296.9c0 3.3 1.4 6.5 3.9 8.8a12.1 12.1 0 0017.3-1.1l55.8-66.1 55.8 66.1c2.3 2.7 5.6 4.2 9 4.2 4.3 0 8.3-2.1 10.8-5.6 1.6-2.3 2.5-5.1 2.5-7.9V136h144v752z"/></svg></span>店铺设置<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M505.7 661a8 8 0 0012.6 0l112-141.7c4.1-5.2.4-12.9-6.3-12.9h-74.1V168c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v338.3H400c-6.7 0-10.4 7.7-6.3 12.9l112 141.8zM878 626h-60c-4.4 0-8 3.6-8 8v154H214V634c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v198c0 17.7 14.3 32 32 32h684c17.7 0 32-14.3 32-32V634c0-4.4-3.6-8-8-8z"/></svg></span>报表导出<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.3 44.5-118.6 78.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C779 752.7 810 825 812 902.2c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.2zM512 534c-45.9 0-89.1-17.9-121.6-50.4S340 407.9 340 362c0-45.9 17.9-89.1 50.4-121.6S466.1 190 512 190s89.1 17.9 121.6 50.4S684 316.1 684 362c0 45.9-17.9 89.1-50.4 121.6S557.9 534 512 534z"/></svg></span>个人中心<span class="m-arrow">›</span></div>
+        </li>
+      </ul>
+      <div style="padding:16px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.35);text-align:center;">
+        Leno Seller v1.0.0
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <main class="app-content">
+      <div class="page-scroll">
+        <div class="page-header">
+          <div>
+            <h1>待发货订单</h1>
+            <div class="sub">处理已支付待发货订单，录入物流单号完成发货，加速履约。</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn">
+              <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M909.1 209.3l-56.4 44.1C775.8 155.1 656.2 92 521.9 92 290 92 102.3 279.5 102 511.5 101.7 743.7 289.8 932 521.9 932c181.3 0 335.8-115 394.9-276.1 1.5-4.2-.7-8.9-4.9-10.3l-56.7-19.5a8 8 0 00-10.1 4.8c-1.8 5-3.8 10-5.9 14.9-17.3 41-42.1 77.8-73.7 109.4A344.77 344.77 0 01655.9 829c-42.3 17.9-87.4 27-133.8 27-46.5 0-91.5-9.1-133.8-27A341.5 341.5 0 01279 755.2a342.16 342.16 0 01-73.7-109.4c-17.9-42.4-27-87.4-27-133.9s9.1-91.5 27-133.9c17.3-41 42.1-77.8 73.7-109.4 31.6-31.6 68.4-56.4 109.3-73.8 42.3-17.9 87.4-27 133.8-27 46.5 0 91.5 9.1 133.8 27a341.5 341.5 0 01109.3 73.8c9.9 9.9 19.2 20.4 27.8 31.4l-60.2 47a8 8 0 003 14.1l175.6 43c5 1.2 9.9-2.6 9.9-7.7l.8-180.9c-.1-6.6-7.8-10.3-13-6.2z"/></svg>
+              刷新
+            </button>
+            <button class="btn btn-primary" onclick="openBatchShip()">
+              <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M832 112H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM440.4 501.5l72.4 72.4-45.2 45.2-72.4-72.4 45.2-45.2zM820 676H324V324h496v352z"/></svg>
+              批量发货
+            </button>
+          </div>
+        </div>
+
+        <!-- Alert -->
+        <div class="alert warning">
+          <svg class="alert-icon" viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+          <div class="alert-content">当前有 <strong>5 单</strong>待发货，其中 <strong>2 单</strong>已超 24 小时未发货，请优先处理超时订单避免平台扣分。</div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-icon primary">
+              <svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M880 112H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h688c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM440.4 501.5l72.4 72.4-45.2 45.2-72.4-72.4 45.2-45.2zM820 676H324V324h496v352z"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-label">待发货总数</div>
+              <div class="stat-value">5<span class="unit">单</span></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon error">
+              <svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-label">超时未发货</div>
+              <div class="stat-value">2<span class="unit">单</span></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon warning">
+              <svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 01-11.2 1.8L453.3 569.8c-2.1-1.5-3.3-3.9-3.3-6.5V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v247.5l185.6 133.4c3.6 2.5 4.4 7.4 1.8 10.8z"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-label">最晚发货截止</div>
+              <div class="stat-value" style="font-size:var(--fs-lg);">今日 23:59</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon success">
+              <svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L423.4 811.6c-1.5 2.1-3.9 3.4-6.5 3.4h-67.6c-2.6 0-5.1-1.3-6.6-3.5L201.9 596.5c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l93.6 138.6c1.6 2.3 4.8 3 7.2 1.5l.2-.1c2.4-1.5 3.1-4.6 1.6-7L348.8 526.9c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l272.8 404.5c2.3 3.4 1.4 8-2 10.3l-59.5 40.4c-3.4 2.3-8 1.4-10.3-2z"/></svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-label">今日已发货</div>
+              <div class="stat-value">18<span class="unit">单</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Card -->
+        <div class="card">
+          <div class="filter-bar">
+            <div class="filter-item">
+              <label>订单号</label>
+              <div class="form-control" style="width:220px;">
+                <span class="ctrl-icon"><svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6z"/></svg></span>
+                <input placeholder="请输入订单编号" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <label>下单时间</label>
+              <div class="form-control" style="width:280px;">
+                <input value="2026-07-01 ~ 2026-07-26" />
+                <span class="ctrl-icon"><svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 01-11.2 1.8L453.3 569.8c-2.1-1.5-3.3-3.9-3.3-6.5V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v247.5l185.6 133.4c3.6 2.5 4.4 7.4 1.8 10.8z"/></svg></span>
+              </div>
+            </div>
+            <div class="filter-item">
+              <label>排序</label>
+              <div class="form-control select">
+                <span>支付时间（最新优先）</span>
+              </div>
+            </div>
+            <div class="filter-item" style="margin-left:auto;">
+              <button class="btn btn-primary">
+                <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6z"/></svg>
+                查询
+              </button>
+              <button class="btn">重置</button>
+            </div>
+          </div>
+
+          <!-- Toolbar -->
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <span class="cb" id="selectAllCb" onclick="toggleSelectAll(this)"></span>
+              <span style="font-size:var(--fs-sm);color:var(--n9);">全选</span>
+              <span class="selected-count" id="selectedCount"></span>
+            </div>
+            <div class="toolbar-right">
+              <span>共 <strong style="color:var(--n10);">5</strong> 条待发货</span>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="table-wrap">
+            <table class="table" aria-label="待发货订单列表">
+              <thead>
+                <tr>
+                  <th style="width:36px;"></th>
+                  <th>订单编号</th>
+                  <th>商品摘要</th>
+                  <th>买家</th>
+                  <th>订单金额</th>
+                  <th>下单时间</th>
+                  <th>发货截止</th>
+                  <th>等待时长</th>
+                  <th style="width:120px;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="orderTbody">
+                <tr>
+                  <td><span class="cb" onclick="this.classList.toggle('checked');updateSelectedCount()"></span></td>
+                  <td class="col-num">NO202607261523001</td>
+                  <td>
+                    <div class="prod-cell">
+                      <div class="prod-thumb">T恤</div>
+                      <div class="prod-info">
+                        <div class="prod-name">南极人纯棉短袖T恤</div>
+                        <div class="prod-sku">白色 / XL</div>
+                        <div class="prod-qty">×2</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-size:var(--fs-sm);color:var(--n10);">李**</div>
+                    <div style="font-size:var(--fs-sm);color:var(--n7);">138****5678</div>
+                  </td>
+                  <td class="col-amount">¥158.00</td>
+                  <td class="col-time">2026-07-26<br>10:23:15</td>
+                  <td class="col-time">2026-07-27<br>10:23:15</td>
+                  <td>
+                    <span class="wait-time success">
+                      <svg class="wt-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 01-11.2 1.8L453.3 569.8c-2.1-1.5-3.3-3.9-3.3-6.5V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v247.5l185.6 133.4c3.6 2.5 4.4 7.4 1.8 10.8z"/></svg>
+                      5小时
+                    </span>
+                  </td>
+                  <td>
+                    <div class="actions">
+                      <button class="btn btn-primary btn-sm" onclick="openShipModal('NO202607261523001','南极人纯棉短袖T恤','白色 / XL','×2',158.00)">
+                        <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M832 112H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM440.4 501.5l72.4 72.4-45.2 45.2-72.4-72.4 45.2-45.2zM820 676H324V324h496v352z"/></svg>
+                        发货
+                      </button>
+                      <button class="btn btn-link btn-sm">详情</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="cb" onclick="this.classList.toggle('checked');updateSelectedCount()"></span></td>
+                  <td class="col-num">NO202607251430002</td>
+                  <td>
+                    <div class="prod-cell">
+                      <div class="prod-thumb">T恤</div>
+                      <div class="prod-info">
+                        <div class="prod-name">南极人纯棉短袖T恤</div>
+                        <div class="prod-sku">黑色 / L</div>
+                        <div class="prod-qty">×1</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-size:var(--fs-sm);color:var(--n10);">王**</div>
+                    <div style="font-size:var(--fs-sm);color:var(--n7);">139****1234</div>
+                  </td>
+                  <td class="col-amount">¥79.00</td>
+                  <td class="col-time">2026-07-25<br>14:30:08</td>
+                  <td class="col-time">2026-07-26<br>14:30:08</td>
+                  <td>
+                    <span class="wait-time danger">
+                      <svg class="wt-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+                      26小时
+                    </span>
+                  </td>
+                  <td>
+                    <div class="actions">
+                      <button class="btn btn-primary btn-sm" onclick="openShipModal('NO202607251430002','南极人纯棉短袖T恤','黑色 / L','×1',79.00)">
+                        <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M832 112H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM440.4 501.5l72.4 72.4-45.2 45.2-72.4-72.4 45.2-45.2zM820 676H324V324h496v352z"/></svg>
+                        发货
+                      </button>
+                      <button class="btn btn-link btn-sm">详情</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="cb" onclick="this.classList.toggle('checked');updateSelectedCount()"></span></td>
+                  <td class="col-num">NO202607250915003</td>
+                  <td>
+                    <div class="prod-cell">
+                      <div class="prod-thumb">T恤</div>
+                      <div class="prod-info">
+                        <div class="prod-name">南极人纯棉短袖T恤</div>
+                        <div class="prod-sku">灰色 / M</div>
+                        <div class="prod-qty">×3</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-size:var(--fs-sm);color:var(--n10);">赵**</div>
+                    <div style="font-size:var(--fs-sm);color:var(--n7);">137****8888</div>
+                  </td>
+                  <td class="col-amount">¥237.00</td>
+                  <td class="col-time">2026-07-25<br>09:15:42</td>
+                  <td class="col-time">2026-07-26<br>09:15:42</td>
+                  <td>
+                    <span class="wait-time danger">
+                      <svg class="wt-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+                      31小时
+                    </span>
+                  </td>
+                  <td>
+                    <div class="actions">
+                      <button class="btn btn-primary btn-sm" onclick="openShipModal('NO202607250915003','南极人纯棉短袖T恤','灰色 / M','×3',237.00)">
+                        <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M832 112H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM440.4 501.5l72.4 72.4-45.2 45.2-72.4-72.4 45.2-45.2zM820 676H324V324h496v352z"/></svg>
+                        发货
+                      </button>
+                      <button class="btn btn-link btn-sm">详情</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="cb" onclick="this.classList.toggle('checked');updateSelectedCount()"></span></td>
+                  <td class="col-num">NO202607251602004</td>
+                  <td>
+                    <div class="prod-cell">
+                      <div class="prod-thumb">T恤</div>
+                      <div class="prod-info">
+                        <div class="prod-name">南极人纯棉短袖T恤</div>
+                        <div class="prod-sku">白色 / S</div>
+                        <div class="prod-qty">×1</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-size:var(--fs-sm);color:var(--n10);">陈**</div>
+                    <div style="font-size:var(--fs-sm);color:var(--n7);">135****6666</div>
+                  </td>
+                  <td class="col-amount">¥79.00</td>
+                  <td class="col-time">2026-07-25<br>16:02:11</td>
+                  <td class="col-time">2026-07-26<br>16:02:11</td>
+                  <td>
+                    <span class="wait-time warning">
+                      <svg class="wt-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 01-11.2 1.8L453.3 569.8c-2.1-1.5-3.3-3.9-3.3-6.5V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v247.5l185.6 133.4c3.6 2.5 4.4 7.4 1.8 10.8z"/></svg>
+                      20小时
+                    </span>
+                  </td>
+                  <td>
+                    <div class="actions">
+                      <button class="btn btn-primary btn-sm" onclick="openShipModal('NO202607251602004','南极人纯棉短袖T恤','白色 / S','×1',79.00)">
+                        <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M832 112H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM440.4 501.5l72.4 72.4-45.2 45.2-72.4-72.4 45.2-45.2zM820 676H324V324h496v352z"/></svg>
+                        发货
+                      </button>
+                      <button class="btn btn-link btn-sm">详情</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="cb" onclick="this.classList.toggle('checked');updateSelectedCount()"></span></td>
+                  <td class="col-num">NO202607260830005</td>
+                  <td>
+                    <div class="prod-cell">
+                      <div class="prod-thumb">T恤</div>
+                      <div class="prod-info">
+                        <div class="prod-name">南极人纯棉短袖T恤</div>
+                        <div class="prod-sku">蓝色 / XL</div>
+                        <div class="prod-qty">×2</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-size:var(--fs-sm);color:var(--n10);">刘**</div>
+                    <div style="font-size:var(--fs-sm);color:var(--n7);">136****4321</div>
+                  </td>
+                  <td class="col-amount">¥158.00</td>
+                  <td class="col-time">2026-07-26<br>08:30:55</td>
+                  <td class="col-time">2026-07-27<br>08:30:55</td>
+                  <td>
+                    <span class="wait-time success">
+                      <svg class="wt-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 01-11.2 1.8L453.3 569.8c-2.1-1.5-3.3-3.9-3.3-6.5V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v247.5l185.6 133.4c3.6 2.5 4.4 7.4 1.8 10.8z"/></svg>
+                      7小时
+                    </span>
+                  </td>
+                  <td>
+                    <div class="actions">
+                      <button class="btn btn-primary btn-sm" onclick="openShipModal('NO202607260830005','南极人纯棉短袖T恤','蓝色 / XL','×2',158.00)">
+                        <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M832 112H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM440.4 501.5l72.4 72.4-45.2 45.2-72.4-72.4 45.2-45.2zM820 676H324V324h496v352z"/></svg>
+                        发货
+                      </button>
+                      <button class="btn btn-link btn-sm">详情</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination">
+            <span class="total">共 5 条</span>
+            <button class="page-btn" disabled>‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">›</button>
+            <div class="page-size">
+              <span>条/页</span>
+              <div class="form-control select"><span>20</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <footer class="app-footer">Leno 电商平台 · 商家管理后台 © 2026</footer>
+    </main>
+  </div>
+</div>
+
+<!-- Ship Modal -->
+<div class="mask" id="shipMask" onclick="closeShipModal()"></div>
+<div class="modal" id="shipModal">
+  <div class="modal-header">
+    <h3 id="shipModalTitle">发货 - NO202607261523001</h3>
+    <button class="modal-close" onclick="closeShipModal()">
+      <svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M563.8 512l261.9-261.9c10.5-10.5 10.5-27.6 0-38.1l-45.3-45.3c-10.5-10.5-27.6-10.5-38.1 0L480.5 428.6 218.6 147.4c-10.5-10.5-27.6-10.5-38.1 0l-45.3 45.3c-10.5 10.5-10.5 27.6 0 38.1L397 512 135.2 773.9c-10.5 10.5-10.5 27.6 0 38.1l45.3 45.3c10.5 10.5 27.6 10.5 38.1 0L480.5 595.4l261.9 261.9c10.5 10.5 27.6 10.5 38.1 0l45.3-45.3c10.5-10.5 10.5-27.6 0-38.1L563.8 512z"/></svg>
+    </button>
+  </div>
+  <div class="modal-body">
+    <!-- Order Summary -->
+    <div class="order-summary" id="orderSummary">
+      <div class="os-row">
+        <div class="os-thumb">T恤</div>
+        <div class="os-info">
+          <div class="os-name" id="osName">南极人纯棉短袖T恤</div>
+          <div class="os-meta" id="osMeta">白色 / XL · ×2</div>
+        </div>
+        <div class="os-amount" id="osAmount">¥158.00</div>
+      </div>
+    </div>
+
+    <div class="form-item">
+      <label><span class="req">*</span>物流公司</label>
+      <div class="form-control select" id="logisticsSelect">
+        <span>顺丰速运（SF）</span>
+      </div>
+      <div class="req-hint">选择承运物流公司，发货后不可修改</div>
+    </div>
+
+    <div class="form-item">
+      <label><span class="req">*</span>物流单号</label>
+      <div class="form-control" id="trackingControl">
+        <input id="trackingInput" placeholder="请输入物流单号，如 SF1234567890" oninput="validateTracking()" />
+      </div>
+      <div class="error-msg hidden" id="trackingError">
+        <svg viewBox="64 64 896 896" width="12" height="12" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm40 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+        <span>请输入物流单号</span>
+      </div>
+      <div class="req-hint">物流单号提交后不可修改，如需修改请联系平台运营</div>
+    </div>
+
+    <div class="form-item">
+      <label>发货备注（可选）</label>
+      <div class="form-control" style="height:64px;align-items:flex-start;padding-top:8px;">
+        <input placeholder="可填写发货备注，买家可见（选填）" style="height:auto;" />
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn" onclick="closeShipModal()">取消</button>
+    <button class="btn btn-primary" id="confirmShipBtn" onclick="handleShip()">
+      <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M832 112H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM440.4 501.5l72.4 72.4-45.2 45.2-72.4-72.4 45.2-45.2zM820 676H324V324h496v352z"/></svg>
+      确认发货
+    </button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <svg class="toast-icon" viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L423.4 811.6c-1.5 2.1-3.9 3.4-6.5 3.4h-67.6c-2.6 0-5.1-1.3-6.6-3.5L201.9 596.5c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l93.6 138.6c1.6 2.3 4.8 3 7.2 1.5l.2-.1c2.4-1.5 3.1-4.6 1.6-7L348.8 526.9c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l272.8 404.5c2.3 3.4 1.4 8-2 10.3l-59.5 40.4c-3.4 2.3-8 1.4-10.3-2z"/></svg>
+  <span id="toastMsg">操作成功</span>
+</div>
+
+<script>
+function openShipModal(orderNo, prodName, sku, qty, amount) {
+  document.getElementById('shipModalTitle').textContent = '发货 - ' + orderNo;
+  document.getElementById('osName').textContent = prodName;
+  document.getElementById('osMeta').textContent = sku + ' · ' + qty;
+  document.getElementById('osAmount').textContent = '¥' + amount.toFixed(2);
+  document.getElementById('trackingInput').value = '';
+  document.getElementById('trackingError').classList.add('hidden');
+  document.getElementById('trackingControl').classList.remove('error');
+  document.getElementById('shipModal').classList.add('show');
+  document.getElementById('shipMask').classList.add('show');
+}
+
+function openBatchShip() {
+  var checked = document.querySelectorAll('#orderTbody .cb.checked');
+  if (checked.length === 0) {
+    showToast('error', '请先勾选要批量发货的订单');
+    return;
+  }
+  document.getElementById('shipModalTitle').textContent = '批量发货 - 已选 ' + checked.length + ' 单';
+  document.getElementById('osName').textContent = '批量发货 ' + checked.length + ' 个订单';
+  document.getElementById('osMeta').textContent = '将使用同一物流公司与单号规则批量发货';
+  document.getElementById('osAmount').textContent = '';
+  document.getElementById('trackingInput').value = '';
+  document.getElementById('trackingError').classList.add('hidden');
+  document.getElementById('trackingControl').classList.remove('error');
+  document.getElementById('shipModal').classList.add('show');
+  document.getElementById('shipMask').classList.add('show');
+}
+
+function closeShipModal() {
+  document.getElementById('shipModal').classList.remove('show');
+  document.getElementById('shipMask').classList.remove('show');
+}
+
+function validateTracking() {
+  var val = document.getElementById('trackingInput').value;
+  if (val) {
+    document.getElementById('trackingError').classList.add('hidden');
+    document.getElementById('trackingControl').classList.remove('error');
+  }
+}
+
+function handleShip() {
+  var tracking = document.getElementById('trackingInput').value.trim();
+  if (!tracking) {
+    document.getElementById('trackingError').classList.remove('hidden');
+    document.getElementById('trackingControl').classList.add('error');
+    return;
+  }
+  var btn = document.getElementById('confirmShipBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;"></span> 发货中...';
+  setTimeout(function() {
+    btn.disabled = false;
+    btn.innerHTML = '<svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M832 112H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM440.4 501.5l72.4 72.4-45.2 45.2-72.4-72.4 45.2-45.2zM820 676H324V324h496v352z"/></svg> 确认发货';
+    closeShipModal();
+    showToast('success', '发货成功，订单已移交物流');
+  }, 1000);
+}
+
+function toggleSelectAll(cb) {
+  cb.classList.toggle('checked');
+  var checked = cb.classList.contains('checked');
+  document.querySelectorAll('#orderTbody .cb').forEach(function(el) {
+    if (checked) { el.classList.add('checked'); } else { el.classList.remove('checked'); }
+  });
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  var count = document.querySelectorAll('#orderTbody .cb.checked').length;
+  var el = document.getElementById('selectedCount');
+  if (count > 0) {
+    el.textContent = '已选 ' + count + ' 项';
+  } else {
+    el.textContent = '';
+  }
+}
+
+function showToast(type, msg) {
+  var toast = document.getElementById('toast');
+  toast.className = 'toast ' + type;
+  document.getElementById('toastMsg').textContent = msg;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 2000);
+}
+</script>
+</body>
+</html>

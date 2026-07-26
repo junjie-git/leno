@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卖家登录 - Leno 商家管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { font-family:var(--ff-app); color:var(--n10); font-size:var(--fs-base); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+body { min-height:100vh; }
+button { font-family:inherit; cursor:pointer; }
+svg { display:inline-block; vertical-align:middle; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+
+/* ===== Login Layout ===== */
+.login-page {
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(135deg,#0A2E5C 0%,#001529 45%,#09326B 100%);
+}
+.login-page::before {
+  content:'';
+  position:absolute;
+  top:-200px;
+  right:-200px;
+  width:600px;
+  height:600px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(22,119,255,.35) 0%,rgba(22,119,255,0) 70%);
+  pointer-events:none;
+}
+.login-page::after {
+  content:'';
+  position:absolute;
+  bottom:-250px;
+  left:-150px;
+  width:700px;
+  height:700px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(64,150,255,.22) 0%,rgba(64,150,255,0) 70%);
+  pointer-events:none;
+}
+.login-grid {
+  position:absolute;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(22,119,255,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(22,119,255,.05) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse at center,#000 30%,transparent 75%);
+  -webkit-mask-image:radial-gradient(ellipse at center,#000 30%,transparent 75%);
+  pointer-events:none;
+}
+.login-lang {
+  position:absolute;
+  top:24px;
+  right:32px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:rgba(255,255,255,.65);
+  font-size:var(--fs-base);
+  z-index:10;
+}
+.login-lang select {
+  background:transparent;
+  border:1px solid rgba(255,255,255,.25);
+  color:rgba(255,255,255,.85);
+  border-radius:var(--r-base);
+  padding:4px 28px 4px 10px;
+  font-size:var(--fs-sm);
+  appearance:none;
+  cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='64 64 896 896'%3E%3Cpath fill='%23ffffffab' d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 8px center;
+}
+.login-lang select option { color:var(--n10); }
+
+.login-card {
+  width:400px;
+  background:var(--n1);
+  border-radius:var(--r-lg);
+  box-shadow:var(--sh-modal);
+  padding:40px 40px 32px;
+  position:relative;
+  z-index:5;
+  animation:cardIn .4s cubic-bezier(0,0,0,1);
+}
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(16px); }
+  to { opacity:1; transform:translateY(0); }
+}
+.login-brand {
+  text-align:center;
+  margin-bottom:32px;
+}
+.login-logo {
+  width:56px;
+  height:56px;
+  border-radius:14px;
+  background:linear-gradient(135deg,#1677FF 0%,#4096FF 100%);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:var(--fw-semibold);
+  font-size:28px;
+  box-shadow:0 8px 24px rgba(22,119,255,.4);
+  margin-bottom:16px;
+}
+.login-title {
+  font-size:var(--fs-xl);
+  font-weight:var(--fw-semibold);
+  color:var(--n10);
+  margin-bottom:4px;
+}
+.login-subtitle {
+  font-size:var(--fs-sm);
+  color:var(--n7);
+}
+
+/* ===== Form ===== */
+.form-item { margin-bottom:24px; }
+.form-label {
+  display:block;
+  font-size:var(--fs-base);
+  color:var(--n10);
+  margin-bottom:8px;
+  font-weight:var(--fw-medium);
+}
+.form-label .req { color:var(--c-error); margin-right:4px; }
+.input-wrap {
+  position:relative;
+  display:flex;
+  align-items:center;
+}
+.input-wrap .prefix-icon {
+  position:absolute;
+  left:12px;
+  color:var(--n7);
+  pointer-events:none;
+  display:flex;
+  align-items:center;
+}
+.input-wrap .suffix-btn {
+  position:absolute;
+  right:8px;
+  width:28px;
+  height:28px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--n7);
+  background:none;
+  border:none;
+  border-radius:4px;
+}
+.input-wrap .suffix-btn:hover { color:var(--n9); background:var(--n3); }
+.form-input {
+  width:100%;
+  height:44px;
+  border:1px solid var(--n5);
+  border-radius:var(--r-base);
+  padding:0 40px 0 40px;
+  font-size:var(--fs-base);
+  color:var(--n10);
+  background:var(--n1);
+  outline:none;
+  transition:all .2s;
+  font-family:inherit;
+}
+.form-input:hover { border-color:var(--c-primary); }
+.form-input:focus { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.form-input::placeholder { color:var(--n7); }
+.form-input.error { border-color:var(--c-error); }
+.form-input.error:focus { box-shadow:0 0 0 2px rgba(255,77,79,.1); }
+.form-error-msg {
+  font-size:var(--fs-sm);
+  color:var(--c-error);
+  margin-top:4px;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+.form-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:24px;
+}
+.checkbox-wrap {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer;
+  font-size:var(--fs-base);
+  color:var(--n9);
+  user-select:none;
+}
+.checkbox-wrap input { display:none; }
+.checkbox-box {
+  width:16px;
+  height:16px;
+  border:1px solid var(--n5);
+  border-radius:3px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  transition:all .15s;
+  flex-shrink:0;
+}
+.checkbox-wrap input:checked + .checkbox-box {
+  background:var(--c-primary);
+  border-color:var(--c-primary);
+}
+.checkbox-box svg { opacity:0; color:#fff; }
+.checkbox-wrap input:checked + .checkbox-box svg { opacity:1; }
+.forgot-link { font-size:var(--fs-base); }
+
+.btn-login {
+  width:100%;
+  height:44px;
+  background:var(--c-primary);
+  border:none;
+  border-radius:var(--r-base);
+  color:#fff;
+  font-size:var(--fs-lg);
+  font-weight:var(--fw-medium);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  transition:all .15s;
+  position:relative;
+}
+.btn-login:hover:not(:disabled) { background:#4096FF; }
+.btn-login:active:not(:disabled) { transform:scale(.99); }
+.btn-login:disabled { background:#91CAFF; cursor:not-allowed; }
+.btn-login .spin {
+  width:18px;
+  height:18px;
+  border:2px solid rgba(255,255,255,.4);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:spin .6s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.login-footer-link {
+  text-align:center;
+  margin-top:24px;
+  font-size:var(--fs-base);
+  color:var(--n7);
+}
+.login-footer-link a { font-weight:var(--fw-medium); }
+
+.login-divider {
+  display:flex;
+  align-items:center;
+  margin:24px 0;
+  color:var(--n7);
+  font-size:var(--fs-sm);
+}
+.login-divider::before, .login-divider::after {
+  content:'';
+  flex:1;
+  height:1px;
+  background:var(--n3);
+}
+.login-divider span { padding:0 12px; }
+
+.login-agree {
+  font-size:var(--fs-sm);
+  color:var(--n7);
+  text-align:center;
+  margin-top:16px;
+  line-height:1.6;
+}
+.login-agree a { font-size:var(--fs-sm); }
+
+/* ===== Two Factor ===== */
+.otp-panel { display:none; }
+.otp-panel.show { display:block; }
+.login-panel.hide { display:none; }
+.otp-header { text-align:center; margin-bottom:32px; }
+.otp-icon {
+  width:56px;
+  height:56px;
+  border-radius:50%;
+  background:#E6F4FF;
+  color:var(--c-primary);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:16px;
+}
+.otp-title { font-size:var(--fs-xl); font-weight:var(--fw-semibold); margin-bottom:4px; }
+.otp-desc { font-size:var(--fs-sm); color:var(--n7); line-height:1.6; }
+.otp-desc .email { color:var(--n10); font-weight:var(--fw-medium); }
+.otp-inputs {
+  display:flex;
+  gap:12px;
+  justify-content:center;
+  margin-bottom:24px;
+}
+.otp-inputs input {
+  width:48px;
+  height:56px;
+  text-align:center;
+  font-size:var(--fs-2xl);
+  font-weight:var(--fw-semibold);
+  border:1px solid var(--n5);
+  border-radius:var(--r-base);
+  color:var(--n10);
+  outline:none;
+  font-family:var(--ff-mono);
+  transition:all .15s;
+}
+.otp-inputs input:focus { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.otp-inputs input.filled { border-color:var(--c-primary); background:#F5F9FF; }
+.otp-resend {
+  text-align:center;
+  font-size:var(--fs-sm);
+  color:var(--n7);
+  margin-bottom:24px;
+}
+.otp-resend .count { color:var(--n9); }
+.otp-back {
+  text-align:center;
+  margin-top:16px;
+}
+
+/* ===== Toast ===== */
+.toast-wrap {
+  position:fixed;
+  top:24px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:9999;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  pointer-events:none;
+}
+.toast {
+  background:#fff;
+  border-radius:var(--r-base);
+  box-shadow:var(--sh-modal);
+  padding:10px 16px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:var(--fs-base);
+  color:var(--n10);
+  min-width:240px;
+  animation:toastIn .25s cubic-bezier(0,0,0,1);
+  pointer-events:auto;
+}
+@keyframes toastIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+.toast.success .t-icon { color:var(--c-success); }
+.toast.error .t-icon { color:var(--c-error); }
+.toast.info .t-icon { color:var(--c-primary); }
+.toast .t-icon { display:flex; align-items:center; }
+
+.login-copy {
+  position:absolute;
+  bottom:24px;
+  left:0;
+  right:0;
+  text-align:center;
+  color:rgba(255,255,255,.45);
+  font-size:var(--fs-sm);
+  z-index:5;
+}
+.login-copy a { color:rgba(255,255,255,.65); }
+</style>
+</head>
+<body>
+<div class="login-page">
+  <div class="login-grid"></div>
+
+  <div class="login-lang">
+    <svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M623.6 316.7C593.6 290.4 554 276 512 276s-81.6 14.4-111.6 40.7C369.2 344 352 380.7 352 420v7.6c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V420c0-44.1 43-80 96-80s96 35.9 96 80c0 36.1-17 51.5-67 86.9-43.7 30.9-77 67.1-77 117.3v7.8c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8v-7.8c0-22.1 8.5-39.3 47-66.3 56.4-39.6 97-73.6 97-137.4 0-39.3-17.2-76-48.4-103.3z"/><circle cx="512" cy="732" r="36"/></svg>
+    <select aria-label="语言选择">
+      <option>简体中文</option>
+      <option>English</option>
+      <option>繁體中文</option>
+    </select>
+  </div>
+
+  <div class="login-card">
+    <!-- 登录表单面板 -->
+    <div class="login-panel" id="loginPanel">
+      <div class="login-brand">
+        <div class="login-logo">L</div>
+        <div class="login-title">Leno 商家管理后台</div>
+        <div class="login-subtitle">让经营更高效</div>
+      </div>
+
+      <form id="loginForm" autocomplete="off" novalidate>
+        <div class="form-item">
+          <label class="form-label" for="account"><span class="req">*</span>账号</label>
+          <div class="input-wrap">
+            <span class="prefix-icon">
+              <svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.8 18.9-85 46-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C927 761.5 958 833.8 960 911a8 8 0 008 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.5zM512 534c-45.9 0-89.1-17.9-121.6-50.4S340 407.9 340 362c0-45.9 17.9-89.1 50.4-121.6S466.1 190 512 190s89.1 17.9 121.6 50.4S684 316.1 684 362c0 45.9-17.9 89.1-50.4 121.6S557.9 534 512 534z"/></svg>
+            </span>
+            <input type="text" id="account" name="account" class="form-input" placeholder="用户名 / 邮箱 / 手机号" value="zhanglaoban" aria-label="账号" />
+          </div>
+          <div class="form-error-msg" id="accountErr" style="display:none;">
+            <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+            <span>请输入账号</span>
+          </div>
+        </div>
+
+        <div class="form-item">
+          <label class="form-label" for="password"><span class="req">*</span>密码</label>
+          <div class="input-wrap">
+            <span class="prefix-icon">
+              <svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v384c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32zM332 240c0-30.9 25.1-56 56-56h248c30.9 0 56 25.1 56 56v224H332V240zm460 600H232V536h560v304zM484 720h56c4.4 0 8-3.6 8-8v-72c0-17.7-14.3-32-32-32s-32 14.3-32 32v72c0 4.4 3.6 8 8 8z"/></svg>
+            </span>
+            <input type="password" id="password" name="password" class="form-input" placeholder="请输入密码" value="Leno@2026" aria-label="密码" />
+            <button type="button" class="suffix-btn" id="togglePwd" aria-label="显示密码">
+              <svg id="eyeIcon" width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M942.2 486.2C847.4 286.5 704.1 186 512 186c-192.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 000 51.5C176.6 737.5 319.9 838 512 838c192.2 0 335.4-100.5 430.2-300.3a60.3 60.3 0 000-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/></svg>
+            </button>
+          </div>
+          <div class="form-error-msg" id="pwdErr" style="display:none;">
+            <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+            <span>请输入密码</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label class="checkbox-wrap">
+            <input type="checkbox" id="remember" checked />
+            <span class="checkbox-box">
+              <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z"/></svg>
+            </span>
+            <span>记住我</span>
+          </label>
+          <a href="#" class="forgot-link" id="forgotBtn">忘记密码？</a>
+        </div>
+
+        <button type="submit" class="btn-login" id="loginBtn">
+          <span class="btn-text">登 录</span>
+        </button>
+
+        <div class="login-divider"><span>其他方式</span></div>
+
+        <div style="display:flex;justify-content:center;gap:16px;">
+          <button type="button" class="suffix-btn" style="position:static;width:40px;height:40px;border:1px solid var(--n5);border-radius:50%;" aria-label="微信登录" title="微信登录">
+            <svg width="20" height="20" viewBox="0 0 1024 1024" fill="#52C41A"><path d="M690.1 377.4c5.9 0 11.8.2 17.6.5-24.4-128.7-158.3-227.1-319.9-227.1C209 150.8 64 271.4 64 420.2c0 81.1 43.6 154.2 111.9 203.6a21.5 21.5 0 019.6 17.5 21.6 21.6 0 01-1.6 8.2L165.7 688c-.8 2.4-2 5-2 7.5 0 5.9 4.8 10.6 10.6 10.6 3.1 0 5.5-1.4 8-3.1l114.9-66.5a33.7 33.7 0 0117.5-5.1c3.1 0 6.2.5 9.2 1.4 36.9 10.6 76.2 16.4 117.1 16.4 6.1 0 12.1-.2 18.1-.5-5.7-20.7-8.8-42.4-8.8-64.8 0-161.5 139.3-292.5 311.7-292.5z M813.4 690.8c58.5-40.3 96.6-100.3 96.6-167.3 0-119.8-114.2-217.1-255-217.1-140.9 0-255 97.3-255 217.1 0 119.9 114.1 217.1 255 217.1 14.9 0 29.4-1.2 43.6-3.3a30.2 30.2 0 0115.7 3.6l83.4 48.2c2.2 1.4 4.3 2.2 6.6 2.2 4.8 0 8.7-3.9 8.7-8.7 0-2-.8-4.1-1.6-6L811 715.4a22.5 22.5 0 01-1.3-8.9 18.9 18.9 0 013.7-15.7z"/></svg>
+          </button>
+          <button type="button" class="suffix-btn" style="position:static;width:40px;height:40px;border:1px solid var(--n5);border-radius:50%;" aria-label="钉钉登录" title="钉钉登录">
+            <svg width="20" height="20" viewBox="0 0 1024 1024" fill="#1677FF"><path d="M579.2 226.4c4.8-6.4 4.8-14.4 0-19.2l-14.4-19.2c-4.8-6.4-14.4-6.4-20.8 0L376 401.6l-91.2-107.2c-4.8-6.4-14.4-6.4-20.8 0l-19.2 20.8c-4.8 4.8-4.8 14.4 0 19.2l120 140.8c4.8 6.4 14.4 6.4 20.8 0l193.6-249.6zM835.2 432c-9.6-56-43.2-105.6-89.6-142.4-38.4-28.8-83.2-43.2-129.6-43.2-14.4 0-27.2 1.6-40 4.8-16 3.2-25.6 19.2-22.4 33.6 3.2 16 19.2 25.6 33.6 22.4 9.6-1.6 19.2-3.2 28.8-3.2 33.6 0 65.6 11.2 92.8 32 33.6 25.6 57.6 60.8 65.6 102.4 1.6 9.6 3.2 19.2 3.2 28.8 0 16 12.8 28.8 28.8 28.8h19.2c16 0 28.8-12.8 28.8-28.8 0-12.8-1.6-24-3.2-35.2z M816 593.6c-9.6-3.2-19.2-6.4-28.8-8-19.2-4.8-40-6.4-59.2-6.4-43.2 0-84.8 11.2-123.2 30.4-9.6 4.8-20.8 9.6-30.4 16l-19.2-36.8c30.4-17.6 64-30.4 99.2-38.4 24-4.8 48-8 73.6-8 25.6 0 51.2 3.2 76.8 9.6 12.8 3.2 24 6.4 36.8 11.2 9.6 3.2 16-9.6 9.6-17.6-30.4-32-73.6-52.8-121.6-52.8-30.4 0-59.2 8-84.8 20.8-43.2 22.4-78.4 59.2-99.2 105.6-14.4 32-22.4 67.2-22.4 104 0 16 1.6 32 4.8 48 1.6 9.6 4.8 19.2 8 28.8 3.2 8 12.8 12.8 20.8 8l24-12.8c6.4-3.2 9.6-11.2 8-17.6-3.2-8-4.8-16-6.4-24-1.6-9.6-3.2-19.2-3.2-28.8 0-27.2 6.4-52.8 17.6-75.2l41.6 80c3.2 6.4 11.2 9.6 17.6 6.4l24-12.8c6.4-3.2 9.6-11.2 6.4-17.6l-46.4-89.6c22.4-12.8 48-20.8 75.2-22.4 4.8 0 9.6-1.6 14.4-1.6 33.6 0 64 11.2 88 32 6.4 4.8 16 4.8 22.4-1.6l19.2-19.2c6.4-6.4 4.8-16-1.6-20.8z"/></svg>
+          </button>
+          <button type="button" class="suffix-btn" style="position:static;width:40px;height:40px;border:1px solid var(--n5);border-radius:50%;" aria-label="支付宝登录" title="支付宝登录">
+            <svg width="20" height="20" viewBox="0 0 1024 1024" fill="#1677FF"><path d="M902.8 689.9c-29.4-13.6-78.2-34.7-135.2-58.4 24.6-44.2 44-93.4 56.2-145.4H654.4v-49.4h158.8v-27.8H654.4v-89.4c0-12.6-10.2-22.8-22.8-22.8h-55.2c-12.6 0-22.8 10.2-22.8 22.8v89.4H394.4v27.8h159.2v49.4H366v27.8h258c-10.4 38.6-25.4 75-44 108.2-104.4-36.4-216.6-66-286.2-47.6-44.8 11.8-73.4 33.2-89.8 56.4-78 110.4 6.4 260.4 248.6 260.4 134.4 0 241.6-72 312.4-170.6 140.6 68 420.6 184.2 420.6 184.2V736.6s-12-12.8-82.8-46.7zM406.4 870.9c-150 0-203.2-90.6-160.6-160.6 14.4-23.6 39.6-41.8 76-50.8 60.4-14.8 156.4 16.6 248.2 58-54.8 90-160.4 153.4-163.6 153.4z"/></svg>
+          </button>
+        </div>
+
+        <div class="login-footer-link">
+          还没有账号？<a href="#" id="registerBtn">立即入驻</a>
+        </div>
+
+        <div class="login-agree">
+          登录即代表您已阅读并同意 <a href="#">《Leno 商家服务协议》</a> 与 <a href="#">《隐私政策》</a>
+        </div>
+      </form>
+    </div>
+
+    <!-- 双因子验证面板 -->
+    <div class="otp-panel" id="otpPanel">
+      <div class="otp-header">
+        <div class="otp-icon">
+          <svg width="28" height="28" viewBox="0 0 1024 1024" fill="currentColor"><path d="M866.9 169.9L527.1 54.1C523 52.7 517.5 52 512 52s-11 .7-15.1 2.1L157.1 169.9c-8.3 2.8-15.1 12.4-15.1 21.2v482.4c0 8.8 5.7 20.4 12.6 25.9L499.3 914c4.3 2.8 9.8 4.2 15.1 4.2s10.8-1.4 15.1-4.2l344.7-214.6c6.9-5.5 12.6-17.1 12.6-25.9V191.1c.2-8.8-6.6-18.3-14.9-21.2zM694.5 340.7L481.9 633.4a18.9 18.9 0 01-15.2 8.2c-.9 0-1.8-.1-2.7-.2a18.8 18.8 0 01-14.4-9.6L339.4 519.3a8 8 0 012.7-10.9l36.1-22.7a8 8 0 0110.8 2.6l77.2 131.8L644.7 313a8 8 0 0111.1-2.1l33.6 23.1a8 8 0 012.1 6.7z"/></svg>
+        </div>
+        <div class="otp-title">双因子验证</div>
+        <div class="otp-desc">为保障账号安全，请输入身份验证器 App 生成的 6 位验证码<br/>验证码已发送至绑定设备 <span class="email">张老板</span></div>
+      </div>
+
+      <div class="otp-inputs" id="otpInputs">
+        <input type="text" maxlength="1" inputmode="numeric" aria-label="验证码第1位" />
+        <input type="text" maxlength="1" inputmode="numeric" aria-label="验证码第2位" />
+        <input type="text" maxlength="1" inputmode="numeric" aria-label="验证码第3位" />
+        <input type="text" maxlength="1" inputmode="numeric" aria-label="验证码第4位" />
+        <input type="text" maxlength="1" inputmode="numeric" aria-label="验证码第5位" />
+        <input type="text" maxlength="1" inputmode="numeric" aria-label="验证码第6位" />
+      </div>
+
+      <div class="otp-resend" id="otpResend">
+        <span class="count">59 秒后可重新获取</span>
+      </div>
+
+      <button type="button" class="btn-login" id="otpVerifyBtn">
+        <span class="btn-text">验证并登录</span>
+      </button>
+
+      <div class="otp-back">
+        <a href="#" id="otpBackBtn">返回登录</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-copy">
+    Copyright © 2026 Leno 电商平台 · <a href="#">商家帮助中心</a> · <a href="#">服务热线 400-826-1001</a>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+(function(){
+  var loginForm = document.getElementById('loginForm');
+  var accountInput = document.getElementById('account');
+  var pwdInput = document.getElementById('password');
+  var accountErr = document.getElementById('accountErr');
+  var pwdErr = document.getElementById('pwdErr');
+  var loginBtn = document.getElementById('loginBtn');
+  var togglePwd = document.getElementById('togglePwd');
+  var eyeIcon = document.getElementById('eyeIcon');
+  var loginPanel = document.getElementById('loginPanel');
+  var otpPanel = document.getElementById('otpPanel');
+  var otpInputs = document.getElementById('otpInputs');
+  var otpVerifyBtn = document.getElementById('otpVerifyBtn');
+  var otpBackBtn = document.getElementById('otpBackBtn');
+  var forgotBtn = document.getElementById('forgotBtn');
+  var registerBtn = document.getElementById('registerBtn');
+  var toastWrap = document.getElementById('toastWrap');
+
+  var eyeOpen = '<path d="M942.2 486.2C847.4 286.5 704.1 186 512 186c-192.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 000 51.5C176.6 737.5 319.9 838 512 838c192.2 0 335.4-100.5 430.2-300.3a60.3 60.3 0 000-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/>';
+  var eyeClose = '<path d="M942.2 486.2C847.4 286.5 704.1 186 512 186c-192.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 000 51.5C176.6 737.5 319.9 838 512 838c192.2 0 335.4-100.5 430.2-300.3a60.3 60.3 0 000-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/>';
+
+  function toast(type, msg){
+    var icons = {
+      success:'<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 338.4L446.8 728.4c-2.8 2.9-6.6 4.4-10.5 4.4-3.8 0-7.4-1.4-10.2-4L312.9 623.5a13.7 13.7 0 010-19.5l19.5-19.4c2.7-2.6 6.2-4 9.9-4 3.9 0 7.5 1.5 10.2 4.2l84.3 84.9 228.9-238.6c2.7-2.8 6.4-4.3 10.3-4.3 3.7 0 7.2 1.4 9.9 4l19.4 19.4c5.6 5.5 5.7 14.4.2 20.2z"/>',
+      error:'<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/>',
+      info:'<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm32 664c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V456c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272zm-32-344a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/>'
+    };
+    var el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML = '<span class="t-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor">'+icons[type]+'</svg></span><span>'+msg+'</span>';
+    toastWrap.appendChild(el);
+    setTimeout(function(){
+      el.style.transition = 'opacity .25s, transform .25s';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(-12px)';
+      setTimeout(function(){ el.remove(); }, 260);
+    }, 2400);
+  }
+
+  togglePwd.addEventListener('click', function(){
+    if(pwdInput.type === 'password'){
+      pwdInput.type = 'text';
+      eyeIcon.innerHTML = '<path d="M942.2 486.2C847.4 286.5 704.1 186 512 186c-192.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 000 51.5C176.6 737.5 319.9 838 512 838c192.2 0 335.4-100.5 430.2-300.3a60.3 60.3 0 000-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/>';
+      togglePwd.setAttribute('aria-label','隐藏密码');
+    } else {
+      pwdInput.type = 'password';
+      eyeIcon.innerHTML = '<path d="M942.2 486.2C847.4 286.5 704.1 186 512 186c-192.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 000 51.5C176.6 737.5 319.9 838 512 838c192.2 0 335.4-100.5 430.2-300.3a60.3 60.3 0 000-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/>';
+      togglePwd.setAttribute('aria-label','显示密码');
+    }
+  });
+
+  function validate(){
+    var ok = true;
+    if(!accountInput.value.trim()){
+      accountErr.style.display = 'flex';
+      accountErr.querySelector('span').textContent = '请输入账号';
+      accountInput.classList.add('error');
+      ok = false;
+    } else {
+      accountErr.style.display = 'none';
+      accountInput.classList.remove('error');
+    }
+    if(!pwdInput.value.trim()){
+      pwdErr.style.display = 'flex';
+      pwdErr.querySelector('span').textContent = '请输入密码';
+      pwdInput.classList.add('error');
+      ok = false;
+    } else if(pwdInput.value.length < 6){
+      pwdErr.style.display = 'flex';
+      pwdErr.querySelector('span').textContent = '密码长度不能少于 6 位';
+      pwdInput.classList.add('error');
+      ok = false;
+    } else {
+      pwdErr.style.display = 'none';
+      pwdInput.classList.remove('error');
+    }
+    return ok;
+  }
+
+  accountInput.addEventListener('blur', function(){
+    if(!accountInput.value.trim()){
+      accountErr.style.display = 'flex';
+      accountInput.classList.add('error');
+    }
+  });
+  pwdInput.addEventListener('blur', function(){
+    if(!pwdInput.value.trim()){
+      pwdErr.style.display = 'flex';
+      pwdInput.classList.add('error');
+    }
+  });
+  accountInput.addEventListener('input', function(){
+    if(accountInput.value.trim()){
+      accountErr.style.display = 'none';
+      accountInput.classList.remove('error');
+    }
+  });
+  pwdInput.addEventListener('input', function(){
+    if(pwdInput.value.trim()){
+      pwdErr.style.display = 'none';
+      pwdInput.classList.remove('error');
+    }
+  });
+
+  function setLoading(btn, loading, text){
+    if(loading){
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spin"></span><span class="btn-text">'+text+'</span>';
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="btn-text">'+text+'</span>';
+    }
+  }
+
+  loginForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!validate()) return;
+    setLoading(loginBtn, true, '登录中...');
+    setTimeout(function(){
+      setLoading(loginBtn, false, '登 录');
+      var acc = accountInput.value.trim();
+      var pwd = pwdInput.value.trim();
+      if(acc === 'zhanglaoban' && pwd === 'Leno@2026'){
+        toast('info', '检测到账号已启用双因子认证，请完成验证');
+        showOtpPanel();
+      } else if(acc !== 'zhanglaoban'){
+        toast('error', '账号或密码错误');
+        pwdInput.value = '';
+        pwdInput.focus();
+      } else {
+        toast('error', '账号或密码错误');
+        pwdInput.value = '';
+        pwdInput.focus();
+      }
+    }, 1200);
+  });
+
+  function showOtpPanel(){
+    loginPanel.classList.add('hide');
+    otpPanel.classList.add('show');
+    var inputs = otpInputs.querySelectorAll('input');
+    inputs.forEach(function(el){ el.value = ''; el.classList.remove('filled'); });
+    setTimeout(function(){ inputs[0].focus(); }, 100);
+    startResendCountdown();
+  }
+
+  function hideOtpPanel(){
+    otpPanel.classList.remove('show');
+    loginPanel.classList.remove('hide');
+  }
+
+  otpBackBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    hideOtpPanel();
+  });
+
+  var countdownTimer = null;
+  function startResendCountdown(){
+    var resend = document.getElementById('otpResend');
+    var sec = 59;
+    if(countdownTimer) clearInterval(countdownTimer);
+    resend.innerHTML = '<span class="count">'+sec+' 秒后可重新获取</span>';
+    countdownTimer = setInterval(function(){
+      sec--;
+      if(sec <= 0){
+        clearInterval(countdownTimer);
+        resend.innerHTML = '<a href="#" id="resendBtn">重新获取验证码</a>';
+        document.getElementById('resendBtn').addEventListener('click', function(e){
+          e.preventDefault();
+          toast('success', '验证码已重新发送');
+          startResendCountdown();
+        });
+      } else {
+        resend.innerHTML = '<span class="count">'+sec+' 秒后可重新获取</span>';
+      }
+    }, 1000);
+  }
+
+  var otpInputsList = otpInputs.querySelectorAll('input');
+  otpInputsList.forEach(function(input, idx){
+    input.addEventListener('input', function(){
+      var v = input.value.replace(/\D/g,'');
+      input.value = v;
+      if(v){
+        input.classList.add('filled');
+        if(idx < otpInputsList.length - 1){
+          otpInputsList[idx+1].focus();
+        }
+      } else {
+        input.classList.remove('filled');
+      }
+    });
+    input.addEventListener('keydown', function(e){
+      if(e.key === 'Backspace' && !input.value && idx > 0){
+        otpInputsList[idx-1].focus();
+        otpInputsList[idx-1].value = '';
+        otpInputsList[idx-1].classList.remove('filled');
+      }
+    });
+    input.addEventListener('paste', function(e){
+      e.preventDefault();
+      var text = (e.clipboardData || window.clipboardData).getData('text');
+      var digits = text.replace(/\D/g,'').slice(0,6).split('');
+      digits.forEach(function(d, i){
+        if(otpInputsList[i]){
+          otpInputsList[i].value = d;
+          otpInputsList[i].classList.add('filled');
+        }
+      });
+      if(digits.length === 6){
+        otpInputsList[5].focus();
+      } else if(otpInputsList[digits.length]){
+        otpInputsList[digits.length].focus();
+      }
+    });
+  });
+
+  function getOtpCode(){
+    var code = '';
+    otpInputsList.forEach(function(el){ code += el.value; });
+    return code;
+  }
+
+  otpVerifyBtn.addEventListener('click', function(){
+    var code = getOtpCode();
+    if(code.length !== 6){
+      toast('error', '请输入完整的 6 位验证码');
+      return;
+    }
+    setLoading(otpVerifyBtn, true, '验证中...');
+    setTimeout(function(){
+      setLoading(otpVerifyBtn, false, '验证并登录');
+      if(code === '123456'){
+        toast('success', '登录成功，正在进入工作台...');
+        if(countdownTimer) clearInterval(countdownTimer);
+        setTimeout(function(){
+          toast('info', '已跳转至工作台 /dashboard/overview');
+        }, 1000);
+      } else {
+        toast('error', '验证码错误或已过期');
+        otpInputsList.forEach(function(el){ el.value=''; el.classList.remove('filled'); });
+        otpInputsList[0].focus();
+      }
+    }, 1000);
+  });
+
+  forgotBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    toast('info', '即将跳转至忘记密码页面');
+  });
+  registerBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    toast('info', '即将跳转至商家入驻申请页 /shop/application');
+  });
+})();
+</script>
+</body>
+</html>

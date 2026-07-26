@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>通知中心 - Leno 商家管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { font-family:var(--ff-app); color:var(--n10); background:var(--n3); font-size:var(--fs-base); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+body { min-height:100vh; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+button { font-family:inherit; cursor:pointer; }
+svg { display:inline-block; vertical-align:middle; }
+
+/* ===== Layout ===== */
+.app { display:flex; flex-direction:column; min-height:100vh; }
+.app-header { height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5); display:flex; align-items:center; padding:0 24px 0 0; position:sticky; top:0; z-index:200; box-shadow:0 1px 4px rgba(0,21,41,.08); }
+.app-header .logo { width:var(--sider-width); height:100%; display:flex; align-items:center; gap:10px; padding:0 20px; flex-shrink:0; }
+.app-header .logo-mark { width:32px; height:32px; border-radius:6px; background:linear-gradient(135deg,#1677FF 0%,#4096FF 100%); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:var(--fw-semibold); font-size:18px; box-shadow:0 2px 8px rgba(22,119,255,.35); }
+.app-header .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); white-space:nowrap; }
+.app-header .logo-text small { display:block; font-size:var(--fs-sm); font-weight:var(--fw-normal); color:var(--n7); margin-top:-2px; }
+.app-header .header-body { flex:1; display:flex; align-items:center; justify-content:space-between; padding-left:24px; }
+.collapse-btn { width:40px; height:var(--header-h); display:flex; align-items:center; justify-content:center; color:var(--n9); background:none; border:none; font-size:18px; cursor:pointer; }
+.collapse-btn:hover { color:var(--c-primary); background:var(--n3); }
+.breadcrumb { display:flex; align-items:center; gap:6px; font-size:var(--fs-base); color:var(--n9); }
+.breadcrumb a { color:var(--n9); }
+.breadcrumb a:hover { color:var(--c-primary); }
+.breadcrumb .sep { color:var(--n5); font-size:12px; }
+.breadcrumb .current { color:var(--n10); }
+.header-actions { display:flex; align-items:center; gap:8px; }
+.global-search { width:220px; height:32px; background:var(--n3); border:1px solid transparent; border-radius:var(--r-base); display:flex; align-items:center; padding:0 12px; gap:8px; transition:all .2s; }
+.global-search:hover { border-color:var(--c-primary); background:var(--n1); }
+.global-search input { flex:1; border:none; outline:none; background:transparent; font-size:var(--fs-sm); color:var(--n10); }
+.global-search input::placeholder { color:var(--n7); }
+.global-search .kbd { font-size:11px; color:var(--n7); background:var(--n1); border:1px solid var(--n5); border-radius:4px; padding:0 5px; line-height:18px; }
+.icon-btn { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--n9); position:relative; background:none; border:none; font-size:18px; }
+.icon-btn:hover { background:var(--n3); color:var(--c-primary); }
+.icon-btn .badge-dot { position:absolute; top:6px; right:6px; min-width:16px; height:16px; padding:0 4px; background:var(--c-error); color:#fff; border-radius:8px; font-size:10px; line-height:16px; font-weight:var(--fw-medium); border:2px solid var(--n1); }
+.avatar-wrap { display:flex; align-items:center; gap:8px; padding:4px 8px 4px 4px; border-radius:var(--r-base); cursor:pointer; }
+.avatar-wrap:hover { background:var(--n3); }
+.avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#1677FF,#4096FF); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:var(--fw-medium); }
+.avatar-name { font-size:var(--fs-base); color:var(--n10); }
+.avatar-role { font-size:var(--fs-sm); color:var(--n7); }
+
+.app-body { flex:1; display:flex; }
+.app-sider { width:var(--sider-width); background:var(--sider-bg); flex-shrink:0; display:flex; flex-direction:column; position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto; }
+.menu { list-style:none; padding:8px 0; flex:1; }
+.menu-link { display:flex; align-items:center; gap:10px; height:40px; padding:0 16px 0 24px; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .15s; position:relative; }
+.menu-link:hover { color:#fff; }
+.menu-link .m-icon { width:16px; height:16px; flex-shrink:0; font-size:16px; }
+.menu-link .m-arrow { margin-left:auto; font-size:10px; transition:transform .2s; }
+.menu-item.open > .menu-link .m-arrow { transform:rotate(90deg); }
+.menu-item.active > .menu-link { color:#fff; background:var(--c-primary); }
+.menu-item.active > .menu-link::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#fff; }
+.menu-sub { list-style:none; max-height:0; overflow:hidden; transition:max-height .25s ease; }
+.menu-item.open > .menu-sub { max-height:500px; }
+.menu-sub .menu-link { height:36px; padding-left:48px; font-size:var(--fs-sm); }
+.menu-sub .menu-link.active { color:#fff; background:rgba(22,119,255,.15); }
+.menu-sub .menu-link.active::before { display:none; }
+
+.app-content { flex:1; display:flex; flex-direction:column; min-width:0; }
+.page-scroll { flex:1; overflow-y:auto; padding:var(--s6); }
+.app-footer { height:32px; background:var(--n1); border-top:1px solid var(--n3); display:flex; align-items:center; justify-content:center; font-size:var(--fs-sm); color:var(--n7); padding:0 24px; }
+
+/* ===== Page Header ===== */
+.page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--s4); }
+.page-header h1 { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); }
+.page-header .sub { margin-top:4px; font-size:var(--fs-sm); color:var(--n7); }
+
+/* ===== Card ===== */
+.card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; }
+
+/* ===== Tabs ===== */
+.tabs { display:flex; align-items:center; gap:0; border-bottom:1px solid var(--n5); padding:0 var(--s6); background:var(--n1); border-radius:var(--r-card) var(--r-card) 0 0; }
+.tab { height:44px; padding:0 16px; display:flex; align-items:center; gap:6px; font-size:var(--fs-base); color:var(--n9); cursor:pointer; border-bottom:2px solid transparent; transition:all .15s; position:relative; }
+.tab:hover { color:var(--c-primary); }
+.tab.active { color:var(--c-primary); font-weight:var(--fw-medium); border-bottom-color:var(--c-primary); }
+.tab .tab-badge { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; font-size:11px; font-weight:var(--fw-medium); background:var(--n3); color:var(--n9); }
+.tab .tab-badge.urgent { background:#FFF1F0; color:var(--c-error); }
+.tab .tab-badge.active-badge { background:#E6F4FF; color:var(--c-primary); }
+
+/* ===== Toolbar ===== */
+.toolbar { display:flex; align-items:center; justify-content:space-between; padding:var(--s3) var(--s6); background:var(--n1); border-bottom:1px solid var(--n3); }
+.toolbar-left { display:flex; align-items:center; gap:12px; }
+.toolbar-right { display:flex; align-items:center; gap:8px; }
+
+/* ===== Checkbox ===== */
+.checkbox-wrap { display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-base); color:var(--n9); user-select:none; }
+.checkbox-wrap input { display:none; }
+.checkbox-box { width:16px; height:16px; border:1px solid var(--n5); border-radius:3px; display:inline-flex; align-items:center; justify-content:center; transition:all .15s; flex-shrink:0; background:var(--n1); }
+.checkbox-wrap input:checked + .checkbox-box { background:var(--c-primary); border-color:var(--c-primary); }
+.checkbox-box svg { opacity:0; color:#fff; }
+.checkbox-wrap input:checked + .checkbox-box svg { opacity:1; }
+.checkbox-wrap.indeterminate .checkbox-box { background:var(--c-primary); border-color:var(--c-primary); }
+.checkbox-wrap.indeterminate .checkbox-box::after { content:''; width:8px; height:2px; background:#fff; border-radius:1px; opacity:1; }
+.checkbox-wrap.indeterminate .checkbox-box svg { display:none; }
+
+/* ===== Select ===== */
+.select { height:32px; border:1px solid var(--n5); border-radius:var(--r-base); padding:0 28px 0 11px; font-size:var(--fs-base); color:var(--n10); background:var(--n1); outline:none; transition:border-color .15s; font-family:inherit; appearance:none; cursor:pointer; min-width:120px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='64 64 896 896'%3E%3Cpath fill='%238C8C8C' d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; }
+.select:hover { border-color:var(--c-primary); }
+.select:focus { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+
+/* ===== Buttons ===== */
+.btn { height:32px; padding:0 15px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; gap:6px; transition:all .15s; white-space:nowrap; }
+.btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.btn .b-icon { width:14px; height:14px; font-size:14px; }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-primary:disabled { background:#91CAFF; border-color:#91CAFF; cursor:not-allowed; }
+.btn-link { background:none; border:none; color:var(--c-primary); padding:0 4px; height:auto; font-size:var(--fs-base); display:inline-flex; align-items:center; gap:4px; }
+.btn-link:hover { color:#4096FF; background:none; }
+
+/* ===== Notification List ===== */
+.notif-list { background:var(--n1); }
+.notif-item { display:flex; gap:12px; padding:16px 24px; border-bottom:1px solid var(--n3); position:relative; transition:background .15s; cursor:default; }
+.notif-item:hover { background:var(--n2); }
+.notif-item.unread { background:#F5F9FF; }
+.notif-item.unread:hover { background:#EAF3FF; }
+.notif-item:last-child { border-bottom:none; }
+.notif-item.selected { background:#E6F4FF; }
+.notif-check { flex-shrink:0; padding-top:4px; }
+.notif-dot { flex-shrink:0; width:8px; height:8px; border-radius:50%; background:var(--c-primary); margin-top:18px; }
+.notif-item.read .notif-dot { background:transparent; }
+.notif-icon { flex-shrink:0; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.notif-icon.order { background:#E6F4FF; color:var(--c-primary); }
+.notif-icon.aftersales { background:#FFF7E6; color:var(--c-warning); }
+.notif-icon.review { background:#FFFBE6; color:var(--c-warning); }
+.notif-icon.system { background:#F5F5F5; color:var(--n7); }
+.notif-body { flex:1; min-width:0; }
+.notif-title { font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-medium); margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+.notif-title .title-text { flex:1; }
+.notif-content { font-size:var(--fs-base); color:var(--n9); line-height:1.6; margin-bottom:8px; word-break:break-all; }
+.notif-content .collapsed { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.notif-content .expand-btn { color:var(--c-primary); margin-left:4px; white-space:nowrap; }
+.notif-content .biz-link { color:var(--c-primary); font-weight:var(--fw-medium); }
+.notif-meta { display:flex; align-items:center; gap:12px; font-size:var(--fs-sm); color:var(--n7); }
+.notif-time { display:flex; align-items:center; gap:4px; }
+.notif-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
+.notif-actions .btn-link { font-size:var(--fs-sm); }
+
+/* ===== Empty ===== */
+.empty-state { padding:80px 24px; text-align:center; }
+.empty-icon { width:72px; height:72px; margin:0 auto 16px; color:var(--n5); display:flex; align-items:center; justify-content:center; }
+.empty-title { font-size:var(--fs-lg); color:var(--n9); font-weight:var(--fw-medium); margin-bottom:8px; }
+.empty-desc { font-size:var(--fs-base); color:var(--n7); }
+
+/* ===== Pagination ===== */
+.pagination { display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:16px 24px; background:var(--n1); border-top:1px solid var(--n3); border-radius:0 0 var(--r-card) var(--r-card); }
+.page-num { min-width:32px; height:32px; border-radius:var(--r-base); border:1px solid var(--n5); background:var(--n1); display:flex; align-items:center; justify-content:center; font-size:var(--fs-base); color:var(--n9); cursor:pointer; transition:all .15s; padding:0 4px; }
+.page-num:hover:not(.disabled) { color:var(--c-primary); border-color:var(--c-primary); }
+.page-num.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.page-num.disabled { color:var(--n5); cursor:not-allowed; background:var(--n3); }
+.page-jump { display:flex; align-items:center; gap:6px; color:var(--n7); font-size:var(--fs-base); }
+.page-jump input { width:48px; height:32px; border:1px solid var(--n5); border-radius:var(--r-base); text-align:center; font-size:var(--fs-base); outline:none; }
+.page-size { display:flex; align-items:center; gap:6px; color:var(--n7); font-size:var(--fs-base); margin-right:auto; }
+
+/* ===== Tag ===== */
+.tag { display:inline-flex; align-items:center; gap:4px; height:22px; padding:0 8px; border-radius:var(--r-base); font-size:var(--fs-sm); line-height:20px; border:1px solid; }
+.tag.primary { color:#0958D9; background:#E6F4FF; border-color:#91CAFF; }
+.tag.warning { color:#D48806; background:#FFFBE6; border-color:#FFE58F; }
+.tag.neutral { color:#595959; background:#FAFAFA; border-color:#D9D9D9; }
+
+/* ===== Modal ===== */
+.modal-mask { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; display:none; align-items:center; justify-content:center; }
+.modal-mask.show { display:flex; animation:fadeIn .2s; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+.modal { width:420px; background:var(--n1); border-radius:var(--r-lg); box-shadow:var(--sh-modal); overflow:hidden; animation:modalIn .25s cubic-bezier(0,0,0,1); }
+@keyframes modalIn { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+.modal-head { padding:var(--s4) var(--s6); border-bottom:1px solid var(--n3); display:flex; align-items:center; justify-content:space-between; }
+.modal-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); display:flex; align-items:center; gap:8px; }
+.modal-title .mt-icon { color:var(--c-warning); display:flex; align-items:center; }
+.modal-close { width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:var(--n7); background:none; border:none; border-radius:4px; }
+.modal-close:hover { background:var(--n3); color:var(--n9); }
+.modal-body { padding:var(--s6); font-size:var(--fs-base); color:var(--n9); line-height:1.6; }
+.modal-body .mb-icon { float:left; margin-right:12px; color:var(--c-warning); }
+.modal-footer { padding:var(--s4) var(--s6); border-top:1px solid var(--n3); display:flex; justify-content:flex-end; gap:8px; }
+
+/* ===== Toast ===== */
+.toast-wrap { position:fixed; top:24px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+.toast { background:#fff; border-radius:var(--r-base); box-shadow:var(--sh-modal); padding:10px 16px; display:flex; align-items:center; gap:8px; font-size:var(--fs-base); color:var(--n10); min-width:240px; animation:toastIn .25s cubic-bezier(0,0,0,1); pointer-events:auto; }
+@keyframes toastIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+.toast.success .t-icon { color:var(--c-success); }
+.toast.error .t-icon { color:var(--c-error); }
+.toast.info .t-icon { color:var(--c-primary); }
+.toast .t-icon { display:flex; align-items:center; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-mark">L</div>
+      <div class="logo-text">Leno 商家后台<small>卖家工作台</small></div>
+    </div>
+    <div class="header-body">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="collapse-btn" aria-label="折叠菜单">
+          <svg width="18" height="18" viewBox="0 0 1024 1024" fill="currentColor"><path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM142.4 642.1L298.7 519a8.84 8.84 0 000-13.9L142.4 381.9c-5.8-4.6-14.4-.5-14.4 6.9v246.3c0 7.4 8.6 11.5 14.4 7z"/></svg>
+        </button>
+        <nav class="breadcrumb">
+          <a href="#">首页</a>
+          <span class="sep">/</span>
+          <a href="#">个人中心</a>
+          <span class="sep">/</span>
+          <span class="current">通知中心</span>
+        </nav>
+      </div>
+      <div class="header-actions">
+        <div class="global-search">
+          <svg width="14" height="14" viewBox="0 0 1024 1024" fill="var(--n7)"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 668.3c-44.8 44.8-104.6 69.7-168.3 69.7s-123.5-24.8-168.3-69.7c-44.8-44.8-69.7-104.6-69.7-168.3s24.9-123.5 69.7-168.3c44.8-44.8 104.6-69.7 168.3-69.7s123.5 24.8 168.3 69.7c44.8 44.8 69.7 104.6 69.7 168.3s-24.8 123.5-69.7 168.3z"/></svg>
+          <input type="text" placeholder="搜索订单、商品、买家..." />
+          <span class="kbd">⌘K</span>
+        </div>
+        <button class="icon-btn" aria-label="通知">
+          <svg width="18" height="18" viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428c0-141.1-104.3-257.7-240-277.1V112c0-22.1-17.9-40-40-40s-40 17.9-40 40v38.9c-135.7 19.4-240 136-240 277.1v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c0 61.8 50.2 112 112 112s112-50.2 112-112h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM512 888c-26.5 0-48-21.5-48-48h96c0 26.5-21.5 48-48 48zM304 768V428c0-55.6 21.6-107.8 60.9-147.1S456.4 220 512 220c55.6 0 107.8 21.6 147.1 60.9S720 372.4 720 428v340H304z"/></svg>
+          <span class="badge-dot">5</span>
+        </button>
+        <div class="avatar-wrap">
+          <div class="avatar">张</div>
+          <div>
+            <div class="avatar-name">张老板</div>
+            <div class="avatar-role">Seller · 营业中</div>
+          </div>
+          <svg width="12" height="12" viewBox="0 0 1024 1024" fill="var(--n7)"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- Sider -->
+    <aside class="app-sider">
+      <ul class="menu">
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M946.5 505L560.1 118.8l-25.9-25.9a31.5 31.5 0 00-44.4 0L77.5 505a63.9 63.9 0 00-18.8 46c.4 35.2 29.7 63.3 64.9 63.3h42.5V940h691.8V614.3h43.4c17.1 0 33.2-6.7 45.3-18.8a63.6 63.6 0 0018.7-45.3c0-17-6.7-33.1-18.8-45.2zM568 868H456V664h112v204zm217.9-325.7V868H632V640c0-22.1-17.9-40-40-40H432c-22.1 0-40 17.9-40 40v228H238.1V542.3h-59.9L512 209.1l333.7 333.2h-59.8z"/></svg></span><span>工作台</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-70v106c0 5.5-4.5 10-10 10h-56c-5.5 0-10-4.5-10-10V559h-70c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h70V387c0-5.5 4.5-10 10-10h56c5.5 0 10 4.5 10 10v106h70c5.5 0 10 4.5 10 10v46zm358 154c0 5.5-4.5 10-10 10H510c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h242c5.5 0 10 4.5 10 10v46zm0-176c0 5.5-4.5 10-10 10H510c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h242c5.5 0 10 4.5 10 10v46z"/></svg></span><span>商品管理</span><span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 112H724V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H372V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H232V340h560v500z"/></svg></span><span>订单履约</span><span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.8 18.9-85 46-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C927 761.5 958 833.8 960 911a8 8 0 008 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.5z"/></svg></span><span>售后处理</span><span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-9.6-10.3-16.7-10.3s-13.6 4-16.7 10.3L403.8 316.2l-253.9 36.9c-7 1-13 5.3-15.2 11.9-2.2 6.6-.4 13.9 4.6 18.8l183.7 179.1L265.4 868c-1.2 7 1.7 14.1 7.5 18.3 2.6 1.9 5.6 2.8 8.7 2.8 3.7 0 7.4-1.2 10.5-3.5L512 766l220.2 119.6c3.1 1.7 6.5 2.6 9.9 2.6s6.8-.9 9.9-2.6c5.8-4.2 8.7-11.3 7.5-18.3l-43.6-255.4 183.7-179.1c5-4.9 6.8-12.2 4.6-18.8-2.2-6.6-8.2-10.9-15.2-11.9z"/></svg></span><span>评价管理</span></div>
+        </li>
+        <li class="menu-item open active">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.8 18.9-85 46-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C927 761.5 958 833.8 960 911a8 8 0 008 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.5zM512 534c-45.9 0-89.1-17.9-121.6-50.4S340 407.9 340 362c0-45.9 17.9-89.1 50.4-121.6S466.1 190 512 190s89.1 17.9 121.6 50.4S684 316.1 684 362c0 45.9-17.9 89.1-50.4 121.6S557.9 534 512 534z"/></svg></span><span>个人账号</span><span class="m-arrow">›</span></div>
+          <ul class="menu-sub">
+            <li><div class="menu-link">个人资料</div></li>
+            <li><div class="menu-link active">通知中心</div></li>
+          </ul>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 112H724V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H372V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H232V340h560v500z"/></svg></span><span>报表导出</span></div>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Content -->
+    <main class="app-content">
+      <div class="page-scroll">
+        <div class="page-header">
+          <div>
+            <h1>通知中心</h1>
+            <div class="sub">查看订单、售后、评价与系统通知，及时处理业务消息</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <!-- Tabs -->
+          <div class="tabs" role="tablist">
+            <div class="tab active" data-tab="all" role="tab">全部 <span class="tab-badge active-badge">86</span></div>
+            <div class="tab" data-tab="unread" role="tab">未读 <span class="tab-badge urgent">5</span></div>
+            <div class="tab" data-tab="read" role="tab">已读 <span class="tab-badge">81</span></div>
+          </div>
+
+          <!-- Toolbar -->
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <label class="checkbox-wrap" id="selectAllWrap">
+                <input type="checkbox" id="selectAll" />
+                <span class="checkbox-box">
+                  <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z"/></svg>
+                </span>
+                <span>全选</span>
+              </label>
+              <button class="btn" id="batchReadBtn">
+                <span class="b-icon"><svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z"/></svg></span>
+                批量标记已读
+              </button>
+              <button class="btn btn-primary" id="readAllBtn">
+                <span class="b-icon"><svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-70v106c0 5.5-4.5 10-10 10h-56c-5.5 0-10-4.5-10-10V559h-70c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h70V387c0-5.5 4.5-10 10-10h56c5.5 0 10 4.5 10 10v106h70c5.5 0 10 4.5 10 10v46zm358 154c0 5.5-4.5 10-10 10H510c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h242c5.5 0 10 4.5 10 10v46z"/></svg></span>
+                全部标记已读
+              </button>
+            </div>
+            <div class="toolbar-right">
+              <select class="select" id="typeFilter" aria-label="通知类型">
+                <option value="all">全部类型</option>
+                <option value="order">订单</option>
+                <option value="aftersales">售后</option>
+                <option value="review">评价</option>
+                <option value="system">系统</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Notification List -->
+          <div class="notif-list" id="notifList">
+            <!-- 1 新订单 -->
+            <div class="notif-item unread" data-id="n1" data-type="order" data-read="false">
+              <div class="notif-check">
+                <label class="checkbox-wrap item-check">
+                  <input type="checkbox" />
+                  <span class="checkbox-box"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z"/></svg></span>
+                </label>
+              </div>
+              <div class="notif-dot"></div>
+              <div class="notif-icon order">
+                <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 112H724V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H372V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H232V340h560v500z"/></svg>
+              </div>
+              <div class="notif-body">
+                <div class="notif-title">
+                  <span class="title-text">新订单提醒</span>
+                  <span class="tag primary">订单</span>
+                </div>
+                <div class="notif-content">
+                  <div class="collapsed">您收到一个新订单 <a href="#" class="biz-link" data-jump="order">NO202607261523001</a>，买家「李伟」，金额 ¥5998.00，商品「南极人纯棉短袖T恤」x 2 件，请及时发货。<a href="#" class="expand-btn">展开</a></div>
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">
+                    <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M686.7 638.6L544.1 535.5V288c0-4.4-3.6-8-8-8H488c-4.4 0-8 3.6-8 8v275.4c0 2.6 1.2 5 3.3 6.5l165.4 120.6c3.6 2.6 8.6 1.8 11.2-1.7l28.6-39c2.6-3.7 1.8-8.7-1.8-11.2z"/></svg>
+                    5 分钟前
+                  </span>
+                  <div class="notif-actions">
+                    <a href="#" class="btn-link" data-jump="order">查看订单</a>
+                    <a href="#" class="btn-link mark-read">标记已读</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2 售后申请 -->
+            <div class="notif-item unread" data-id="n2" data-type="aftersales" data-read="false">
+              <div class="notif-check">
+                <label class="checkbox-wrap item-check">
+                  <input type="checkbox" />
+                  <span class="checkbox-box"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z"/></svg></span>
+                </label>
+              </div>
+              <div class="notif-dot"></div>
+              <div class="notif-icon aftersales">
+                <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/><path d="M380.4 463l-94.4 94.4c-3.1 3.1-3.1 8.2 0 11.3l45 45c3.1 3.1 8.2 3.1 11.3 0L437 508.6c12.5-12.5 32.8-12.5 45.3 0l94.4 94.4c3.1 3.1 8.2 3.1 11.3 0l45-45c3.1-3.1 3.1-8.2 0-11.3L538.6 452c-12.5-12.5-12.5-32.8 0-45.3l94.4-94.4c3.1-3.1 3.1-8.2 0-11.3l-45-45c-3.1-3.1-8.2-3.1-11.3 0L482.3 355.4c-12.5 12.5-32.8 12.5-45.3 0l-94.4-94.4c-3.1-3.1-8.2-3.1-11.3 0l-45 45c-3.1 3.1-3.1 8.2 0 11.3L380.4 463z"/></svg>
+              </div>
+              <div class="notif-body">
+                <div class="notif-title">
+                  <span class="title-text">售后申请提醒</span>
+                  <span class="tag warning">售后</span>
+                </div>
+                <div class="notif-content">
+                  买家「王芳」发起售后申请 <a href="#" class="biz-link" data-jump="aftersales">AS20260726001</a>，类型：仅退款，原因：质量问题，金额 ¥299.00，请尽快处理。
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">
+                    <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M686.7 638.6L544.1 535.5V288c0-4.4-3.6-8-8-8H488c-4.4 0-8 3.6-8 8v275.4c0 2.6 1.2 5 3.3 6.5l165.4 120.6c3.6 2.6 8.6 1.8 11.2-1.7l28.6-39c2.6-3.7 1.8-8.7-1.8-11.2z"/></svg>
+                    1 小时前
+                  </span>
+                  <div class="notif-actions">
+                    <a href="#" class="btn-link" data-jump="aftersales">处理售后</a>
+                    <a href="#" class="btn-link mark-read">标记已读</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3 超时未发货 -->
+            <div class="notif-item unread" data-id="n3" data-type="order" data-read="false">
+              <div class="notif-check">
+                <label class="checkbox-wrap item-check">
+                  <input type="checkbox" />
+                  <span class="checkbox-box"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z"/></svg></span>
+                </label>
+              </div>
+              <div class="notif-dot"></div>
+              <div class="notif-icon order" style="background:#FFF1F0;color:var(--c-error);">
+                <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 112H724V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H372V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H232V340h560v500z"/></svg>
+              </div>
+              <div class="notif-body">
+                <div class="notif-title">
+                  <span class="title-text">超时未发货警告</span>
+                  <span class="tag" style="color:#CF1322;background:#FFF1F0;border-color:#FFCCC7;">紧急</span>
+                </div>
+                <div class="notif-content">
+                  订单 <a href="#" class="biz-link" data-jump="order">NO202607251430008</a> 已超过发货截止时间 2 小时，买家「赵敏」，请立即发货避免平台扣罚。
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">
+                    <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M686.7 638.6L544.1 535.5V288c0-4.4-3.6-8-8-8H488c-4.4 0-8 3.6-8 8v275.4c0 2.6 1.2 5 3.3 6.5l165.4 120.6c3.6 2.6 8.6 1.8 11.2-1.7l28.6-39c2.6-3.7 1.8-8.7-1.8-11.2z"/></svg>
+                    2 小时前
+                  </span>
+                  <div class="notif-actions">
+                    <a href="#" class="btn-link" data-jump="order">立即发货</a>
+                    <a href="#" class="btn-link mark-read">标记已读</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4 新评价 -->
+            <div class="notif-item read" data-id="n4" data-type="review" data-read="true">
+              <div class="notif-check">
+                <label class="checkbox-wrap item-check">
+                  <input type="checkbox" />
+                  <span class="checkbox-box"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z"/></svg></span>
+                </label>
+              </div>
+              <div class="notif-dot"></div>
+              <div class="notif-icon review">
+                <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-9.6-10.3-16.7-10.3s-13.6 4-16.7 10.3L403.8 316.2l-253.9 36.9c-7 1-13 5.3-15.2 11.9-2.2 6.6-.4 13.9 4.6 18.8l183.7 179.1L265.4 868c-1.2 7 1.7 14.1 7.5 18.3 2.6 1.9 5.6 2.8 8.7 2.8 3.7 0 7.4-1.2 10.5-3.5L512 766l220.2 119.6c3.1 1.7 6.5 2.6 9.9 2.6s6.8-.9 9.9-2.6c5.8-4.2 8.7-11.3 7.5-18.3l-43.6-255.4 183.7-179.1c5-4.9 6.8-12.2 4.6-18.8-2.2-6.6-8.2-10.9-15.2-11.9z"/></svg>
+              </div>
+              <div class="notif-body">
+                <div class="notif-title">
+                  <span class="title-text">新评价提醒</span>
+                  <span class="tag warning">评价</span>
+                </div>
+                <div class="notif-content">
+                  您的商品「南极人纯棉短袖T恤」收到一条新评价，买家「陈静」评分 5 星，评价内容：质量很好，面料舒服，物流也很快，会回购！
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">
+                    <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M686.7 638.6L544.1 535.5V288c0-4.4-3.6-8-8-8H488c-4.4 0-8 3.6-8 8v275.4c0 2.6 1.2 5 3.3 6.5l165.4 120.6c3.6 2.6 8.6 1.8 11.2-1.7l28.6-39c2.6-3.7 1.8-8.7-1.8-11.2z"/></svg>
+                    昨天 14:00
+                  </span>
+                  <div class="notif-actions">
+                    <a href="#" class="btn-link" data-jump="review">回复评价</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5 系统公告 -->
+            <div class="notif-item read" data-id="n5" data-type="system" data-read="true">
+              <div class="notif-check">
+                <label class="checkbox-wrap item-check">
+                  <input type="checkbox" />
+                  <span class="checkbox-box"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z"/></svg></span>
+                </label>
+              </div>
+              <div class="notif-dot"></div>
+              <div class="notif-icon system">
+                <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428c0-141.1-104.3-257.7-240-277.1V112c0-22.1-17.9-40-40-40s-40 17.9-40 40v38.9c-135.7 19.4-240 136-240 277.1v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c0 61.8 50.2 112 112 112s112-50.2 112-112h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM512 888c-26.5 0-48-21.5-48-48h96c0 26.5-21.5 48-48 48zM304 768V428c0-55.6 21.6-107.8 60.9-147.1S456.4 220 512 220c55.6 0 107.8 21.6 147.1 60.9S720 372.4 720 428v340H304z"/></svg>
+              </div>
+              <div class="notif-body">
+                <div class="notif-title">
+                  <span class="title-text">系统维护公告</span>
+                  <span class="tag neutral">系统</span>
+                </div>
+                <div class="notif-content">
+                  <div class="collapsed">Leno 商家管理后台将于 2026-07-28 凌晨 02:00-04:00 进行系统升级维护，期间订单数据查询与导出功能可能短暂不可用，请提前安排相关操作。升级完成后将恢复全部功能。<a href="#" class="expand-btn">展开</a></div>
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">
+                    <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M686.7 638.6L544.1 535.5V288c0-4.4-3.6-8-8-8H488c-4.4 0-8 3.6-8 8v275.4c0 2.6 1.2 5 3.3 6.5l165.4 120.6c3.6 2.6 8.6 1.8 11.2-1.7l28.6-39c2.6-3.7 1.8-8.7-1.8-11.2z"/></svg>
+                    昨天 09:30
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 6 退款成功 -->
+            <div class="notif-item read" data-id="n6" data-type="aftersales" data-read="true">
+              <div class="notif-check">
+                <label class="checkbox-wrap item-check">
+                  <input type="checkbox" />
+                  <span class="checkbox-box"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z"/></svg></span>
+                </label>
+              </div>
+              <div class="notif-dot"></div>
+              <div class="notif-icon aftersales">
+                <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/><path d="M380.4 463l-94.4 94.4c-3.1 3.1-3.1 8.2 0 11.3l45 45c3.1 3.1 8.2 3.1 11.3 0L437 508.6c12.5-12.5 32.8-12.5 45.3 0l94.4 94.4c3.1 3.1 8.2 3.1 11.3 0l45-45c3.1-3.1 3.1-8.2 0-11.3L538.6 452c-12.5-12.5-12.5-32.8 0-45.3l94.4-94.4c3.1-3.1 3.1-8.2 0-11.3l-45-45c-3.1-3.1-8.2-3.1-11.3 0L482.3 355.4c-12.5 12.5-32.8 12.5-45.3 0l-94.4-94.4c-3.1-3.1-8.2-3.1-11.3 0l-45 45c-3.1 3.1-3.1 8.2 0 11.3L380.4 463z"/></svg>
+              </div>
+              <div class="notif-body">
+                <div class="notif-title">
+                  <span class="title-text">退款处理完成</span>
+                  <span class="tag warning">售后</span>
+                </div>
+                <div class="notif-content">
+                  售后单 <a href="#" class="biz-link" data-jump="aftersales">AS20260725003</a> 退款已成功打款至买家账户，金额 ¥159.00，售后流程已完结。
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">
+                    <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M686.7 638.6L544.1 535.5V288c0-4.4-3.6-8-8-8H488c-4.4 0-8 3.6-8 8v275.4c0 2.6 1.2 5 3.3 6.5l165.4 120.6c3.6 2.6 8.6 1.8 11.2-1.7l28.6-39c2.6-3.7 1.8-8.7-1.8-11.2z"/></svg>
+                    2 天前
+                  </span>
+                  <div class="notif-actions">
+                    <a href="#" class="btn-link" data-jump="aftersales">查看详情</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 7 订单已签收 -->
+            <div class="notif-item read" data-id="n7" data-type="order" data-read="true">
+              <div class="notif-check">
+                <label class="checkbox-wrap item-check">
+                  <input type="checkbox" />
+                  <span class="checkbox-box"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z"/></svg></span>
+                </label>
+              </div>
+              <div class="notif-dot"></div>
+              <div class="notif-icon order">
+                <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 112H724V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H372V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H232V340h560v500z"/></svg>
+              </div>
+              <div class="notif-body">
+                <div class="notif-title">
+                  <span class="title-text">订单已签收</span>
+                  <span class="tag primary">订单</span>
+                </div>
+                <div class="notif-content">
+                  订单 <a href="#" class="biz-link" data-jump="order">NO20260724008812</a> 已由买家签收，物流「顺丰速运 SF1234567890」，订单进入售后保障期。
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">
+                    <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M686.7 638.6L544.1 535.5V288c0-4.4-3.6-8-8-8H488c-4.4 0-8 3.6-8 8v275.4c0 2.6 1.2 5 3.3 6.5l165.4 120.6c3.6 2.6 8.6 1.8 11.2-1.7l28.6-39c2.6-3.7 1.8-8.7-1.8-11.2z"/></svg>
+                    3 天前
+                  </span>
+                  <div class="notif-actions">
+                    <a href="#" class="btn-link" data-jump="order">查看订单</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination">
+            <div class="page-size">每页 <select class="select" style="height:32px;min-width:80px;"><option>20 条</option><option>10 条</option><option>50 条</option></select></div>
+            <div class="page-num disabled">‹</div>
+            <div class="page-num active">1</div>
+            <div class="page-num">2</div>
+            <div class="page-num">3</div>
+            <div class="page-num">4</div>
+            <div class="page-num">5</div>
+            <div class="page-num">›</div>
+            <div class="page-jump">跳至<input type="text" value="1" />页</div>
+          </div>
+        </div>
+      </div>
+      <footer class="app-footer">
+        Copyright © 2026 Leno 电商平台 · 商家管理后台 · 版本 v1.0.0
+      </footer>
+    </main>
+  </div>
+</div>
+
+<!-- 全部标记已读确认弹窗 -->
+<div class="modal-mask" id="readAllModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">
+        <span class="mt-icon"><svg width="18" height="18" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg></span>
+        确认全部标记已读
+      </div>
+      <button class="modal-close" data-close="readAllModal"><svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l261.9-261.9c14.3-14.3 14.3-37.5 0-51.7l-51.7-51.7c-14.3-14.3-37.5-14.3-51.7 0L460.4 408.4 198.6 146.6c-14.3-14.3-37.5-14.3-51.7 0l-51.7 51.7c-14.3 14.3-14.3 37.5 0 51.7L357 512 95.2 773.9c-14.3 14.3-14.3 37.5 0 51.7l51.7 51.7c14.3 14.3 37.5 14.3 51.7 0L460.4 615.6l261.9 261.9c14.3 14.3 37.5 14.3 51.7 0l51.7-51.7c14.3-14.3 14.3-37.5 0-51.7L563.8 512z"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <span class="mb-icon"><svg width="22" height="22" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg></span>
+      <div>将把所有未读通知标记为已读，此操作不可撤销。当前共 <strong style="color:var(--n10);">5</strong> 条未读通知。确认要继续吗？</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-close="readAllModal">取消</button>
+      <button class="btn btn-primary" id="confirmReadAll">确认标记</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+(function(){
+  var toastWrap = document.getElementById('toastWrap');
+  function toast(type, msg){
+    var icons = {
+      success:'<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 338.4L446.8 728.4c-2.8 2.9-6.6 4.4-10.5 4.4-3.8 0-7.4-1.4-10.2-4L312.9 623.5a13.7 13.7 0 010-19.5l19.5-19.4c2.7-2.6 6.2-4 9.9-4 3.9 0 7.5 1.5 10.2 4.2l84.3 84.9 228.9-238.6c2.7-2.8 6.4-4.3 10.3-4.3 3.7 0 7.2 1.4 9.9 4l19.4 19.4c5.6 5.5 5.7 14.4.2 20.2z"/>',
+      error:'<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/>',
+      info:'<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm32 664c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V456c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272zm-32-344a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/>'
+    };
+    var el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML = '<span class="t-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor">'+icons[type]+'</svg></span><span>'+msg+'</span>';
+    toastWrap.appendChild(el);
+    setTimeout(function(){
+      el.style.transition='opacity .25s, transform .25s';
+      el.style.opacity='0';
+      el.style.transform='translateY(-12px)';
+      setTimeout(function(){ el.remove(); }, 260);
+    }, 2400);
+  }
+
+  function openModal(id){ document.getElementById(id).classList.add('show'); }
+  function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+  document.querySelectorAll('[data-close]').forEach(function(btn){
+    btn.addEventListener('click', function(){ closeModal(btn.getAttribute('data-close')); });
+  });
+  document.querySelectorAll('.modal-mask').forEach(function(mask){
+    mask.addEventListener('click', function(e){ if(e.target === mask) mask.classList.remove('show'); });
+  });
+
+  /* ===== Tabs ===== */
+  var tabs = document.querySelectorAll('.tab');
+  var typeFilter = document.getElementById('typeFilter');
+  var notifList = document.getElementById('notifList');
+  var currentTab = 'all';
+  var currentType = 'all';
+
+  function applyFilter(){
+    var items = notifList.querySelectorAll('.notif-item');
+    items.forEach(function(item){
+      var read = item.getAttribute('data-read') === 'true';
+      var type = item.getAttribute('data-type');
+      var tabOk = currentTab === 'all' || (currentTab === 'unread' && !read) || (currentTab === 'read' && read);
+      var typeOk = currentType === 'all' || type === currentType;
+      item.style.display = (tabOk && typeOk) ? 'flex' : 'none';
+    });
+    updateBadges();
+    updateSelectAll();
+  }
+
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.classList.remove('active'); });
+      tab.classList.add('active');
+      currentTab = tab.getAttribute('data-tab');
+      applyFilter();
+    });
+  });
+
+  typeFilter.addEventListener('change', function(){
+    currentType = typeFilter.value;
+    applyFilter();
+  });
+
+  function updateBadges(){
+    var items = notifList.querySelectorAll('.notif-item');
+    var visible = 0, unreadVisible = 0, readVisible = 0;
+    items.forEach(function(item){
+      if(item.style.display !== 'none'){
+        visible++;
+        if(item.getAttribute('data-read') === 'false') unreadVisible++;
+        else readVisible++;
+      }
+    });
+    var allUnread = 0, allRead = 0;
+    items.forEach(function(item){
+      if(item.getAttribute('data-read') === 'false') allUnread++;
+      else allRead++;
+    });
+    document.querySelector('.tab[data-tab="all"] .tab-badge').textContent = allUnread + allRead;
+    document.querySelector('.tab[data-tab="unread"] .tab-badge').textContent = allUnread;
+    document.querySelector('.tab[data-tab="read"] .tab-badge').textContent = allRead;
+  }
+
+  /* ===== Mark Read ===== */
+  notifList.addEventListener('click', function(e){
+    var markBtn = e.target.closest('.mark-read');
+    if(markBtn){
+      e.preventDefault();
+      var item = markBtn.closest('.notif-item');
+      markItemRead(item);
+      return;
+    }
+    var expandBtn = e.target.closest('.expand-btn');
+    if(expandBtn){
+      e.preventDefault();
+      var content = expandBtn.closest('.notif-content');
+      var collapsed = content.querySelector('.collapsed');
+      if(collapsed){
+        collapsed.classList.remove('collapsed');
+        expandBtn.textContent = '收起';
+      } else {
+        content.querySelector('div').classList.add('collapsed');
+        expandBtn.textContent = '展开';
+      }
+      return;
+    }
+    var jumpLink = e.target.closest('[data-jump]');
+    if(jumpLink){
+      e.preventDefault();
+      var jump = jumpLink.getAttribute('data-jump');
+      var msgs = { order:'订单详情', aftersales:'售后详情', review:'评价回复' };
+      toast('info', '跳转至' + msgs[jump] + '页面');
+    }
+  });
+
+  function markItemRead(item){
+    if(item.getAttribute('data-read') === 'true'){
+      toast('info', '该通知已是已读状态');
+      return;
+    }
+    item.setAttribute('data-read', 'true');
+    item.classList.remove('unread');
+    item.classList.add('read');
+    item.querySelector('.notif-dot').style.background = 'transparent';
+    var markBtn = item.querySelector('.mark-read');
+    if(markBtn) markBtn.remove();
+    toast('success', '已标记为已读');
+    updateBadges();
+    updateSelectAll();
+  }
+
+  /* ===== Select All ===== */
+  var selectAll = document.getElementById('selectAll');
+  var selectAllWrap = document.getElementById('selectAllWrap');
+
+  function getVisibleChecks(){
+    var checks = [];
+    notifList.querySelectorAll('.notif-item').forEach(function(item){
+      if(item.style.display !== 'none'){
+        var cb = item.querySelector('.item-check input');
+        if(cb) checks.push({ item:item, cb:cb });
+      }
+    });
+    return checks;
+  }
+
+  function updateSelectAll(){
+    var checks = getVisibleChecks();
+    if(checks.length === 0){
+      selectAll.checked = false;
+      selectAllWrap.classList.remove('indeterminate');
+      selectAll.indeterminate = false;
+      return;
+    }
+    var checkedCount = checks.filter(function(c){ return c.cb.checked; }).length;
+    selectAll.checked = checkedCount === checks.length;
+    if(checkedCount > 0 && checkedCount < checks.length){
+      selectAllWrap.classList.add('indeterminate');
+    } else {
+      selectAllWrap.classList.remove('indeterminate');
+    }
+  }
+
+  selectAll.addEventListener('change', function(){
+    var checks = getVisibleChecks();
+    checks.forEach(function(c){
+      c.cb.checked = selectAll.checked;
+      if(selectAll.checked) c.item.classList.add('selected');
+      else c.item.classList.remove('selected');
+    });
+    selectAllWrap.classList.remove('indeterminate');
+  });
+
+  notifList.addEventListener('change', function(e){
+    if(e.target.matches('.item-check input')){
+      var item = e.target.closest('.notif-item');
+      if(e.target.checked) item.classList.add('selected');
+      else item.classList.remove('selected');
+      updateSelectAll();
+    }
+  });
+
+  /* ===== Batch Read ===== */
+  document.getElementById('batchReadBtn').addEventListener('click', function(){
+    var checks = getVisibleChecks();
+    var selected = checks.filter(function(c){ return c.cb.checked; });
+    if(selected.length === 0){
+      toast('error', '请先勾选要标记已读的通知');
+      return;
+    }
+    var count = 0;
+    selected.forEach(function(c){
+      if(c.item.getAttribute('data-read') === 'false'){
+        c.item.setAttribute('data-read', 'true');
+        c.item.classList.remove('unread');
+        c.item.classList.add('read');
+        c.item.querySelector('.notif-dot').style.background = 'transparent';
+        var mb = c.item.querySelector('.mark-read');
+        if(mb) mb.remove();
+        c.item.classList.remove('selected');
+        c.cb.checked = false;
+        count++;
+      }
+    });
+    if(count > 0){
+      toast('success', '已标记 ' + count + ' 条为已读');
+    } else {
+      toast('info', '所选通知均已是已读状态');
+    }
+    updateBadges();
+    updateSelectAll();
+  });
+
+  /* ===== Read All ===== */
+  document.getElementById('readAllBtn').addEventListener('click', function(){
+    var unread = notifList.querySelectorAll('.notif-item.unread');
+    if(unread.length === 0){
+      toast('info', '当前没有未读通知');
+      return;
+    }
+    openModal('readAllModal');
+  });
+
+  document.getElementById('confirmReadAll').addEventListener('click', function(){
+    closeModal('readAllModal');
+    var unread = notifList.querySelectorAll('.notif-item.unread');
+    unread.forEach(function(item){
+      item.setAttribute('data-read', 'true');
+      item.classList.remove('unread');
+      item.classList.add('read');
+      item.querySelector('.notif-dot').style.background = 'transparent';
+      var mb = item.querySelector('.mark-read');
+      if(mb) mb.remove();
+    });
+    toast('success', '全部通知已标记为已读');
+    updateBadges();
+    updateSelectAll();
+  });
+
+  updateBadges();
+})();
+</script>
+</body>
+</html>

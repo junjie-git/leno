@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>销售报表导出 - Leno 商家管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { font-family:var(--ff-app); color:var(--n10); background:var(--n3); font-size:var(--fs-base); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+body { min-height:100vh; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+button { font-family:inherit; cursor:pointer; }
+svg { display:inline-block; vertical-align:middle; }
+
+/* ===== Layout ===== */
+.app { display:flex; flex-direction:column; min-height:100vh; }
+.app-header { height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5); display:flex; align-items:center; padding:0 24px 0 0; position:sticky; top:0; z-index:200; box-shadow:0 1px 4px rgba(0,21,41,.08); }
+.app-header .logo { width:var(--sider-width); height:100%; display:flex; align-items:center; gap:10px; padding:0 20px; flex-shrink:0; }
+.app-header .logo-mark { width:32px; height:32px; border-radius:6px; background:linear-gradient(135deg,#1677FF 0%,#4096FF 100%); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:var(--fw-semibold); font-size:18px; box-shadow:0 2px 8px rgba(22,119,255,.35); }
+.app-header .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); white-space:nowrap; }
+.app-header .logo-text small { display:block; font-size:var(--fs-sm); font-weight:var(--fw-normal); color:var(--n7); margin-top:-2px; }
+.app-header .header-body { flex:1; display:flex; align-items:center; justify-content:space-between; padding-left:24px; }
+.collapse-btn { width:40px; height:var(--header-h); display:flex; align-items:center; justify-content:center; color:var(--n9); background:none; border:none; font-size:18px; cursor:pointer; }
+.collapse-btn:hover { color:var(--c-primary); background:var(--n3); }
+.breadcrumb { display:flex; align-items:center; gap:6px; font-size:var(--fs-base); color:var(--n9); }
+.breadcrumb a { color:var(--n9); }
+.breadcrumb a:hover { color:var(--c-primary); }
+.breadcrumb .sep { color:var(--n5); font-size:12px; }
+.breadcrumb .current { color:var(--n10); }
+.header-actions { display:flex; align-items:center; gap:8px; }
+.global-search { width:220px; height:32px; background:var(--n3); border:1px solid transparent; border-radius:var(--r-base); display:flex; align-items:center; padding:0 12px; gap:8px; transition:all .2s; }
+.global-search:hover { border-color:var(--c-primary); background:var(--n1); }
+.global-search input { flex:1; border:none; outline:none; background:transparent; font-size:var(--fs-sm); color:var(--n10); }
+.global-search input::placeholder { color:var(--n7); }
+.global-search .kbd { font-size:11px; color:var(--n7); background:var(--n1); border:1px solid var(--n5); border-radius:4px; padding:0 5px; line-height:18px; }
+.icon-btn { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--n9); position:relative; background:none; border:none; font-size:18px; }
+.icon-btn:hover { background:var(--n3); color:var(--c-primary); }
+.icon-btn .badge-dot { position:absolute; top:6px; right:6px; min-width:16px; height:16px; padding:0 4px; background:var(--c-error); color:#fff; border-radius:8px; font-size:10px; line-height:16px; font-weight:var(--fw-medium); border:2px solid var(--n1); }
+.avatar-wrap { display:flex; align-items:center; gap:8px; padding:4px 8px 4px 4px; border-radius:var(--r-base); cursor:pointer; }
+.avatar-wrap:hover { background:var(--n3); }
+.avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#1677FF,#4096FF); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:var(--fw-medium); }
+.avatar-name { font-size:var(--fs-base); color:var(--n10); }
+.avatar-role { font-size:var(--fs-sm); color:var(--n7); }
+
+.app-body { flex:1; display:flex; }
+.app-sider { width:var(--sider-width); background:var(--sider-bg); flex-shrink:0; display:flex; flex-direction:column; position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto; }
+.menu { list-style:none; padding:8px 0; flex:1; }
+.menu-link { display:flex; align-items:center; gap:10px; height:40px; padding:0 16px 0 24px; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .15s; position:relative; }
+.menu-link:hover { color:#fff; }
+.menu-link .m-icon { width:16px; height:16px; flex-shrink:0; font-size:16px; }
+.menu-link .m-arrow { margin-left:auto; font-size:10px; transition:transform .2s; }
+.menu-item.open > .menu-link .m-arrow { transform:rotate(90deg); }
+.menu-item.active > .menu-link { color:#fff; background:var(--c-primary); }
+.menu-item.active > .menu-link::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#fff; }
+.menu-sub { list-style:none; max-height:0; overflow:hidden; transition:max-height .25s ease; }
+.menu-item.open > .menu-sub { max-height:500px; }
+.menu-sub .menu-link { height:36px; padding-left:48px; font-size:var(--fs-sm); }
+.menu-sub .menu-link.active { color:#fff; background:rgba(22,119,255,.15); }
+.menu-sub .menu-link.active::before { display:none; }
+
+.app-content { flex:1; display:flex; flex-direction:column; min-width:0; }
+.page-scroll { flex:1; overflow-y:auto; padding:var(--s6); }
+.app-footer { height:32px; background:var(--n1); border-top:1px solid var(--n3); display:flex; align-items:center; justify-content:center; font-size:var(--fs-sm); color:var(--n7); padding:0 24px; }
+
+/* ===== Page Header ===== */
+.page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--s4); }
+.page-header h1 { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); }
+.page-header .sub { margin-top:4px; font-size:var(--fs-sm); color:var(--n7); }
+
+/* ===== Card ===== */
+.card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; }
+.card-head { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid var(--n3); }
+.card-head .card-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); display:flex; align-items:center; gap:8px; }
+.card-head .card-title .title-icon { color:var(--c-primary); }
+.card-head .card-extra { font-size:var(--fs-sm); color:var(--n7); }
+.card-body { padding:24px; }
+
+/* ===== Export Layout ===== */
+.export-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+@media (max-width:1199px) { .export-grid { grid-template-columns:1fr; } }
+
+/* ===== Form ===== */
+.form-item { margin-bottom:24px; }
+.form-item:last-child { margin-bottom:0; }
+.form-label { display:flex; align-items:center; gap:4px; font-size:var(--fs-base); color:var(--n10); margin-bottom:8px; }
+.form-label .req { color:var(--c-error); font-size:12px; }
+.form-label .label-hint { font-size:var(--fs-sm); color:var(--n7); margin-left:4px; font-weight:var(--fw-normal); }
+
+/* Radio */
+.radio-group { display:flex; flex-wrap:wrap; gap:24px; }
+.radio-wrap { display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-base); color:var(--n10); user-select:none; }
+.radio-wrap input { display:none; }
+.radio-box { width:16px; height:16px; border:1px solid var(--n5); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; transition:all .15s; flex-shrink:0; background:var(--n1); position:relative; }
+.radio-wrap input:checked + .radio-box { border-color:var(--c-primary); }
+.radio-wrap input:checked + .radio-box::after { content:''; width:8px; height:8px; border-radius:50%; background:var(--c-primary); }
+.radio-wrap:hover .radio-box { border-color:var(--c-primary); }
+.radio-wrap.disabled { color:var(--n7); cursor:not-allowed; }
+.radio-wrap.disabled .radio-box { background:var(--n3); border-color:var(--n5); }
+.radio-wrap.disabled:hover .radio-box { border-color:var(--n5); }
+.radio-desc { font-size:var(--fs-sm); color:var(--n7); margin-left:4px; }
+
+/* Checkbox */
+.checkbox-group { display:flex; flex-wrap:wrap; gap:16px 24px; }
+.checkbox-wrap { display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:var(--fs-base); color:var(--n10); user-select:none; }
+.checkbox-wrap input { display:none; }
+.checkbox-box { width:16px; height:16px; border:1px solid var(--n5); border-radius:3px; display:inline-flex; align-items:center; justify-content:center; transition:all .15s; flex-shrink:0; background:var(--n1); }
+.checkbox-wrap input:checked + .checkbox-box { background:var(--c-primary); border-color:var(--c-primary); }
+.checkbox-box svg { opacity:0; color:#fff; }
+.checkbox-wrap input:checked + .checkbox-box svg { opacity:1; }
+.checkbox-wrap.disabled { color:var(--n7); cursor:not-allowed; }
+.checkbox-wrap.disabled .checkbox-box { background:var(--n3); border-color:var(--n5); }
+.checkbox-wrap.disabled:hover .checkbox-box { border-color:var(--n5); }
+
+/* Range Picker */
+.range-picker { display:flex; align-items:center; gap:8px; }
+.range-input { height:32px; border:1px solid var(--n5); border-radius:var(--r-base); padding:0 11px; font-size:var(--fs-base); color:var(--n10); background:var(--n1); outline:none; transition:border-color .15s; font-family:inherit; width:140px; }
+.range-input:hover { border-color:var(--c-primary); }
+.range-input:focus { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.range-sep { color:var(--n7); font-size:12px; }
+.preset-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.preset-btn { height:24px; padding:0 10px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-sm); color:var(--n9); cursor:pointer; transition:all .15s; }
+.preset-btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.preset-btn.active { color:var(--c-primary); border-color:var(--c-primary); background:#E6F4FF; }
+.range-tip { margin-top:8px; font-size:var(--fs-sm); color:var(--n7); display:flex; align-items:center; gap:4px; }
+.range-tip.error { color:var(--c-error); }
+
+/* ===== Buttons ===== */
+.btn { height:32px; padding:0 15px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; gap:6px; transition:all .15s; white-space:nowrap; }
+.btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-danger { color:var(--c-error); border-color:var(--c-error); }
+.btn-danger:hover { color:#fff; background:var(--c-error); border-color:var(--c-error); }
+.btn-link { height:auto; padding:0; border:none; background:none; color:var(--c-primary); font-size:var(--fs-base); }
+.btn-link:hover { color:#4096FF; background:none; }
+.btn-link.disabled { color:var(--n7); cursor:not-allowed; pointer-events:none; }
+.btn-sm { height:24px; padding:0 8px; font-size:var(--fs-sm); }
+.btn-lg { height:40px; padding:0 24px; font-size:var(--fs-base); }
+.btn:disabled, .btn.disabled { color:var(--n7); border-color:var(--n5); background:var(--n3); cursor:not-allowed; }
+.btn-primary:disabled, .btn-primary.disabled { background:var(--n3); border-color:var(--n5); color:var(--n7); }
+.btn .spinner { width:14px; height:14px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; }
+.btn:not(.btn-primary) .spinner { border-color:rgba(22,119,255,.3); border-top-color:var(--c-primary); }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ===== Export Summary ===== */
+.export-summary { background:var(--n2); border-radius:var(--r-base); padding:12px 16px; margin-top:8px; display:flex; align-items:center; justify-content:space-between; }
+.export-summary .summary-text { font-size:var(--fs-sm); color:var(--n9); display:flex; align-items:center; gap:6px; }
+.export-summary .summary-count { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--c-primary); font-family:var(--ff-mono); }
+.export-action { margin-top:16px; display:flex; align-items:center; gap:12px; }
+.export-action .action-hint { font-size:var(--fs-sm); color:var(--n7); }
+
+/* ===== Table ===== */
+.table-wrap { overflow-x:auto; }
+table.data-table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+table.data-table th { height:48px; padding:0 12px; text-align:left; font-weight:var(--fw-medium); color:var(--n9); background:var(--n2); border-bottom:1px solid var(--n5); white-space:nowrap; font-size:var(--fs-sm); }
+table.data-table td { height:56px; padding:0 12px; color:var(--n10); border-bottom:1px solid var(--n3); vertical-align:middle; }
+table.data-table tbody tr:hover { background:var(--n2); }
+table.data-table .mono { font-family:var(--ff-mono); color:var(--c-primary); font-weight:var(--fw-medium); font-size:var(--fs-sm); }
+table.data-table .sub-text { font-size:var(--fs-sm); color:var(--n7); display:block; margin-top:2px; }
+table.data-table .file-tag { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:var(--r-base); font-size:var(--fs-sm); font-weight:var(--fw-medium); }
+table.data-table .file-tag.excel { background:#F6FFED; color:var(--c-success); border:1px solid #B7EB8F; }
+table.data-table .file-tag.csv { background:#E6F4FF; color:var(--c-primary); border:1px solid #91CAFF; }
+table.data-table .file-size { font-size:var(--fs-sm); color:var(--n9); font-family:var(--ff-mono); }
+table.data-table .op-cell { display:flex; align-items:center; gap:4px; }
+table.data-table .op-cell .btn-link { font-size:var(--fs-sm); }
+table.data-table .op-cell .btn-link.danger { color:var(--c-error); }
+table.data-table .op-cell .btn-link.danger:hover { color:#ff7875; }
+table.data-table .err-msg { font-size:var(--fs-sm); color:var(--c-error); display:flex; align-items:center; gap:4px; margin-top:4px; }
+
+/* ===== Status Tag ===== */
+.status-tag { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:var(--r-base); font-size:var(--fs-sm); font-weight:var(--fw-medium); line-height:20px; }
+.status-tag.processing { background:#E6F4FF; color:var(--c-primary); border:1px solid #91CAFF; }
+.status-tag.completed { background:#F6FFED; color:var(--c-success); border:1px solid #B7EB8F; }
+.status-tag.failed { background:#FFF1F0; color:var(--c-error); border:1px solid #FFCCC7; }
+.status-tag .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+.status-tag.processing .dot { animation:pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+
+/* ===== Progress ===== */
+.progress-wrap { min-width:120px; }
+.progress-bar { height:6px; background:var(--n3); border-radius:3px; overflow:hidden; }
+.progress-bar .progress-fill { height:100%; background:var(--c-primary); border-radius:3px; transition:width .4s ease; }
+.progress-text { font-size:var(--fs-sm); color:var(--n9); margin-top:4px; display:flex; justify-content:space-between; }
+
+/* ===== Pagination ===== */
+.pagination { display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:16px 24px; }
+.page-num { min-width:32px; height:32px; border-radius:var(--r-base); border:1px solid var(--n5); background:var(--n1); display:flex; align-items:center; justify-content:center; font-size:var(--fs-base); color:var(--n9); cursor:pointer; padding:0 8px; transition:all .15s; }
+.page-num:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.page-num.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.page-num.disabled { color:var(--n5); cursor:not-allowed; }
+.page-num.disabled:hover { border-color:var(--n5); color:var(--n5); }
+.page-size { height:32px; border:1px solid var(--n5); border-radius:var(--r-base); padding:0 28px 0 11px; font-size:var(--fs-base); color:var(--n10); background:var(--n1); appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='64 64 896 896'%3E%3Cpath fill='%238C8C8C' d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; cursor:pointer; }
+.page-total { font-size:var(--fs-sm); color:var(--n9); margin-right:8px; }
+
+/* ===== Empty ===== */
+.empty-state { padding:48px 0; text-align:center; }
+.empty-state .empty-icon { width:64px; height:64px; margin:0 auto 16px; color:var(--n5); }
+.empty-state .empty-title { font-size:var(--fs-base); color:var(--n9); margin-bottom:4px; }
+.empty-state .empty-desc { font-size:var(--fs-sm); color:var(--n7); }
+
+/* ===== Skeleton ===== */
+.skeleton-row { height:56px; border-bottom:1px solid var(--n3); }
+.skeleton-cell { display:inline-block; height:16px; background:linear-gradient(90deg,#F2F2F2 25%,#E6E6E6 37%,#F2F2F2 63%); background-size:400% 100%; border-radius:4px; animation:sk 1.4s ease infinite; margin:0 12px; }
+@keyframes sk { 0% { background-position:100% 50%; } 100% { background-position:0 50%; } }
+
+/* ===== Modal ===== */
+.modal-mask { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; opacity:0; visibility:hidden; transition:all .2s; }
+.modal-mask.show { opacity:1; visibility:visible; }
+.modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) translateY(-20px); background:var(--n1); border-radius:var(--r-lg); box-shadow:var(--sh-modal); z-index:1001; width:420px; opacity:0; visibility:hidden; transition:all .25s; }
+.modal.show { opacity:1; visibility:visible; transform:translate(-50%,-50%) translateY(0); }
+.modal-head { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid var(--n3); }
+.modal-head .modal-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); display:flex; align-items:center; gap:8px; }
+.modal-head .modal-title .title-icon { font-size:20px; }
+.modal-head .modal-title.warn .title-icon { color:var(--c-warning); }
+.modal-head .modal-title.danger .title-icon { color:var(--c-error); }
+.modal-close { width:24px; height:24px; display:flex; align-items:center; justify-content:center; color:var(--n7); background:none; border:none; cursor:pointer; border-radius:4px; }
+.modal-close:hover { color:var(--n10); background:var(--n3); }
+.modal-body { padding:24px; font-size:var(--fs-base); color:var(--n10); line-height:1.6; }
+.modal-body .confirm-name { font-weight:var(--fw-medium); color:var(--n10); }
+.modal-body .confirm-tip { margin-top:8px; font-size:var(--fs-sm); color:var(--n7); }
+.modal-foot { padding:8px 24px 24px; display:flex; justify-content:flex-end; gap:8px; }
+
+/* ===== Toast ===== */
+.toast { position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-20px); background:var(--n1); border-radius:var(--r-base); box-shadow:var(--sh-dropdown); padding:9px 16px; display:flex; align-items:center; gap:8px; font-size:var(--fs-base); z-index:2000; opacity:0; visibility:hidden; transition:all .25s; border:1px solid var(--n5); }
+.toast.show { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+.toast.success .toast-icon { color:var(--c-success); }
+.toast.error .toast-icon { color:var(--c-error); }
+.toast.info .toast-icon { color:var(--c-primary); }
+.toast .toast-icon { width:16px; height:16px; flex-shrink:0; }
+
+/* ===== Filter Bar ===== */
+.filter-bar { display:flex; align-items:center; gap:12px; padding:12px 24px; background:var(--n1); border-bottom:1px solid var(--n3); flex-wrap:wrap; }
+.filter-bar .filter-label { font-size:var(--fs-sm); color:var(--n9); }
+.select { height:32px; border:1px solid var(--n5); border-radius:var(--r-base); padding:0 28px 0 11px; font-size:var(--fs-base); color:var(--n10); background:var(--n1); outline:none; transition:border-color .15s; font-family:inherit; appearance:none; cursor:pointer; min-width:120px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='64 64 896 896'%3E%3Cpath fill='%238C8C8C' d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; }
+.select:hover { border-color:var(--c-primary); }
+.select:focus { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-mark">L</div>
+      <div class="logo-text">Leno 商家后台<small>商家管理控制台</small></div>
+    </div>
+    <div class="header-body">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <button class="collapse-btn" aria-label="折叠菜单">
+          <svg width="18" height="18" viewBox="0 0 1024 1024" fill="currentColor"><path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"/></svg>
+        </button>
+        <nav class="breadcrumb">
+          <a href="#">首页</a>
+          <span class="sep">/</span>
+          <a href="#">报表导出</a>
+          <span class="sep">/</span>
+          <span class="current">销售报表导出</span>
+        </nav>
+      </div>
+      <div class="header-actions">
+        <div class="global-search">
+          <svg width="14" height="14" viewBox="0 0 1024 1024" fill="var(--n7)"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 668.3c-44.8 44.8-104.6 69.7-168.3 69.7s-123.5-24.8-168.3-69.7c-44.8-44.8-69.7-104.6-69.7-168.3s24.9-123.5 69.7-168.3c44.8-44.8 104.6-69.7 168.3-69.7s123.5 24.8 168.3 69.7c44.8 44.8 69.7 104.6 69.7 168.3s-24.8 123.5-69.7 168.3z"/></svg>
+          <input type="text" placeholder="搜索订单、商品、买家..." />
+          <span class="kbd">⌘K</span>
+        </div>
+        <button class="icon-btn" aria-label="通知">
+          <svg width="18" height="18" viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428c0-141.1-104.3-257.7-240-277.1V112c0-22.1-17.9-40-40-40s-40 17.9-40 40v38.9c-135.7 19.4-240 136-240 277.1v340h-24c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h216c0 61.8 50.2 112 112 112s112-50.2 112-112h216c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM512 888c-26.5 0-48-21.5-48-48h96c0 26.5-21.5 48-48 48zM304 768V428c0-55.6 21.6-107.8 60.9-147.1S456.4 220 512 220c55.6 0 107.8 21.6 147.1 60.9S720 372.4 720 428v340H304z"/></svg>
+          <span class="badge-dot">5</span>
+        </button>
+        <div class="avatar-wrap">
+          <div class="avatar">张</div>
+          <div>
+            <div class="avatar-name">张老板</div>
+            <div class="avatar-role">Seller · 营业中</div>
+          </div>
+          <svg width="12" height="12" viewBox="0 0 1024 1024" fill="var(--n7)"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- Sider -->
+    <aside class="app-sider">
+      <ul class="menu">
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M946.5 505L560.1 118.8l-25.9-25.9a31.5 31.5 0 00-44.4 0L77.5 505a63.9 63.9 0 00-18.8 46c.4 35.2 29.7 63.3 64.9 63.3h42.5V940h691.8V614.3h43.4c17.1 0 33.2-6.7 45.3-18.8a63.6 63.6 0 0018.7-45.3c0-17-6.7-33.1-18.8-45.2zM568 868H456V664h112v204zm217.9-325.7V868H632V640c0-22.1-17.9-40-40-40H432c-22.1 0-40 17.9-40 40v228H238.1V542.3h-59.9L512 209.1l333.7 333.2h-59.8z"/></svg></span><span>工作台</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-70v106c0 5.5-4.5 10-10 10h-56c-5.5 0-10-4.5-10-10V559h-70c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h70V387c0-5.5 4.5-10 10-10h56c5.5 0 10 4.5 10 10v106h70c5.5 0 10 4.5 10 10v46zm358 154c0 5.5-4.5 10-10 10H510c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h242c5.5 0 10 4.5 10 10v46zm0-176c0 5.5-4.5 10-10 10H510c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h242c5.5 0 10 4.5 10 10v46z"/></svg></span><span>商品管理</span><span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 112H724V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H372V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H232V340h560v500z"/></svg></span><span>订单履约</span><span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.8 18.9-85 46-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C927 761.5 958 833.8 960 911a8 8 0 008 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.5z"/></svg></span><span>售后处理</span><span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-9.6-10.3-16.7-10.3s-13.6 4-16.7 10.3L403.8 316.2l-253.9 36.9c-7 1-13 5.3-15.2 11.9-2.2 6.6-.4 13.9 4.6 18.8l183.7 179.1L265.4 868c-1.2 7 1.7 14.1 7.5 18.3 2.6 1.9 5.6 2.8 8.7 2.8 3.7 0 7.4-1.2 10.5-3.5L512 766l220.2 119.6c3.1 1.7 6.5 2.6 9.9 2.6s6.8-.9 9.9-2.6c5.8-4.2 8.7-11.3 7.5-18.3l-43.6-255.4 183.7-179.1c5-4.9 6.8-12.2 4.6-18.8-2.2-6.6-8.2-10.9-15.2-11.9z"/></svg></span><span>评价管理</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.8 18.9-85 46-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C927 761.5 958 833.8 960 911a8 8 0 008 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.5zM512 534c-45.9 0-89.1-17.9-121.6-50.4S340 407.9 340 362c0-45.9 17.9-89.1 50.4-121.6S466.1 190 512 190s89.1 17.9 121.6 50.4S684 316.1 684 362c0 45.9-17.9 89.1-50.4 121.6S557.9 534 512 534z"/></svg></span><span>个人账号</span><span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item open active">
+          <div class="menu-link"><span class="m-icon"><svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 112H724V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H372V72c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v40H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H232V340h560v500z"/></svg></span><span>报表导出</span><span class="m-arrow">›</span></div>
+          <ul class="menu-sub">
+            <li><div class="menu-link active">销售报表导出</div></li>
+          </ul>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Content -->
+    <main class="app-content">
+      <div class="page-scroll">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <h1>销售报表导出</h1>
+            <div class="sub">按时间范围与数据维度导出 Excel / CSV 报表，单次最大 90 天</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn" onclick="showToast('info','导出使用指引已打开')">
+              <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 336a48 48 0 1096 0 48 48 0 10-96 0zm72 112h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V456c0-4.4-3.6-8-8-8z"/></svg>
+              使用指引
+            </button>
+            <button class="btn" onclick="refreshTasks()">
+              <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4 44.1C775.8 155.1 656.2 92 521.9 92 290 92 102.3 279.5 102 511.5 101.7 743.7 289.8 932 521.9 932c181.3 0 335.8-115 394.6-276.1 1.5-4.2-.7-8.9-4.9-10.3l-56.7-19.5a8 8 0 00-10.1 4.8c-1.8 5-3.8 10-5.9 14.9-17.3 41-42.1 77.8-73.7 109.4A344.77 344.77 0 01655.9 829c-42.3 17.9-87.4 27-133.8 27-46.5 0-91.5-9.1-133.8-27a344.77 344.77 0 01-115-74.9 343.95 343.95 0 01-74.9-114.9c-17.9-42.4-27-87.4-27-133.9 0-46.5 9.1-91.5 27-133.9 17.3-41 42.1-77.8 73.7-109.4 31.6-31.6 68.4-56.4 109.3-73.8 42.3-17.9 87.4-27 133.8-27 46.5 0 91.5 9.1 133.8 27a344.77 344.77 0 01115 74.9 343.95 343.95 0 0172.4 105.6l-56.4 44.1c-3.4 2.7-2.2 8.1 2 9.2l144.6 38c4 .9 7.7-2.4 7.1-6.5l-19.5-145.5c-.5-4.2-5.7-5.9-8.7-2.8z"/></svg>
+              刷新
+            </button>
+          </div>
+        </div>
+
+        <!-- Export Grid -->
+        <div class="export-grid">
+          <!-- Left: New Export Task -->
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">
+                <svg class="title-icon" width="18" height="18" viewBox="0 0 1024 1024" fill="currentColor"><path d="M505.7 661a8 8 0 0012.6 0l112-141.7c4.1-5.2.4-12.9-6.3-12.9h-74.1V168c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v338.3H400c-6.7 0-10.4 7.7-6.3 12.9l112 141.8zM878 626h-60c-4.4 0-8 3.6-8 8v154H214V634c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v198c0 17.7 14.3 32 32 32h684c17.7 0 32-14.3 32-32V634c0-4.4-3.6-8-8-8z"/></svg>
+                新建导出任务
+              </div>
+              <div class="card-extra">字段将按勾选顺序输出</div>
+            </div>
+            <div class="card-body">
+              <!-- 报表类型 -->
+              <div class="form-item">
+                <div class="form-label"><span class="req">*</span>报表类型</div>
+                <div class="radio-group" id="reportTypeGroup">
+                  <label class="radio-wrap">
+                    <input type="radio" name="reportType" value="SalesTrend" checked>
+                    <span class="radio-box"></span>
+                    <span>销售趋势汇总</span>
+                    <span class="radio-desc">按日汇总订单数与销售金额</span>
+                  </label>
+                  <label class="radio-wrap">
+                    <input type="radio" name="reportType" value="ShopMetrics">
+                    <span class="radio-box"></span>
+                    <span>运营指标明细</span>
+                    <span class="radio-desc">按日输出全维度运营数据</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 时间范围 -->
+              <div class="form-item">
+                <div class="form-label"><span class="req">*</span>时间范围<span class="label-hint">单次最大 90 天</span></div>
+                <div class="range-picker">
+                  <input type="text" class="range-input" id="dateFrom" value="2026-07-01" placeholder="开始日期" readonly>
+                  <span class="range-sep">~</span>
+                  <input type="text" class="range-input" id="dateTo" value="2026-07-26" placeholder="结束日期" readonly>
+                </div>
+                <div class="preset-row" id="presetRow">
+                  <button class="preset-btn" data-preset="7" onclick="applyPreset(this,7)">近 7 天</button>
+                  <button class="preset-btn" data-preset="30" onclick="applyPreset(this,30)">近 30 天</button>
+                  <button class="preset-btn active" data-preset="90" onclick="applyPreset(this,90)">近 90 天</button>
+                  <button class="preset-btn" data-preset="month" onclick="applyPreset(this,'month')">本月</button>
+                  <button class="preset-btn" data-preset="lastmonth" onclick="applyPreset(this,'lastmonth')">上月</button>
+                </div>
+                <div class="range-tip" id="rangeTip">
+                  <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 336a48 48 0 1096 0 48 48 0 10-96 0zm72 112h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V456c0-4.4-3.6-8-8-8z"/></svg>
+                  已选范围：2026-07-01 至 2026-07-26，共 26 天
+                </div>
+              </div>
+
+              <!-- 数据维度 -->
+              <div class="form-item">
+                <div class="form-label"><span class="req">*</span>数据维度<span class="label-hint">至少勾选一项</span></div>
+                <div class="checkbox-group" id="dimensionGroup">
+                  <label class="checkbox-wrap">
+                    <input type="checkbox" value="orderCount" checked>
+                    <span class="checkbox-box"><svg width="10" height="10" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.1 16.2 49.9 0l489.2-614.3c4.1-5.2.4-12.9-6.3-12.9z"/></svg></span>
+                    <span>订单数</span>
+                  </label>
+                  <label class="checkbox-wrap">
+                    <input type="checkbox" value="salesAmount" checked>
+                    <span class="checkbox-box"><svg width="10" height="10" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.1 16.2 49.9 0l489.2-614.3c4.1-5.2.4-12.9-6.3-12.9z"/></svg></span>
+                    <span>销售金额</span>
+                  </label>
+                  <label class="checkbox-wrap disabled">
+                    <input type="checkbox" value="productCount" disabled>
+                    <span class="checkbox-box"><svg width="10" height="10" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.1 16.2 49.9 0l489.2-614.3c4.1-5.2.4-12.9-6.3-12.9z"/></svg></span>
+                    <span>商品数</span>
+                  </label>
+                  <label class="checkbox-wrap disabled">
+                    <input type="checkbox" value="avgRating" disabled>
+                    <span class="checkbox-box"><svg width="10" height="10" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.1 16.2 49.9 0l489.2-614.3c4.1-5.2.4-12.9-6.3-12.9z"/></svg></span>
+                    <span>平均评分</span>
+                  </label>
+                  <label class="checkbox-wrap disabled">
+                    <input type="checkbox" value="ratingCount" disabled>
+                    <span class="checkbox-box"><svg width="10" height="10" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.1 16.2 49.9 0l489.2-614.3c4.1-5.2.4-12.9-6.3-12.9z"/></svg></span>
+                    <span>评分数</span>
+                  </label>
+                  <label class="checkbox-wrap disabled">
+                    <input type="checkbox" value="refundCount" disabled>
+                    <span class="checkbox-box"><svg width="10" height="10" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.1 16.2 49.9 0l489.2-614.3c4.1-5.2.4-12.9-6.3-12.9z"/></svg></span>
+                    <span>退款数</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 文件格式 -->
+              <div class="form-item">
+                <div class="form-label"><span class="req">*</span>文件格式</div>
+                <div class="radio-group" id="formatGroup">
+                  <label class="radio-wrap">
+                    <input type="radio" name="fileFormat" value="Excel" checked>
+                    <span class="radio-box"></span>
+                    <svg width="16" height="16" viewBox="0 0 1024 1024" fill="var(--c-success)"><path d="M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.5-3.4-16.7-9.4-22.7zM790.2 326H602V137.8L790.2 326zm1.8 562H232V136h302v216a42 42 0 0042 42h216v494z"/></svg>
+                    <span>Excel (.xlsx)</span>
+                  </label>
+                  <label class="radio-wrap">
+                    <input type="radio" name="fileFormat" value="Csv">
+                    <span class="radio-box"></span>
+                    <svg width="16" height="16" viewBox="0 0 1024 1024" fill="var(--c-primary)"><path d="M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.5-3.4-16.7-9.4-22.7zM790.2 326H602V137.8L790.2 326zm1.8 562H232V136h302v216a42 42 0 0042 42h216v494z"/></svg>
+                    <span>CSV (.csv，UTF-8 BOM)</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 预估数据量 -->
+              <div class="export-summary">
+                <div class="summary-text">
+                  <svg width="14" height="14" viewBox="0 0 1024 1024" fill="var(--n7)"><path d="M912 192H328c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h584c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 284H328c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h584c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 284H328c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h584c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM104 228a56 56 0 10112 0 56 56 0 10-112 0zm0 284a56 56 0 10112 0 56 56 0 10-112 0zm0 284a56 56 0 1012 0 56 56 0 10-112 0z"/></svg>
+                  预计导出 <span class="summary-count" id="estCount">26</span> 行数据（按日聚合）
+                </div>
+                <div class="summary-text" id="dimCount">已选 2 个维度</div>
+              </div>
+
+              <!-- 导出按钮 -->
+              <div class="export-action">
+                <button class="btn btn-primary btn-lg" id="exportBtn" onclick="startExport()">
+                  <svg width="16" height="16" viewBox="0 0 1024 1024" fill="currentColor"><path d="M505.7 661a8 8 0 0012.6 0l112-141.7c4.1-5.2.4-12.9-6.3-12.9h-74.1V168c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v338.3H400c-6.7 0-10.4 7.7-6.3 12.9l112 141.8zM878 626h-60c-4.4 0-8 3.6-8 8v154H214V634c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v198c0 17.7 14.3 32 32 32h684c17.7 0 32-14.3 32-32V634c0-4.4-3.6-8-8-8z"/></svg>
+                  立即导出
+                </button>
+                <span class="action-hint">小数据量（≤90 天）前端生成，大数据量自动转后端异步任务</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: History Tasks -->
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">
+                <svg class="title-icon" width="18" height="18" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/><path d="M380.4 463l-94.4 94.4c-12.5 12.5-12.5 32.8 0 45.3l94.4 94.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L371.3 584h281.4l-54.4 54.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l94.4-94.4c12.5-12.5 12.5-32.8 0-45.3l-94.4-94.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L652.7 544H371.3l54.4-54.4c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0z"/></svg>
+                历史导出任务
+              </div>
+              <div class="card-extra">保留近 30 天记录</div>
+            </div>
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+              <span class="filter-label">状态筛选：</span>
+              <select class="select" id="statusFilter" onchange="filterTasks()">
+                <option value="">全部状态</option>
+                <option value="Processing">处理中</option>
+                <option value="Completed">已完成</option>
+                <option value="Failed">失败</option>
+              </select>
+              <div style="margin-left:auto;display:flex;gap:8px;">
+                <button class="btn btn-sm" onclick="showToast('info','已刷新任务列表')">
+                  <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4 44.1C775.8 155.1 656.2 92 521.9 92 290 92 102.3 279.5 102 511.5 101.7 743.7 289.8 932 521.9 932c181.3 0 335.8-115 394.6-276.1 1.5-4.2-.7-8.9-4.9-10.3l-56.7-19.5a8 8 0 00-10.1 4.8c-1.8 5-3.8 10-5.9 14.9-17.3 41-42.1 77.8-73.7 109.4A344.77 344.77 0 01655.9 829c-42.3 17.9-87.4 27-133.8 27-46.5 0-91.5-9.1-133.8-27a344.77 344.77 0 01-115-74.9 343.95 343.95 0 01-74.9-114.9c-17.9-42.4-27-87.4-27-133.9 0-46.5 9.1-91.5 27-133.9 17.3-41 42.1-77.8 73.7-109.4 31.6-31.6 68.4-56.4 109.3-73.8 42.3-17.9 87.4-27 133.8-27 46.5 0 91.5 9.1 133.8 27a344.77 344.77 0 01115 74.9 343.95 343.95 0 0172.4 105.6l-56.4 44.1c-3.4 2.7-2.2 8.1 2 9.2l144.6 38c4 .9 7.7-2.4 7.1-6.5l-19.5-145.5c-.5-4.2-5.7-5.9-8.7-2.8z"/></svg>
+                  刷新
+                </button>
+              </div>
+            </div>
+            <!-- Task Table -->
+            <div class="table-wrap">
+              <table class="data-table" aria-label="导出任务列表">
+                <thead>
+                  <tr>
+                    <th style="width:150px;">任务 ID</th>
+                    <th style="width:130px;">报表类型</th>
+                    <th style="width:180px;">时间范围</th>
+                    <th style="width:90px;">格式</th>
+                    <th style="width:140px;">状态</th>
+                    <th style="width:150px;">创建时间</th>
+                    <th style="width:160px;">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="taskTbody">
+                  <!-- Task rows injected by JS -->
+                </tbody>
+              </table>
+              <div id="emptyState" class="empty-state" style="display:none;">
+                <svg class="empty-icon" viewBox="0 0 64 64" fill="currentColor"><path d="M32 8C18.7 8 8 18.7 8 32s10.7 24 24 24 24-10.7 24-24S45.3 8 32 8zm0 44c-11 0-20-9-20-20s9-20 20-20 20 9 20 20-9 20-20 20z"/><path d="M32 20c-6.6 0-12 5.4-12 12s5.4 12 12 12 12-5.4 12-12-5.4-12-12-12zm0 20c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z"/></svg>
+                <div class="empty-title">暂无导出任务</div>
+                <div class="empty-desc">点击左侧配置并导出第一份报表</div>
+              </div>
+            </div>
+            <!-- Pagination -->
+            <div class="pagination">
+              <span class="page-total">共 <strong id="totalCount">5</strong> 条</span>
+              <button class="page-num disabled">‹</button>
+              <button class="page-num active">1</button>
+              <button class="page-num">›</button>
+              <select class="page-size">
+                <option>10 条/页</option>
+                <option>20 条/页</option>
+                <option>50 条/页</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <footer class="app-footer">
+        © 2026 Leno 电商平台 · 商家管理后台 · 数据导出遵循 GDPR 与个人信息保护法
+      </footer>
+    </main>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-mask" id="modalMask"></div>
+<div class="modal" id="confirmModal">
+  <div class="modal-head">
+    <div class="modal-title" id="modalTitle">
+      <svg class="title-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 688a48 48 0 1096 0 48 48 0 10-96 0zm24-112h48c4.4 0 8-3.6 8-8V296c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8z"/></svg>
+      <span id="modalTitleText">确认操作</span>
+    </div>
+    <button class="modal-close" onclick="closeModal()">
+      <svg width="14" height="14" viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9A7.98 7.98 0 00203 838h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+    </button>
+  </div>
+  <div class="modal-body" id="modalBody"></div>
+  <div class="modal-foot" id="modalFoot"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <svg class="toast-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L421.6 738.9c-2.3 3.7-7 4.9-10.7 2.6l-1.6-1.2-167.4-167.4a8 8 0 010-11.3l45.2-45.2c3.1-3.1 8.2-3.1 11.3 0l116.5 116.5 281.4-329.6c2.9-3.4 8-3.8 11.4-.9l44.3 37.1c3.4 2.9 3.8 8 .9 11.4z"/></svg>
+  <span id="toastText">操作成功</span>
+</div>
+
+<script>
+// ===== 历史任务数据（真实业务数据） =====
+var tasks = [
+  {
+    taskId: 'EXP20260726001',
+    reportType: 'SalesTrend',
+    reportTypeText: '销售趋势汇总',
+    from: '2026-07-01', to: '2026-07-26',
+    range: '07-01 ~ 07-26',
+    days: 26,
+    fileFormat: 'Excel',
+    status: 'Completed',
+    fileSize: '128.4 KB',
+    createdAt: '2026-07-26 10:32:15',
+    completedAt: '2026-07-26 10:32:18',
+    progress: 100,
+    errorMessage: ''
+  },
+  {
+    taskId: 'EXP20260726002',
+    reportType: 'ShopMetrics',
+    reportTypeText: '运营指标明细',
+    from: '2026-07-20', to: '2026-07-26',
+    range: '07-20 ~ 07-26',
+    days: 7,
+    fileFormat: 'Csv',
+    status: 'Processing',
+    fileSize: '',
+    createdAt: '2026-07-26 14:15:42',
+    completedAt: '',
+    progress: 65,
+    errorMessage: ''
+  },
+  {
+    taskId: 'EXP20260725003',
+    reportType: 'SalesTrend',
+    reportTypeText: '销售趋势汇总',
+    from: '2026-06-26', to: '2026-07-25',
+    range: '06-26 ~ 07-25',
+    days: 30,
+    fileFormat: 'Excel',
+    status: 'Completed',
+    fileSize: '156.8 KB',
+    createdAt: '2026-07-25 09:01:23',
+    completedAt: '2026-07-25 09:01:27',
+    progress: 100,
+    errorMessage: ''
+  },
+  {
+    taskId: 'EXP20260725004',
+    reportType: 'ShopMetrics',
+    reportTypeText: '运营指标明细',
+    from: '2026-07-01', to: '2026-07-25',
+    range: '07-01 ~ 07-25',
+    days: 25,
+    fileFormat: 'Csv',
+    status: 'Failed',
+    fileSize: '',
+    createdAt: '2026-07-25 16:42:08',
+    completedAt: '',
+    progress: 0,
+    errorMessage: '数据查询超时，请缩小时间范围后重试'
+  },
+  {
+    taskId: 'EXP20260724005',
+    reportType: 'SalesTrend',
+    reportTypeText: '销售趋势汇总',
+    from: '2026-07-18', to: '2026-07-24',
+    range: '07-18 ~ 07-24',
+    days: 7,
+    fileFormat: 'Excel',
+    status: 'Completed',
+    fileSize: '42.6 KB',
+    createdAt: '2026-07-24 11:20:55',
+    completedAt: '2026-07-24 11:20:58',
+    progress: 100,
+    errorMessage: ''
+  }
+];
+
+// 维度配置：销售趋势汇总仅订单数/销售金额；运营指标明细全部可选
+var dimensionConfig = {
+  SalesTrend: {
+    enabled: ['orderCount', 'salesAmount'],
+    disabled: ['productCount', 'avgRating', 'ratingCount', 'refundCount']
+  },
+  ShopMetrics: {
+    enabled: ['orderCount', 'salesAmount', 'productCount', 'avgRating', 'ratingCount', 'refundCount'],
+    disabled: []
+  }
+};
+
+// ===== 渲染任务表格 =====
+function renderTasks() {
+  var tbody = document.getElementById('taskTbody');
+  var emptyState = document.getElementById('emptyState');
+  var statusFilter = document.getElementById('statusFilter').value;
+  var filtered = statusFilter ? tasks.filter(function(t){ return t.status === statusFilter; }) : tasks;
+
+  document.getElementById('totalCount').textContent = filtered.length;
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    emptyState.style.display = 'block';
+    return;
+  }
+  emptyState.style.display = 'none';
+
+  var html = '';
+  for (var i = 0; i < filtered.length; i++) {
+    var t = filtered[i];
+    var statusHtml = renderStatus(t);
+    var opHtml = renderOps(t);
+    var formatHtml = renderFormat(t.fileFormat);
+    html += '<tr data-taskid="' + t.taskId + '">'
+      + '<td><span class="mono">' + t.taskId + '</span></td>'
+      + '<td>' + t.reportTypeText + '</td>'
+      + '<td>' + t.range + '<span class="sub-text">' + t.days + ' 天</span></td>'
+      + '<td>' + formatHtml + '</td>'
+      + '<td>' + statusHtml + '</td>'
+      + '<td>' + t.createdAt + (t.completedAt ? '<span class="sub-text">完成于 ' + t.completedAt.split(' ')[1] + '</span>' : '') + '</td>'
+      + '<td>' + opHtml + '</td>'
+      + '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function renderStatus(t) {
+  if (t.status === 'Processing') {
+    return '<div class="progress-wrap">'
+      + '<span class="status-tag processing"><span class="dot"></span>处理中</span>'
+      + '<div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width:' + t.progress + '%;"></div></div>'
+      + '<div class="progress-text"><span>生成中</span><span>' + t.progress + '%</span></div>'
+      + '</div>';
+  } else if (t.status === 'Completed') {
+    return '<span class="status-tag completed"><span class="dot"></span>已完成</span>'
+      + '<span class="sub-text">大小 ' + t.fileSize + '</span>';
+  } else {
+    return '<span class="status-tag failed"><span class="dot"></span>失败</span>'
+      + '<div class="err-msg"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>' + t.errorMessage + '</div>';
+  }
+}
+
+function renderFormat(fmt) {
+  if (fmt === 'Excel') {
+    return '<span class="file-tag excel"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.5-3.4-16.7-9.4-22.7zM790.2 326H602V137.8L790.2 326zm1.8 562H232V136h302v216a42 42 0 0042 42h216v494z"/></svg>Excel</span>';
+  }
+  return '<span class="file-tag csv"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.5-3.4-16.7-9.4-22.7zM790.2 326H602V137.8L790.2 326zm1.8 562H232V136h302v216a42 42 0 0042 42h216v494z"/></svg>CSV</span>';
+}
+
+function renderOps(t) {
+  var ops = '<div class="op-cell">';
+  if (t.status === 'Completed') {
+    ops += '<button class="btn-link" onclick="downloadTask(\'' + t.taskId + '\')"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M505.7 661a8 8 0 0012.6 0l112-141.7c4.1-5.2.4-12.9-6.3-12.9h-74.1V168c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v338.3H400c-6.7 0-10.4 7.7-6.3 12.9l112 141.8zM878 626h-60c-4.4 0-8 3.6-8 8v154H214V634c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v198c0 17.7 14.3 32 32 32h684c17.7 0 32-14.3 32-32V634c0-4.4-3.6-8-8-8z"/></svg>下载</button>';
+  } else if (t.status === 'Failed') {
+    ops += '<button class="btn-link" onclick="retryTask(\'' + t.taskId + '\')"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4 44.1C775.8 155.1 656.2 92 521.9 92 290 92 102.3 279.5 102 511.5 101.7 743.7 289.8 932 521.9 932c181.3 0 335.8-115 394.6-276.1 1.5-4.2-.7-8.9-4.9-10.3l-56.7-19.5a8 8 0 00-10.1 4.8c-1.8 5-3.8 10-5.9 14.9-17.3 41-42.1 77.8-73.7 109.4A344.77 344.77 0 01655.9 829c-42.3 17.9-87.4 27-133.8 27-46.5 0-91.5-9.1-133.8-27a344.77 344.77 0 01-115-74.9 343.95 343.95 0 01-74.9-114.9c-17.9-42.4-27-87.4-27-133.9 0-46.5 9.1-91.5 27-133.9 17.3-41 42.1-77.8 73.7-109.4 31.6-31.6 68.4-56.4 109.3-73.8 42.3-17.9 87.4-27 133.8-27 46.5 0 91.5 9.1 133.8 27a344.77 344.77 0 01115 74.9 343.95 343.95 0 0172.4 105.6l-56.4 44.1c-3.4 2.7-2.2 8.1 2 9.2l144.6 38c4 .9 7.7-2.4 7.1-6.5l-19.5-145.5c-.5-4.2-5.7-5.9-8.7-2.8z"/></svg>重试</button>';
+  } else {
+    ops += '<button class="btn-link disabled" title="任务处理中"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M505.7 661a8 8 0 0012.6 0l112-141.7c4.1-5.2.4-12.9-6.3-12.9h-74.1V168c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v338.3H400c-6.7 0-10.4 7.7-6.3 12.9l112 141.8z"/></svg>等待</button>';
+  }
+  ops += '<button class="btn-link danger" onclick="deleteTask(\'' + t.taskId + '\')"><svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M360 184h-8c4.4 0 8-3.6 8-8v8h304v-8c0 4.4 3.6 8 8 8h-8v72h72v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80h72v-72zm504 72H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h60.4l24.7 523c1.6 34.1 29.8 61 63.9 61h454c34.2 0 62.3-26.8 63.9-61l24.7-523H888c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM731.3 840H292.7l-24.2-512h487l-24.2 512z"/></svg>删除</button>';
+  ops += '</div>';
+  return ops;
+}
+
+// ===== 报表类型切换联动维度 =====
+function updateDimensions() {
+  var reportType = document.querySelector('input[name="reportType"]:checked').value;
+  var cfg = dimensionConfig[reportType];
+  var checkboxes = document.querySelectorAll('#dimensionGroup .checkbox-wrap');
+  for (var i = 0; i < checkboxes.length; i++) {
+    var cb = checkboxes[i];
+    var input = cb.querySelector('input');
+    var val = input.value;
+    if (cfg.enabled.indexOf(val) >= 0) {
+      cb.classList.remove('disabled');
+      input.disabled = false;
+    } else {
+      cb.classList.add('disabled');
+      input.disabled = true;
+      input.checked = false;
+    }
+  }
+  // 销售趋势汇总默认勾选订单数+销售金额
+  if (reportType === 'SalesTrend') {
+    document.querySelector('#dimensionGroup input[value="orderCount"]').checked = true;
+    document.querySelector('#dimensionGroup input[value="salesAmount"]').checked = true;
+  }
+  updateEstimate();
+}
+
+// ===== 更新预估数据量 =====
+function updateEstimate() {
+  var from = document.getElementById('dateFrom').value;
+  var to = document.getElementById('dateTo').value;
+  var tip = document.getElementById('rangeTip');
+  var estCount = document.getElementById('estCount');
+  var dimCount = document.getElementById('dimCount');
+  var exportBtn = document.getElementById('exportBtn');
+
+  if (!from || !to) {
+    tip.innerHTML = '<svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 336a48 48 0 1096 0 48 48 0 10-96 0zm72 112h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V456c0-4.4-3.6-8-8-8z"/></svg>请选择时间范围';
+    tip.classList.remove('error');
+    estCount.textContent = '0';
+    exportBtn.classList.add('disabled');
+    exportBtn.disabled = true;
+    return;
+  }
+
+  var d1 = new Date(from);
+  var d2 = new Date(to);
+  var diffDays = Math.floor((d2 - d1) / 86400000) + 1;
+
+  if (diffDays > 90) {
+    tip.innerHTML = '<svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 688a48 48 0 1096 0 48 48 0 10-96 0zm24-112h48c4.4 0 8-3.6 8-8V296c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8z"/></svg>单次导出最大 90 天，请缩小范围或拆分多次';
+    tip.classList.add('error');
+    exportBtn.classList.add('disabled');
+    exportBtn.disabled = true;
+    estCount.textContent = diffDays;
+    return;
+  }
+
+  if (diffDays < 1) {
+    tip.innerHTML = '<svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 688a48 48 0 1096 0 48 48 0 10-96 0zm24-112h48c4.4 0 8-3.6 8-8V296c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8z"/></svg>结束日期需晚于开始日期';
+    tip.classList.add('error');
+    exportBtn.classList.add('disabled');
+    exportBtn.disabled = true;
+    return;
+  }
+
+  tip.innerHTML = '<svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 336a48 48 0 1096 0 48 48 0 10-96 0zm72 112h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V456c0-4.4-3.6-8-8-8z"/></svg>已选范围：' + from + ' 至 ' + to + '，共 ' + diffDays + ' 天';
+  tip.classList.remove('error');
+  estCount.textContent = diffDays;
+
+  // 维度数量
+  var checkedDims = document.querySelectorAll('#dimensionGroup input:checked');
+  dimCount.textContent = '已选 ' + checkedDims.length + ' 个维度';
+
+  // 导出按钮启用条件
+  if (checkedDims.length === 0) {
+    exportBtn.classList.add('disabled');
+    exportBtn.disabled = true;
+  } else {
+    exportBtn.classList.remove('disabled');
+    exportBtn.disabled = false;
+  }
+}
+
+// ===== 预设时间范围 =====
+function applyPreset(btn, preset) {
+  var presets = document.querySelectorAll('#presetRow .preset-btn');
+  for (var i = 0; i < presets.length; i++) presets[i].classList.remove('active');
+  btn.classList.add('active');
+
+  var today = new Date('2026-07-26');
+  var from = new Date(today);
+  var to = new Date(today);
+
+  if (preset === 7) {
+    from.setDate(today.getDate() - 6);
+  } else if (preset === 30) {
+    from.setDate(today.getDate() - 29);
+  } else if (preset === 90) {
+    from.setDate(today.getDate() - 89);
+  } else if (preset === 'month') {
+    from = new Date('2026-07-01');
+    to = new Date('2026-07-26');
+  } else if (preset === 'lastmonth') {
+    from = new Date('2026-06-01');
+    to = new Date('2026-06-30');
+  }
+
+  document.getElementById('dateFrom').value = formatDate(from);
+  document.getElementById('dateTo').value = formatDate(to);
+  updateEstimate();
+}
+
+function formatDate(d) {
+  var y = d.getFullYear();
+  var m = String(d.getMonth() + 1).padStart(2, '0');
+  var day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+// ===== 立即导出 =====
+function startExport() {
+  var btn = document.getElementById('exportBtn');
+  if (btn.disabled) return;
+
+  var reportType = document.querySelector('input[name="reportType"]:checked').value;
+  var reportTypeText = reportType === 'SalesTrend' ? '销售趋势汇总' : '运营指标明细';
+  var from = document.getElementById('dateFrom').value;
+  var to = document.getElementById('dateTo').value;
+  var fileFormat = document.querySelector('input[name="fileFormat"]:checked').value;
+
+  // 按钮 loading
+  btn.disabled = true;
+  btn.classList.add('disabled');
+  var originalHtml = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner"></span>导出中...';
+
+  // 模拟前端导出（小数据量）
+  setTimeout(function() {
+    btn.disabled = false;
+    btn.classList.remove('disabled');
+    btn.innerHTML = originalHtml;
+
+    // 生成新任务记录
+    var now = new Date();
+    var taskId = 'EXP20260726' + String(100 + tasks.length).slice(-3);
+    var d1 = new Date(from);
+    var d2 = new Date(to);
+    var days = Math.floor((d2 - d1) / 86400000) + 1;
+    var rangeText = from.slice(5) + ' ~ ' + to.slice(5);
+
+    var newTask = {
+      taskId: taskId,
+      reportType: reportType,
+      reportTypeText: reportTypeText,
+      from: from, to: to,
+      range: rangeText,
+      days: days,
+      fileFormat: fileFormat,
+      status: 'Completed',
+      fileSize: (Math.random() * 100 + 30).toFixed(1) + ' KB',
+      createdAt: formatDateTime(now),
+      completedAt: formatDateTime(new Date(now.getTime() + 3000)),
+      progress: 100,
+      errorMessage: ''
+    };
+    tasks.unshift(newTask);
+    renderTasks();
+    showToast('success', '导出成功，文件已开始下载');
+  }, 1800);
+}
+
+function formatDateTime(d) {
+  return formatDate(d) + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0');
+}
+
+// ===== 下载任务 =====
+function downloadTask(taskId) {
+  var t = tasks.find(function(x){ return x.taskId === taskId; });
+  if (!t) return;
+  showToast('success', '开始下载 ' + t.taskId + '（' + t.fileSize + '）');
+}
+
+// ===== 重试任务 =====
+function retryTask(taskId) {
+  var t = tasks.find(function(x){ return x.taskId === taskId; });
+  if (!t) return;
+  openModal({
+    type: 'warn',
+    title: '确认重试导出任务',
+    body: '将重新生成报表 <span class="confirm-name">' + t.taskId + '</span>（' + t.reportTypeText + '），原失败记录将被覆盖。<div class="confirm-tip">重试将创建新的导出任务，预计耗时 3-10 秒。</div>',
+    okText: '确认重试',
+    okType: 'primary',
+    onOk: function() {
+      closeModal();
+      t.status = 'Processing';
+      t.progress = 0;
+      t.errorMessage = '';
+      t.createdAt = formatDateTime(new Date());
+      renderTasks();
+      showToast('info', '已重新提交导出任务');
+      // 模拟轮询进度
+      pollTask(t.taskId);
+    }
+  });
+}
+
+// ===== 删除任务 =====
+function deleteTask(taskId) {
+  var t = tasks.find(function(x){ return x.taskId === taskId; });
+  if (!t) return;
+  openModal({
+    type: 'danger',
+    title: '确认删除导出任务',
+    body: '将删除任务 <span class="confirm-name">' + t.taskId + '</span>，删除后任务记录与文件将无法恢复。<div class="confirm-tip">此操作不可撤销，请谨慎确认。</div>',
+    okText: '确认删除',
+    okType: 'danger',
+    onOk: function() {
+      closeModal();
+      tasks = tasks.filter(function(x){ return x.taskId !== taskId; });
+      renderTasks();
+      showToast('success', '任务已删除');
+    }
+  });
+}
+
+// ===== 模拟任务轮询 =====
+function pollTask(taskId) {
+  var t = tasks.find(function(x){ return x.taskId === taskId; });
+  if (!t) return;
+  var timer = setInterval(function() {
+    t.progress += 15;
+    if (t.progress >= 100) {
+      t.progress = 100;
+      t.status = 'Completed';
+      t.fileSize = (Math.random() * 100 + 30).toFixed(1) + ' KB';
+      t.completedAt = formatDateTime(new Date());
+      clearInterval(timer);
+      renderTasks();
+      showToast('success', '导出任务 ' + taskId + ' 已完成');
+    } else {
+      renderTasks();
+    }
+  }, 3000);
+}
+
+// ===== 筛选任务 =====
+function filterTasks() {
+  renderTasks();
+}
+
+// ===== 刷新任务列表 =====
+function refreshTasks() {
+  renderTasks();
+  showToast('info', '任务列表已刷新');
+}
+
+// ===== Modal =====
+var modalCallback = null;
+function openModal(opts) {
+  var mask = document.getElementById('modalMask');
+  var modal = document.getElementById('confirmModal');
+  var titleEl = document.getElementById('modalTitle');
+  var titleText = document.getElementById('modalTitleText');
+  var body = document.getElementById('modalBody');
+  var foot = document.getElementById('modalFoot');
+
+  titleText.textContent = opts.title;
+  titleEl.className = 'modal-title ' + (opts.type || '');
+  body.innerHTML = opts.body;
+
+  var okBtnClass = opts.okType === 'danger' ? 'btn btn-danger' : 'btn btn-primary';
+  foot.innerHTML = '<button class="btn" onclick="closeModal()">取消</button>'
+    + '<button class="' + okBtnClass + '" id="modalOkBtn">' + opts.okText + '</button>';
+
+  modalCallback = opts.onOk;
+  mask.classList.add('show');
+  modal.classList.add('show');
+
+  document.getElementById('modalOkBtn').onclick = function() {
+    if (modalCallback) modalCallback();
+  };
+}
+
+function closeModal() {
+  document.getElementById('modalMask').classList.remove('show');
+  document.getElementById('confirmModal').classList.remove('show');
+  modalCallback = null;
+}
+
+document.getElementById('modalMask').addEventListener('click', closeModal);
+
+// ===== Toast =====
+var toastTimer = null;
+function showToast(type, text) {
+  var toast = document.getElementById('toast');
+  var toastText = document.getElementById('toastText');
+  var icon = toast.querySelector('.toast-icon');
+  toast.className = 'toast ' + type;
+  toastText.textContent = text;
+
+  if (type === 'success') {
+    icon.innerHTML = '<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L421.6 738.9c-2.3 3.7-7 4.9-10.7 2.6l-1.6-1.2-167.4-167.4a8 8 0 010-11.3l45.2-45.2c3.1-3.1 8.2-3.1 11.3 0l116.5 116.5 281.4-329.6c2.9-3.4 8-3.8 11.4-.9l44.3 37.1c3.4 2.9 3.8 8 .9 11.4z"/>';
+  } else if (type === 'error') {
+    icon.innerHTML = '<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/>';
+  } else {
+    icon.innerHTML = '<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm32 664c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V456c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272zm-32-344a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/>';
+  }
+
+  toast.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() {
+    toast.classList.remove('show');
+  }, 2600);
+}
+
+// ===== 事件绑定 =====
+var reportRadios = document.querySelectorAll('input[name="reportType"]');
+for (var i = 0; i < reportRadios.length; i++) {
+  reportRadios[i].addEventListener('change', updateDimensions);
+}
+var dimCheckboxes = document.querySelectorAll('#dimensionGroup input');
+for (var j = 0; j < dimCheckboxes.length; j++) {
+  dimCheckboxes[j].addEventListener('change', updateEstimate);
+}
+
+// ===== 初始化 =====
+renderTasks();
+updateDimensions();
+</script>
+</body>
+</html>

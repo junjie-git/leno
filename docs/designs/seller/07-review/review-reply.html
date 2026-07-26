@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>评价回复 - Leno 商家管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { font-family:var(--ff-app); color:var(--n10); background:var(--n3); font-size:var(--fs-base); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+body { min-height:100vh; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+button { font-family:inherit; cursor:pointer; }
+svg { display:inline-block; vertical-align:middle; }
+
+/* ===== Layout ===== */
+.app { display:flex; flex-direction:column; min-height:100vh; }
+.app-header { height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5); display:flex; align-items:center; padding:0 24px 0 0; position:sticky; top:0; z-index:200; box-shadow:0 1px 4px rgba(0,21,41,.08); }
+.app-header .logo { width:var(--sider-width); height:100%; display:flex; align-items:center; gap:10px; padding:0 20px; flex-shrink:0; }
+.app-header .logo-mark { width:32px; height:32px; border-radius:6px; background:linear-gradient(135deg,#1677FF 0%,#4096FF 100%); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:var(--fw-semibold); font-size:18px; box-shadow:0 2px 8px rgba(22,119,255,.35); }
+.app-header .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); white-space:nowrap; }
+.app-header .logo-text small { display:block; font-size:var(--fs-sm); font-weight:var(--fw-normal); color:var(--n7); margin-top:-2px; }
+.app-header .header-body { flex:1; display:flex; align-items:center; justify-content:space-between; padding-left:24px; }
+.collapse-btn { width:40px; height:var(--header-h); display:flex; align-items:center; justify-content:center; color:var(--n9); background:none; border:none; font-size:18px; cursor:pointer; }
+.collapse-btn:hover { color:var(--c-primary); background:var(--n3); }
+.breadcrumb { display:flex; align-items:center; gap:6px; font-size:var(--fs-base); color:var(--n9); }
+.breadcrumb a { color:var(--n9); }
+.breadcrumb a:hover { color:var(--c-primary); }
+.breadcrumb .sep { color:var(--n5); font-size:12px; }
+.breadcrumb .current { color:var(--n10); }
+.header-actions { display:flex; align-items:center; gap:8px; }
+.global-search { width:220px; height:32px; background:var(--n3); border:1px solid transparent; border-radius:var(--r-base); display:flex; align-items:center; padding:0 12px; gap:8px; transition:all .2s; }
+.global-search:hover { border-color:var(--c-primary); background:var(--n1); }
+.global-search input { flex:1; border:none; outline:none; background:transparent; font-size:var(--fs-sm); color:var(--n10); }
+.global-search input::placeholder { color:var(--n7); }
+.global-search .kbd { font-size:11px; color:var(--n7); background:var(--n1); border:1px solid var(--n5); border-radius:4px; padding:0 5px; line-height:18px; }
+.icon-btn { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--n9); position:relative; background:none; border:none; font-size:18px; }
+.icon-btn:hover { background:var(--n3); color:var(--c-primary); }
+.icon-btn .badge-dot { position:absolute; top:6px; right:6px; min-width:16px; height:16px; padding:0 4px; background:var(--c-error); color:#fff; border-radius:8px; font-size:10px; line-height:16px; font-weight:var(--fw-medium); border:2px solid var(--n1); }
+.avatar-wrap { display:flex; align-items:center; gap:8px; padding:4px 8px 4px 4px; border-radius:var(--r-base); cursor:pointer; }
+.avatar-wrap:hover { background:var(--n3); }
+.avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#1677FF,#4096FF); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:var(--fw-medium); }
+.avatar-name { font-size:var(--fs-base); color:var(--n10); }
+.avatar-role { font-size:var(--fs-sm); color:var(--n7); }
+
+.app-body { flex:1; display:flex; }
+.app-sider { width:var(--sider-width); background:var(--sider-bg); flex-shrink:0; display:flex; flex-direction:column; position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto; }
+.menu { list-style:none; padding:8px 0; flex:1; }
+.menu-link { display:flex; align-items:center; gap:10px; height:40px; padding:0 16px 0 24px; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .15s; position:relative; }
+.menu-link:hover { color:#fff; }
+.menu-link .m-icon { width:16px; height:16px; flex-shrink:0; font-size:16px; }
+.menu-link .m-arrow { margin-left:auto; font-size:10px; transition:transform .2s; }
+.menu-item.open > .menu-link .m-arrow { transform:rotate(90deg); }
+.menu-item.active > .menu-link { color:#fff; background:var(--c-primary); }
+.menu-item.active > .menu-link::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#fff; }
+.menu-sub { list-style:none; max-height:0; overflow:hidden; transition:max-height .25s ease; }
+.menu-item.open > .menu-sub { max-height:500px; }
+.menu-sub .menu-link { height:36px; padding-left:48px; font-size:var(--fs-sm); }
+.menu-sub .menu-link.active { color:#fff; background:rgba(22,119,255,.15); }
+.menu-sub .menu-link.active::before { display:none; }
+
+.app-content { flex:1; display:flex; flex-direction:column; min-width:0; }
+.page-scroll { flex:1; overflow-y:auto; padding:var(--s6); }
+.app-footer { height:32px; background:var(--n1); border-top:1px solid var(--n3); display:flex; align-items:center; justify-content:center; font-size:var(--fs-sm); color:var(--n7); padding:0 24px; }
+
+/* ===== Page Header ===== */
+.page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--s4); }
+.page-header h1 { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); }
+.page-header .sub { margin-top:4px; font-size:var(--fs-sm); color:var(--n7); }
+.stat-bar { display:flex; align-items:center; gap:24px; }
+.stat-item { display:flex; align-items:baseline; gap:8px; }
+.stat-label { font-size:var(--fs-sm); color:var(--n7); }
+.stat-value { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--c-primary); }
+.stat-value.warn { color:var(--c-warning); }
+
+/* ===== Card ===== */
+.card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; }
+.card + .card { margin-top:var(--s4); }
+.card-pad { padding:var(--s4) var(--s6); }
+.card-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); padding:var(--s4) var(--s6); border-bottom:1px solid var(--n3); display:flex; align-items:center; gap:8px; }
+.card-title .ct-icon { color:var(--c-primary); display:flex; align-items:center; }
+.card-title .ct-extra { margin-left:auto; font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-normal); }
+
+/* ===== Filter Bar ===== */
+.filter-bar { display:flex; align-items:center; gap:var(--s4); flex-wrap:wrap; padding:var(--s4) var(--s6); background:var(--n1); border-bottom:1px solid var(--n3); }
+.filter-item { display:flex; align-items:center; gap:8px; }
+.filter-label { font-size:var(--fs-sm); color:var(--n7); white-space:nowrap; }
+.input, .select { height:32px; border:1px solid var(--n5); border-radius:var(--r-base); padding:0 11px; font-size:var(--fs-base); color:var(--n10); background:var(--n1); outline:none; transition:border-color .15s; font-family:inherit; }
+.input:hover, .select:hover { border-color:var(--c-primary); }
+.input:focus, .select:focus { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.input-search { display:flex; align-items:center; width:220px; }
+.input-search .input { width:100%; padding-left:32px; }
+.input-search-wrap { position:relative; }
+.input-search-wrap .search-icon { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--n7); pointer-events:none; }
+.select { min-width:120px; padding-right:28px; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='64 64 896 896'%3E%3Cpath fill='%238C8C8C' d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; cursor:pointer; }
+.radio-group { display:inline-flex; align-items:center; gap:0; border:1px solid var(--n5); border-radius:var(--r-base); overflow:hidden; }
+.radio-group .radio-item { height:30px; padding:0 12px; font-size:var(--fs-sm); color:var(--n9); cursor:pointer; display:flex; align-items:center; gap:4px; border-right:1px solid var(--n5); background:var(--n1); transition:all .15s; }
+.radio-group .radio-item:last-child { border-right:none; }
+.radio-group .radio-item:hover { color:var(--c-primary); }
+.radio-group .radio-item.active { color:#fff; background:var(--c-primary); }
+
+/* ===== Buttons ===== */
+.btn { height:32px; padding:0 15px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; gap:6px; transition:all .15s; white-space:nowrap; }
+.btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.btn .b-icon { width:14px; height:14px; font-size:14px; }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-link { background:none; border:none; color:var(--c-primary); padding:0 4px; height:auto; font-size:var(--fs-base); display:inline-flex; align-items:center; gap:4px; }
+.btn-link:hover { color:#4096FF; background:none; }
+
+/* ===== Tag / StatusTag ===== */
+.tag { display:inline-flex; align-items:center; gap:4px; height:22px; padding:0 8px; border-radius:var(--r-base); font-size:var(--fs-sm); line-height:20px; border:1px solid; }
+.tag.success { color:#389E0D; background:#F6FFED; border-color:#B7EB8F; }
+
+/* ===== Review Cards ===== */
+.review-list { padding:var(--s4); display:flex; flex-direction:column; gap:var(--s4); }
+.review-card { background:var(--n1); border:1px solid #F0F0F0; border-radius:var(--r-card); padding:var(--s4); transition:box-shadow .2s; }
+.review-card:hover { box-shadow:var(--sh-card); border-color:#D6E4FF; }
+.review-head { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.buyer-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#FAAD14,#FFC53D); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:var(--fw-medium); flex-shrink:0; }
+.buyer-name { font-size:var(--fs-base); font-weight:var(--fw-medium); color:var(--n10); }
+.rating-stars { display:inline-flex; align-items:center; gap:2px; }
+.rating-stars .star { width:16px; height:16px; color:var(--c-warning); }
+.rating-stars .star.empty { color:#F0F0F0; }
+.review-time { font-size:var(--fs-sm); color:var(--n7); margin-left:auto; }
+.review-status { margin-left:8px; }
+
+.product-snapshot { display:flex; align-items:center; gap:12px; padding:8px 12px; background:var(--n2); border-radius:var(--r-base); margin-bottom:12px; cursor:pointer; transition:background .15s; }
+.product-snapshot:hover { background:#E6F4FF; }
+.product-img { width:48px; height:48px; border-radius:var(--r-base); background:linear-gradient(135deg,#F5F5F5,#E8E8E8); border:1px solid var(--n5); display:flex; align-items:center; justify-content:center; color:var(--n7); flex-shrink:0; overflow:hidden; }
+.product-info { flex:1; min-width:0; }
+.product-title { font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-medium); }
+.product-sku { font-size:var(--fs-sm); color:var(--n7); margin-top:2px; }
+
+.review-content { font-size:var(--fs-base); color:var(--n10); line-height:1.6; margin-bottom:12px; }
+.review-content.collapsed { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.review-content .expand-toggle { color:var(--c-primary); cursor:pointer; margin-left:4px; }
+.review-images { display:flex; gap:8px; margin-bottom:12px; }
+.review-img { width:80px; height:80px; border-radius:var(--r-base); border:1px solid var(--n5); cursor:pointer; overflow:hidden; transition:all .15s; position:relative; }
+.review-img:hover { border-color:var(--c-primary); box-shadow:0 2px 8px rgba(22,119,255,.15); }
+.review-img-1 { background:linear-gradient(135deg,#FFE7BA,#FFD591); }
+.review-img-2 { background:linear-gradient(135deg,#D6E4FF,#ADC6FF); }
+.review-img-3 { background:linear-gradient(135deg,#D9F7BE,#B7EB8F); }
+.review-img .img-icon { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:rgba(0,0,0,.25); }
+
+.seller-reply { background:#F6FFED; border:1px solid #D9F7BE; border-radius:var(--r-base); padding:12px; margin-top:8px; }
+.seller-reply .reply-head { display:flex; align-items:center; gap:6px; font-size:var(--fs-sm); color:#389E0D; font-weight:var(--fw-medium); margin-bottom:6px; }
+.seller-reply .reply-content { font-size:var(--fs-base); color:var(--n9); line-height:1.6; }
+.seller-reply .reply-time { font-size:var(--fs-sm); color:var(--n7); margin-top:4px; }
+.seller-reply .reply-actions { margin-top:8px; }
+
+.review-actions { display:flex; align-items:center; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--n3); }
+
+/* ===== Pagination ===== */
+.pagination { display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:16px 24px; }
+.page-num { min-width:32px; height:32px; border-radius:var(--r-base); border:1px solid var(--n5); background:var(--n1); display:flex; align-items:center; justify-content:center; font-size:var(--fs-base); color:var(--n9); cursor:pointer; padding:0 8px; transition:all .15s; }
+.page-num:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.page-num.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.page-size { height:32px; border:1px solid var(--n5); border-radius:var(--r-base); padding:0 28px 0 11px; font-size:var(--fs-base); color:var(--n10); background:var(--n1); appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='64 64 896 896'%3E%3Cpath fill='%238C8C8C' d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; cursor:pointer; }
+.page-total { font-size:var(--fs-sm); color:var(--n9); margin-right:8px; }
+
+/* ===== Drawer ===== */
+.drawer-mask { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; opacity:0; visibility:hidden; transition:opacity .25s; }
+.drawer-mask.show { opacity:1; visibility:visible; }
+.drawer { position:fixed; top:0; right:0; bottom:0; width:480px; background:var(--n1); z-index:1001; transform:translateX(100%); transition:transform .3s cubic-bezier(0.2,0,0,1); display:flex; flex-direction:column; box-shadow:var(--sh-modal); }
+.drawer.show { transform:translateX(0); }
+.drawer-header { height:56px; padding:0 24px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--n3); }
+.drawer-header h3 { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); }
+.drawer-close { width:32px; height:32px; border-radius:var(--r-base); display:flex; align-items:center; justify-content:center; color:var(--n7); cursor:pointer; border:none; background:none; font-size:16px; }
+.drawer-close:hover { background:var(--n3); color:var(--n10); }
+.drawer-body { flex:1; overflow-y:auto; padding:24px; }
+.drawer-footer { padding:16px 24px; border-top:1px solid var(--n3); display:flex; justify-content:flex-end; gap:8px; }
+
+.drawer-review-summary { background:var(--n2); border-radius:var(--r-base); padding:16px; margin-bottom:24px; }
+.drs-head { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.drs-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#FAAD14,#FFC53D); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:var(--fw-medium); flex-shrink:0; }
+.drs-name { font-size:var(--fs-base); font-weight:var(--fw-medium); color:var(--n10); }
+.drs-rating { margin-left:auto; }
+.drs-product { font-size:var(--fs-sm); color:var(--n9); margin-bottom:8px; }
+.drs-content { font-size:var(--fs-base); color:var(--n9); line-height:1.6; }
+
+/* ===== Form ===== */
+.form-group { margin-bottom:24px; }
+.form-label { display:block; font-size:var(--fs-base); color:var(--n10); margin-bottom:8px; font-weight:var(--fw-medium); }
+.form-label .required { color:var(--c-error); margin-left:2px; }
+.form-label .optional { color:var(--n7); font-weight:var(--fw-normal); font-size:var(--fs-sm); margin-left:4px; }
+.textarea { width:100%; min-height:120px; padding:8px 12px; border:1px solid var(--n5); border-radius:var(--r-base); font-size:var(--fs-base); color:var(--n10); background:var(--n1); outline:none; transition:border-color .15s; font-family:inherit; resize:vertical; line-height:1.6; }
+.textarea:hover { border-color:var(--c-primary); }
+.textarea:focus { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.char-count { text-align:right; font-size:var(--fs-sm); color:var(--n7); margin-top:4px; }
+.char-count.over { color:var(--c-error); }
+
+/* ===== Toast ===== */
+.toast { position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-20px); background:var(--n1); border-radius:var(--r-base); box-shadow:var(--sh-dropdown); padding:9px 16px; display:flex; align-items:center; gap:8px; font-size:var(--fs-base); z-index:2000; opacity:0; visibility:hidden; transition:all .25s; border:1px solid var(--n5); }
+.toast.show { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+.toast.success .toast-icon { color:var(--c-success); }
+.toast.error .toast-icon { color:var(--c-error); }
+.toast .toast-icon { width:16px; height:16px; flex-shrink:0; }
+
+/* ===== Skeleton ===== */
+.skeleton-card { background:var(--n1); border:1px solid #F0F0F0; border-radius:var(--r-card); padding:var(--s4); }
+.skeleton-line { height:16px; background:linear-gradient(90deg,#F5F5F5 25%,#E8E8E8 37%,#F5F5F5 63%); background-size:400% 100%; border-radius:4px; animation:sk-loading 1.4s ease infinite; margin-bottom:8px; }
+.skeleton-line.short { width:40%; }
+.skeleton-line.medium { width:60%; }
+.skeleton-line.long { width:80%; }
+@keyframes sk-loading { 0% { background-position:100% 50%; } 100% { background-position:0 50%; } }
+
+/* ===== Empty ===== */
+.empty-state { text-align:center; padding:48px 0; }
+.empty-icon { width:64px; height:64px; margin:0 auto 16px; color:var(--n5); }
+.empty-title { font-size:var(--fs-base); color:var(--n9); margin-bottom:4px; }
+.empty-desc { font-size:var(--fs-sm); color:var(--n7); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-mark">L</div>
+      <div class="logo-text">Leno<small>商家管理后台</small></div>
+    </div>
+    <div class="header-body">
+      <div style="display:flex;align-items:center;gap:0;">
+        <button class="collapse-btn" aria-label="折叠菜单">
+          <svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"/></svg>
+        </button>
+        <nav class="breadcrumb" style="margin-left:16px;">
+          <a href="#">首页</a>
+          <span class="sep">/</span>
+          <a href="#">评价管理</a>
+          <span class="sep">/</span>
+          <span class="current">评价回复</span>
+        </nav>
+      </div>
+      <div class="header-actions">
+        <div class="global-search">
+          <svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"/></svg>
+          <input placeholder="搜索评价内容、商品名称" />
+          <span class="kbd">Ctrl K</span>
+        </div>
+        <button class="icon-btn" aria-label="待发货" title="待发货订单">
+          <svg viewBox="64 64 896 896" width="18" height="18" fill="currentColor"><path d="M832 112H192c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM440.4 501.5l72.4 72.4-45.2 45.2-72.4-72.4 45.2-45.2zM820 676H324V324h496v352z"/></svg>
+          <span class="badge-dot">5</span>
+        </button>
+        <button class="icon-btn" aria-label="通知" title="通知中心">
+          <svg viewBox="64 64 896 896" width="18" height="18" fill="currentColor"><path d="M880 112c-3.8 0-7.7.7-11.6 2.1L111.9 459.3c-18.7 7.1-27.4 27.7-19.7 46.2 4.4 10.6 12.7 18.4 22.9 22.1l142.5 49.2 49.2 142.5c3.7 10.2 11.5 18.5 22.1 22.9 18.5 7.7 39.1-1 46.2-19.7L713.9 84.4C722.3 62.5 705 41.6 684 41.6c-4.3 0-8.6.8-12.6 2.4l-90.9 34.5c-1.9.7-3.9 1.1-5.9 1.1H880z"/></svg>
+          <span class="badge-dot">8</span>
+        </button>
+        <div class="avatar-wrap">
+          <div class="avatar">张</div>
+          <div>
+            <div class="avatar-name">张老板</div>
+            <div class="avatar-role">卖家 · 南极人旗舰店</div>
+          </div>
+          <svg viewBox="64 64 896 896" width="12" height="12" fill="currentColor" style="color:var(--n7);"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- Sider -->
+    <aside class="app-sider">
+      <ul class="menu">
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01136 560c0-98.8 38.5-191.6 108.4-261.4C314.3 228.5 407 190 505.9 190c98.8 0 191.6 38.5 261.4 108.4C837.5 368.4 876 461.2 876 560c0 110.7-44.2 213.9-114.6 276z"/></svg></span>工作台<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM528 722c0 17.7-14.3 32-32 32H320c-17.7 0-32-14.3-32-32V544c0-17.7 14.3-32 32-32h176c17.7 0 32 14.3 32 32v178zm0-302c0 17.7-14.3 32-32 32H320c-17.7 0-32-14.3-32-32V320c0-17.7 14.3-32 32-32h176c17.7 0 32 14.3 32 32v100zm176 302c0 17.7-14.3 32-32 32H640c-17.7 0-32-14.3-32-32V544c0-17.7 14.3-32 32-32h32c17.7 0 32 14.3 32 32v178zm0-302c0 17.7-14.3 32-32 32h-32c-17.7 0-32-14.3-32-32V320c0-17.7 14.3-32 32-32h32c17.7 0 32 14.3 32 32v100z"/></svg></span>商品管理<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M464 144H160c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V160c0-8.8-7.2-16-16-16zm-52 268H212V212h200v200zM864 144H560c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V160c0-8.8-7.2-16-16-16zm-52 268H612V212h200v200zM464 544H160c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V560c0-8.8-7.2-16-16-16zm-52 268H212V612h200v200zM864 544H560c-8.8 0-16 7.2-16 16v304c0 8.8 7.2 16 16 16h304c8.8 0 16-7.2 16-16V560c0-8.8-7.2-16-16-16zm-52 268H612V612h200v200z"/></svg></span>物流管理<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM641.7 599.6c0 4.6-3.7 8.3-8.3 8.3h-67.5v67.5c0 4.6-3.7 8.3-8.3 8.3h-77.2c-4.6 0-8.3-3.7-8.3-8.3v-67.5h-67.5c-4.6 0-8.3-3.7-8.3-8.3v-77.2c0-4.6 3.7-8.3 8.3-8.3h67.5v-67.5c0-4.6 3.7-8.3 8.3-8.3h77.2c4.6 0 8.3 3.7 8.3 8.3v67.5h67.5c4.6 0 8.3 3.7 8.3 8.3v77.2z"/></svg></span>订单履约<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M912 820c0-21.7-17.6-39.3-39.3-39.3H151.3C129.6 780.7 112 798.3 112 820v20c0 21.7 17.6 39.3 39.3 39.3h721.4c21.7 0 39.3-17.6 39.3-39.3v-20zM920 388H744v-92c0-78.2-63.8-142-142-142s-142 63.8-142 142v92H284c-17.7 0-32 14.3-32 32v252c0 17.7 14.3 32 32 32h636c17.7 0 32-14.3 32-32V420c0-17.7-14.3-32-32-32zM624 388H496v-92c0-66.3 53.7-120 120-120s120 53.7 120 120v92z"/></svg></span>售后处理<span class="m-arrow">›</span></div></li>
+        <li class="menu-item active open">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg></span>评价管理<span class="m-arrow">›</span></div>
+          <ul class="menu-sub">
+            <li><div class="menu-link active">评价回复</div></li>
+          </ul>
+        </li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-260 72h96v209.9L621.5 312 572 347.4V136zm220 752H232V136h280v296.9c0 3.3 1.4 6.5 3.9 8.8a12.1 12.1 0 0017.3-1.1l55.8-66.1 55.8 66.1c2.3 2.7 5.6 4.2 9 4.2 4.3 0 8.3-2.1 10.8-5.6 1.6-2.3 2.5-5.1 2.5-7.9V136h144v752z"/></svg></span>店铺设置<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M505.7 661a8 8 0 0012.6 0l112-141.7c4.1-5.2.4-12.9-6.3-12.9h-74.1V168c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v338.3H400c-6.7 0-10.4 7.7-6.3 12.9l112 141.8zM878 626h-60c-4.4 0-8 3.6-8 8v154H214V634c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v198c0 17.7 14.3 32 32 32h684c17.7 0 32-14.3 32-32V634c0-4.4-3.6-8-8-8z"/></svg></span>报表导出<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.3 44.5-118.6 78.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C779 752.7 810 825 812 902.2c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.2zM512 534c-45.9 0-89.1-17.9-121.6-50.4S340 407.9 340 362c0-45.9 17.9-89.1 50.4-121.6S466.1 190 512 190s89.1 17.9 121.6 50.4S684 316.1 684 362c0 45.9-17.9 89.1-50.4 121.6S557.9 534 512 534z"/></svg></span>个人中心<span class="m-arrow">›</span></div></li>
+      </ul>
+      <div style="padding:16px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.35);text-align:center;">
+        Leno Seller v1.0.0
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <main class="app-content">
+      <div class="page-scroll">
+        <div class="page-header">
+          <div>
+            <h1>评价回复</h1>
+            <div class="sub">查看买家对本店铺商品的评价，及时回复未回复的评价，维护店铺口碑。</div>
+          </div>
+          <div class="stat-bar">
+            <div class="stat-item">
+              <span class="stat-label">本店好评率</span>
+              <span class="stat-value">92%</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">待回复</span>
+              <span class="stat-value warn">8 条</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter + List Card -->
+        <div class="card">
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <div class="filter-item">
+              <span class="filter-label">评分</span>
+              <select class="select">
+                <option>全部</option>
+                <option>5 星</option>
+                <option>4 星</option>
+                <option>3 星</option>
+                <option>2 星</option>
+                <option>1 星</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">回复状态</span>
+              <div class="radio-group">
+                <div class="radio-item active" onclick="switchReplyFilter(this)">全部</div>
+                <div class="radio-item" onclick="switchReplyFilter(this)">待回复</div>
+                <div class="radio-item" onclick="switchReplyFilter(this)">已回复</div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">商品名称</span>
+              <div class="input-search-wrap input-search">
+                <svg class="search-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"/></svg>
+                <input class="input" placeholder="请输入商品名称" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">评价时间</span>
+              <input class="input" type="date" style="width:150px;" value="2026-07-01" />
+              <span style="color:var(--n7);">~</span>
+              <input class="input" type="date" style="width:150px;" value="2026-07-26" />
+            </div>
+          </div>
+
+          <!-- Review List -->
+          <div class="review-list" id="reviewList">
+            <!-- Review Card 1 - 已回复 -->
+            <div class="review-card">
+              <div class="review-head">
+                <div class="buyer-avatar">李</div>
+                <span class="buyer-name">13****5678</span>
+                <div class="rating-stars" aria-label="评分 5 星">
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                </div>
+                <span class="review-status"><span class="tag success">已通过</span></span>
+                <span class="review-time">2026-07-25 14:00</span>
+              </div>
+              <div class="product-snapshot" onclick="showToast('info','跳转商品编辑页')">
+                <div class="product-img">
+                  <svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01136 560c0-98.8 38.5-191.6 108.4-261.4C314.3 228.5 407 190 505.9 190c98.8 0 191.6 38.5 261.4 108.4C837.5 368.4 876 461.2 876 560c0 110.7-44.2 213.9-114.6 276z"/></svg>
+                </div>
+                <div class="product-info">
+                  <div class="product-title">南极人纯棉短袖T恤 男士夏季透气半袖</div>
+                  <div class="product-sku">白色 / XL</div>
+                </div>
+                <svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor" style="color:var(--n7);"><path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.96 31.96 0 000-50.4z"/></svg>
+              </div>
+              <div class="review-content" id="reviewContent1">商品质量很好，面料柔软舒适，尺码标准没有偏大偏小的问题。物流也很快，下单第二天就收到了，包装完整无破损，还附赠了小礼品。洗了一次没有掉色和缩水，性价比很高，会回购的。附图展示实物颜色和细节。<span class="expand-toggle" onclick="toggleExpand(1)">展开</span></div>
+              <div class="review-images">
+                <div class="review-img review-img-1" onclick="showToast('info','图片预览：正面展示图')">
+                  <svg class="img-icon" viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zM338 304c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm513.9 437.1a8.11 8.11 0 01-5.2 1.9H177.2c-4.4 0-8-3.6-8-8 0-1.9.7-3.7 1.9-5.2l170.3-202c2.8-3.4 7.9-3.8 11.3-1 .3.3.7.6 1 .9l112.7 104 181.8-215a8 8 0 0111.2-1.1c.3.3.7.6 1 .9l196.7 233.1c2.8 3.4 2.4 8.4-1 11.2z"/></svg>
+                </div>
+                <div class="review-img review-img-2" onclick="showToast('info','图片预览：细节特写图')">
+                  <svg class="img-icon" viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zM338 304c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm513.9 437.1a8.11 8.11 0 01-5.2 1.9H177.2c-4.4 0-8-3.6-8-8 0-1.9.7-3.7 1.9-5.2l170.3-202c2.8-3.4 7.9-3.8 11.3-1 .3.3.7.6 1 .9l112.7 104 181.8-215a8 8 0 0111.2-1.1c.3.3.7.6 1 .9l196.7 233.1c2.8 3.4 2.4 8.4-1 11.2z"/></svg>
+                </div>
+                <div class="review-img review-img-3" onclick="showToast('info','图片预览：包装展示图')">
+                  <svg class="img-icon" viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zM338 304c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm513.9 437.1a8.11 8.11 0 01-5.2 1.9H177.2c-4.4 0-8-3.6-8-8 0-1.9.7-3.7 1.9-5.2l170.3-202c2.8-3.4 7.9-3.8 11.3-1 .3.3.7.6 1 .9l112.7 104 181.8-215a8 8 0 0111.2-1.1c.3.3.7.6 1 .9l196.7 233.1c2.8 3.4 2.4 8.4-1 11.2z"/></svg>
+                </div>
+              </div>
+              <div class="seller-reply">
+                <div class="reply-head">
+                  <svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M464 512a48 48 0 1096 0 48 48 0 10-96 0zm200 0a48 48 0 1096 0 48 48 0 10-96 0zm-400 0a48 48 0 1096 0 48 48 0 10-96 0zm661.2-173.6c-22.5-9.1-44.9-13.3-66.7-13.3-68.8 0-113.7 38.9-146.7 68.1-10.5 9.4-20.1 18.3-29.1 25.2-3.3 2.5-5.6 3.8-8.4 4.7-1.1.4-2.4.7-4.3.8-1.9.1-3.8 0-5.7-.1-.4 0-.9-.1-1.3-.2-.7-.1-1.5-.2-2.2-.4-3.9-.8-7.2-2.1-9.5-3.2-1.3-.6-2.3-1.1-3-1.5-7.7-3.8-16.6-9.8-26.3-17.2-15.2-11.6-33.5-27.7-55.9-43.5-50.2-35.4-112.3-60.5-183.7-60.5-22.5 0-44.9 4.3-66.7 13.3-71.8 29.4-117.1 98.2-117.1 178.4 0 85.2 50.7 161.4 129.2 194.7 22.5 9.1 44.9 13.3 66.7 13.3 68.8 0 113.7-38.9 146.7-68.1 10.5-9.4 20.1-18.3 29.1-25.2 3.3-2.5 5.6-3.8 8.4-4.7 1.1-.4 2.4-.7 4.3-.8 1.9-.1 3.8 0 5.7.1.4 0 .9.1 1.3.2.7.1 1.5.2 2.2.4 3.9.8 7.2 2.1 9.5 3.2 1.3.6 2.3 1.1 3 1.5 7.7 3.8 16.6 9.8 26.3 17.2 15.2 11.6 33.5 27.7 55.9 43.5 50.2 35.4 112.3 60.5 183.7 60.5 22.5 0 44.9-4.3 66.7-13.3 71.8-29.4 117.1-98.2 117.1-178.4 0-85.2-50.7-161.4-129.2-194.7z"/></svg>
+                  卖家回复
+                </div>
+                <div class="reply-content">感谢您的支持与认可！南极人始终致力于为消费者提供优质的产品。欢迎再次光临，祝您生活愉快！</div>
+                <div class="reply-time">回复时间：2026-07-25 16:00</div>
+                <div class="reply-actions">
+                  <button class="btn-link" onclick="openDrawer('edit', 1)">
+                    <svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M257.7 752c2 0 4-.2 6-.5L431.9 722c2-.4 3.9-1.3 5.3-2.8l423.9-423.9a9.96 9.96 0 000-14.1L694.9 114.9c-1.9-1.9-4.4-2.9-7.1-2.9s-5.2 1-7.1 2.9L256.8 538.8c-1.5 1.5-2.4 3.3-2.8 5.3l-29.5 168.2a33.5 33.5 0 009.4 29.8c6.6 6.4 14.9 9.9 23.8 9.9zm67.4-174.4L687.8 215l73.3 73.3-362.7 362.6-88.9 15.7 15.6-89zM880 836H144c-17.7 0-32 14.3-32 32v36c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-36c0-17.7-14.3-32-32-32z"/></svg>
+                    编辑回复
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Review Card 2 - 待回复 -->
+            <div class="review-card">
+              <div class="review-head">
+                <div class="buyer-avatar">王</div>
+                <span class="buyer-name">18****1234</span>
+                <div class="rating-stars" aria-label="评分 2 星">
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star empty" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star empty" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star empty" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                </div>
+                <span class="review-status"><span class="tag success">已通过</span></span>
+                <span class="review-time">2026-07-24 10:00</span>
+              </div>
+              <div class="product-snapshot" onclick="showToast('info','跳转商品编辑页')">
+                <div class="product-img">
+                  <svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01136 560c0-98.8 38.5-191.6 108.4-261.4C314.3 228.5 407 190 505.9 190c98.8 0 191.6 38.5 261.4 108.4C837.5 368.4 876 461.2 876 560c0 110.7-44.2 213.9-114.6 276z"/></svg>
+                </div>
+                <div class="product-info">
+                  <div class="product-title">南极人纯棉短袖T恤 男士夏季透气半袖</div>
+                  <div class="product-sku">黑色 / L</div>
+                </div>
+                <svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor" style="color:var(--n7);"><path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.96 31.96 0 000-50.4z"/></svg>
+              </div>
+              <div class="review-content">音质一般，做工有瑕疵，领口走线不整齐，有线头。与商品详情页描述的有出入，希望能改进品控。</div>
+              <div class="review-actions">
+                <button class="btn btn-primary" onclick="openDrawer('new', 2)">
+                  <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M464 512a48 48 0 1096 0 48 48 0 10-96 0zm200 0a48 48 0 1096 0 48 48 0 10-96 0zm-400 0a48 48 0 1096 0 48 48 0 10-96 0zm661.2-173.6c-22.5-9.1-44.9-13.3-66.7-13.3-68.8 0-113.7 38.9-146.7 68.1-10.5 9.4-20.1 18.3-29.1 25.2-3.3 2.5-5.6 3.8-8.4 4.7-1.1.4-2.4.7-4.3.8-1.9.1-3.8 0-5.7-.1-.4 0-.9-.1-1.3-.2-.7-.1-1.5-.2-2.2-.4-3.9-.8-7.2-2.1-9.5-3.2-1.3-.6-2.3-1.1-3-1.5-7.7-3.8-16.6-9.8-26.3-17.2-15.2-11.6-33.5-27.7-55.9-43.5-50.2-35.4-112.3-60.5-183.7-60.5-22.5 0-44.9 4.3-66.7 13.3-71.8 29.4-117.1 98.2-117.1 178.4 0 85.2 50.7 161.4 129.2 194.7 22.5 9.1 44.9 13.3 66.7 13.3 68.8 0 113.7-38.9 146.7-68.1 10.5-9.4 20.1-18.3 29.1-25.2 3.3-2.5 5.6-3.8 8.4-4.7 1.1-.4 2.4-.7 4.3-.8 1.9-.1 3.8 0 5.7.1.4 0 .9.1 1.3.2.7.1 1.5.2 2.2.4 3.9.8 7.2 2.1 9.5 3.2 1.3.6 2.3 1.1 3 1.5 7.7 3.8 16.6 9.8 26.3 17.2 15.2 11.6 33.5 27.7 55.9 43.5 50.2 35.4 112.3 60.5 183.7 60.5 22.5 0 44.9-4.3 66.7-13.3 71.8-29.4 117.1-98.2 117.1-178.4 0-85.2-50.7-161.4-129.2-194.7z"/></svg>
+                  回复
+                </button>
+              </div>
+            </div>
+
+            <!-- Review Card 3 - 已回复 -->
+            <div class="review-card">
+              <div class="review-head">
+                <div class="buyer-avatar">陈</div>
+                <span class="buyer-name">15****8888</span>
+                <div class="rating-stars" aria-label="评分 4 星">
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star empty" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                </div>
+                <span class="review-status"><span class="tag success">已通过</span></span>
+                <span class="review-time">2026-07-23 18:30</span>
+              </div>
+              <div class="product-snapshot" onclick="showToast('info','跳转商品编辑页')">
+                <div class="product-img">
+                  <svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01136 560c0-98.8 38.5-191.6 108.4-261.4C314.3 228.5 407 190 505.9 190c98.8 0 191.6 38.5 261.4 108.4C837.5 368.4 876 461.2 876 560c0 110.7-44.2 213.9-114.6 276z"/></svg>
+                </div>
+                <div class="product-info">
+                  <div class="product-title">南极人纯棉短袖T恤 男士夏季透气半袖</div>
+                  <div class="product-sku">藏青色 / M</div>
+                </div>
+                <svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor" style="color:var(--n7);"><path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.96 31.96 0 000-50.4z"/></svg>
+              </div>
+              <div class="review-content">整体不错，面料舒适透气，夏天穿很凉快。就是颜色比图片稍微深一点，不过也还行。发货速度快，包装也不错。</div>
+              <div class="review-images">
+                <div class="review-img review-img-2" onclick="showToast('info','图片预览：实拍对比图')">
+                  <svg class="img-icon" viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zM338 304c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm513.9 437.1a8.11 8.11 0 01-5.2 1.9H177.2c-4.4 0-8-3.6-8-8 0-1.9.7-3.7 1.9-5.2l170.3-202c2.8-3.4 7.9-3.8 11.3-1 .3.3.7.6 1 .9l112.7 104 181.8-215a8 8 0 0111.2-1.1c.3.3.7.6 1 .9l196.7 233.1c2.8 3.4 2.4 8.4-1 11.2z"/></svg>
+                </div>
+              </div>
+              <div class="seller-reply">
+                <div class="reply-head">
+                  <svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M464 512a48 48 0 1096 0 48 48 0 10-96 0zm200 0a48 48 0 1096 0 48 48 0 10-96 0zm-400 0a48 48 0 1096 0 48 48 0 10-96 0zm661.2-173.6c-22.5-9.1-44.9-13.3-66.7-13.3-68.8 0-113.7 38.9-146.7 68.1-10.5 9.4-20.1 18.3-29.1 25.2-3.3 2.5-5.6 3.8-8.4 4.7-1.1.4-2.4.7-4.3.8-1.9.1-3.8 0-5.7-.1-.4 0-.9-.1-1.3-.2-.7-.1-1.5-.2-2.2-.4-3.9-.8-7.2-2.1-9.5-3.2-1.3-.6-2.3-1.1-3-1.5-7.7-3.8-16.6-9.8-26.3-17.2-15.2-11.6-33.5-27.7-55.9-43.5-50.2-35.4-112.3-60.5-183.7-60.5-22.5 0-44.9 4.3-66.7 13.3-71.8 29.4-117.1 98.2-117.1 178.4 0 85.2 50.7 161.4 129.2 194.7 22.5 9.1 44.9 13.3 66.7 13.3 68.8 0 113.7-38.9 146.7-68.1 10.5-9.4 20.1-18.3 29.1-25.2 3.3-2.5 5.6-3.8 8.4-4.7 1.1-.4 2.4-.7 4.3-.8 1.9-.1 3.8 0 5.7.1.4 0 .9.1 1.3.2.7.1 1.5.2 2.2.4 3.9.8 7.2 2.1 9.5 3.2 1.3.6 2.3 1.1 3 1.5 7.7 3.8 16.6 9.8 26.3 17.2 15.2 11.6 33.5 27.7 55.9 43.5 50.2 35.4 112.3 60.5 183.7 60.5 22.5 0 44.9-4.3 66.7-13.3 71.8-29.4 117.1-98.2 117.1-178.4 0-85.2-50.7-161.4-129.2-194.7z"/></svg>
+                  卖家回复
+                </div>
+                <div class="reply-content">感谢您的中肯评价！关于颜色差异的问题，由于拍摄光线和显示器设置不同可能会有细微色差，我们会优化商品详情页的实拍图展示。期待您的再次光临！</div>
+                <div class="reply-time">回复时间：2026-07-23 20:15</div>
+                <div class="reply-actions">
+                  <button class="btn-link" onclick="openDrawer('edit', 3)">
+                    <svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M257.7 752c2 0 4-.2 6-.5L431.9 722c2-.4 3.9-1.3 5.3-2.8l423.9-423.9a9.96 9.96 0 000-14.1L694.9 114.9c-1.9-1.9-4.4-2.9-7.1-2.9s-5.2 1-7.1 2.9L256.8 538.8c-1.5 1.5-2.4 3.3-2.8 5.3l-29.5 168.2a33.5 33.5 0 009.4 29.8c6.6 6.4 14.9 9.9 23.8 9.9zm67.4-174.4L687.8 215l73.3 73.3-362.7 362.6-88.9 15.7 15.6-89zM880 836H144c-17.7 0-32 14.3-32 32v36c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-36c0-17.7-14.3-32-32-32z"/></svg>
+                    编辑回复
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Review Card 4 - 待回复 -->
+            <div class="review-card">
+              <div class="review-head">
+                <div class="buyer-avatar">刘</div>
+                <span class="buyer-name">19****6666</span>
+                <div class="rating-stars" aria-label="评分 5 星">
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                  <svg class="star" viewBox="64 64 896 896" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+                </div>
+                <span class="review-status"><span class="tag success">已通过</span></span>
+                <span class="review-time">2026-07-22 09:15</span>
+              </div>
+              <div class="product-snapshot" onclick="showToast('info','跳转商品编辑页')">
+                <div class="product-img">
+                  <svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01136 560c0-98.8 38.5-191.6 108.4-261.4C314.3 228.5 407 190 505.9 190c98.8 0 191.6 38.5 261.4 108.4C837.5 368.4 876 461.2 876 560c0 110.7-44.2 213.9-114.6 276z"/></svg>
+                </div>
+                <div class="product-info">
+                  <div class="product-title">南极人纯棉短袖T恤 男士夏季透气半袖</div>
+                  <div class="product-sku">灰色 / XXL</div>
+                </div>
+                <svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor" style="color:var(--n7);"><path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.96 31.96 0 000-50.4z"/></svg>
+              </div>
+              <div class="review-content">第二次购买了，上次买的白色穿了一个夏天没变形，这次又给老公买了一件灰色的，质量一如既往的好！强烈推荐！</div>
+              <div class="review-actions">
+                <button class="btn btn-primary" onclick="openDrawer('new', 4)">
+                  <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M464 512a48 48 0 1096 0 48 48 0 10-96 0zm200 0a48 48 0 1096 0 48 48 0 10-96 0zm-400 0a48 48 0 1096 0 48 48 0 10-96 0zm661.2-173.6c-22.5-9.1-44.9-13.3-66.7-13.3-68.8 0-113.7 38.9-146.7 68.1-10.5 9.4-20.1 18.3-29.1 25.2-3.3 2.5-5.6 3.8-8.4 4.7-1.1.4-2.4.7-4.3.8-1.9.1-3.8 0-5.7-.1-.4 0-.9-.1-1.3-.2-.7-.1-1.5-.2-2.2-.4-3.9-.8-7.2-2.1-9.5-3.2-1.3-.6-2.3-1.1-3-1.5-7.7-3.8-16.6-9.8-26.3-17.2-15.2-11.6-33.5-27.7-55.9-43.5-50.2-35.4-112.3-60.5-183.7-60.5-22.5 0-44.9 4.3-66.7 13.3-71.8 29.4-117.1 98.2-117.1 178.4 0 85.2 50.7 161.4 129.2 194.7 22.5 9.1 44.9 13.3 66.7 13.3 68.8 0 113.7-38.9 146.7-68.1 10.5-9.4 20.1-18.3 29.1-25.2 3.3-2.5 5.6-3.8 8.4-4.7 1.1-.4 2.4-.7 4.3-.8 1.9-.1 3.8 0 5.7.1.4 0 .9.1 1.3.2.7.1 1.5.2 2.2.4 3.9.8 7.2 2.1 9.5 3.2 1.3.6 2.3 1.1 3 1.5 7.7 3.8 16.6 9.8 26.3 17.2 15.2 11.6 33.5 27.7 55.9 43.5 50.2 35.4 112.3 60.5 183.7 60.5 22.5 0 44.9-4.3 66.7-13.3 71.8-29.4 117.1-98.2 117.1-178.4 0-85.2-50.7-161.4-129.2-194.7z"/></svg>
+                  回复
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination">
+            <span class="page-total">共 86 条</span>
+            <div class="page-num disabled">‹</div>
+            <div class="page-num active">1</div>
+            <div class="page-num">2</div>
+            <div class="page-num">3</div>
+            <div class="page-num">4</div>
+            <div class="page-num">5</div>
+            <div class="page-num">›</div>
+            <select class="page-size">
+              <option>20 条/页</option>
+              <option>10 条/页</option>
+              <option>50 条/页</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <footer class="app-footer">
+        Leno 商家管理后台 &copy; 2026 · 让经营更高效
+      </footer>
+    </main>
+  </div>
+</div>
+
+<!-- Reply Drawer -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+<div class="drawer" id="replyDrawer" aria-label="回复抽屉">
+  <div class="drawer-header">
+    <h3 id="drawerTitle">回复评价</h3>
+    <button class="drawer-close" onclick="closeDrawer()" aria-label="关闭">
+      <svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M563.8 438.7l225.6-225.6c5.4-5.4 5.4-14.2 0-19.6l-43.9-43.9c-5.4-5.4-14.2-5.4-19.6 0L500.3 375.2 274.7 149.6c-5.4-5.4-14.2-5.4-19.6 0l-43.9 43.9c-5.4 5.4-5.4 14.2 0 19.6l225.6 225.6L211.2 664.3c-5.4 5.4-5.4 14.2 0 19.6l43.9 43.9c5.4 5.4 14.2 5.4 19.6 0L500.3 502.2l225.6 225.6c5.4 5.4 14.2 5.4 19.6 0l43.9-43.9c5.4-5.4 5.4-14.2 0-19.6L563.8 438.7z"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <!-- Review Summary -->
+    <div class="drawer-review-summary">
+      <div class="drs-head">
+        <div class="drs-avatar" id="drsAvatar">李</div>
+        <span class="drs-name" id="drsName">13****5678</span>
+        <div class="drs-rating">
+          <span class="rating-stars" id="drsRating"></span>
+        </div>
+      </div>
+      <div class="drs-product" id="drsProduct">南极人纯棉短袖T恤 · 白色 / XL</div>
+      <div class="drs-content" id="drsContent">商品质量很好，面料柔软舒适，尺码标准没有偏大偏小的问题。物流也很快，下单第二天就收到了。</div>
+    </div>
+
+    <!-- Reply Form -->
+    <div class="form-group">
+      <label class="form-label">
+        回复内容<span class="required">*</span>
+        <span class="optional">（1-500 字）</span>
+      </label>
+      <textarea class="textarea" id="replyTextarea" placeholder="请输入回复内容，1-500 字..." oninput="updateCharCount()" aria-label="回复内容"></textarea>
+      <div class="char-count" id="charCount">0 / 500</div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn" onclick="closeDrawer()">取消</button>
+    <button class="btn btn-primary" id="submitBtn" onclick="submitReply()">
+      <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M464 512a48 48 0 1096 0 48 48 0 10-96 0zm200 0a48 48 0 1096 0 48 48 0 10-96 0zm-400 0a48 48 0 1096 0 48 48 0 10-96 0zm661.2-173.6c-22.5-9.1-44.9-13.3-66.7-13.3-68.8 0-113.7 38.9-146.7 68.1-10.5 9.4-20.1 18.3-29.1 25.2-3.3 2.5-5.6 3.8-8.4 4.7-1.1.4-2.4.7-4.3.8-1.9.1-3.8 0-5.7-.1-.4 0-.9-.1-1.3-.2-.7-.1-1.5-.2-2.2-.4-3.9-.8-7.2-2.1-9.5-3.2-1.3-.6-2.3-1.1-3-1.5-7.7-3.8-16.6-9.8-26.3-17.2-15.2-11.6-33.5-27.7-55.9-43.5-50.2-35.4-112.3-60.5-183.7-60.5-22.5 0-44.9 4.3-66.7 13.3-71.8 29.4-117.1 98.2-117.1 178.4 0 85.2 50.7 161.4 129.2 194.7 22.5 9.1 44.9 13.3 66.7 13.3 68.8 0 113.7-38.9 146.7-68.1 10.5-9.4 20.1-18.3 29.1-25.2 3.3-2.5 5.6-3.8 8.4-4.7 1.1-.4 2.4-.7 4.3-.8 1.9-.1 3.8 0 5.7.1.4 0 .9.1 1.3.2.7.1 1.5.2 2.2.4 3.9.8 7.2 2.1 9.5 3.2 1.3.6 2.3 1.1 3 1.5 7.7 3.8 16.6 9.8 26.3 17.2 15.2 11.6 33.5 27.7 55.9 43.5 50.2 35.4 112.3 60.5 183.7 60.5 22.5 0 44.9-4.3 66.7-13.3 71.8-29.4 117.1-98.2 117.1-178.4 0-85.2-50.7-161.4-129.2-194.7z"/></svg>
+      提交回复
+    </button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <svg class="toast-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L434.9 674.5c-1.4 1.5-3.4 2.3-5.5 2.3-2.1 0-4.1-.8-5.5-2.3L314.5 561.2c-3-3.2-2.9-8.2.3-11.2l33.3-31.7c1.5-1.4 3.4-2.1 5.4-2.1h.1c2.1.1 4.1.9 5.5 2.4l73.2 77.4 235.4-244.4c1.5-1.5 3.4-2.4 5.5-2.4h.1c2.1.1 4.1.9 5.5 2.4l31.7 33.4c2.9 3.2 2.8 8.2-.4 11.1z"/></svg>
+  <span class="toast-text">操作成功</span>
+</div>
+
+<script>
+var reviewData = {
+  1: { name:'13****5678', avatar:'李', rating:5, product:'南极人纯棉短袖T恤 · 白色 / XL', content:'商品质量很好，面料柔软舒适，尺码标准没有偏大偏小的问题。物流也很快，下单第二天就收到了，包装完整无破损，还附赠了小礼品。', reply:'感谢您的支持与认可！南极人始终致力于为消费者提供优质的产品。欢迎再次光临，祝您生活愉快！' },
+  2: { name:'18****1234', avatar:'王', rating:2, product:'南极人纯棉短袖T恤 · 黑色 / L', content:'音质一般，做工有瑕疵，领口走线不整齐，有线头。与商品详情页描述的有出入，希望能改进品控。', reply:'' },
+  3: { name:'15****8888', avatar:'陈', rating:4, product:'南极人纯棉短袖T恤 · 藏青色 / M', content:'整体不错，面料舒适透气，夏天穿很凉快。就是颜色比图片稍微深一点，不过也还行。', reply:'感谢您的中肯评价！关于颜色差异的问题，由于拍摄光线和显示器设置不同可能会有细微色差，我们会优化商品详情页的实拍图展示。' },
+  4: { name:'19****6666', avatar:'刘', rating:5, product:'南极人纯棉短袖T恤 · 灰色 / XXL', content:'第二次购买了，上次买的白色穿了一个夏天没变形，这次又给老公买了一件灰色的，质量一如既往的好！强烈推荐！', reply:'' }
+};
+var currentReviewId = null;
+var drawerMode = 'new';
+function switchReplyFilter(el) {
+  var siblings = el.parentNode.querySelectorAll('.radio-item');
+  siblings.forEach(function(s) { s.classList.remove('active'); });
+  el.classList.add('active');
+  showToast('info', '筛选条件已更新');
+}
+function toggleExpand(id) {
+  var content = document.getElementById('reviewContent' + id);
+  var toggle = content.querySelector('.expand-toggle');
+  if (content.classList.contains('collapsed')) {
+    content.classList.remove('collapsed');
+    toggle.textContent = '收起';
+  } else {
+    content.classList.add('collapsed');
+    toggle.textContent = '展开';
+  }
+}
+function openDrawer(mode, reviewId) {
+  drawerMode = mode;
+  currentReviewId = reviewId;
+  var data = reviewData[reviewId];
+  document.getElementById('drawerTitle').textContent = mode === 'edit' ? '编辑回复' : '回复评价';
+  document.getElementById('drsAvatar').textContent = data.avatar;
+  document.getElementById('drsName').textContent = data.name;
+  var ratingHtml = '';
+  for (var i = 0; i < 5; i++) {
+    ratingHtml += '<svg class="star' + (i < data.rating ? '' : ' empty') + '" viewBox="64 64 896 896" fill="currentColor" width="16" height="16"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 00.6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0046.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.4 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>';
+  }
+  document.getElementById('drsRating').innerHTML = ratingHtml;
+  document.getElementById('drsProduct').textContent = data.product;
+  document.getElementById('drsContent').textContent = data.content;
+  var textarea = document.getElementById('replyTextarea');
+  textarea.value = mode === 'edit' ? data.reply : '';
+  updateCharCount();
+  document.getElementById('drawerMask').classList.add('show');
+  document.getElementById('replyDrawer').classList.add('show');
+}
+function closeDrawer() {
+  document.getElementById('drawerMask').classList.remove('show');
+  document.getElementById('replyDrawer').classList.remove('show');
+}
+function updateCharCount() {
+  var textarea = document.getElementById('replyTextarea');
+  var count = textarea.value.length;
+  var countEl = document.getElementById('charCount');
+  countEl.textContent = count + ' / 500';
+  if (count > 500) {
+    countEl.classList.add('over');
+  } else {
+    countEl.classList.remove('over');
+  }
+  var submitBtn = document.getElementById('submitBtn');
+  if (count === 0 || count > 500) {
+    submitBtn.style.opacity = '0.5';
+    submitBtn.style.pointerEvents = 'none';
+  } else {
+    submitBtn.style.opacity = '1';
+    submitBtn.style.pointerEvents = 'auto';
+  }
+}
+function submitReply() {
+  var textarea = document.getElementById('replyTextarea');
+  var content = textarea.value.trim();
+  if (content.length === 0) {
+    showToast('error', '请输入回复内容');
+    return;
+  }
+  if (content.length > 500) {
+    showToast('error', '回复内容不能超过 500 字');
+    return;
+  }
+  var btn = document.getElementById('submitBtn');
+  btn.style.opacity = '0.6';
+  btn.style.pointerEvents = 'none';
+  btn.innerHTML = '<svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M508 524c106.2 0 199.4 53 256 134.2l-69.6 41.2C656.9 639.5 588.6 608 508 608s-148.9 31.5-186.4 91.4L252 658.2C308.6 577 401.8 524 508 524z"/></svg> 提交中...';
+  setTimeout(function() {
+    reviewData[currentReviewId].reply = content;
+    closeDrawer();
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+    btn.innerHTML = '<svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M464 512a48 48 0 1096 0 48 48 0 10-96 0zm200 0a48 48 0 1096 0 48 48 0 10-96 0zm-400 0a48 48 0 1096 0 48 48 0 10-96 0z"/></svg> 提交回复';
+    showToast('success', drawerMode === 'edit' ? '回复已更新' : '回复成功');
+  }, 800);
+}
+function showToast(type, message) {
+  var toast = document.getElementById('toast');
+  toast.className = 'toast ' + type;
+  toast.querySelector('.toast-text').textContent = message;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 2500);
+}
+// Initialize collapsed state for long content
+document.getElementById('reviewContent1').classList.add('collapsed');
+updateCharCount();
+</script>
+</body>
+</html>
