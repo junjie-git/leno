@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>轮播 Banner 管理 - Leno 买家端</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{font-family:var(--ff-app);color:var(--n10);background:var(--n3);}
+body{max-width:375px;margin:0 auto;min-height:100vh;background:var(--n2);box-shadow:0 0 24px rgba(0,0,0,.12);position:relative;overflow-x:hidden;}
+img{display:block;max-width:100%;}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit;}
+
+/* 状态切换工具条 */
+.state-bar{position:sticky;top:0;z-index:50;display:flex;gap:6px;padding:8px 12px;background:var(--n1);border-bottom:1px solid var(--n3);overflow-x:auto;}
+.state-bar .label{font-size:var(--fs-sm);color:var(--n7);line-height:26px;white-space:nowrap;margin-right:4px;}
+.state-bar button{padding:4px 12px;font-size:var(--fs-sm);border-radius:var(--r-base);background:var(--n3);color:var(--n9);white-space:nowrap;transition:all .2s;}
+.state-bar button.active{background:var(--c-primary);color:#fff;}
+
+/* NavBar */
+.navbar{position:sticky;top:41px;z-index:40;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:var(--n1);border-bottom:1px solid var(--n3);}
+.nav-back{width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--n10);}
+.nav-title{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);}
+.nav-right{width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--c-primary);font-size:var(--fs-base);}
+
+/* 统计概览 */
+.summary{display:flex;background:var(--n1);border-bottom:1px solid var(--n3);}
+.summary .item{flex:1;text-align:center;padding:12px 0;border-right:1px solid var(--n3);}
+.summary .item:last-child{border-right:none;}
+.summary .num{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--n10);}
+.summary .num.up{color:var(--c-success);}
+.summary .num.down{color:var(--n7);}
+.summary .lbl{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+
+/* 筛选标签 */
+.filter-tabs{display:flex;gap:8px;padding:12px;overflow-x:auto;background:var(--n2);}
+.filter-tabs::-webkit-scrollbar{display:none;}
+.filter-tab{padding:5px 14px;font-size:var(--fs-sm);border-radius:var(--r-base);background:var(--n1);color:var(--n9);border:1px solid var(--n5);white-space:nowrap;}
+.filter-tab.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary);}
+
+/* 内容区 */
+.content{padding:0 12px 24px;}
+.state-panel{display:none;animation:fadeIn .25s ease;}
+.state-panel.active{display:block;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+/* Banner 卡片 */
+.banner-card{background:var(--n1);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-card);margin-bottom:12px;}
+.banner-card .preview{position:relative;width:100%;aspect-ratio:351/140;overflow:hidden;}
+.banner-card .preview img{width:100%;height:100%;object-fit:cover;}
+.banner-card.off .preview::after{content:"已下架";position:absolute;inset:0;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-xl);font-weight:var(--fw-semibold);letter-spacing:2px;}
+.banner-card .pos-tag{position:absolute;top:8px;left:8px;padding:2px 8px;font-size:var(--fs-sm);border-radius:var(--r-base);background:rgba(0,0,0,.5);color:#fff;backdrop-filter:blur(4px);}
+.banner-card .sort-badge{position:absolute;top:8px;right:8px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:rgba(22,119,255,.92);color:#fff;font-size:var(--fs-sm);font-weight:var(--fw-semibold);display:flex;align-items:center;justify-content:center;}
+.banner-card .body{padding:12px;}
+.banner-card .row1{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.banner-card .title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);line-height:1.4;flex:1;}
+.banner-card .status{flex-shrink:0;display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-sm);padding:2px 8px;border-radius:var(--r-base);}
+.banner-card .status.on{background:#F6FFED;color:var(--c-success);}
+.banner-card .status.off{background:var(--n3);color:var(--n7);}
+.banner-card .status .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.banner-card .meta{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
+.banner-card .meta-row{display:flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--n9);}
+.banner-card .meta-row .k{color:var(--n7);flex-shrink:0;}
+.banner-card .meta-row .v{color:var(--n9);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.banner-card .meta-row .v.link{color:var(--c-primary);}
+.banner-card .actions{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--n3);}
+.banner-card .switch{display:flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--n9);}
+.switch-track{width:36px;height:20px;border-radius:10px;background:var(--c-success);position:relative;transition:background .2s;}
+.switch-track.off{background:var(--n5);}
+.switch-track .knob{position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s;}
+.switch-track.off .knob{left:2px;}
+.banner-card .ops{display:flex;gap:8px;}
+.banner-card .op-btn{display:flex;align-items:center;gap:3px;padding:4px 10px;font-size:var(--fs-sm);border-radius:var(--r-base);border:1px solid var(--n5);color:var(--n9);}
+.banner-card .op-btn.primary{border-color:var(--c-primary);color:var(--c-primary);}
+.banner-card .op-btn.danger{border-color:var(--c-error);color:var(--c-error);}
+
+/* 骨架屏 */
+.skeleton{background:var(--n3);border-radius:var(--r-base);position:relative;overflow:hidden;}
+.skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);transform:translateX(-100%);animation:shimmer 1.4s infinite;}
+@keyframes shimmer{100%{transform:translateX(100%);}}
+.sk-card{background:var(--n1);border-radius:var(--r-lg);overflow:hidden;margin-bottom:12px;}
+.sk-card .pv{width:100%;aspect-ratio:351/140;}
+.sk-card .bd{padding:12px;}
+.sk-card .l1{width:60%;height:16px;}
+.sk-card .l2{width:80%;height:12px;margin-top:10px;}
+.sk-card .l3{width:50%;height:12px;margin-top:8px;}
+.sk-card .l4{width:100%;height:30px;margin-top:14px;border-radius:var(--r-base);}
+
+/* 空状态 */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 0;}
+.empty-illust{width:120px;height:120px;}
+.empty-title{font-size:var(--fs-base);color:var(--n7);margin-top:16px;}
+.empty-desc{font-size:var(--fs-sm);color:var(--n7);margin-top:6px;}
+.empty-cta{margin-top:16px;padding:8px 20px;background:var(--c-primary);color:#fff;border-radius:var(--r-base);font-size:var(--fs-base);}
+
+/* 错误态 */
+.error-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 0;}
+.error-illust{width:100px;height:100px;}
+.error-title{font-size:var(--fs-base);color:var(--n9);margin-top:16px;}
+.error-desc{font-size:var(--fs-sm);color:var(--n7);margin-top:6px;text-align:center;line-height:1.6;}
+.error-retry{margin-top:16px;padding:8px 20px;border:1px solid var(--c-primary);color:var(--c-primary);border-radius:var(--r-base);font-size:var(--fs-base);display:flex;align-items:center;gap:4px;}
+</style>
+</head>
+<body>
+
+<!-- 状态切换工具条 -->
+<div class="state-bar">
+  <span class="label">状态预览</span>
+  <button class="active" data-state="loaded">已加载</button>
+  <button data-state="skeleton">加载中</button>
+  <button data-state="empty">空数据</button>
+  <button data-state="error">错误态</button>
+</div>
+
+<!-- NavBar -->
+<header class="navbar">
+  <div class="nav-back" aria-label="返回">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <span class="nav-title">轮播 Banner</span>
+  <div class="nav-right">新增</div>
+</header>
+
+<!-- 统计概览 -->
+<div class="summary">
+  <div class="item"><div class="num">6</div><div class="lbl">Banner 总数</div></div>
+  <div class="item"><div class="num up">4</div><div class="lbl">上架中</div></div>
+  <div class="item"><div class="num down">2</div><div class="lbl">已下架</div></div>
+</div>
+
+<!-- 筛选标签 -->
+<div class="filter-tabs">
+  <div class="filter-tab active">全部</div>
+  <div class="filter-tab">首页 Banner</div>
+  <div class="filter-tab">分类 Banner</div>
+  <div class="filter-tab">活动 Banner</div>
+  <div class="filter-tab">上架中</div>
+  <div class="filter-tab">已下架</div>
+</div>
+
+<!-- 内容区 -->
+<main class="content">
+
+  <!-- 已加载状态 -->
+  <section class="state-panel active" id="state-loaded">
+
+    <div class="banner-card">
+      <div class="preview">
+        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='351' height='140'><defs><linearGradient id='b1' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%231677FF'/><stop offset='1' stop-color='%230952C9'/></linearGradient></defs><rect width='351' height='140' fill='url(%23b1)'/><text x='20' y='62' font-family='PingFang SC' font-size='24' font-weight='600' fill='%23fff'>618 年中大促</text><text x='20' y='88' font-family='PingFang SC' font-size='13' fill='rgba(255,255,255,0.9)'>全场折上折 满300减50</text></svg>" alt="618 年中大促">
+        <span class="pos-tag">首页 Banner</span>
+        <span class="sort-badge">1</span>
+      </div>
+      <div class="body">
+        <div class="row1">
+          <div class="title">618 年中大促</div>
+          <span class="status on"><span class="dot"></span>上架中</span>
+        </div>
+        <div class="meta">
+          <div class="meta-row"><span class="k">跳转链接</span><span class="v link">/promotion/618-midyear</span></div>
+          <div class="meta-row"><span class="k">投放时段</span><span class="v">2026-06-01 00:00 ~ 2026-06-20 23:59</span></div>
+          <div class="meta-row"><span class="k">点击量</span><span class="v">12,860 次 · 转化率 8.2%</span></div>
+        </div>
+        <div class="actions">
+          <div class="switch">
+            <span>上下架</span>
+            <span class="switch-track"><span class="knob"></span></span>
+          </div>
+          <div class="ops">
+            <button class="op-btn primary">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5l2 2-7 7H1.5v-2l7-7Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+              编辑
+            </button>
+            <button class="op-btn danger">删除</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="banner-card">
+      <div class="preview">
+        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='351' height='140'><defs><linearGradient id='b2' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23FF6A3D'/><stop offset='1' stop-color='%23FF4D4F'/></linearGradient></defs><rect width='351' height='140' fill='url(%23b2)'/><text x='20' y='62' font-family='PingFang SC' font-size='24' font-weight='600' fill='%23fff'>限时秒杀专场</text><text x='20' y='88' font-family='PingFang SC' font-size='13' fill='rgba(255,255,255,0.9)'>低至5折 每日10点开抢</text></svg>" alt="限时秒杀专场">
+        <span class="pos-tag">首页 Banner</span>
+        <span class="sort-badge">2</span>
+      </div>
+      <div class="body">
+        <div class="row1">
+          <div class="title">限时秒杀专场</div>
+          <span class="status on"><span class="dot"></span>上架中</span>
+        </div>
+        <div class="meta">
+          <div class="meta-row"><span class="k">跳转链接</span><span class="v link">/seckill/order/list</span></div>
+          <div class="meta-row"><span class="k">投放时段</span><span class="v">2026-07-01 00:00 ~ 2026-07-31 23:59</span></div>
+          <div class="meta-row"><span class="k">点击量</span><span class="v">23,540 次 · 转化率 15.6%</span></div>
+        </div>
+        <div class="actions">
+          <div class="switch">
+            <span>上下架</span>
+            <span class="switch-track"><span class="knob"></span></span>
+          </div>
+          <div class="ops">
+            <button class="op-btn primary">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5l2 2-7 7H1.5v-2l7-7Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+              编辑
+            </button>
+            <button class="op-btn danger">删除</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="banner-card">
+      <div class="preview">
+        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='351' height='140'><defs><linearGradient id='b3' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2352C41A'/><stop offset='1' stop-color='%2338A100'/></linearGradient></defs><rect width='351' height='140' fill='url(%23b3)'/><text x='20' y='62' font-family='PingFang SC' font-size='24' font-weight='600' fill='%23fff'>新人专享礼</text><text x='20' y='88' font-family='PingFang SC' font-size='13' fill='rgba(255,255,255,0.9)'>首单立减15元 包邮券免费领</text></svg>" alt="新人专享礼">
+        <span class="pos-tag">首页 Banner</span>
+        <span class="sort-badge">3</span>
+      </div>
+      <div class="body">
+        <div class="row1">
+          <div class="title">新人专享礼</div>
+          <span class="status on"><span class="dot"></span>上架中</span>
+        </div>
+        <div class="meta">
+          <div class="meta-row"><span class="k">跳转链接</span><span class="v link">/promotion/newcomer</span></div>
+          <div class="meta-row"><span class="k">投放时段</span><span class="v">长期有效</span></div>
+          <div class="meta-row"><span class="k">点击量</span><span class="v">8,920 次 · 转化率 22.4%</span></div>
+        </div>
+        <div class="actions">
+          <div class="switch">
+            <span>上下架</span>
+            <span class="switch-track"><span class="knob"></span></span>
+          </div>
+          <div class="ops">
+            <button class="op-btn primary">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5l2 2-7 7H1.5v-2l7-7Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+              编辑
+            </button>
+            <button class="op-btn danger">删除</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="banner-card">
+      <div class="preview">
+        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='351' height='140'><defs><linearGradient id='b4' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23722ED1'/><stop offset='1' stop-color='%235128AB'/></linearGradient></defs><rect width='351' height='140' fill='url(%23b4)'/><text x='20' y='62' font-family='PingFang SC' font-size='24' font-weight='600' fill='%23fff'>数码品类节</text><text x='20' y='88' font-family='PingFang SC' font-size='13' fill='rgba(255,255,255,0.9)'>手机数码低至 6 折</text></svg>" alt="数码品类节">
+        <span class="pos-tag">分类 Banner</span>
+        <span class="sort-badge">1</span>
+      </div>
+      <div class="body">
+        <div class="row1">
+          <div class="title">数码品类节</div>
+          <span class="status on"><span class="dot"></span>上架中</span>
+        </div>
+        <div class="meta">
+          <div class="meta-row"><span class="k">跳转链接</span><span class="v link">/category?categoryId=1001</span></div>
+          <div class="meta-row"><span class="k">投放时段</span><span class="v">2026-07-15 00:00 ~ 2026-07-25 23:59</span></div>
+          <div class="meta-row"><span class="k">点击量</span><span class="v">5,610 次 · 转化率 6.1%</span></div>
+        </div>
+        <div class="actions">
+          <div class="switch">
+            <span>上下架</span>
+            <span class="switch-track"><span class="knob"></span></span>
+          </div>
+          <div class="ops">
+            <button class="op-btn primary">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5l2 2-7 7H1.5v-2l7-7Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+              编辑
+            </button>
+            <button class="op-btn danger">删除</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="banner-card off">
+      <div class="preview">
+        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='351' height='140'><defs><linearGradient id='b5' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2313C2C2'/><stop offset='1' stop-color='%23086D6D'/></linearGradient></defs><rect width='351' height='140' fill='url(%23b5)'/><text x='20' y='62' font-family='PingFang SC' font-size='24' font-weight='600' fill='%23fff'>食品生鲜特惠</text><text x='20' y='88' font-family='PingFang SC' font-size='13' fill='rgba(255,255,255,0.9)'>每日坚果 买一送一</text></svg>" alt="食品生鲜特惠">
+        <span class="pos-tag">分类 Banner</span>
+        <span class="sort-badge">2</span>
+      </div>
+      <div class="body">
+        <div class="row1">
+          <div class="title">食品生鲜特惠</div>
+          <span class="status off"><span class="dot"></span>已下架</span>
+        </div>
+        <div class="meta">
+          <div class="meta-row"><span class="k">跳转链接</span><span class="v link">/category?categoryId=1003</span></div>
+          <div class="meta-row"><span class="k">投放时段</span><span class="v">2026-06-10 00:00 ~ 2026-06-18 23:59</span></div>
+          <div class="meta-row"><span class="k">点击量</span><span class="v">3,240 次 · 转化率 4.8%</span></div>
+        </div>
+        <div class="actions">
+          <div class="switch">
+            <span>上下架</span>
+            <span class="switch-track off"><span class="knob"></span></span>
+          </div>
+          <div class="ops">
+            <button class="op-btn primary">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5l2 2-7 7H1.5v-2l7-7Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+              编辑
+            </button>
+            <button class="op-btn danger">删除</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="banner-card off">
+      <div class="preview">
+        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='351' height='140'><defs><linearGradient id='b6' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23EB2F96'/><stop offset='1' stop-color='%23A11A66'/></linearGradient></defs><rect width='351' height='140' fill='url(%23b6)'/><text x='20' y='62' font-family='PingFang SC' font-size='24' font-weight='600' fill='%23fff'>双11预售开启</text><text x='20' y='88' font-family='PingFang SC' font-size='13' fill='rgba(255,255,255,0.9)'>定金翻倍 尾款立减</text></svg>" alt="双11预售开启">
+        <span class="pos-tag">活动 Banner</span>
+        <span class="sort-badge">1</span>
+      </div>
+      <div class="body">
+        <div class="row1">
+          <div class="title">双11预售开启</div>
+          <span class="status off"><span class="dot"></span>已下架</span>
+        </div>
+        <div class="meta">
+          <div class="meta-row"><span class="k">跳转链接</span><span class="v link">/promotion/double11-presale</span></div>
+          <div class="meta-row"><span class="k">投放时段</span><span class="v">2026-10-20 00:00 ~ 2026-11-11 23:59</span></div>
+          <div class="meta-row"><span class="k">点击量</span><span class="v">未开始投放</span></div>
+        </div>
+        <div class="actions">
+          <div class="switch">
+            <span>上下架</span>
+            <span class="switch-track off"><span class="knob"></span></span>
+          </div>
+          <div class="ops">
+            <button class="op-btn primary">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5l2 2-7 7H1.5v-2l7-7Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+              编辑
+            </button>
+            <button class="op-btn danger">删除</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- 加载中骨架屏 -->
+  <section class="state-panel" id="state-skeleton">
+    <div class="sk-card">
+      <div class="skeleton pv"></div>
+      <div class="bd">
+        <div class="skeleton l1"></div>
+        <div class="skeleton l2"></div>
+        <div class="skeleton l3"></div>
+        <div class="skeleton l4"></div>
+      </div>
+    </div>
+    <div class="sk-card">
+      <div class="skeleton pv"></div>
+      <div class="bd">
+        <div class="skeleton l1"></div>
+        <div class="skeleton l2"></div>
+        <div class="skeleton l3"></div>
+        <div class="skeleton l4"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 空数据 -->
+  <section class="state-panel" id="state-empty">
+    <div class="empty-state">
+      <svg class="empty-illust" viewBox="0 0 120 120" fill="none">
+        <rect x="16" y="30" width="88" height="48" rx="6" fill="#F5F5F5"/>
+        <rect x="28" y="44" width="40" height="8" rx="4" fill="#E0E0E0"/>
+        <rect x="28" y="58" width="56" height="8" rx="4" fill="#E8E8E8"/>
+        <path d="M28 86h64" stroke="#E0E0E0" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="92" cy="84" r="14" fill="#FAFAFA" stroke="#E0E0E0" stroke-width="1.5"/>
+        <path d="M92 78v6l4 2" stroke="#BFBFBF" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <div class="empty-title">暂无 Banner</div>
+      <div class="empty-desc">点击右上角「新增」创建第一个 Banner</div>
+      <button class="empty-cta">新增 Banner</button>
+    </div>
+  </section>
+
+  <!-- 错误态 -->
+  <section class="state-panel" id="state-error">
+    <div class="error-state">
+      <svg class="error-illust" viewBox="0 0 100 100" fill="none">
+        <circle cx="50" cy="50" r="34" fill="#FFF1F0" stroke="#FFCCC7" stroke-width="1.5"/>
+        <path d="M50 32v20" stroke="#FF4D4F" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="50" cy="66" r="2.4" fill="#FF4D4F"/>
+      </svg>
+      <div class="error-title">加载失败</div>
+      <div class="error-desc">服务异常，请稍后重试<br>（错误码：500 INTERNAL_ERROR）</div>
+      <button class="error-retry">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8M20 4v4h-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        重新加载
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// 状态切换
+document.querySelectorAll('.state-bar button').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.state-bar button').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');
+    var st = btn.getAttribute('data-state');
+    document.querySelectorAll('.state-panel').forEach(function(p){p.classList.remove('active');});
+    document.getElementById('state-' + st).classList.add('active');
+  });
+});
+
+// 筛选标签切换
+document.querySelectorAll('.filter-tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.filter-tab').forEach(function(t){t.classList.remove('active');});
+    tab.classList.add('active');
+  });
+});
+
+// 上下架开关切换
+document.querySelectorAll('.switch-track').forEach(function(sw){
+  sw.addEventListener('click', function(){
+    var card = sw.closest('.banner-card');
+    var wasOff = sw.classList.contains('off');
+    sw.classList.toggle('off');
+    var statusEl = card.querySelector('.status');
+    if(wasOff){
+      sw.classList.remove('off');
+      card.classList.remove('off');
+      statusEl.className = 'status on';
+      statusEl.innerHTML = '<span class="dot"></span>上架中';
+    } else {
+      sw.classList.add('off');
+      card.classList.add('off');
+      statusEl.className = 'status off';
+      statusEl.innerHTML = '<span class="dot"></span>已下架';
+    }
+  });
+});
+</script>
+
+</body>
+</html>

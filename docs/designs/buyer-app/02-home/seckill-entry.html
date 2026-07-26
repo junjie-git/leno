@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>限时秒杀 - Leno 买家端</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sk-bg:linear-gradient(135deg,#2A0E1A 0%,#5C0F1F 45%,#8A1024 100%);
+  --sk-grad:linear-gradient(90deg,#FF4D4F 0%,#FF6A3D 100%);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{font-family:var(--ff-app);color:var(--n10);background:#1A0810;}
+body{max-width:375px;margin:0 auto;min-height:100vh;box-shadow:0 0 24px rgba(0,0,0,.12);position:relative;overflow-x:hidden;background:var(--sk-bg);}
+img{display:block;max-width:100%;}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit;}
+
+/* 状态切换工具条 */
+.state-bar{position:sticky;top:0;z-index:50;display:flex;gap:6px;padding:8px 12px;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.08);overflow-x:auto;}
+.state-bar .label{font-size:var(--fs-sm);color:rgba(255,255,255,.6);line-height:26px;white-space:nowrap;margin-right:4px;}
+.state-bar button{padding:4px 12px;font-size:var(--fs-sm);border-radius:var(--r-base);background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);white-space:nowrap;transition:all .2s;}
+.state-bar button.active{background:var(--c-error);color:#fff;}
+
+/* NavBar */
+.navbar{position:sticky;top:41px;z-index:40;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:transparent;}
+.nav-back{width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#fff;}
+.nav-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:#fff;display:flex;align-items:center;gap:6px;}
+.nav-share{width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#fff;}
+
+/* 顶部倒计时区 */
+.countdown-hero{padding:8px 16px 20px;text-align:center;color:#fff;}
+.hero-title{display:flex;align-items:center;justify-content:center;gap:8px;font-size:var(--fs-xl);font-weight:var(--fw-semibold);letter-spacing:1px;}
+.hero-title .bolt{display:flex;}
+.hero-sub{font-size:var(--fs-sm);color:rgba(255,255,255,.75);margin-top:6px;}
+.countdown{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;}
+.countdown .lbl{font-size:var(--fs-base);color:rgba(255,255,255,.85);}
+.countdown .nums{display:flex;align-items:center;gap:4px;}
+.countdown .nums b{display:inline-block;min-width:38px;height:42px;line-height:42px;text-align:center;background:var(--sk-grad);color:#fff;font-size:var(--fs-2xl);font-weight:var(--fw-semibold);border-radius:var(--r-base);box-shadow:0 2px 8px rgba(255,77,79,.4);}
+.countdown .nums .sep{font-size:var(--fs-2xl);color:#fff;font-weight:var(--fw-semibold);}
+
+/* 场次切换 */
+.sessions{display:flex;gap:8px;padding:0 12px 16px;overflow-x:auto;}
+.sessions::-webkit-scrollbar{display:none;}
+.session{flex-shrink:0;min-width:74px;padding:8px 6px;border-radius:var(--r-card);background:rgba(255,255,255,.08);text-align:center;color:rgba(255,255,255,.7);}
+.session .time{font-size:var(--fs-base);font-weight:var(--fw-semibold);}
+.session .state{font-size:var(--fs-sm);margin-top:2px;}
+.session.active{background:var(--sk-grad);color:#fff;box-shadow:0 3px 10px rgba(255,77,79,.4);}
+.session.active .state{opacity:.92;}
+.session.ended{opacity:.5;}
+.session.ended .state{text-decoration:line-through;}
+
+/* 内容面板 */
+.state-panel{display:none;animation:fadeIn .25s ease;}
+.state-panel.active{display:block;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+/* 商品列表 */
+.sk-list{padding:0 12px 24px;}
+.sk-item{display:flex;gap:12px;background:#fff;border-radius:var(--r-lg);padding:12px;margin-bottom:12px;box-shadow:var(--sh-card);position:relative;overflow:hidden;}
+.sk-item::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--sk-grad);}
+.sk-item .img-wrap{position:relative;flex-shrink:0;width:104px;height:104px;border-radius:var(--r-card);overflow:hidden;background:var(--n3);}
+.sk-item .img-wrap img{width:100%;height:100%;object-fit:cover;}
+.sk-item .soldout-mask{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-lg);font-weight:var(--fw-semibold);letter-spacing:2px;display:none;}
+.sk-item.soldout .soldout-mask{display:flex;}
+.sk-item .info{flex:1;display:flex;flex-direction:column;min-width:0;padding-left:4px;}
+.sk-item .name{font-size:var(--fs-base);color:var(--n10);line-height:1.4;height:38px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.sk-item .tags{display:flex;gap:4px;margin-top:6px;}
+.sk-item .tag{font-size:10px;padding:1px 5px;border-radius:var(--r-base);background:#FFF1F0;color:var(--c-error);}
+.sk-item .tag.gold{background:#FFF7E6;color:#D48806;}
+.sk-item .price-row{display:flex;align-items:baseline;gap:6px;margin-top:8px;}
+.sk-item .sk-price{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--c-error);}
+.sk-item .sk-price .sym{font-size:var(--fs-base);}
+.sk-item .origin-price{font-size:var(--fs-sm);color:var(--n7);text-decoration:line-through;}
+.sk-item .progress-wrap{margin-top:10px;}
+.sk-item .progress-row{display:flex;align-items:center;justify-content:space-between;font-size:var(--fs-sm);}
+.sk-item .progress-row .grabbed{color:var(--c-error);font-weight:var(--fw-medium);}
+.sk-item .progress-row .stock{color:var(--n7);}
+.sk-item .progress{height:8px;background:#FFF0F0;border-radius:4px;margin-top:4px;overflow:hidden;}
+.sk-item .progress .bar{height:100%;background:var(--sk-grad);border-radius:4px;transition:width .4s ease;}
+.sk-item .progress.full .bar{background:var(--n7);}
+.sk-item .buy-btn{flex-shrink:0;align-self:center;width:74px;height:40px;border-radius:20px;background:var(--sk-grad);color:#fff;font-size:var(--fs-base);font-weight:var(--fw-semibold);box-shadow:0 3px 10px rgba(255,77,79,.35);display:flex;align-items:center;justify-content:center;}
+.sk-item .buy-btn:active{opacity:.85;}
+.sk-item .buy-btn.disabled{background:var(--n5);color:#fff;box-shadow:none;cursor:not-allowed;}
+.sk-item.soldout .buy-btn{background:var(--n5);box-shadow:none;}
+
+/* 底部提示 */
+.sk-tip{text-align:center;font-size:var(--fs-sm);color:rgba(255,255,255,.5);padding:8px 0 24px;}
+
+/* 骨架屏 */
+.skeleton{background:rgba(255,255,255,.12);border-radius:var(--r-base);position:relative;overflow:hidden;}
+.skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);transform:translateX(-100%);animation:shimmer 1.4s infinite;}
+@keyframes shimmer{100%{transform:translateX(100%);}}
+.sk-skel{padding:0 12px;}
+.sk-skel-item{display:flex;gap:12px;background:rgba(255,255,255,.08);border-radius:var(--r-lg);padding:12px;margin-bottom:12px;}
+.sk-skel-item .ic{width:104px;height:104px;border-radius:var(--r-card);}
+.sk-skel-item .col{flex:1;display:flex;flex-direction:column;gap:8px;padding-top:4px;}
+.sk-skel-item .l1{width:90%;height:14px;}
+.sk-skel-item .l2{width:60%;height:14px;}
+.sk-skel-item .l3{width:100%;height:8px;margin-top:8px;}
+.sk-skel-item .l4{width:50%;height:8px;}
+
+/* 空状态 */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 0;}
+.empty-illust{width:120px;height:120px;}
+.empty-title{font-size:var(--fs-base);color:rgba(255,255,255,.7);margin-top:16px;}
+.empty-desc{font-size:var(--fs-sm);color:rgba(255,255,255,.5);margin-top:6px;}
+.empty-cta{margin-top:16px;padding:8px 20px;background:var(--sk-grad);color:#fff;border-radius:var(--r-base);font-size:var(--fs-base);box-shadow:0 3px 10px rgba(255,77,79,.35);}
+
+/* 错误态 */
+.error-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 0;}
+.error-illust{width:100px;height:100px;}
+.error-title{font-size:var(--fs-base);color:rgba(255,255,255,.8);margin-top:16px;}
+.error-desc{font-size:var(--fs-sm);color:rgba(255,255,255,.5);margin-top:6px;text-align:center;line-height:1.6;}
+.error-retry{margin-top:16px;padding:8px 20px;border:1px solid var(--c-error);color:var(--c-error);border-radius:var(--r-base);font-size:var(--fs-base);display:flex;align-items:center;gap:4px;}
+</style>
+</head>
+<body>
+
+<!-- 状态切换工具条 -->
+<div class="state-bar">
+  <span class="label">状态预览</span>
+  <button class="active" data-state="loaded">已加载</button>
+  <button data-state="skeleton">加载中</button>
+  <button data-state="empty">空数据</button>
+  <button data-state="error">错误态</button>
+</div>
+
+<!-- NavBar -->
+<header class="navbar">
+  <div class="nav-back" aria-label="返回">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <span class="nav-title">
+    <span class="bolt"><svg width="20" height="20" viewBox="0 0 24 24" fill="#FFD666"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg></span>
+    限时秒杀
+  </span>
+  <div class="nav-share" aria-label="分享">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="6" cy="12" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="6" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="18" r="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M8.2 10.8 15.8 7.2M8.2 13.2l7.6 3.6" stroke="currentColor" stroke-width="1.6"/></svg>
+  </div>
+</header>
+
+<!-- 顶部倒计时 -->
+<section class="countdown-hero">
+  <div class="hero-title">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="#FFD666"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+    火热抢购中
+  </div>
+  <div class="hero-sub">本场距结束还剩</div>
+  <div class="countdown">
+    <div class="nums">
+      <b id="cd-h">02</b>
+      <span class="sep">:</span>
+      <b id="cd-m">15</b>
+      <span class="sep">:</span>
+      <b id="cd-s">30</b>
+    </div>
+  </div>
+</section>
+
+<!-- 场次切换 -->
+<div class="sessions">
+  <div class="session ended">
+    <div class="time">10:00</div>
+    <div class="state">已结束</div>
+  </div>
+  <div class="session active">
+    <div class="time">12:00</div>
+    <div class="state">抢购中</div>
+  </div>
+  <div class="session">
+    <div class="time">14:00</div>
+    <div class="state">即将开始</div>
+  </div>
+  <div class="session">
+    <div class="time">16:00</div>
+    <div class="state">即将开始</div>
+  </div>
+  <div class="session">
+    <div class="time">20:00</div>
+    <div class="state">即将开始</div>
+  </div>
+</div>
+
+<!-- 内容区 -->
+<main>
+
+  <!-- 已加载状态 -->
+  <section class="state-panel active" id="state-loaded">
+    <div class="sk-list">
+
+      <div class="sk-item">
+        <div class="img-wrap">
+          <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='104' height='104'><rect width='104' height='104' fill='%23F5F5F5'/><text x='52' y='56' font-size='16' text-anchor='middle' fill='%238C8C8C' font-family='PingFang SC'>纯棉T恤</text></svg>" alt="南极人纯棉短袖T恤">
+          <div class="soldout-mask">已抢光</div>
+        </div>
+        <div class="info">
+          <div class="name">南极人纯棉短袖T恤夏季透气半袖</div>
+          <div class="tags"><span class="tag gold">限时5折</span><span class="tag">包邮</span></div>
+          <div class="price-row">
+            <span class="sk-price"><span class="sym">¥</span>19.9</span>
+            <span class="origin-price">¥29.9</span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-row"><span class="grabbed">已抢 68%</span><span class="stock">仅剩 32 件</span></div>
+            <div class="progress"><div class="bar" style="width:68%"></div></div>
+          </div>
+        </div>
+        <button class="buy-btn">立即抢购</button>
+      </div>
+
+      <div class="sk-item">
+        <div class="img-wrap">
+          <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='104' height='104'><rect width='104' height='104' fill='%23F5F5F5'/><text x='52' y='56' font-size='16' text-anchor='middle' fill='%238C8C8C' font-family='PingFang SC'>Redmi</text></svg>" alt="小米 Redmi Note 13">
+          <div class="soldout-mask">已抢光</div>
+        </div>
+        <div class="info">
+          <div class="name">小米 Redmi Note 13 5G 智能手机</div>
+          <div class="tags"><span class="tag gold">直降200</span><span class="tag">赠耳机</span></div>
+          <div class="price-row">
+            <span class="sk-price"><span class="sym">¥</span>999</span>
+            <span class="origin-price">¥1199</span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-row"><span class="grabbed">已抢 92%</span><span class="stock">仅剩 8 件</span></div>
+            <div class="progress"><div class="bar" style="width:92%"></div></div>
+          </div>
+        </div>
+        <button class="buy-btn">立即抢购</button>
+      </div>
+
+      <div class="sk-item">
+        <div class="img-wrap">
+          <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='104' height='104'><rect width='104' height='104' fill='%23F5F5F5'/><text x='52' y='56' font-size='16' text-anchor='middle' fill='%238C8C8C' font-family='PingFang SC'>每日坚果</text></svg>" alt="三只松鼠每日坚果">
+          <div class="soldout-mask">已抢光</div>
+        </div>
+        <div class="info">
+          <div class="name">三只松鼠每日坚果 30 包混合干果</div>
+          <div class="tags"><span class="tag gold">7折特惠</span></div>
+          <div class="price-row">
+            <span class="sk-price"><span class="sym">¥</span>49.9</span>
+            <span class="origin-price">¥69.9</span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-row"><span class="grabbed">已抢 45%</span><span class="stock">仅剩 110 件</span></div>
+            <div class="progress"><div class="bar" style="width:45%"></div></div>
+          </div>
+        </div>
+        <button class="buy-btn">立即抢购</button>
+      </div>
+
+      <div class="sk-item">
+        <div class="img-wrap">
+          <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='104' height='104'><rect width='104' height='104' fill='%23F5F5F5'/><text x='52' y='56' font-size='16' text-anchor='middle' fill='%238C8C8C' font-family='PingFang SC'>蓝牙耳机</text></svg>" alt="漫步者蓝牙耳机">
+          <div class="soldout-mask">已抢光</div>
+        </div>
+        <div class="info">
+          <div class="name">漫步者 LolliPods 真无线蓝牙耳机</div>
+          <div class="tags"><span class="tag gold">限时6.5折</span></div>
+          <div class="price-row">
+            <span class="sk-price"><span class="sym">¥</span>129</span>
+            <span class="origin-price">¥199</span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-row"><span class="grabbed">已抢 85%</span><span class="stock">仅剩 15 件</span></div>
+            <div class="progress"><div class="bar" style="width:85%"></div></div>
+          </div>
+        </div>
+        <button class="buy-btn">立即抢购</button>
+      </div>
+
+      <div class="sk-item">
+        <div class="img-wrap">
+          <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='104' height='104'><rect width='104' height='104' fill='%23F5F5F5'/><text x='52' y='56' font-size='16' text-anchor='middle' fill='%238C8C8C' font-family='PingFang SC'>运动鞋</text></svg>" alt="安踏轻跑运动鞋">
+          <div class="soldout-mask">已抢光</div>
+        </div>
+        <div class="info">
+          <div class="name">安踏男款轻跑运动鞋透气减震休闲鞋</div>
+          <div class="tags"><span class="tag gold">直降130</span></div>
+          <div class="price-row">
+            <span class="sk-price"><span class="sym">¥</span>199</span>
+            <span class="origin-price">¥329</span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-row"><span class="grabbed">已抢 30%</span><span class="stock">仅剩 210 件</span></div>
+            <div class="progress"><div class="bar" style="width:30%"></div></div>
+          </div>
+        </div>
+        <button class="buy-btn">立即抢购</button>
+      </div>
+
+      <div class="sk-item soldout">
+        <div class="img-wrap">
+          <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='104' height='104'><rect width='104' height='104' fill='%23F5F5F5'/><text x='52' y='56' font-size='16' text-anchor='middle' fill='%238C8C8C' font-family='PingFang SC'>保温杯</text></svg>" alt="膳魔师保温杯">
+          <div class="soldout-mask">已抢光</div>
+        </div>
+        <div class="info">
+          <div class="name">膳魔师不锈钢真空保温杯 350ml</div>
+          <div class="tags"><span class="tag gold">限时6.3折</span></div>
+          <div class="price-row">
+            <span class="sk-price"><span class="sym">¥</span>99</span>
+            <span class="origin-price">¥158</span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-row"><span class="grabbed">已抢 100%</span><span class="stock">已售罄</span></div>
+            <div class="progress full"><div class="bar" style="width:100%"></div></div>
+          </div>
+        </div>
+        <button class="buy-btn disabled">已抢光</button>
+      </div>
+
+    </div>
+    <div class="sk-tip">更多好物即将开抢，敬请期待</div>
+  </section>
+
+  <!-- 加载中骨架屏 -->
+  <section class="state-panel" id="state-skeleton">
+    <div class="sk-skel">
+      <div class="sk-skel-item">
+        <div class="skeleton ic"></div>
+        <div class="col"><div class="skeleton l1"></div><div class="skeleton l2"></div><div class="skeleton l3"></div><div class="skeleton l4"></div></div>
+      </div>
+      <div class="sk-skel-item">
+        <div class="skeleton ic"></div>
+        <div class="col"><div class="skeleton l1"></div><div class="skeleton l2"></div><div class="skeleton l3"></div><div class="skeleton l4"></div></div>
+      </div>
+      <div class="sk-skel-item">
+        <div class="skeleton ic"></div>
+        <div class="col"><div class="skeleton l1"></div><div class="skeleton l2"></div><div class="skeleton l3"></div><div class="skeleton l4"></div></div>
+      </div>
+      <div class="sk-skel-item">
+        <div class="skeleton ic"></div>
+        <div class="col"><div class="skeleton l1"></div><div class="skeleton l2"></div><div class="skeleton l3"></div><div class="skeleton l4"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 空数据 -->
+  <section class="state-panel" id="state-empty">
+    <div class="empty-state">
+      <svg class="empty-illust" viewBox="0 0 120 120" fill="none">
+        <circle cx="60" cy="60" r="40" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+        <path d="M60 40v22M60 72v2" stroke="rgba(255,255,255,0.5)" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M48 30 60 18l12 12" stroke="#FF6A3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="empty-title">本场秒杀已结束</div>
+      <div class="empty-desc">下一场 14:00 即将开始，敬请期待</div>
+      <button class="empty-cta">查看更多好物</button>
+    </div>
+  </section>
+
+  <!-- 错误态 -->
+  <section class="state-panel" id="state-error">
+    <div class="error-state">
+      <svg class="error-illust" viewBox="0 0 100 100" fill="none">
+        <circle cx="50" cy="50" r="34" fill="rgba(255,77,79,0.12)" stroke="rgba(255,77,79,0.4)" stroke-width="1.5"/>
+        <path d="M50 32v20" stroke="#FF4D4F" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="50" cy="66" r="2.4" fill="#FF4D4F"/>
+      </svg>
+      <div class="error-title">活动太火爆了</div>
+      <div class="error-desc">服务器开小差，请稍后重试<br>（错误码：429 TOO_MANY_REQUESTS）</div>
+      <button class="error-retry">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8M20 4v4h-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        重新加载
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// 状态切换
+document.querySelectorAll('.state-bar button').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.state-bar button').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');
+    var st = btn.getAttribute('data-state');
+    document.querySelectorAll('.state-panel').forEach(function(p){p.classList.remove('active');});
+    document.getElementById('state-' + st).classList.add('active');
+  });
+});
+
+// 场次切换
+document.querySelectorAll('.session').forEach(function(s){
+  s.addEventListener('click', function(){
+    if(s.classList.contains('ended')){return;}
+    document.querySelectorAll('.session').forEach(function(x){x.classList.remove('active');});
+    s.classList.add('active');
+  });
+});
+
+// 抢购按钮点击：进度模拟推进 + 售罄切换
+document.querySelectorAll('.sk-item .buy-btn').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    if(btn.classList.contains('disabled')){return;}
+    var item = btn.closest('.sk-item');
+    var bar = item.querySelector('.progress .bar');
+    var grabbed = item.querySelector('.grabbed');
+    var stock = item.querySelector('.stock');
+    var mask = item.querySelector('.soldout-mask');
+    var cur = parseInt(bar.style.width, 10) || 0;
+    var next = Math.min(100, cur + 16);
+    bar.style.width = next + '%';
+    grabbed.textContent = '已抢 ' + next + '%';
+    if(next >= 100){
+      item.classList.add('soldout');
+      item.querySelector('.progress').classList.add('full');
+      btn.classList.add('disabled');
+      btn.textContent = '已抢光';
+      mask.style.display = 'flex';
+      stock.textContent = '已售罄';
+    } else {
+      var remain = Math.max(0, Math.round((100 - next) * 3.2));
+      stock.textContent = '仅剩 ' + remain + ' 件';
+    }
+  });
+});
+
+// 顶部倒计时
+var total = 2*3600 + 15*60 + 30;
+var hEl = document.getElementById('cd-h');
+var mEl = document.getElementById('cd-m');
+var sEl = document.getElementById('cd-s');
+function pad(n){return n<10 ? '0'+n : ''+n;}
+setInterval(function(){
+  if(total > 0){total--;}
+  hEl.textContent = pad(Math.floor(total/3600));
+  mEl.textContent = pad(Math.floor((total%3600)/60));
+  sEl.textContent = pad(total%60);
+}, 1000);
+</script>
+
+</body>
+</html>
