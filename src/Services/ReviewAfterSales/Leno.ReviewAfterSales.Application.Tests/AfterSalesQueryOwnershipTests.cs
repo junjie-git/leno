@@ -130,6 +130,7 @@ public sealed class AfterSalesQueryOwnershipTests
         var reviewRepoMock = new Mock<IReviewRepository>();
         var eligibilityMock = new Mock<IReviewEligibilityChecker>();
         var orderStatusProviderMock = new Mock<IOrderStatusProvider>();
+        var productInfoQueryServiceMock = new Mock<IProductInfoQueryService>();
         var uowMock = new Mock<IUnitOfWork>();
 
         // 评价存在且 OrderId 关联订单归属 OtherUserId，调用方 UserId 是攻击者
@@ -142,7 +143,7 @@ public sealed class AfterSalesQueryOwnershipTests
 
         var svc = new ReviewAppService(
             reviewRepoMock.Object, eligibilityMock.Object, orderStatusProviderMock.Object,
-            uowMock.Object, NullLogger<ReviewAppService>.Instance);
+            productInfoQueryServiceMock.Object, uowMock.Object, NullLogger<ReviewAppService>.Instance);
 
         var act = () => svc.GetReviewByOrderLineForUserAsync(OrderLineId, UserId, CancellationToken.None);
 
@@ -158,6 +159,7 @@ public sealed class AfterSalesQueryOwnershipTests
         var reviewRepoMock = new Mock<IReviewRepository>();
         var eligibilityMock = new Mock<IReviewEligibilityChecker>();
         var orderStatusProviderMock = new Mock<IOrderStatusProvider>();
+        var productInfoQueryServiceMock = new Mock<IProductInfoQueryService>();
         var uowMock = new Mock<IUnitOfWork>();
 
         reviewRepoMock
@@ -169,7 +171,7 @@ public sealed class AfterSalesQueryOwnershipTests
 
         var svc = new ReviewAppService(
             reviewRepoMock.Object, eligibilityMock.Object, orderStatusProviderMock.Object,
-            uowMock.Object, NullLogger<ReviewAppService>.Instance);
+            productInfoQueryServiceMock.Object, uowMock.Object, NullLogger<ReviewAppService>.Instance);
 
         var result = await svc.GetReviewByOrderLineForUserAsync(OrderLineId, UserId, CancellationToken.None);
 
@@ -185,6 +187,7 @@ public sealed class AfterSalesQueryOwnershipTests
         var reviewRepoMock = new Mock<IReviewRepository>();
         var eligibilityMock = new Mock<IReviewEligibilityChecker>();
         var orderStatusProviderMock = new Mock<IOrderStatusProvider>();
+        var productInfoQueryServiceMock = new Mock<IProductInfoQueryService>();
         var uowMock = new Mock<IUnitOfWork>();
 
         // 评价不存在，应直接返回 null，不调用订单域防腐层
@@ -194,7 +197,7 @@ public sealed class AfterSalesQueryOwnershipTests
 
         var svc = new ReviewAppService(
             reviewRepoMock.Object, eligibilityMock.Object, orderStatusProviderMock.Object,
-            uowMock.Object, NullLogger<ReviewAppService>.Instance);
+            productInfoQueryServiceMock.Object, uowMock.Object, NullLogger<ReviewAppService>.Instance);
 
         var result = await svc.GetReviewByOrderLineForUserAsync(OrderLineId, UserId, CancellationToken.None);
 

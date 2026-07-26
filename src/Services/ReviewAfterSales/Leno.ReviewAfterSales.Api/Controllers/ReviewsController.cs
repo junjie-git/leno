@@ -82,6 +82,21 @@ public sealed class ReviewsController : ReviewControllerBase
         return Ok(ApiResponse.Success(result));
     }
 
+    /// <summary>
+    /// 买家追评，仅已通过（Approved）态评价可追评一次。
+    /// 通过 JWT 注入 userId 与评价聚合 UserId 比对进行归属校验，防止越权追评他人评价。
+    /// </summary>
+    [Authorize(Roles = "Buyer")]
+    [HttpPost("api/reviews/{id:guid}/append")]
+    [ProducesResponseType(typeof(ApiResponse<ReviewDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AppendAdditionalReviewAsync(Guid id, [FromBody] AppendReviewDto dto, CancellationToken ct)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _reviewAppService.AppendAdditionalReviewAsync(id, userId, dto, ct);
+        return Ok(ApiResponse.Success(result));
+    }
+
     /// <summary>买家上传评价图片。</summary>
     [Authorize(Roles = "Buyer")]
     [HttpPost("api/reviews/images")]
@@ -147,6 +162,30 @@ public sealed class ReviewsController : ReviewControllerBase
         var sellerId = GetCurrentUserId();
         await _reviewAppService.SellerReplyAsync(id, sellerId, dto.Content, ct);
         return Ok(ApiResponse.Success());
+    }
+
+    /// <summary>
+    /// 卖家查询本店铺商品评价列表，仅返回已通过（Approved）态评价。
+    /// 通过 JWT 注入 sellerId 强制过滤，卖家 A 无法查看卖家 B 的评价（卖家隔离）。
+    /// 支持按评分、回复状态、商品名称（经商品域 ACL 过滤 SpuId 列表）、提交时间范围过滤。
+    /// </summary>
+    [Authorize(Roles = "Seller")]
+    [HttpGet("api/seller/reviews")]
+    [ProducesResponseType(typeof(ApiResponse<ReviewListResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSellerReviewsAsync(
+        [FromQuery] int? rating,
+        [FromQuery] bool? replied,
+        [FromQuery] string? productName,
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        var sellerId = GetCurrentUserId();
+        var result = await _reviewAppService.GetBySellerAsync(
+            sellerId, rating, replied, productName, startDate, endDate, page, pageSize, ct);
+        return Ok(ApiResponse.Success(result));
     }
 
     // ========== 运营端 ==========

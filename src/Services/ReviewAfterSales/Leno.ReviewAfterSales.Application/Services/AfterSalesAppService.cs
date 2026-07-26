@@ -280,6 +280,21 @@ public sealed class AfterSalesAppService : IAfterSalesAppService
     }
 
     /// <inheritdoc />
+    public async Task<AfterSalesDto> GetByIdForSellerAsync(Guid afterSalesId, Guid sellerId, CancellationToken ct = default)
+    {
+        // 加载售后单聚合根后通过聚合内 SellerId 进行归属校验，
+        // 防止卖家 A 越权查询卖家 B 的售后单详情。
+        // 复用 RequireOwnedAfterSales 抛 AFTERSALES_NOT_OWNED，与审核/驳回/确认收货路径保持一致的错误码语义。
+        var afterSales = await _afterSalesRepository.GetByIdAsync(afterSalesId, ct)
+            ?? throw new InvalidOperationException($"售后单不存在 AfterSalesId={afterSalesId}");
+
+        RequireOwnedAfterSales(afterSales, sellerId);
+
+        _logger.LogInformation("卖家查询售后单详情 AfterSalesId={AfterSalesId} SellerId={SellerId}", afterSalesId, sellerId);
+        return ToDto(afterSales);
+    }
+
+    /// <inheritdoc />
     public async Task<AfterSalesListResultDto> QueryAsync(Guid? orderId, Guid? userId, Guid? sellerId, AfterSalesStatus? status, int page, int pageSize, CancellationToken ct = default)
     {
         var items = await _afterSalesRepository.QueryAsync(orderId, userId, sellerId, status, page, pageSize, ct);

@@ -37,6 +37,23 @@ public sealed class ReviewConfiguration : IEntityTypeConfiguration<Review>
         builder.Property(r => r.HiddenBy).HasColumnName("hidden_by");
         builder.Property(r => r.HideReason).HasColumnName("hide_reason").HasMaxLength(200);
 
+        // 追评字段映射（AppendAdditionalReview 聚合方法写入）
+        builder.Property(r => r.AppendContent).HasColumnName("append_content").HasMaxLength(500);
+        builder.Property(r => r.AppendedAt).HasColumnName("appended_at");
+
+        // 追评图片集合序列化为 JSON 列，通过 backing field _appendImages 持久化，
+        // 配合聚合根 AppendImages 只读视图，避免 EF Core 经属性 setter 绕过封装。
+        builder.Property<List<string>>("_appendImages")
+            .HasColumnName("append_images")
+            .HasColumnType("nvarchar(max)")
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>())
+            .Metadata.SetValueComparer(new ValueComparer<List<string>>(
+                (a, b) => (a == null && b == null) || (a != null && b != null && a.SequenceEqual(b)),
+                c => c == null ? 0 : c.Aggregate(0, (h, v) => h ^ v.GetHashCode()),
+                c => c == null ? new List<string>() : c.ToList()));
+
         builder.Property(r => r.CreatedAt).HasColumnName("created_at");
         builder.Property(r => r.UpdatedAt).HasColumnName("updated_at");
         builder.Property(r => r.CreatedBy).HasColumnName("created_by").HasMaxLength(64);

@@ -59,4 +59,47 @@ public interface IReviewRepository : IRepository<ReviewAggregate>
     /// <param name="orderId">订单标识。</param>
     /// <param name="status">审核状态过滤，为空不过滤。</param>
     Task<List<ReviewAggregate>> GetByOrderIdAsync(Guid orderId, ReviewStatus? status = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// 卖家端分页查询本店铺商品评价，强制只返回 Approved 态。
+    /// 支持按评分、回复状态（SellerReplyAt 是否为空）、SpuId 列表、提交时间范围过滤。
+    /// SpuId 列表用于商品名称模糊搜索后过滤；为空表示不按 SpuId 过滤。
+    /// </summary>
+    /// <param name="sellerId">卖家标识，必填。</param>
+    /// <param name="rating">评分过滤（1-5），为空不过滤。</param>
+    /// <param name="replied">回复状态过滤：true=已回复 / false=待回复 / null=全部。</param>
+    /// <param name="spuIds">SPU 标识列表过滤，为空或 null 不过滤。</param>
+    /// <param name="startDate">提交时间起点（含），为空不过滤。</param>
+    /// <param name="endDate">提交时间终点（含），为空不过滤。</param>
+    /// <param name="page">页码（从 1 起）。</param>
+    /// <param name="pageSize">每页大小。</param>
+    Task<List<ReviewAggregate>> QueryBySellerAsync(
+        Guid sellerId,
+        int? rating,
+        bool? replied,
+        IReadOnlyList<Guid>? spuIds,
+        DateTime? startDate,
+        DateTime? endDate,
+        int page,
+        int pageSize,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// 卖家端条件查询评价总数（配合 <see cref="QueryBySellerAsync"/> 分页）。
+    /// 过滤条件与 <see cref="QueryBySellerAsync"/> 保持一致。
+    /// </summary>
+    Task<int> CountBySellerAsync(
+        Guid sellerId,
+        int? rating,
+        bool? replied,
+        IReadOnlyList<Guid>? spuIds,
+        DateTime? startDate,
+        DateTime? endDate,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// 查询指定卖家已通过评价关联的去重 SPU 标识列表（供商品名称过滤前置查询使用）。
+    /// </summary>
+    /// <param name="sellerId">卖家标识。</param>
+    Task<List<Guid>> GetDistinctSpuIdsBySellerAsync(Guid sellerId, CancellationToken ct = default);
 }

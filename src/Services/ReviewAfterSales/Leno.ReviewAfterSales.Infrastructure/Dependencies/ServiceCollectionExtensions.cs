@@ -17,6 +17,7 @@ using Leno.ReviewAfterSales.Infrastructure.Repositories;
 using Leno.ReviewAfterSales.Infrastructure.Services.Grpc;
 using Leno.SharedContracts.Grpc.Order.V1;
 using Leno.SharedContracts.Grpc.Payment.V1;
+using Leno.SharedContracts.Grpc.Product.V1;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -164,6 +165,30 @@ public static class ServiceCollectionExtensions
                 services.AddScoped<IOrderStatusProvider>(sp =>
                     sp.GetRequiredService<InfraServices.HttpOrderStatusProvider>());
             }
+
+            // Product 单轨（IProductInfoQueryService）
+            // 卖家侧评价列表按商品名称过滤场景使用，无 HttpClient 降级实现，
+            // gRPC 端点缺失时降级到 NullProductInfoQueryService（fail-open，返回空字典，按 productName 过滤返回空列表）。
+            var productGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Product");
+            if (!string.IsNullOrWhiteSpace(productGrpcEndpoint))
+            {
+                services.AddGrpcClient<ProductInternalService.ProductInternalServiceClient>(options =>
+                {
+                    options.Address = new Uri(productGrpcEndpoint);
+                });
+                services.AddScoped<GrpcProductInfoQueryService>();
+                services.AddScoped<IProductInfoQueryService>(sp =>
+                    sp.GetRequiredService<GrpcProductInfoQueryService>());
+            }
+            else
+            {
+                // 降级到 NullProductInfoQueryService：注册启动时告警 HostedService，再注册 Null 实现作为唯一实现。
+                services.AddHostedService(sp => new GrpcDegradationWarningHostedService(
+                    sp.GetRequiredService<ILogger<GrpcDegradationWarningHostedService>>(),
+                    "Product",
+                    "AntiCorruption:GrpcEndpoints:Product"));
+                services.AddScoped<IProductInfoQueryService, InfraServices.NullProductInfoQueryService>();
+            }
         }
         else
         {
@@ -172,6 +197,8 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<InfraServices.PaymentInfoQueryService>());
             services.AddScoped<IOrderStatusProvider>(sp =>
                 sp.GetRequiredService<InfraServices.HttpOrderStatusProvider>());
+            // Product 无 HttpClient 实现，UseGrpc=false 时降级到 NullProductInfoQueryService（fail-open）
+            services.AddScoped<IProductInfoQueryService, InfraServices.NullProductInfoQueryService>();
         }
 
         // 资格校验器（依赖 IOrderStatusProvider，无论双轨与否都注册）

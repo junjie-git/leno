@@ -292,6 +292,30 @@ public sealed class ReviewModeratedDomainEvent : DomainEventBase
 }
 
 /// <summary>
+/// 买家追评领域事件，由 <see cref="Aggregates.Review"/> 聚合在 AppendAdditionalReview 方法中收集。
+/// mapper 翻译为 <see cref="Leno.SharedContracts.Events.ReviewAppendedEvent"/> 集成事件对外发布。
+/// 消费方：商品域（更新评价数与评分摘要）、消息通知域（通知卖家有新追评）。
+/// </summary>
+public sealed class ReviewAppendedDomainEvent : DomainEventBase
+{
+    public Guid ReviewId { get; init; }
+    public Guid UserId { get; init; }
+    public Guid SpuId { get; init; }
+    public Guid SellerId { get; init; }
+    public int Rating { get; init; }
+
+    public ReviewAppendedDomainEvent(Guid reviewId, Guid userId, Guid spuId, Guid sellerId, int rating)
+        : base(reviewId)
+    {
+        ReviewId = reviewId;
+        UserId = userId;
+        SpuId = spuId;
+        SellerId = sellerId;
+        Rating = rating;
+    }
+}
+
+/// <summary>
 /// 售后退款失败领域事件，由 <see cref="Aggregates.AfterSales"/> 聚合在 MarkRefundFailed 方法中收集。
 /// mapper 翻译为 <see cref="Leno.SharedContracts.Events.AfterSalesRefundFailedEvent"/> 集成事件对外发布。
 /// 消费方：消息通知域（通知买家退款失败并可重试）、订单域（更新售后状态视图）。

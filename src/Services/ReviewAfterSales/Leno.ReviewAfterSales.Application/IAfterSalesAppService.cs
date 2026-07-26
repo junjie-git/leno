@@ -48,6 +48,16 @@ public interface IAfterSalesAppService
     /// <summary>卖家端分页查询收到的售后单。</summary>
     Task<AfterSalesListResultDto> GetBySellerAsync(Guid sellerId, AfterSalesStatus? status, int page, int pageSize, CancellationToken ct = default);
 
+    /// <summary>
+    /// 卖家端按售后单标识查询详情，校验当前用户为售后单归属卖家。
+    /// 通过聚合根 <see cref="Domain.Aggregates.AfterSales.SellerId"/> 与传入 sellerId 比对，
+    /// 非归属卖家抛 <c>AFTERSALES_NOT_OWNED</c>，售后单不存在抛 <see cref="InvalidOperationException"/>。
+    /// </summary>
+    /// <param name="afterSalesId">售后单标识。</param>
+    /// <param name="sellerId">当前卖家标识，从 JWT 注入。</param>
+    /// <returns>售后单 DTO。</returns>
+    Task<AfterSalesDto> GetByIdForSellerAsync(Guid afterSalesId, Guid sellerId, CancellationToken ct = default);
+
     /// <summary>运营端分页查询全平台售后单。</summary>
     Task<AfterSalesListResultDto> QueryAsync(Guid? orderId, Guid? userId, Guid? sellerId, AfterSalesStatus? status, int page, int pageSize, CancellationToken ct = default);
 }

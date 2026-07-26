@@ -166,6 +166,22 @@ public sealed class AfterSalesController : ReviewControllerBase
         return Ok(ApiResponse.Success(result));
     }
 
+    /// <summary>
+    /// 卖家查询售后单详情。
+    /// 通过 JWT 注入 sellerId 进行归属校验，仅返回当前卖家名下售后单；
+    /// 非归属卖家抛 AFTERSALES_NOT_OWNED，售后单不存在返回 404。
+    /// </summary>
+    [Authorize(Roles = "Seller")]
+    [HttpGet("api/seller/after-sales/{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<AfterSalesDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSellerAfterSalesByIdAsync(Guid id, CancellationToken ct)
+    {
+        var sellerId = GetCurrentUserId();
+        var result = await _afterSalesAppService.GetByIdForSellerAsync(id, sellerId, ct);
+        return Ok(ApiResponse.Success(result));
+    }
+
     /// <summary>卖家审核同意售后。</summary>
     [Authorize(Roles = "Seller")]
     [HttpPost("api/seller/after-sales/{id:guid}/approve")]

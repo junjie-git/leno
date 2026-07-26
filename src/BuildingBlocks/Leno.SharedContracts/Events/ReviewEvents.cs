@@ -225,3 +225,48 @@ public sealed class ReviewModeratedEvent : IntegrationEventBase
         Rating = rating;
     }
 }
+
+/// <summary>
+/// 买家追评集成事件，评价与售后域在买家追评时发布。
+/// 消费方：商品域（更新评价数与评分摘要）、消息通知域（通知卖家有新追评）。
+/// 事件契约定义在共享层，变更需所有消费方协商。
+/// </summary>
+public sealed class ReviewAppendedEvent : IntegrationEventBase
+{
+    /// <summary>评价标识。</summary>
+    public Guid ReviewId { get; init; }
+
+    /// <summary>评价人（买家）标识。</summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>商品 SPU 标识。</summary>
+    public Guid SpuId { get; init; }
+
+    /// <summary>店铺归属卖家标识，由评价域在追评时填充。默认 Guid.Empty 保持向后兼容。</summary>
+    public Guid SellerId { get; init; }
+
+    /// <summary>原评价评分（1-5），便于消费方定位评分摘要。</summary>
+    public int Rating { get; init; }
+
+    /// <summary>追评时间（UTC）。</summary>
+    public DateTime AppendedAt { get; init; }
+
+    /// <summary>聚合根标识，用于发件箱归类。</summary>
+    public Guid AggregateId => ReviewId;
+
+    /// <summary>供 System.Text.Json 反序列化使用的无参构造。</summary>
+    public ReviewAppendedEvent() : base()
+    {
+    }
+
+    public ReviewAppendedEvent(Guid reviewId, Guid userId, Guid spuId, Guid sellerId, int rating, DateTime appendedAt)
+        : base(eventId: null, occurredAt: null, idempotencyKey: null, schemaVersion: 1)
+    {
+        ReviewId = reviewId;
+        UserId = userId;
+        SpuId = spuId;
+        SellerId = sellerId;
+        Rating = rating;
+        AppendedAt = appendedAt;
+    }
+}

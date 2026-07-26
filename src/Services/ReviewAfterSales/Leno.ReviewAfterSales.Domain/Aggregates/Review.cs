@@ -73,6 +73,20 @@ public sealed class Review : AggregateRoot
     /// <summary>隐藏原因。</summary>
     public string? HideReason { get; private set; }
 
+    /// <summary>追评内容，已通过评价可追评一次，可空表示未追评。</summary>
+    public string? AppendContent { get; private set; }
+
+    /// <summary>
+    /// 追评图片 URL 列表，仅经聚合根维护，最多 9 张。
+    /// 通过 <see cref="AppendImages"/> 只读视图对外暴露，防止外部 mutate 内部集合。
+    /// 未追评时为空列表。
+    /// </summary>
+    private List<string> _appendImages = [];
+    public IReadOnlyList<string> AppendImages => _appendImages.AsReadOnly();
+
+    /// <summary>追评时间（UTC），追评后填充。</summary>
+    public DateTime? AppendedAt { get; private set; }
+
     /// <summary>EF Core 无参构造。</summary>
     private Review() { }
 
@@ -283,9 +297,54 @@ public sealed class Review : AggregateRoot
 	        }
 
 	        Status = ReviewStatus.Hidden;
-	        HiddenAt = DateTime.UtcNow;
-	        HiddenBy = operatorId;
-	        HideReason = reason;
-	        AddDomainEvent(new ReviewHiddenDomainEvent(Id, SpuId, Rating));
-	    }
+        HiddenAt = DateTime.UtcNow;
+        HiddenBy = operatorId;
+        HideReason = reason;
+        AddDomainEvent(new ReviewHiddenDomainEvent(Id, SpuId, Rating));
+    }
+
+    /// <summary>
+    /// 买家追评，仅已通过（Approved）态且未追评过时可调用一次。
+    /// 校验追评内容非空且不超过 500 字、追评图片不超过 9 张，写入 <see cref="AppendContent"/>、<see cref="AppendImages"/>、<see cref="AppendedAt"/>
+    /// 并发布 <see cref="ReviewAppendedDomainEvent"/>。
+    /// 已追评不可重复追评；待审核/已隐藏态不可追评。
+    /// </summary>
+    /// <param name="content">追评内容，1-500 字。</param>
+    /// <param name="images">追评图片 URL 列表，最多 9 张，可为空。</param>
+    public void AppendAdditionalReview(string content, List<string>? images)
+    {
+        if (Status != ReviewStatus.Approved)
+        {
+            throw new ReviewDomainException(
+                $"当前状态 {Status} 不可追评，仅 Approved 可追评",
+                "REVIEW_APPEND_STATUS_INVALID");
+        }
+
+        if (!string.IsNullOrEmpty(AppendContent))
+        {
+            throw new ReviewDomainException("该评价已追评，不可重复追评", "REVIEW_ALREADY_APPENDED");
+        }
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            throw new ReviewDomainException("追评内容不可为空", "REVIEW_APPEND_CONTENT_EMPTY");
+        }
+
+        if (content.Length > 500)
+        {
+            throw new ReviewDomainException("追评内容不可超过 500 字", "REVIEW_APPEND_CONTENT_TOO_LONG");
+        }
+
+        var imageList = (images ?? []).ToList();
+        if (imageList.Count > 9)
+        {
+            throw new ReviewDomainException($"追评图片数量超限：{imageList.Count}，最多 9 张", "REVIEW_APPEND_IMAGES_TOO_MANY");
+        }
+
+        AppendContent = content;
+        _appendImages = imageList;
+        AppendedAt = DateTime.UtcNow;
+
+        AddDomainEvent(new ReviewAppendedDomainEvent(Id, UserId, SpuId, SellerId, Rating));
+    }
 }

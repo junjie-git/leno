@@ -2,6 +2,7 @@ using Leno.Infrastructure.Abstractions;
 using Leno.ReviewAfterSales.Application.DTOs;
 using Leno.ReviewAfterSales.Application.Services;
 using Leno.ReviewAfterSales.Domain.Aggregates;
+using Leno.ReviewAfterSales.Domain.Events;
 using Leno.ReviewAfterSales.Domain.Repositories;
 using Leno.ReviewAfterSales.Domain.Services;
 using Leno.ReviewAfterSales.Domain.ValueObjects;
@@ -126,7 +127,7 @@ public class AfterSalesAppServiceTests
 
         afterSales.Status.Should().Be(AfterSalesStatus.Refunding);
         afterSales.ApprovedAmount.Should().Be(50m);
-        afterSales.DomainEvents.OfType<RefundRequestedIntegrationEvent>().Should().HaveCount(1);
+        afterSales.DomainEvents.OfType<AfterSalesRefundRequestedDomainEvent>().Should().HaveCount(1);
         _paymentInfoMock.Verify(p => p.GetByOrderIdAsync(OrderId, It.IsAny<CancellationToken>()), Times.Once);
         // 合并审计 3.7：拆分事务后 UpdateAsync 与 SaveEntitiesAsync 各调用 2 次（状态机推进 + 事件追加）
         _afterSalesRepoMock.Verify(r => r.UpdateAsync(afterSales, It.IsAny<CancellationToken>()), Times.Exactly(2));
@@ -145,7 +146,7 @@ public class AfterSalesAppServiceTests
 
         afterSales.Status.Should().Be(AfterSalesStatus.Approved);
         afterSales.ApprovedAmount.Should().Be(100m);
-        afterSales.DomainEvents.OfType<RefundRequestedIntegrationEvent>().Should().BeEmpty();
+        afterSales.DomainEvents.OfType<AfterSalesRefundRequestedDomainEvent>().Should().BeEmpty();
         _paymentInfoMock.Verify(p => p.GetByOrderIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
