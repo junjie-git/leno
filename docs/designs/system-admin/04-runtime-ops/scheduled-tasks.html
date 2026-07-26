@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>定时任务 - Leno 系统管理后台</title>
+<style>
+:root{
+  --c-primary:#1677FF;--c-success:#52C41A;--c-warning:#FAAD14;--c-error:#FF4D4F;
+  --n1:#FFFFFF;--n2:#FAFAFA;--n3:#F5F5F5;--n5:#D9D9D9;--n7:#8C8C8C;--n9:#595959;--n10:#000000D9;
+  --r-base:6px;--r-card:8px;--r-lg:12px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s6:24px;--s8:32px;--s12:48px;
+  --fs-sm:12px;--fs-base:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:30px;
+  --fw-normal:400;--fw-medium:500;--fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529;--sider-width:200px;--header-h:64px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--n1);display:flex;align-items:center;padding:0 var(--s4);z-index:100;box-shadow:0 1px 4px rgba(0,21,41,.08)}
+.header-logo{display:flex;align-items:center;gap:var(--s2);width:calc(var(--sider-width) - var(--s4));flex-shrink:0}
+.logo-mark{width:32px;height:32px;background:var(--c-primary);border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:var(--fw-semibold);font-size:var(--fs-lg)}
+.logo-text{font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.header-breadcrumb{display:flex;align-items:center;gap:var(--s2);color:var(--n9);font-size:var(--fs-base)}
+.header-breadcrumb .sep{color:var(--n5)}
+.header-breadcrumb .current{color:var(--n10)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:var(--s4)}
+.header-search{width:240px;height:32px;background:var(--n3);border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);outline:none}
+.header-search::placeholder{color:var(--n7)}
+.header-icon-btn{width:36px;height:36px;border:none;background:transparent;border-radius:var(--r-base);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n9);position:relative}
+.header-icon-btn:hover{background:var(--n3)}
+.header-icon-btn .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;border-radius:8px;font-size:10px;line-height:16px;font-weight:var(--fw-semibold)}
+.user-menu{display:flex;align-items:center;gap:var(--s2);cursor:pointer;padding:var(--s1) var(--s2);border-radius:var(--r-base)}
+.user-menu:hover{background:var(--n3)}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-base);font-weight:var(--fw-medium)}
+.user-name{font-size:var(--fs-base)}
+.sider{position:fixed;top:var(--header-h);left:0;bottom:0;width:var(--sider-width);background:var(--sider-bg);overflow-y:auto;z-index:90}
+.menu{list-style:none;padding:var(--s2) 0}
+.menu-group-title{padding:var(--s4) var(--s6);font-size:var(--fs-sm);color:rgba(255,255,255,.35)}
+.menu-item{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s6);height:40px;color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;border-left:3px solid transparent;transition:all .2s}
+.menu-item:hover{color:#fff}
+.menu-item.active{background:var(--c-primary);color:#fff;border-left-color:var(--c-primary)}
+.menu-sub{list-style:none}
+.menu-sub .menu-item{padding-left:var(--s8);font-size:var(--fs-sm)}
+.content{margin-left:var(--sider-width);margin-top:var(--header-h);padding:var(--s6);min-height:calc(100vh - var(--header-h) - 32px)}
+.footer{margin-left:var(--sider-width);height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7)}
+.page-header{background:var(--n1);border-radius:var(--r-card);padding:var(--s6);margin-bottom:var(--s4);box-shadow:var(--sh-card);display:flex;align-items:flex-start;justify-content:space-between}
+.page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-bottom:var(--s1)}
+.page-desc{font-size:var(--fs-base);color:var(--n7);max-width:760px}
+.icon{display:inline-flex;vertical-align:middle;flex-shrink:0}
+.icon-md{width:16px;height:16px}
+.icon-lg{width:20px;height:20px}
+.icon-menu{width:16px;height:16px;fill:currentColor;flex-shrink:0}
+.icon-sm{width:12px;height:12px}
+.btn{display:inline-flex;align-items:center;gap:var(--s1);height:32px;padding:0 var(--s3);border-radius:var(--r-base);border:1px solid var(--n5);background:var(--n1);color:var(--n10);font-size:var(--fs-base);cursor:pointer;transition:all .1s;font-family:inherit}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff}
+.btn-danger{background:var(--c-error);border-color:var(--c-error);color:#fff}
+.btn-danger:hover{background:#ff7875;border-color:#ff7875;color:#fff}
+.btn-text{border:none;background:transparent;color:var(--c-primary);padding:0 var(--s1);height:auto;font-size:var(--fs-sm)}
+.btn-text:hover{background:#e6f4ff;color:var(--c-primary)}
+.btn-text.danger{color:var(--c-error)}
+.btn-text.danger:hover{background:#fff2f0;color:var(--c-error)}
+.btn-text[disabled]{color:var(--n7);cursor:not-allowed;background:transparent}
+.btn-sm{height:24px;padding:0 var(--s2);font-size:var(--fs-sm)}
+.card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s6)}
+.toolbar{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap}
+.input{height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app)}
+.input.mono{font-family:var(--ff-mono)}
+.input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.select{height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);cursor:pointer}
+.toolbar .spacer{flex:1}
+.table-wrap{overflow-x:auto;border:1px solid var(--n3);border-radius:var(--r-card);background:var(--n1)}
+table.data-table{width:100%;border-collapse:collapse;font-size:var(--fs-base)}
+.data-table th{background:var(--n2);font-weight:var(--fw-medium);color:var(--n9);font-size:var(--fs-sm);padding:var(--s3) var(--s4);text-align:left;white-space:nowrap;height:48px;border-bottom:1px solid var(--n3)}
+.data-table td{padding:var(--s3) var(--s4);color:var(--n10);border-bottom:1px solid var(--n3);height:48px;vertical-align:middle}
+.data-table tbody tr:hover{background:var(--n2)}
+.data-table tbody tr:last-child td{border-bottom:none}
+.mono{font-family:var(--ff-mono)}
+.cell-key{font-family:var(--ff-app);font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10)}
+.cell-mute{color:var(--n7);font-size:var(--fs-sm)}
+.cell-cron{font-family:var(--ff-mono);font-size:var(--fs-sm);color:var(--c-primary);background:#e6f4ff;padding:2px 6px;border-radius:var(--r-base);border:1px solid #91caff}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 var(--s2);border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;border:1px solid transparent;white-space:nowrap}
+.tag-success{color:var(--c-success);background:#f6ffed;border-color:#b7eb8f}
+.tag-error{color:var(--c-error);background:#fff2f0;border-color:#ffccc7}
+.tag-warning{color:var(--c-warning);background:#fffbe6;border-color:#ffe58f}
+.tag-default{color:var(--n9);background:var(--n3);border-color:var(--n5)}
+.tag-primary{color:var(--c-primary);background:#e6f4ff;border-color:#91caff}
+.tag-purple{color:#722ED1;background:#f9f0ff;border-color:#d3adf7}
+.tag-blue{color:var(--c-primary);background:#e6f4ff;border-color:#91caff}
+.tag-cyan{color:#13C2C2;background:#e6fffb;border-color:#87e8de}
+.opt-link{display:inline-flex;align-items:center;gap:2px;padding:0 var(--s1);font-size:var(--fs-sm);color:var(--c-primary);background:transparent;border:none;cursor:pointer;font-family:inherit}
+.opt-link:hover{color:#4096FF}
+.opt-link.danger{color:var(--c-error)}
+.opt-link.danger:hover{color:#ff7875}
+.opt-link[disabled]{color:var(--n7);cursor:not-allowed}
+.opt-sep{color:var(--n5);margin:0 2px}
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:var(--s2);padding:var(--s3) var(--s4);font-size:var(--fs-sm);color:var(--n9)}
+.pagination .pg-btn{width:32px;height:32px;border:1px solid var(--n5);border-radius:var(--r-base);background:var(--n1);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n10)}
+.pagination .pg-btn:hover:not([disabled]){border-color:var(--c-primary);color:var(--c-primary)}
+.pagination .pg-btn[disabled]{color:var(--n7);cursor:not-allowed}
+.pagination .pg-active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.stats-row{display:flex;gap:var(--s3);margin-bottom:var(--s4)}
+.stat-mini{flex:1;background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4)}
+.stat-mini-label{font-size:var(--fs-sm);color:var(--n7)}
+.stat-mini-value{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);margin-top:var(--s1)}
+.modal-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-mask.show{display:flex}
+.modal{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-modal);width:560px}
+.modal-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2)}
+.modal-close{cursor:pointer;color:var(--n7);border:none;background:transparent;display:flex}
+.modal-close:hover{color:var(--n10)}
+.modal-body{padding:var(--s6);max-height:60vh;overflow-y:auto}
+.modal-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2)}
+.form-item{margin-bottom:var(--s4)}
+.form-label{display:block;font-size:var(--fs-base);color:var(--n9);margin-bottom:var(--s1)}
+.form-label .req{color:var(--c-error);margin-right:2px}
+.form-label .hint-inline{font-size:var(--fs-sm);color:var(--n7);margin-left:var(--s1)}
+.form-input{width:100%;height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app)}
+.form-input.mono{font-family:var(--ff-mono)}
+.form-input[readonly]{background:var(--n3);color:var(--n9)}
+.form-input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.form-textarea{width:100%;min-height:80px;padding:var(--s2) var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-sm);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-mono);resize:vertical;line-height:1.6}
+.form-textarea:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.form-hint{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1)}
+.form-hint.error{color:var(--c-error)}
+.form-row{display:flex;gap:var(--s3)}
+.form-row .form-item{flex:1}
+.confirm-warn{display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s3);background:#fffbe6;border:1px solid #ffe58f;border-radius:var(--r-base);margin-bottom:var(--s4)}
+.confirm-warn .warn-icon{color:var(--c-warning);flex-shrink:0;margin-top:1px}
+.confirm-warn .warn-text{font-size:var(--fs-sm);color:var(--n9);line-height:1.6}
+.confirm-warn .warn-text b{color:var(--n10)}
+.confirm-warn.danger{background:#fff2f0;border-color:#ffccc7}
+.confirm-warn.danger .warn-icon{color:var(--c-error)}
+.drawer-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none}
+.drawer-mask.show{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:640px;background:var(--n1);box-shadow:var(--sh-modal);z-index:201;transform:translateX(100%);transition:transform .3s cubic-bezier(.2,0,0,1);display:flex;flex-direction:column}
+.drawer.show{transform:translateX(0)}
+.drawer-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.drawer-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2)}
+.drawer-close{cursor:pointer;color:var(--n7);border:none;background:transparent;display:flex}
+.drawer-close:hover{color:var(--n10)}
+.drawer-body{flex:1;overflow-y:auto;padding:var(--s6)}
+.drawer-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2);flex-shrink:0}
+.section-title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);margin:var(--s4) 0 var(--s3);display:flex;align-items:center;gap:var(--s2)}
+.json-block{background:var(--n3);border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s3);font-family:var(--ff-mono);font-size:var(--fs-sm);line-height:1.6;color:var(--n10);white-space:pre;overflow-x:auto}
+.json-key{color:#c41d7f}
+.json-str{color:var(--c-success)}
+.json-num{color:#fa8c16}
+.cron-presets{display:flex;gap:var(--s2);flex-wrap:wrap;margin-top:var(--s1)}
+.cron-preset{padding:2px 8px;font-size:var(--fs-sm);border:1px solid var(--n5);border-radius:var(--r-base);cursor:pointer;color:var(--n9);background:var(--n1)}
+.cron-preset:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.cron-preset.active{border-color:var(--c-primary);color:var(--c-primary);background:#e6f4ff}
+.cron-preview{display:flex;align-items:center;gap:var(--s2);padding:var(--s2) var(--s3);background:#f6ffed;border:1px solid #b7eb8f;border-radius:var(--r-base);margin-top:var(--s1)}
+.cron-preview .preview-icon{color:var(--c-success);flex-shrink:0}
+.cron-preview .preview-text{font-size:var(--fs-sm);color:var(--n9)}
+.cron-preview .preview-text b{color:var(--n10)}
+.cron-preview.error{background:#fff2f0;border-color:#ffccc7}
+.cron-preview.error .preview-icon{color:var(--c-error)}
+.cron-field-group{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--s2);margin-top:var(--s1)}
+.cron-field{text-align:center}
+.cron-field-label{font-size:var(--fs-sm);color:var(--n7);margin-bottom:2px}
+.cron-field-input{width:100%;height:32px;border:1px solid var(--n5);border-radius:var(--r-base);text-align:center;font-family:var(--ff-mono);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1)}
+.cron-field-input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.timeline{position:relative;padding-left:24px}
+.timeline::before{content:"";position:absolute;left:7px;top:4px;bottom:4px;width:2px;background:var(--n3)}
+.timeline-item{position:relative;padding-bottom:var(--s4)}
+.timeline-item:last-child{padding-bottom:0}
+.timeline-dot{position:absolute;left:-24px;top:4px;width:16px;height:16px;border-radius:50%;border:3px solid var(--n1);z-index:1}
+.timeline-dot.success{background:var(--c-success)}
+.timeline-dot.error{background:var(--c-error)}
+.timeline-dot.running{background:var(--c-primary);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.timeline-content{padding-left:var(--s3)}
+.timeline-title{font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--n10)}
+.timeline-meta{font-size:var(--fs-sm);color:var(--n7);margin-top:2px}
+.timeline-error{font-size:var(--fs-sm);color:var(--c-error);margin-top:var(--s1);background:#fff2f0;border:1px solid #ffccc7;border-radius:var(--r-base);padding:var(--s2) var(--s3);font-family:var(--ff-mono);line-height:1.5}
+.tooltip-hint{display:inline-flex;align-items:center;gap:2px;font-size:var(--fs-sm);color:var(--n7);cursor:help;border-bottom:1px dashed var(--n7)}
+.log-block{background:var(--n3);border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s3);font-family:var(--ff-mono);font-size:var(--fs-sm);line-height:1.8;color:var(--n9);white-space:pre;overflow-x:auto;max-height:160px;overflow-y:auto}
+.log-block .log-time{color:var(--n7)}
+.log-block .log-info{color:var(--c-primary)}
+.log-block .log-warn{color:var(--c-warning)}
+.log-block .log-error{color:var(--c-error)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-logo">
+      <div class="logo-mark">L</div>
+      <span class="logo-text">Leno 系统后台</span>
+    </div>
+    <div class="header-breadcrumb">
+      <span>运行时运维</span><span class="sep">/</span><span class="current">定时任务</span>
+    </div>
+    <div class="header-right">
+      <input class="header-search" placeholder="搜索任务名、Cron、作业类型（Ctrl+K）">
+      <button class="header-icon-btn" title="待办">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg>
+        <span class="badge">5</span>
+      </button>
+      <button class="header-icon-btn" title="通知">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252s-252 110.7-252 252v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32zM336 428c0-105.9 86.1-188 192-188s192 82.1 192 188v340H336V428zM512 912c48.6 0 88-39.4 88-88H424c0 48.6 39.4 88 88 88z"/></svg>
+        <span class="badge">3</span>
+      </button>
+      <div class="user-menu">
+        <div class="user-avatar">A</div>
+        <span class="user-name">系统管理员</span>
+      </div>
+    </div>
+  </header>
+
+  <aside class="sider">
+    <ul class="menu">
+      <li class="menu-group-title">系统管理</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c6.2-12.6 3.9-27.8-5.6-37.6zM512 700c-103.8 0-188-84.2-188-188s84.2-188 188-188 188 84.2 188 188-84.2 188-188 188z"/></svg><span>仪表盘</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>用户与权限</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z"/><path d="M304 240h416v48H304zm0 160h416v48H304zm0 160h416v48H304z"/></svg><span>系统治理</span></li>
+      <li class="menu-item" style="background:rgba(22,119,255,.15);color:#fff"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 832c-211.8 0-384-172.2-384-384s172.2-384 384-384 384 172.2 384 384-172.2 384-384 384z"/></svg><span>运行时运维</span></li>
+      <ul class="menu-sub">
+        <li class="menu-item"><span>限流规则</span></li>
+        <li class="menu-item"><span>索引重建</span></li>
+        <li class="menu-item"><span>死信队列</span></li>
+        <li class="menu-item active"><span>定时任务</span></li>
+        <li class="menu-item"><span>健康监控</span></li>
+        <li class="menu-item"><span>告警管理</span></li>
+      </ul>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg><span>审计与对账</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>个人账号</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c6.2-12.6 3.9-27.8-5.6-37.6zM512 700c-103.8 0-188-84.2-188-188s84.2-188 188-188 188 84.2 188 188-84.2 188-188 188z"/></svg><span>系统监控</span></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">定时任务</div>
+        <div class="page-desc">管理定时任务（ScheduledTask），CRUD、启停、立即触发，监控任务执行状态。Cron 表达式提交前校验，作业类型创建后不可变。停用启用中的任务需二次确认，立即执行忽略 Cron 调度。</div>
+      </div>
+      <div style="display:flex;gap:var(--s2);flex-shrink:0">
+        <button class="btn btn-primary" onclick="openCreate()"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z" fill="currentColor"/><path d="M176 474h672q8 0 8 8v60q0 8-8 8H176q-8 0-8-8v-60q0-8 8-8z" fill="currentColor"/></svg>新增任务</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-mini"><div class="stat-mini-label">任务总数</div><div class="stat-mini-value">12</div></div>
+      <div class="stat-mini"><div class="stat-mini-label">已启用</div><div class="stat-mini-value" style="color:var(--c-success)">9</div></div>
+      <div class="stat-mini"><div class="stat-mini-label">已停用</div><div class="stat-mini-value" style="color:var(--n7)">3</div></div>
+      <div class="stat-mini"><div class="stat-mini-label">今日执行成功</div><div class="stat-mini-value" style="color:var(--c-success)">28</div></div>
+    </div>
+
+    <div class="card" style="padding:0">
+      <div class="toolbar" style="padding:var(--s4) var(--s4) 0">
+        <input class="input" style="width:200px" placeholder="搜索任务名">
+        <select class="select" style="width:120px"><option>全部状态</option><option>已启用</option><option>已停用</option></select>
+        <select class="select" style="width:180px"><option>全部作业类型</option><option>Reconciliation</option><option>PointsSettlement</option><option>IndexSnapshot</option><option>NotificationCleanup</option><option>ProductRatingRecalc</option></select>
+        <div class="spacer"></div>
+        <button class="btn"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M909.1 209.3l-56.4-44.3c-3-2.4-7.3-2.4-10.3 0L454.4 535.6c-3 2.4-7.3 2.4-10.3 0L181.6 353.1c-3-2.4-7.3-2.4-10.3 0l-56.4 44.3c-3.8 3-3.8 8.7 0 11.7l338.9 266.7c3 2.4 7.3 2.4 10.3 0l444.9-355.3c3.9-2.9 3.9-8.7 0.1-11.2z" fill="currentColor"/></svg>筛选</button>
+      </div>
+      <div class="table-wrap" style="border:none;border-top:1px solid var(--n3);margin-top:var(--s4)">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:180px">任务名</th>
+              <th style="width:120px">作业类型</th>
+              <th style="width:120px">Cron 表达式</th>
+              <th style="width:80px">状态</th>
+              <th style="width:140px">最近执行</th>
+              <th style="width:140px">下次执行</th>
+              <th style="width:200px;text-align:right">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="cell-key">支付对账任务</span></td>
+              <td><span class="tag tag-purple">Reconciliation</span></td>
+              <td><span class="cell-cron">0 2 * * *</span></td>
+              <td><span class="tag tag-success">已启用</span></td>
+              <td><span class="cell-mute">07-26 02:00:00<br><span style="color:var(--c-success)">成功 · 12.3s</span></span></td>
+              <td><span class="cell-mute">07-27 02:00:00</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openEdit()">编辑</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openDisable()">停用</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRunNow()">立即执行</button><span class="opt-sep">|</span><button class="opt-link" onclick="openHistory()">历史</button></td>
+            </tr>
+            <tr>
+              <td><span class="cell-key">积分结算任务</span></td>
+              <td><span class="tag tag-purple">PointsSettlement</span></td>
+              <td><span class="cell-cron">0 0 1 * *</span></td>
+              <td><span class="tag tag-success">已启用</span></td>
+              <td><span class="cell-mute">07-01 00:00:00<br><span style="color:var(--c-success)">成功 · 45.7s</span></span></td>
+              <td><span class="cell-mute">08-01 00:00:00</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openEdit()">编辑</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openDisable()">停用</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRunNow()">立即执行</button><span class="opt-sep">|</span><button class="opt-link" onclick="openHistory()">历史</button></td>
+            </tr>
+            <tr>
+              <td><span class="cell-key">索引快照任务</span></td>
+              <td><span class="tag tag-purple">IndexSnapshot</span></td>
+              <td><span class="cell-cron">0 4 * * 1</span></td>
+              <td><span class="tag tag-success">已启用</span></td>
+              <td><span class="cell-mute">07-22 04:00:00<br><span style="color:var(--c-success)">成功 · 128.5s</span></span></td>
+              <td><span class="cell-mute">07-29 04:00:00</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openEdit()">编辑</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openDisable()">停用</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRunNow()">立即执行</button><span class="opt-sep">|</span><button class="opt-link" onclick="openHistory()">历史</button></td>
+            </tr>
+            <tr>
+              <td><span class="cell-key">通知清理任务</span></td>
+              <td><span class="tag tag-purple">NotificationCleanup</span></td>
+              <td><span class="cell-cron">0 3 * * *</span></td>
+              <td><span class="tag tag-success">已启用</span></td>
+              <td><span class="cell-mute">07-26 03:00:00<br><span style="color:var(--c-error)">失败 · 超时</span></span></td>
+              <td><span class="cell-mute">07-27 03:00:00</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openEdit()">编辑</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openDisable()">停用</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRunNow()">立即执行</button><span class="opt-sep">|</span><button class="opt-link" onclick="openHistory()">历史</button></td>
+            </tr>
+            <tr>
+              <td><span class="cell-key">商品评分重算</span></td>
+              <td><span class="tag tag-purple">ProductRatingRecalc</span></td>
+              <td><span class="cell-cron">0 6 * * *</span></td>
+              <td><span class="tag tag-success">已启用</span></td>
+              <td><span class="cell-mute">07-26 06:00:00<br><span style="color:var(--c-success)">成功 · 8.2s</span></span></td>
+              <td><span class="cell-mute">07-27 06:00:00</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openEdit()">编辑</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openDisable()">停用</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRunNow()">立即执行</button><span class="opt-sep">|</span><button class="opt-link" onclick="openHistory()">历史</button></td>
+            </tr>
+            <tr>
+              <td><span class="cell-key">Outbox 消息补发</span></td>
+              <td><span class="tag tag-purple">OutboxDispatcher</span></td>
+              <td><span class="cell-cron">*/30 * * * *</span></td>
+              <td><span class="tag tag-success">已启用</span></td>
+              <td><span class="cell-mute">07-26 14:30:00<br><span style="color:var(--c-success)">成功 · 0.8s</span></span></td>
+              <td><span class="cell-mute">07-26 15:00:00</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openEdit()">编辑</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openDisable()">停用</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRunNow()">立即执行</button><span class="opt-sep">|</span><button class="opt-link" onclick="openHistory()">历史</button></td>
+            </tr>
+            <tr>
+              <td><span class="cell-key">积分过期清理</span></td>
+              <td><span class="tag tag-purple">PointsExpiry</span></td>
+              <td><span class="cell-cron">0 0 L * *</span></td>
+              <td><span class="tag tag-default">已停用</span></td>
+              <td><span class="cell-mute">07-31 00:00:00<br><span style="color:var(--c-success)">成功 · 3.1s</span></span></td>
+              <td><span class="cell-mute">—</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openEdit()">编辑</button><span class="opt-sep">|</span><button class="opt-link" onclick="openEnable()">启用</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRunNow()">立即执行</button><span class="opt-sep">|</span><button class="opt-link" onclick="openHistory()">历史</button></td>
+            </tr>
+            <tr>
+              <td><span class="cell-key">死信自动重投</span></td>
+              <td><span class="tag tag-purple">DeadLetterAutoRetry</span></td>
+              <td><span class="cell-cron">0 */4 * * *</span></td>
+              <td><span class="tag tag-default">已停用</span></td>
+              <td><span class="cell-mute">07-26 12:00:00<br><span style="color:var(--c-success)">成功 · 2.4s</span></span></td>
+              <td><span class="cell-mute">—</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openEdit()">编辑</button><span class="opt-sep">|</span><button class="opt-link" onclick="openEnable()">启用</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRunNow()">立即执行</button><span class="opt-sep">|</span><button class="opt-link" onclick="openHistory()">历史</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span>共 12 条</span>
+          <button class="pg-btn" disabled><svg class="icon icon-sm" viewBox="0 0 1024 1024"><path d="M724 218.3V141.9c0-6.7-7.7-10.4-12.9-6.3L260.3 486.8a31.86 31.86 0 000 50.3l450.8 351.1c5.3 4.1 12.9.4 12.9-6.3v-76.4c0-4.9-2.3-9.6-6.1-12.6l-360-280.5 360-280.5c3.8-3 6.1-7.7 6.1-12.6z" fill="currentColor"/></svg></button>
+          <button class="pg-btn pg-active">1</button>
+          <button class="pg-btn"><svg class="icon icon-sm" viewBox="0 0 1024 1024"><path d="M765.7 486.8L314.9 134.7c-5.3-4.1-12.9-.4-12.9 6.3v76.4c0 4.9 2.3 9.6 6.1 12.6l360 280.5-360 280.5c-3.8 3-6.1 7.7-6.1 12.6v76.4c0 6.7 7.7 10.4 12.9 6.3l450.8-351.1a31.86 31.86 0 000-50.3z" fill="currentColor"/></svg></button>
+          <select class="select" style="width:80px;height:32px"><option>20 条/页</option><option>50 条/页</option></select>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Leno 电商平台 · 系统管理后台 v2.4.0 · 仅供系统管理员使用</footer>
+</div>
+
+<!-- 新增/编辑任务弹窗 -->
+<div class="modal-mask show" id="editModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title"><svg class="icon icon-md" viewBox="0 0 1024 1024" style="color:var(--c-primary)"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z" fill="currentColor"/></svg>编辑定时任务</div>
+      <button class="modal-close" onclick="closeModal('editModal')"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>任务名<span class="hint-inline">2-50 字符</span></label>
+        <input class="form-input" value="支付对账任务">
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>作业类型<span class="hint-inline"><span class="tooltip-hint">作业类型创建后不可变 ?</span></span></label>
+        <input class="form-input mono" value="Reconciliation" readonly>
+        <div class="form-hint">编辑模式下作业类型只读，如需更改请新建任务</div>
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>Cron 表达式<span class="hint-inline">5 段标准格式：分 时 日 月 周</span></label>
+        <input class="form-input mono" value="0 2 * * *" id="cronInput">
+        <div class="cron-presets">
+          <span class="cron-preset active" onclick="setCron(this,'0 2 * * *')">每日 02:00</span>
+          <span class="cron-preset" onclick="setCron(this,'0 0 * * *')">每日 00:00</span>
+          <span class="cron-preset" onclick="setCron(this,'0 0 1 * *')">每月 1 日</span>
+          <span class="cron-preset" onclick="setCron(this,'0 4 * * 1')">每周一</span>
+          <span class="cron-preset" onclick="setCron(this,'*/30 * * * *')">每 30 分钟</span>
+          <span class="cron-preset" onclick="setCron(this,'0 */4 * * *')">每 4 小时</span>
+          <span class="cron-preset" onclick="setCron(this,'0 0 L * *')">每月最后一天</span>
+        </div>
+        <div class="cron-field-group">
+          <div class="cron-field"><div class="cron-field-label">分钟</div><input class="cron-field-input" value="0"></div>
+          <div class="cron-field"><div class="cron-field-label">小时</div><input class="cron-field-input" value="2"></div>
+          <div class="cron-field"><div class="cron-field-label">日</div><input class="cron-field-input" value="*"></div>
+          <div class="cron-field"><div class="cron-field-label">月</div><input class="cron-field-input" value="*"></div>
+          <div class="cron-field"><div class="cron-field-label">周</div><input class="cron-field-input" value="*"></div>
+        </div>
+        <div class="cron-preview">
+          <svg class="icon icon-sm preview-icon" viewBox="0 0 1024 1024"><path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.2 13l252.9 317.1c3.8 4.7 9.5 7.5 15.6 7.5h62.2c9.8 0 19.1-4.5 25.1-12.2L918.2 203c4.1-5.4.4-13-6.2-13z" fill="currentColor"/></svg>
+          <span class="preview-text">下次执行：<b>2026-07-27 02:00:00</b> · 每天 02:00 执行</span>
+        </div>
+      </div>
+      <div class="form-item">
+        <label class="form-label">参数（JSON）<span class="hint-inline">可选，传递给作业处理程序</span></label>
+        <textarea class="form-textarea">{
+  "batchSize": 500,
+  "timeoutSeconds": 300,
+  "retryOnFailure": true
+}</textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('editModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('editModal')">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 停用确认弹窗 -->
+<div class="modal-mask" id="disableModal" style="display:none">
+  <div class="modal" style="width:440px">
+    <div class="modal-head">
+      <div class="modal-title"><svg class="icon icon-md" viewBox="0 0 1024 1024" style="color:var(--c-error)"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 010-96 48.01 48.01 0 010 96z" fill="currentColor"/></svg>确认停用定时任务</div>
+      <button class="modal-close" onclick="closeModal('disableModal')"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-warn danger">
+        <svg class="icon icon-lg warn-icon" viewBox="0 0 1024 1024"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 010-96 48.01 48.01 0 010 96z" fill="currentColor"/></svg>
+        <div class="warn-text">
+          即将停用任务 <b>支付对账任务</b>（<span class="mono">0 2 * * *</span>）。<br>
+          停用后任务将从调度器注销，<b>不再按 Cron 执行</b>。已注册的下一次执行取消。可随时启用恢复。
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('disableModal')">取消</button>
+      <button class="btn btn-danger" onclick="closeModal('disableModal')">确认停用</button>
+    </div>
+  </div>
+</div>
+
+<!-- 立即执行确认弹窗 -->
+<div class="modal-mask" id="runNowModal" style="display:none">
+  <div class="modal" style="width:440px">
+    <div class="modal-head">
+      <div class="modal-title"><svg class="icon icon-md" viewBox="0 0 1024 1024" style="color:var(--c-primary)"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 832c-211.8 0-384-172.2-384-384s172.2-384 384-384 384 172.2 384 384-172.2 384-384 384zm-48-608a48 48 0 0196 0v176a48 48 0 01-96 0V288zm48 368a48.01 48.01 0 010-96 48.01 48.01 0 010 96z" fill="currentColor"/></svg>确认立即执行</div>
+      <button class="modal-close" onclick="closeModal('runNowModal')"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-warn">
+        <svg class="icon icon-lg warn-icon" viewBox="0 0 1024 1024"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 010-96 48.01 48.01 0 010 96z" fill="currentColor"/></svg>
+        <div class="warn-text">
+          即将立即执行任务 <b>支付对账任务</b>。<br>
+          立即执行将<b>忽略 Cron 调度</b>，立即触发一次任务。请确认非高峰时段，避免影响线上服务。
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('runNowModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('runNowModal')">确认执行</button>
+    </div>
+  </div>
+</div>
+
+<!-- 执行历史抽屉 -->
+<div class="drawer-mask" id="historyDrawer">
+  <div class="drawer show">
+    <div class="drawer-head">
+      <div class="drawer-title"><svg class="icon icon-md" viewBox="0 0 1024 1024" style="color:var(--c-primary)"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 832c-211.8 0-384-172.2-384-384s172.2-384 384-384 384 172.2 384 384-172.2 384-384 384zm-48-608a48 48 0 0196 0v176a48 48 0 01-96 0V288zm48 368a48.01 48.01 0 010-96 48.01 48.01 0 010 96z" fill="currentColor"/></svg>执行历史 · 支付对账任务</div>
+      <button class="drawer-close" onclick="closeDrawer('historyDrawer')"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="drawer-body">
+      <div class="section-title" style="margin-top:0">最近 20 次执行记录</div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot success"></div>
+          <div class="timeline-content">
+            <div class="timeline-title">执行成功</div>
+            <div class="timeline-meta">2026-07-26 02:00:00 · 耗时 12.3s · 处理 847 条对账记录</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot success"></div>
+          <div class="timeline-content">
+            <div class="timeline-title">执行成功</div>
+            <div class="timeline-meta">2026-07-25 02:00:00 · 耗时 10.8s · 处理 792 条对账记录</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot success"></div>
+          <div class="timeline-content">
+            <div class="timeline-title">执行成功（手动触发）</div>
+            <div class="timeline-meta">2026-07-24 15:30:00 · 耗时 8.5s · 处理 521 条对账记录 · 操作人 Admin</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot error"></div>
+          <div class="timeline-content">
+            <div class="timeline-title">执行失败</div>
+            <div class="timeline-meta">2026-07-24 02:00:00 · 耗时 0.5s · 数据库连接超时</div>
+            <div class="timeline-error">System.TimeoutException: 数据库连接超时（30s）
+  at ReconciliationJob.ExecuteAsync()
+  at ScheduledTaskRunner.RunAsync(TaskId: TSK-RECON-001)</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot success"></div>
+          <div class="timeline-content">
+            <div class="timeline-title">执行成功</div>
+            <div class="timeline-meta">2026-07-23 02:00:00 · 耗时 11.2s · 处理 683 条对账记录</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot success"></div>
+          <div class="timeline-content">
+            <div class="timeline-title">执行成功</div>
+            <div class="timeline-meta">2026-07-22 02:00:00 · 耗时 9.7s · 处理 621 条对账记录</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot success"></div>
+          <div class="timeline-content">
+            <div class="timeline-title">执行成功</div>
+            <div class="timeline-meta">2026-07-21 02:00:00 · 耗时 10.1s · 处理 654 条对账记录</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">最近一次执行日志</div>
+      <div class="log-block"><span class="log-time">[2026-07-26 02:00:00.001]</span> <span class="log-info">[INFO]</span>  支付对账任务启动，参数：{"batchSize":500,"timeoutSeconds":300,"retryOnFailure":true}
+<span class="log-time">[2026-07-26 02:00:00.125]</span> <span class="log-info">[INFO]</span>  开始拉取昨日支付记录...
+<span class="log-time">[2026-07-26 02:00:01.834]</span> <span class="log-info">[INFO]</span>  拉取完成，共 847 条记录
+<span class="log-time">[2026-07-26 02:00:02.001]</span> <span class="log-info">[INFO]</span>  开始逐条对账...
+<span class="log-time">[2026-07-26 02:00:08.234]</span> <span class="log-warn">[WARN]</span>  记录 PAY-20260725-884729 金额差异：0.01 元（渠道手续费）
+<span class="log-time">[2026-07-26 02:00:12.298]</span> <span class="log-info">[INFO]</span>  对账完成：847 条匹配，0 条不一致
+<span class="log-time">[2026-07-26 02:00:12.301]</span> <span class="log-info">[INFO]</span>  任务执行成功，总耗时 12.3s</div>
+    </div>
+    <div class="drawer-foot">
+      <a href="#" class="opt-link" style="margin-right:auto;align-self:center">查看执行审计</a>
+      <button class="btn" onclick="closeDrawer('historyDrawer')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openCreate(){document.getElementById('editModal').classList.add('show')}
+function openEdit(){document.getElementById('editModal').classList.add('show')}
+function openDisable(){document.getElementById('disableModal').style.display='flex'}
+function openRunNow(){document.getElementById('runNowModal').style.display='flex'}
+function openEnable(){alert('启用任务')}
+function openHistory(){document.getElementById('historyDrawer').classList.add('show');document.getElementById('historyDrawer').style.display='block'}
+function closeDrawer(id){document.getElementById(id).classList.remove('show');setTimeout(function(){document.getElementById(id).style.display='none'},300)}
+function closeModal(id){
+  var el=document.getElementById(id);
+  if(el.classList.contains('show')){el.classList.remove('show')}
+  else{el.style.display='none'}
+}
+function setCron(el,cron){
+  document.querySelectorAll('.cron-preset').forEach(function(p){p.classList.remove('active')});
+  el.classList.add('active');
+  document.getElementById('cronInput').value=cron;
+  var parts=cron.split(' ');
+  var fields=document.querySelectorAll('.cron-field-input');
+  for(var i=0;i<5;i++){fields[i].value=parts[i]||'*'}
+}
+</script>
+</body>
+</html>

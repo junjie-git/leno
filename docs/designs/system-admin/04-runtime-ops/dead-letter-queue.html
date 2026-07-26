@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>死信队列 - Leno 系统管理后台</title>
+<style>
+:root{
+  --c-primary:#1677FF;--c-success:#52C41A;--c-warning:#FAAD14;--c-error:#FF4D4F;
+  --n1:#FFFFFF;--n2:#FAFAFA;--n3:#F5F5F5;--n5:#D9D9D9;--n7:#8C8C8C;--n9:#595959;--n10:#000000D9;
+  --r-base:6px;--r-card:8px;--r-lg:12px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s6:24px;--s8:32px;--s12:48px;
+  --fs-sm:12px;--fs-base:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:30px;
+  --fw-normal:400;--fw-medium:500;--fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529;--sider-width:200px;--header-h:64px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--n1);display:flex;align-items:center;padding:0 var(--s4);z-index:100;box-shadow:0 1px 4px rgba(0,21,41,.08)}
+.header-logo{display:flex;align-items:center;gap:var(--s2);width:calc(var(--sider-width) - var(--s4));flex-shrink:0}
+.logo-mark{width:32px;height:32px;background:var(--c-primary);border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:var(--fw-semibold);font-size:var(--fs-lg)}
+.logo-text{font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.header-breadcrumb{display:flex;align-items:center;gap:var(--s2);color:var(--n9);font-size:var(--fs-base)}
+.header-breadcrumb .sep{color:var(--n5)}
+.header-breadcrumb .current{color:var(--n10)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:var(--s4)}
+.header-search{width:240px;height:32px;background:var(--n3);border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);outline:none}
+.header-search::placeholder{color:var(--n7)}
+.header-icon-btn{width:36px;height:36px;border:none;background:transparent;border-radius:var(--r-base);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n9);position:relative}
+.header-icon-btn:hover{background:var(--n3)}
+.header-icon-btn .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;border-radius:8px;font-size:10px;line-height:16px;font-weight:var(--fw-semibold)}
+.user-menu{display:flex;align-items:center;gap:var(--s2);cursor:pointer;padding:var(--s1) var(--s2);border-radius:var(--r-base)}
+.user-menu:hover{background:var(--n3)}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-base);font-weight:var(--fw-medium)}
+.user-name{font-size:var(--fs-base)}
+.sider{position:fixed;top:var(--header-h);left:0;bottom:0;width:var(--sider-width);background:var(--sider-bg);overflow-y:auto;z-index:90}
+.menu{list-style:none;padding:var(--s2) 0}
+.menu-group-title{padding:var(--s4) var(--s6);font-size:var(--fs-sm);color:rgba(255,255,255,.35)}
+.menu-item{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s6);height:40px;color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;border-left:3px solid transparent;transition:all .2s}
+.menu-item:hover{color:#fff}
+.menu-item.active{background:var(--c-primary);color:#fff;border-left-color:var(--c-primary)}
+.menu-sub{list-style:none}
+.menu-sub .menu-item{padding-left:var(--s8);font-size:var(--fs-sm)}
+.content{margin-left:var(--sider-width);margin-top:var(--header-h);padding:var(--s6);min-height:calc(100vh - var(--header-h) - 32px)}
+.footer{margin-left:var(--sider-width);height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7)}
+.page-header{background:var(--n1);border-radius:var(--r-card);padding:var(--s6);margin-bottom:var(--s4);box-shadow:var(--sh-card);display:flex;align-items:flex-start;justify-content:space-between}
+.page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-bottom:var(--s1)}
+.page-desc{font-size:var(--fs-base);color:var(--n7);max-width:760px}
+.icon{display:inline-flex;vertical-align:middle;flex-shrink:0}
+.icon-md{width:16px;height:16px}
+.icon-lg{width:20px;height:20px}
+.icon-menu{width:16px;height:16px;fill:currentColor;flex-shrink:0}
+.icon-sm{width:12px;height:12px}
+.btn{display:inline-flex;align-items:center;gap:var(--s1);height:32px;padding:0 var(--s3);border-radius:var(--r-base);border:1px solid var(--n5);background:var(--n1);color:var(--n10);font-size:var(--fs-base);cursor:pointer;transition:all .1s;font-family:inherit}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff}
+.btn-danger{background:var(--c-error);border-color:var(--c-error);color:#fff}
+.btn-danger:hover{background:#ff7875;border-color:#ff7875;color:#fff}
+.btn-text{border:none;background:transparent;color:var(--c-primary);padding:0 var(--s1);height:auto;font-size:var(--fs-sm)}
+.btn-text:hover{background:#e6f4ff;color:var(--c-primary)}
+.btn-text.danger{color:var(--c-error)}
+.btn-text.danger:hover{background:#fff2f0;color:var(--c-error)}
+.btn-text[disabled]{color:var(--n7);cursor:not-allowed;background:transparent}
+.btn-sm{height:24px;padding:0 var(--s2);font-size:var(--fs-sm)}
+.card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s6)}
+.toolbar{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap}
+.input{height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app)}
+.input.mono{font-family:var(--ff-mono)}
+.input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.select{height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);cursor:pointer}
+.toolbar .spacer{flex:1}
+.table-wrap{overflow-x:auto;border:1px solid var(--n3);border-radius:var(--r-card);background:var(--n1)}
+table.data-table{width:100%;border-collapse:collapse;font-size:var(--fs-base)}
+.data-table th{background:var(--n2);font-weight:var(--fw-medium);color:var(--n9);font-size:var(--fs-sm);padding:var(--s3) var(--s4);text-align:left;white-space:nowrap;height:48px;border-bottom:1px solid var(--n3)}
+.data-table td{padding:var(--s3) var(--s4);color:var(--n10);border-bottom:1px solid var(--n3);height:48px;vertical-align:middle}
+.data-table tbody tr:hover{background:var(--n2)}
+.data-table tbody tr:last-child td{border-bottom:none}
+.data-table .row-selected{background:#e6f4ff}
+.data-table .row-selected:hover{background:#bae0ff}
+.mono{font-family:var(--ff-mono)}
+.cell-key{font-family:var(--ff-mono);font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--n10)}
+.cell-mute{color:var(--n7);font-size:var(--fs-sm)}
+.cell-error{color:var(--c-error);font-size:var(--fs-sm)}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 var(--s2);border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;border:1px solid transparent;white-space:nowrap}
+.tag-success{color:var(--c-success);background:#f6ffed;border-color:#b7eb8f}
+.tag-error{color:var(--c-error);background:#fff2f0;border-color:#ffccc7}
+.tag-warning{color:var(--c-warning);background:#fffbe6;border-color:#ffe58f}
+.tag-default{color:var(--n9);background:var(--n3);border-color:var(--n5)}
+.tag-primary{color:var(--c-primary);background:#e6f4ff;border-color:#91caff}
+.tag-purple{color:#722ED1;background:#f9f0ff;border-color:#d3adf7}
+.tag-blue{color:var(--c-primary);background:#e6f4ff;border-color:#91caff}
+.tag-cyan{color:#13C2C2;background:#e6fffb;border-color:#87e8de}
+.opt-link{display:inline-flex;align-items:center;gap:2px;padding:0 var(--s1);font-size:var(--fs-sm);color:var(--c-primary);background:transparent;border:none;cursor:pointer;font-family:inherit}
+.opt-link:hover{color:#4096FF}
+.opt-link.danger{color:var(--c-error)}
+.opt-link.danger:hover{color:#ff7875}
+.opt-link[disabled]{color:var(--n7);cursor:not-allowed}
+.opt-sep{color:var(--n5);margin:0 2px}
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:var(--s2);padding:var(--s3) var(--s4);font-size:var(--fs-sm);color:var(--n9)}
+.pagination .pg-btn{width:32px;height:32px;border:1px solid var(--n5);border-radius:var(--r-base);background:var(--n1);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n10)}
+.pagination .pg-btn:hover:not([disabled]){border-color:var(--c-primary);color:var(--c-primary)}
+.pagination .pg-btn[disabled]{color:var(--n7);cursor:not-allowed}
+.pagination .pg-active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.stats-row{display:flex;gap:var(--s3);margin-bottom:var(--s4)}
+.stat-mini{flex:1;background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4)}
+.stat-mini-label{font-size:var(--fs-sm);color:var(--n7)}
+.stat-mini-value{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);margin-top:var(--s1)}
+.modal-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-mask.show{display:flex}
+.modal{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-modal)}
+.modal-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2)}
+.modal-close{cursor:pointer;color:var(--n7);border:none;background:transparent;display:flex}
+.modal-close:hover{color:var(--n10)}
+.modal-body{padding:var(--s6);max-height:60vh;overflow-y:auto}
+.modal-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2)}
+.form-item{margin-bottom:var(--s4)}
+.form-label{display:block;font-size:var(--fs-base);color:var(--n9);margin-bottom:var(--s1)}
+.form-label .req{color:var(--c-error);margin-right:2px}
+.form-label .hint-inline{font-size:var(--fs-sm);color:var(--n7);margin-left:var(--s1)}
+.form-input{width:100%;height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app)}
+.form-input.mono{font-family:var(--ff-mono)}
+.form-input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.form-textarea{width:100%;min-height:96px;padding:var(--s2) var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-sm);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app);resize:vertical;line-height:1.6}
+.form-textarea:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.form-hint{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1)}
+.form-hint.error{color:var(--c-error)}
+.confirm-warn{display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s3);background:#fffbe6;border:1px solid #ffe58f;border-radius:var(--r-base);margin-bottom:var(--s4)}
+.confirm-warn .warn-icon{color:var(--c-warning);flex-shrink:0;margin-top:1px}
+.confirm-warn .warn-text{font-size:var(--fs-sm);color:var(--n9);line-height:1.6}
+.confirm-warn .warn-text b{color:var(--n10)}
+.confirm-warn.danger{background:#fff2f0;border-color:#ffccc7}
+.confirm-warn.danger .warn-icon{color:var(--c-error)}
+.drawer-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none}
+.drawer-mask.show{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:720px;background:var(--n1);box-shadow:var(--sh-modal);z-index:201;transform:translateX(100%);transition:transform .3s cubic-bezier(.2,0,0,1);display:flex;flex-direction:column}
+.drawer.show{transform:translateX(0)}
+.drawer-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.drawer-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2)}
+.drawer-close{cursor:pointer;color:var(--n7);border:none;background:transparent;display:flex}
+.drawer-close:hover{color:var(--n10)}
+.drawer-body{flex:1;overflow-y:auto;padding:var(--s6)}
+.drawer-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2);flex-shrink:0}
+.desc-list{border:1px solid var(--n3);border-radius:var(--r-base);overflow:hidden;margin-bottom:var(--s4)}
+.desc-row{display:flex;border-bottom:1px solid var(--n3)}
+.desc-row:last-child{border-bottom:none}
+.desc-label{width:120px;padding:var(--s3) var(--s4);background:var(--n2);font-size:var(--fs-base);color:var(--n9);flex-shrink:0}
+.desc-value{padding:var(--s3) var(--s4);font-size:var(--fs-base);color:var(--n10);flex:1;word-break:break-all}
+.section-title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);margin:var(--s4) 0 var(--s3);display:flex;align-items:center;gap:var(--s2)}
+.json-block{background:var(--n3);border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s3);font-family:var(--ff-mono);font-size:var(--fs-sm);line-height:1.6;color:var(--n10);white-space:pre;overflow-x:auto;max-height:280px;overflow-y:auto}
+.json-key{color:#c41d7f}
+.json-str{color:var(--c-success)}
+.json-bool{color:var(--c-primary)}
+.json-num{color:#fa8c16}
+.json-null{color:var(--n7)}
+.batch-bar{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);background:#e6f4ff;border:1px solid #91caff;border-radius:var(--r-base);margin-bottom:var(--s4)}
+.batch-bar .batch-count{font-weight:var(--fw-semibold);color:var(--c-primary)}
+.history-item{display:flex;gap:var(--s3);padding:var(--s3) 0;border-bottom:1px solid var(--n3)}
+.history-item:last-child{border-bottom:none}
+.history-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0}
+.history-dot.retry{background:var(--c-primary)}
+.history-dot.discard{background:var(--n7)}
+.history-content{flex:1}
+.history-action{font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--n10)}
+.history-meta{font-size:var(--fs-sm);color:var(--n7);margin-top:2px}
+.checkbox{width:16px;height:16px;border:1px solid var(--n5);border-radius:3px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;background:var(--n1);flex-shrink:0}
+.checkbox.checked{background:var(--c-primary);border-color:var(--c-primary)}
+.checkbox.checked::after{content:"";width:4px;height:8px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px)}
+.alert-warning-box{display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s3) var(--s4);background:#fffbe6;border:1px solid #ffe58f;border-radius:var(--r-base);margin-bottom:var(--s4)}
+.alert-warning-box .alert-icon{color:var(--c-warning);flex-shrink:0;margin-top:1px}
+.alert-warning-box .alert-text{font-size:var(--fs-sm);color:var(--n9);line-height:1.6}
+.alert-warning-box .alert-text b{color:var(--n10)}
+.result-summary{display:flex;gap:var(--s4);padding:var(--s3) var(--s4);border-radius:var(--r-base);margin-bottom:var(--s3)}
+.result-summary.success{background:#f6ffed;border:1px solid #b7eb8f}
+.result-summary.partial{background:#fffbe6;border:1px solid #ffe58f}
+.result-num{font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.result-num.ok{color:var(--c-success)}
+.result-num.fail{color:var(--c-error)}
+.result-label{font-size:var(--fs-sm);color:var(--n7)}
+.fail-list{background:var(--n3);border-radius:var(--r-base);padding:var(--s3);font-size:var(--fs-sm);color:var(--n9)}
+.fail-list-item{padding:var(--s1) 0;display:flex;gap:var(--s2);align-items:center}
+.fail-list-item .fail-id{font-family:var(--ff-mono);color:var(--n10)}
+.fail-list-item .fail-reason{color:var(--c-error)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-logo">
+      <div class="logo-mark">L</div>
+      <span class="logo-text">Leno 系统后台</span>
+    </div>
+    <div class="header-breadcrumb">
+      <span>运行时运维</span><span class="sep">/</span><span class="current">死信队列</span>
+    </div>
+    <div class="header-right">
+      <input class="header-search" placeholder="搜索消息 ID、队列名、主题（Ctrl+K）">
+      <button class="header-icon-btn" title="待办">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg>
+        <span class="badge">5</span>
+      </button>
+      <button class="header-icon-btn" title="通知">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252s-252 110.7-252 252v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32zM336 428c0-105.9 86.1-188 192-188s192 82.1 192 188v340H336V428zM512 912c48.6 0 88-39.4 88-88H424c0 48.6 39.4 88 88 88z"/></svg>
+        <span class="badge">3</span>
+      </button>
+      <div class="user-menu">
+        <div class="user-avatar">A</div>
+        <span class="user-name">系统管理员</span>
+      </div>
+    </div>
+  </header>
+
+  <aside class="sider">
+    <ul class="menu">
+      <li class="menu-group-title">系统管理</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c6.2-12.6 3.9-27.8-5.6-37.6zM512 700c-103.8 0-188-84.2-188-188s84.2-188 188-188 188 84.2 188 188-84.2 188-188 188z"/></svg><span>仪表盘</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>用户与权限</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z"/><path d="M304 240h416v48H304zm0 160h416v48H304zm0 160h416v48H304z"/></svg><span>系统治理</span></li>
+      <li class="menu-item" style="background:rgba(22,119,255,.15);color:#fff"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 832c-211.8 0-384-172.2-384-384s172.2-384 384-384 384 172.2 384 384-172.2 384-384 384z"/></svg><span>运行时运维</span></li>
+      <ul class="menu-sub">
+        <li class="menu-item"><span>限流规则</span></li>
+        <li class="menu-item"><span>索引重建</span></li>
+        <li class="menu-item active"><span>死信队列</span></li>
+        <li class="menu-item"><span>定时任务</span></li>
+        <li class="menu-item"><span>健康监控</span></li>
+        <li class="menu-item"><span>告警管理</span></li>
+      </ul>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg><span>审计与对账</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>个人账号</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c6.2-12.6 3.9-27.8-5.6-37.6zM512 700c-103.8 0-188-84.2-188-188s84.2-188 188-188 188 84.2 188 188-84.2 188-188 188z"/></svg><span>系统监控</span></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">死信队列</div>
+        <div class="page-desc">跨域汇聚各 RabbitMQ 死信消息（DeadLetterMessage），查看详情、单条或批量重投、丢弃处置。重投与丢弃操作幂等，已处置消息不会重复执行。丢弃操作不可逆，需填写丢弃原因。</div>
+      </div>
+      <div style="display:flex;gap:var(--s2);flex-shrink:0">
+        <button class="btn" onclick="location.reload()"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M909.1 209.3l-56.4-44.3c-3-2.4-7.3-2.4-10.3 0L454.4 535.6c-3 2.4-7.3 2.4-10.3 0L181.6 353.1c-3-2.4-7.3-2.4-10.3 0l-56.4 44.3c-3.8 3-3.8 8.7 0 11.7l338.9 266.7c3 2.4 7.3 2.4 10.3 0l444.9-355.3c3.9-2.9 3.9-8.7 0.1-11.2z" fill="currentColor"/></svg>刷新</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-mini"><div class="stat-mini-label">待处理死信</div><div class="stat-mini-value" style="color:var(--c-warning)">23</div></div>
+      <div class="stat-mini"><div class="stat-mini-label">今日已重投</div><div class="stat-mini-value" style="color:var(--c-primary)">47</div></div>
+      <div class="stat-mini"><div class="stat-mini-label">今日已丢弃</div><div class="stat-mini-value" style="color:var(--n7)">12</div></div>
+      <div class="stat-mini"><div class="stat-mini-label">积压队列数</div><div class="stat-mini-value">4</div></div>
+    </div>
+
+    <!-- 队列概览 -->
+    <div class="card" style="padding:var(--s4) var(--s6);margin-bottom:var(--s4)">
+      <div class="section-title" style="margin:0 0 var(--s3)"><svg class="icon icon-md" viewBox="0 0 1024 1024" style="color:var(--c-primary)"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z" fill="currentColor"/><path d="M304 240h416v48H304zm0 160h416v48H304zm0 160h416v48H304z" fill="currentColor"/></svg>RabbitMQ 死信队列概览</div>
+      <div style="display:flex;gap:var(--s3);flex-wrap:wrap">
+        <div style="flex:1;min-width:200px;border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s3)">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="mono" style="font-size:var(--fs-sm);color:var(--n9)">order.created.dlq</span>
+            <span class="tag tag-warning">积压</span>
+          </div>
+          <div style="font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-top:var(--s1)">23<span style="font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal)"> 条</span></div>
+        </div>
+        <div style="flex:1;min-width:200px;border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s3)">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="mono" style="font-size:var(--fs-sm);color:var(--n9)">payment.callback.dlq</span>
+            <span class="tag tag-warning">积压</span>
+          </div>
+          <div style="font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-top:var(--s1)">8<span style="font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal)"> 条</span></div>
+        </div>
+        <div style="flex:1;min-width:200px;border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s3)">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="mono" style="font-size:var(--fs-sm);color:var(--n9)">notification.send.dlq</span>
+            <span class="tag tag-warning">积压</span>
+          </div>
+          <div style="font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-top:var(--s1)">5<span style="font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal)"> 条</span></div>
+        </div>
+        <div style="flex:1;min-width:200px;border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s3)">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="mono" style="font-size:var(--fs-sm);color:var(--n9)">inventory.deduct.dlq</span>
+            <span class="tag tag-success">正常</span>
+          </div>
+          <div style="font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-top:var(--s1)">0<span style="font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal)"> 条</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 批量操作条 -->
+    <div class="batch-bar" id="batchBar" style="display:none">
+      <span>已选中 <span class="batch-count" id="batchCount">0</span> 条消息</span>
+      <div class="spacer" style="flex:1"></div>
+      <button class="btn btn-primary btn-sm" onclick="openBatchRetry()"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M909.1 209.3l-56.4-44.3c-3-2.4-7.3-2.4-10.3 0L454.4 535.6c-3 2.4-7.3 2.4-10.3 0L181.6 353.1c-3-2.4-7.3-2.4-10.3 0l-56.4 44.3c-3.8 3-3.8 8.7 0 11.7l338.9 266.7c3 2.4 7.3 2.4 10.3 0l444.9-355.3c3.9-2.9 3.9-8.7 0.1-11.2z" fill="currentColor"/></svg>批量重投</button>
+      <button class="btn btn-danger btn-sm" onclick="openBatchDiscard()"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M360 184h-48c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h48v104H184V184c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8v656c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V696h192v184c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V192c0-4.4-3.6-8-8-8z" fill="currentColor"/></svg>批量丢弃</button>
+    </div>
+
+    <div class="card" style="padding:0">
+      <div class="toolbar" style="padding:var(--s4) var(--s4) 0">
+        <select class="select" style="width:160px"><option>全部来源</option><option>Order</option><option>Payment</option><option>Notification</option><option>Inventory</option></select>
+        <select class="select" style="width:140px"><option>全部状态</option><option selected>待处理</option><option>已重投</option><option>已丢弃</option></select>
+        <input class="input" type="date" style="width:150px" value="2026-07-20">
+        <span style="color:var(--n7)">至</span>
+        <input class="input" type="date" style="width:150px" value="2026-07-26">
+        <div class="spacer"></div>
+        <button class="btn"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M909.1 209.3l-56.4-44.3c-3-2.4-7.3-2.4-10.3 0L454.4 535.6c-3 2.4-7.3 2.4-10.3 0L181.6 353.1c-3-2.4-7.3-2.4-10.3 0l-56.4 44.3c-3.8 3-3.8 8.7 0 11.7l338.9 266.7c3 2.4 7.3 2.4 10.3 0l444.9-355.3c3.9-2.9 3.9-8.7 0.1-11.2z" fill="currentColor"/></svg>筛选</button>
+      </div>
+      <div class="table-wrap" style="border:none;border-top:1px solid var(--n3);margin-top:var(--s4)">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:40px"><div class="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></div></th>
+              <th style="width:180px">消息 ID</th>
+              <th style="width:90px">来源</th>
+              <th style="width:160px">原始主题</th>
+              <th>失败原因</th>
+              <th style="width:70px">重试</th>
+              <th style="width:80px">状态</th>
+              <th style="width:120px">进入时间</th>
+              <th style="width:160px;text-align:right">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-selected">
+              <td><div class="checkbox checked" onclick="toggleRow(this)"></div></td>
+              <td><span class="cell-key">DLQ-0726-A3F8B2</span></td>
+              <td><span class="tag tag-purple">Order</span></td>
+              <td><span class="mono" style="font-size:var(--fs-sm)">order.created</span></td>
+              <td><span class="cell-error">消费者处理超时（30s 未 ACK）</span></td>
+              <td><b>2</b></td>
+              <td><span class="tag tag-warning">待处理</span></td>
+              <td><span class="cell-mute">07-26 14:23:05</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openDetail()">详情</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRetry()">重投</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openDiscard()">丢弃</button></td>
+            </tr>
+            <tr class="row-selected">
+              <td><div class="checkbox checked" onclick="toggleRow(this)"></div></td>
+              <td><span class="cell-key">DLQ-0726-B7E1C9</span></td>
+              <td><span class="tag tag-purple">Order</span></td>
+              <td><span class="mono" style="font-size:var(--fs-sm)">order.created</span></td>
+              <td><span class="cell-error">库存扣减失败：商品 SKU 缺货</span></td>
+              <td><b>1</b></td>
+              <td><span class="tag tag-warning">待处理</span></td>
+              <td><span class="cell-mute">07-26 13:45:12</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openDetail()">详情</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRetry()">重投</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openDiscard()">丢弃</button></td>
+            </tr>
+            <tr class="row-selected">
+              <td><div class="checkbox checked" onclick="toggleRow(this)"></div></td>
+              <td><span class="cell-key">DLQ-0726-C2D4F1</span></td>
+              <td><span class="tag tag-purple">Payment</span></td>
+              <td><span class="mono" style="font-size:var(--fs-sm)">payment.callback</span></td>
+              <td><span class="cell-error">支付渠道签名验证失败</span></td>
+              <td><b>3</b></td>
+              <td><span class="tag tag-warning">待处理</span></td>
+              <td><span class="cell-mute">07-26 12:18:33</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openDetail()">详情</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRetry()">重投</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openDiscard()">丢弃</button></td>
+            </tr>
+            <tr>
+              <td><div class="checkbox" onclick="toggleRow(this)"></div></td>
+              <td><span class="cell-key">DLQ-0726-D9A5E3</span></td>
+              <td><span class="tag tag-purple">Order</span></td>
+              <td><span class="mono" style="font-size:var(--fs-sm)">order.created</span></td>
+              <td><span class="cell-error">数据库连接池耗尽，写入失败</span></td>
+              <td><b>2</b></td>
+              <td><span class="tag tag-warning">待处理</span></td>
+              <td><span class="cell-mute">07-26 11:02:47</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openDetail()">详情</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRetry()">重投</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openDiscard()">丢弃</button></td>
+            </tr>
+            <tr>
+              <td><div class="checkbox" onclick="toggleRow(this)"></div></td>
+              <td><span class="cell-key">DLQ-0726-E1B7C4</span></td>
+              <td><span class="tag tag-purple">Notification</span></td>
+              <td><span class="mono" style="font-size:var(--fs-sm)">notification.send</span></td>
+              <td><span class="cell-error">短信网关返回 503 服务不可用</span></td>
+              <td><b>1</b></td>
+              <td><span class="tag tag-warning">待处理</span></td>
+              <td><span class="cell-mute">07-26 10:15:22</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openDetail()">详情</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRetry()">重投</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openDiscard()">丢弃</button></td>
+            </tr>
+            <tr>
+              <td><div class="checkbox" onclick="toggleRow(this)"></div></td>
+              <td><span class="cell-key">DLQ-0725-F3C8D6</span></td>
+              <td><span class="tag tag-purple">Payment</span></td>
+              <td><span class="mono" style="font-size:var(--fs-sm)">payment.callback</span></td>
+              <td><span class="cell-error">JSON 反序列化失败：字段类型不匹配</span></td>
+              <td><b>4</b></td>
+              <td><span class="tag tag-warning">待处理</span></td>
+              <td><span class="cell-mute">07-25 22:30:18</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openDetail()">详情</button><span class="opt-sep">|</span><button class="opt-link" onclick="openRetry()">重投</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openDiscard()">丢弃</button></td>
+            </tr>
+            <tr>
+              <td><div class="checkbox" onclick="toggleRow(this)"></div></td>
+              <td><span class="cell-key">DLQ-0725-A5D9E7</span></td>
+              <td><span class="tag tag-purple">Order</span></td>
+              <td><span class="mono" style="font-size:var(--fs-sm)">order.created</span></td>
+              <td><span class="cell-error">幂等键冲突：订单号已存在</span></td>
+              <td><b>1</b></td>
+              <td><span class="tag tag-primary">已重投</span></td>
+              <td><span class="cell-mute">07-25 16:45:00</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openDetail()">详情</button></td>
+            </tr>
+            <tr>
+              <td><div class="checkbox" onclick="toggleRow(this)"></div></td>
+              <td><span class="cell-key">DLQ-0725-B8E1F2</span></td>
+              <td><span class="tag tag-purple">Notification</span></td>
+              <td><span class="mono" style="font-size:var(--fs-sm)">notification.send</span></td>
+              <td><span class="cell-error">用户已退订通知，无法发送</span></td>
+              <td><b>2</b></td>
+              <td><span class="tag tag-default">已丢弃</span></td>
+              <td><span class="cell-mute">07-25 09:12:35</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openDetail()">详情</button></td>
+            </tr>
+            <tr>
+              <td><div class="checkbox" onclick="toggleRow(this)"></div></td>
+              <td><span class="cell-key">DLQ-0724-C3F5A8</span></td>
+              <td><span class="tag tag-purple">Payment</span></td>
+              <td><span class="mono" style="font-size:var(--fs-sm)">payment.callback</span></td>
+              <td><span class="cell-error">支付金额与订单金额不匹配</span></td>
+              <td><b>3</b></td>
+              <td><span class="tag tag-default">已丢弃</span></td>
+              <td><span class="cell-mute">07-24 18:20:45</span></td>
+              <td style="text-align:right"><button class="opt-link" onclick="openDetail()">详情</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span>共 36 条</span>
+          <button class="pg-btn" disabled><svg class="icon icon-sm" viewBox="0 0 1024 1024"><path d="M724 218.3V141.9c0-6.7-7.7-10.4-12.9-6.3L260.3 486.8a31.86 31.86 0 000 50.3l450.8 351.1c5.3 4.1 12.9.4 12.9-6.3v-76.4c0-4.9-2.3-9.6-6.1-12.6l-360-280.5 360-280.5c3.8-3 6.1-7.7 6.1-12.6z" fill="currentColor"/></svg></button>
+          <button class="pg-btn pg-active">1</button>
+          <button class="pg-btn">2</button>
+          <button class="pg-btn"><svg class="icon icon-sm" viewBox="0 0 1024 1024"><path d="M765.7 486.8L314.9 134.7c-5.3-4.1-12.9-.4-12.9 6.3v76.4c0 4.9 2.3 9.6 6.1 12.6l360 280.5-360 280.5c-3.8 3-6.1 7.7-6.1 12.6v76.4c0 6.7 7.7 10.4 12.9 6.3l450.8-351.1a31.86 31.86 0 000-50.3z" fill="currentColor"/></svg></button>
+          <select class="select" style="width:80px;height:32px"><option>20 条/页</option><option>50 条/页</option></select>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Leno 电商平台 · 系统管理后台 v2.4.0 · 仅供系统管理员使用</footer>
+</div>
+
+<!-- 详情抽屉 -->
+<div class="drawer-mask" id="detailDrawer">
+  <div class="drawer show">
+    <div class="drawer-head">
+      <div class="drawer-title"><svg class="icon icon-md" viewBox="0 0 1024 1024" style="color:var(--c-primary)"><path d="M942.2 486.2C847.4 286.5 704.1 186 512 186c-192.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 000 51.5C176.6 737.5 319.9 838 512 838c192.2 0 335.4-100.5 430.2-300.3 7.7-16.2 7.7-35 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-430c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z" fill="currentColor"/></svg>死信消息详情</div>
+      <button class="drawer-close" onclick="closeDrawer('detailDrawer')"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="drawer-body">
+      <div class="desc-list">
+        <div class="desc-row"><div class="desc-label">消息 ID</div><div class="desc-value"><span class="mono">DLQ-0726-A3F8B2</span></div></div>
+        <div class="desc-row"><div class="desc-label">原始消息 ID</div><div class="desc-value"><span class="mono">MSG-20260726-143205-001</span></div></div>
+        <div class="desc-row"><div class="desc-label">来源上下文</div><div class="desc-value"><span class="tag tag-purple">Order</span></div></div>
+        <div class="desc-row"><div class="desc-label">原始主题</div><div class="desc-value"><span class="mono">order.created</span></div></div>
+        <div class="desc-row"><div class="desc-label">原始队列</div><div class="desc-value"><span class="mono">order.created.queue</span></div></div>
+        <div class="desc-row"><div class="desc-label">死信队列</div><div class="desc-value"><span class="mono">order.created.dlq</span></div></div>
+        <div class="desc-row"><div class="desc-label">失败原因</div><div class="desc-value" style="color:var(--c-error)">消费者处理超时（30s 未 ACK）</div></div>
+        <div class="desc-row"><div class="desc-label">进入死信时间</div><div class="desc-value">2026-07-26 14:23:05</div></div>
+        <div class="desc-row"><div class="desc-label">重试次数</div><div class="desc-value"><b>2</b> 次</div></div>
+        <div class="desc-row"><div class="desc-label">状态</div><div class="desc-value"><span class="tag tag-warning">待处理</span></div></div>
+        <div class="desc-row"><div class="desc-label">操作人</div><div class="desc-value">—</div></div>
+      </div>
+
+      <div class="section-title"><svg class="icon icon-sm" viewBox="0 0 1024 1024" style="color:var(--c-primary)"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z" fill="currentColor"/></svg>消息头（Headers）</div>
+      <div class="json-block">{
+  <span class="json-key">"message_id"</span>: <span class="json-str">"MSG-20260726-143205-001"</span>,
+  <span class="json-key">"correlation_id"</span>: <span class="json-str">"COR-9F2A7B3C"</span>,
+  <span class="json-key">"trace_id"</span>: <span class="json-str">"TRACE-A3F8B2D9E1"</span>,
+  <span class="json-key">"content_type"</span>: <span class="json-str">"application/json"</span>,
+  <span class="json-key">"delivery_mode"</span>: <span class="json-num">2</span>,
+  <span class="json-key">"priority"</span>: <span class="json-num">5</span>,
+  <span class="json-key">"timestamp"</span>: <span class="json-str">"2026-07-26T14:23:05.123Z"</span>,
+  <span class="json-key">"x-retry-count"</span>: <span class="json-num">2</span>,
+  <span class="json-key">"x-death-reason"</span>: <span class="json-str">"timeout"</span>,
+  <span class="json-key">"x-first-death"</span>: <span class="json-str">"2026-07-26T14:22:35.000Z"</span>
+}</div>
+
+      <div class="section-title"><svg class="icon icon-sm" viewBox="0 0 1024 1024" style="color:var(--c-primary)"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z" fill="currentColor"/></svg>原始消息体（Payload）</div>
+      <div class="json-block">{
+  <span class="json-key">"orderId"</span>: <span class="json-str">"ORD-20260726-884729"</span>,
+  <span class="json-key">"userId"</span>: <span class="json-str">"USR-6F3A8B2C"</span>,
+  <span class="json-key">"shopId"</span>: <span class="json-str">"SHP-2841"</span>,
+  <span class="json-key">"orderType"</span>: <span class="json-str">"Normal"</span>,
+  <span class="json-key">"totalAmount"</span>: <span class="json-num">599.00</span>,
+  <span class="json-key">"currency"</span>: <span class="json-str">"CNY"</span>,
+  <span class="json-key">"items"</span>: [
+    {
+      <span class="json-key">"sku"</span>: <span class="json-str">"SKU-PHONE-128G-BLACK"</span>,
+      <span class="json-key">"quantity"</span>: <span class="json-num">1</span>,
+      <span class="json-key">"unitPrice"</span>: <span class="json-num">599.00</span>
+    }
+  ],
+  <span class="json-key">"paymentMethod"</span>: <span class="json-str">"Alipay"</span>,
+  <span class="json-key">"shippingAddress"</span>: {
+    <span class="json-key">"province"</span>: <span class="json-str">"广东省"</span>,
+    <span class="json-key">"city"</span>: <span class="json-str">"深圳市"</span>,
+    <span class="json-key">"district"</span>: <span class="json-str">"南山区"</span>,
+    <span class="json-key">"detail"</span>: <span class="json-str">"科技园南区 8 栋 1203"</span>
+  },
+  <span class="json-key">"createdAt"</span>: <span class="json-str">"2026-07-26T14:22:30.000Z"</span>,
+  <span class="json-key">"idempotencyKey"</span>: <span class="json-str">"IDEM-ORD-884729-20260726"</span>
+}</div>
+
+      <div class="section-title"><svg class="icon icon-sm" viewBox="0 0 1024 1024" style="color:var(--c-primary)"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 832c-211.8 0-384-172.2-384-384s172.2-384 384-384 384 172.2 384 384-172.2 384-384 384z" fill="currentColor"/></svg>处置历史</div>
+      <div style="border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s3) var(--s4)">
+        <div class="history-item">
+          <div class="history-dot retry"></div>
+          <div class="history-content">
+            <div class="history-action">重投到 <span class="mono">order.created.queue</span></div>
+            <div class="history-meta">操作人 Admin · 2026-07-26 14:35:12 · 结果：再次进入死信</div>
+          </div>
+        </div>
+        <div class="history-item">
+          <div class="history-dot retry"></div>
+          <div class="history-content">
+            <div class="history-action">重投到 <span class="mono">order.created.queue</span></div>
+            <div class="history-meta">操作人 Operator · 2026-07-26 14:28:00 · 结果：再次进入死信</div>
+          </div>
+        </div>
+        <div class="history-item">
+          <div class="history-dot" style="background:var(--c-warning)"></div>
+          <div class="history-content">
+            <div class="history-action">消息进入死信队列</div>
+            <div class="history-meta">原因：消费者处理超时（30s 未 ACK） · 2026-07-26 14:23:05</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert-warning-box" style="margin-top:var(--s4)">
+        <svg class="icon icon-lg alert-icon" viewBox="0 0 1024 1024"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 010-96 48.01 48.01 0 010 96z" fill="currentColor"/></svg>
+        <div class="alert-text">
+          该消息已重试 <b>2 次</b>，仍进入死信。建议检查下游服务 <b>OrderService</b> 的消费者日志，确认是否存在数据库连接池耗尽或处理逻辑缺陷，再决定重投或丢弃。
+        </div>
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <a href="#" class="opt-link" style="margin-right:auto;align-self:center">查看相关审计</a>
+      <button class="btn" onclick="closeDrawer('detailDrawer')">关闭</button>
+      <button class="btn btn-primary" onclick="closeDrawer('detailDrawer');openRetry()"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M909.1 209.3l-56.4-44.3c-3-2.4-7.3-2.4-10.3 0L454.4 535.6c-3 2.4-7.3 2.4-10.3 0L181.6 353.1c-3-2.4-7.3-2.4-10.3 0l-56.4 44.3c-3.8 3-3.8 8.7 0 11.7l338.9 266.7c3 2.4 7.3 2.4 10.3 0l444.9-355.3c3.9-2.9 3.9-8.7 0.1-11.2z" fill="currentColor"/></svg>重投</button>
+      <button class="btn btn-danger" onclick="closeDrawer('detailDrawer');openDiscard()"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M360 184h-48c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h48v104H184V184c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8v656c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V696h192v184c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V192c0-4.4-3.6-8-8-8z" fill="currentColor"/></svg>丢弃</button>
+    </div>
+  </div>
+</div>
+
+<!-- 重投确认弹窗 -->
+<div class="modal-mask" id="retryModal" style="display:none">
+  <div class="modal" style="width:440px">
+    <div class="modal-head">
+      <div class="modal-title"><svg class="icon icon-md" viewBox="0 0 1024 1024" style="color:var(--c-primary)"><path d="M909.1 209.3l-56.4-44.3c-3-2.4-7.3-2.4-10.3 0L454.4 535.6c-3 2.4-7.3 2.4-10.3 0L181.6 353.1c-3-2.4-7.3-2.4-10.3 0l-56.4 44.3c-3.8 3-3.8 8.7 0 11.7l338.9 266.7c3 2.4 7.3 2.4 10.3 0l444.9-355.3c3.9-2.9 3.9-8.7 0.1-11.2z" fill="currentColor"/></svg>确认重投死信消息</div>
+      <button class="modal-close" onclick="closeModal('retryModal')"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-warn">
+        <svg class="icon icon-lg warn-icon" viewBox="0 0 1024 1024"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 010-96 48.01 48.01 0 010 96z" fill="currentColor"/></svg>
+        <div class="warn-text">
+          即将重投消息 <b>DLQ-0726-A3F8B2</b>（Order · order.created）。<br>
+          重投后消息将重新投递到原队列 <b>order.created.queue</b>，可能触发重复业务逻辑。已重投或已丢弃的消息幂等返回当前状态，不会重复执行。
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('retryModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('retryModal')">确认重投</button>
+    </div>
+  </div>
+</div>
+
+<!-- 丢弃确认弹窗 -->
+<div class="modal-mask" id="discardModal" style="display:none">
+  <div class="modal" style="width:480px">
+    <div class="modal-head">
+      <div class="modal-title"><svg class="icon icon-md" viewBox="0 0 1024 1024" style="color:var(--c-error)"><path d="M360 184h-48c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h48v104H184V184c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8v656c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V696h192v184c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V192c0-4.4-3.6-8-8-8z" fill="currentColor"/></svg>确认丢弃死信消息</div>
+      <button class="modal-close" onclick="closeModal('discardModal')"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-warn danger">
+        <svg class="icon icon-lg warn-icon" viewBox="0 0 1024 1024"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 010-96 48.01 48.01 0 010 96z" fill="currentColor"/></svg>
+        <div class="warn-text">
+          即将丢弃消息 <b>DLQ-0726-A3F8B2</b>（Order · order.created）。<br>
+          丢弃后该消息将<b>永久不再处理</b>，关联业务可能丢失。<b>此操作不可逆</b>，请确认。
+        </div>
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>丢弃原因<span class="hint-inline">将记录至审计日志</span></label>
+        <textarea class="form-textarea" placeholder="请填写丢弃原因，如：消息体格式错误无法反序列化，经确认不影响业务"></textarea>
+        <div class="form-hint error" id="discardReasonHint" style="display:none">丢弃原因为必填项</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('discardModal')">取消</button>
+      <button class="btn btn-danger" onclick="closeModal('discardModal')">确认丢弃</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量重投结果弹窗 -->
+<div class="modal-mask" id="batchResultModal" style="display:none">
+  <div class="modal" style="width:520px">
+    <div class="modal-head">
+      <div class="modal-title"><svg class="icon icon-md" viewBox="0 0 1024 1024" style="color:var(--c-warning)"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 010-96 48.01 48.01 0 010 96z" fill="currentColor"/></svg>批量重投结果</div>
+      <button class="modal-close" onclick="closeModal('batchResultModal')"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="result-summary partial">
+        <div>
+          <div class="result-num ok">2</div>
+          <div class="result-label">成功重投</div>
+        </div>
+        <div>
+          <div class="result-num fail">1</div>
+          <div class="result-label">失败</div>
+        </div>
+      </div>
+      <div class="section-title" style="margin-top:0">失败明细</div>
+      <div class="fail-list">
+        <div class="fail-list-item">
+          <span class="fail-id">DLQ-0726-C2D4F1</span>
+          <span class="fail-reason">— 目标队列 order.created.queue 不可达，请检查 RabbitMQ 连接</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" onclick="closeModal('batchResultModal')">知道了</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openDetail(){document.getElementById('detailDrawer').classList.add('show');document.getElementById('detailDrawer').style.display='block'}
+function closeDrawer(id){document.getElementById(id).classList.remove('show');setTimeout(function(){document.getElementById(id).style.display='none'},300)}
+function openRetry(){document.getElementById('retryModal').style.display='flex'}
+function openDiscard(){document.getElementById('discardModal').style.display='flex'}
+function openBatchRetry(){closeModal('retryModal');document.getElementById('batchResultModal').style.display='flex'}
+function openBatchDiscard(){document.getElementById('discardModal').style.display='flex'}
+function closeModal(id){document.getElementById(id).style.display='none'}
+function toggleRow(el){
+  el.classList.toggle('checked');
+  el.closest('tr').classList.toggle('row-selected');
+  updateBatchBar();
+}
+function toggleSelectAll(el){
+  el.classList.toggle('checked');
+  var checked=el.classList.contains('checked');
+  var boxes=document.querySelectorAll('tbody .checkbox');
+  boxes.forEach(function(b){
+    if(checked){b.classList.add('checked');b.closest('tr').classList.add('row-selected')}
+    else{b.classList.remove('checked');b.closest('tr').classList.remove('row-selected')}
+  });
+  updateBatchBar();
+}
+function updateBatchBar(){
+  var checked=document.querySelectorAll('tbody .checkbox.checked');
+  var bar=document.getElementById('batchBar');
+  var count=document.getElementById('batchCount');
+  if(checked.length>0){bar.style.display='flex';count.textContent=checked.length}
+  else{bar.style.display='none'}
+}
+updateBatchBar();
+</script>
+</body>
+</html>

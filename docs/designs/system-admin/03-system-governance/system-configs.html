@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>系统配置 - Leno 系统管理后台</title>
+<style>
+:root{
+  --c-primary:#1677FF;--c-success:#52C41A;--c-warning:#FAAD14;--c-error:#FF4D4F;
+  --n1:#FFFFFF;--n2:#FAFAFA;--n3:#F5F5F5;--n5:#D9D9D9;--n7:#8C8C8C;--n9:#595959;--n10:#000000D9;
+  --r-base:6px;--r-card:8px;--r-lg:12px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s6:24px;--s8:32px;--s12:48px;
+  --fs-sm:12px;--fs-base:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:30px;
+  --fw-normal:400;--fw-medium:500;--fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529;--sider-width:200px;--header-h:64px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--n1);display:flex;align-items:center;padding:0 var(--s4);z-index:100;box-shadow:0 1px 4px rgba(0,21,41,.08)}
+.header-logo{display:flex;align-items:center;gap:var(--s2);width:calc(var(--sider-width) - var(--s4));flex-shrink:0}
+.logo-mark{width:32px;height:32px;background:var(--c-primary);border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:var(--fw-semibold);font-size:var(--fs-lg)}
+.logo-text{font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.header-breadcrumb{display:flex;align-items:center;gap:var(--s2);color:var(--n9);font-size:var(--fs-base)}
+.header-breadcrumb .sep{color:var(--n5)}
+.header-breadcrumb .current{color:var(--n10)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:var(--s4)}
+.header-search{width:240px;height:32px;background:var(--n3);border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);outline:none}
+.header-search::placeholder{color:var(--n7)}
+.header-icon-btn{width:36px;height:36px;border:none;background:transparent;border-radius:var(--r-base);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n9);position:relative}
+.header-icon-btn:hover{background:var(--n3)}
+.header-icon-btn .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;border-radius:8px;font-size:10px;line-height:16px;font-weight:var(--fw-semibold)}
+.user-menu{display:flex;align-items:center;gap:var(--s2);cursor:pointer;padding:var(--s1) var(--s2);border-radius:var(--r-base)}
+.user-menu:hover{background:var(--n3)}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-base);font-weight:var(--fw-medium)}
+.user-name{font-size:var(--fs-base)}
+.sider{position:fixed;top:var(--header-h);left:0;bottom:0;width:var(--sider-width);background:var(--sider-bg);overflow-y:auto;z-index:90}
+.menu{list-style:none;padding:var(--s2) 0}
+.menu-group-title{padding:var(--s4) var(--s6);font-size:var(--fs-sm);color:rgba(255,255,255,.35)}
+.menu-item{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s6);height:40px;color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;border-left:3px solid transparent;transition:all .2s}
+.menu-item:hover{color:#fff}
+.menu-item.active{background:var(--c-primary);color:#fff;border-left-color:var(--c-primary)}
+.menu-sub{list-style:none}
+.menu-sub .menu-item{padding-left:var(--s8);font-size:var(--fs-sm)}
+.content{margin-left:var(--sider-width);margin-top:var(--header-h);padding:var(--s6);min-height:calc(100vh - var(--header-h) - 32px)}
+.footer{margin-left:var(--sider-width);height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7)}
+.page-header{background:var(--n1);border-radius:var(--r-card);padding:var(--s6);margin-bottom:var(--s4);box-shadow:var(--sh-card);display:flex;align-items:flex-start;justify-content:space-between}
+.page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-bottom:var(--s1)}
+.page-desc{font-size:var(--fs-base);color:var(--n7);max-width:760px}
+.icon{display:inline-flex;vertical-align:middle;flex-shrink:0}
+.icon-md{width:16px;height:16px}
+.icon-lg{width:20px;height:20px}
+.icon-menu{width:16px;height:16px;fill:currentColor;flex-shrink:0}
+.icon-sm{width:12px;height:12px}
+.btn{display:inline-flex;align-items:center;gap:var(--s1);height:32px;padding:0 var(--s3);border-radius:var(--r-base);border:1px solid var(--n5);background:var(--n1);color:var(--n10);font-size:var(--fs-base);cursor:pointer;transition:all .1s;font-family:inherit}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff}
+.card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s6)}
+.split-layout{display:flex;gap:var(--s4);align-items:flex-start}
+.group-sidebar{width:240px;flex-shrink:0;background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden}
+.group-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);font-size:var(--fs-base);font-weight:var(--fw-medium);display:flex;align-items:center;gap:var(--s2)}
+.group-list{padding:var(--s2)}
+.group-item{display:flex;align-items:center;justify-content:space-between;padding:var(--s3) var(--s4);border-radius:var(--r-base);cursor:pointer;transition:all .2s;margin-bottom:var(--s1)}
+.group-item:hover{background:var(--n2)}
+.group-item.active{background:#e6f4ff;color:var(--c-primary);font-weight:var(--fw-medium)}
+.group-item .count{font-size:var(--fs-sm);color:var(--n7);background:var(--n3);padding:0 var(--s1);border-radius:10px;height:18px;line-height:18px}
+.group-item.active .count{background:#bae0ff;color:var(--c-primary)}
+.detail-panel{flex:1;min-width:0}
+.toolbar{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap}
+.input{height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app)}
+.input.mono{font-family:var(--ff-mono)}
+.input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.select{height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);cursor:pointer}
+.toolbar .spacer{flex:1}
+.table-wrap{overflow-x:auto;border:1px solid var(--n3);border-radius:var(--r-card);background:var(--n1)}
+table.data-table{width:100%;border-collapse:collapse;font-size:var(--fs-base)}
+.data-table th{background:var(--n2);font-weight:var(--fw-medium);color:var(--n9);font-size:var(--fs-sm);padding:var(--s3) var(--s4);text-align:left;white-space:nowrap;height:48px;border-bottom:1px solid var(--n3)}
+.data-table td{padding:var(--s3) var(--s4);color:var(--n10);border-bottom:1px solid var(--n3);height:48px;vertical-align:middle}
+.data-table tbody tr:hover{background:var(--n2)}
+.data-table tbody tr:last-child td{border-bottom:none}
+.mono{font-family:var(--ff-mono)}
+.cell-key{font-family:var(--ff-mono);font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10)}
+.cell-mute{color:var(--n7);font-size:var(--fs-sm)}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 var(--s2);border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;border:1px solid transparent;white-space:nowrap}
+.tag-success{color:var(--c-success);background:#f6ffed;border-color:#b7eb8f}
+.tag-default{color:var(--n9);background:var(--n3);border-color:var(--n5)}
+.tag-warning{color:var(--c-warning);background:#fffbe6;border-color:#ffe58f}
+.tag-primary{color:var(--c-primary);background:#e6f4ff;border-color:#91caff}
+.tag-purple{color:#722ED1;background:#f9f0ff;border-color:#d3adf7}
+.tag-cyan{color:#13C2C2;background:#e6fffb;border-color:#87e8de}
+.masked{font-family:var(--ff-mono);color:var(--n9);letter-spacing:1px}
+.opt-link{display:inline-flex;align-items:center;gap:2px;padding:0 var(--s1);font-size:var(--fs-sm);color:var(--c-primary);background:transparent;border:none;cursor:pointer;font-family:inherit}
+.opt-link:hover{color:#4096FF}
+.opt-link.danger{color:var(--c-error)}
+.opt-sep{color:var(--n5);margin:0 2px}
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:var(--s2);padding:var(--s3) var(--s4);font-size:var(--fs-sm);color:var(--n9)}
+.pagination .pg-btn{width:32px;height:32px;border:1px solid var(--n5);border-radius:var(--r-base);background:var(--n1);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n10)}
+.pagination .pg-btn:hover:not([disabled]){border-color:var(--c-primary);color:var(--c-primary)}
+.pagination .pg-btn[disabled]{color:var(--n7);cursor:not-allowed}
+.pagination .pg-active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.modal-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-mask.show{display:flex}
+.modal{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-modal)}
+.modal-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2)}
+.modal-close{cursor:pointer;color:var(--n7);border:none;background:transparent;display:flex}
+.modal-close:hover{color:var(--n10)}
+.modal-body{padding:var(--s6);max-height:60vh;overflow-y:auto}
+.modal-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2)}
+.form-item{margin-bottom:var(--s4)}
+.form-label{display:block;font-size:var(--fs-base);color:var(--n9);margin-bottom:var(--s1)}
+.form-label .req{color:var(--c-error);margin-right:2px}
+.form-label .hint-inline{font-size:var(--fs-sm);color:var(--n7);margin-left:var(--s1)}
+.form-input{width:100%;height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app)}
+.form-input.mono{font-family:var(--ff-mono)}
+.form-input[readonly]{background:var(--n3);color:var(--n9)}
+.form-input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.form-textarea{width:100%;min-height:72px;padding:var(--s2) var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-sm);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-mono);resize:vertical;line-height:1.6}
+.form-textarea:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.form-hint{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1)}
+.form-row{display:flex;gap:var(--s3)}
+.form-row .form-item{flex:1}
+.switch{display:inline-flex;align-items:center;cursor:pointer;gap:var(--s2)}
+.switch-track{width:40px;height:22px;border-radius:11px;background:var(--n5);position:relative;transition:background .2s}
+.switch-track.on{background:var(--c-primary)}
+.switch-thumb{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.switch-track.on .switch-thumb{transform:translateX(18px)}
+.section-title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);margin:0 0 var(--s3);display:flex;align-items:center;gap:var(--s2)}
+.audit-note{font-size:var(--fs-sm);color:var(--n7);background:var(--n3);border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s3);margin-top:var(--s3)}
+.version-list{margin-top:var(--s4)}
+.version-item{display:flex;gap:var(--s3);padding:var(--s3) 0;border-bottom:1px solid var(--n3)}
+.version-item:last-child{border-bottom:none}
+.version-tag{flex-shrink:0;width:64px;text-align:center}
+.version-tag .v-no{font-size:var(--fs-sm);font-weight:var(--fw-semibold);color:var(--c-primary)}
+.version-info{flex:1}
+.version-meta{font-size:var(--fs-sm);color:var(--n7);margin-bottom:2px}
+.version-diff{font-size:var(--fs-sm);color:var(--n9)}
+.version-diff .old{color:var(--n7);text-decoration:line-through}
+.version-diff .arrow{color:var(--n7);margin:0 var(--s1)}
+.version-diff .new{color:var(--n10);font-weight:var(--fw-medium)}
+.json-block{background:var(--n3);border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s3);font-family:var(--ff-mono);font-size:var(--fs-sm);line-height:1.6;color:var(--n10);white-space:pre;overflow-x:auto}
+.json-str{color:var(--c-success)}
+.json-bool{color:var(--c-primary)}
+.json-num{color:#fa8c16}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-logo">
+      <div class="logo-mark">L</div>
+      <span class="logo-text">Leno 系统后台</span>
+    </div>
+    <div class="header-breadcrumb">
+      <span>系统治理</span><span class="sep">/</span><span class="current">系统配置</span>
+    </div>
+    <div class="header-right">
+      <input class="header-search" placeholder="搜索菜单、配置 Key（Ctrl+K）">
+      <button class="header-icon-btn" title="待办">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg>
+        <span class="badge">5</span>
+      </button>
+      <button class="header-icon-btn" title="通知">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252s-252 110.7-252 252v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32zM336 428c0-105.9 86.1-188 192-188s192 82.1 192 188v340H336V428zM512 912c48.6 0 88-39.4 88-88H424c0 48.6 39.4 88 88 88z"/></svg>
+        <span class="badge">3</span>
+      </button>
+      <div class="user-menu">
+        <div class="user-avatar">A</div>
+        <span class="user-name">系统管理员</span>
+      </div>
+    </div>
+  </header>
+
+  <aside class="sider">
+    <ul class="menu">
+      <li class="menu-group-title">系统管理</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c6.2-12.6 3.9-27.8-5.6-37.6zM512 700c-103.8 0-188-84.2-188-188s84.2-188 188-188 188 84.2 188 188-84.2 188-188 188z"/></svg><span>仪表盘</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>用户与权限</span></li>
+      <li class="menu-item" style="background:rgba(22,119,255,.15);color:#fff"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z"/><path d="M304 240h416v48H304zm0 160h416v48H304zm0 160h416v48H304z"/></svg><span>系统治理</span></li>
+      <ul class="menu-sub">
+        <li class="menu-item"><span>功能开关</span></li>
+        <li class="menu-item active"><span>系统配置</span></li>
+        <li class="menu-item"><span>数据字典</span></li>
+        <li class="menu-item"><span>公告管理</span></li>
+      </ul>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 832c-211.8 0-384-172.2-384-384s172.2-384 384-384 384 172.2 384 384-172.2 384-384 384z"/></svg><span>运行时运维</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg><span>审计与对账</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>个人账号</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c6.2-12.6 3.9-27.8-5.6-37.6zM512 700c-103.8 0-188-84.2-188-188s84.2-188 188-188 188 84.2 188 188-84.2 188-188 188z"/></svg><span>系统监控</span></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">系统配置</div>
+        <div class="page-desc">管理平台全局配置项（SystemConfig），按分组浏览与编辑键值对，敏感值默认掩码展示，查看明文需二次鉴权，所有变更保留历史版本可回溯。</div>
+      </div>
+      <div style="display:flex;gap:var(--s2);flex-shrink:0">
+        <button class="btn btn-primary" onclick="openCreate()"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z" fill="currentColor"/><path d="M176 474h672q8 0 8 8v60q0 8-8 8H176q-8 0-8-8v-60q0-8 8-8z" fill="currentColor"/></svg>新建配置</button>
+      </div>
+    </div>
+
+    <div class="split-layout">
+      <!-- 分组导航 -->
+      <div class="group-sidebar">
+        <div class="group-head"><svg class="icon icon-md" style="color:var(--c-primary)" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z" fill="currentColor"/></svg>配置分组</div>
+        <div class="group-list">
+          <div class="group-item active"><span>全部</span><span class="count">42</span></div>
+          <div class="group-item"><span>支付 payment</span><span class="count">9</span></div>
+          <div class="group-item"><span>物流 logistics</span><span class="count">6</span></div>
+          <div class="group-item"><span>通知 notify</span><span class="count">8</span></div>
+          <div class="group-item"><span>积分 points</span><span class="count">7</span></div>
+          <div class="group-item"><span>搜索 search</span><span class="count">5</span></div>
+          <div class="group-item"><span>安全 security</span><span class="count">4</span></div>
+          <div class="group-item"><span>文件 file</span><span class="count">3</span></div>
+        </div>
+      </div>
+
+      <!-- 详情面板 -->
+      <div class="detail-panel">
+        <div class="card" style="padding:0">
+          <div class="toolbar" style="padding:var(--s4) var(--s4) 0">
+            <input class="input mono" style="width:240px" placeholder="搜索配置 Key" value="">
+            <select class="select" style="width:140px"><option>全部状态</option><option>已启用</option><option>已停用</option></select>
+            <div class="spacer"></div>
+            <button class="btn"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M909.1 209.3l-56.4-44.3c-3-2.4-7.3-2.4-10.3 0L454.4 535.6c-3 2.4-7.3 2.4-10.3 0L181.6 353.1c-3-2.4-7.3-2.4-10.3 0l-56.4 44.3c-3.8 3-3.8 8.7 0 11.7l338.9 266.7c3 2.4 7.3 2.4 10.3 0l444.9-355.3c3.9-2.9 3.9-8.7 0.1-11.2z" fill="currentColor"/></svg>筛选</button>
+          </div>
+          <div class="table-wrap" style="border:none;border-top:1px solid var(--n3);margin-top:var(--s4)">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width:220px">配置 Key</th>
+                  <th style="width:90px">分组</th>
+                  <th style="width:90px">类型</th>
+                  <th>值</th>
+                  <th style="width:90px">状态</th>
+                  <th style="width:150px">最近变更</th>
+                  <th style="width:200px">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="cell-key">payment.timeout</span></td>
+                  <td><span class="tag tag-primary">支付</span></td>
+                  <td><span class="tag tag-cyan">int</span></td>
+                  <td><span class="mono">30</span> <span class="cell-mute">分钟</span></td>
+                  <td><span class="tag tag-success">已启用</span></td>
+                  <td><span class="cell-mute">2026-07-22 09:10<br>Admin / 张磊</span></td>
+                  <td>
+                    <button class="opt-link" onclick="openEdit('payment.timeout')">编辑</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openToggle('payment.timeout',true)">停用</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openHistory('payment.timeout')">历史</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="cell-key">payment.retry.max</span></td>
+                  <td><span class="tag tag-primary">支付</span></td>
+                  <td><span class="tag tag-cyan">int</span></td>
+                  <td><span class="mono">3</span> <span class="cell-mute">次</span></td>
+                  <td><span class="tag tag-success">已启用</span></td>
+                  <td><span class="cell-mute">2026-07-18 14:25<br>Admin / 王峰</span></td>
+                  <td>
+                    <button class="opt-link" onclick="openEdit('payment.retry.max')">编辑</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openToggle('payment.retry.max',true)">停用</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openHistory('payment.retry.max')">历史</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="cell-key">notify.smtp.password</span></td>
+                  <td><span class="tag tag-purple">通知</span></td>
+                  <td><span class="tag tag-warning">secret</span></td>
+                  <td><span class="masked">••••••••</span> <span class="cell-mute">（敏感）</span></td>
+                  <td><span class="tag tag-success">已启用</span></td>
+                  <td><span class="cell-mute">2026-07-15 11:30<br>Admin / 张磊</span></td>
+                  <td>
+                    <button class="opt-link" onclick="openEdit('notify.smtp.password')">编辑</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openToggle('notify.smtp.password',true)">停用</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="revealSecret('notify.smtp.password')">查看明文</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="cell-key">notify.smtp.host</span></td>
+                  <td><span class="tag tag-purple">通知</span></td>
+                  <td><span class="tag tag-default">string</span></td>
+                  <td><span class="mono">smtp.qiye.aliyun.com</span></td>
+                  <td><span class="tag tag-success">已启用</span></td>
+                  <td><span class="cell-mute">2026-07-15 11:28<br>Admin / 张磊</span></td>
+                  <td>
+                    <button class="opt-link" onclick="openEdit('notify.smtp.host')">编辑</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openToggle('notify.smtp.host',true)">停用</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openHistory('notify.smtp.host')">历史</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="cell-key">logistics.auto.confirm.days</span></td>
+                  <td><span class="tag tag-cyan">物流</span></td>
+                  <td><span class="tag tag-cyan">int</span></td>
+                  <td><span class="mono">7</span> <span class="cell-mute">天</span></td>
+                  <td><span class="tag tag-success">已启用</span></td>
+                  <td><span class="cell-mute">2026-07-10 16:40<br>Operator / 李芳</span></td>
+                  <td>
+                    <button class="opt-link" onclick="openEdit('logistics.auto.confirm.days')">编辑</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openToggle('logistics.auto.confirm.days',true)">停用</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openHistory('logistics.auto.confirm.days')">历史</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="cell-key">points.exchange.rate</span></td>
+                  <td><span class="tag tag-primary">积分</span></td>
+                  <td><span class="tag tag-cyan">int</span></td>
+                  <td><span class="mono">100</span> <span class="cell-mute">积分 = 1 元</span></td>
+                  <td><span class="tag tag-success">已启用</span></td>
+                  <td><span class="cell-mute">2026-07-08 10:15<br>Admin / 王峰</span></td>
+                  <td>
+                    <button class="opt-link" onclick="openEdit('points.exchange.rate')">编辑</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openToggle('points.exchange.rate',true)">停用</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openHistory('points.exchange.rate')">历史</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="cell-key">search.es.index.alias</span></td>
+                  <td><span class="tag tag-default">搜索</span></td>
+                  <td><span class="tag tag-default">string</span></td>
+                  <td><span class="mono">leno_products_current</span></td>
+                  <td><span class="tag tag-default">已停用</span></td>
+                  <td><span class="cell-mute">2026-07-05 08:20<br>Admin / 张磊</span></td>
+                  <td>
+                    <button class="opt-link" onclick="openEdit('search.es.index.alias')">编辑</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openToggle('search.es.index.alias',false)">启用</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openHistory('search.es.index.alias')">历史</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="cell-key">security.login.captcha.enabled</span></td>
+                  <td><span class="tag tag-error">安全</span></td>
+                  <td><span class="tag tag-primary">bool</span></td>
+                  <td><span class="mono">true</span></td>
+                  <td><span class="tag tag-success">已启用</span></td>
+                  <td><span class="cell-mute">2026-07-02 09:00<br>Admin / 张磊</span></td>
+                  <td>
+                    <button class="opt-link" onclick="openEdit('security.login.captcha.enabled')">编辑</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openToggle('security.login.captcha.enabled',true)">停用</button><span class="opt-sep">|</span>
+                    <button class="opt-link" onclick="openHistory('security.login.captcha.enabled')">历史</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span>共 42 条</span>
+            <button class="pg-btn" disabled><svg class="icon icon-sm" viewBox="0 0 1024 1024"><path d="M724 218.3V141.9c0-6.7-7.7-10.4-12.9-6.3L260.3 486.8a31.86 31.86 0 000 50.3l450.8 351.1c5.3 4.1 12.9.4 12.9-6.3v-76.4c0-4.9-2.3-9.6-6.1-12.6l-360-280.5 360-280.5c3.8-3 6.1-7.7 6.1-12.6z" fill="currentColor"/></svg></button>
+            <button class="pg-btn pg-active">1</button>
+            <button class="pg-btn">2</button>
+            <button class="pg-btn">3</button>
+            <button class="pg-btn"><svg class="icon icon-sm" viewBox="0 0 1024 1024"><path d="M765.7 486.8L314.9 134.7c-5.3-4.1-12.9-.4-12.9 6.3v77.4c0 4.9 2.3 9.6 6.1 12.6l360 280.5-360 280.5c-3.8 3-6.1 7.7-6.1 12.6V881c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.86 31.86 0 000-50.4z" fill="currentColor"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Leno 电商平台系统管理后台 © 2026 Leno Technology Co., Ltd. · v1.4.0</footer>
+</div>
+
+<!-- 新建/编辑配置弹窗 -->
+<div class="modal-mask" id="configModal">
+  <div class="modal" style="width:560px">
+    <div class="modal-head">
+      <div class="modal-title"><svg class="icon icon-lg" style="color:var(--c-primary)" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z" fill="currentColor"/></svg><span id="configModalTitle">新建系统配置</span></div>
+      <button class="modal-close" onclick="closeModal('configModal')"><svg class="icon icon-lg" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.1-13.1-6.3-13.1H676c-4.9 0-9.6 2.1-12.9 5.9L499.3 442.6 333.7 191.9c-3.2-3.8-7.9-5.9-12.9-5.9H176.5c-6.5 0-9.5 7.9-5.1 13.1L433.8 512 171.4 824.9c-4.4 5.2-.1 13.1 6.3 13.1h143.7c4.9 0 9.6-2.1 12.9-5.9l167.2-252.8 167.2 252.8c3.2 3.8 7.9 5.9 12.9 5.9h138.7c6.5 0 9.5-7.9 5.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-item">
+          <label class="form-label"><span class="req">*</span>配置 Key <span class="hint-inline">（创建后不可修改）</span></label>
+          <input class="form-input mono" id="configKeyInput" value="" placeholder="例如 payment.timeout">
+        </div>
+        <div class="form-item">
+          <label class="form-label"><span class="req">*</span>分组</label>
+          <select class="form-input"><option>支付 payment</option><option>物流 logistics</option><option>通知 notify</option><option>积分 points</option><option>搜索 search</option><option>安全 security</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-item">
+          <label class="form-label"><span class="req">*</span>值类型</label>
+          <select class="form-input" id="valueTypeSelect" onchange="onTypeChange()"><option value="string">string 字符串</option><option value="int">int 整数</option><option value="bool">bool 布尔</option><option value="json">json 对象</option><option value="secret">secret 敏感</option></select>
+        </div>
+        <div class="form-item">
+          <label class="form-label">状态</label>
+          <select class="form-input"><option>已启用</option><option>已停用（推荐，创建后手动启用）</option></select>
+        </div>
+      </div>
+      <div class="form-item" id="valueFormItem">
+        <label class="form-label"><span class="req">*</span>值</label>
+        <input class="form-input mono" id="valueInput" value="" placeholder="输入配置值">
+      </div>
+      <div class="form-item">
+        <label class="form-label">描述</label>
+        <input class="form-input" value="" placeholder="说明该配置的业务用途">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('configModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('configModal')">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 启停确认对话框 -->
+<div class="modal-mask" id="toggleModal">
+  <div class="modal" style="width:440px">
+    <div class="modal-head">
+      <div class="modal-title"><svg class="icon icon-lg" style="color:var(--c-warning)" viewBox="0 0 1024 1024"><path d="M955.7 856.5l-395.6-685c-11.1-19.2-43.8-19.2-54.9 0l-395.6 685c-5.5 9.5-5.5 21.3 0 30.8 5.5 9.5 15.7 15.4 27.5 15.4h791.2c11.8 0 22-5.9 27.5-15.4 5.5-9.5 5.5-21.3 0-30.8zM512 820c-22.1 0-40-17.9-40-40s17.9-40 40-40 40 17.9 40 40-17.9 40-40 40zm32-152c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V360c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v308z" fill="currentColor"/></svg><span id="toggleTitle">确认停用配置</span></div>
+      <button class="modal-close" onclick="closeModal('toggleModal')"><svg class="icon icon-lg" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.1-13.1-6.3-13.1H676c-4.9 0-9.6 2.1-12.9 5.9L499.3 442.6 333.7 191.9c-3.2-3.8-7.9-5.9-12.9-5.9H176.5c-6.5 0-9.5 7.9-5.1 13.1L433.8 512 171.4 824.9c-4.4 5.2-.1 13.1 6.3 13.1h143.7c4.9 0 9.6-2.1 12.9-5.9l167.2-252.8 167.2 252.8c3.2 3.8 7.9 5.9 12.9 5.9h138.7c6.5 0 9.5-7.9 5.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:var(--fs-base);color:var(--n10);line-height:1.7">即将<b id="toggleAction">停用</b>配置 <b class="mono" id="toggleKey">payment.timeout</b>。</p>
+      <div class="audit-note" id="toggleImpact">停用后使用该配置的功能将回退到默认值，可能影响线上行为（支付超时将按代码默认值 15 分钟处理）。可随时启用恢复。</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('toggleModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('toggleModal')"><span id="toggleConfirmText">确认停用</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- 查看明文鉴权弹窗 -->
+<div class="modal-mask" id="revealModal">
+  <div class="modal" style="width:440px">
+    <div class="modal-head">
+      <div class="modal-title"><svg class="icon icon-lg" style="color:var(--c-warning)" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z" fill="currentColor"/></svg>查看明文 - 二次鉴权</div>
+      <button class="modal-close" onclick="closeModal('revealModal')"><svg class="icon icon-lg" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.1-13.1-6.3-13.1H676c-4.9 0-9.6 2.1-12.9 5.9L499.3 442.6 333.7 191.9c-3.2-3.8-7.9-5.9-12.9-5.9H176.5c-6.5 0-9.5 7.9-5.1 13.1L433.8 512 171.4 824.9c-4.4 5.2-.1 13.1 6.3 13.1h143.7c4.9 0 9.6-2.1 12.9-5.9l167.2-252.8 167.2 252.8c3.2 3.8 7.9 5.9 12.9 5.9h138.7c6.5 0 9.5-7.9 5.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:var(--fs-base);color:var(--n10);line-height:1.7;margin-bottom:var(--s4)">查看敏感配置 <b class="mono">notify.smtp.password</b> 的明文，需重新输入管理员密码进行二次鉴权。本次操作将记录审计日志。</p>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>管理员密码</label>
+        <input class="form-input" type="password" value="" placeholder="输入当前账号密码">
+        <div class="form-hint">仅 Admin 角色可查看明文，Operator 无权限</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('revealModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('revealModal')">鉴权并查看</button>
+    </div>
+  </div>
+</div>
+
+<!-- 历史版本弹窗 -->
+<div class="modal-mask" id="historyModal">
+  <div class="modal" style="width:640px">
+    <div class="modal-head">
+      <div class="modal-title"><svg class="icon icon-lg" style="color:var(--c-primary)" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 768c-176.7 0-320-143.3-320-320s143.3-320 320-320 320 143.3 320 320-143.3 320-320 320z" fill="currentColor"/><path d="M512 256v256l176 104-32 56-224-128V256z" fill="currentColor"/></svg>配置历史版本 - <span class="mono" id="historyKey">payment.timeout</span></div>
+      <button class="modal-close" onclick="closeModal('historyModal')"><svg class="icon icon-lg" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.1-13.1-6.3-13.1H676c-4.9 0-9.6 2.1-12.9 5.9L499.3 442.6 333.7 191.9c-3.2-3.8-7.9-5.9-12.9-5.9H176.5c-6.5 0-9.5 7.9-5.1 13.1L433.8 512 171.4 824.9c-4.4 5.2-.1 13.1 6.3 13.1h143.7c4.9 0 9.6-2.1 12.9-5.9l167.2-252.8 167.2 252.8c3.2 3.8 7.9 5.9 12.9 5.9h138.7c6.5 0 9.5-7.9 5.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="version-list">
+        <div class="version-item">
+          <div class="version-tag"><div class="v-no">v5</div><div class="cell-mute">当前</div></div>
+          <div class="version-info">
+            <div class="version-meta">2026-07-22 09:10 · Admin / 张磊</div>
+            <div class="version-diff">值变更：<span class="old">15</span> <span class="arrow">→</span> <span class="new">30</span> 分钟</div>
+          </div>
+        </div>
+        <div class="version-item">
+          <div class="version-tag"><div class="v-no">v4</div></div>
+          <div class="version-info">
+            <div class="version-meta">2026-06-30 14:20 · Admin / 王峰</div>
+            <div class="version-diff">值变更：<span class="old">10</span> <span class="arrow">→</span> <span class="new">15</span> 分钟</div>
+          </div>
+        </div>
+        <div class="version-item">
+          <div class="version-tag"><div class="v-no">v3</div></div>
+          <div class="version-info">
+            <div class="version-meta">2026-06-12 10:05 · Admin / 张磊</div>
+            <div class="version-diff">状态变更：已停用 <span class="arrow">→</span> <span class="new">已启用</span></div>
+          </div>
+        </div>
+        <div class="version-item">
+          <div class="version-tag"><div class="v-no">v2</div></div>
+          <div class="version-info">
+            <div class="version-meta">2026-05-28 16:40 · Operator / 李芳</div>
+            <div class="version-diff">值变更：<span class="old">15</span> <span class="arrow">→</span> <span class="new">10</span> 分钟</div>
+          </div>
+        </div>
+        <div class="version-item">
+          <div class="version-tag"><div class="v-no">v1</div></div>
+          <div class="version-info">
+            <div class="version-meta">2026-05-10 09:00 · Admin / 张磊</div>
+            <div class="version-diff">创建配置，初始值 <span class="new">15</span> 分钟</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('historyModal')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openCreate(){
+  document.getElementById('configModalTitle').textContent='新建系统配置';
+  document.getElementById('configKeyInput').value='';
+  document.getElementById('configKeyInput').readOnly=false;
+  onTypeChange();
+  document.getElementById('configModal').classList.add('show');
+}
+function openEdit(key){
+  document.getElementById('configModalTitle').textContent='编辑系统配置';
+  document.getElementById('configKeyInput').value=key;
+  document.getElementById('configKeyInput').readOnly=true;
+  document.getElementById('configModal').classList.add('show');
+}
+function onTypeChange(){
+  var t=document.getElementById('valueTypeSelect').value;
+  var item=document.getElementById('valueFormItem');
+  var input=document.getElementById('valueInput');
+  if(t==='secret'){
+    item.innerHTML='<label class="form-label"><span class="req">*</span>值 <span class="hint-inline">（敏感，保存后掩码展示）</span></label><input class="form-input mono" id="valueInput" type="password" value="" placeholder="输入敏感配置值"><div class="form-hint">secret 类型保存后默认掩码，查看明文需二次鉴权</div>';
+  }else if(t==='bool'){
+    item.innerHTML='<label class="form-label"><span class="req">*</span>值</label><select class="form-input" id="valueInput"><option>true</option><option>false</option></select>';
+  }else if(t==='json'){
+    item.innerHTML='<label class="form-label"><span class="req">*</span>值 <span class="hint-inline">（JSON 格式）</span></label><textarea class="form-textarea" id="valueInput">{\n  "enabled": true\n}</textarea><div class="form-hint">提交前将校验 JSON 格式</div>';
+  }else{
+    item.innerHTML='<label class="form-label"><span class="req">*</span>值</label><input class="form-input mono" id="valueInput" value="" placeholder="输入配置值">';
+  }
+}
+function openToggle(key,enabled){
+  var action=enabled?'停用':'启用';
+  document.getElementById('toggleTitle').textContent='确认'+action+'配置';
+  document.getElementById('toggleAction').textContent=action;
+  document.getElementById('toggleKey').textContent=key;
+  document.getElementById('toggleConfirmText').textContent='确认'+action;
+  var impacts={
+    'payment.timeout':'停用后支付超时将按代码默认值 15 分钟处理，可能影响支付单关闭时机。可随时启用恢复。',
+    'payment.retry.max':'停用后支付重试将按代码默认值 1 次处理，渠道抖动时可能增加支付失败率。可随时启用恢复。',
+    'notify.smtp.password':'停用后邮件通知发送将失败，所有邮件通道不可用。可随时启用恢复。',
+    'notify.smtp.host':'停用后邮件通知将无法连接 SMTP 服务器。可随时启用恢复。',
+    'logistics.auto.confirm.days':'停用后订单不再自动确认收货，需买家手动确认或运营介入。可随时启用恢复。',
+    'points.exchange.rate':'停用后积分兑换入口关闭，积分消耗暂停。可随时启用恢复。',
+    'search.es.index.alias':'启用后商品搜索将切换到新索引别名，切换瞬间有秒级双读窗口。可随时停用。',
+    'security.login.captcha.enabled':'停用后登录不再要求图形验证码，可能增加撞库风险。可随时启用恢复。'
+  };
+  document.getElementById('toggleImpact').textContent=impacts[key]||'此操作将影响使用该配置的功能，可随时切换恢复。';
+  document.getElementById('toggleModal').classList.add('show');
+}
+function revealSecret(key){document.getElementById('revealModal').classList.add('show');}
+function openHistory(key){
+  document.getElementById('historyKey').textContent=key;
+  document.getElementById('historyModal').classList.add('show');
+}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+onTypeChange();
+</script>
+</body>
+</html>

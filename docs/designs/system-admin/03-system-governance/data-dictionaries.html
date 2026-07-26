@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据字典 - Leno 系统管理后台</title>
+<style>
+:root{
+  --c-primary:#1677FF;--c-success:#52C41A;--c-warning:#FAAD14;--c-error:#FF4D4F;
+  --n1:#FFFFFF;--n2:#FAFAFA;--n3:#F5F5F5;--n5:#D9D9D9;--n7:#8C8C8C;--n9:#595959;--n10:#000000D9;
+  --r-base:6px;--r-card:8px;--r-lg:12px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s6:24px;--s8:32px;--s12:48px;
+  --fs-sm:12px;--fs-base:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:30px;
+  --fw-normal:400;--fw-medium:500;--fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529;--sider-width:200px;--header-h:64px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--n1);display:flex;align-items:center;padding:0 var(--s4);z-index:100;box-shadow:0 1px 4px rgba(0,21,41,.08)}
+.header-logo{display:flex;align-items:center;gap:var(--s2);width:calc(var(--sider-width) - var(--s4));flex-shrink:0}
+.logo-mark{width:32px;height:32px;background:var(--c-primary);border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:var(--fw-semibold);font-size:var(--fs-lg)}
+.logo-text{font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.header-breadcrumb{display:flex;align-items:center;gap:var(--s2);color:var(--n9);font-size:var(--fs-base)}
+.header-breadcrumb .sep{color:var(--n5)}
+.header-breadcrumb .current{color:var(--n10)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:var(--s4)}
+.header-search{width:240px;height:32px;background:var(--n3);border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);outline:none}
+.header-search::placeholder{color:var(--n7)}
+.header-icon-btn{width:36px;height:36px;border:none;background:transparent;border-radius:var(--r-base);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n9);position:relative}
+.header-icon-btn:hover{background:var(--n3)}
+.header-icon-btn .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;border-radius:8px;font-size:10px;line-height:16px;font-weight:var(--fw-semibold)}
+.user-menu{display:flex;align-items:center;gap:var(--s2);cursor:pointer;padding:var(--s1) var(--s2);border-radius:var(--r-base)}
+.user-menu:hover{background:var(--n3)}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-base);font-weight:var(--fw-medium)}
+.user-name{font-size:var(--fs-base)}
+.sider{position:fixed;top:var(--header-h);left:0;bottom:0;width:var(--sider-width);background:var(--sider-bg);overflow-y:auto;z-index:90}
+.menu{list-style:none;padding:var(--s2) 0}
+.menu-group-title{padding:var(--s4) var(--s6);font-size:var(--fs-sm);color:rgba(255,255,255,.35)}
+.menu-item{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s6);height:40px;color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;border-left:3px solid transparent;transition:all .2s}
+.menu-item:hover{color:#fff}
+.menu-item.active{background:var(--c-primary);color:#fff;border-left-color:var(--c-primary)}
+.menu-sub{list-style:none}
+.menu-sub .menu-item{padding-left:var(--s8);font-size:var(--fs-sm)}
+.content{margin-left:var(--sider-width);margin-top:var(--header-h);padding:var(--s6);min-height:calc(100vh - var(--header-h) - 32px)}
+.footer{margin-left:var(--sider-width);height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7)}
+.page-header{background:var(--n1);border-radius:var(--r-card);padding:var(--s6);margin-bottom:var(--s4);box-shadow:var(--sh-card);display:flex;align-items:flex-start;justify-content:space-between}
+.page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-bottom:var(--s1)}
+.page-desc{font-size:var(--fs-base);color:var(--n7);max-width:760px}
+.icon{display:inline-flex;vertical-align:middle;flex-shrink:0}
+.icon-md{width:16px;height:16px}
+.icon-lg{width:20px;height:20px}
+.icon-menu{width:16px;height:16px;fill:currentColor;flex-shrink:0}
+.icon-sm{width:12px;height:12px}
+.icon-xl{width:24px;height:24px}
+.btn{display:inline-flex;align-items:center;gap:var(--s1);height:32px;padding:0 var(--s3);border-radius:var(--r-base);border:1px solid var(--n5);background:var(--n1);color:var(--n10);font-size:var(--fs-base);cursor:pointer;transition:all .1s;font-family:inherit}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff}
+.btn-danger{background:var(--c-error);border-color:var(--c-error);color:#fff}
+.btn-danger:hover{background:#ff7875;border-color:#ff7875;color:#fff}
+.btn-text{border:none;background:transparent;color:var(--c-primary);padding:0 var(--s1);height:auto;font-size:var(--fs-sm)}
+.btn-text:hover{background:#e6f4ff;color:var(--c-primary)}
+.btn-text.danger{color:var(--c-error)}
+.btn-text.danger:hover{background:#fff2f0;color:var(--c-error)}
+.btn-text[disabled]{color:var(--n7);cursor:not-allowed;background:transparent}
+.btn-sm{height:24px;padding:0 var(--s2);font-size:var(--fs-sm)}
+.card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s6)}
+.toolbar{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap}
+.input{height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app)}
+.input.mono{font-family:var(--ff-mono)}
+.input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.select{height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);cursor:pointer}
+.toolbar .spacer{flex:1}
+.table-wrap{overflow-x:auto;border:1px solid var(--n3);border-radius:var(--r-card);background:var(--n1)}
+table.data-table{width:100%;border-collapse:collapse;font-size:var(--fs-base)}
+.data-table th{background:var(--n2);font-weight:var(--fw-medium);color:var(--n9);font-size:var(--fs-sm);padding:var(--s3) var(--s4);text-align:left;white-space:nowrap;height:48px;border-bottom:1px solid var(--n3)}
+.data-table td{padding:var(--s3) var(--s4);color:var(--n10);border-bottom:1px solid var(--n3);height:48px;vertical-align:middle}
+.data-table tbody tr:hover{background:var(--n2)}
+.data-table tbody tr:last-child td{border-bottom:none}
+.mono{font-family:var(--ff-mono)}
+.cell-key{font-family:var(--ff-mono);font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10)}
+.cell-mute{color:var(--n7);font-size:var(--fs-sm)}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 var(--s2);border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;border:1px solid transparent;white-space:nowrap}
+.tag-success{color:var(--c-success);background:#f6ffed;border-color:#b7eb8f}
+.tag-error{color:var(--c-error);background:#fff2f0;border-color:#ffccc7}
+.tag-warning{color:var(--c-warning);background:#fffbe6;border-color:#ffe58f}
+.tag-default{color:var(--n9);background:var(--n3);border-color:var(--n5)}
+.tag-primary{color:var(--c-primary);background:#e6f4ff;border-color:#91caff}
+.tag-blue{color:var(--c-primary);background:#e6f4ff;border-color:#91caff}
+.tag-cyan{color:#13C2C2;background:#e6fffb;border-color:#87e8de}
+.opt-link{display:inline-flex;align-items:center;gap:2px;padding:0 var(--s1);font-size:var(--fs-sm);color:var(--c-primary);background:transparent;border:none;cursor:pointer;font-family:inherit}
+.opt-link:hover{color:#4096FF}
+.opt-link.danger{color:var(--c-error)}
+.opt-link.danger:hover{color:#ff7875}
+.opt-link[disabled]{color:var(--n7);cursor:not-allowed}
+.opt-sep{color:var(--n5);margin:0 2px}
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:var(--s2);padding:var(--s3) var(--s4);font-size:var(--fs-sm);color:var(--n9)}
+.pagination .pg-btn{width:32px;height:32px;border:1px solid var(--n5);border-radius:var(--r-base);background:var(--n1);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n10)}
+.pagination .pg-btn:hover:not([disabled]){border-color:var(--c-primary);color:var(--c-primary)}
+.pagination .pg-btn[disabled]{color:var(--n7);cursor:not-allowed}
+.pagination .pg-active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.stats-row{display:flex;gap:var(--s3);margin-bottom:var(--s4)}
+.stat-mini{flex:1;background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4)}
+.stat-mini-label{font-size:var(--fs-sm);color:var(--n7)}
+.stat-mini-value{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);margin-top:var(--s1)}
+.modal-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-modal);width:480px}
+.modal-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2)}
+.modal-close{cursor:pointer;color:var(--n7);border:none;background:transparent;display:flex}
+.modal-close:hover{color:var(--n10)}
+.modal-body{padding:var(--s6);max-height:60vh;overflow-y:auto}
+.modal-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2)}
+.form-item{margin-bottom:var(--s4)}
+.form-label{display:block;font-size:var(--fs-base);color:var(--n9);margin-bottom:var(--s1)}
+.form-label .req{color:var(--c-error);margin-right:2px}
+.form-label .hint-inline{font-size:var(--fs-sm);color:var(--n7);margin-left:var(--s1)}
+.form-input{width:100%;height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app)}
+.form-input.mono{font-family:var(--ff-mono)}
+.form-input[readonly]{background:var(--n3);color:var(--n9)}
+.form-input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.form-textarea{width:100%;min-height:80px;padding:var(--s2) var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app);resize:vertical;line-height:1.6}
+.form-textarea:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.form-hint{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1)}
+.form-hint.error{color:var(--c-error)}
+.form-row{display:flex;gap:var(--s3)}
+.form-row .form-item{flex:1}
+.switch{display:inline-flex;align-items:center;cursor:pointer;gap:var(--s2)}
+.switch-track{width:40px;height:22px;border-radius:11px;background:var(--n5);position:relative;transition:background .2s}
+.switch-track.on{background:var(--c-primary)}
+.switch-thumb{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.switch-track.on .switch-thumb{transform:translateX(18px)}
+/* Split layout */
+.split-layout{display:flex;gap:var(--s4);align-items:flex-start}
+.dict-sidebar{width:300px;flex-shrink:0;background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden}
+.dict-sidebar-head{padding:var(--s3) var(--s4);border-bottom:1px solid var(--n3)}
+.dict-sidebar-search{display:flex;gap:var(--s2);margin-bottom:var(--s2)}
+.dict-sidebar-search .input{flex:1}
+.dict-list{padding:var(--s2);max-height:560px;overflow-y:auto}
+.dict-item{display:flex;align-items:center;gap:var(--s3);padding:var(--s2) var(--s3);border-radius:var(--r-base);cursor:pointer;transition:all .2s;margin-bottom:2px;border:1px solid transparent}
+.dict-item:hover{background:var(--n2)}
+.dict-item.active{background:#e6f4ff;border-color:#91caff}
+.dict-item-info{flex:1;min-width:0}
+.dict-item-code{font-family:var(--ff-mono);font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--n10);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dict-item-name{font-size:var(--fs-sm);color:var(--n7);margin-top:2px}
+.dict-item-meta{font-size:var(--fs-sm);color:var(--n7);flex-shrink:0;display:flex;align-items:center;gap:var(--s1)}
+.dict-detail{flex:1;min-width:0;background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card)}
+.dict-detail-head{padding:var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:flex-start;justify-content:space-between}
+.dict-detail-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s3)}
+.dict-detail-code{font-family:var(--ff-mono);font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1)}
+.desc-list{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--n3);margin:0 var(--s6) var(--s4);border:1px solid var(--n3);border-radius:var(--r-base);overflow:hidden}
+.desc-cell{background:var(--n1);padding:var(--s3) var(--s4)}
+.desc-label{font-size:var(--fs-sm);color:var(--n7);margin-bottom:2px}
+.desc-value{font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium)}
+.desc-value.mono{font-family:var(--ff-mono)}
+.section-bar{display:flex;align-items:center;justify-content:space-between;padding:var(--s3) var(--s6);border-top:1px solid var(--n3)}
+.section-bar-title{font-size:var(--fs-base);font-weight:var(--fw-medium);display:flex;align-items:center;gap:var(--s2)}
+.item-table th{height:40px;font-size:var(--fs-sm)}
+.item-table td{height:40px;font-size:var(--fs-base)}
+.audit-note{font-size:var(--fs-sm);color:var(--n7);background:var(--n3);border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s3);margin-top:var(--s3)}
+.confirm-warn{display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s3);background:#fffbe6;border:1px solid #ffe58f;border-radius:var(--r-base);margin-bottom:var(--s4)}
+.confirm-warn .warn-icon{color:var(--c-warning);flex-shrink:0;margin-top:1px}
+.confirm-warn .warn-text{font-size:var(--fs-sm);color:var(--n9);line-height:1.6}
+.confirm-warn .warn-text b{color:var(--n10)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-logo">
+      <div class="logo-mark">L</div>
+      <span class="logo-text">Leno 系统后台</span>
+    </div>
+    <div class="header-breadcrumb">
+      <span>系统治理</span><span class="sep">/</span><span class="current">数据字典</span>
+    </div>
+    <div class="header-right">
+      <input class="header-search" placeholder="搜索菜单、字典编码、字典项（Ctrl+K）">
+      <button class="header-icon-btn" title="待办">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg>
+        <span class="badge">5</span>
+      </button>
+      <button class="header-icon-btn" title="通知">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252s-252 110.7-252 252v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32zM336 428c0-105.9 86.1-188 192-188s192 82.1 192 188v340H336V428zM512 912c48.6 0 88-39.4 88-88H424c0 48.6 39.4 88 88 88z"/></svg>
+        <span class="badge">3</span>
+      </button>
+      <div class="user-menu">
+        <div class="user-avatar">A</div>
+        <span class="user-name">系统管理员</span>
+      </div>
+    </div>
+  </header>
+
+  <aside class="sider">
+    <ul class="menu">
+      <li class="menu-group-title">系统管理</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c6.2-12.6 3.9-27.8-5.6-37.6zM512 700c-103.8 0-188-84.2-188-188s84.2-188 188-188 188 84.2 188 188-84.2 188-188 188z"/></svg><span>仪表盘</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>用户与权限</span></li>
+      <li class="menu-item" style="background:rgba(22,119,255,.15);color:#fff"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z"/><path d="M304 240h416v48H304zm0 160h416v48H304zm0 160h416v48H304z"/></svg><span>系统治理</span></li>
+      <ul class="menu-sub">
+        <li class="menu-item"><span>功能开关</span></li>
+        <li class="menu-item"><span>系统配置</span></li>
+        <li class="menu-item active"><span>数据字典</span></li>
+        <li class="menu-item"><span>公告管理</span></li>
+      </ul>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 832c-211.8 0-384-172.2-384-384s172.2-384 384-384 384 172.2 384 384-172.2 384-384 384z"/></svg><span>运行时运维</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/></svg><span>审计与对账</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.7 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.2 44.9-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h56c4.3 0 7.9-3.4 8-7.7 1.9-58 25.4-112.3 66.7-153.5A226.6 226.6 0 01512 684c60.4 0 117.2 23.6 159.9 66.4 41.3 41.3 64.8 95.5 66.7 153.5a8 8 0 008 7.7h56a8 8 0 008-8.2c-1-47-12.4-93.3-33.9-136.1z"/></svg><span>个人账号</span></li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c6.2-12.6 3.9-27.8-5.6-37.6zM512 700c-103.8 0-188-84.2-188-188s84.2-188 188-188 188 84.2 188 188-84.2 188-188 188z"/></svg><span>系统监控</span></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">数据字典</div>
+        <div class="page-desc">管理数据字典（DataDictionary）与字典项，新建、编辑、启停字典，维护字典项的增删改。所有字典编码创建后不可变更，移除字典项需二次确认且被引用时拒绝移除。</div>
+      </div>
+      <div style="display:flex;gap:var(--s2);flex-shrink:0">
+        <button class="btn"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M505.7 661a8 8 0 0012.6 0l112-141.7c4.1-5.2.4-12.9-6.3-12.9h-74.1V168c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v338.3H400c-6.7 0-10.4 7.7-6.3 12.9l112 141.8z" fill="currentColor"/><path d="M878 626h-60c-4.4 0-8 3.6-8 8v154H214V634c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v198c0 17.7 14.3 32 32 32h684c17.7 0 32-14.3 32-32V634c0-4.4-3.6-8-8-8z" fill="currentColor"/></svg>导出</button>
+        <button class="btn"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M505.7 661a8 8 0 0012.6 0l112-141.7c4.1-5.2.4-12.9-6.3-12.9h-74.1V168c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v338.3H400c-6.7 0-10.4 7.7-6.3 12.9l112 141.8z" fill="currentColor"/><path d="M878 626h-60c-4.4 0-8 3.6-8 8v154H214V634c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v198c0 17.7 14.3 32 32 32h684c17.7 0 32-14.3 32-32V634c0-4.4-3.6-8-8-8z" fill="currentColor" transform="rotate(180 512 512)"/></svg>导入</button>
+        <button class="btn btn-primary" onclick="openCreateDict()"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z" fill="currentColor"/><path d="M176 474h672q8 0 8 8v60q0 8-8 8H176q-8 0-8-8v-60q0-8 8-8z" fill="currentColor"/></svg>新增字典</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-mini"><div class="stat-mini-label">字典总数</div><div class="stat-mini-value">24</div></div>
+      <div class="stat-mini"><div class="stat-mini-label">启用字典</div><div class="stat-mini-value" style="color:var(--c-success)">22</div></div>
+      <div class="stat-mini"><div class="stat-mini-label">停用字典</div><div class="stat-mini-value" style="color:var(--n7)">2</div></div>
+      <div class="stat-mini"><div class="stat-mini-label">字典项总数</div><div class="stat-mini-value">186</div></div>
+    </div>
+
+    <div class="split-layout">
+      <!-- 左侧字典列表 -->
+      <div class="dict-sidebar">
+        <div class="dict-sidebar-head">
+          <div class="dict-sidebar-search">
+            <input class="input mono" placeholder="搜索字典编码 / 名称" value="">
+          </div>
+          <div style="display:flex;gap:var(--s2)">
+            <select class="select" style="flex:1;height:28px;font-size:var(--fs-sm)"><option>全部状态</option><option>启用</option><option>停用</option></select>
+          </div>
+        </div>
+        <div class="dict-list">
+          <div class="dict-item active">
+            <div class="dict-item-info">
+              <div class="dict-item-code">order_status</div>
+              <div class="dict-item-name">订单状态</div>
+            </div>
+            <div class="dict-item-meta"><span class="status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success)"></span>8</div>
+          </div>
+          <div class="dict-item">
+            <div class="dict-item-info">
+              <div class="dict-item-code">payment_channel</div>
+              <div class="dict-item-name">支付渠道</div>
+            </div>
+            <div class="dict-item-meta"><span class="status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success)"></span>6</div>
+          </div>
+          <div class="dict-item">
+            <div class="dict-item-info">
+              <div class="dict-item-code">after_sales_reason</div>
+              <div class="dict-item-name">售后原因</div>
+            </div>
+            <div class="dict-item-meta"><span class="status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success)"></span>12</div>
+          </div>
+          <div class="dict-item">
+            <div class="dict-item-info">
+              <div class="dict-item-code">logistics_type</div>
+              <div class="dict-item-name">物流类型</div>
+            </div>
+            <div class="dict-item-meta"><span class="status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success)"></span>5</div>
+          </div>
+          <div class="dict-item">
+            <div class="dict-item-info">
+              <div class="dict-item-code">order_source</div>
+              <div class="dict-item-name">订单来源</div>
+            </div>
+            <div class="dict-item-meta"><span class="status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success)"></span>4</div>
+          </div>
+          <div class="dict-item">
+            <div class="dict-item-info">
+              <div class="dict-item-code">shop_status</div>
+              <div class="dict-item-name">店铺状态</div>
+            </div>
+            <div class="dict-item-meta"><span class="status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success)"></span>3</div>
+          </div>
+          <div class="dict-item">
+            <div class="dict-item-info">
+              <div class="dict-item-code">refund_status</div>
+              <div class="dict-item-name">退款状态</div>
+            </div>
+            <div class="dict-item-meta"><span class="status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success)"></span>5</div>
+          </div>
+          <div class="dict-item">
+            <div class="dict-item-info">
+              <div class="dict-item-code">coupon_type</div>
+              <div class="dict-item-name">优惠券类型</div>
+            </div>
+            <div class="dict-item-meta"><span class="status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--n7)"></span>8</div>
+          </div>
+          <div class="dict-item">
+            <div class="dict-item-info">
+              <div class="dict-item-code">user_level</div>
+              <div class="dict-item-name">用户等级</div>
+            </div>
+            <div class="dict-item-meta"><span class="status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success)"></span>6</div>
+          </div>
+          <div class="dict-item">
+            <div class="dict-item-info">
+              <div class="dict-item-code">invoice_type</div>
+              <div class="dict-item-name">发票类型</div>
+            </div>
+            <div class="dict-item-meta"><span class="status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success)"></span>4</div>
+          </div>
+          <div class="dict-item">
+            <div class="dict-item-info">
+              <div class="dict-item-code">settlement_status</div>
+              <div class="dict-item-name">结算状态</div>
+            </div>
+            <div class="dict-item-meta"><span class="status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success)"></span>4</div>
+          </div>
+          <div class="dict-item">
+            <div class="dict-item-info">
+              <div class="dict-item-code">complaint_type</div>
+              <div class="dict-item-name">投诉类型</div>
+            </div>
+            <div class="dict-item-meta"><span class="status-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--n7)"></span>9</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧字典详情 -->
+      <div class="dict-detail">
+        <div class="dict-detail-head">
+          <div>
+            <div class="dict-detail-title">
+              订单状态
+              <span class="tag tag-success">启用</span>
+            </div>
+            <div class="dict-detail-code">字典编码：order_status · 公开查询端点 GET /api/dictionaries/order_status</div>
+          </div>
+          <div style="display:flex;gap:var(--s2);flex-shrink:0">
+            <button class="btn"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M908 811.2L727.6 630.8c32-48 50.4-105.6 50.4-167.2 0-169.6-137.6-307.2-307.2-307.2S163.6 294 163.6 463.6s137.6 307.2 307.2 307.2c61.6 0 119.2-18.4 167.2-50.4l180.4 180.4c24.4 24.4 64 24.4 88.4 0 24.4-24.4 24.4-64 .8-88.4zM234.8 463.6c0-130.4 105.6-236 236-236s236 105.6 236 236-105.6 236-236 236-236-105.6-236-236z" fill="currentColor"/></svg>查看引用</button>
+            <button class="btn"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z" fill="currentColor"/><path d="M304 384h272v48H304zm374.4 48H656V384h22.4c8.8 0 16-7.2 16-16v-48c0-8.8-7.2-16-16-16H656v-48c0-8.8-7.2-16-16-16h-48c-8.8 0-16 7.2-16 16v48H304v-48c0-8.8-7.2-16-16-16h-48c-8.8 0-16 7.2-16 16v48h-22.4c-8.8 0-16 7.2-16 16v48c0 8.8 7.2 16 16 16H224v48h-22.4c-8.8 0-16 7.2-16 16v48c0 8.8 7.2 16 16 16H224v48h-22.4c-8.8 0-16 7.2-16 16v48c0 8.8 7.2 16 16 16H224v48h-22.4c-8.8 0-16 7.2-16 16v48c0 8.8 7.2 16 16 16H304V432z" fill="currentColor"/></svg>编辑字典</button>
+            <button class="btn btn-danger"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z" fill="currentColor"/><path d="M360 472h304v48H360zm0 160h304v48H360z" fill="currentColor" transform="rotate(0)"/><path d="M712 360H312v-48h400v48z" fill="currentColor"/></svg>停用字典</button>
+          </div>
+        </div>
+
+        <div class="desc-list">
+          <div class="desc-cell"><div class="desc-label">字典编码</div><div class="desc-value mono">order_status</div></div>
+          <div class="desc-cell"><div class="desc-label">字典名称</div><div class="desc-value">订单状态</div></div>
+          <div class="desc-cell"><div class="desc-label">字典状态</div><div class="desc-value"><span class="tag tag-success">启用</span></div></div>
+          <div class="desc-cell"><div class="desc-label">字典项数</div><div class="desc-value">8 项</div></div>
+          <div class="desc-cell"><div class="desc-label">创建时间</div><div class="desc-value">2026-01-15 10:24</div></div>
+          <div class="desc-cell"><div class="desc-label">最后更新</div><div class="desc-value">2026-07-18 14:36</div></div>
+        </div>
+        <div style="padding:0 var(--s6) var(--s4)">
+          <div class="desc-cell" style="background:var(--n2);padding:var(--s3) var(--s4);border-radius:var(--r-base);border:1px solid var(--n3)">
+            <div class="desc-label">字典描述</div>
+            <div style="font-size:var(--fs-base);color:var(--n9);margin-top:2px">订单全生命周期流转状态枚举，用于订单列表、详情、退款与售后流程的状态渲染。买家端、卖家端、运营端共用同一份字典，禁止重复编码。</div>
+          </div>
+        </div>
+
+        <div class="section-bar">
+          <div class="section-bar-title"><svg class="icon icon-md" viewBox="0 0 1024 1024" style="color:var(--c-primary)"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752z" fill="currentColor"/><path d="M304 240h416v48H304zm0 160h416v48H304zm0 160h416v48H304z" fill="currentColor"/></svg>字典项管理</div>
+          <button class="btn btn-primary btn-sm" onclick="openAddItem()"><svg class="icon icon-sm" viewBox="0 0 1024 1024"><path d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z" fill="currentColor"/><path d="M176 474h672q8 0 8 8v60q0 8-8 8H176q-8 0-8-8v-60q0-8 8-8z" fill="currentColor"/></svg>新增项</button>
+        </div>
+
+        <div class="table-wrap" style="border:none;border-top:1px solid var(--n3);border-radius:0">
+          <table class="data-table item-table">
+            <thead>
+              <tr>
+                <th style="width:180px">项编码</th>
+                <th>显示名</th>
+                <th style="width:100px">排序</th>
+                <th style="width:100px">状态</th>
+                <th style="width:160px;text-align:right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="cell-key">pending</span></td>
+                <td>待支付</td>
+                <td>1</td>
+                <td><span class="tag tag-success">启用</span></td>
+                <td style="text-align:right"><button class="opt-link">编辑</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openRemoveItem('pending','待支付')">移除</button></td>
+              </tr>
+              <tr>
+                <td><span class="cell-key">paid</span></td>
+                <td>已支付</td>
+                <td>2</td>
+                <td><span class="tag tag-success">启用</span></td>
+                <td style="text-align:right"><button class="opt-link">编辑</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openRemoveItem('paid','已支付')">移除</button></td>
+              </tr>
+              <tr>
+                <td><span class="cell-key">shipped</span></td>
+                <td>已发货</td>
+                <td>3</td>
+                <td><span class="tag tag-success">启用</span></td>
+                <td style="text-align:right"><button class="opt-link">编辑</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openRemoveItem('shipped','已发货')">移除</button></td>
+              </tr>
+              <tr>
+                <td><span class="cell-key">delivered</span></td>
+                <td>已送达</td>
+                <td>4</td>
+                <td><span class="tag tag-success">启用</span></td>
+                <td style="text-align:right"><button class="opt-link">编辑</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openRemoveItem('delivered','已送达')">移除</button></td>
+              </tr>
+              <tr>
+                <td><span class="cell-key">completed</span></td>
+                <td>已完成</td>
+                <td>5</td>
+                <td><span class="tag tag-success">启用</span></td>
+                <td style="text-align:right"><button class="opt-link">编辑</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openRemoveItem('completed','已完成')">移除</button></td>
+              </tr>
+              <tr>
+                <td><span class="cell-key">cancelled</span></td>
+                <td>已取消</td>
+                <td>6</td>
+                <td><span class="tag tag-success">启用</span></td>
+                <td style="text-align:right"><button class="opt-link">编辑</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openRemoveItem('cancelled','已取消')">移除</button></td>
+              </tr>
+              <tr>
+                <td><span class="cell-key">refunded</span></td>
+                <td>已退款</td>
+                <td>7</td>
+                <td><span class="tag tag-success">启用</span></td>
+                <td style="text-align:right"><button class="opt-link">编辑</button><span class="opt-sep">|</span><button class="opt-link danger" onclick="openRemoveItem('refunded','已退款')">移除</button></td>
+              </tr>
+              <tr>
+                <td><span class="cell-key">closed</span></td>
+                <td>已关闭</td>
+                <td>8</td>
+                <td><span class="tag tag-default">停用</span></td>
+                <td style="text-align:right"><button class="opt-link">编辑</button><span class="opt-sep">|</span><button class="opt-link">启用</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="audit-note">
+          <b>提示</b>：字典项编码创建后不可变更，仅显示名与排序可编辑。停用字典后，公开查询端点 <span class="mono">GET /api/dictionaries/{code}</span> 将返回 404，引用该字典的业务需提前迁移。
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Leno 电商平台 · 系统管理后台 v2.4.0 · 仅供系统管理员与运营管理员使用</footer>
+</div>
+
+<!-- 新增字典项弹窗 -->
+<div class="modal-mask" id="addItemModal">
+  <div class="modal" style="width:440px">
+    <div class="modal-head">
+      <div class="modal-title"><svg class="icon icon-md" viewBox="0 0 1024 1024" style="color:var(--c-primary)"><path d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z" fill="currentColor"/><path d="M176 474h672q8 0 8 8v60q0 8-8 8H176q-8 0-8-8v-60q0-8 8-8z" fill="currentColor"/></svg>新增字典项 · order_status</div>
+      <button class="modal-close" onclick="closeModal('addItemModal')"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>项编码<span class="hint-inline">创建后不可变更</span></label>
+        <input class="form-input mono" placeholder="如：partial_refund" value="">
+        <div class="form-hint">仅支持小写字母、数字、下划线，最长 64 字符</div>
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>显示名</label>
+        <input class="form-input" placeholder="如：部分退款" value="">
+      </div>
+      <div class="form-row">
+        <div class="form-item">
+          <label class="form-label"><span class="req">*</span>排序</label>
+          <input class="form-input mono" type="number" value="9">
+        </div>
+        <div class="form-item">
+          <label class="form-label">状态</label>
+          <div class="switch" style="margin-top:4px"><span class="switch-track on"><span class="switch-thumb"></span></span><span style="font-size:var(--fs-sm);color:var(--n9)">启用</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('addItemModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('addItemModal')">确认新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- 移除字典项确认弹窗 -->
+<div class="modal-mask" id="removeItemModal" style="display:none">
+  <div class="modal" style="width:440px">
+    <div class="modal-head">
+      <div class="modal-title"><svg class="icon icon-md" viewBox="0 0 1024 1024" style="color:var(--c-error)"><path d="M864 170h-60l-51.3 73.7H271.3L220 170h-60c-4.4 0-8 3.6-8 8v40c0 4.4 3.6 8 8 8h24.8l201.7 688.3c1.7 5.8 7 9.7 13 9.7h329c6.1 0 11.4-4 13-9.7L835.2 226H864c4.4 0 8-3.6 8-8v-40c0-4.4-3.6-8-8-8z" fill="currentColor"/></svg>确认移除字典项</div>
+      <button class="modal-close" onclick="closeModal('removeItemModal')"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-warn">
+        <svg class="icon icon-lg warn-icon" viewBox="0 0 1024 1024"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 010-96 48.01 48.01 0 010 96z" fill="currentColor"/></svg>
+        <div class="warn-text">
+          即将移除字典项 <b id="removeItemCode">pending</b>（<b id="removeItemName">待支付</b>）。<br>
+          移除后该字典项将不再可用，<b>已引用该项的业务需手动迁移</b>。此操作幂等，重复请求无副作用。
+        </div>
+      </div>
+      <div class="form-hint">如该项被订单流程引用，后端将返回 409 并拒绝移除，请先迁移引用后再操作。</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('removeItemModal')">取消</button>
+      <button class="btn btn-danger" onclick="closeModal('removeItemModal')">确认移除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新增字典弹窗 -->
+<div class="modal-mask" id="createDictModal" style="display:none">
+  <div class="modal" style="width:480px">
+    <div class="modal-head">
+      <div class="modal-title"><svg class="icon icon-md" viewBox="0 0 1024 1024" style="color:var(--c-primary)"><path d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z" fill="currentColor"/><path d="M176 474h672q8 0 8 8v60q0 8-8 8H176q-8 0-8-8v-60q0-8 8-8z" fill="currentColor"/></svg>新增数据字典</div>
+      <button class="modal-close" onclick="closeModal('createDictModal')"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>字典编码<span class="hint-inline">创建后不可变更</span></label>
+        <input class="form-input mono" placeholder="如：logistics_company" value="">
+        <div class="form-hint">仅支持小写字母、数字、下划线，全局唯一。若编码已存在，后端返回 409。</div>
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>字典名称</label>
+        <input class="form-input" placeholder="如：物流公司" value="">
+      </div>
+      <div class="form-item">
+        <label class="form-label">字典描述</label>
+        <textarea class="form-textarea" placeholder="说明该字典的用途与引用方"></textarea>
+      </div>
+      <div class="form-hint">字典创建后默认为停用状态，需手动启用后公开查询端点才可访问。</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('createDictModal')">取消</button>
+      <button class="btn btn-primary" onclick="closeModal('createDictModal')">确认创建</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openAddItem(){document.getElementById('addItemModal').style.display='flex'}
+function openCreateDict(){document.getElementById('createDictModal').style.display='flex'}
+function openRemoveItem(code,name){
+  document.getElementById('removeItemCode').textContent=code;
+  document.getElementById('removeItemName').textContent=name;
+  document.getElementById('removeItemModal').style.display='flex';
+}
+function closeModal(id){document.getElementById(id).style.display='none'}
+document.querySelectorAll('.dict-item').forEach(function(el){
+  el.addEventListener('click',function(){
+    document.querySelectorAll('.dict-item').forEach(function(e){e.classList.remove('active')});
+    el.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

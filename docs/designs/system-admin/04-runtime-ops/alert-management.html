@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>告警管理 - Leno 系统管理后台</title>
+<style>
+:root{
+  --c-primary:#1677FF;--c-success:#52C41A;--c-warning:#FAAD14;--c-error:#FF4D4F;
+  --n1:#FFFFFF;--n2:#FAFAFA;--n3:#F5F5F5;--n5:#D9D9D9;--n7:#8C8C8C;--n9:#595959;--n10:#000000D9;
+  --r-base:6px;--r-card:8px;--r-lg:12px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s6:24px;--s8:32px;--s12:48px;
+  --fs-sm:12px;--fs-base:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:30px;
+  --fw-normal:400;--fw-medium:500;--fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529;--sider-width:200px;--header-h:64px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--n1);display:flex;align-items:center;padding:0 var(--s4);z-index:100;box-shadow:0 1px 4px rgba(0,21,41,.08)}
+.header-logo{display:flex;align-items:center;gap:var(--s2);width:calc(var(--sider-width) - var(--s4));flex-shrink:0}
+.logo-mark{width:32px;height:32px;background:var(--c-primary);border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:var(--fw-semibold);font-size:var(--fs-lg)}
+.logo-text{font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.header-breadcrumb{display:flex;align-items:center;gap:var(--s2);color:var(--n9);font-size:var(--fs-base)}
+.header-breadcrumb .sep{color:var(--n5)}
+.header-breadcrumb .current{color:var(--n10)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:var(--s4)}
+.header-search{width:240px;height:32px;background:var(--n3);border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);outline:none}
+.header-search::placeholder{color:var(--n7)}
+.header-icon-btn{width:36px;height:36px;border:none;background:transparent;border-radius:var(--r-base);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n9);position:relative}
+.header-icon-btn:hover{background:var(--n3)}
+.header-icon-btn .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;border-radius:8px;font-size:10px;line-height:16px;font-weight:var(--fw-semibold)}
+.user-menu{display:flex;align-items:center;gap:var(--s2);cursor:pointer;padding:var(--s1) var(--s2);border-radius:var(--r-base)}
+.user-menu:hover{background:var(--n3)}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-base);font-weight:var(--fw-medium)}
+.user-name{font-size:var(--fs-base)}
+.sider{position:fixed;top:var(--header-h);left:0;bottom:0;width:var(--sider-width);background:var(--sider-bg);overflow-y:auto;z-index:90}
+.menu{list-style:none;padding:var(--s2) 0}
+.menu-group-title{padding:var(--s4) var(--s6);font-size:var(--fs-sm);color:rgba(255,255,255,.35)}
+.menu-item{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s6);height:40px;color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;border-left:3px solid transparent;transition:all .2s}
+.menu-item:hover{color:#fff}
+.menu-item.active{background:var(--c-primary);color:#fff;border-left-color:var(--c-primary)}
+.menu-sub{list-style:none}
+.menu-sub .menu-item{padding-left:var(--s8);font-size:var(--fs-sm)}
+.content{margin-left:var(--sider-width);margin-top:var(--header-h);padding:var(--s6);min-height:calc(100vh - var(--header-h) - 32px)}
+.footer{margin-left:var(--sider-width);height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7)}
+.page-header{background:var(--n1);border-radius:var(--r-card);padding:var(--s6);margin-bottom:var(--s4);box-shadow:var(--sh-card);display:flex;align-items:flex-start;justify-content:space-between}
+.page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-bottom:var(--s1)}
+.page-desc{font-size:var(--fs-base);color:var(--n7);max-width:760px}
+.icon{display:inline-flex;vertical-align:middle;flex-shrink:0}
+.icon-md{width:16px;height:16px}
+.icon-lg{width:20px;height:20px}
+.icon-menu{width:16px;height:16px;fill:currentColor;flex-shrink:0}
+.icon-sm{width:12px;height:12px}
+.btn{display:inline-flex;align-items:center;gap:var(--s1);height:32px;padding:0 var(--s3);border-radius:var(--r-base);border:1px solid var(--n5);background:var(--n1);color:var(--n10);font-size:var(--fs-base);cursor:pointer;transition:all .1s;font-family:inherit}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff}
+.btn-danger{background:var(--c-error);border-color:var(--c-error);color:#fff}
+.btn-danger:hover{background:#ff7875;border-color:#ff7875;color:#fff}
+.btn-text{border:none;background:transparent;color:var(--c-primary);padding:0 var(--s1);height:auto;font-size:var(--fs-sm)}
+.btn-text:hover{background:#e6f4ff;color:var(--c-primary)}
+.btn-text.danger{color:var(--c-error)}
+.btn-text.danger:hover{background:#fff2f0;color:var(--c-error)}
+.btn-text[disabled]{color:var(--n7);cursor:not-allowed;background:transparent}
+.btn-sm{height:24px;padding:0 var(--s2);font-size:var(--fs-sm)}
+.card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s6)}
+/* Stats */
+.stats-row{display:flex;gap:var(--s3);margin-bottom:var(--s4)}
+.stat-card{flex:1;background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4) var(--s6);display:flex;align-items:center;gap:var(--s3);border-left:3px solid var(--c-primary)}
+.stat-card.danger{border-left-color:var(--c-error)}
+.stat-card.warning{border-left-color:var(--c-warning)}
+.stat-card.success{border-left-color:var(--c-success)}
+.stat-icon{width:48px;height:48px;border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stat-icon.primary{background:#e6f4ff;color:var(--c-primary)}
+.stat-icon.danger{background:#fff2f0;color:var(--c-error)}
+.stat-icon.warning{background:#fffbe6;color:var(--c-warning)}
+.stat-icon.success{background:#f6ffed;color:var(--c-success)}
+.stat-info{flex:1;min-width:0}
+.stat-label{font-size:var(--fs-sm);color:var(--n7);margin-bottom:2px}
+.stat-value{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);line-height:1.2}
+.stat-value .unit{font-size:var(--fs-base);color:var(--n7);font-weight:var(--fw-normal);margin-left:2px}
+.stat-trend{font-size:var(--fs-sm);color:var(--n7);margin-top:2px}
+.stat-trend .up{color:var(--c-error)}
+.stat-trend .down{color:var(--c-success)}
+/* Tabs */
+.tabs-bar{display:flex;align-items:center;gap:var(--s2);border-bottom:1px solid var(--n3);margin-bottom:var(--s4);background:var(--n1);padding:0 var(--s4);border-radius:var(--r-card) var(--r-card) 0 0}
+.tab{padding:var(--s3) var(--s4);font-size:var(--fs-base);color:var(--n9);cursor:pointer;border-bottom:2px solid transparent;transition:all .1s;display:flex;align-items:center;gap:var(--s2)}
+.tab:hover{color:var(--c-primary)}
+.tab.active{color:var(--c-primary);border-bottom-color:var(--c-primary);font-weight:var(--fw-medium)}
+.tab .tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;background:var(--n3);color:var(--n9);border-radius:10px;font-size:var(--fs-sm);font-weight:var(--fw-medium)}
+.tab.active .tab-count{background:#e6f4ff;color:var(--c-primary)}
+.tab .tab-count.danger{background:#fff2f0;color:var(--c-error)}
+/* Toolbar */
+.toolbar{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap}
+.input{height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app)}
+.input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.select{height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);cursor:pointer;min-width:120px}
+.select:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.toolbar .spacer{flex:1}
+/* Table */
+.table-wrap{overflow-x:auto;border:1px solid var(--n3);border-radius:var(--r-card);background:var(--n1)}
+table.data-table{width:100%;border-collapse:collapse;font-size:var(--fs-base)}
+.data-table th{background:var(--n2);font-weight:var(--fw-medium);color:var(--n9);font-size:var(--fs-sm);padding:var(--s3) var(--s4);text-align:left;white-space:nowrap;height:48px;border-bottom:1px solid var(--n3)}
+.data-table td{padding:var(--s3) var(--s4);color:var(--n10);border-bottom:1px solid var(--n3);height:48px;vertical-align:middle}
+.data-table tbody tr:hover{background:var(--n2)}
+.data-table tbody tr:last-child td{border-bottom:none}
+.mono{font-family:var(--ff-mono)}
+.cell-mute{color:var(--n7);font-size:var(--fs-sm)}
+.cell-id{font-family:var(--ff-mono);font-size:var(--fs-sm);color:var(--n9)}
+/* Tags */
+.tag{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 var(--s2);border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;border:1px solid transparent;white-space:nowrap;font-weight:var(--fw-normal)}
+.tag-error{color:var(--c-error);background:#fff2f0;border-color:#ffccc7}
+.tag-warning{color:var(--c-warning);background:#fffbe6;border-color:#ffe58f}
+.tag-blue{color:var(--c-primary);background:#e6f4ff;border-color:#91caff}
+.tag-default{color:var(--n9);background:var(--n3);border-color:var(--n5)}
+.tag-success{color:var(--c-success);background:#f6ffed;border-color:#b7eb8f}
+.tag-purple{color:#722ED1;background:#f9f0ff;border-color:#d3adf7}
+.sev-icon{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px}
+/* Operation links */
+.opt-link{display:inline-flex;align-items:center;gap:2px;padding:0 var(--s1);font-size:var(--fs-sm);color:var(--c-primary);background:transparent;border:none;cursor:pointer;font-family:inherit}
+.opt-link:hover{color:#4096FF}
+.opt-link.danger{color:var(--c-error)}
+.opt-link.danger:hover{color:#ff7875}
+.opt-link[disabled]{color:var(--n7);cursor:not-allowed}
+.opt-sep{color:var(--n5);margin:0 2px}
+/* Pagination */
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:var(--s2);padding:var(--s3) var(--s4);font-size:var(--fs-sm);color:var(--n9)}
+.pagination .pg-btn{width:32px;height:32px;border:1px solid var(--n5);border-radius:var(--r-base);background:var(--n1);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n10)}
+.pagination .pg-btn:hover:not([disabled]){border-color:var(--c-primary);color:var(--c-primary)}
+.pagination .pg-btn[disabled]{color:var(--n7);cursor:not-allowed}
+.pagination .pg-active{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+/* Modal */
+.modal-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-mask.show{display:flex}
+.modal{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-modal);width:480px}
+.modal-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2)}
+.modal-close{cursor:pointer;color:var(--n7);border:none;background:transparent;display:flex}
+.modal-close:hover{color:var(--n10)}
+.modal-body{padding:var(--s6);max-height:60vh;overflow-y:auto}
+.modal-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2)}
+.form-item{margin-bottom:var(--s4)}
+.form-label{display:block;font-size:var(--fs-base);color:var(--n9);margin-bottom:var(--s1)}
+.form-label .req{color:var(--c-error);margin-right:2px}
+.form-label .hint-inline{font-size:var(--fs-sm);color:var(--n7);margin-left:var(--s1)}
+.form-input{width:100%;height:32px;padding:0 var(--s3);border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-base);color:var(--n10);outline:none;background:var(--n1);font-family:var(--ff-app)}
+.form-input.mono{font-family:var(--ff-mono)}
+.form-input:focus{border-color:var(--c-primary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.form-hint{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1)}
+textarea.form-input{height:auto;padding:var(--s2) var(--s3);min-height:72px;resize:vertical;line-height:1.5}
+.form-row{display:flex;gap:var(--s3)}
+.form-row .form-item{flex:1}
+.confirm-warn{display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s3);background:#fffbe6;border:1px solid #ffe58f;border-radius:var(--r-base);margin-bottom:var(--s4)}
+.confirm-warn .warn-icon{color:var(--c-warning);flex-shrink:0;margin-top:1px}
+.confirm-warn .warn-text{font-size:var(--fs-sm);color:var(--n9);line-height:1.6}
+.confirm-warn .warn-text b{color:var(--n10)}
+.confirm-warn.danger{background:#fff2f0;border-color:#ffccc7}
+.confirm-warn.danger .warn-icon{color:var(--c-error)}
+/* Drawer */
+.drawer-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none}
+.drawer-mask.show{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:720px;background:var(--n1);box-shadow:var(--sh-modal);z-index:201;transform:translateX(100%);transition:transform .3s cubic-bezier(.2,0,0,1);display:flex;flex-direction:column}
+.drawer.show{transform:translateX(0)}
+.drawer-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.drawer-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2)}
+.drawer-close{cursor:pointer;color:var(--n7);border:none;background:transparent;display:flex}
+.drawer-close:hover{color:var(--n10)}
+.drawer-body{flex:1;overflow-y:auto;padding:var(--s6)}
+.drawer-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2);flex-shrink:0}
+/* Drawer content */
+.desc-list{border:1px solid var(--n3);border-radius:var(--r-base);overflow:hidden;margin-bottom:var(--s4)}
+.desc-row{display:flex;border-bottom:1px solid var(--n3)}
+.desc-row:last-child{border-bottom:none}
+.desc-label{width:120px;padding:var(--s3) var(--s4);background:var(--n2);font-size:var(--fs-base);color:var(--n9);flex-shrink:0}
+.desc-value{padding:var(--s3) var(--s4);font-size:var(--fs-base);color:var(--n10);flex:1;word-break:break-all}
+.section-divider{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);margin:var(--s6) 0 var(--s3);display:flex;align-items:center;gap:var(--s2)}
+.label-block{background:var(--n3);border-radius:var(--r-base);padding:var(--s3);font-family:var(--ff-mono);font-size:var(--fs-sm);line-height:1.8;color:var(--n9)}
+.label-block .lbl-key{color:#722ED1}
+.label-block .lbl-val{color:var(--c-primary)}
+.annotation-item{display:flex;gap:var(--s3);padding:var(--s3);border:1px solid var(--n3);border-radius:var(--r-base);margin-bottom:var(--s2)}
+.annotation-avatar{width:28px;height:28px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);font-weight:var(--fw-medium);flex-shrink:0}
+.annotation-body{flex:1;min-width:0}
+.annotation-head{display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-sm);color:var(--n9);margin-bottom:2px}
+.annotation-name{font-weight:var(--fw-medium);color:var(--n10)}
+.annotation-text{font-size:var(--fs-base);color:var(--n10);line-height:1.5}
+.metric-chart{background:var(--n3);border-radius:var(--r-base);padding:var(--s3);margin-top:var(--s2)}
+.metric-chart svg{width:100%;height:180px;display:block}
+.recommend-box{background:#e6f4ff;border:1px solid #91caff;border-radius:var(--r-base);padding:var(--s3);font-size:var(--fs-sm);color:var(--n9);line-height:1.7}
+.recommend-box b{color:var(--n10)}
+.related-event{display:flex;align-items:center;gap:var(--s3);padding:var(--s2) var(--s3);border:1px solid var(--n3);border-radius:var(--r-base);margin-bottom:var(--s1);font-size:var(--fs-sm)}
+.related-event .ev-time{font-family:var(--ff-mono);color:var(--n7);min-width:120px}
+.related-event .ev-text{flex:1;color:var(--n10)}
+.related-event .ev-tag{font-size:11px}
+/* Silence rule list */
+.silence-card{border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s3);margin-bottom:var(--s2)}
+.silence-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s2)}
+.silence-matchers{font-family:var(--ff-mono);font-size:var(--fs-sm);color:var(--n9);background:var(--n3);padding:var(--s2) var(--s3);border-radius:var(--r-base);margin-bottom:var(--s2)}
+.silence-meta{display:flex;gap:var(--s4);font-size:var(--fs-sm);color:var(--n7)}
+/* Empty */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--s12) var(--s6);text-align:center}
+.empty-icon{color:var(--n5);margin-bottom:var(--s3)}
+.empty-text{font-size:var(--fs-base);color:var(--n7);margin-bottom:var(--s3)}
+/* Info alert */
+.info-alert{display:flex;gap:var(--s2);align-items:flex-start;padding:var(--s3) var(--s4);background:#e6f4ff;border:1px solid #91caff;border-radius:var(--r-base);margin-bottom:var(--s4);font-size:var(--fs-sm);color:var(--n9);line-height:1.6}
+.info-alert .alert-icon{color:var(--c-primary);flex-shrink:0;margin-top:1px}
+.info-alert b{color:var(--n10)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-logo">
+      <div class="logo-mark">L</div>
+      <span class="logo-text">Leno 系统后台</span>
+    </div>
+    <div class="header-breadcrumb">
+      <span>运行时运维</span><span class="sep">/</span><span class="current">告警管理</span>
+    </div>
+    <div class="header-right">
+      <input class="header-search" placeholder="搜索告警名称、模块、标签（Ctrl+K）">
+      <button class="header-icon-btn" title="待办">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg>
+        <span class="badge">12</span>
+      </button>
+      <button class="header-icon-btn" title="通知">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252s-252 110.7-252 252v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32zM336 428c0-105.9 86.1-188 192-188s192 82.1 192 188v340H336V428zM512 912c48.6 0 88-39.4 88-88H424c0 48.6 39.4 88 88 88z"/></svg>
+        <span class="badge">3</span>
+      </button>
+      <div class="user-menu">
+        <div class="user-avatar">A</div>
+        <span class="user-name">系统管理员</span>
+      </div>
+    </div>
+  </header>
+
+  <aside class="sider">
+    <ul class="menu">
+      <li class="menu-group-title">系统管理</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c5.9-10.8 4.3-24.1-4.1-33.2z"/></svg>运营看板</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.7 18.9-84.8 46-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.1 371.1 0 00136 901.8a8 8 0 008 8.2h60c6.4 0 11.8-5.1 12-11.5C227.9 770.5 323.9 670.5 450 648.6c5.7-1 9.8-6 9.8-11.8v-50.4c0-5.6-3.7-10.6-9.1-12.1-83.6-22.5-141-99.3-141-188.4 0-104.3 80.7-193.4 180.8-202.8 121.8-11.4 224.5 85.3 224.5 200.8 0 88.5-56.5 165.5-139.4 188.4-5.4 1.6-9.1 6.6-9.1 12.1v50.4c0 5.8 4.1 10.8 9.8 11.8 126.1 21.9 222.1 121.9 230 249.9.2 6.4 5.6 11.5 12 11.5h60a8 8 0 008-8.2c-1-38.4-9.5-75.7-25.8-110.4z"/></svg>用户与权限</li>
+      <li class="menu-group-title">系统治理</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c5.9-10.8 4.3-24.1-4.1-33.2z"/></svg>功能开关</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-600 72h560v208H232V136zm560 480H232V408h560v208zm0 272H232V680h560v208zM304 240a40 40 0 1080 0 40 40 0 10-80 0zm0 272a40 40 0 1080 0 40 40 0 10-80 0zm0 272a40 40 0 1080 0 40 40 0 10-80 0z"/></svg>系统配置</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 830H304c-22.1 0-40-17.9-40-40V234c0-22.1 17.9-40 40-40h576c22.1 0 40 17.9 40 40v556c0 22.1-17.9 40-40 40zM304 270v520h576V270H304zm-96 100H72v-40h136v40zm0 168H72v-40h136v40zm0 168H72v-40h136v40z"/></svg>数据字典</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252S288 286.7 288 428v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg>公告管理</li>
+      <li class="menu-group-title">运行时运维</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6z"/></svg>限流规则</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg>索引重建</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752zM304 240a40 40 0 1080 0 40 40 0 10-80 0z"/></svg>死信队列</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/></svg>定时任务</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 561.7l-69.4 120.3c-6.5 11.3-21 15.2-32.3 8.7l-94.3-54.4a23.9 23.9 0 00-24.1 0l-94.3 54.4c-11.3 6.5-25.8 2.6-32.3-8.7l-69.4-120.3c-6.5-11.3-2.6-25.8 8.7-32.3l94.3-54.4a23.9 23.9 0 0012-20.8V418.8c0-13 10.5-23.5 23.5-23.5h138.8c13 0 23.5 10.5 23.5 23.5v134.9c0 8.6 4.7 16.6 12 20.8l94.3 54.4c11.2 6.6 15.1 21.1 8.6 32.4z"/></svg>健康监控</li>
+      <li class="menu-item active"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252S288 286.7 288 428v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32zM336 428c0-105.9 86.1-188 192-188s192 82.1 192 188v340H336V428z"/></svg>告警管理</li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">告警管理</div>
+        <div class="page-desc">查看 Alertmanager 告警事件，按模块与严重级别筛选，处置告警（确认/静默/转工单），追踪闭环。firing 状态每 30s 自动轮询刷新。</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn"><svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-44.3c-3-2.4-7.3-2.4-10.3 0L541.7 430.7c-3 2.4-7.3 2.4-10.3 0L123.8 129.5c-3-2.4-7.3-2.4-10.3 0L57.1 173.8c-3.9 3.1-3.9 8.9 0 12l387.5 301.2c3 2.4 3 7.3 0 9.7L57.1 797.9c-3.9 3.1-3.9 8.9 0 12l56.4 44.3c3 2.4 7.3 2.4 10.3 0l387.6-301.2c3-2.4 7.3-2.4 10.3 0l407.7 317.5c3 2.4 7.3 2.4 10.3 0l56.4-44.3c3.9-3.1 3.9-8.9 0-12L521.7 506.7c-3-2.4-3-7.3 0-9.7L909.1 197.3c3.9-3.1 3.9-8.9 0-12z"/></svg>自动刷新 30s</button>
+        <button class="btn btn-primary" onclick="openSilenceModal()"><svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252S288 286.7 288 428v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg>创建静默规则</button>
+      </div>
+    </div>
+
+    <!-- 区域 A：统计条 -->
+    <div class="stats-row">
+      <div class="stat-card danger">
+        <div class="stat-icon danger">
+          <svg class="icon icon-lg" viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252S288 286.7 288 428v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">待处置告警</div>
+          <div class="stat-value">12</div>
+          <div class="stat-trend"><span class="up">↑ 3</span> 较昨日</div>
+        </div>
+      </div>
+      <div class="stat-card danger">
+        <div class="stat-icon danger">
+          <svg class="icon icon-lg" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64L64 960h896L512 64zm0 240l288 528H224L512 304zm-32 192v144h64v-144h-64zm0 192v64h64v-64h-64z"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">严重告警（Critical）</div>
+          <div class="stat-value">3</div>
+          <div class="stat-trend"><span class="up">↑ 2</span> 较昨日</div>
+        </div>
+      </div>
+      <div class="stat-card primary">
+        <div class="stat-icon primary">
+          <svg class="icon icon-lg" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">今日告警总数</div>
+          <div class="stat-value">28</div>
+          <div class="stat-trend"><span class="down">↓ 5</span> 较昨日</div>
+        </div>
+      </div>
+      <div class="stat-card success">
+        <div class="stat-icon success">
+          <svg class="icon icon-lg" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 302.3L784.3 174.7c-12.5-12.5-32.8-12.5-45.3 0L384 529.7 203.6 349.4c-12.5-12.5-32.8-12.5-45.3 0L30.6 477.1c-12.5 12.5-12.5 32.8 0 45.3l306.4 306.4c12.5 12.5 32.8 12.5 45.3 0l529.4-481.2c12.5-12.5 12.5-32.8 0-45.3z"/></svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">平均处置时长</div>
+          <div class="stat-value">8<span class="unit">分钟</span></div>
+          <div class="stat-trend"><span class="down">↓ 2m</span> 较昨日</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 区域 B：Tab + 筛选条 + 表格 -->
+    <div class="card" style="padding:0">
+      <div class="tabs-bar">
+        <div class="tab active" onclick="switchTab(this,'firing')">
+          <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="#FF4D4F"><path d="M512 64L64 960h896L512 64zm0 240l288 528H224L512 304zm-32 192v144h64v-144h-64zm0 192v64h64v-64h-64z"/></svg>
+          活跃（Firing）
+          <span class="tab-count danger">12</span>
+        </div>
+        <div class="tab" onclick="switchTab(this,'acknowledged')">
+          <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="#FAAD14"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 561.7l-69.4 120.3c-6.5 11.3-21 15.2-32.3 8.7l-94.3-54.4a23.9 23.9 0 00-24.1 0l-94.3 54.4c-11.3 6.5-25.8 2.6-32.3-8.7l-69.4-120.3c-6.5-11.3-2.6-25.8 8.7-32.3l94.3-54.4a23.9 23.9 0 0012-20.8V418.8c0-13 10.5-23.5 23.5-23.5h138.8c13 0 23.5 10.5 23.5 23.5v134.9c0 8.6 4.7 16.6 12 20.8l94.3 54.4c11.2 6.6 15.1 21.1 8.6 32.4z"/></svg>
+          已确认（Acknowledged）
+          <span class="tab-count">5</span>
+        </div>
+        <div class="tab" onclick="switchTab(this,'silenced')">
+          <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="#8C8C8C"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252S288 286.7 288 428v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg>
+          已静默（Silenced）
+          <span class="tab-count">3</span>
+        </div>
+        <div class="tab" onclick="switchTab(this,'resolved')">
+          <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="#52C41A"><path d="M912 302.3L784.3 174.7c-12.5-12.5-32.8-12.5-45.3 0L384 529.7 203.6 349.4c-12.5-12.5-32.8-12.5-45.3 0L30.6 477.1c-12.5 12.5-12.5 32.8 0 45.3l306.4 306.4c12.5 12.5 32.8 12.5 45.3 0l529.4-481.2c12.5-12.5 12.5-32.8 0-45.3z"/></svg>
+          已恢复（Resolved）
+          <span class="tab-count">18</span>
+        </div>
+      </div>
+
+      <div style="padding:16px">
+        <div class="toolbar">
+          <select class="select" multiple size="1" style="min-width:140px">
+            <option>全部模块</option>
+          </select>
+          <select class="select">
+            <option>全部级别</option>
+            <option>Critical</option>
+            <option>Warning</option>
+            <option>Info</option>
+          </select>
+          <select class="select">
+            <option>全部状态</option>
+            <option>Firing</option>
+            <option>Acknowledged</option>
+            <option>Resolved</option>
+          </select>
+          <input class="input" type="text" placeholder="时间范围：2026-07-26 00:00 ~ 2026-07-26 23:59" style="width:280px">
+          <input class="input" type="text" placeholder="搜索告警名称、模块、标签" style="width:200px">
+          <button class="btn btn-primary btn-sm"><svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-44.3c-3-2.4-7.3-2.4-10.3 0L541.7 430.7c-3 2.4-7.3 2.4-10.3 0L123.8 129.5c-3-2.4-7.3-2.4-10.3 0L57.1 173.8c-3.9 3.1-3.9 8.9 0 12l387.5 301.2c3 2.4 3 7.3 0 9.7L57.1 797.9c-3.9 3.1-3.9 8.9 0 12l56.4 44.3c3 2.4 7.3 2.4 10.3 0l387.6-301.2c3-2.4 7.3-2.4 10.3 0l407.7 317.5c3 2.4 7.3 2.4 10.3 0l56.4-44.3c3.9-3.1 3.9-8.9 0-12L521.7 506.7c-3-2.4-3-7.3 0-9.7L909.1 197.3c3.9-3.1 3.9-8.9 0-12z"/></svg>查询</button>
+          <button class="btn btn-sm"><svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4-44.3c-3-2.4-7.3-2.4-10.3 0L541.7 430.7c-3 2.4-7.3 2.4-10.3 0L123.8 129.5c-3-2.4-7.3-2.4-10.3 0L57.1 173.8c-3.9 3.1-3.9 8.9 0 12l387.5 301.2c3 2.4 3 7.3 0 9.7L57.1 797.9c-3.9 3.1-3.9 8.9 0 12l56.4 44.3c3 2.4 7.3 2.4 10.3 0l387.6-301.2c3-2.4 7.3-2.4 10.3 0l407.7 317.5c3 2.4 7.3 2.4 10.3 0l56.4-44.3c3.9-3.1 3.9-8.9 0-12L521.7 506.7c-3-2.4-3-7.3 0-9.7L909.1 197.3c3.9-3.1 3.9-8.9 0-12z" transform="rotate(180 512 512)"/></svg>重置</button>
+          <div class="spacer"></div>
+          <button class="btn btn-sm"><svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 830H304c-22.1 0-40-17.9-40-40V234c0-22.1 17.9-40 40-40h576c22.1 0 40 17.9 40 40v556c0 22.1-17.9 40-40 40z"/></svg>批量确认</button>
+          <button class="btn btn-sm"><svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32z"/></svg>导出</button>
+        </div>
+
+        <!-- 规划中提示 -->
+        <div class="info-alert">
+          <svg class="icon icon-md alert-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm32 664c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V456c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272zm-32-344a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+          <div>告警管理功能规划中，API 端点 <b>/api/admin/alerts</b> 待 SystemAdmin BC 实现 Alertmanager 集成。当前页面为设计稿预览，数据为模拟值。</div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:36px"><input type="checkbox"></th>
+                <th style="width:120px">告警 ID</th>
+                <th>告警名称</th>
+                <th style="width:120px">模块</th>
+                <th style="width:100px">级别</th>
+                <th style="width:110px">状态</th>
+                <th style="width:140px">触发时间</th>
+                <th style="width:100px">持续时长</th>
+                <th style="width:220px">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input type="checkbox"></td>
+                <td><span class="cell-id">ALT-2026-0726-001</span></td>
+                <td>
+                  <div style="font-weight:500">HighErrorRate</div>
+                  <div class="cell-mute">支付服务错误率超过阈值 10%</div>
+                </td>
+                <td><span class="tag tag-blue">Payment</span></td>
+                <td><span class="tag tag-error"><span class="sev-icon"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M512 64L64 960h896L512 64z"/></svg></span>Critical</span></td>
+                <td><span class="tag tag-error">Firing</span></td>
+                <td><span class="cell-mute mono">07-26 14:30:08</span></td>
+                <td><span class="cell-mute mono">12m 30s</span></td>
+                <td>
+                  <button class="opt-link" onclick="openDetail()">详情</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openAckModal()">确认</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openSilenceModal()">静默</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link">转工单</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"></td>
+                <td><span class="cell-id">ALT-2026-0726-002</span></td>
+                <td>
+                  <div style="font-weight:500">PaymentChannelDown</div>
+                  <div class="cell-mute">支付宝渠道连接失败，错误率 12.4%</div>
+                </td>
+                <td><span class="tag tag-blue">Payment</span></td>
+                <td><span class="tag tag-error"><span class="sev-icon"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M512 64L64 960h896L512 64z"/></svg></span>Critical</span></td>
+                <td><span class="tag tag-error">Firing</span></td>
+                <td><span class="cell-mute mono">07-26 14:12:22</span></td>
+                <td><span class="cell-mute mono">30m 16s</span></td>
+                <td>
+                  <button class="opt-link" onclick="openDetail()">详情</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openAckModal()">确认</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openSilenceModal()">静默</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link">转工单</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"></td>
+                <td><span class="cell-id">ALT-2026-0726-003</span></td>
+                <td>
+                  <div style="font-weight:500">DBConnectionPoolExhausted</div>
+                  <div class="cell-mute">订单服务数据库连接池使用率 95%</div>
+                </td>
+                <td><span class="tag tag-purple">Order</span></td>
+                <td><span class="tag tag-error"><span class="sev-icon"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M512 64L64 960h896L512 64z"/></svg></span>Critical</span></td>
+                <td><span class="tag tag-error">Firing</span></td>
+                <td><span class="cell-mute mono">07-26 14:05:41</span></td>
+                <td><span class="cell-mute mono">36m 57s</span></td>
+                <td>
+                  <button class="opt-link" onclick="openDetail()">详情</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openAckModal()">确认</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openSilenceModal()">静默</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link">转工单</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"></td>
+                <td><span class="cell-id">ALT-2026-0726-004</span></td>
+                <td>
+                  <div style="font-weight:500">HighLatency</div>
+                  <div class="cell-mute">订单服务 P99 延迟 820ms（阈值 500ms）</div>
+                </td>
+                <td><span class="tag tag-purple">Order</span></td>
+                <td><span class="tag tag-warning"><span class="sev-icon"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232a48 48 0 116 0 96 0 48 48 0 11-6 0zm-16 112h64v272h-64V408z"/></svg></span>Warning</span></td>
+                <td><span class="tag tag-error">Firing</span></td>
+                <td><span class="cell-mute mono">07-26 13:58:19</span></td>
+                <td><span class="cell-mute mono">44m 19s</span></td>
+                <td>
+                  <button class="opt-link" onclick="openDetail()">详情</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openAckModal()">确认</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openSilenceModal()">静默</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link">转工单</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"></td>
+                <td><span class="cell-id">ALT-2026-0726-005</span></td>
+                <td>
+                  <div style="font-weight:500">ESNodeDown</div>
+                  <div class="cell-mute">Elasticsearch 节点 es-node-3 离线</div>
+                </td>
+                <td><span class="tag tag-default">Search</span></td>
+                <td><span class="tag tag-warning"><span class="sev-icon"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232a48 48 0 116 0 96 0 48 48 0 11-6 0zm-16 112h64v272h-64V408z"/></svg></span>Warning</span></td>
+                <td><span class="tag tag-error">Firing</span></td>
+                <td><span class="cell-mute mono">07-26 13:42:00</span></td>
+                <td><span class="cell-mute mono">1h 00m</span></td>
+                <td>
+                  <button class="opt-link" onclick="openDetail()">详情</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openAckModal()">确认</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openSilenceModal()">静默</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link">转工单</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"></td>
+                <td><span class="cell-id">ALT-2026-0726-006</span></td>
+                <td>
+                  <div style="font-weight:500">MQConsumerLag</div>
+                  <div class="cell-mute">RabbitMQ 订单队列消费积压 1,240 条</div>
+                </td>
+                <td><span class="tag tag-purple">Order</span></td>
+                <td><span class="tag tag-warning"><span class="sev-icon"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232a48 48 0 116 0 96 0 48 48 0 11-6 0zm-16 112h64v272h-64V408z"/></svg></span>Warning</span></td>
+                <td><span class="tag tag-error">Firing</span></td>
+                <td><span class="cell-mute mono">07-26 13:30:12</span></td>
+                <td><span class="cell-mute mono">1h 12m</span></td>
+                <td>
+                  <button class="opt-link" onclick="openDetail()">详情</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openAckModal()">确认</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openSilenceModal()">静默</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link">转工单</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"></td>
+                <td><span class="cell-id">ALT-2026-0726-007</span></td>
+                <td>
+                  <div style="font-weight:500">RedisMemoryHigh</div>
+                  <div class="cell-mute">Redis 内存使用率 85%（阈值 80%）</div>
+                </td>
+                <td><span class="tag tag-default">Cache</span></td>
+                <td><span class="tag tag-warning"><span class="sev-icon"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232a48 48 0 116 0 96 0 48 48 0 11-6 0zm-16 112h64v272h-64V408z"/></svg></span>Warning</span></td>
+                <td><span class="tag tag-error">Firing</span></td>
+                <td><span class="cell-mute mono">07-26 12:18:44</span></td>
+                <td><span class="cell-mute mono">2h 24m</span></td>
+                <td>
+                  <button class="opt-link" onclick="openDetail()">详情</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openAckModal()">确认</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openSilenceModal()">静默</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link">转工单</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"></td>
+                <td><span class="cell-id">ALT-2026-0726-008</span></td>
+                <td>
+                  <div style="font-weight:500">DiskSpaceLow</div>
+                  <div class="cell-mute">MySQL 数据盘使用率 88%</div>
+                </td>
+                <td><span class="tag tag-default">DB</span></td>
+                <td><span class="tag tag-warning"><span class="sev-icon"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232a48 48 0 116 0 96 0 48 48 0 11-6 0zm-16 112h64v272h-64V408z"/></svg></span>Warning</span></td>
+                <td><span class="tag tag-error">Firing</span></td>
+                <td><span class="cell-mute mono">07-26 11:05:30</span></td>
+                <td><span class="cell-mute mono">3h 37m</span></td>
+                <td>
+                  <button class="opt-link" onclick="openDetail()">详情</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openAckModal()">确认</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openSilenceModal()">静默</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link">转工单</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"></td>
+                <td><span class="cell-id">ALT-2026-0726-009</span></td>
+                <td>
+                  <div style="font-weight:500">SlowQueryDetected</div>
+                  <div class="cell-mute">商品服务慢查询 &gt; 2s，累计 56 次</div>
+                </td>
+                <td><span class="tag tag-default">Product</span></td>
+                <td><span class="tag tag-blue"><span class="sev-icon"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm32 664c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V456c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272zm-32-344a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg></span>Info</span></td>
+                <td><span class="tag tag-error">Firing</span></td>
+                <td><span class="cell-mute mono">07-26 10:42:18</span></td>
+                <td><span class="cell-mute mono">4h 00m</span></td>
+                <td>
+                  <button class="opt-link" onclick="openDetail()">详情</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openAckModal()">确认</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openSilenceModal()">静默</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link">转工单</button>
+                </td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"></td>
+                <td><span class="cell-id">ALT-2026-0726-010</span></td>
+                <td>
+                  <div style="font-weight:500">CertExpiringSoon</div>
+                  <div class="cell-mute">API 网关 TLS 证书将于 7 天后过期</div>
+                </td>
+                <td><span class="tag tag-blue">Gateway</span></td>
+                <td><span class="tag tag-blue"><span class="sev-icon"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm32 664c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V456c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272zm-32-344a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg></span>Info</span></td>
+                <td><span class="tag tag-error">Firing</span></td>
+                <td><span class="cell-mute mono">07-26 09:00:00</span></td>
+                <td><span class="cell-mute mono">5h 42m</span></td>
+                <td>
+                  <button class="opt-link" onclick="openDetail()">详情</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openAckModal()">确认</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link" onclick="openSilenceModal()">静默</button>
+                  <span class="opt-sep">|</span>
+                  <button class="opt-link">转工单</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <span>共 28 条</span>
+          <button class="pg-btn" disabled>‹</button>
+          <button class="pg-btn pg-active">1</button>
+          <button class="pg-btn">2</button>
+          <button class="pg-btn">3</button>
+          <button class="pg-btn">›</button>
+          <span>10 条/页</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 静默规则列表 -->
+    <div class="card" style="margin-top:16px">
+      <div class="section-divider" style="margin:0 0 12px">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252S288 286.7 288 428v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg>
+        当前生效的静默规则（3 条）
+      </div>
+      <div class="silence-card">
+        <div class="silence-head">
+          <div style="font-weight:500">维护窗口静默 - Elasticsearch</div>
+          <div style="display:flex;gap:8px">
+            <span class="tag tag-default">生效中</span>
+            <button class="opt-link danger">删除</button>
+          </div>
+        </div>
+        <div class="silence-matchers">matchers: { module = "Elasticsearch", alertname =~ "ESNode.*" }</div>
+        <div class="silence-meta">
+          <span>持续时长：2 小时</span>
+          <span>生效区间：07-26 13:00 ~ 07-26 15:00</span>
+          <span>创建人：运维-张三</span>
+          <span>原因：ES 节点计划内维护</span>
+        </div>
+      </div>
+      <div class="silence-card">
+        <div class="silence-head">
+          <div style="font-weight:500">测试环境静默 - 商品服务</div>
+          <div style="display:flex;gap:8px">
+            <span class="tag tag-default">生效中</span>
+            <button class="opt-link danger">删除</button>
+          </div>
+        </div>
+        <div class="silence-matchers">matchers: { module = "Product", env = "test" }</div>
+        <div class="silence-meta">
+          <span>持续时长：24 小时</span>
+          <span>生效区间：07-26 00:00 ~ 07-27 00:00</span>
+          <span>创建人：开发-李四</span>
+          <span>原因：压测期间预期产生告警</span>
+        </div>
+      </div>
+      <div class="silence-card">
+        <div class="silence-head">
+          <div style="font-weight:500">磁盘告警静默 - MySQL 从库</div>
+          <div style="display:flex;gap:8px">
+            <span class="tag tag-success">即将到期</span>
+            <button class="opt-link danger">删除</button>
+          </div>
+        </div>
+        <div class="silence-matchers">matchers: { module = "DB", instance =~ "mysql-slave-.*", alertname = "DiskSpaceLow" }</div>
+        <div class="silence-meta">
+          <span>持续时长：4 小时</span>
+          <span>生效区间：07-26 10:00 ~ 07-26 14:00</span>
+          <span>创建人：运维-王五</span>
+          <span>原因：扩容磁盘期间临时静默</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Leno 电商平台系统管理后台 · 告警管理 · firing 状态每 30s 自动轮询</footer>
+</div>
+
+<!-- 确认告警 Modal -->
+<div class="modal-mask" id="ackMask">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="#FAAD14"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232a48 48 0 116 0 96 0 48 48 0 11-6 0zm-16 112h64v272h-64V408z"/></svg>
+        确认告警
+      </div>
+      <button class="modal-close" onclick="closeAckModal()">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9A7.98 7.98 0 00203 838h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-warn">
+        <svg class="icon icon-md warn-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232a48 48 0 116 0 96 0 48 48 0 11-6 0zm-16 112h64v272h-64V408z"/></svg>
+        <div class="warn-text">确认后告警状态变为<b>已确认（Acknowledged）</b>，不再触发通知（除非再次变为 firing）。请输入处置注释以便追溯。</div>
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>告警 ID</label>
+        <input class="form-input mono" value="ALT-2026-0726-001" readonly>
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>告警名称</label>
+        <input class="form-input" value="HighErrorRate - 支付服务错误率超过阈值 10%" readonly>
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>处置注释</label>
+        <textarea class="form-input" placeholder="请输入处置说明，例如：已联系支付渠道方排查，预计 30 分钟内恢复">已联系支付宝技术支持，确认对方网关异常，正在紧急切换备用渠道。</textarea>
+        <div class="form-hint">注释将记录在告警历史中，供后续复盘追溯</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeAckModal()">取消</button>
+      <button class="btn btn-primary" onclick="closeAckModal()">确认处置</button>
+    </div>
+  </div>
+</div>
+
+<!-- 创建静默规则 Modal -->
+<div class="modal-mask" id="silenceMask">
+  <div class="modal" style="width:560px">
+    <div class="modal-head">
+      <div class="modal-title">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="#FF4D4F"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252S288 286.7 288 428v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg>
+        创建静默规则
+      </div>
+      <button class="modal-close" onclick="closeSilenceModal()">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9A7.98 7.98 0 00203 838h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-warn danger">
+        <svg class="icon icon-md warn-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64L64 960h896L512 64zm0 240l288 528H224L512 304zm-32 192v144h64v-144h-64zm0 192v64h64v-64h-64z"/></svg>
+        <div class="warn-text"><b>静默期间匹配的告警将不再通知，可能遗漏关键事件。</b>请确认静默时长与匹配范围，避免长期静默导致故障被忽略。</div>
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>匹配器 - 模块</label>
+        <select class="select" style="width:100%">
+          <option>请选择模块</option>
+          <option>Payment（支付服务）</option>
+          <option>Order（订单服务）</option>
+          <option>Product（商品服务）</option>
+          <option>Search（Elasticsearch）</option>
+          <option>Cache（Redis）</option>
+          <option>DB（MySQL）</option>
+          <option>Gateway（API 网关）</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label class="form-label">匹配器 - 告警名称（正则）</label>
+        <input class="form-input mono" placeholder="如 ESNode.* 留空匹配全部">
+        <div class="form-hint">支持 Prometheus 正则语法，留空表示匹配该模块下所有告警</div>
+      </div>
+      <div class="form-row">
+        <div class="form-item">
+          <label class="form-label"><span class="req">*</span>持续时长</label>
+          <select class="select" style="width:100%">
+            <option>1 小时</option>
+            <option>2 小时</option>
+            <option>4 小时</option>
+            <option>8 小时</option>
+            <option>24 小时</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label class="form-label"><span class="req">*</span>生效起始</label>
+          <input class="form-input mono" value="2026-07-26 14:30" type="text">
+        </div>
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>静默原因</label>
+        <textarea class="form-input" placeholder="请说明静默原因，便于审计追溯">计划内维护窗口，预期产生告警，临时静默。</textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeSilenceModal()">取消</button>
+      <button class="btn btn-danger" onclick="closeSilenceModal()">创建静默规则</button>
+    </div>
+  </div>
+</div>
+
+<!-- 告警详情抽屉 -->
+<div class="drawer-mask" id="detailMask" onclick="closeDetail()">
+  <div class="drawer" id="detailDrawer" onclick="event.stopPropagation()">
+    <div class="drawer-head">
+      <div class="drawer-title">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="#FF4D4F"><path d="M512 64L64 960h896L512 64zm0 240l288 528H224L512 304zm-32 192v144h64v-144h-64zm0 192v64h64v-64h-64z"/></svg>
+        HighErrorRate - 支付服务错误率告警
+      </div>
+      <button class="drawer-close" onclick="closeDetail()">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9A7.98 7.98 0 00203 838h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body">
+      <!-- 基本信息描述列表 -->
+      <div class="desc-list">
+        <div class="desc-row">
+          <div class="desc-label">告警 ID</div>
+          <div class="desc-value mono">ALT-2026-0726-001</div>
+        </div>
+        <div class="desc-row">
+          <div class="desc-label">告警名称</div>
+          <div class="desc-value">HighErrorRate</div>
+        </div>
+        <div class="desc-row">
+          <div class="desc-label">模块</div>
+          <div class="desc-value"><span class="tag tag-blue">Payment（支付服务）</span></div>
+        </div>
+        <div class="desc-row">
+          <div class="desc-label">级别</div>
+          <div class="desc-value"><span class="tag tag-error">Critical</span></div>
+        </div>
+        <div class="desc-row">
+          <div class="desc-label">状态</div>
+          <div class="desc-value"><span class="tag tag-error">Firing</span></div>
+        </div>
+        <div class="desc-row">
+          <div class="desc-label">触发时间</div>
+          <div class="desc-value mono">2026-07-26 14:30:08</div>
+        </div>
+        <div class="desc-row">
+          <div class="desc-label">持续时长</div>
+          <div class="desc-value mono">12 分 30 秒</div>
+        </div>
+        <div class="desc-row">
+          <div class="desc-label">摘要</div>
+          <div class="desc-value">支付服务错误率 12.4%，超过阈值 10%</div>
+        </div>
+        <div class="desc-row">
+          <div class="desc-label">描述</div>
+          <div class="desc-value">支付服务在过去 5 分钟内平均错误率达到 12.4%，超过预设阈值 10%。建议立即检查支付渠道连通性与证书有效性。</div>
+        </div>
+      </div>
+
+      <!-- 触发条件 -->
+      <div class="section-divider">
+        <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6z"/></svg>
+        触发条件
+      </div>
+      <div class="label-block">rate(payment_requests_total{status="error"}[5m]) / rate(payment_requests_total[5m]) &gt; 0.10</div>
+
+      <!-- 标签 -->
+      <div class="section-divider">
+        <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 830H304c-22.1 0-40-17.9-40-40V234c0-22.1 17.9-40 40-40h576c22.1 0 40 17.9 40 40v556c0 22.1-17.9 40-40 40z"/></svg>
+        标签（Labels）
+      </div>
+      <div class="label-block">
+        <span class="lbl-key">alertname</span> = <span class="lbl-val">"HighErrorRate"</span><br>
+        <span class="lbl-key">module</span> = <span class="lbl-val">"Payment"</span><br>
+        <span class="lbl-key">severity</span> = <span class="lbl-val">"critical"</span><br>
+        <span class="lbl-key">instance</span> = <span class="lbl-val">"payment-svc-0:8080"</span><br>
+        <span class="lbl-key">channel</span> = <span class="lbl-val">"alipay"</span><br>
+        <span class="lbl-key">env</span> = <span class="lbl-val">"production"</span>
+      </div>
+
+      <!-- 关联指标图 -->
+      <div class="section-divider">
+        <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg>
+        关联指标（payment_error_rate）
+      </div>
+      <div class="metric-chart">
+        <svg viewBox="0 0 600 180" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="errGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#FF4D4F" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#FF4D4F" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <line x1="0" y1="40" x2="600" y2="40" stroke="#D9D9D9" stroke-width="1" stroke-dasharray="4 4"/>
+          <line x1="0" y1="100" x2="600" y2="100" stroke="#F5F5F5" stroke-width="1"/>
+          <line x1="0" y1="140" x2="600" y2="140" stroke="#F5F5F5" stroke-width="1"/>
+          <text x="4" y="36" font-size="10" fill="#FF4D4F" font-weight="600">阈值 10%</text>
+          <text x="4" y="104" font-size="10" fill="#8C8C8C">5%</text>
+          <text x="4" y="144" font-size="10" fill="#8C8C8C">0%</text>
+          <path d="M0,140 L40,138 L80,135 L120,130 L160,120 L200,115 L240,105 L280,85 L320,60 L360,45 L400,38 L440,35 L480,33 L520,32 L560,30 L600,28 L600,180 L0,180 Z" fill="url(#errGrad)"/>
+          <polyline points="0,140 40,138 80,135 120,130 160,120 200,115 240,105 280,85 320,60 360,45 400,38 440,35 480,33 520,32 560,30 600,28" fill="none" stroke="#FF4D4F" stroke-width="2"/>
+          <circle cx="320" cy="60" r="4" fill="#FF4D4F"/>
+          <text x="328" y="56" font-size="10" fill="#FF4D4F" font-weight="600">触发 12.4%</text>
+          <text x="0" y="175" font-size="10" fill="#8C8C8C">14:00</text>
+          <text x="280" y="175" font-size="10" fill="#8C8C8C">14:15</text>
+          <text x="560" y="175" font-size="10" fill="#8C8C8C">14:30</text>
+        </svg>
+      </div>
+
+      <!-- 关联事件 -->
+      <div class="section-divider">
+        <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/></svg>
+        关联事件
+      </div>
+      <div class="related-event">
+        <span class="ev-time">07-26 14:30:08</span>
+        <span class="ev-text">告警触发：支付服务错误率 12.4%</span>
+        <span class="ev-tag tag tag-error">Triggered</span>
+      </div>
+      <div class="related-event">
+        <span class="ev-time">07-26 14:28:12</span>
+        <span class="ev-text">支付宝渠道连接超时，开始重试</span>
+        <span class="ev-tag tag tag-warning">Warning</span>
+      </div>
+      <div class="related-event">
+        <span class="ev-time">07-26 14:25:30</span>
+        <span class="ev-text">支付服务实例 payment-svc-0 重启完成</span>
+        <span class="ev-tag tag tag-blue">Info</span>
+      </div>
+      <div class="related-event">
+        <span class="ev-time">07-26 14:20:00</span>
+        <span class="ev-text">部署变更：支付服务 v2.3.1 发布上线</span>
+        <span class="ev-tag tag tag-purple">Deploy</span>
+      </div>
+
+      <!-- 注释历史 -->
+      <div class="section-divider">
+        <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 830H304c-22.1 0-40-17.9-40-40V234c0-22.1 17.9-40 40-40h576c22.1 0 40 17.9 40 40v556c0 22.1-17.9 40-40 40z"/></svg>
+        注释历史
+      </div>
+      <div class="annotation-item">
+        <div class="annotation-avatar">系</div>
+        <div class="annotation-body">
+          <div class="annotation-head">
+            <span class="annotation-name">系统自动</span>
+            <span>·</span>
+            <span>07-26 14:30:08</span>
+          </div>
+          <div class="annotation-text">告警由 Alertmanager 自动触发，关联指标 payment_error_rate 当前值 12.4%。</div>
+        </div>
+      </div>
+      <div class="annotation-item">
+        <div class="annotation-avatar">张</div>
+        <div class="annotation-body">
+          <div class="annotation-head">
+            <span class="annotation-name">运维-张三</span>
+            <span>·</span>
+            <span>07-26 14:35:22</span>
+          </div>
+          <div class="annotation-text">已收到告警，正在排查支付渠道连通性，初步判断为支付宝侧网关异常。</div>
+        </div>
+      </div>
+
+      <!-- 处置建议 -->
+      <div class="section-divider">
+        <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 302.3L784.3 174.7c-12.5-12.5-32.8-12.5-45.3 0L384 529.7 203.6 349.4c-12.5-12.5-32.8-12.5-45.3 0L30.6 477.1c-12.5 12.5-12.5 32.8 0 45.3l306.4 306.4c12.5 12.5 32.8 12.5 45.3 0l529.4-481.2c12.5-12.5 12.5-32.8 0-45.3z"/></svg>
+        处置建议
+      </div>
+      <div class="recommend-box">
+        <b>支付服务错误率飙升处置流程：</b><br>
+        1) 立即查看支付渠道连通性，确认支付宝/微信支付网关是否可达；<br>
+        2) 检查支付证书是否过期（重点关注 SSL handshake 错误）；<br>
+        3) 确认出口 IP 是否被支付渠道风控；<br>
+        4) 必要时切换至备用支付渠道，通知业务方暂停大额支付下单；<br>
+        5) 查看 Prometheus 指标 <b>payment_error_rate</b> 与 <b>payment_channel_status</b> 趋势；<br>
+        6) 处置完成后在此添加注释，并确认告警恢复。
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn" onclick="closeDetail()">关闭</button>
+      <button class="btn" onclick="closeDetail();openAckModal()">确认告警</button>
+      <button class="btn btn-danger" onclick="closeDetail();openSilenceModal()">静默</button>
+      <button class="btn btn-primary">转工单</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(el,status){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+function openDetail(){
+  document.getElementById('detailMask').classList.add('show');
+  document.getElementById('detailDrawer').classList.add('show');
+}
+function closeDetail(){
+  document.getElementById('detailMask').classList.remove('show');
+  document.getElementById('detailDrawer').classList.remove('show');
+}
+function openAckModal(){
+  document.getElementById('ackMask').classList.add('show');
+}
+function closeAckModal(){
+  document.getElementById('ackMask').classList.remove('show');
+}
+function openSilenceModal(){
+  document.getElementById('silenceMask').classList.add('show');
+}
+function closeSilenceModal(){
+  document.getElementById('silenceMask').classList.remove('show');
+}
+</script>
+</body>
+</html>

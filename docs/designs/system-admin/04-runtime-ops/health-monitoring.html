@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>健康监控 - Leno 系统管理后台</title>
+<style>
+:root{
+  --c-primary:#1677FF;--c-success:#52C41A;--c-warning:#FAAD14;--c-error:#FF4D4F;
+  --n1:#FFFFFF;--n2:#FAFAFA;--n3:#F5F5F5;--n5:#D9D9D9;--n7:#8C8C8C;--n9:#595959;--n10:#000000D9;
+  --r-base:6px;--r-card:8px;--r-lg:12px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s6:24px;--s8:32px;--s12:48px;
+  --fs-sm:12px;--fs-base:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:30px;
+  --fw-normal:400;--fw-medium:500;--fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529;--sider-width:200px;--header-h:64px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);line-height:1.5715}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--n1);display:flex;align-items:center;padding:0 var(--s4);z-index:100;box-shadow:0 1px 4px rgba(0,21,41,.08)}
+.header-logo{display:flex;align-items:center;gap:var(--s2);width:calc(var(--sider-width) - var(--s4));flex-shrink:0}
+.logo-mark{width:32px;height:32px;background:var(--c-primary);border-radius:var(--r-base);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:var(--fw-semibold);font-size:var(--fs-lg)}
+.logo-text{font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.header-breadcrumb{display:flex;align-items:center;gap:var(--s2);color:var(--n9);font-size:var(--fs-base)}
+.header-breadcrumb .sep{color:var(--n5)}
+.header-breadcrumb .current{color:var(--n10)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:var(--s4)}
+.header-search{width:240px;height:32px;background:var(--n3);border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s3);font-size:var(--fs-base);color:var(--n10);outline:none}
+.header-search::placeholder{color:var(--n7)}
+.header-icon-btn{width:36px;height:36px;border:none;background:transparent;border-radius:var(--r-base);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n9);position:relative}
+.header-icon-btn:hover{background:var(--n3)}
+.header-icon-btn .badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;border-radius:8px;font-size:10px;line-height:16px;font-weight:var(--fw-semibold)}
+.user-menu{display:flex;align-items:center;gap:var(--s2);cursor:pointer;padding:var(--s1) var(--s2);border-radius:var(--r-base)}
+.user-menu:hover{background:var(--n3)}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-base);font-weight:var(--fw-medium)}
+.user-name{font-size:var(--fs-base)}
+.sider{position:fixed;top:var(--header-h);left:0;bottom:0;width:var(--sider-width);background:var(--sider-bg);overflow-y:auto;z-index:90}
+.menu{list-style:none;padding:var(--s2) 0}
+.menu-group-title{padding:var(--s4) var(--s6);font-size:var(--fs-sm);color:rgba(255,255,255,.35)}
+.menu-item{display:flex;align-items:center;gap:var(--s2);padding:0 var(--s6);height:40px;color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;border-left:3px solid transparent;transition:all .2s}
+.menu-item:hover{color:#fff}
+.menu-item.active{background:var(--c-primary);color:#fff;border-left-color:var(--c-primary)}
+.menu-sub{list-style:none}
+.menu-sub .menu-item{padding-left:var(--s8);font-size:var(--fs-sm)}
+.content{margin-left:var(--sider-width);margin-top:var(--header-h);padding:var(--s6);min-height:calc(100vh - var(--header-h) - 32px)}
+.footer{margin-left:var(--sider-width);height:32px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7)}
+.page-header{background:var(--n1);border-radius:var(--r-card);padding:var(--s6);margin-bottom:var(--s4);box-shadow:var(--sh-card);display:flex;align-items:flex-start;justify-content:space-between}
+.page-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-bottom:var(--s1)}
+.page-desc{font-size:var(--fs-base);color:var(--n7);max-width:760px}
+.icon{display:inline-flex;vertical-align:middle;flex-shrink:0}
+.icon-md{width:16px;height:16px}
+.icon-lg{width:20px;height:20px}
+.icon-menu{width:16px;height:16px;fill:currentColor;flex-shrink:0}
+.btn{display:inline-flex;align-items:center;gap:var(--s1);height:32px;padding:0 var(--s3);border-radius:var(--r-base);border:1px solid var(--n5);background:var(--n1);color:var(--n10);font-size:var(--fs-base);cursor:pointer;transition:all .1s;font-family:inherit}
+.btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;color:#fff}
+.btn-sm{height:24px;padding:0 var(--s2);font-size:var(--fs-sm)}
+.card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s6)}
+/* Overall status banner */
+.status-banner{display:flex;align-items:center;gap:var(--s4);padding:var(--s4) var(--s6);border-radius:var(--r-card);box-shadow:var(--sh-card);margin-bottom:var(--s4)}
+.status-banner.healthy{background:linear-gradient(90deg,#f6ffed 0%,#fff 100%);border:1px solid #b7eb8f}
+.status-banner.degraded{background:linear-gradient(90deg,#fffbe6 0%,#fff 100%);border:1px solid #ffe58f}
+.status-banner.unhealthy{background:linear-gradient(90deg,#fff2f0 0%,#fff 100%);border:1px solid #ffccc7}
+.status-icon-lg{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.status-icon-lg.healthy{background:var(--c-success);color:#fff}
+.status-icon-lg.degraded{background:var(--c-warning);color:#fff}
+.status-icon-lg.unhealthy{background:var(--c-error);color:#fff}
+.status-info{flex:1}
+.status-label{font-size:var(--fs-sm);color:var(--n7)}
+.status-value{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);line-height:1.2;margin-top:2px}
+.status-value.healthy{color:var(--c-success)}
+.status-value.degraded{color:var(--c-warning)}
+.status-value.unhealthy{color:var(--c-error)}
+.status-meta{display:flex;gap:var(--s6);margin-top:var(--s1);font-size:var(--fs-sm);color:var(--n9)}
+.status-meta-item{display:flex;align-items:center;gap:var(--s1)}
+/* Service grid */
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s3)}
+.section-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2)}
+.section-sub{font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal);margin-left:var(--s2)}
+.service-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s3);margin-bottom:var(--s4)}
+.service-card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s4);border-top:3px solid var(--c-success);cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative}
+.service-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.service-card.healthy{border-top-color:var(--c-success)}
+.service-card.degraded{border-top-color:var(--c-warning)}
+.service-card.unhealthy{border-top-color:var(--c-error)}
+.service-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s3)}
+.service-name{font-size:var(--fs-base);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2)}
+.service-type{font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal)}
+.status-light{display:inline-flex;align-items:center;gap:var(--s1);font-size:var(--fs-sm);font-weight:var(--fw-medium)}
+.status-light .dot{width:8px;height:8px;border-radius:50%;display:inline-block;position:relative}
+.status-light.healthy .dot{background:var(--c-success)}
+.status-light.healthy .dot::after{content:"";position:absolute;inset:-3px;border-radius:50%;background:var(--c-success);opacity:.2;animation:pulse 2s infinite}
+.status-light.degraded .dot{background:var(--c-warning)}
+.status-light.degraded .dot::after{content:"";position:absolute;inset:-3px;border-radius:50%;background:var(--c-warning);opacity:.2;animation:pulse 2s infinite}
+.status-light.unhealthy .dot{background:var(--c-error)}
+.status-light.unhealthy .dot::after{content:"";position:absolute;inset:-3px;border-radius:50%;background:var(--c-error);opacity:.2;animation:pulse 1s infinite}
+@keyframes pulse{0%{transform:scale(1);opacity:.4}70%{transform:scale(1.8);opacity:0}100%{opacity:0}}
+.status-light.healthy{color:var(--c-success)}
+.status-light.degraded{color:var(--c-warning)}
+.status-light.unhealthy{color:var(--c-error)}
+.service-metrics{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2);margin-top:var(--s2)}
+.metric-cell{background:var(--n3);border-radius:var(--r-base);padding:var(--s2) var(--s3)}
+.metric-label{font-size:11px;color:var(--n7);line-height:1.4}
+.metric-value{font-size:var(--fs-base);font-weight:var(--fw-semibold);color:var(--n10);margin-top:2px}
+.metric-value.warn{color:var(--c-warning)}
+.metric-value.danger{color:var(--c-error)}
+.service-deps{margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--n3);font-size:var(--fs-sm);color:var(--n9);display:flex;align-items:center;justify-content:space-between}
+.deps-count{display:flex;align-items:center;gap:var(--s1)}
+.deps-count .unhealthy-num{color:var(--c-error);font-weight:var(--fw-semibold)}
+.service-arrow{color:var(--n7);font-size:var(--fs-sm)}
+.service-card:hover .service-arrow{color:var(--c-primary)}
+/* Charts */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);margin-bottom:var(--s4)}
+.chart-card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s6)}
+.chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s4)}
+.chart-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold)}
+.chart-legend{display:flex;gap:var(--s4)}
+.legend-item{display:flex;align-items:center;gap:var(--s1);font-size:var(--fs-sm);color:var(--n9)}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+.chart-svg{width:100%;height:200px;display:block}
+.chart-current{font-size:var(--fs-sm);color:var(--n7)}
+.chart-current b{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);margin-left:var(--s1)}
+/* Alerts list */
+.alert-list-card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s6)}
+.alert-list{display:flex;flex-direction:column;gap:var(--s2)}
+.alert-row{display:flex;align-items:center;gap:var(--s3);padding:var(--s3);border:1px solid var(--n3);border-radius:var(--r-base);transition:background .1s}
+.alert-row:hover{background:var(--n2)}
+.alert-row.critical{border-left:3px solid var(--c-error)}
+.alert-row.warning{border-left:3px solid var(--c-warning)}
+.alert-row.info{border-left:3px solid var(--c-primary)}
+.alert-level{display:flex;align-items:center;gap:var(--s1);font-size:var(--fs-sm);font-weight:var(--fw-medium);min-width:72px}
+.alert-level.critical{color:var(--c-error)}
+.alert-level.warning{color:var(--c-warning)}
+.alert-level.info{color:var(--c-primary)}
+.alert-title{flex:1;font-size:var(--fs-base);color:var(--n10)}
+.alert-source{font-size:var(--fs-sm);color:var(--n7);font-family:var(--ff-mono)}
+.alert-time{font-size:var(--fs-sm);color:var(--n7);min-width:120px;text-align:right}
+/* Drawer */
+.drawer-mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:200;display:none}
+.drawer-mask.show{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:640px;background:var(--n1);box-shadow:var(--sh-modal);z-index:201;transform:translateX(100%);transition:transform .3s cubic-bezier(.2,0,0,1);display:flex;flex-direction:column}
+.drawer.show{transform:translateX(0)}
+.drawer-head{padding:var(--s4) var(--s6);border-bottom:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.drawer-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2)}
+.drawer-close{cursor:pointer;color:var(--n7);border:none;background:transparent;display:flex}
+.drawer-close:hover{color:var(--n10)}
+.drawer-body{flex:1;overflow-y:auto;padding:var(--s6)}
+.drawer-foot{padding:var(--s3) var(--s6);border-top:1px solid var(--n3);display:flex;justify-content:flex-end;gap:var(--s2);flex-shrink:0}
+/* Drawer content */
+.dep-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3);margin-bottom:var(--s4)}
+.dep-summary-cell{background:var(--n3);border-radius:var(--r-base);padding:var(--s3)}
+.dep-summary-label{font-size:var(--fs-sm);color:var(--n7)}
+.dep-summary-value{font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-top:2px}
+.dep-summary-value.healthy{color:var(--c-success)}
+.dep-summary-value.unhealthy{color:var(--c-error)}
+.dep-summary-value.total{color:var(--n10)}
+.dep-list{display:flex;flex-direction:column;gap:var(--s2)}
+.dep-item{border:1px solid var(--n3);border-radius:var(--r-base);padding:var(--s3);display:flex;align-items:center;gap:var(--s3)}
+.dep-item.unhealthy{border-color:#ffccc7;background:#fff2f0}
+.dep-item.degraded{border-color:#ffe58f;background:#fffbe6}
+.dep-status-icon{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
+.dep-status-icon.healthy{background:var(--c-success)}
+.dep-status-icon.degraded{background:var(--c-warning)}
+.dep-status-icon.unhealthy{background:var(--c-error)}
+.dep-info{flex:1;min-width:0}
+.dep-name{font-size:var(--fs-base);font-weight:var(--fw-medium);display:flex;align-items:center;gap:var(--s2)}
+.dep-name .dep-type{font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal);font-family:var(--ff-mono)}
+.dep-error{font-size:var(--fs-sm);color:var(--c-error);margin-top:2px;font-family:var(--ff-mono)}
+.dep-meta{display:flex;gap:var(--s4);font-size:var(--fs-sm);color:var(--n7);margin-top:2px}
+.dep-latency{font-family:var(--ff-mono);font-weight:var(--fw-medium);color:var(--n9)}
+.dep-latency.warn{color:var(--c-warning)}
+.dep-latency.danger{color:var(--c-error)}
+.section-divider{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);margin:var(--s6) 0 var(--s3);display:flex;align-items:center;gap:var(--s2)}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 var(--s2);border-radius:var(--r-base);font-size:var(--fs-sm);line-height:20px;border:1px solid transparent;white-space:nowrap}
+.tag-success{color:var(--c-success);background:#f6ffed;border-color:#b7eb8f}
+.tag-warning{color:var(--c-warning);background:#fffbe6;border-color:#ffe58f}
+.tag-error{color:var(--c-error);background:#fff2f0;border-color:#ffccc7}
+.tag-default{color:var(--n9);background:var(--n3);border-color:var(--n5)}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--s12) var(--s6);text-align:center}
+.empty-icon{color:var(--n5);margin-bottom:var(--s3)}
+.empty-text{font-size:var(--fs-base);color:var(--n7);margin-bottom:var(--s3)}
+.skeleton-line{background:linear-gradient(90deg,var(--n3) 25%,var(--n2) 37%,var(--n3) 63%);background-size:400% 100%;height:16px;border-radius:var(--r-base);animation:sk 1.4s ease infinite}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-logo">
+      <div class="logo-mark">L</div>
+      <span class="logo-text">Leno 系统后台</span>
+    </div>
+    <div class="header-breadcrumb">
+      <span>运行时运维</span><span class="sep">/</span><span class="current">健康监控</span>
+    </div>
+    <div class="header-right">
+      <input class="header-search" placeholder="搜索菜单、服务、依赖（Ctrl+K）">
+      <button class="header-icon-btn" title="待办">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg>
+        <span class="badge">5</span>
+      </button>
+      <button class="header-icon-btn" title="通知">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252s-252 110.7-252 252v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32zM336 428c0-105.9 86.1-188 192-188s192 82.1 192 188v340H336V428zM512 912c48.6 0 88-39.4 88-88H424c0 48.6 39.4 88 88 88z"/></svg>
+        <span class="badge">3</span>
+      </button>
+      <div class="user-menu">
+        <div class="user-avatar">A</div>
+        <span class="user-name">系统管理员</span>
+      </div>
+    </div>
+  </header>
+
+  <aside class="sider">
+    <ul class="menu">
+      <li class="menu-group-title">系统管理</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c5.9-10.8 4.3-24.1-4.1-33.2zM877.4 604l-43.5 74.4-69.3-17.9c-10.2-2.7-21.1.5-28.4 8.2-26.4 28-59.2 49.7-95.4 63.1-10.5 3.9-17.9 13.3-19.6 24.4l-12.3 70.9h-86.9l-12.3-70.9c-1.7-11.1-9.1-20.5-19.6-24.4-36.2-13.4-69-35.1-95.4-63.1-7.3-7.7-18.2-10.9-28.4-8.2l-69.3 17.9L146.6 604l46.4-39.6c7.9-6.7 11.7-17.1 9.8-27.2-4.4-23.3-4.4-47.1 0-70.4 1.9-10.1-1.9-20.5-9.8-27.2L146.6 400l43.5-74.4 69.3 17.9c10.2 2.7 21.1-.5 28.4-8.2 26.4-28 59.2-49.7 95.4-63.1 10.5-3.9 17.9-13.3 19.6-24.4l12.3-70.9h86.9l12.3 70.9c1.7 11.1 9.1 20.5 19.6 24.4 36.2 13.4 69 35.1 95.4 63.1 7.3 7.7 18.2 10.9 28.4 8.2l69.3-17.9L877.4 400l-46.4 39.6c-7.9 6.7-11.7 17.1-9.8 27.2 4.4 23.3 4.4 47.1 0 70.4-1.9 10.1 1.9 20.5 9.8 27.2L877.4 604zM512 328c-101.8 0-184 82.2-184 184s82.2 184 184 184 184-82.2 184-184-82.2-184-184-184zm0 288c-57.3 0-104-46.7-104-104s46.7-104 104-104 104 46.7 104 104-46.7 104-104 104z"/></svg>运营看板</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.7 18.9-84.8 46-119.5 80.6a375.6 375.6 0 00-80.6 119.5A371.1 371.1 0 00136 901.8a8 8 0 008 8.2h60c6.4 0 11.8-5.1 12-11.5C227.9 770.5 323.9 670.5 450 648.6c5.7-1 9.8-6 9.8-11.8v-50.4c0-5.6-3.7-10.6-9.1-12.1-83.6-22.5-141-99.3-141-188.4 0-104.3 80.7-193.4 180.8-202.8 121.8-11.4 224.5 85.3 224.5 200.8 0 88.5-56.5 165.5-139.4 188.4-5.4 1.6-9.1 6.6-9.1 12.1v50.4c0 5.8 4.1 10.8 9.8 11.8 126.1 21.9 222.1 121.9 230 249.9.2 6.4 5.6 11.5 12 11.5h60a8 8 0 008-8.2c-1-38.4-9.5-75.7-25.8-110.4z"/></svg>用户与权限</li>
+      <li class="menu-group-title">系统治理</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c5.9-10.8 4.3-24.1-4.1-33.2z"/></svg>功能开关</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-600 72h560v208H232V136zm560 480H232V408h560v208zm0 272H232V680h560v208zM304 240a40 40 0 1080 0 40 40 0 10-80 0zm0 272a40 40 0 1080 0 40 40 0 10-80 0zm0 272a40 40 0 1080 0 40 40 0 10-80 0z"/></svg>系统配置</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 830H304c-22.1 0-40-17.9-40-40V234c0-22.1 17.9-40 40-40h576c22.1 0 40 17.9 40 40v556c0 22.1-17.9 40-40 40zM304 270v520h576V270H304zm-96 100H72v-40h136v40zm0 168H72v-40h136v40zm0 168H72v-40h136v40z"/></svg>数据字典</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252S288 286.7 288 428v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg>公告管理</li>
+      <li class="menu-group-title">运行时运维</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6c5.9-10.8 4.3-24.1-4.1-33.2z"/></svg>限流规则</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg>索引重建</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752zM304 240a40 40 0 1080 0 40 40 0 10-80 0z"/></svg>死信队列</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/></svg>定时任务</li>
+      <li class="menu-item active"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 561.7l-69.4 120.3c-6.5 11.3-21 15.2-32.3 8.7l-94.3-54.4a23.9 23.9 0 00-24.1 0l-94.3 54.4c-11.3 6.5-25.8 2.6-32.3-8.7l-69.4-120.3c-6.5-11.3-2.6-25.8 8.7-32.3l94.3-54.4a23.9 23.9 0 0012-20.8V418.8c0-13 10.5-23.5 23.5-23.5h138.8c13 0 23.5 10.5 23.5 23.5v134.9c0 8.6 4.7 16.6 12 20.8l94.3 54.4c11.2 6.6 15.1 21.1 8.6 32.4z"/></svg>健康监控</li>
+      <li class="menu-item"><svg class="icon icon-menu" viewBox="0 0 1024 1024"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252S288 286.7 288 428v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32zM336 428c0-105.9 86.1-188 192-188s192 82.1 192 188v340H336V428z"/></svg>告警管理</li>
+    </ul>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">健康监控</div>
+        <div class="page-desc">聚合各业务模块 /health 端点状态，实时监测 API 网关、订单服务、支付服务、Redis、RabbitMQ、Elasticsearch、MySQL 等核心组件运行状况，定位降级与不健康模块。</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M909.1 209.3l-56.4-44.3c-3-2.4-7.3-2.4-10.3 0L541.7 430.7c-3 2.4-7.3 2.4-10.3 0L123.8 129.5c-3-2.4-7.3-2.4-10.3 0L57.1 173.8c-3.9 3.1-3.9 8.9 0 12l387.5 301.2c3 2.4 3 7.3 0 9.7L57.1 797.9c-3.9 3.1-3.9 8.9 0 12l56.4 44.3c3 2.4 7.3 2.4 10.3 0l387.6-301.2c3-2.4 7.3-2.4 10.3 0l407.7 317.5c3 2.4 7.3 2.4 10.3 0l56.4-44.3c3.9-3.1 3.9-8.9 0-12L521.7 506.7c-3-2.4-3-7.3 0-9.7L909.1 197.3c3.9-3.1 3.9-8.9 0-12z"/></svg>自动刷新 30s</button>
+        <button class="btn btn-primary"><svg class="icon icon-md" viewBox="0 0 1024 1024"><path d="M909.1 209.3l-56.4-44.3c-3-2.4-7.3-2.4-10.3 0L541.7 430.7c-3 2.4-7.3 2.4-10.3 0L123.8 129.5c-3-2.4-7.3-2.4-10.3 0L57.1 173.8c-3.9 3.1-3.9 8.9 0 12l387.5 301.2c3 2.4 3 7.3 0 9.7L57.1 797.9c-3.9 3.1-3.9 8.9 0 12l56.4 44.3c3 2.4 7.3 2.4 10.3 0l387.6-301.2c3-2.4 7.3-2.4 10.3 0l407.7 317.5c3 2.4 7.3 2.4 10.3 0l56.4-44.3c3.9-3.1 3.9-8.9 0-12L521.7 506.7c-3-2.4-3-7.3 0-9.7L909.1 197.3c3.9-3.1 3.9-8.9 0-12z" transform="rotate(180 512 512)"/></svg>立即检查</button>
+      </div>
+    </div>
+
+    <!-- 区域 A：整体状态条 -->
+    <div class="status-banner degraded">
+      <div class="status-icon-lg degraded">
+        <svg class="icon icon-lg" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64L64 192v384c0 212 448 384 448 384s448-172 448-384V192L512 64zm0 704c-66-37-240-147-240-256V256l240-80 240 80v256c0 109-174 219-240 256z"/><path d="M448 416h128v224H448zM448 224h128v128H448z"/></svg>
+      </div>
+      <div class="status-info">
+        <div class="status-label">整体健康状态</div>
+        <div class="status-value degraded">降级（Degraded）</div>
+        <div class="status-meta">
+          <div class="status-meta-item">
+            <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M512 280m-48 0a48 48 0 1 0 96 0 48 48 0 1 0-96 0Z"/><path d="M544 384h-64c-8.8 0-16 7.2-16 16v320c0 8.8 7.2 16 16 16h64c8.8 0 16-7.2 16-16V400c0-8.8-7.2-16-16-16z"/></svg>
+            最近检查：2026-07-26 14:30:08
+          </div>
+          <div class="status-meta-item">健康 4 · 降级 2 · 不健康 1</div>
+          <div class="status-meta-item">下次自动刷新：30s</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 区域 B：服务状态卡片网格 -->
+    <div class="section-head">
+      <div class="section-title">服务与组件健康
+        <span class="section-sub">共 7 项，不健康置顶</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <span class="tag tag-success">健康 4</span>
+        <span class="tag tag-warning">降级 2</span>
+        <span class="tag tag-error">不健康 1</span>
+      </div>
+    </div>
+
+    <div class="service-grid">
+      <!-- 不健康置顶：支付服务 -->
+      <div class="service-card unhealthy" onclick="openDrawer('payment')">
+        <div class="service-head">
+          <div class="service-name">
+            <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 200H112c-26.5 0-48 21.5-48 48v528c0 26.5 21.5 48 48 48h800c26.5 0 48-21.5 48-48V248c0-26.5-21.5-48-48-48zm0 56v72H112v-72h800zM112 776V400h800v376H112z"/><path d="M208 512h160v64H208z"/></svg>
+            支付服务
+            <span class="service-type">PaymentService</span>
+          </div>
+          <span class="status-light unhealthy"><span class="dot"></span>不健康</span>
+        </div>
+        <div class="service-metrics">
+          <div class="metric-cell">
+            <div class="metric-label">响应时间 P99</div>
+            <div class="metric-value danger">3.2s</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label">QPS</div>
+            <div class="metric-value">86</div>
+          </div>
+        </div>
+        <div class="service-deps">
+          <span class="deps-count">依赖 5 项 · <span class="unhealthy-num">2 不健康</span></span>
+          <span class="service-arrow">查看明细 ›</span>
+        </div>
+      </div>
+
+      <!-- 降级：订单服务 -->
+      <div class="service-card degraded" onclick="openDrawer('order')">
+        <div class="service-head">
+          <div class="service-name">
+            <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg>
+            订单服务
+            <span class="service-type">OrderService</span>
+          </div>
+          <span class="status-light degraded"><span class="dot"></span>降级</span>
+        </div>
+        <div class="service-metrics">
+          <div class="metric-cell">
+            <div class="metric-label">响应时间 P99</div>
+            <div class="metric-value warn">820ms</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label">QPS</div>
+            <div class="metric-value">412</div>
+          </div>
+        </div>
+        <div class="service-deps">
+          <span class="deps-count">依赖 6 项 · <span class="unhealthy-num">1 不健康</span></span>
+          <span class="service-arrow">查看明细 ›</span>
+        </div>
+      </div>
+
+      <!-- 降级：Elasticsearch -->
+      <div class="service-card degraded" onclick="openDrawer('es')">
+        <div class="service-head">
+          <div class="service-name">
+            <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 009.2-35.8l-71.4-123.6c-7.2-12.5-21.4-18.8-35.2-15.4l-84.5 21.8c-30.1-23.1-63.5-41.5-99.5-54.3l-15-86.4c-2.5-14.2-14.9-24.6-29.4-24.6H510.4c-14.5 0-26.9 10.4-29.4 24.6l-15 86.4c-36 12.8-69.4 31.2-99.5 54.3l-84.5-21.8c-13.8-3.6-28 2.9-35.2 15.4L175.3 423.5a32.03 32.03 0 009.2 35.8l65.5 56c-3.1 19-4.7 38.4-4.7 57.8s1.6 38.8 4.7 57.8l-65.5 56a32.03 32.03 0 00-9.2 35.8l71.4 123.6c7.2 12.5 21.4 18.8 35.2 15.4l84.5-21.8c30.1 23.1 63.5 41.5 99.5 54.3l15 86.4c2.5 14.2 14.9 24.6 29.4 24.6h103.2c14.5 0 26.9-10.4 29.4-24.6l15-86.4c36-12.8 69.4-31.2 99.5-54.3l84.5 21.8c13.8 3.6 28-2.9 35.2-15.4l71.4-123.6z"/></svg>
+            Elasticsearch
+            <span class="service-type">elasticsearch-cluster</span>
+          </div>
+          <span class="status-light degraded"><span class="dot"></span>降级</span>
+        </div>
+        <div class="service-metrics">
+          <div class="metric-cell">
+            <div class="metric-label">响应时间 P99</div>
+            <div class="metric-value warn">456ms</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label">查询 QPS</div>
+            <div class="metric-value">1280</div>
+          </div>
+        </div>
+        <div class="service-deps">
+          <span class="deps-count">3 节点 · <span class="unhealthy-num">1 节点离线</span></span>
+          <span class="service-arrow">查看明细 ›</span>
+        </div>
+      </div>
+
+      <!-- 健康：API 网关 -->
+      <div class="service-card healthy" onclick="openDrawer('gateway')">
+        <div class="service-head">
+          <div class="service-name">
+            <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M928 444H820V330.4c0-17.7-14.3-32-32-32H472c-17.7 0-32 14.3-32 32V444H296c-17.7 0-32 14.3-32 32v360c0 17.7 14.3 32 32 32h632c17.7 0 32-14.3 32-32V476c0-17.7-14.3-32-32-32zm-180 0H544V392h204v52z"/></svg>
+            API 网关
+            <span class="service-type">ApiGateway</span>
+          </div>
+          <span class="status-light healthy"><span class="dot"></span>健康</span>
+        </div>
+        <div class="service-metrics">
+          <div class="metric-cell">
+            <div class="metric-label">响应时间 P99</div>
+            <div class="metric-value">38ms</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label">QPS</div>
+            <div class="metric-value">2480</div>
+          </div>
+        </div>
+        <div class="service-deps">
+          <span class="deps-count">依赖 3 项 · 全部健康</span>
+          <span class="service-arrow">查看明细 ›</span>
+        </div>
+      </div>
+
+      <!-- 健康：Redis -->
+      <div class="service-card healthy" onclick="openDrawer('redis')">
+        <div class="service-head">
+          <div class="service-name">
+            <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-40 824H232V136h560v752zM304 240a40 40 0 1080 0 40 40 0 10-80 0z"/></svg>
+            Redis
+            <span class="service-type">redis-cluster</span>
+          </div>
+          <span class="status-light healthy"><span class="dot"></span>健康</span>
+        </div>
+        <div class="service-metrics">
+          <div class="metric-cell">
+            <div class="metric-label">响应时间 P99</div>
+            <div class="metric-value">2.4ms</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label">命中率</div>
+            <div class="metric-value">96.8%</div>
+          </div>
+        </div>
+        <div class="service-deps">
+          <span class="deps-count">3 主 3 从 · 全部健康</span>
+          <span class="service-arrow">查看明细 ›</span>
+        </div>
+      </div>
+
+      <!-- 健康：RabbitMQ -->
+      <div class="service-card healthy" onclick="openDrawer('mq')">
+        <div class="service-head">
+          <div class="service-name">
+            <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252S288 286.7 288 428v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg>
+            RabbitMQ
+            <span class="service-type">rabbitmq-cluster</span>
+          </div>
+          <span class="status-light healthy"><span class="dot"></span>健康</span>
+        </div>
+        <div class="service-metrics">
+          <div class="metric-cell">
+            <div class="metric-label">积压消息</div>
+            <div class="metric-value">128</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label">投递速率</div>
+            <div class="metric-value">3.2k/s</div>
+          </div>
+        </div>
+        <div class="service-deps">
+          <span class="deps-count">3 节点 · 全部健康</span>
+          <span class="service-arrow">查看明细 ›</span>
+        </div>
+      </div>
+
+      <!-- 健康：MySQL -->
+      <div class="service-card healthy" onclick="openDrawer('mysql')">
+        <div class="service-head">
+          <div class="service-name">
+            <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112c-3.8 0-7.7.7-11.4 2.2L342.6 348.2c-13.3 5.8-21.6 19.5-20.6 33.9.9 13.2 9.8 24.8 22.6 28.8l214.9 53.7 53.7 214.9c3.9 12.8 15.6 21.7 28.8 22.6.8.1 1.5.1 2.3.1 9.3 0 17.9-5 23.3-13.3L885.9 148c4.4-9.7 2.8-21.2-4.3-29.3-3.9-4.4-11.4-6.7-17.6-6.7z"/></svg>
+            MySQL
+            <span class="service-type">mysql-primary</span>
+          </div>
+          <span class="status-light healthy"><span class="dot"></span>健康</span>
+        </div>
+        <div class="service-metrics">
+          <div class="metric-cell">
+            <div class="metric-label">响应时间 P99</div>
+            <div class="metric-value">12ms</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-label">连接数</div>
+            <div class="metric-value">86/500</div>
+          </div>
+        </div>
+        <div class="service-deps">
+          <span class="deps-count">1 主 2 从 · 全部健康</span>
+          <span class="service-arrow">查看明细 ›</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 区域 C：指标折线图 -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-title">CPU 使用率（近 1 小时）</div>
+          <div class="chart-current">当前<b>42.6%</b></div>
+        </div>
+        <svg class="chart-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="cpuGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1677FF" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#1677FF" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <line x1="0" y1="40" x2="600" y2="40" stroke="#F5F5F5" stroke-width="1"/>
+          <line x1="0" y1="100" x2="600" y2="100" stroke="#F5F5F5" stroke-width="1"/>
+          <line x1="0" y1="160" x2="600" y2="160" stroke="#F5F5F5" stroke-width="1"/>
+          <text x="4" y="44" font-size="10" fill="#8C8C8C">80%</text>
+          <text x="4" y="104" font-size="10" fill="#8C8C8C">40%</text>
+          <text x="4" y="164" font-size="10" fill="#8C8C8C">0%</text>
+          <path d="M0,150 L50,140 L100,145 L150,120 L200,128 L250,110 L300,100 L350,108 L400,90 L450,95 L500,85 L550,92 L600,88 L600,200 L0,200 Z" fill="url(#cpuGrad)"/>
+          <polyline points="0,150 50,140 100,145 150,120 200,128 250,110 300,100 350,108 400,90 450,95 500,85 550,92 600,88" fill="none" stroke="#1677FF" stroke-width="2"/>
+          <text x="0" y="195" font-size="10" fill="#8C8C8C">14:30</text>
+          <text x="280" y="195" font-size="10" fill="#8C8C8C">15:00</text>
+          <text x="560" y="195" font-size="10" fill="#8C8C8C">15:30</text>
+        </svg>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-title">内存使用率（近 1 小时）</div>
+          <div class="chart-current">当前<b>68.2%</b></div>
+        </div>
+        <svg class="chart-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#52C41A" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#52C41A" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <line x1="0" y1="40" x2="600" y2="40" stroke="#F5F5F5" stroke-width="1"/>
+          <line x1="0" y1="100" x2="600" y2="100" stroke="#F5F5F5" stroke-width="1"/>
+          <line x1="0" y1="160" x2="600" y2="160" stroke="#F5F5F5" stroke-width="1"/>
+          <text x="4" y="44" font-size="10" fill="#8C8C8C">80%</text>
+          <text x="4" y="104" font-size="10" fill="#8C8C8C">40%</text>
+          <text x="4" y="164" font-size="10" fill="#8C8C8C">0%</text>
+          <path d="M0,100 L50,105 L100,98 L150,92 L200,95 L250,88 L300,82 L350,78 L400,75 L450,72 L500,70 L550,68 L600,66 L600,200 L0,200 Z" fill="url(#memGrad)"/>
+          <polyline points="0,100 50,105 100,98 150,92 200,95 250,88 300,82 350,78 400,75 450,72 500,70 550,68 600,66" fill="none" stroke="#52C41A" stroke-width="2"/>
+          <text x="0" y="195" font-size="10" fill="#8C8C8C">14:30</text>
+          <text x="280" y="195" font-size="10" fill="#8C8C8C">15:00</text>
+          <text x="560" y="195" font-size="10" fill="#8C8C8C">15:30</text>
+        </svg>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-title">系统 QPS（近 1 小时）</div>
+          <div class="chart-current">当前<b>2,480</b></div>
+        </div>
+        <svg class="chart-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="qpsGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#722ED1" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#722ED1" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <line x1="0" y1="40" x2="600" y2="40" stroke="#F5F5F5" stroke-width="1"/>
+          <line x1="0" y1="100" x2="600" y2="100" stroke="#F5F5F5" stroke-width="1"/>
+          <line x1="0" y1="160" x2="600" y2="160" stroke="#F5F5F5" stroke-width="1"/>
+          <text x="4" y="44" font-size="10" fill="#8C8C8C">3k</text>
+          <text x="4" y="104" font-size="10" fill="#8C8C8C">1.5k</text>
+          <text x="4" y="164" font-size="10" fill="#8C8C8C">0</text>
+          <path d="M0,140 L50,130 L100,120 L150,110 L200,100 L250,90 L300,80 L350,85 L400,75 L450,80 L500,70 L550,75 L600,72 L600,200 L0,200 Z" fill="url(#qpsGrad)"/>
+          <polyline points="0,140 50,130 100,120 150,110 200,100 250,90 300,80 350,85 400,75 450,80 500,70 550,75 600,72" fill="none" stroke="#722ED1" stroke-width="2"/>
+          <text x="0" y="195" font-size="10" fill="#8C8C8C">14:30</text>
+          <text x="280" y="195" font-size="10" fill="#8C8C8C">15:00</text>
+          <text x="560" y="195" font-size="10" fill="#8C8C8C">15:30</text>
+        </svg>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-title">接口延迟 P99（近 1 小时）</div>
+          <div class="chart-current">当前<b>286ms</b></div>
+        </div>
+        <svg class="chart-svg" viewBox="0 0 600 200" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="latGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#FAAD14" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#FAAD14" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <line x1="0" y1="40" x2="600" y2="40" stroke="#F5F5F5" stroke-width="1"/>
+          <line x1="0" y1="100" x2="600" y2="100" stroke="#F5F5F5" stroke-width="1"/>
+          <line x1="0" y1="160" x2="600" y2="160" stroke="#F5F5F5" stroke-width="1"/>
+          <text x="4" y="44" font-size="10" fill="#8C8C8C">800ms</text>
+          <text x="4" y="104" font-size="10" fill="#8C8C8C">400ms</text>
+          <text x="4" y="164" font-size="10" fill="#8C8C8C">0</text>
+          <path d="M0,120 L50,115 L100,125 L150,118 L200,110 L250,130 L300,150 L350,140 L400,90 L450,95 L500,100 L550,105 L600,108 L600,200 L0,200 Z" fill="url(#latGrad)"/>
+          <polyline points="0,120 50,115 100,125 150,118 200,110 250,130 300,150 350,140 400,90 450,95 500,100 550,105 600,108" fill="none" stroke="#FAAD14" stroke-width="2"/>
+          <circle cx="400" cy="90" r="3" fill="#FAAD14"/>
+          <text x="408" y="86" font-size="10" fill="#FAAD14" font-weight="600">峰值 760ms</text>
+          <text x="0" y="195" font-size="10" fill="#8C8C8C">14:30</text>
+          <text x="280" y="195" font-size="10" fill="#8C8C8C">15:00</text>
+          <text x="560" y="195" font-size="10" fill="#8C8C8C">15:30</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 区域 D：最近告警列表 -->
+    <div class="alert-list-card">
+      <div class="section-head" style="margin-bottom:16px">
+        <div class="section-title">最近告警
+          <span class="section-sub">来自 Alertmanager，点击跳转告警管理</span>
+        </div>
+        <button class="btn btn-sm">查看全部 ›</button>
+      </div>
+      <div class="alert-list">
+        <div class="alert-row critical">
+          <div class="alert-level critical">
+            <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64L64 960h896L512 64zm0 240l288 528H224L512 304zm-32 192v144h64v-144h-64zm0 192v64h64v-64h-64z"/></svg>
+            Critical
+          </div>
+          <div class="alert-title">支付服务 P99 延迟超过 3s（阈值 2s）</div>
+          <span class="alert-source">PaymentService</span>
+          <span class="alert-time">07-26 14:18:22</span>
+        </div>
+        <div class="alert-row critical">
+          <div class="alert-level critical">
+            <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64L64 960h896L512 64zm0 240l288 528H224L512 304zm-32 192v144h64v-144h-64zm0 192v64h64v-64h-64z"/></svg>
+            Critical
+          </div>
+          <div class="alert-title">支付渠道【支付宝】连接失败，错误率 12.4%</div>
+          <span class="alert-source">PaymentService</span>
+          <span class="alert-time">07-26 14:12:08</span>
+        </div>
+        <div class="alert-row warning">
+          <div class="alert-level warning">
+            <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232a48 48 0 116 0 96 0 48 48 0 11-6 0zm-16 112h64v272h-64V408z"/></svg>
+            Warning
+          </div>
+          <div class="alert-title">Elasticsearch 节点 es-node-3 离线超过 5 分钟</div>
+          <span class="alert-source">elasticsearch-cluster</span>
+          <span class="alert-time">07-26 14:05:41</span>
+        </div>
+        <div class="alert-row warning">
+          <div class="alert-level warning">
+            <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232a48 48 0 116 0 96 0 48 48 0 11-6 0zm-16 112h64v272h-64V408z"/></svg>
+            Warning
+          </div>
+          <div class="alert-title">订单服务 RabbitMQ 消费者延迟增长，积压 1,240 条</div>
+          <span class="alert-source">OrderService</span>
+          <span class="alert-time">07-26 13:58:19</span>
+        </div>
+        <div class="alert-row info">
+          <div class="alert-level info">
+            <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm32 664c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V456c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272zm-32-344a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+            Info
+          </div>
+          <div class="alert-title">Redis 主从切换完成，原主节点已恢复</div>
+          <span class="alert-source">redis-cluster</span>
+          <span class="alert-time">07-26 13:42:00</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Leno 电商平台系统管理后台 · 健康监控 · 每 30s 自动刷新</footer>
+</div>
+
+<!-- 模块详情抽屉 -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()">
+  <div class="drawer" id="drawer" onclick="event.stopPropagation()">
+    <div class="drawer-head">
+      <div class="drawer-title">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="#FF4D4F"><path d="M512 64L64 960h896L512 64zm0 240l288 528H224L512 304zm-32 192v144h64v-144h-64zm0 192v64h64v-64h-64z"/></svg>
+        <span id="drawerTitle">支付服务 · 依赖项明细</span>
+      </div>
+      <button class="drawer-close" onclick="closeDrawer()">
+        <svg class="icon icon-md" viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9A7.98 7.98 0 00203 838h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="drawerBody">
+      <div class="dep-summary">
+        <div class="dep-summary-cell">
+          <div class="dep-summary-label">依赖总数</div>
+          <div class="dep-summary-value total">5</div>
+        </div>
+        <div class="dep-summary-cell">
+          <div class="dep-summary-label">健康</div>
+          <div class="dep-summary-value healthy">3</div>
+        </div>
+        <div class="dep-summary-cell">
+          <div class="dep-summary-label">不健康</div>
+          <div class="dep-summary-value unhealthy">2</div>
+        </div>
+      </div>
+
+      <div class="section-divider">依赖项明细</div>
+      <div class="dep-list">
+        <div class="dep-item unhealthy">
+          <div class="dep-status-icon unhealthy">
+            <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64L64 960h896L512 64zm-32 432v-144h64v144h-64zm0 192v-64h64v64h-64z"/></svg>
+          </div>
+          <div class="dep-info">
+            <div class="dep-name">支付宝渠道连接 <span class="dep-type">alipay-gateway</span></div>
+            <div class="dep-error">Connection refused: connect timeout after 3000ms</div>
+            <div class="dep-meta">
+              <span>最近检查：<span class="dep-latency danger">超时</span></span>
+              <span>错误率：<span class="dep-latency danger">12.4%</span></span>
+              <span>14:30:05</span>
+            </div>
+          </div>
+        </div>
+        <div class="dep-item unhealthy">
+          <div class="dep-status-icon unhealthy">
+            <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64L64 960h896L512 64zm-32 432v-144h64v144h-64zm0 192v-64h64v64h-64z"/></svg>
+          </div>
+          <div class="dep-info">
+            <div class="dep-name">微信支付渠道连接 <span class="dep-type">wechat-pay-gateway</span></div>
+            <div class="dep-error">SSL handshake failed: PKIX path validation failed</div>
+            <div class="dep-meta">
+              <span>最近检查：<span class="dep-latency">2.8s</span></span>
+              <span>错误率：<span class="dep-latency danger">8.6%</span></span>
+              <span>14:30:06</span>
+            </div>
+          </div>
+        </div>
+        <div class="dep-item">
+          <div class="dep-status-icon healthy">
+            <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 302.3L784.3 174.7c-12.5-12.5-32.8-12.5-45.3 0L384 529.7 203.6 349.4c-12.5-12.5-32.8-12.5-45.3 0L30.6 477.1c-12.5 12.5-12.5 32.8 0 45.3l306.4 306.4c12.5 12.5 32.8 12.5 45.3 0l529.4-481.2c12.5-12.5 12.5-32.8 0-45.3z"/></svg>
+          </div>
+          <div class="dep-info">
+            <div class="dep-name">MySQL 主库连接 <span class="dep-type">mysql-primary:3306</span></div>
+            <div class="dep-meta">
+              <span>延迟：<span class="dep-latency">12ms</span></span>
+              <span>连接池：86/200</span>
+              <span>14:30:08</span>
+            </div>
+          </div>
+        </div>
+        <div class="dep-item">
+          <div class="dep-status-icon healthy">
+            <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 302.3L784.3 174.7c-12.5-12.5-32.8-12.5-45.3 0L384 529.7 203.6 349.4c-12.5-12.5-32.8-12.5-45.3 0L30.6 477.1c-12.5 12.5-12.5 32.8 0 45.3l306.4 306.4c12.5 12.5 32.8 12.5 45.3 0l529.4-481.2c12.5-12.5 12.5-32.8 0-45.3z"/></svg>
+          </div>
+          <div class="dep-info">
+            <div class="dep-name">Redis 缓存 <span class="dep-type">redis-cluster:6379</span></div>
+            <div class="dep-meta">
+              <span>延迟：<span class="dep-latency">2.4ms</span></span>
+              <span>命中率：96.8%</span>
+              <span>14:30:08</span>
+            </div>
+          </div>
+        </div>
+        <div class="dep-item">
+          <div class="dep-status-icon healthy">
+            <svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 302.3L784.3 174.7c-12.5-12.5-32.8-12.5-45.3 0L384 529.7 203.6 349.4c-12.5-12.5-32.8-12.5-45.3 0L30.6 477.1c-12.5 12.5-12.5 32.8 0 45.3l306.4 306.4c12.5 12.5 32.8 12.5 45.3 0l529.4-481.2c12.5-12.5 12.5-32.8 0-45.3z"/></svg>
+          </div>
+          <div class="dep-info">
+            <div class="dep-name">RabbitMQ 支付队列 <span class="dep-type">payment.exchange</span></div>
+            <div class="dep-meta">
+              <span>延迟：<span class="dep-latency">3.1ms</span></span>
+              <span>积压：23</span>
+              <span>14:30:07</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-divider">处置建议</div>
+      <div style="background:#fff2f0;border:1px solid #ffccc7;border-radius:6px;padding:12px;font-size:13px;color:#595959;line-height:1.7">
+        <div style="font-weight:600;color:#000000D9;margin-bottom:4px">支付渠道连接异常</div>
+        支付宝与微信支付渠道连接均出现异常，建议：1) 立即检查支付渠道证书是否过期；2) 确认出口 IP 是否被风控；3) 切换至备用支付渠道；4) 通知业务方暂停大额支付下单。
+      </div>
+
+      <div class="section-divider">关联操作</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm"><svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M816 768h-24V428c0-141.3-114.7-252-252-252S288 286.7 288 428v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h552c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg>查看历史告警</button>
+        <button class="btn btn-sm"><svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 830H304c-22.1 0-40-17.9-40-40V234c0-22.1 17.9-40 40-40h576c22.1 0 40 17.9 40 40v556c0 22.1-17.9 40-40 40z"/></svg>Prometheus 指标</button>
+        <button class="btn btn-sm"><svg class="icon icon-sm" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32z"/></svg>转工单</button>
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn" onclick="closeDrawer()">关闭</button>
+      <button class="btn btn-primary">立即重新检查</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openDrawer(module){
+  const titles={
+    payment:'支付服务 · 依赖项明细',
+    order:'订单服务 · 依赖项明细',
+    es:'Elasticsearch · 依赖项明细',
+    gateway:'API 网关 · 依赖项明细',
+    redis:'Redis · 依赖项明细',
+    mq:'RabbitMQ · 依赖项明细',
+    mysql:'MySQL · 依赖项明细'
+  };
+  document.getElementById('drawerTitle').textContent=titles[module]||'模块明细';
+  document.getElementById('drawerMask').classList.add('show');
+  document.getElementById('drawer').classList.add('show');
+}
+function closeDrawer(){
+  document.getElementById('drawerMask').classList.remove('show');
+  document.getElementById('drawer').classList.remove('show');
+}
+</script>
+</body>
+</html>
