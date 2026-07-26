@@ -33,6 +33,10 @@ public class IdentityApiTests : IClassFixture<WebApplicationFactory<Program>>
     private readonly Mock<IExternalLoginService> _externalLoginServiceMock = new();
     private readonly Mock<IOAuthService> _oauthServiceMock = new();
     private readonly Mock<ICurrentUserContext> _currentUserMock = new();
+    // Task A4 新增：AdminOAuthClients / AdminUsers / InternalUsers 控制器依赖
+    private readonly Mock<IOAuthClientAppService> _oauthClientAppServiceMock = new();
+    private readonly Mock<IUserAdminAppService> _userAdminAppServiceMock = new();
+    private readonly Mock<IUserInternalAppService> _userInternalAppServiceMock = new();
 
     private static readonly Guid UserId = Guid.NewGuid();
     private static readonly Guid AnotherUserId = Guid.NewGuid();
@@ -46,6 +50,9 @@ public class IdentityApiTests : IClassFixture<WebApplicationFactory<Program>>
             // 提供 OAuth2:AesKey 配置，避免 AddIdentityInfrastructure 中 fail-fast 检查抛异常
             // 32 字节全零 Base64 编码（仅测试用，非生产密钥）
             builder.UseSetting("OAuth2:AesKey", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+            // 清空 InternalAuth:ApiKey，使 InternalApiKeyMiddleware 在 Development 环境放行 /internal 请求
+            // 由 InternalUsersController 在 /contacts/full 端点自行做 fail-closed 校验
+            builder.UseSetting("InternalAuth:ApiKey", "");
 
             builder.ConfigureServices(services =>
             {
@@ -63,6 +70,10 @@ public class IdentityApiTests : IClassFixture<WebApplicationFactory<Program>>
                 services.AddSingleton(_externalLoginServiceMock.Object);
                 services.AddSingleton(_oauthServiceMock.Object);
                 services.AddSingleton(_currentUserMock.Object);
+                // Task A4 新增：Admin/Internal 控制器依赖的 Mock 单例注册
+                services.AddSingleton(_oauthClientAppServiceMock.Object);
+                services.AddSingleton(_userAdminAppServiceMock.Object);
+                services.AddSingleton(_userInternalAppServiceMock.Object);
 
                 services.AddAuthentication(defaultScheme: "Test")
                     .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", _ => { });
@@ -109,7 +120,11 @@ public class IdentityApiTests : IClassFixture<WebApplicationFactory<Program>>
             typeof(ITwoFactorService),
             typeof(IPasswordService),
             typeof(IExternalLoginService),
-            typeof(IOAuthService)
+            typeof(IOAuthService),
+            // Task A4 新增：Admin/Internal 控制器依赖
+            typeof(IOAuthClientAppService),
+            typeof(IUserAdminAppService),
+            typeof(IUserInternalAppService)
         };
 
         var descriptors = services
@@ -700,6 +715,405 @@ public class IdentityApiTests : IClassFixture<WebApplicationFactory<Program>>
 
     #endregion
 
+    #region AdminOAuthClientsController - ListOAuthClients (GET /api/admin/oauth-clients)
+
+    [Fact]
+    public async Task ListOAuthClients_WithAdminAuth_ReturnsOk()
+    {
+        SetupAdminAuth();
+        var clients = new List<OAuthClientDto>
+        {
+            new()
+            {
+                Provider = "google",
+                ProviderType = "Oidc",
+                ClientId = "google-client-id",
+                ClientSecret = "****",
+                RedirectUri = "https://example.com/callback",
+                Scopes = new[] { "openid", "email" },
+                Enabled = true
+            }
+        };
+        _oauthClientAppServiceMock.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(clients);
+
+        var response = await _client.GetAsync("/api/admin/oauth-clients");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<IReadOnlyList<OAuthClientDto>>>();
+        result!.Code.Should().Be(200);
+        result.Data.Should().HaveCount(1);
+        result.Data![0].Provider.Should().Be("google");
+    }
+
+    [Fact]
+    public async Task ListOAuthClients_WithBuyerAuth_Returns403()
+    {
+        SetupAuth(); // Buyer 角色
+        var response = await _client.GetAsync("/api/admin/oauth-clients");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden, "Buyer 角色不应访问运营端 OAuth 配置");
+    }
+
+    [Fact]
+    public async Task ListOAuthClients_WithoutAuth_Returns401()
+    {
+        _client.DefaultRequestHeaders.Authorization = null;
+        var response = await _client.GetAsync("/api/admin/oauth-clients");
+        _client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Test");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    #endregion
+
+    #region AdminOAuthClientsController - CreateOAuthClient (POST /api/admin/oauth-clients/{provider})
+
+    [Fact]
+    public async Task CreateOAuthClient_WithAdminAuth_ReturnsOk()
+    {
+        SetupAdminAuth();
+        _oauthClientAppServiceMock.Setup(s => s.CreateAsync(It.IsAny<OAuthClientDto>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var body = new
+        {
+            providerType = "Oidc",
+            discoveryUrl = "https://accounts.google.com/.well-known/openid-configuration",
+            clientId = "google-client-id",
+            clientSecret = "google-secret",
+            redirectUri = "https://example.com/callback",
+            scopes = new[] { "openid", "email" }
+        };
+        var response = await _client.PostAsJsonAsync("/api/admin/oauth-clients/google", body);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(200);
+        result.Message.Should().Be("OAuth 客户端配置已创建（默认禁用，需显式启用）");
+
+        _oauthClientAppServiceMock.Verify(
+            s => s.CreateAsync(It.Is<OAuthClientDto>(d => d.Provider == "google"), It.IsAny<CancellationToken>()),
+            Times.Once,
+            "Controller 应将路由 provider 写入 dto.Provider 后调用 Service");
+    }
+
+    #endregion
+
+    #region AdminOAuthClientsController - UpdateOAuthClient (PUT /api/admin/oauth-clients/{provider})
+
+    [Fact]
+    public async Task UpdateOAuthClient_WithAdminAuth_ReturnsOk()
+    {
+        SetupAdminAuth();
+        _oauthClientAppServiceMock.Setup(s => s.UpdateAsync("google", It.IsAny<OAuthClientDto>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var body = new
+        {
+            providerType = "Oidc",
+            clientId = "updated-client-id",
+            clientSecret = "updated-secret",
+            redirectUri = "https://example.com/callback-v2",
+            scopes = new[] { "openid", "email", "profile" }
+        };
+        var response = await _client.PutAsJsonAsync("/api/admin/oauth-clients/google", body);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(200);
+        result.Message.Should().Be("OAuth 客户端配置已更新");
+    }
+
+    #endregion
+
+    #region AdminOAuthClientsController - EnableOAuthClient (POST /api/admin/oauth-clients/{provider}/enable)
+
+    [Fact]
+    public async Task EnableOAuthClient_WithAdminAuth_ReturnsOk()
+    {
+        SetupAdminAuth();
+        _oauthClientAppServiceMock.Setup(s => s.EnableAsync("google", It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var response = await _client.PostAsync("/api/admin/oauth-clients/google/enable", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(200);
+        result.Message.Should().Be("OAuth 提供方已启用");
+    }
+
+    #endregion
+
+    #region AdminOAuthClientsController - DisableOAuthClient (POST /api/admin/oauth-clients/{provider}/disable)
+
+    [Fact]
+    public async Task DisableOAuthClient_WithAdminAuth_ReturnsOk()
+    {
+        SetupAdminAuth();
+        _oauthClientAppServiceMock.Setup(s => s.DisableAsync("google", It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var response = await _client.PostAsync("/api/admin/oauth-clients/google/disable", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(200);
+        result.Message.Should().Be("OAuth 提供方已禁用");
+    }
+
+    #endregion
+
+    #region AdminUsersController - QueryUsers (GET /api/admin/users)
+
+    [Fact]
+    public async Task QueryUsers_WithOperatorAuth_ReturnsOk()
+    {
+        SetupOperatorAuth();
+        var paged = PagedResult.Create(
+            new List<AdminUserDto>
+            {
+                new()
+                {
+                    Id = UserId,
+                    Username = "testuser",
+                    Email = "test@example.com",
+                    Nickname = "Test",
+                    Status = AccountStatus.Active,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }
+            },
+            total: 1,
+            page: 1,
+            pageSize: 20);
+        _userAdminAppServiceMock.Setup(s => s.QueryUsersAsync(
+                It.IsAny<AdminUserQueryDto>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(paged);
+
+        var response = await _client.GetAsync("/api/admin/users?keyword=test&page=1&pageSize=20");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<PagedResult<AdminUserDto>>>();
+        result!.Code.Should().Be(200);
+        result.Data!.Total.Should().Be(1);
+        result.Data.Items.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task QueryUsers_WithBuyerAuth_Returns403()
+    {
+        SetupAuth(); // Buyer 角色
+        var response = await _client.GetAsync("/api/admin/users?keyword=test");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden, "Buyer 角色不应访问用户管理后台");
+    }
+
+    [Fact]
+    public async Task QueryUsers_WithoutAuth_Returns401()
+    {
+        _client.DefaultRequestHeaders.Authorization = null;
+        var response = await _client.GetAsync("/api/admin/users");
+        _client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Test");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    #endregion
+
+    #region AdminUsersController - GetUser (GET /api/admin/users/{id})
+
+    [Fact]
+    public async Task GetUser_WithAdminAuth_ReturnsOk()
+    {
+        SetupAdminAuth();
+        var dto = new AdminUserDto
+        {
+            Id = UserId,
+            Username = "testuser",
+            Email = "test@example.com",
+            Nickname = "Test",
+            Status = AccountStatus.Active,
+            CreatedAt = DateTime.UtcNow.AddDays(-30),
+            UpdatedAt = DateTime.UtcNow
+        };
+        _userAdminAppServiceMock.Setup(s => s.GetUserAsync(UserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dto);
+
+        var response = await _client.GetAsync($"/api/admin/users/{UserId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<AdminUserDto>>();
+        result!.Code.Should().Be(200);
+        result.Data!.Id.Should().Be(UserId);
+        result.Data.Username.Should().Be("testuser");
+    }
+
+    [Fact]
+    public async Task GetUser_NotExist_ShouldReturnNotFound()
+    {
+        SetupAdminAuth();
+        _userAdminAppServiceMock.Setup(s => s.GetUserAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IdentityDomainException("用户不存在", "USER_NOT_FOUND"));
+
+        var response = await _client.GetAsync($"/api/admin/users/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound,
+            "USER_NOT_FOUND 错误码由全局异常中间件映射为 404");
+    }
+
+    #endregion
+
+    #region AdminUsersController - AssignRoles (POST /api/admin/users/{id}/roles)
+
+    [Fact]
+    public async Task AssignRoles_WithAdminAuth_ReturnsOk()
+    {
+        SetupAdminAuth();
+        _userAdminAppServiceMock.Setup(s => s.AssignRolesAsync(
+                UserId,
+                It.IsAny<List<Guid>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var roleId = Guid.NewGuid();
+        var body = new { roleIds = new[] { roleId } };
+        var response = await _client.PostAsJsonAsync($"/api/admin/users/{UserId}/roles", body);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(200);
+        result.Message.Should().Be("角色已分配");
+
+        _userAdminAppServiceMock.Verify(
+            s => s.AssignRolesAsync(UserId, It.Is<List<Guid>>(l => l.Count == 1 && l[0] == roleId), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    #endregion
+
+    #region AdminUsersController - SuspendUser (POST /api/admin/users/{id}/suspend)
+
+    [Fact]
+    public async Task SuspendUser_WithAdminAuth_ReturnsOk()
+    {
+        SetupAdminAuth();
+        _userAdminAppServiceMock.Setup(s => s.SuspendAsync(
+                UserId,
+                It.IsAny<SuspendUserDto>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var body = new { reason = "违规操作", durationMinutes = 60 };
+        var response = await _client.PostAsJsonAsync($"/api/admin/users/{UserId}/suspend", body);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(200);
+        result.Message.Should().Be("账户已锁定");
+    }
+
+    #endregion
+
+    #region AdminUsersController - ResumeUser (POST /api/admin/users/{id}/resume)
+
+    [Fact]
+    public async Task ResumeUser_WithAdminAuth_ReturnsOk()
+    {
+        SetupAdminAuth();
+        _userAdminAppServiceMock.Setup(s => s.ResumeAsync(UserId, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var response = await _client.PostAsync($"/api/admin/users/{UserId}/resume", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(200);
+        result.Message.Should().Be("账户已恢复");
+    }
+
+    #endregion
+
+    #region InternalUsersController - GetContacts (GET /internal/v1/users/{userId}/contacts)
+
+    [Fact]
+    public async Task GetContacts_WithoutInternalKey_ReturnsOk()
+    {
+        // 默认脱敏端点不要求 X-Internal-Key 头
+        var masked = new UserContactsMaskedDto
+        {
+            UserId = UserId,
+            PhoneNumber = "138****1234",
+            Email = "t***@example.com"
+        };
+        _userInternalAppServiceMock.Setup(s => s.GetContactsAsync(UserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(masked);
+
+        var response = await _client.GetAsync($"/internal/v1/users/{UserId}/contacts");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK,
+            "默认脱敏端点不需要 X-Internal-Key 头");
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<UserContactsMaskedDto>>();
+        result!.Code.Should().Be(200);
+        result.Data!.UserId.Should().Be(UserId);
+        result.Data.PhoneNumber.Should().Be("138****1234");
+    }
+
+    #endregion
+
+    #region InternalUsersController - GetFullContacts (GET /internal/v1/users/{userId}/contacts/full)
+
+    [Fact]
+    public async Task GetFullContacts_WithoutInternalKey_Returns403()
+    {
+        // fail-closed：未携带 X-Internal-Key 头，Controller 直接返回 403
+        _client.DefaultRequestHeaders.Remove("X-Internal-Key");
+
+        var response = await _client.GetAsync($"/internal/v1/users/{UserId}/contacts/full");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden,
+            "完整 PII 端点 fail-closed：未携带 X-Internal-Key 头应 403");
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(403);
+        result.Message.Should().Be("完整 PII 查询需要 X-Internal-Key 鉴权");
+    }
+
+    [Fact]
+    public async Task GetFullContacts_WithInternalKey_ReturnsOk()
+    {
+        _client.DefaultRequestHeaders.Remove("X-Internal-Key");
+        _client.DefaultRequestHeaders.Add("X-Internal-Key", "test-internal-key");
+
+        var full = new UserContactsDto
+        {
+            UserId = UserId,
+            PhoneNumber = "13812341234",
+            Email = "test@example.com"
+        };
+        _userInternalAppServiceMock.Setup(s => s.GetFullContactsAsync(UserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(full);
+
+        var response = await _client.GetAsync($"/internal/v1/users/{UserId}/contacts/full");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<UserContactsDto>>();
+        result!.Code.Should().Be(200);
+        result.Data!.UserId.Should().Be(UserId);
+        result.Data.PhoneNumber.Should().Be("13812341234");
+        result.Data.Email.Should().Be("test@example.com");
+
+        // 清理：避免污染其他测试
+        _client.DefaultRequestHeaders.Remove("X-Internal-Key");
+    }
+
+    #endregion
+
     #region Auth Helpers
 
     private void SetupAuth()
@@ -709,6 +1123,28 @@ public class IdentityApiTests : IClassFixture<WebApplicationFactory<Program>>
         _currentUserMock.SetupGet(c => c.Role).Returns("Buyer");
         // Identity 控制器无 RBAC 角色限制，[Authorize] 通过即可
         SetTestRole("Buyer");
+    }
+
+    /// <summary>
+    /// 设置 Admin 角色鉴权上下文，用于 [Authorize(Roles = "Operator,Admin")] 端点的成功路径测试。
+    /// </summary>
+    private void SetupAdminAuth()
+    {
+        _currentUserMock.SetupGet(c => c.IsAuthenticated).Returns(true);
+        _currentUserMock.SetupGet(c => c.UserId).Returns(UserId);
+        _currentUserMock.SetupGet(c => c.Role).Returns("Admin");
+        SetTestRole("Admin");
+    }
+
+    /// <summary>
+    /// 设置 Operator 角色鉴权上下文，验证 [Authorize(Roles = "Operator,Admin")] 同样允许 Operator。
+    /// </summary>
+    private void SetupOperatorAuth()
+    {
+        _currentUserMock.SetupGet(c => c.IsAuthenticated).Returns(true);
+        _currentUserMock.SetupGet(c => c.UserId).Returns(UserId);
+        _currentUserMock.SetupGet(c => c.Role).Returns("Operator");
+        SetTestRole("Operator");
     }
 
     private void SetTestRole(string role)
