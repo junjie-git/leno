@@ -73,6 +73,15 @@ public static class HealthChecksUIExtensions
     /// 注册 Leno 全部健康检查（self + Redis + ES + SqlServer + RabbitMQ + DbContext）。
     /// 各 BC 调用 AddLenoApi&lt;TDbContext&gt; 时自动使用此重载。
     /// </summary>
+    /// <remarks>
+    /// <see cref="WebApplicationExtensions.AddLenoApi{TDbContext}"/> 在调用本方法前已先调用
+    /// <c>AddLenoInfrastructure</c>，后者注册了 self/Redis/Elasticsearch/RabbitMQ 基础检查。
+    /// 此处仅追加 DbContext 探活，避免重复注册导致
+    /// <see cref="DefaultHealthCheckService"/> 校验抛
+    /// <c>ArgumentException("Duplicate health checks")</c>。
+    /// 独立调用场景（未经过 AddLenoApi/AddLenoInfrastructure）请先调用非泛型
+    /// <see cref="AddLenoHealthChecks(IServiceCollection, IConfiguration)"/> 注册基础检查。
+    /// </remarks>
     public static IHealthChecksBuilder AddLenoHealthChecks<TDbContext>(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -81,10 +90,9 @@ public static class HealthChecksUIExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        // 先调用非泛型版本注册 self/Redis/ES/SqlServer/RabbitMQ
-        var builder = services.AddLenoHealthChecks(configuration);
-
-        // 追加 DbContext 探活
+        // AddLenoApi 先调用 AddLenoInfrastructure（已注册 self/Redis/ES/RabbitMQ 基础检查），
+        // 此处仅追加 DbContext 探活，避免重复注册。
+        var builder = services.AddHealthChecks();
         builder.AddDbContextCheck<TDbContext>(tags: ReadyTags);
 
         return builder;

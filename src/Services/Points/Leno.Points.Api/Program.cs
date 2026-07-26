@@ -3,6 +3,9 @@ using Leno.Infrastructure.Dependencies;
 using Leno.Infrastructure.Persistence;
 using Leno.Infrastructure.ServiceDiscovery;
 using Leno.Infrastructure.Telemetry;
+using Leno.Points.Application;
+using Leno.Points.Application.Services;
+using Leno.Points.Api.GrpcServices;
 using Leno.Points.Infrastructure;
 using Leno.Points.Infrastructure.Dependencies;
 
@@ -19,7 +22,18 @@ builder.Services.AddLenoApi<PointsDbContext>(
     builder.Configuration,
     "leno-points-api",
     cfg => cfg.AddPointsConsumers(),
-    s => s.AddPointsInfrastructure(builder.Configuration));
+    s =>
+    {
+        s.AddPointsInfrastructure(builder.Configuration);
+        // 注册 Points BC 应用服务（Application 层）
+        s.AddScoped<IPointsAppService, PointsAppService>();
+        s.AddScoped<ICheckInAppService, CheckInAppService>();
+        s.AddScoped<IExchangeCouponAppService, ExchangeCouponAppService>();
+        s.AddScoped<IAwardAppService, AwardAppService>();
+        s.AddScoped<ITaskAppService, TaskAppService>();
+        s.AddScoped<IPointsRuleAppService, PointsRuleAppService>();
+        s.AddScoped<IPointsInternalAppService, PointsInternalAppService>();
+    });
 
 // 启用 Consul KV 配置中心
 builder.AddLenoConsulConfig();
@@ -42,7 +56,19 @@ if (!app.Configuration.ValidateSensitiveConfig())
 // 一站式中间件管线：OpenAPI + 全局异常 + 内部 API Key + 鉴权 + 健康检查端点 + Controllers
 app.UseLenoPipeline();
 
+// M4 双轨方案 + Spec §2.2.1 gRPC 重建：仅当 AntiCorruption:UseGrpc=true 时映射 Points gRPC 服务
+if (builder.Configuration.GetValue<bool>("AntiCorruption:UseGrpc"))
+{
+    app.MapGrpcService<PointsGrpcService>();
+    app.Logger.LogInformation("Points gRPC service mapped.");
+}
+
 // 启动时执行 EF Core 迁移（带 Redis 分布式锁，避免多实例并发冲突）
 // 双轨期迁移独立运行，不影响旧 points_membership_db
 await app.Services.MigrateWithLockAsync<PointsDbContext>();
 app.Run();
+
+/// <summary>
+/// Program 类部分声明，供 WebApplicationFactory&lt;Program&gt; 在集成测试中引用。
+/// </summary>
+public partial class Program;

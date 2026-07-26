@@ -126,6 +126,7 @@
     <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Infrastructure/Leno.PointsMembership.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/Points/">
+    <Project Path="src/Services/Points/Leno.Points.Api.Tests/Leno.Points.Api.Tests.csproj" />
     <Project Path="src/Services/Points/Leno.Points.Api/Leno.Points.Api.csproj" />
     <Project Path="src/Services/Points/Leno.Points.Application/Leno.Points.Application.csproj" />
     <Project Path="src/Services/Points/Leno.Points.Domain/Leno.Points.Domain.csproj" />
