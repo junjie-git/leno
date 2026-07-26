@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据字典 - Leno 买家端</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --ff-mono:"SF Mono","Consolas","Menlo",monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { font-family:var(--ff-app); font-size:var(--fs-base); color:var(--n10); background:#EDEDED; line-height:1.5715; }
+body { max-width:375px; margin:0 auto; min-height:100vh; background:var(--n3); box-shadow:0 0 24px rgba(0,0,0,.08); position:relative; }
+
+/* ===== NavBar ===== */
+.navbar {
+  position:sticky; top:0; z-index:100;
+  height:46px; background:var(--n1);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 var(--s3);
+  border-bottom:1px solid var(--n3);
+}
+.navbar .nav-left, .navbar .nav-right { width:72px; display:flex; align-items:center; }
+.navbar .nav-right { justify-content:flex-end; }
+.navbar .nav-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); }
+.navbar .icon-btn { width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; cursor:pointer; color:var(--n10); }
+.navbar .icon-btn svg { width:20px; height:20px; }
+
+/* ===== 搜索框 ===== */
+.search-wrap { background:var(--n1); padding:var(--s2) var(--s3); border-bottom:1px solid var(--n3); }
+.search-box { display:flex; align-items:center; gap:var(--s2); }
+.search-input-wrap { flex:1; display:flex; align-items:center; background:var(--n3); border-radius:var(--r-base); padding:0 12px; height:36px; gap:6px; }
+.search-input-wrap svg { width:16px; height:16px; color:var(--n7); flex-shrink:0; }
+.search-input-wrap input { flex:1; border:none; background:transparent; outline:none; font-size:var(--fs-base); color:var(--n10); font-family:inherit; height:100%; }
+.search-input-wrap input::placeholder { color:var(--n7); }
+.search-btn { height:36px; padding:0 16px; background:var(--c-primary); color:#fff; border:none; border-radius:var(--r-base); font-size:var(--fs-base); font-weight:var(--fw-medium); cursor:pointer; font-family:inherit; }
+.search-btn:active { opacity:.85; }
+
+/* ===== 常用字典快捷入口 ===== */
+.quick-section { background:var(--n1); padding:var(--s3); border-bottom:1px solid var(--n3); }
+.quick-title { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-medium); margin-bottom:var(--s2); }
+.quick-tags { display:flex; flex-wrap:wrap; gap:var(--s2); }
+.quick-tag { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; background:var(--n3); border-radius:16px; font-size:var(--fs-sm); color:var(--n9); border:none; cursor:pointer; font-family:inherit; transition:all .15s; }
+.quick-tag svg { width:13px; height:13px; }
+.quick-tag.active { background:#E6F0FF; color:var(--c-primary); font-weight:var(--fw-medium); }
+.quick-tag:active { opacity:.8; }
+
+/* ===== Content ===== */
+.content { padding:var(--s3); padding-bottom:32px; }
+
+/* ===== 字典卡片 ===== */
+.dict-card { background:var(--n1); border-radius:var(--r-lg); box-shadow:var(--sh-card); overflow:hidden; margin-bottom:var(--s3); }
+.dict-header { display:flex; align-items:flex-start; justify-content:space-between; padding:var(--s3); gap:var(--s2); border-bottom:1px solid var(--n3); }
+.dict-header-left { flex:1; min-width:0; }
+.dict-name { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); display:flex; align-items:center; gap:6px; }
+.dict-name svg { width:18px; height:18px; color:var(--c-primary); flex-shrink:0; }
+.dict-code { font-size:var(--fs-sm); color:var(--n7); margin-top:4px; font-family:var(--ff-mono); display:flex; align-items:center; gap:4px; }
+.dict-code .code-label { color:var(--n7); }
+.dict-code .code-value { color:var(--c-primary); }
+.dict-meta { display:flex; align-items:center; gap:8px; margin-top:6px; }
+.dict-meta-item { font-size:11px; color:var(--n7); display:flex; align-items:center; gap:3px; }
+.dict-meta-item svg { width:11px; height:11px; }
+.dict-status { font-size:11px; padding:2px 8px; border-radius:4px; font-weight:var(--fw-medium); flex-shrink:0; }
+.dict-status.active { background:#F6FFED; color:var(--c-success); }
+
+/* 字典项列表 */
+.dict-items { }
+.dict-item { display:flex; align-items:center; padding:var(--s3); gap:var(--s2); position:relative; }
+.dict-item + .dict-item::before { content:""; position:absolute; top:0; left:var(--s3); right:var(--s3); height:1px; background:var(--n3); }
+.dict-item-index { width:22px; height:22px; border-radius:50%; background:var(--n3); color:var(--n7); font-size:11px; font-weight:var(--fw-medium); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.dict-item-body { flex:1; min-width:0; }
+.dict-item-label { font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-normal); display:flex; align-items:center; gap:6px; }
+.dict-default-tag { font-size:10px; padding:1px 6px; border-radius:3px; background:#E6F0FF; color:var(--c-primary); font-weight:var(--fw-medium); display:inline-flex; align-items:center; gap:2px; }
+.dict-default-tag svg { width:9px; height:9px; }
+.dict-item-value { font-size:var(--fs-sm); color:var(--c-primary); font-family:var(--ff-mono); margin-top:3px; word-break:break-all; }
+.copy-btn { width:32px; height:32px; border:none; background:transparent; cursor:pointer; color:var(--n7); display:flex; align-items:center; justify-content:center; border-radius:var(--r-base); flex-shrink:0; transition:all .15s; }
+.copy-btn:active { background:var(--n3); color:var(--c-primary); }
+.copy-btn svg { width:16px; height:16px; }
+.copy-btn.copied { color:var(--c-success); }
+
+/* ===== 提示信息 ===== */
+.info-tip { background:#E6F0FF; border-radius:var(--r-lg); padding:var(--s3); display:flex; gap:var(--s2); margin-bottom:var(--s3); }
+.info-tip svg { width:16px; height:16px; color:var(--c-primary); flex-shrink:0; margin-top:2px; }
+.info-tip-text { font-size:var(--fs-sm); color:var(--n9); line-height:1.6; }
+.info-tip-text .strong { color:var(--n10); font-weight:var(--fw-medium); }
+.info-tip-text code { font-family:var(--ff-mono); background:rgba(22,119,255,.1); color:var(--c-primary); padding:1px 5px; border-radius:3px; font-size:11px; }
+
+/* ===== 状态预览 ===== */
+.section-divider { margin:24px -12px 0; padding:16px 12px 8px; background:linear-gradient(180deg,var(--n3),var(--n1)); }
+.section-divider .div-title { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-medium); display:flex; align-items:center; gap:8px; }
+.section-divider .div-title::before, .section-divider .div-title::after { content:""; flex:1; height:1px; background:var(--n5); }
+.state-block { margin-top:12px; }
+.state-block .state-label { font-size:var(--fs-sm); color:var(--n9); font-weight:var(--fw-medium); margin-bottom:8px; padding:0 4px; display:flex; align-items:center; gap:6px; }
+.state-block .state-dot { width:6px; height:6px; border-radius:50%; background:var(--c-primary); }
+
+/* 骨架屏 */
+.sk-card { background:var(--n1); border-radius:var(--r-lg); box-shadow:var(--sh-card); padding:var(--s3); }
+.sk { background:linear-gradient(90deg,var(--n3) 25%,var(--n2) 37%,var(--n3) 63%); background-size:400% 100%; animation:shimmer 1.4s ease infinite; border-radius:4px; }
+@keyframes shimmer { 0% { background-position:100% 50%; } 100% { background-position:0 50%; } }
+.sk-row { display:flex; align-items:center; gap:var(--s2); padding:10px 0; }
+.sk-row + .sk-row { border-top:1px solid var(--n3); }
+.sk-circle { width:22px; height:22px; border-radius:50%; flex-shrink:0; }
+.sk-line { height:14px; }
+.sk-line.short { width:40%; }
+.sk-line.mid { width:65%; }
+
+/* 空状态 */
+.empty-state { background:var(--n1); border-radius:var(--r-lg); padding:40px var(--s3); text-align:center; }
+.empty-illust { width:120px; height:120px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; }
+.empty-illust svg { width:100px; height:100px; }
+.empty-title { font-size:var(--fs-base); color:var(--n9); font-weight:var(--fw-medium); }
+.empty-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:6px; }
+.empty-quick { margin-top:16px; display:flex; flex-direction:column; gap:6px; align-items:center; }
+.empty-quick-label { font-size:var(--fs-sm); color:var(--n7); }
+.empty-quick-tags { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+.empty-quick-tag { padding:5px 12px; background:#E6F0FF; color:var(--c-primary); border-radius:14px; font-size:var(--fs-sm); font-weight:var(--fw-medium); border:none; cursor:pointer; font-family:inherit; }
+
+/* 错误态 */
+.error-state { background:var(--n1); border-radius:var(--r-lg); padding:32px var(--s3); text-align:center; }
+.error-illust { width:80px; height:80px; margin:0 auto 12px; }
+.error-illust svg { width:80px; height:80px; }
+.error-title { font-size:var(--fs-base); color:var(--n9); font-weight:var(--fw-medium); }
+.error-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:6px; }
+.error-retry { margin-top:16px; display:inline-flex; align-items:center; gap:6px; padding:7px 20px; background:var(--n1); color:var(--c-primary); border:1px solid var(--c-primary); border-radius:var(--r-base); font-size:var(--fs-base); font-weight:var(--fw-medium); cursor:pointer; font-family:inherit; }
+.error-retry svg { width:14px; height:14px; }
+.error-retry:active { background:#E6F0FF; }
+
+/* Toast */
+.toast-preview { position:fixed; left:50%; transform:translateX(-50%); bottom:80px; background:rgba(0,0,0,.75); color:#fff; padding:10px 20px; border-radius:var(--r-base); font-size:var(--fs-base); z-index:200; display:flex; align-items:center; gap:6px; opacity:0; pointer-events:none; transition:opacity .2s; }
+.toast-preview.show { opacity:1; }
+.toast-preview svg { width:16px; height:16px; }
+
+.footer-note { text-align:center; padding:24px var(--s3) 16px; color:var(--n7); font-size:var(--fs-sm); }
+</style>
+</head>
+<body>
+
+<!-- ===== NavBar ===== -->
+<header class="navbar">
+  <div class="nav-left">
+    <button class="icon-btn" aria-label="返回">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+  </div>
+  <div class="nav-title">数据字典</div>
+  <div class="nav-right"></div>
+</header>
+
+<!-- ===== 搜索框 ===== -->
+<div class="search-wrap">
+  <div class="search-box">
+    <div class="search-input-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="searchInput" placeholder="输入字典编码，如 refund-reason" aria-label="字典编码搜索框" role="searchbox">
+    </div>
+    <button class="search-btn" id="searchBtn">搜索</button>
+  </div>
+</div>
+
+<!-- ===== 常用字典快捷入口 ===== -->
+<div class="quick-section">
+  <div class="quick-title">常用字典</div>
+  <div class="quick-tags" id="quickTags">
+    <button class="quick-tag active" data-code="refund-reason">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+      退换货原因
+    </button>
+    <button class="quick-tag" data-code="province">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+      配送省份
+    </button>
+    <button class="quick-tag" data-code="product-category">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+      商品分类
+    </button>
+    <button class="quick-tag" data-code="gender">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+      性别
+    </button>
+    <button class="quick-tag" data-code="order-status">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+      订单状态
+    </button>
+    <button class="quick-tag" data-code="payment-method">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+      支付方式
+    </button>
+  </div>
+</div>
+
+<!-- ===== 内容区 ===== -->
+<main class="content">
+
+  <!-- 提示信息 -->
+  <div class="info-tip">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+    <div class="info-tip-text">
+      本页面为<span class="strong">前端组件引用工具页</span>，普通买家无需直接访问。组件通过 <code>GET /api/dictionaries/{code}</code> 获取字典项，前端缓存 10 分钟。
+    </div>
+  </div>
+
+  <!-- 字典 1：退换货原因 -->
+  <div class="dict-card">
+    <div class="dict-header">
+      <div class="dict-header-left">
+        <div class="dict-name">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+          退换货原因
+        </div>
+        <div class="dict-code">
+          <span class="code-label">编码：</span>
+          <span class="code-value">refund-reason</span>
+        </div>
+        <div class="dict-meta">
+          <span class="dict-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            5 项
+          </span>
+          <span class="dict-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            更新于 07-20
+          </span>
+        </div>
+      </div>
+      <span class="dict-status active">启用中</span>
+    </div>
+    <div class="dict-items">
+      <div class="dict-item">
+        <span class="dict-item-index">1</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">商品损坏 <span class="dict-default-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>默认</span></div>
+          <div class="dict-item-value">damage</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'damage')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">2</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">与描述不符</div>
+          <div class="dict-item-value">mismatch</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'mismatch')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">3</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">少件漏发</div>
+          <div class="dict-item-value">missing</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'missing')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">4</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">不喜欢 / 七天无理由</div>
+          <div class="dict-item-value">dislike</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'dislike')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">5</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">其他原因</div>
+          <div class="dict-item-value">other</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'other')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 字典 2：配送地址省份 -->
+  <div class="dict-card">
+    <div class="dict-header">
+      <div class="dict-header-left">
+        <div class="dict-name">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          配送地址省份
+        </div>
+        <div class="dict-code">
+          <span class="code-label">编码：</span>
+          <span class="code-value">province</span>
+        </div>
+        <div class="dict-meta">
+          <span class="dict-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            6 项（示例）
+          </span>
+          <span class="dict-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            更新于 07-15
+          </span>
+        </div>
+      </div>
+      <span class="dict-status active">启用中</span>
+    </div>
+    <div class="dict-items">
+      <div class="dict-item">
+        <span class="dict-item-index">1</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">北京市 <span class="dict-default-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>默认</span></div>
+          <div class="dict-item-value">11</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'11')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">2</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">上海市</div>
+          <div class="dict-item-value">31</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'31')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">3</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">广东省</div>
+          <div class="dict-item-value">44</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'44')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">4</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">浙江省</div>
+          <div class="dict-item-value">33</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'33')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">5</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">江苏省</div>
+          <div class="dict-item-value">32</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'32')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">6</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">四川省</div>
+          <div class="dict-item-value">51</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'51')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 字典 3：商品分类 -->
+  <div class="dict-card">
+    <div class="dict-header">
+      <div class="dict-header-left">
+        <div class="dict-name">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          商品分类（一级）
+        </div>
+        <div class="dict-code">
+          <span class="code-label">编码：</span>
+          <span class="code-value">product-category</span>
+        </div>
+        <div class="dict-meta">
+          <span class="dict-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            6 项
+          </span>
+          <span class="dict-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            更新于 07-22
+          </span>
+        </div>
+      </div>
+      <span class="dict-status active">启用中</span>
+    </div>
+    <div class="dict-items">
+      <div class="dict-item">
+        <span class="dict-item-index">1</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">手机数码 <span class="dict-default-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>默认</span></div>
+          <div class="dict-item-value">digital</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'digital')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">2</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">家用电器</div>
+          <div class="dict-item-value">appliance</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'appliance')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">3</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">服饰鞋包</div>
+          <div class="dict-item-value">fashion</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'fashion')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">4</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">美妆个护</div>
+          <div class="dict-item-value">beauty</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'beauty')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">5</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">食品生鲜</div>
+          <div class="dict-item-value">food</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'food')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+      <div class="dict-item">
+        <span class="dict-item-index">6</span>
+        <div class="dict-item-body">
+          <div class="dict-item-label">家居家装</div>
+          <div class="dict-item-value">home</div>
+        </div>
+        <button class="copy-btn" aria-label="复制 value" onclick="copyValue(this,'home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 状态预览区 ===== -->
+  <div class="section-divider">
+    <div class="div-title">交互状态预览</div>
+  </div>
+
+  <!-- 骨架屏 -->
+  <div class="state-block">
+    <div class="state-label"><span class="state-dot"></span>加载骨架屏（查询加载态）</div>
+    <div class="sk-card">
+      <div class="sk-row">
+        <div class="sk sk-circle"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div class="sk sk-line mid"></div><div class="sk sk-line short"></div></div>
+      </div>
+      <div class="sk-row">
+        <div class="sk sk-circle"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div class="sk sk-line mid"></div><div class="sk sk-line short"></div></div>
+      </div>
+      <div class="sk-row">
+        <div class="sk sk-circle"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div class="sk sk-line mid"></div><div class="sk sk-line short"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 空状态 -->
+  <div class="state-block">
+    <div class="state-label"><span class="state-dot"></span>空状态（未查询 / 字典无项目）</div>
+    <div class="empty-state">
+      <div class="empty-illust">
+        <svg viewBox="0 0 120 120" fill="none">
+          <circle cx="54" cy="54" r="34" fill="#F5F5F5" stroke="#D9D9D9" stroke-width="1.5"/>
+          <circle cx="54" cy="54" r="16" fill="none" stroke="#D9D9D9" stroke-width="2"/>
+          <line x1="66" y1="66" x2="84" y2="84" stroke="#D9D9D9" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M48 54 L60 54 M54 48 L54 60" stroke="#D9D9D9" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="empty-title">请输入字典编码查询</div>
+      <div class="empty-desc">输入编码如 refund-reason，查询字典项列表</div>
+      <div class="empty-quick">
+        <div class="empty-quick-label">或试试常用字典：</div>
+        <div class="empty-quick-tags">
+          <button class="empty-quick-tag">refund-reason</button>
+          <button class="empty-quick-tag">province</button>
+          <button class="empty-quick-tag">gender</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 错误态 -->
+  <div class="state-block">
+    <div class="state-label"><span class="state-dot"></span>错误态（字典不存在 / 查询失败）</div>
+    <div class="error-state">
+      <div class="error-illust">
+        <svg viewBox="0 0 80 80" fill="none">
+          <circle cx="40" cy="40" r="34" fill="#FFF1F0" stroke="#FFCCC7" stroke-width="1.5"/>
+          <circle cx="40" cy="40" r="22" fill="none" stroke="#FF4D4F" stroke-width="2"/>
+          <line x1="32" y1="32" x2="48" y2="48" stroke="#FF4D4F" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="48" y1="32" x2="32" y2="48" stroke="#FF4D4F" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="error-title">字典不存在</div>
+      <div class="error-desc">未找到编码为 xxx 的字典，请检查编码后重试</div>
+      <button class="error-retry">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+        重新查询
+      </button>
+    </div>
+  </div>
+
+  <div class="footer-note">Leno 买家端 · 数据字典 · 点击 value 复制到剪贴板</div>
+
+</main>
+
+<!-- Toast -->
+<div class="toast-preview" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  <span id="toastText">操作成功</span>
+</div>
+
+<script>
+(function(){
+  // 快捷标签切换
+  var quickTags = document.querySelectorAll('.quick-tag');
+  quickTags.forEach(function(tag){
+    tag.addEventListener('click', function(){
+      quickTags.forEach(function(t){ t.classList.remove('active'); });
+      tag.classList.add('active');
+      var code = tag.getAttribute('data-code');
+      document.getElementById('searchInput').value = code;
+      showToast('已查询字典：' + code);
+    });
+  });
+
+  // 搜索按钮
+  document.getElementById('searchBtn').addEventListener('click', function(){
+    var val = document.getElementById('searchInput').value.trim();
+    if(!val){ showToast('请输入字典编码'); return; }
+    showToast('查询字典：' + val);
+  });
+
+  // 回车搜索
+  document.getElementById('searchInput').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ document.getElementById('searchBtn').click(); }
+  });
+
+  // 复制 value
+  window.copyValue = function(btn, value){
+    // 模拟剪贴板写入
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(value);
+    }
+    btn.classList.add('copied');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+    showToast('已复制：' + value);
+    setTimeout(function(){
+      btn.classList.remove('copied');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    }, 1500);
+  };
+
+  // Toast
+  var toastTimer = null;
+  function showToast(text){
+    var toast = document.getElementById('toast');
+    document.getElementById('toastText').textContent = text;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 1500);
+  }
+  window.showToast = showToast;
+})();
+</script>
+
+</body>
+</html>

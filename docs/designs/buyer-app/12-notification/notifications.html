@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>消息中心 - Leno 买家端</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { font-family:var(--ff-app); font-size:var(--fs-base); color:var(--n10); background:#EDEDED; line-height:1.5715; }
+body { max-width:375px; margin:0 auto; min-height:100vh; background:var(--n3); box-shadow:0 0 24px rgba(0,0,0,.08); position:relative; }
+
+/* ===== NavBar ===== */
+.navbar {
+  position:sticky; top:0; z-index:100;
+  height:46px; background:var(--n1);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 var(--s3);
+  border-bottom:1px solid var(--n3);
+}
+.navbar .nav-left, .navbar .nav-right { width:72px; display:flex; align-items:center; }
+.navbar .nav-right { justify-content:flex-end; }
+.navbar .nav-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); }
+.navbar .icon-btn { width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; cursor:pointer; color:var(--n10); }
+.navbar .icon-btn svg { width:20px; height:20px; }
+.navbar .text-btn { border:none; background:transparent; font-size:var(--fs-base); color:var(--c-primary); cursor:pointer; padding:6px 4px; font-family:inherit; }
+.navbar .text-btn:active { opacity:.6; }
+
+/* ===== Tabs ===== */
+.tabs-wrap { position:sticky; top:46px; z-index:99; background:var(--n1); border-bottom:1px solid var(--n3); }
+.tabs { display:flex; height:44px; padding:0 var(--s2); position:relative; }
+.tab { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border:none; background:transparent; cursor:pointer; font-family:inherit; position:relative; }
+.tab .tab-label { font-size:var(--fs-base); color:var(--n9); font-weight:var(--fw-normal); display:flex; align-items:center; gap:4px; }
+.tab .tab-badge { min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--c-error); color:#fff; font-size:10px; line-height:16px; text-align:center; font-weight:var(--fw-medium); }
+.tab.active .tab-label { color:var(--c-primary); font-weight:var(--fw-medium); }
+.tab .tab-ink { position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:20px; height:2px; background:var(--c-primary); border-radius:1px; opacity:0; transition:opacity .2s; }
+.tab.active .tab-ink { opacity:1; }
+
+/* ===== Content ===== */
+.content { padding:var(--s3); padding-bottom:32px; }
+
+/* 下拉刷新提示 */
+.refresh-tip { display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 0; color:var(--n7); font-size:var(--fs-sm); }
+.refresh-tip .spin { width:14px; height:14px; border:2px solid var(--n5); border-top-color:var(--c-primary); border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ===== 通知列表 ===== */
+.noti-list { display:flex; flex-direction:column; gap:var(--s2); }
+.noti-card {
+  background:var(--n1); border-radius:var(--r-lg); box-shadow:var(--sh-card);
+  padding:var(--s3); display:flex; gap:var(--s3); position:relative; cursor:pointer;
+  transition:background .15s;
+}
+.noti-card:active { background:var(--n2); }
+.noti-card.unread::before { content:""; position:absolute; left:6px; top:14px; width:8px; height:8px; border-radius:50%; background:var(--c-error); box-shadow:0 0 0 2px var(--n1); }
+.noti-icon { flex-shrink:0; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.noti-icon svg { width:22px; height:22px; }
+.noti-icon.order { background:#E6F0FF; color:var(--c-primary); }
+.noti-icon.promo { background:#FFF7E6; color:var(--c-warning); }
+.noti-icon.system { background:#F0F0F0; color:var(--n7); }
+.noti-icon.aftersales { background:#FFF1F0; color:var(--c-error); }
+.noti-body { flex:1; min-width:0; }
+.noti-title-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.noti-title { font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-normal); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.noti-card.unread .noti-title { font-weight:var(--fw-semibold); }
+.noti-card.read .noti-title { color:var(--n7); }
+.noti-time { font-size:var(--fs-sm); color:var(--n7); flex-shrink:0; }
+.noti-summary { font-size:13px; color:var(--n9); margin-top:4px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.noti-card.read .noti-summary { color:var(--n7); }
+.noti-meta { display:flex; align-items:center; gap:6px; margin-top:6px; }
+.noti-tag { font-size:11px; padding:1px 6px; border-radius:4px; font-weight:var(--fw-medium); }
+.noti-tag.order { background:#E6F0FF; color:var(--c-primary); }
+.noti-tag.promo { background:#FFF7E6; color:var(--c-warning); }
+.noti-tag.system { background:#F0F0F0; color:var(--n7); }
+.noti-tag.aftersales { background:#FFF1F0; color:var(--c-error); }
+.noti-arrow { color:var(--n5); display:flex; align-items:center; }
+.noti-arrow svg { width:16px; height:16px; }
+
+/* 时间分组标签 */
+.time-group { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-medium); padding:var(--s3) var(--s1) var(--s2); display:flex; align-items:center; gap:6px; }
+.time-group::after { content:""; flex:1; height:1px; background:var(--n3); }
+
+/* ===== 底部加载更多 ===== */
+.load-more { display:flex; align-items:center; justify-content:center; gap:6px; padding:16px 0 8px; color:var(--n7); font-size:var(--fs-sm); }
+.load-more .spin { width:14px; height:14px; border:2px solid var(--n5); border-top-color:var(--c-primary); border-radius:50%; animation:spin .8s linear infinite; }
+.no-more { text-align:center; padding:16px 0 8px; color:var(--n7); font-size:var(--fs-sm); }
+
+/* ===== 状态预览分隔 ===== */
+.section-divider { margin:24px -12px 0; padding:16px 12px 8px; background:linear-gradient(180deg,var(--n3),var(--n1)); }
+.section-divider .div-title { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-medium); display:flex; align-items:center; gap:8px; }
+.section-divider .div-title::before, .section-divider .div-title::after { content:""; flex:1; height:1px; background:var(--n5); }
+.state-block { margin-top:12px; }
+.state-block .state-label { font-size:var(--fs-sm); color:var(--n9); font-weight:var(--fw-medium); margin-bottom:8px; padding:0 4px; display:flex; align-items:center; gap:6px; }
+.state-block .state-dot { width:6px; height:6px; border-radius:50%; background:var(--c-primary); }
+
+/* ===== 骨架屏 ===== */
+.skeleton-card { background:var(--n1); border-radius:var(--r-lg); box-shadow:var(--sh-card); padding:var(--s3); display:flex; gap:var(--s3); }
+.sk { background:linear-gradient(90deg,var(--n3) 25%,var(--n2) 37%,var(--n3) 63%); background-size:400% 100%; animation:shimmer 1.4s ease infinite; border-radius:4px; }
+@keyframes shimmer { 0% { background-position:100% 50%; } 100% { background-position:0 50%; } }
+.sk-icon { width:40px; height:40px; border-radius:50%; flex-shrink:0; }
+.sk-body { flex:1; display:flex; flex-direction:column; gap:8px; padding-top:2px; }
+.sk-line { height:14px; }
+.sk-line.short { width:50%; }
+.sk-line.mid { width:80%; }
+
+/* ===== 空状态 ===== */
+.empty-state { background:var(--n1); border-radius:var(--r-lg); padding:40px var(--s3); text-align:center; }
+.empty-illust { width:120px; height:120px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; }
+.empty-illust svg { width:100px; height:100px; }
+.empty-title { font-size:var(--fs-base); color:var(--n9); font-weight:var(--fw-medium); }
+.empty-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:6px; }
+.empty-cta { margin-top:20px; display:inline-flex; align-items:center; justify-content:center; padding:8px 24px; background:var(--c-primary); color:#fff; border:none; border-radius:var(--r-base); font-size:var(--fs-base); font-weight:var(--fw-medium); cursor:pointer; font-family:inherit; }
+.empty-cta:active { opacity:.85; }
+
+/* ===== 错误态 ===== */
+.error-state { background:var(--n1); border-radius:var(--r-lg); padding:32px var(--s3); text-align:center; }
+.error-illust { width:80px; height:80px; margin:0 auto 12px; }
+.error-illust svg { width:80px; height:80px; }
+.error-title { font-size:var(--fs-base); color:var(--n9); font-weight:var(--fw-medium); }
+.error-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:6px; }
+.error-retry { margin-top:16px; display:inline-flex; align-items:center; gap:6px; padding:7px 20px; background:var(--n1); color:var(--c-primary); border:1px solid var(--c-primary); border-radius:var(--r-base); font-size:var(--fs-base); font-weight:var(--fw-medium); cursor:pointer; font-family:inherit; }
+.error-retry svg { width:14px; height:14px; }
+.error-retry:active { background:#E6F0FF; }
+
+/* ===== Toast 预览 ===== */
+.toast-preview { position:fixed; left:50%; transform:translateX(-50%); bottom:80px; background:rgba(0,0,0,.75); color:#fff; padding:10px 20px; border-radius:var(--r-base); font-size:var(--fs-base); z-index:200; display:flex; align-items:center; gap:6px; opacity:0; pointer-events:none; transition:opacity .2s; }
+.toast-preview.show { opacity:1; }
+.toast-preview svg { width:16px; height:16px; }
+
+/* 页脚说明 */
+.footer-note { text-align:center; padding:24px var(--s3) 16px; color:var(--n7); font-size:var(--fs-sm); }
+</style>
+</head>
+<body>
+
+<!-- ===== NavBar ===== -->
+<header class="navbar">
+  <div class="nav-left">
+    <button class="icon-btn" aria-label="返回">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+  </div>
+  <div class="nav-title">消息</div>
+  <div class="nav-right">
+    <button class="text-btn" id="readAllBtn" aria-label="全部已读">全部已读</button>
+  </div>
+</header>
+
+<!-- ===== 类型 Tabs ===== -->
+<div class="tabs-wrap">
+  <div class="tabs" role="tablist">
+    <button class="tab active" role="tab" aria-selected="true" data-tab="all">
+      <span class="tab-label">全部</span>
+      <span class="tab-ink"></span>
+    </button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="order">
+      <span class="tab-label">订单 <span class="tab-badge">3</span></span>
+      <span class="tab-ink"></span>
+    </button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="promo">
+      <span class="tab-label">优惠 <span class="tab-badge">2</span></span>
+      <span class="tab-ink"></span>
+    </button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="system">
+      <span class="tab-label">系统 <span class="tab-badge">1</span></span>
+      <span class="tab-ink"></span>
+    </button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="aftersales">
+      <span class="tab-label">售后 <span class="tab-badge">1</span></span>
+      <span class="tab-ink"></span>
+    </button>
+  </div>
+</div>
+
+<!-- ===== 内容区 ===== -->
+<main class="content">
+
+  <!-- 下拉刷新提示 -->
+  <div class="refresh-tip">
+    <span class="spin"></span>
+    <span>下拉刷新中…</span>
+  </div>
+
+  <!-- 今天分组 -->
+  <div class="time-group">今天</div>
+  <div class="noti-list">
+
+    <!-- 订单通知 - 未读 -->
+    <article class="noti-card unread" role="article" data-type="order">
+      <div class="noti-icon order">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+      </div>
+      <div class="noti-body">
+        <div class="noti-title-row">
+          <span class="noti-title">订单已发货</span>
+          <span class="noti-time">15:23</span>
+        </div>
+        <div class="noti-summary">您的订单 NO202607261523001 已发货，顺丰快递 SF1234567890，预计 07-28 送达，请保持电话畅通。</div>
+        <div class="noti-meta">
+          <span class="noti-tag order">订单</span>
+        </div>
+      </div>
+      <span class="noti-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+    </article>
+
+    <!-- 优惠通知 - 未读 -->
+    <article class="noti-card unread" role="article" data-type="promo">
+      <div class="noti-icon promo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+      </div>
+      <div class="noti-body">
+        <div class="noti-title-row">
+          <span class="noti-title">优惠券即将过期</span>
+          <span class="noti-time">10:00</span>
+        </div>
+        <div class="noti-summary">优惠券「满 200 减 30」将于 07-27 23:59 过期，抓紧使用，错过不再补发。</div>
+        <div class="noti-meta">
+          <span class="noti-tag promo">优惠</span>
+        </div>
+      </div>
+      <span class="noti-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+    </article>
+
+  </div>
+
+  <!-- 昨天分组 -->
+  <div class="time-group">昨天</div>
+  <div class="noti-list">
+
+    <!-- 系统通知 - 未读 -->
+    <article class="noti-card unread" role="article" data-type="system">
+      <div class="noti-icon system">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+      </div>
+      <div class="noti-body">
+        <div class="noti-title-row">
+          <span class="noti-title">系统维护通知</span>
+          <span class="noti-time">18:00</span>
+        </div>
+        <div class="noti-summary">07-28 凌晨 02:00-04:00 进行系统维护升级，期间下单与支付功能暂停服务，请提前安排。</div>
+        <div class="noti-meta">
+          <span class="noti-tag system">系统</span>
+        </div>
+      </div>
+      <span class="noti-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+    </article>
+
+    <!-- 售后通知 - 已读 -->
+    <article class="noti-card read" role="article" data-type="aftersales">
+      <div class="noti-icon aftersales">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+      </div>
+      <div class="noti-body">
+        <div class="noti-title-row">
+          <span class="noti-title">售后申请已通过</span>
+          <span class="noti-time">16:30</span>
+        </div>
+        <div class="noti-summary">您的售后单 AS20260720001 已通过审核，退款金额 ¥128.00 将原路退回，预计 1-3 个工作日到账。</div>
+        <div class="noti-meta">
+          <span class="noti-tag aftersales">售后</span>
+        </div>
+      </div>
+      <span class="noti-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+    </article>
+
+  </div>
+
+  <!-- 更早分组 -->
+  <div class="time-group">更早</div>
+  <div class="noti-list">
+
+    <!-- 订单通知 - 已读 -->
+    <article class="noti-card read" role="article" data-type="order">
+      <div class="noti-icon order">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      </div>
+      <div class="noti-body">
+        <div class="noti-title-row">
+          <span class="noti-title">订单已完成</span>
+          <span class="noti-time">07-23</span>
+        </div>
+        <div class="noti-summary">您的订单 NO202607201523001 已确认收货，快去发表评价分享购物体验吧。</div>
+        <div class="noti-meta">
+          <span class="noti-tag order">订单</span>
+        </div>
+      </div>
+      <span class="noti-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+    </article>
+
+    <!-- 优惠通知 - 已读 -->
+    <article class="noti-card read" role="article" data-type="promo">
+      <div class="noti-icon promo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+      </div>
+      <div class="noti-body">
+        <div class="noti-title-row">
+          <span class="noti-title">秒杀活动预告</span>
+          <span class="noti-time">07-22</span>
+        </div>
+        <div class="noti-summary">7.26 限时秒杀，iPhone 16 Pro 直降 800 元，定好闹钟不错过。</div>
+        <div class="noti-meta">
+          <span class="noti-tag promo">优惠</span>
+        </div>
+      </div>
+      <span class="noti-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+    </article>
+
+  </div>
+
+  <!-- 加载更多 -->
+  <div class="load-more">
+    <span class="spin"></span>
+    <span>加载中…</span>
+  </div>
+
+  <!-- ===== 状态预览区 ===== -->
+  <div class="section-divider">
+    <div class="div-title">交互状态预览</div>
+  </div>
+
+  <!-- 骨架屏状态 -->
+  <div class="state-block">
+    <div class="state-label"><span class="state-dot"></span>加载骨架屏（首屏加载态）</div>
+    <div class="noti-list">
+      <div class="skeleton-card">
+        <div class="sk sk-icon"></div>
+        <div class="sk-body">
+          <div class="sk-line mid"></div>
+          <div class="sk-line short"></div>
+        </div>
+      </div>
+      <div class="skeleton-card">
+        <div class="sk sk-icon"></div>
+        <div class="sk-body">
+          <div class="sk-line mid"></div>
+          <div class="sk-line short"></div>
+        </div>
+      </div>
+      <div class="skeleton-card">
+        <div class="sk sk-icon"></div>
+        <div class="sk-body">
+          <div class="sk-line mid"></div>
+          <div class="sk-line short"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 空状态 -->
+  <div class="state-block">
+    <div class="state-label"><span class="state-dot"></span>空通知（暂无通知）</div>
+    <div class="empty-state">
+      <div class="empty-illust">
+        <svg viewBox="0 0 120 120" fill="none">
+          <rect x="20" y="30" width="80" height="60" rx="8" fill="#F5F5F5" stroke="#D9D9D9" stroke-width="1.5"/>
+          <path d="M30 48 L70 48 M30 58 L80 58 M30 68 L60 68" stroke="#D9D9D9" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="95" cy="42" r="14" fill="#FAFAFA" stroke="#D9D9D9" stroke-width="1.5"/>
+          <path d="M89 42 L93 46 L101 38" stroke="#8C8C8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M40 90 Q60 100 80 90" stroke="#D9D9D9" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="empty-title">暂无通知</div>
+      <div class="empty-desc">还没有新消息通知，去逛逛吧</div>
+      <button class="empty-cta">去逛逛</button>
+    </div>
+  </div>
+
+  <!-- 错误态 -->
+  <div class="state-block">
+    <div class="state-label"><span class="state-dot"></span>错误态（加载失败）</div>
+    <div class="error-state">
+      <div class="error-illust">
+        <svg viewBox="0 0 80 80" fill="none">
+          <circle cx="40" cy="40" r="34" fill="#FFF1F0" stroke="#FFCCC7" stroke-width="1.5"/>
+          <circle cx="40" cy="40" r="22" fill="none" stroke="#FF4D4F" stroke-width="2"/>
+          <line x1="32" y1="32" x2="48" y2="48" stroke="#FF4D4F" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="48" y1="32" x2="32" y2="48" stroke="#FF4D4F" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="error-title">加载失败</div>
+      <div class="error-desc">网络不给力，请检查网络后重试</div>
+      <button class="error-retry">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+        重新加载
+      </button>
+    </div>
+  </div>
+
+  <div class="footer-note">Leno 买家端 · 消息中心 · 下拉刷新 · 点击通知标记已读</div>
+
+</main>
+
+<!-- Toast 预览 -->
+<div class="toast-preview" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  <span id="toastText">操作成功</span>
+</div>
+
+<script>
+(function(){
+  // Tab 切换
+  var tabs = document.querySelectorAll('.tab');
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected','true');
+      showToast('已切换至「' + tab.querySelector('.tab-label').childNodes[0].textContent.trim() + '」');
+    });
+  });
+
+  // 全部已读
+  var readAllBtn = document.getElementById('readAllBtn');
+  readAllBtn.addEventListener('click', function(){
+    var unreadCards = document.querySelectorAll('.noti-card.unread');
+    unreadCards.forEach(function(card){
+      card.classList.remove('unread');
+      card.classList.add('read');
+    });
+    document.querySelectorAll('.tab-badge').forEach(function(b){ b.style.display='none'; });
+    showToast('已全部标记为已读');
+  });
+
+  // 点击通知卡片标记已读
+  document.querySelectorAll('.noti-card').forEach(function(card){
+    card.addEventListener('click', function(){
+      if(card.classList.contains('unread')){
+        card.classList.remove('unread');
+        card.classList.add('read');
+      }
+    });
+  });
+
+  // Toast
+  var toastTimer = null;
+  function showToast(text){
+    var toast = document.getElementById('toast');
+    document.getElementById('toastText').textContent = text;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 1500);
+  }
+  window.showToast = showToast;
+})();
+</script>
+
+</body>
+</html>

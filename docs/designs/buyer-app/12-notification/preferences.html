@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>通知偏好 - Leno 买家端</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { font-family:var(--ff-app); font-size:var(--fs-base); color:var(--n10); background:#EDEDED; line-height:1.5715; }
+body { max-width:375px; margin:0 auto; min-height:100vh; background:var(--n3); box-shadow:0 0 24px rgba(0,0,0,.08); position:relative; padding-bottom:80px; }
+
+/* ===== NavBar ===== */
+.navbar {
+  position:sticky; top:0; z-index:100;
+  height:46px; background:var(--n1);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 var(--s3);
+  border-bottom:1px solid var(--n3);
+}
+.navbar .nav-left, .navbar .nav-right { width:72px; display:flex; align-items:center; }
+.navbar .nav-right { justify-content:flex-end; }
+.navbar .nav-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); }
+.navbar .icon-btn { width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; cursor:pointer; color:var(--n10); }
+.navbar .icon-btn svg { width:20px; height:20px; }
+
+/* ===== 顶部提示条 ===== */
+.tip-bar { display:flex; align-items:center; gap:6px; padding:10px var(--s3); background:#E6F0FF; color:var(--c-primary); font-size:var(--fs-sm); }
+.tip-bar svg { width:14px; height:14px; flex-shrink:0; }
+
+/* ===== Content ===== */
+.content { padding:var(--s3); }
+
+/* ===== 分组 ===== */
+.group { margin-bottom:var(--s3); }
+.group-header { display:flex; align-items:center; gap:8px; padding:var(--s2) var(--s1) var(--s2); }
+.group-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.group-dot.order { background:var(--c-primary); }
+.group-dot.promo { background:var(--c-warning); }
+.group-dot.system { background:var(--n7); }
+.group-dot.aftersales { background:var(--c-error); }
+.group-title { font-size:var(--fs-base); font-weight:var(--fw-medium); color:var(--n10); }
+.group-count { font-size:var(--fs-sm); color:var(--n7); margin-left:auto; }
+
+.group-card { background:var(--n1); border-radius:var(--r-lg); box-shadow:var(--sh-card); overflow:hidden; }
+
+/* 事件项 */
+.event-item { display:flex; align-items:center; padding:var(--s3); gap:var(--s3); position:relative; }
+.event-item + .event-item::before { content:""; position:absolute; top:0; left:var(--s3); right:var(--s3); height:1px; background:var(--n3); }
+.event-icon { width:32px; height:32px; border-radius:var(--r-base); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.event-icon svg { width:18px; height:18px; }
+.event-icon.order { background:#E6F0FF; color:var(--c-primary); }
+.event-icon.promo { background:#FFF7E6; color:var(--c-warning); }
+.event-icon.system { background:#F0F0F0; color:var(--n7); }
+.event-icon.aftersales { background:#FFF1F0; color:var(--c-error); }
+.event-body { flex:1; min-width:0; }
+.event-name { font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-normal); }
+.event-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:2px; }
+
+/* ===== Vant Switch ===== */
+.van-switch {
+  position:relative; width:44px; height:24px; border-radius:12px; border:none; cursor:pointer;
+  background:#D9D9D9; transition:background .2s cubic-bezier(0.2,0,0,1); flex-shrink:0; padding:0;
+}
+.van-switch.on { background:var(--c-primary); }
+.van-switch .knob { position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,.15); transition:transform .2s cubic-bezier(0.2,0,0,1); }
+.van-switch.on .knob { transform:translateX(20px); }
+.van-switch.disabled { background:#E5E5E5; cursor:not-allowed; opacity:1; }
+.van-switch.disabled .knob { box-shadow:0 2px 4px rgba(0,0,0,.08); }
+.van-switch.loading { background:#D9D9D9; }
+.van-switch.loading .knob::after { content:""; position:absolute; inset:3px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin .6s linear infinite; }
+.van-switch.on.loading .knob::after { border-color:#fff; border-top-color:transparent; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ===== 免打扰卡片 ===== */
+.dnd-card { background:var(--n1); border-radius:var(--r-lg); box-shadow:var(--sh-card); overflow:hidden; margin-top:var(--s2); }
+.dnd-item { display:flex; align-items:center; padding:var(--s3); gap:var(--s3); }
+.dnd-icon { width:32px; height:32px; border-radius:var(--r-base); background:#F0F0F0; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.dnd-icon svg { width:18px; height:18px; color:var(--n7); }
+.dnd-body { flex:1; }
+.dnd-name { font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-normal); }
+.dnd-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:2px; }
+.dnd-time-row { display:flex; align-items:center; padding:var(--s3); gap:var(--s3); border-top:1px solid var(--n3); }
+.dnd-time-label { flex:1; font-size:var(--fs-sm); color:var(--n9); }
+.dnd-time-value { font-size:var(--fs-base); color:var(--c-primary); font-weight:var(--fw-medium); display:flex; align-items:center; gap:4px; }
+.dnd-time-value svg { width:14px; height:14px; }
+
+/* ===== 底部保存栏 ===== */
+.save-bar { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:375px; height:64px; background:var(--n1); border-top:1px solid var(--n3); display:flex; align-items:center; padding:0 var(--s3); gap:var(--s3); z-index:100; box-shadow:0 -2px 8px rgba(0,0,0,.04); }
+.save-bar .save-info { flex:1; font-size:var(--fs-sm); color:var(--n7); }
+.save-bar .save-info .changed { color:var(--c-warning); font-weight:var(--fw-medium); }
+.save-btn { height:44px; padding:0 32px; background:var(--c-primary); color:#fff; border:none; border-radius:22px; font-size:var(--fs-lg); font-weight:var(--fw-semibold); cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:6px; transition:opacity .15s; }
+.save-btn:active { opacity:.85; }
+.save-btn.loading { opacity:.7; pointer-events:none; }
+.save-btn .spin { width:16px; height:16px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .8s linear infinite; }
+
+/* ===== 状态预览 ===== */
+.section-divider { margin:24px -12px 0; padding:16px 12px 8px; background:linear-gradient(180deg,var(--n3),var(--n1)); }
+.section-divider .div-title { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-medium); display:flex; align-items:center; gap:8px; }
+.section-divider .div-title::before, .section-divider .div-title::after { content:""; flex:1; height:1px; background:var(--n5); }
+.state-block { margin-top:12px; }
+.state-block .state-label { font-size:var(--fs-sm); color:var(--n9); font-weight:var(--fw-medium); margin-bottom:8px; padding:0 4px; display:flex; align-items:center; gap:6px; }
+.state-block .state-dot { width:6px; height:6px; border-radius:50%; background:var(--c-primary); }
+
+/* 骨架屏 */
+.sk-card { background:var(--n1); border-radius:var(--r-lg); box-shadow:var(--sh-card); padding:var(--s3); }
+.sk-row { display:flex; align-items:center; gap:var(--s3); padding:10px 0; }
+.sk-row + .sk-row { border-top:1px solid var(--n3); }
+.sk { background:linear-gradient(90deg,var(--n3) 25%,var(--n2) 37%,var(--n3) 63%); background-size:400% 100%; animation:shimmer 1.4s ease infinite; border-radius:4px; }
+@keyframes shimmer { 0% { background-position:100% 50%; } 100% { background-position:0 50%; } }
+.sk-icon-sq { width:32px; height:32px; border-radius:6px; flex-shrink:0; }
+.sk-line { height:14px; }
+.sk-line.short { width:40%; }
+.sk-line.mid { width:70%; }
+.sk-switch { width:44px; height:24px; border-radius:12px; flex-shrink:0; }
+
+/* Toast */
+.toast-preview { position:fixed; left:50%; transform:translateX(-50%); bottom:90px; background:rgba(0,0,0,.75); color:#fff; padding:10px 20px; border-radius:var(--r-base); font-size:var(--fs-base); z-index:200; display:flex; align-items:center; gap:6px; opacity:0; pointer-events:none; transition:opacity .2s; }
+.toast-preview.show { opacity:1; }
+.toast-preview svg { width:16px; height:16px; }
+
+.footer-note { text-align:center; padding:24px var(--s3) 16px; color:var(--n7); font-size:var(--fs-sm); }
+</style>
+</head>
+<body>
+
+<!-- ===== NavBar ===== -->
+<header class="navbar">
+  <div class="nav-left">
+    <button class="icon-btn" aria-label="返回">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+  </div>
+  <div class="nav-title">通知偏好</div>
+  <div class="nav-right"></div>
+</header>
+
+<!-- ===== 顶部提示条 ===== -->
+<div class="tip-bar">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+  <span>关闭某类通知后，将不再接收该类站内信与推送消息</span>
+</div>
+
+<!-- ===== 内容区 ===== -->
+<main class="content">
+
+  <!-- 订单通知分组 -->
+  <section class="group">
+    <div class="group-header">
+      <span class="group-dot order"></span>
+      <span class="group-title">订单通知</span>
+      <span class="group-count">4 项</span>
+    </div>
+    <div class="group-card">
+      <div class="event-item">
+        <div class="event-icon order">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        </div>
+        <div class="event-body">
+          <div class="event-name">下单成功</div>
+          <div class="event-desc">订单创建后通知，含订单编号与金额</div>
+        </div>
+        <button class="van-switch on" role="switch" aria-checked="true" aria-label="下单成功"><span class="knob"></span></button>
+      </div>
+      <div class="event-item">
+        <div class="event-icon order">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+        </div>
+        <div class="event-body">
+          <div class="event-name">付款成功</div>
+          <div class="event-desc">支付完成后通知，含支付方式与金额</div>
+        </div>
+        <button class="van-switch on" role="switch" aria-checked="true" aria-label="付款成功"><span class="knob"></span></button>
+      </div>
+      <div class="event-item">
+        <div class="event-icon order">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </div>
+        <div class="event-body">
+          <div class="event-name">发货通知</div>
+          <div class="event-desc">卖家发货后通知，含快递公司与运单号</div>
+        </div>
+        <button class="van-switch on" role="switch" aria-checked="true" aria-label="发货通知"><span class="knob"></span></button>
+      </div>
+      <div class="event-item">
+        <div class="event-icon order">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        </div>
+        <div class="event-body">
+          <div class="event-name">签收提醒</div>
+          <div class="event-desc">快递签收后通知，提醒确认收货与评价</div>
+        </div>
+        <button class="van-switch on" role="switch" aria-checked="true" aria-label="签收提醒"><span class="knob"></span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 优惠通知分组 -->
+  <section class="group">
+    <div class="group-header">
+      <span class="group-dot promo"></span>
+      <span class="group-title">优惠通知</span>
+      <span class="group-count">3 项</span>
+    </div>
+    <div class="group-card">
+      <div class="event-item">
+        <div class="event-icon promo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path></svg>
+        </div>
+        <div class="event-body">
+          <div class="event-name">优惠券到账</div>
+          <div class="event-desc">领取或发放优惠券时通知，含面额与有效期</div>
+        </div>
+        <button class="van-switch on" role="switch" aria-checked="true" aria-label="优惠券到账"><span class="knob"></span></button>
+      </div>
+      <div class="event-item">
+        <div class="event-icon promo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        </div>
+        <div class="event-body">
+          <div class="event-name">活动提醒</div>
+          <div class="event-desc">大促、秒杀活动开始前通知</div>
+        </div>
+        <button class="van-switch on" role="switch" aria-checked="true" aria-label="活动提醒"><span class="knob"></span></button>
+      </div>
+      <div class="event-item">
+        <div class="event-icon promo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+        </div>
+        <div class="event-body">
+          <div class="event-name">降价提醒</div>
+          <div class="event-desc">收藏商品降价时通知</div>
+        </div>
+        <button class="van-switch" role="switch" aria-checked="false" aria-label="降价提醒"><span class="knob"></span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 系统通知分组 -->
+  <section class="group">
+    <div class="group-header">
+      <span class="group-dot system"></span>
+      <span class="group-title">系统通知</span>
+      <span class="group-count">2 项</span>
+    </div>
+    <div class="group-card">
+      <div class="event-item">
+        <div class="event-icon system">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"></path></svg>
+        </div>
+        <div class="event-body">
+          <div class="event-name">平台公告</div>
+          <div class="event-desc">平台发布的维护、政策、活动公告</div>
+        </div>
+        <button class="van-switch on" role="switch" aria-checked="true" aria-label="平台公告"><span class="knob"></span></button>
+      </div>
+      <div class="event-item">
+        <div class="event-icon system">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        </div>
+        <div class="event-body">
+          <div class="event-name">安全提醒</div>
+          <div class="event-desc">异地登录、密码修改等安全事件通知（建议开启）</div>
+        </div>
+        <button class="van-switch on" role="switch" aria-checked="true" aria-label="安全提醒"><span class="knob"></span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 售后通知分组 -->
+  <section class="group">
+    <div class="group-header">
+      <span class="group-dot aftersales"></span>
+      <span class="group-title">售后通知</span>
+      <span class="group-count">3 项</span>
+    </div>
+    <div class="group-card">
+      <div class="event-item">
+        <div class="event-icon aftersales">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        </div>
+        <div class="event-body">
+          <div class="event-name">售后申请提交</div>
+          <div class="event-desc">提交售后申请后通知，含售后单号</div>
+        </div>
+        <button class="van-switch on" role="switch" aria-checked="true" aria-label="售后申请提交"><span class="knob"></span></button>
+      </div>
+      <div class="event-item">
+        <div class="event-icon aftersales">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </div>
+        <div class="event-body">
+          <div class="event-name">售后处理进度</div>
+          <div class="event-desc">审核通过、待退货、待退款等状态变更通知</div>
+        </div>
+        <button class="van-switch on" role="switch" aria-checked="true" aria-label="售后处理进度"><span class="knob"></span></button>
+      </div>
+      <div class="event-item">
+        <div class="event-icon aftersales">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        </div>
+        <div class="event-body">
+          <div class="event-name">退款到账</div>
+          <div class="event-desc">退款成功后通知，含退款金额与到账时间</div>
+        </div>
+        <button class="van-switch on" role="switch" aria-checked="true" aria-label="退款到账"><span class="knob"></span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 免打扰时段 -->
+  <section class="group">
+    <div class="group-header">
+      <span class="group-dot system"></span>
+      <span class="group-title">免打扰时段</span>
+    </div>
+    <div class="dnd-card">
+      <div class="dnd-item">
+        <div class="dnd-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        </div>
+        <div class="dnd-body">
+          <div class="dnd-name">免打扰模式</div>
+          <div class="dnd-desc">开启后，免打扰时段内暂停推送通知</div>
+        </div>
+        <button class="van-switch on" id="dndSwitch" role="switch" aria-checked="true" aria-label="免打扰模式"><span class="knob"></span></button>
+      </div>
+      <div class="dnd-time-row" id="dndTimeRow">
+        <span class="dnd-time-label">免打扰时间</span>
+        <span class="dnd-time-value">
+          22:00 - 08:00
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 状态预览区 ===== -->
+  <div class="section-divider">
+    <div class="div-title">交互状态预览</div>
+  </div>
+
+  <!-- 骨架屏 -->
+  <div class="state-block">
+    <div class="state-label"><span class="state-dot"></span>加载骨架屏（首屏加载态）</div>
+    <div class="sk-card">
+      <div class="sk-row">
+        <div class="sk sk-icon-sq"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div class="sk sk-line mid"></div><div class="sk sk-line short"></div></div>
+        <div class="sk sk-switch"></div>
+      </div>
+      <div class="sk-row">
+        <div class="sk sk-icon-sq"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div class="sk sk-line mid"></div><div class="sk sk-line short"></div></div>
+        <div class="sk sk-switch"></div>
+      </div>
+      <div class="sk-row">
+        <div class="sk sk-icon-sq"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><div class="sk sk-line mid"></div><div class="sk sk-line short"></div></div>
+        <div class="sk sk-switch"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">Leno 买家端 · 通知偏好 · 切换开关实时保存</div>
+
+</main>
+
+<!-- ===== 底部保存栏 ===== -->
+<div class="save-bar">
+  <div class="save-info">已修改 <span class="changed" id="changedCount">0</span> 项设置</div>
+  <button class="save-btn" id="saveBtn">保存设置</button>
+</div>
+
+<!-- Toast -->
+<div class="toast-preview" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  <span id="toastText">操作成功</span>
+</div>
+
+<script>
+(function(){
+  var changedCount = 0;
+  var changedEl = document.getElementById('changedCount');
+
+  // 开关切换
+  document.querySelectorAll('.van-switch').forEach(function(sw){
+    // 禁用站内信类（此处无禁用，保留逻辑）
+    sw.addEventListener('click', function(){
+      if(sw.classList.contains('disabled') || sw.classList.contains('loading')) return;
+      var isOn = sw.classList.contains('on');
+      // 模拟 loading
+      sw.classList.add('loading');
+      setTimeout(function(){
+        sw.classList.remove('loading');
+        if(isOn){
+          sw.classList.remove('on');
+          sw.setAttribute('aria-checked','false');
+        } else {
+          sw.classList.add('on');
+          sw.setAttribute('aria-checked','true');
+        }
+        changedCount++;
+        changedEl.textContent = changedCount;
+        showToast(isOn ? '已关闭该通知' : '已开启该通知');
+      }, 400);
+    });
+  });
+
+  // 保存按钮
+  var saveBtn = document.getElementById('saveBtn');
+  saveBtn.addEventListener('click', function(){
+    if(saveBtn.classList.contains('loading')) return;
+    saveBtn.classList.add('loading');
+    var original = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<span class="spin"></span>保存中';
+    setTimeout(function(){
+      saveBtn.classList.remove('loading');
+      saveBtn.innerHTML = original;
+      changedCount = 0;
+      changedEl.textContent = '0';
+      showToast('保存成功');
+    }, 1200);
+  });
+
+  // Toast
+  var toastTimer = null;
+  function showToast(text){
+    var toast = document.getElementById('toast');
+    document.getElementById('toastText').textContent = text;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 1500);
+  }
+})();
+</script>
+
+</body>
+</html>

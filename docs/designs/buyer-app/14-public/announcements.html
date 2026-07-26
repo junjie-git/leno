@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>平台公告 - Leno 买家端</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { font-family:var(--ff-app); font-size:var(--fs-base); color:var(--n10); background:#EDEDED; line-height:1.5715; }
+body { max-width:375px; margin:0 auto; min-height:100vh; background:var(--n3); box-shadow:0 0 24px rgba(0,0,0,.08); position:relative; }
+
+/* ===== NavBar ===== */
+.navbar {
+  position:sticky; top:0; z-index:100;
+  height:46px; background:var(--n1);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 var(--s3);
+  border-bottom:1px solid var(--n3);
+}
+.navbar .nav-left, .navbar .nav-right { width:72px; display:flex; align-items:center; }
+.navbar .nav-right { justify-content:flex-end; }
+.navbar .nav-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); }
+.navbar .icon-btn { width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; cursor:pointer; color:var(--n10); }
+.navbar .icon-btn svg { width:20px; height:20px; }
+
+/* ===== Content ===== */
+.content { padding:var(--s3); padding-bottom:32px; }
+
+/* ===== 顶部 Banner（最新公告） ===== */
+.banner {
+  position:relative; border-radius:var(--r-lg); overflow:hidden;
+  padding:var(--s4); margin-bottom:var(--s3);
+  background:linear-gradient(135deg,#1677FF 0%,#4096FF 100%);
+  color:#fff; box-shadow:0 4px 12px rgba(22,119,255,.25);
+  cursor:pointer;
+}
+.banner:active { opacity:.92; }
+.banner-deco { position:absolute; right:-20px; top:-20px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,.12); }
+.banner-deco2 { position:absolute; right:30px; bottom:-40px; width:80px; height:80px; border-radius:50%; background:rgba(255,255,255,.08); }
+.banner-head { display:flex; align-items:center; gap:6px; margin-bottom:8px; position:relative; z-index:1; }
+.banner-pin { display:inline-flex; align-items:center; gap:3px; background:rgba(255,255,255,.25); padding:2px 8px; border-radius:10px; font-size:11px; font-weight:var(--fw-medium); }
+.banner-pin svg { width:11px; height:11px; }
+.banner-type { font-size:11px; opacity:.9; font-weight:var(--fw-medium); }
+.banner-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); margin-bottom:6px; position:relative; z-index:1; }
+.banner-summary { font-size:var(--fs-sm); opacity:.92; line-height:1.5; position:relative; z-index:1; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.banner-foot { display:flex; align-items:center; justify-content:space-between; margin-top:12px; position:relative; z-index:1; }
+.banner-time { font-size:var(--fs-sm); opacity:.85; display:flex; align-items:center; gap:4px; }
+.banner-time svg { width:12px; height:12px; }
+.banner-cta { font-size:var(--fs-sm); font-weight:var(--fw-medium); display:flex; align-items:center; gap:2px; }
+.banner-cta svg { width:14px; height:14px; }
+
+/* ===== 公告列表 ===== */
+.list-section-title { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-medium); padding:var(--s2) var(--s1); display:flex; align-items:center; gap:6px; }
+.list-section-title::after { content:""; flex:1; height:1px; background:var(--n3); }
+
+.ann-list { display:flex; flex-direction:column; gap:var(--s2); }
+.ann-card {
+  background:var(--n1); border-radius:var(--r-lg); box-shadow:var(--sh-card);
+  padding:var(--s3); cursor:pointer; transition:background .15s; position:relative;
+}
+.ann-card:active { background:var(--n2); }
+.ann-card.unread::before { content:""; position:absolute; left:6px; top:16px; width:6px; height:6px; border-radius:50%; background:var(--c-error); }
+.ann-head { display:flex; align-items:center; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
+.ann-tag { font-size:11px; padding:2px 7px; border-radius:4px; font-weight:var(--fw-medium); display:inline-flex; align-items:center; gap:3px; }
+.ann-tag svg { width:11px; height:11px; }
+.ann-tag.activity { background:#FFF1F0; color:var(--c-error); }
+.ann-tag.notice { background:#F6FFED; color:var(--c-success); }
+.ann-tag.maintenance { background:#FFF7E6; color:var(--c-warning); }
+.ann-tag.policy { background:#E6F0FF; color:var(--c-primary); }
+.ann-tag.pinned { background:var(--c-error); color:#fff; }
+.ann-title { font-size:15px; color:var(--n10); font-weight:var(--fw-medium); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.ann-card.unread .ann-title { font-weight:var(--fw-semibold); }
+.ann-card.read .ann-title { color:var(--n7); }
+.ann-summary { font-size:13px; color:var(--n9); margin-top:6px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.ann-card.read .ann-summary { color:var(--n7); }
+.ann-foot { display:flex; align-items:center; justify-content:space-between; margin-top:10px; }
+.ann-time { font-size:var(--fs-sm); color:var(--n7); display:flex; align-items:center; gap:4px; }
+.ann-time svg { width:12px; height:12px; }
+.ann-status { font-size:var(--fs-sm); color:var(--n7); display:flex; align-items:center; gap:4px; }
+.ann-status.unread { color:var(--c-error); }
+.ann-status svg { width:12px; height:12px; }
+
+/* 时间分组 */
+.time-group { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-medium); padding:var(--s3) var(--s1) var(--s2); display:flex; align-items:center; gap:6px; }
+.time-group::after { content:""; flex:1; height:1px; background:var(--n3); }
+
+/* 加载更多 */
+.load-more { display:flex; align-items:center; justify-content:center; gap:6px; padding:16px 0 8px; color:var(--n7); font-size:var(--fs-sm); }
+.load-more .spin { width:14px; height:14px; border:2px solid var(--n5); border-top-color:var(--c-primary); border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ===== 状态预览 ===== */
+.section-divider { margin:24px -12px 0; padding:16px 12px 8px; background:linear-gradient(180deg,var(--n3),var(--n1)); }
+.section-divider .div-title { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-medium); display:flex; align-items:center; gap:8px; }
+.section-divider .div-title::before, .section-divider .div-title::after { content:""; flex:1; height:1px; background:var(--n5); }
+.state-block { margin-top:12px; }
+.state-block .state-label { font-size:var(--fs-sm); color:var(--n9); font-weight:var(--fw-medium); margin-bottom:8px; padding:0 4px; display:flex; align-items:center; gap:6px; }
+.state-block .state-dot { width:6px; height:6px; border-radius:50%; background:var(--c-primary); }
+
+/* 骨架屏 */
+.sk-card { background:var(--n1); border-radius:var(--r-lg); box-shadow:var(--sh-card); padding:var(--s3); }
+.sk { background:linear-gradient(90deg,var(--n3) 25%,var(--n2) 37%,var(--n3) 63%); background-size:400% 100%; animation:shimmer 1.4s ease infinite; border-radius:4px; }
+@keyframes shimmer { 0% { background-position:100% 50%; } 100% { background-position:0 50%; } }
+.sk-tag { width:48px; height:18px; border-radius:4px; }
+.sk-line { height:14px; margin-top:10px; }
+.sk-line.short { width:45%; }
+.sk-line.mid { width:75%; }
+.sk-line.long { width:90%; }
+
+/* 空状态 */
+.empty-state { background:var(--n1); border-radius:var(--r-lg); padding:40px var(--s3); text-align:center; }
+.empty-illust { width:120px; height:120px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; }
+.empty-illust svg { width:100px; height:100px; }
+.empty-title { font-size:var(--fs-base); color:var(--n9); font-weight:var(--fw-medium); }
+.empty-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:6px; }
+.empty-cta { margin-top:20px; display:inline-flex; align-items:center; justify-content:center; padding:8px 24px; background:var(--c-primary); color:#fff; border:none; border-radius:var(--r-base); font-size:var(--fs-base); font-weight:var(--fw-medium); cursor:pointer; font-family:inherit; }
+.empty-cta:active { opacity:.85; }
+
+/* 错误态 */
+.error-state { background:var(--n1); border-radius:var(--r-lg); padding:32px var(--s3); text-align:center; }
+.error-illust { width:80px; height:80px; margin:0 auto 12px; }
+.error-illust svg { width:80px; height:80px; }
+.error-title { font-size:var(--fs-base); color:var(--n9); font-weight:var(--fw-medium); }
+.error-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:6px; }
+.error-retry { margin-top:16px; display:inline-flex; align-items:center; gap:6px; padding:7px 20px; background:var(--n1); color:var(--c-primary); border:1px solid var(--c-primary); border-radius:var(--r-base); font-size:var(--fs-base); font-weight:var(--fw-medium); cursor:pointer; font-family:inherit; }
+.error-retry svg { width:14px; height:14px; }
+.error-retry:active { background:#E6F0FF; }
+
+/* ===== 详情弹层预览 ===== */
+.detail-preview { background:var(--n1); border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--sh-card); margin-top:8px; }
+.detail-preview-bar { height:4px; background:var(--n3); display:flex; justify-content:center; align-items:center; }
+.detail-preview-bar::after { content:""; width:36px; height:4px; background:var(--n5); border-radius:2px; margin-top:0; }
+.detail-preview-body { padding:var(--s4) var(--s4) var(--s3); }
+.detail-head { display:flex; align-items:center; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+.detail-title { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); line-height:1.35; margin-bottom:10px; }
+.detail-meta { display:flex; align-items:center; gap:12px; padding-bottom:12px; border-bottom:1px solid var(--n3); margin-bottom:12px; }
+.detail-meta-item { font-size:var(--fs-sm); color:var(--n7); display:flex; align-items:center; gap:4px; }
+.detail-meta-item svg { width:12px; height:12px; }
+.detail-content { font-size:var(--fs-base); color:var(--n9); line-height:1.7; }
+.detail-content p { margin-bottom:10px; }
+.detail-content .highlight { color:var(--c-error); font-weight:var(--fw-medium); }
+.detail-content .strong { color:var(--n10); font-weight:var(--fw-medium); }
+.detail-actions { display:flex; gap:var(--s2); padding-top:16px; border-top:1px solid var(--n3); margin-top:16px; }
+.detail-btn { flex:1; height:40px; border-radius:20px; border:none; font-size:var(--fs-base); font-weight:var(--fw-medium); cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:4px; }
+.detail-btn.primary { background:var(--c-primary); color:#fff; }
+.detail-btn.default { background:var(--n3); color:var(--n9); }
+
+/* Toast */
+.toast-preview { position:fixed; left:50%; transform:translateX(-50%); bottom:80px; background:rgba(0,0,0,.75); color:#fff; padding:10px 20px; border-radius:var(--r-base); font-size:var(--fs-base); z-index:200; display:flex; align-items:center; gap:6px; opacity:0; pointer-events:none; transition:opacity .2s; }
+.toast-preview.show { opacity:1; }
+.toast-preview svg { width:16px; height:16px; }
+
+.footer-note { text-align:center; padding:24px var(--s3) 16px; color:var(--n7); font-size:var(--fs-sm); }
+</style>
+</head>
+<body>
+
+<!-- ===== NavBar ===== -->
+<header class="navbar">
+  <div class="nav-left">
+    <button class="icon-btn" aria-label="返回">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+  </div>
+  <div class="nav-title">平台公告</div>
+  <div class="nav-right"></div>
+</header>
+
+<!-- ===== 内容区 ===== -->
+<main class="content">
+
+  <!-- ===== 顶部 Banner（最新公告） ===== -->
+  <div class="banner" onclick="showToast('查看公告详情')">
+    <div class="banner-deco"></div>
+    <div class="banner-deco2"></div>
+    <div class="banner-head">
+      <span class="banner-pin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14l-1.5-3V8a5.5 5.5 0 0 0-11 0v6z"></path></svg>
+        置顶
+      </span>
+      <span class="banner-type">活动</span>
+    </div>
+    <div class="banner-title">618 年中大促 全场满减狂欢</div>
+    <div class="banner-summary">6 月 18 日 0 点正式开抢，跨店满 300 减 50，叠加优惠券最高减 150，iPhone 16 Pro 直降 800，更有整点红包雨等你来抢。</div>
+    <div class="banner-foot">
+      <span class="banner-time">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        06-15 09:00 发布
+      </span>
+      <span class="banner-cta">
+        查看详情
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </span>
+    </div>
+  </div>
+
+  <div class="list-section-title">全部公告</div>
+
+  <!-- 今天 -->
+  <div class="time-group">今天</div>
+  <div class="ann-list">
+
+    <article class="ann-card unread" role="article" onclick="markRead(this)">
+      <div class="ann-head">
+        <span class="ann-tag activity">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          活动
+        </span>
+        <span class="ann-tag pinned">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14l-1.5-3V8a5.5 5.5 0 0 0-11 0v6z"></path></svg>
+          置顶
+        </span>
+      </div>
+      <div class="ann-title">7.26 限时秒杀 爆款直降</div>
+      <div class="ann-summary">7 月 26 日 10:00-12:00 限时秒杀，数码家电爆款直降，iPhone 16 Pro 限时 ¥5499，先到先得。</div>
+      <div class="ann-foot">
+        <span class="ann-time">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          07-26 09:00
+        </span>
+        <span class="ann-status unread">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle></svg>
+          未读
+        </span>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- 本周 -->
+  <div class="time-group">本周</div>
+  <div class="ann-list">
+
+    <article class="ann-card unread" role="article" onclick="markRead(this)">
+      <div class="ann-head">
+        <span class="ann-tag maintenance">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+          维护
+        </span>
+      </div>
+      <div class="ann-title">系统维护升级通知</div>
+      <div class="ann-summary">7 月 28 日凌晨 02:00-04:00 进行系统维护升级，期间下单、支付、查询功能暂停服务，预计 04:00 恢复，请提前安排购物。</div>
+      <div class="ann-foot">
+        <span class="ann-time">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          07-25 18:00
+        </span>
+        <span class="ann-status unread">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle></svg>
+          未读
+        </span>
+      </div>
+    </article>
+
+    <article class="ann-card read" role="article" onclick="showToast('已查看公告')">
+      <div class="ann-head">
+        <span class="ann-tag notice">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          通知
+        </span>
+      </div>
+      <div class="ann-title">新人专享福利 首单立减 20 元</div>
+      <div class="ann-summary">新注册用户专享，首单立减 20 元，再送 50 元新人券包，7 天内有效，快来开启购物之旅吧。</div>
+      <div class="ann-foot">
+        <span class="ann-time">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          07-24 10:00
+        </span>
+        <span class="ann-status">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          已读
+        </span>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- 更早 -->
+  <div class="time-group">更早</div>
+  <div class="ann-list">
+
+    <article class="ann-card read" role="article" onclick="showToast('已查看公告')">
+      <div class="ann-head">
+        <span class="ann-tag notice">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          通知
+        </span>
+        <span class="ann-tag pinned">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14l-1.5-3V8a5.5 5.5 0 0 0-11 0v6z"></path></svg>
+          置顶
+        </span>
+      </div>
+      <div class="ann-title">春节发货调整公告</div>
+      <div class="ann-summary">2 月 9 日至 2 月 17 日春节假期期间，仅部分商家发货，2 月 18 日陆续恢复。期间可正常下单，发货顺延，急单请提前备货。</div>
+      <div class="ann-foot">
+        <span class="ann-time">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          02-01 09:00
+        </span>
+        <span class="ann-status">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          已读
+        </span>
+      </div>
+    </article>
+
+    <article class="ann-card read" role="article" onclick="showToast('已查看公告')">
+      <div class="ann-head">
+        <span class="ann-tag policy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          政策
+        </span>
+      </div>
+      <div class="ann-title">隐私政策更新说明</div>
+      <div class="ann-summary">为更好保护您的个人信息，我们更新了《Leno 隐私政策》，新增个性化推荐说明与第三方 SDK 清单，自 01-20 起生效。</div>
+      <div class="ann-foot">
+        <span class="ann-time">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          01-15 09:00
+        </span>
+        <span class="ann-status">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          已读
+        </span>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- 加载更多 -->
+  <div class="load-more">
+    <span class="spin"></span>
+    <span>加载中…</span>
+  </div>
+
+  <!-- ===== 状态预览区 ===== -->
+  <div class="section-divider">
+    <div class="div-title">交互状态预览</div>
+  </div>
+
+  <!-- 骨架屏 -->
+  <div class="state-block">
+    <div class="state-label"><span class="state-dot"></span>加载骨架屏（首屏加载态）</div>
+    <div class="ann-list">
+      <div class="sk-card">
+        <div class="sk sk-tag"></div>
+        <div class="sk sk-line long"></div>
+        <div class="sk sk-line mid"></div>
+        <div class="sk sk-line short"></div>
+      </div>
+      <div class="sk-card">
+        <div class="sk sk-tag"></div>
+        <div class="sk sk-line long"></div>
+        <div class="sk sk-line mid"></div>
+        <div class="sk sk-line short"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 空状态 -->
+  <div class="state-block">
+    <div class="state-label"><span class="state-dot"></span>空状态（暂无公告）</div>
+    <div class="empty-state">
+      <div class="empty-illust">
+        <svg viewBox="0 0 120 120" fill="none">
+          <rect x="30" y="24" width="60" height="72" rx="8" fill="#F5F5F5" stroke="#D9D9D9" stroke-width="1.5"/>
+          <path d="M42 42 L78 42 M42 54 L78 54 M42 66 L66 66 M42 78 L72 78" stroke="#D9D9D9" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="90" cy="38" r="14" fill="#FAFAFA" stroke="#D9D9D9" stroke-width="1.5"/>
+          <path d="M84 38 L88 42 L96 34" stroke="#8C8C8C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="empty-title">暂无公告</div>
+      <div class="empty-desc">平台暂未发布公告，去逛逛吧</div>
+      <button class="empty-cta">去逛逛</button>
+    </div>
+  </div>
+
+  <!-- 错误态 -->
+  <div class="state-block">
+    <div class="state-label"><span class="state-dot"></span>错误态（加载失败）</div>
+    <div class="error-state">
+      <div class="error-illust">
+        <svg viewBox="0 0 80 80" fill="none">
+          <circle cx="40" cy="40" r="34" fill="#FFF1F0" stroke="#FFCCC7" stroke-width="1.5"/>
+          <circle cx="40" cy="40" r="22" fill="none" stroke="#FF4D4F" stroke-width="2"/>
+          <line x1="32" y1="32" x2="48" y2="48" stroke="#FF4D4F" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="48" y1="32" x2="32" y2="48" stroke="#FF4D4F" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="error-title">加载失败</div>
+      <div class="error-desc">网络异常，请稍后重试</div>
+      <button class="error-retry">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+        重新加载
+      </button>
+    </div>
+  </div>
+
+  <!-- 公告详情弹层预览 -->
+  <div class="state-block">
+    <div class="state-label"><span class="state-dot"></span>公告详情弹层（点击卡片弹出）</div>
+    <div class="detail-preview">
+      <div class="detail-preview-bar"></div>
+      <div class="detail-preview-body">
+        <div class="detail-head">
+          <span class="ann-tag activity">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            活动
+          </span>
+          <span class="ann-tag pinned">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14l-1.5-3V8a5.5 5.5 0 0 0-11 0v6z"></path></svg>
+            置顶
+          </span>
+        </div>
+        <div class="detail-title">618 年中大促 全场满减狂欢</div>
+        <div class="detail-meta">
+          <span class="detail-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            06-15 09:00
+          </span>
+          <span class="detail-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            阅读 12,538
+          </span>
+        </div>
+        <div class="detail-content">
+          <p>亲爱的买家：</p>
+          <p>618 年中大促即将开启！<span class="strong">6 月 18 日 0 点正式开抢</span>，活动持续至 6 月 20 日 24 点，3 天狂欢不停歇。</p>
+          <p><span class="strong">活动一：跨店满减</span> — 跨店满 <span class="highlight">300 减 50</span>，满 600 减 100，上不封顶，凑单更划算。</p>
+          <p><span class="strong">活动二：券包叠加</span> — 领券中心每日限量发放大促券，叠加满减最高 <span class="highlight">减 150 元</span>。</p>
+          <p><span class="strong">活动三：爆款直降</span> — iPhone 16 Pro 限时直降 800 元，戴森吹风机直降 600 元，先到先得。</p>
+          <p><span class="strong">活动四：整点红包雨</span> — 每天 10:00、15:00、20:00 准时下红包雨，最高 88 元现金红包。</p>
+          <p>温馨提示：大促期间订单量激增，部分商品发货可能延迟 1-2 天，请您耐心等待。如有疑问请联系客服。</p>
+          <p>祝您购物愉快！</p>
+          <p style="text-align:right;color:var(--n7);">Leno 平台运营团队</p>
+        </div>
+        <div class="detail-actions">
+          <button class="detail-btn default">关闭</button>
+          <button class="detail-btn primary">去会场</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">Leno 买家端 · 平台公告 · 点击卡片查看详情</div>
+
+</main>
+
+<!-- Toast -->
+<div class="toast-preview" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  <span id="toastText">操作成功</span>
+</div>
+
+<script>
+(function(){
+  window.markRead = function(card){
+    if(card.classList.contains('unread')){
+      card.classList.remove('unread');
+      card.classList.add('read');
+      var status = card.querySelector('.ann-status');
+      if(status){
+        status.classList.remove('unread');
+        status.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>已读';
+      }
+      showToast('已标记为已读');
+    } else {
+      showToast('已查看公告');
+    }
+  };
+
+  var toastTimer = null;
+  window.showToast = function(text){
+    var toast = document.getElementById('toast');
+    document.getElementById('toastText').textContent = text;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 1500);
+  };
+})();
+</script>
+
+</body>
+</html>
