@@ -1,0 +1,1284 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Leno · 买家端核心流程多页预览</title>
+<style>
+/* ============================================================
+   Leno 买家端 · 核心流程多页预览
+   自包含单文件 · 严格遵循 shared/design-system.md 设计令牌
+   ============================================================ */
+
+:root{
+  /* color */
+  --c-primary:#1677FF;
+  --c-primary-soft:#E6F0FF;
+  --c-success:#52C41A;
+  --c-success-soft:#F0FBE6;
+  --c-warning:#FAAD14;
+  --c-warning-soft:#FFF7E6;
+  --c-error:#FF4D4F;
+  --c-error-soft:#FFF1F0;
+  --c-disabled:#00000040;
+
+  /* neutral */
+  --n1:#FFFFFF;
+  --n2:#FAFAFA;
+  --n3:#F5F5F5;
+  --n4:#EDEDED;
+  --n5:#D9D9D9;
+  --n6:#BFBFBF;
+  --n7:#8C8C8C;
+  --n8:#7A7A7A;
+  --n9:#595959;
+  --n10:#000000D9;
+  --n-solid:#000000;
+
+  /* radius */
+  --r-base:6px;
+  --r-card:8px;
+  --r-lg:12px;
+  --r-pill:999px;
+
+  /* spacing */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+
+  /* font */
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --lh-base:1.5715;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code","JetBrains Mono",Consolas,monospace;
+
+  /* shadow */
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+
+  /* motion */
+  --d-fast:100ms; --d-mid:200ms; --d-slow:300ms;
+  --ease-std:cubic-bezier(.2,0,0,1);
+  --ease-dec:cubic-bezier(0,0,0,1);
+  --ease-acc:cubic-bezier(.8,0,1,1);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  font-family:var(--ff-app);
+  color:var(--n10);
+  background:#070C18;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  line-height:var(--lh-base);
+  overflow-x:hidden;
+}
+
+/* ---------- gallery backdrop ---------- */
+.bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.bg-grad{
+  position:absolute;inset:-20%;
+  background:
+    radial-gradient(900px 600px at 12% 8%, rgba(22,119,255,.22), transparent 60%),
+    radial-gradient(820px 560px at 88% 18%, rgba(255,77,79,.14), transparent 62%),
+    radial-gradient(1000px 700px at 70% 92%, rgba(82,196,26,.10), transparent 60%),
+    linear-gradient(180deg,#080D1A 0%,#0A1120 50%,#070B16 100%);
+}
+.bg-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,#000 30%,transparent 80%);
+}
+.bg-noise{
+  position:absolute;inset:0;opacity:.5;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .045 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.wrap{position:relative;z-index:1;max-width:1480px;margin:0 auto;padding:56px 40px 80px;}
+
+/* ---------- gallery header ---------- */
+.gh{display:flex;align-items:flex-end;justify-content:space-between;gap:32px;flex-wrap:wrap;margin-bottom:14px;}
+.gh-left{display:flex;flex-direction:column;gap:14px;}
+.brand{display:flex;align-items:center;gap:14px;}
+.brand-mark{
+  width:46px;height:46px;border-radius:13px;
+  background:linear-gradient(135deg,#1677FF 0%,#0E5FE0 100%);
+  box-shadow:0 8px 24px -6px rgba(22,119,255,.6),inset 0 1px 0 rgba(255,255,255,.35);
+  display:grid;place-items:center;color:#fff;font-weight:700;font-size:22px;letter-spacing:.5px;
+  font-family:var(--ff-app);
+}
+.brand-txt{display:flex;flex-direction:column;gap:2px;}
+.brand-txt .b1{color:#fff;font-size:22px;font-weight:600;letter-spacing:.3px;}
+.brand-txt .b2{color:rgba(255,255,255,.45);font-size:12px;letter-spacing:1.5px;font-family:var(--ff-mono);text-transform:uppercase;}
+.gh-title{color:#fff;font-size:34px;font-weight:600;letter-spacing:.5px;line-height:1.2;}
+.gh-title em{font-style:normal;color:#5B9BFF;}
+.gh-sub{color:rgba(255,255,255,.5);font-size:14px;max-width:620px;}
+.gh-meta{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;border-radius:var(--r-pill);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);
+  color:rgba(255,255,255,.7);font-size:12px;font-family:var(--ff-mono);
+  backdrop-filter:blur(6px);
+}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--c-primary);}
+.chip.r .dot{background:var(--c-error);}
+.chip.g .dot{background:var(--c-success);}
+
+/* ---------- flow rail ---------- */
+.flow-rail{
+  display:flex;align-items:center;gap:0;flex-wrap:wrap;
+  margin:30px 0 38px;padding:14px 18px;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+  border-radius:var(--r-lg);
+}
+.flow-step{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.62);font-size:13px;}
+.flow-step .idx{
+  width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(22,119,255,.16);color:#7DB4FF;font-size:11px;font-weight:600;font-family:var(--ff-mono);
+  border:1px solid rgba(22,119,255,.3);
+}
+.flow-step.urg .idx{background:rgba(255,77,79,.16);color:#FF9196;border-color:rgba(255,77,79,.35);}
+.flow-step.ok .idx{background:rgba(82,196,26,.16);color:#9CDD6E;border-color:rgba(82,196,26,.35);}
+.flow-sep{width:28px;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.18),rgba(255,255,255,.04));margin:0 6px;}
+
+/* ---------- gallery / phone track ---------- */
+.gallery{overflow-x:auto;padding:8px 4px 28px;margin:0 -4px;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent;}
+.gallery::-webkit-scrollbar{height:10px;}
+.gallery::-webkit-scrollbar-track{background:rgba(255,255,255,.04);border-radius:10px;}
+.gallery::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:10px;}
+.phone-track{display:flex;gap:34px;padding:18px 6px 8px;width:max-content;}
+
+.phone-item{display:flex;flex-direction:column;gap:18px;width:393px;flex:0 0 auto;}
+.device{
+  width:393px;height:812px;border-radius:46px;padding:9px;
+  background:linear-gradient(160deg,#26272B 0%,#15161A 55%,#0C0D10 100%);
+  box-shadow:
+    0 40px 80px -24px rgba(0,0,0,.7),
+    0 18px 40px -18px rgba(22,119,255,.18),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 0 0 1px rgba(255,255,255,.04);
+  position:relative;
+}
+.device::before{ /* side button */
+  content:"";position:absolute;left:-2px;top:150px;width:3px;height:60px;border-radius:2px;background:#2c2d31;
+}
+.device::after{ /* volume */
+  content:"";position:absolute;right:-2px;top:130px;width:3px;height:96px;border-radius:2px;background:#2c2d31;
+}
+.screen{
+  width:375px;height:794px;border-radius:38px;overflow:hidden;
+  background:var(--n2);position:relative;
+  display:flex;flex-direction:column;
+}
+
+/* status bar */
+.statusbar{
+  height:44px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px 0 26px;color:var(--n-solid);font-size:15px;font-weight:600;
+  background:transparent;position:relative;z-index:5;
+}
+.statusbar.dark{color:#fff;}
+.statusbar .sb-right{display:flex;align-items:center;gap:6px;}
+.statusbar .sb-right svg{display:block;}
+.sb-time{font-variant-numeric:tabular-nums;letter-spacing:.3px;}
+
+/* caption under phone */
+.cap{display:flex;flex-direction:column;gap:6px;padding:0 6px;}
+.cap .c-name{color:#fff;font-size:16px;font-weight:600;display:flex;align-items:center;gap:10px;}
+.cap .c-name .num{
+  font-family:var(--ff-mono);font-size:11px;font-weight:600;
+  background:rgba(22,119,255,.18);color:#7DB4FF;border:1px solid rgba(22,119,255,.3);
+  padding:2px 7px;border-radius:var(--r-pill);
+}
+.cap .c-name.urg .num{background:rgba(255,77,79,.16);color:#FF9196;border-color:rgba(255,77,79,.3);}
+.cap .c-name.ok .num{background:rgba(82,196,26,.16);color:#9CDD6E;border-color:rgba(82,196,26,.3);}
+.cap .c-meta{color:rgba(255,255,255,.42);font-size:12px;font-family:var(--ff-mono);display:flex;gap:10px;flex-wrap:wrap;}
+.cap .c-meta span{display:inline-flex;align-items:center;gap:5px;}
+.cap .c-meta .k{color:rgba(255,255,255,.28);}
+
+/* ============================================================
+   SHARED MOBILE COMPONENTS
+   ============================================================ */
+.m-scroll{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;}
+.m-scroll::-webkit-scrollbar{display:none;}
+.m-scroll{scrollbar-width:none;}
+.m-fade::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:42px;pointer-events:none;
+  background:linear-gradient(180deg,transparent,var(--n2) 86%);
+}
+.m-no-fade::after{display:none;}
+
+/* navbar */
+.m-navbar{
+  height:46px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+  padding:0 12px;background:#fff;border-bottom:1px solid var(--n3);
+  position:relative;z-index:4;
+}
+.m-navbar .nb-side{width:60px;display:flex;align-items:center;gap:4px;color:var(--n10);}
+.m-navbar .nb-side.right{justify-content:flex-end;}
+.m-navbar .nb-title{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);}
+.nb-ic{width:24px;height:24px;display:grid;place-items:center;color:var(--n10);cursor:pointer;}
+.nb-ic svg{width:22px;height:22px;}
+.nb-ic .badge-dot{position:absolute;}
+.nb-action-text{font-size:var(--fs-base);color:var(--c-primary);}
+
+/* tabbar */
+.m-tabbar{
+  height:50px;flex:0 0 auto;display:flex;background:#fff;
+  border-top:1px solid var(--n3);padding-bottom:env(safe-area-inset-bottom);
+  position:relative;z-index:4;
+}
+.m-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--n7);font-size:11px;}
+.m-tab svg{width:24px;height:24px;}
+.m-tab.active{color:var(--c-primary);}
+
+/* search bar (home) */
+.m-searchbar{
+  flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:8px 12px;background:#fff;
+}
+.m-searchbar .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#1677FF,#0E5FE0);display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px;flex:0 0 auto;}
+.m-search{
+  flex:1;height:34px;border-radius:var(--r-pill);background:var(--n3);border:1px solid transparent;
+  display:flex;align-items:center;gap:6px;padding:0 12px;color:var(--n7);font-size:var(--fs-base);
+}
+.m-search svg{width:16px;height:16px;}
+.m-bell{position:relative;width:30px;height:30px;display:grid;place-items:center;color:var(--n10);}
+.m-bell svg{width:22px;height:22px;}
+.m-bell .bdg{position:absolute;top:0;right:0;min-width:15px;height:15px;padding:0 4px;border-radius:var(--r-pill);background:var(--c-error);color:#fff;font-size:10px;font-weight:600;display:grid;place-items:center;border:1.5px solid #fff;line-height:1;}
+
+/* notice bar */
+.m-notice{
+  flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:7px 12px;background:#FFF7E6;
+  color:var(--n9);font-size:12px;border-bottom:1px solid #FCEFD1;
+}
+.m-notice .horn{color:var(--c-warning);flex:0 0 auto;display:grid;place-items:center;}
+.m-notice .horn svg{width:15px;height:15px;}
+.m-notice .txt{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.m-notice .close{color:var(--n7);flex:0 0 auto;}
+.m-notice .close svg{width:14px;height:14px;}
+
+/* generic section */
+.m-sec{padding:12px;background:var(--n2);}
+.m-sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.m-sec-head .t{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);display:flex;align-items:center;gap:6px;}
+.m-sec-head .t svg{width:18px;height:18px;}
+.m-sec-head .more{font-size:12px;color:var(--n7);display:flex;align-items:center;gap:2px;}
+.m-sec-head .more svg{width:13px;height:13px;}
+
+/* banner */
+.m-banner{
+  height:150px;border-radius:var(--r-lg);overflow:hidden;position:relative;
+  background:linear-gradient(120deg,#0E5FE0 0%,#1677FF 45%,#3B8BFF 100%);
+  box-shadow:0 8px 20px -8px rgba(22,119,255,.5);
+}
+.m-banner .bn-inner{position:absolute;inset:0;padding:18px 20px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;}
+.m-banner .bn-tag{align-self:flex-start;font-size:11px;font-weight:600;letter-spacing:1px;background:rgba(255,255,255,.22);padding:3px 9px;border-radius:var(--r-pill);backdrop-filter:blur(4px);}
+.m-banner .bn-title{font-size:24px;font-weight:700;line-height:1.2;letter-spacing:.5px;text-shadow:0 2px 12px rgba(0,0,0,.2);}
+.m-banner .bn-sub{font-size:13px;opacity:.9;margin-top:4px;}
+.m-banner .bn-cta{align-self:flex-start;font-size:12px;font-weight:600;background:#fff;color:var(--c-primary);padding:6px 14px;border-radius:var(--r-pill);box-shadow:0 4px 12px rgba(0,0,0,.15);}
+.m-banner .bn-deco{position:absolute;right:-30px;top:-30px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.1);}
+.m-banner .bn-deco2{position:absolute;right:30px;bottom:-50px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.08);}
+.m-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;}
+.m-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.45);}
+.m-dots i.on{width:16px;border-radius:3px;background:#fff;}
+
+/* seckill strip (home) */
+.m-sk-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}
+.m-sk-row::-webkit-scrollbar{display:none;}
+.m-sk-card{
+  flex:0 0 auto;width:104px;background:#fff;border-radius:var(--r-card);overflow:hidden;
+  border:1px solid var(--n3);box-shadow:var(--sh-card);
+}
+.m-sk-card .img{height:96px;background:linear-gradient(135deg,#FFE6E6,#FFD0D0);position:relative;display:grid;place-items:center;}
+.m-sk-card .img .ph{width:54px;height:54px;color:#FF8A8A;opacity:.6;}
+.m-sk-card .img .ph svg{width:100%;height:100%;}
+.m-sk-card .p{padding:8px;}
+.m-sk-card .price{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--c-error);line-height:1.2;}
+.m-sk-card .price small{font-size:11px;font-weight:400;}
+.m-sk-card .orig{font-size:11px;color:var(--n7);text-decoration:line-through;margin-top:2px;}
+.m-sk-card .cd{margin-top:5px;font-size:10px;color:#fff;background:var(--c-error);border-radius:4px;text-align:center;padding:2px 0;font-variant-numeric:tabular-nums;letter-spacing:.3px;}
+
+/* category grid */
+.m-cat{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 8px;padding:2px 0;}
+.m-cat-item{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.m-cat-ic{
+  width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:#fff;
+  box-shadow:0 6px 14px -6px rgba(0,0,0,.18);
+}
+.m-cat-ic svg{width:24px;height:24px;}
+.m-cat-item .l{font-size:12px;color:var(--n9);}
+
+/* product feed */
+.m-feed{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.m-pcard{background:#fff;border-radius:var(--r-card);overflow:hidden;box-shadow:var(--sh-card);}
+.m-pcard .img{height:150px;position:relative;display:grid;place-items:center;}
+.m-pcard .img .ph{width:60px;height:60px;opacity:.55;}
+.m-pcard .img .ph svg{width:100%;height:100%;}
+.m-pcard .img .tag{position:absolute;left:8px;top:8px;font-size:10px;color:#fff;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:4px;}
+.m-pcard .body{padding:8px;}
+.m-pcard .name{font-size:13px;color:var(--n10);line-height:1.35;height:36px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.m-pcard .meta{display:flex;align-items:baseline;justify-content:space-between;margin-top:6px;}
+.m-pcard .price{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--c-error);}
+.m-pcard .price small{font-size:11px;}
+.m-pcard .sales{font-size:11px;color:var(--n7);}
+
+/* generic card / cell */
+.m-card{background:#fff;border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden;}
+.m-cell-group{background:#fff;border-radius:var(--r-card);overflow:hidden;box-shadow:var(--sh-card);}
+.m-cell{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--n3);background:#fff;}
+.m-cell:last-child{border-bottom:none;}
+.m-cell .ic{width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;color:var(--c-primary);}
+.m-cell .ic svg{width:20px;height:20px;}
+.m-cell .lb{flex:1;font-size:var(--fs-base);color:var(--n10);}
+.m-cell .val{font-size:var(--fs-base);color:var(--n7);}
+.m-cell .val.warn{color:var(--c-error);}
+.m-cell .chev{color:var(--n6);flex:0 0 auto;}
+.m-cell .chev svg{width:16px;height:16px;}
+
+/* tags */
+.m-tag{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 7px;border-radius:var(--r-base);line-height:1.4;}
+.m-tag.primary{background:var(--c-primary-soft);color:var(--c-primary);}
+.m-tag.success{background:var(--c-success-soft);color:var(--c-success);}
+.m-tag.warning{background:var(--c-warning-soft);color:var(--c-warning);}
+.m-tag.error{background:var(--c-error-soft);color:var(--c-error);}
+.m-tag.neutral{background:var(--n3);color:var(--n7);}
+.m-tag.solid-red{background:var(--c-error);color:#fff;}
+
+/* buttons */
+.m-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  font-size:var(--fs-base);font-weight:var(--fw-semibold);border:none;cursor:pointer;
+  padding:9px 16px;border-radius:var(--r-pill);line-height:1;transition:transform var(--d-fast) var(--ease-std);
+}
+.m-btn.primary{background:var(--c-primary);color:#fff;}
+.m-btn.outline{background:#fff;color:var(--c-primary);border:1.5px solid var(--c-primary);}
+.m-btn.danger{background:var(--c-error);color:#fff;}
+.m-btn.ghost{background:var(--n3);color:var(--n10);}
+.m-btn.block{width:100%;padding:13px;}
+.m-btn.lg{padding:13px 22px;font-size:var(--fs-lg);}
+.m-btn:active{transform:scale(.97);}
+
+/* checkbox */
+.m-check{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--n5);flex:0 0 auto;display:grid;place-items:center;background:#fff;transition:all var(--d-fast) var(--ease-std);}
+.m-check.on{background:var(--c-primary);border-color:var(--c-primary);}
+.m-check.on svg{width:13px;height:13px;color:#fff;display:block;}
+.m-check svg{display:none;}
+
+/* stepper */
+.m-stepper{display:inline-flex;align-items:center;border:1px solid var(--n5);border-radius:var(--r-base);overflow:hidden;height:28px;}
+.m-stepper button{width:30px;height:28px;border:none;background:#fff;color:var(--n10);font-size:16px;display:grid;place-items:center;cursor:pointer;}
+.m-stepper button:disabled{color:var(--n6);background:var(--n2);}
+.m-stepper .val{min-width:34px;text-align:center;font-size:var(--fs-base);color:var(--n10);background:#fff;border-left:1px solid var(--n5);border-right:1px solid var(--n5);height:100%;display:grid;place-items:center;}
+
+/* skeleton */
+.sk{background:linear-gradient(90deg,#f2f2f2 25%,#e6e6e6 37%,#f2f2f2 63%);background-size:400% 100%;animation:sk 1.4s ease infinite;border-radius:var(--r-base);}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+
+/* ============================================================
+   SCREEN 1 — HOME FEED
+   ============================================================ */
+.s-home .m-banner{margin-bottom:12px;}
+
+/* ============================================================
+   SCREEN 2 — PRODUCT DETAIL
+   ============================================================ */
+.s-detail .pd-carousel{height:375px;background:linear-gradient(135deg,#EAF2FF,#D6E6FF);position:relative;display:grid;place-items:center;}
+.s-detail .pd-carousel .ph{width:150px;height:150px;color:#9DBFFF;opacity:.7;}
+.s-detail .pd-carousel .ph svg{width:100%;height:100%;}
+.s-detail .pd-carousel .dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:5px;}
+.s-detail .pd-carousel .dots i{width:6px;height:6px;border-radius:50%;background:rgba(22,119,255,.3);}
+.s-detail .pd-carousel .dots i.on{width:18px;border-radius:3px;background:var(--c-primary);}
+.s-detail .pd-carousel .share{position:absolute;top:50px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.32);display:grid;place-items:center;color:#fff;backdrop-filter:blur(6px);}
+.s-detail .pd-carousel .share svg{width:18px;height:18px;}
+.s-detail .pd-price{background:#fff;padding:14px 14px 12px;}
+.s-detail .pd-price .row1{display:flex;align-items:baseline;gap:8px;}
+.s-detail .pd-price .now{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);color:var(--c-error);line-height:1;}
+.s-detail .pd-price .now small{font-size:14px;}
+.s-detail .pd-price .orig{font-size:var(--fs-base);color:var(--n7);text-decoration:line-through;}
+.s-detail .pd-price .save{margin-left:auto;}
+.s-detail .pd-price .title{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);line-height:1.4;margin-top:10px;}
+.s-detail .pd-price .sub{font-size:12px;color:var(--n7);margin-top:4px;}
+.s-detail .pd-price .row3{display:flex;align-items:center;gap:10px;margin-top:9px;font-size:12px;color:var(--n7);}
+.s-detail .pd-price .row3 .sep{color:var(--n5);}
+.s-detail .pd-spec{margin-top:8px;}
+.s-detail .pd-sec-title{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);padding:14px 14px 10px;background:#fff;}
+.s-detail .pd-longimg{display:flex;flex-direction:column;gap:0;background:#fff;padding:0 12px 12px;}
+.s-detail .pd-longimg .li{height:130px;border-radius:var(--r-base);background:linear-gradient(135deg,#F0F4FA,#E3EBF5);margin-top:8px;display:grid;place-items:center;color:#B8C4D6;font-size:12px;}
+.s-detail .pd-rev{background:#fff;padding:0 14px 12px;}
+.s-detail .pd-rev .rh{display:flex;align-items:center;gap:12px;padding:12px 0;}
+.s-detail .pd-rev .score{font-size:22px;font-weight:var(--fw-semibold);color:var(--c-error);}
+.s-detail .pd-rev .scline{font-size:12px;color:var(--n7);}
+.s-detail .pd-rev .all{margin-left:auto;font-size:12px;color:var(--n7);display:flex;align-items:center;gap:2px;}
+.s-detail .pd-rev .ritem{padding:10px 0;border-top:1px solid var(--n3);}
+.s-detail .pd-rev .ritem .rh2{display:flex;align-items:center;gap:8px;}
+.s-detail .pd-rev .ritem .av{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#FFCFA6,#FF9F6B);}
+.s-detail .pd-rev .ritem .nick{font-size:12px;color:var(--n9);}
+.s-detail .pd-rev .ritem .stars{margin-left:auto;color:var(--c-warning);font-size:11px;}
+.s-detail .pd-rev .ritem .rc{font-size:13px;color:var(--n9);margin-top:5px;line-height:1.5;}
+
+/* detail action bar */
+.pd-actionbar{
+  height:56px;flex:0 0 auto;background:#fff;border-top:1px solid var(--n3);
+  display:flex;align-items:center;padding:0 8px;gap:6px;position:relative;z-index:4;
+}
+.pd-actionbar .mini{flex:0 0 auto;width:50px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--n9);font-size:10px;}
+.pd-actionbar .mini svg{width:22px;height:22px;}
+.pd-actionbar .mini .lk{color:var(--c-error);}
+.pd-actionbar .btns{flex:1;display:flex;gap:8px;margin-left:6px;}
+.pd-actionbar .btns .m-btn{flex:1;padding:11px 0;border-radius:var(--r-pill);}
+
+/* ============================================================
+   SCREEN 3 — CART
+   ============================================================ */
+.s-cart .cart-body{padding:10px 12px 12px;}
+.s-cart .seller{background:#fff;border-radius:var(--r-card);box-shadow:var(--sh-card);margin-bottom:10px;overflow:hidden;}
+.s-cart .s-head{display:flex;align-items:center;gap:8px;padding:11px 12px;border-bottom:1px solid var(--n3);}
+.s-cart .s-head .sname{flex:1;font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);display:flex;align-items:center;gap:5px;}
+.s-cart .s-head .sname svg{width:16px;height:16px;color:var(--c-primary);}
+.s-cart .s-head .go{font-size:12px;color:var(--n7);display:flex;align-items:center;gap:1px;}
+.s-cart .s-head .go svg{width:13px;height:13px;}
+.s-cart .ci{display:flex;align-items:center;gap:10px;padding:11px 12px;}
+.s-cart .ci .img{width:74px;height:74px;border-radius:var(--r-base);flex:0 0 auto;display:grid;place-items:center;}
+.s-cart .ci .img svg{width:34px;height:34px;opacity:.6;}
+.s-cart .ci .info{flex:1;min-width:0;}
+.s-cart .ci .info .nm{font-size:var(--fs-base);color:var(--n10);line-height:1.35;height:38px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.s-cart .ci .info .sp{font-size:12px;color:var(--n7);margin-top:3px;background:var(--n3);align-self:flex-start;padding:2px 6px;border-radius:4px;display:inline-block;}
+.s-cart .ci .info .br{display:flex;align-items:center;justify-content:space-between;margin-top:7px;}
+.s-cart .ci .info .pr{font-size:15px;font-weight:var(--fw-semibold);color:var(--n10);}
+.s-cart .ci .info .pr small{font-size:11px;}
+.s-cart .inv-group{margin-bottom:10px;}
+.s-cart .inv-head{font-size:12px;color:var(--n7);padding:4px 4px 8px;}
+.s-cart .inv-item{display:flex;align-items:center;gap:10px;background:#fff;border-radius:var(--r-card);padding:11px 12px;opacity:.62;}
+.s-cart .inv-item .img{width:64px;height:64px;border-radius:var(--r-base);background:linear-gradient(135deg,#EDEDED,#E0E0E0);flex:0 0 auto;display:grid;place-items:center;color:var(--n7);}
+.s-cart .inv-item .img svg{width:28px;height:28px;}
+.s-cart .inv-item .info{flex:1;}
+.s-cart .inv-item .info .nm{font-size:13px;color:var(--n9);line-height:1.3;}
+.s-cart .inv-item .info .rs{font-size:12px;color:var(--n7);margin-top:4px;}
+.s-cart .inv-item .del{color:var(--c-error);font-size:12px;}
+.s-cart .rec-head{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);padding:6px 4px 10px;display:flex;align-items:center;gap:6px;}
+.s-cart .rec-head .ln{flex:1;height:1px;background:var(--n3);}
+.s-cart .rec-feed{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+/* settle bar */
+.settle-bar{
+  height:54px;flex:0 0 auto;background:#fff;border-top:1px solid var(--n3);
+  display:flex;align-items:center;padding:0 12px;gap:10px;position:relative;z-index:4;
+}
+.settle-bar .all{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--n10);}
+.settle-bar .sum{flex:1;text-align:right;}
+.settle-bar .sum .lb{font-size:12px;color:var(--n7);}
+.settle-bar .sum .v{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--c-error);}
+.settle-bar .sum .v small{font-size:13px;}
+.settle-bar .go{background:var(--c-primary);color:#fff;font-size:var(--fs-lg);font-weight:var(--fw-semibold);padding:11px 22px;border-radius:var(--r-pill);border:none;display:flex;align-items:center;gap:4px;}
+
+/* ============================================================
+   SCREEN 4 — SECKIL ORDER
+   ============================================================ */
+.s-seckill .sk-cd-strip{
+  flex:0 0 auto;margin:0;background:linear-gradient(120deg,#FF4D4F 0%,#FF7A45 100%);
+  color:#fff;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;
+}
+.s-seckill .sk-cd-strip .l{display:flex;align-items:center;gap:8px;}
+.s-seckill .sk-cd-strip .bolt{width:20px;height:20px;}
+.s-seckill .sk-cd-strip .lb{font-size:13px;opacity:.92;}
+.s-seckill .sk-cd-strip .cd{font-size:20px;font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums;letter-spacing:1px;}
+.s-seckill .sk-cd-strip .cd b{background:rgba(0,0,0,.28);border-radius:5px;padding:2px 6px;margin:0 1px;}
+.s-seckill .sk-cd-strip .r{font-size:12px;opacity:.9;text-align:right;}
+.s-seckill .sk-body{padding:12px;}
+.s-seckill .sk-prod{background:#fff;border-radius:var(--r-card);box-shadow:var(--sh-card);padding:12px;display:flex;gap:12px;}
+.s-seckill .sk-prod .img{width:100px;height:100px;border-radius:var(--r-base);background:linear-gradient(135deg,#FFE6E6,#FFCCCC);flex:0 0 auto;display:grid;place-items:center;color:#FF7A7A;}
+.s-seckill .sk-prod .img svg{width:46px;height:46px;}
+.s-seckill .sk-prod .info{flex:1;min-width:0;}
+.s-seckill .sk-prod .info .nm{font-size:var(--fs-base);color:var(--n10);line-height:1.4;height:40px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.s-seckill .sk-prod .info .pr{display:flex;align-items:baseline;gap:6px;margin-top:6px;}
+.s-seckill .sk-prod .info .pr .now{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);color:var(--c-error);}
+.s-seckill .sk-prod .info .pr .now small{font-size:13px;}
+.s-seckill .sk-prod .info .pr .orig{font-size:12px;color:var(--n7);text-decoration:line-through;}
+.s-seckill .sk-prod .info .stock{font-size:12px;color:var(--c-warning);margin-top:5px;display:flex;align-items:center;gap:4px;}
+.s-seckill .sk-prod .info .stock .bar{width:70px;height:6px;border-radius:3px;background:var(--c-warning-soft);overflow:hidden;margin-left:4px;}
+.s-seckill .sk-prod .info .stock .bar i{display:block;height:100%;width:32%;background:linear-gradient(90deg,#FAAD14,#FF7A45);border-radius:3px;}
+.s-seckill .sk-sku{background:#fff;border-radius:var(--r-card);box-shadow:var(--sh-card);padding:12px;margin-top:10px;}
+.s-seckill .sk-sku .lb{font-size:13px;color:var(--n7);margin-bottom:9px;}
+.s-seckill .sk-sku .chips{display:flex;gap:8px;flex-wrap:wrap;}
+.s-seckill .sk-sku .chip-sku{padding:6px 14px;border-radius:var(--r-pill);border:1px solid var(--n5);font-size:13px;color:var(--n10);background:#fff;}
+.s-seckill .sk-sku .chip-sku.on{border-color:var(--c-primary);color:var(--c-primary);background:var(--c-primary-soft);}
+.s-seckill .sk-addr{background:#fff;border-radius:var(--r-card);box-shadow:var(--sh-card);padding:12px;margin-top:10px;display:flex;align-items:center;gap:10px;}
+.s-seckill .sk-addr .ic{width:22px;height:22px;color:var(--c-primary);flex:0 0 auto;}
+.s-seckill .sk-addr .ic svg{width:22px;height:22px;}
+.s-seckill .sk-addr .info{flex:1;min-width:0;}
+.s-seckill .sk-addr .info .r1{font-size:var(--fs-base);color:var(--n10);display:flex;gap:8px;}
+.s-seckill .sk-addr .info .r1 .ph{font-size:12px;color:var(--n7);}
+.s-seckill .sk-addr .info .r2{font-size:12px;color:var(--n7);margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.s-seckill .sk-addr .chev{color:var(--n6);}
+.s-seckill .sk-qty{background:#fff;border-radius:var(--r-card);box-shadow:var(--sh-card);padding:12px;margin-top:10px;display:flex;align-items:center;}
+.s-seckill .sk-qty .lb{flex:1;font-size:var(--fs-base);color:var(--n10);}
+.s-seckill .sk-qty .lb small{color:var(--c-error);font-size:11px;margin-left:6px;}
+.s-seckill .sk-foot{
+  flex:0 0 auto;height:56px;background:#fff;border-top:1px solid var(--n3);display:flex;align-items:center;padding:0 12px;gap:12px;z-index:4;
+}
+.s-seckill .sk-foot .p{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);color:var(--c-error);}
+.s-seckill .sk-foot .p small{font-size:13px;}
+.s-seckill .sk-foot .p .lb{display:block;font-size:11px;color:var(--n7);font-weight:400;}
+.s-seckill .sk-foot .btn{flex:1;background:linear-gradient(120deg,#FF4D4F,#FF7A45);color:#fff;font-size:var(--fs-lg);font-weight:var(--fw-semibold);border:none;border-radius:var(--r-pill);padding:13px 0;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 8px 18px -6px rgba(255,77,79,.55);}
+.s-seckill .sk-foot .btn svg{width:20px;height:20px;}
+
+/* ============================================================
+   SCREEN 5 — PAYMENT RESULT
+   ============================================================ */
+.s-payr{background:var(--n2);}
+.s-payr .pr-top{padding:48px 24px 30px;display:flex;flex-direction:column;align-items:center;text-align:center;background:#fff;border-bottom-left-radius:24px;border-bottom-right-radius:24px;}
+.pr-icon{width:84px;height:84px;border-radius:50%;background:var(--c-success-soft);display:grid;place-items:center;margin-bottom:16px;position:relative;}
+.pr-icon::after{content:"";position:absolute;inset:-7px;border-radius:50%;border:2px solid rgba(82,196,26,.25);animation:ring 2.4s var(--ease-dec) infinite;}
+@keyframes ring{0%{transform:scale(.9);opacity:.8}100%{transform:scale(1.25);opacity:0}}
+.pr-icon svg{width:46px;height:46px;color:var(--c-success);}
+.pr-title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--n10);}
+.pr-desc{font-size:13px;color:var(--n7);margin-top:6px;}
+.s-payr .pr-sum{margin:14px 12px 0;}
+.s-payr .pr-sum .row{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:#fff;}
+.s-payr .pr-sum .row:first-child{border-radius:var(--r-card) var(--r-card) 0 0;}
+.s-payr .pr-sum .row:last-child{border-radius:0 0 var(--r-card) var(--r-card);border-top:1px solid var(--n3);}
+.s-payr .pr-sum .lb{font-size:var(--fs-base);color:var(--n7);}
+.s-payr .pr-sum .v{font-size:var(--fs-base);color:var(--n10);font-variant-numeric:tabular-nums;}
+.s-payr .pr-sum .v.amt{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--c-error);}
+.s-payr .pr-sum .v.amt small{font-size:13px;}
+.s-payr .pr-acts{padding:24px 16px 0;display:flex;flex-direction:column;gap:12px;}
+.s-payr .pr-acts .row2{display:flex;gap:12px;}
+.s-payr .pr-acts .row2 .m-btn{flex:1;}
+
+/* ============================================================
+   SCREEN 6 — PROFILE
+   ============================================================ */
+.s-profile{background:var(--n2);}
+.s-profile .avatar-card{background:linear-gradient(135deg,#1677FF 0%,#0E5FE0 100%);padding:24px 16px 28px;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden;}
+.s-profile .avatar-card::before{content:"";position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.08);}
+.s-profile .avatar-card::after{content:"";position:absolute;left:-30px;bottom:-50px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.06);}
+.s-profile .av-wrap{position:relative;}
+.s-profile .av{width:80px;height:80px;border-radius:50%;border:3px solid rgba(255,255,255,.7);background:linear-gradient(135deg,#FFCFA6,#FF9F6B);display:grid;place-items:center;color:#fff;overflow:hidden;}
+.s-profile .av svg{width:46px;height:46px;}
+.s-profile .cam{position:absolute;right:-2px;bottom:-2px;width:26px;height:26px;border-radius:50%;background:#fff;color:var(--c-primary);display:grid;place-items:center;border:2px solid var(--c-primary);box-shadow:var(--sh-card);}
+.s-profile .cam svg{width:14px;height:14px;}
+.s-profile .nick{margin-top:14px;display:flex;align-items:center;gap:8px;color:#fff;font-size:var(--fs-lg);font-weight:var(--fw-medium);}
+.s-profile .nick .ed{color:rgba(255,255,255,.7);}
+.s-profile .nick .ed svg{width:14px;height:14px;}
+.s-profile .badges{display:flex;gap:6px;margin-top:12px;position:relative;z-index:1;}
+.s-profile .badges .m-tag{background:rgba(255,255,255,.22);color:#fff;backdrop-filter:blur(4px);}
+.s-profile .badges .m-tag.gold{background:rgba(255,200,80,.92);color:#7A4B00;}
+.s-profile .p-body{padding:12px;display:flex;flex-direction:column;gap:10px;margin-top:-12px;position:relative;z-index:2;}
+.s-profile .grp-lb{font-size:12px;color:var(--n7);padding:2px 4px;}
+.s-profile .acc .m-cell .lb{color:var(--n7);font-size:13px;}
+.s-profile .acc .m-cell .val{color:var(--n10);}
+.s-profile .acc .m-cell .val.bind{color:var(--c-error);}
+.s-profile .st-bar{display:flex;gap:8px;padding:0 4px;}
+.s-profile .st-bar .m-tag{font-size:12px;padding:3px 9px;}
+
+/* ============================================================
+   TOKENS STRIP
+   ============================================================ */
+.tokens-sec{margin-top:64px;border-top:1px solid rgba(255,255,255,.08);padding-top:36px;}
+.tokens-sec h2{color:#fff;font-size:20px;font-weight:600;margin-bottom:6px;}
+.tokens-sec .ts-sub{color:rgba(255,255,255,.45);font-size:13px;margin-bottom:24px;font-family:var(--ff-mono);}
+.tk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;}
+.tk-card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);border-radius:var(--r-lg);padding:18px;}
+.tk-card h3{color:rgba(255,255,255,.9);font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px;letter-spacing:.3px;}
+.tk-card h3 .hK{font-family:var(--ff-mono);font-size:10px;color:rgba(255,255,255,.35);font-weight:400;}
+.tk-colors{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.tk-sw{display:flex;align-items:center;gap:10px;}
+.tk-sw .sw{width:30px;height:30px;border-radius:var(--r-base);flex:0 0 auto;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);}
+.tk-sw .tx{display:flex;flex-direction:column;line-height:1.3;}
+.tk-sw .tx .nm{color:rgba(255,255,255,.85);font-size:12px;}
+.tk-sw .tx .hv{color:rgba(255,255,255,.4);font-size:11px;font-family:var(--ff-mono);}
+.tk-type .row{display:flex;align-items:baseline;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.tk-type .row:last-child{border-bottom:none;}
+.tk-type .row .ex{color:#fff;}
+.tk-type .row .mt{color:rgba(255,255,255,.4);font-size:11px;font-family:var(--ff-mono);}
+.tk-scale{display:flex;align-items:flex-end;gap:6px;height:60px;}
+.tk-scale .b{background:rgba(22,119,255,.7);border-radius:3px;flex:1;display:flex;align-items:flex-end;justify-content:center;color:rgba(255,255,255,.5);font-size:9px;padding-bottom:3px;font-family:var(--ff-mono);}
+.tk-radii{display:flex;gap:14px;align-items:flex-end;}
+.tk-radii .r{width:46px;height:46px;background:rgba(255,255,255,.1);border:1px solid rgba(22,119,255,.5);}
+.tk-radii .rl{text-align:center;color:rgba(255,255,255,.5);font-size:10px;margin-top:6px;font-family:var(--ff-mono);}
+.tk-radii .rc{display:flex;flex-direction:column;align-items:center;}
+.tk-motion .mr{display:flex;align-items:center;gap:10px;padding:6px 0;}
+.tk-motion .mr .lb{color:rgba(255,255,255,.7);font-size:12px;width:70px;}
+.tk-motion .mr .bar{flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--c-primary),rgba(22,119,255,.2));}
+.tk-motion .mr .v{color:rgba(255,255,255,.45);font-size:11px;font-family:var(--ff-mono);width:60px;text-align:right;}
+
+footer{margin-top:56px;padding-top:24px;border-top:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.35);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:var(--ff-mono);}
+
+/* hide sprite */
+.sprite{position:absolute;width:0;height:0;overflow:hidden;}
+
+@media (max-width:760px){
+  .wrap{padding:32px 18px 60px;}
+  .gh-title{font-size:26px;}
+  .gh{gap:18px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== SVG ICON SPRITE (Vant-style line icons) ===== -->
+<svg class="sprite" aria-hidden="true">
+ <defs>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-horn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v4a1 1 0 0 0 1 1h2l4 4V5L6 9H4a1 1 0 0 0-1 1Z"/><path d="M14 6.5a5 5 0 0 1 0 11"/><path d="M16.5 3a9 9 0 0 1 0 18"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></symbol>
+  <symbol id="i-service" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v3a2 2 0 0 0 2 2h1v-6H6a2 2 0 0 0-2 2Z"/><path d="M20 13v3a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 2Z"/></symbol>
+  <symbol id="i-shop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16l-1 3a3 3 0 0 1-6 0 3 3 0 0 1-6 0L4 9Z"/><path d="M5 9 5.5 5h13L19 9"/><path d="M6 14v6h12v-6"/><path d="M9 20v-3h6v3"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-10-9.2C.6 8.9 2 5.5 5.3 5.1c2-.2 3.5 1 4.7 2.5 1.2-1.5 2.7-2.7 4.7-2.5C18 5.5 19.4 8.9 18 11.8 15.5 16.4 12 21 12 21Z"/></symbol>
+  <symbol id="i-heart-o" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.3-9.3-8.6C1.3 8.7 2.6 5.8 5.5 5.5c1.9-.2 3.4 1 4.5 2.3 1.1-1.3 2.6-2.5 4.5-2.3 2.9.3 4.2 3.2 2.8 5.9C19 15.7 12 20 12 20Z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></symbol>
+  <symbol id="i-home-o" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M3 4h2l2.2 11.2a1 1 0 0 0 1 .8h8.6a1 1 0 0 0 1-.8L20 8H6"/></symbol>
+  <symbol id="i-cart-o" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M3 4h2l2.2 11.2a1 1 0 0 0 1 .8h8.6a1 1 0 0 0 1-.8L20 8H6"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.8"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/></symbol>
+  <symbol id="i-user-o" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.8"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/></symbol>
+  <symbol id="i-location" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6l-7-3Z"/><path d="m9.5 12 1.8 1.8 3.5-3.6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-setting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 14.5a1.5 1.5 0 0 0 .3 1.7l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-1 1.4V21a2 2 0 1 1-4 0v-.1a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-1H3a2 2 0 1 1 0-4h.1a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.5 1.5 0 0 0 1.7.3H9a1.5 1.5 0 0 0 1-1.4V3a2 2 0 1 1 4 0v.1a1.5 1.5 0 0 0 1 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.5 1.5 0 0 0-.3 1.7V9a1.5 1.5 0 0 0 1.4 1H21a2 2 0 1 1 0 4h-.1a1.5 1.5 0 0 0-1.4 1Z"/></symbol>
+  <symbol id="i-delete" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/><path d="M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5.5 18.5 10 8 20l-4 1 1-4 9-11.5Z"/><path d="m13 6.5 4.5 4.5"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M4 13h16M12 9v11"/><path d="M12 9S10.5 4 8 5s2 4 4 4Zm0 0s1.5-5 4-4-2 4-4 4Z"/></symbol>
+  <symbol id="i-bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="10" rx="1.5"/><path d="M2 19h20l-1-2H3l-1 2Z"/></symbol>
+  <symbol id="i-shirt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m8 4 4 2 4-2 4 3-2 3h-2v9H8v-9H6L4 7l4-3Z"/></symbol>
+  <symbol id="i-lipstick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 5h-4L9 4Z"/><rect x="9" y="9" width="6" height="6"/><rect x="9" y="15" width="6" height="5"/></symbol>
+  <symbol id="i-sofa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3"/><path d="M3 13a2 2 0 0 1 2 2v3h14v-3a2 2 0 1 1 4 0v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-4a2 2 0 0 1 1-2Z"/><path d="M6 18v2M18 18v2"/></symbol>
+  <symbol id="i-shoe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16h17a1 1 0 0 0 1-1v-1.5a2 2 0 0 0-1.2-1.8L13 9 9 5l-1 4-3 1.5L3 16Z"/><path d="M3 16v2h18v-2"/></symbol>
+  <symbol id="i-food" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v8a2 2 0 0 0 4 0V3M7 11v10M16 3c-1.5 0-2.5 2-2.5 5s1 4 2.5 4 2.5-1 2.5-4-1-5-2.5-5Zm0 9v9"/></symbol>
+  <symbol id="i-baby" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M9.5 7.5h.01M14.5 7.5h.01M10.5 9.5s.8.8 1.5.8 1.5-.8 1.5-.8"/><path d="M5 20c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5"/></symbol>
+  <symbol id="i-more-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/><circle cx="6" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9 6.8 19l1-5.8L3.6 9.1l5.8-.8L12 3Z"/></symbol>
+  <symbol id="i-headphone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="13" width="4" height="7" rx="1.5"/><rect x="17" y="13" width="4" height="7" rx="1.5"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M10 18h4"/></symbol>
+  <!-- status bar icons -->
+  <symbol id="sb-signal" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1" opacity=".4"/></symbol>
+  <symbol id="sb-wifi" viewBox="0 0 16 12" fill="currentColor"><path d="M8 11.5 9.6 9.4a2.4 2.4 0 0 0-3.2 0L8 11.5Z"/><path d="M8 6.2c1.6 0 3.1.6 4.2 1.6l1.3-1.5A8 8 0 0 0 8 4.1 8 8 0 0 0 2.5 6.3l1.3 1.5A6 6 0 0 1 8 6.2Z"/><path d="M8 1.4c2.7 0 5.2 1 7 2.7L16.4 2.5A11.5 11.5 0 0 0 8 -1 11.5 11.5 0 0 0 -.4 2.5L1 4.1A9.7 9.7 0 0 1 8 1.4Z" opacity=".0"/><path d="M8 1.4c2.7 0 5.2 1 7 2.7l1.4-1.6A11.5 11.5 0 0 0 8 .2 11.5 11.5 0 0 0 .6 2.5L2 4.1A9.7 9.7 0 0 1 8 1.4Z"/></symbol>
+  <symbol id="sb-battery" viewBox="0 0 26 12" fill="none"><rect x="1" y="1" width="21" height="10" rx="2.5" stroke="currentColor" stroke-width="1" opacity=".4"/><rect x="3" y="3" width="16" height="6" rx="1.2" fill="currentColor"/><path d="M24 4.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+ </defs>
+</svg>
+
+<div class="bg-layer">
+  <div class="bg-grad"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+</div>
+
+<div class="wrap">
+
+  <!-- ===== HEADER ===== -->
+  <header class="gh">
+    <div class="gh-left">
+      <div class="brand">
+        <div class="brand-mark">L</div>
+        <div class="brand-txt">
+          <div class="b1">Leno 买家端</div>
+          <div class="b2">Buyer App · Core Flow Preview</div>
+        </div>
+      </div>
+      <h1 class="gh-title">核心流程 <em>多页预览</em></h1>
+      <p class="gh-sub">基于工作区 4 端 UI 设计提示词生成，严格遵循 shared/design-system.md 设计令牌：主色 #1677FF、价格红 #FF4D4F、圆角 6/8/12、间距 4-48 体系、字号 12-30、PingFang SC。下方为 6 个代表性页面的 375px 移动端实屏渲染。</p>
+    </div>
+    <div class="gh-meta">
+      <span class="chip"><span class="dot"></span>Vue 3.5 · Vant 4</span>
+      <span class="chip"><span class="dot"></span>375px @1x</span>
+      <span class="chip r"><span class="dot"></span>#FF4D4F 价格/危险</span>
+      <span class="chip g"><span class="dot"></span>#52C41A 成功</span>
+    </div>
+  </header>
+
+  <!-- ===== FLOW RAIL ===== -->
+  <div class="flow-rail">
+    <div class="flow-step"><span class="idx">01</span>首页推荐流</div>
+    <span class="flow-sep"></span>
+    <div class="flow-step"><span class="idx">02</span>商品详情</div>
+    <span class="flow-sep"></span>
+    <div class="flow-step"><span class="idx">03</span>购物车</div>
+    <span class="flow-sep"></span>
+    <div class="flow-step urg"><span class="idx">04</span>秒杀下单</div>
+    <span class="flow-sep"></span>
+    <div class="flow-step ok"><span class="idx">05</span>支付结果</div>
+    <span class="flow-sep"></span>
+    <div class="flow-step"><span class="idx">06</span>个人资料</div>
+  </div>
+
+  <!-- ===== PHONE GALLERY ===== -->
+  <main class="gallery">
+    <div class="phone-track">
+
+      <!-- ============ SCREEN 1: HOME FEED ============ -->
+      <figure class="phone-item">
+        <div class="device"><div class="screen s-home">
+          <div class="statusbar"><span class="sb-time">9:41</span><span class="sb-right"><svg width="18" height="12"><use href="#sb-signal"/></svg><svg width="16" height="12"><use href="#sb-wifi"/></svg><svg width="26" height="12"><use href="#sb-battery"/></svg></span></div>
+          <div class="m-scroll m-fade">
+            <!-- search -->
+            <div class="m-searchbar">
+              <div class="logo">L</div>
+              <div class="m-search"><svg><use href="#i-search"/></svg><span>搜索商品</span></div>
+              <div class="m-bell"><svg><use href="#i-bell"/></svg><span class="bdg">3</span></div>
+            </div>
+            <!-- notice -->
+            <div class="m-notice">
+              <span class="horn"><svg><use href="#i-horn"/></svg></span>
+              <span class="txt">双11 大促 · 全场满 300 减 50，秒杀场次 12:00 开抢，先到先得</span>
+              <span class="close"><svg><use href="#i-close"/></svg></span>
+            </div>
+            <div class="m-sec">
+              <!-- banner -->
+              <div class="m-banner">
+                <div class="bn-deco"></div><div class="bn-deco2"></div>
+                <div class="bn-inner">
+                  <span class="bn-tag">11.11 GOODS</span>
+                  <div>
+                    <div class="bn-title">好物焕新季</div>
+                    <div class="bn-sub">跨店满减 · 限时直降</div>
+                  </div>
+                  <span class="bn-cta">立即抢购</span>
+                </div>
+                <div class="m-dots"><i class="on"></i><i></i><i></i><i></i></div>
+              </div>
+              <!-- seckill -->
+              <div style="margin-top:14px">
+                <div class="m-sec-head">
+                  <div class="t" style="color:var(--c-error)"><svg style="color:var(--c-error)"><use href="#i-bolt"/></svg>限时秒杀</div>
+                  <div class="more">查看更多<svg><use href="#i-chevron"/></svg></div>
+                </div>
+                <div class="m-sk-row">
+                  <div class="m-sk-card">
+                    <div class="img"><span class="ph"><svg><use href="#i-headphone"/></svg></span></div>
+                    <div class="p"><div class="price"><small>¥</small>99</div><div class="orig">¥199</div><div class="cd" data-cd="8975">02:29:35</div></div>
+                  </div>
+                  <div class="m-sk-card">
+                    <div class="img" style="background:linear-gradient(135deg,#E6F0FF,#CFE2FF)"><span class="ph" style="color:#7DB4FF"><svg><use href="#i-phone"/></svg></span></div>
+                    <div class="p"><div class="price"><small>¥</small>1299</div><div class="orig">¥1799</div><div class="cd" data-cd="8975">02:29:35</div></div>
+                  </div>
+                  <div class="m-sk-card">
+                    <div class="img" style="background:linear-gradient(135deg,#FFF1E6,#FFDEC2)"><span class="ph" style="color:#FFB066"><svg><use href="#i-shoe"/></svg></span></div>
+                    <div class="p"><div class="price"><small>¥</small>259</div><div class="orig">¥399</div><div class="cd" data-cd="8975">02:29:35</div></div>
+                  </div>
+                  <div class="m-sk-card">
+                    <div class="img" style="background:linear-gradient(135deg,#F0FBE6,#DCF5C6)"><span class="ph" style="color:#9CDD6E"><svg><use href="#i-bag"/></svg></span></div>
+                    <div class="p"><div class="price"><small>¥</small>59</div><div class="orig">¥99</div><div class="cd" data-cd="8975">02:29:35</div></div>
+                  </div>
+                </div>
+              </div>
+              <!-- category -->
+              <div style="margin-top:16px">
+                <div class="m-sec-head"><div class="t">分类快捷入口</div></div>
+                <div class="m-cat">
+                  <div class="m-cat-item"><div class="m-cat-ic" style="background:linear-gradient(135deg,#1677FF,#3B8BFF)"><svg><use href="#i-laptop"/></svg></div><div class="l">数码</div></div>
+                  <div class="m-cat-item"><div class="m-cat-ic" style="background:linear-gradient(135deg,#FF7A45,#FF9F6B)"><svg><use href="#i-shirt"/></svg></div><div class="l">服饰</div></div>
+                  <div class="m-cat-item"><div class="m-cat-ic" style="background:linear-gradient(135deg,#FF4D96,#FF80B5)"><svg><use href="#i-lipstick"/></svg></div><div class="l">美妆</div></div>
+                  <div class="m-cat-item"><div class="m-cat-ic" style="background:linear-gradient(135deg,#52C41A,#85D657)"><svg><use href="#i-sofa"/></svg></div><div class="l">家居</div></div>
+                  <div class="m-cat-item"><div class="m-cat-ic" style="background:linear-gradient(135deg,#722ED1,#9B6FE0)"><svg><use href="#i-shoe"/></svg></div><div class="l">鞋靴</div></div>
+                  <div class="m-cat-item"><div class="m-cat-ic" style="background:linear-gradient(135deg,#FAAD14,#FFC53D)"><svg><use href="#i-food"/></svg></div><div class="l">食品</div></div>
+                  <div class="m-cat-item"><div class="m-cat-ic" style="background:linear-gradient(135deg,#13C2C2,#36CFC9)"><svg><use href="#i-baby"/></svg></div><div class="l">母婴</div></div>
+                  <div class="m-cat-item"><div class="m-cat-ic" style="background:linear-gradient(135deg,#595959,#8C8C8C)"><svg><use href="#i-more-grid"/></svg></div><div class="l">更多</div></div>
+                </div>
+              </div>
+              <!-- feed -->
+              <div style="margin-top:18px">
+                <div class="m-sec-head"><div class="t">为你推荐</div><div class="more">综合 <svg><use href="#i-chevron"/></svg></div></div>
+                <div class="m-feed">
+                  <div class="m-pcard">
+                    <div class="img" style="background:linear-gradient(135deg,#E6F0FF,#CFE2FF)"><span class="tag">热销</span><span class="ph" style="color:#5B9BFF"><svg><use href="#i-headphone"/></svg></span></div>
+                    <div class="body"><div class="name">Leno 轻量降噪蓝牙耳机 Pro Max 长续航</div><div class="meta"><span class="price"><small>¥</small>199</span><span class="sales">月销1200</span></div></div>
+                  </div>
+                  <div class="m-pcard">
+                    <div class="img" style="background:linear-gradient(135deg,#FFF1E6,#FFDEC2)"><span class="ph" style="color:#FF9F6B"><svg><use href="#i-shoe"/></svg></span></div>
+                    <div class="body"><div class="name">透气网面运动跑步鞋 男款轻便减震</div><div class="meta"><span class="price"><small>¥</small>259</span><span class="sales">月销680</span></div></div>
+                  </div>
+                  <div class="m-pcard">
+                    <div class="img" style="background:linear-gradient(135deg,#F0FBE6,#DCF5C6)"><span class="ph" style="color:#85D657"><svg><use href="#i-bag"/></svg></span></div>
+                    <div class="body"><div class="name">简约通勤双肩背包 防泼水大容量</div><div class="meta"><span class="price"><small>¥</small>129</span><span class="sales">月销320</span></div></div>
+                  </div>
+                  <div class="m-pcard">
+                    <div class="img" style="background:linear-gradient(135deg,#FFF0F6,#FFD6E7)"><span class="ph" style="color:#FF80B5"><svg><use href="#i-lipstick"/></svg></span></div>
+                    <div class="body"><div class="name">丝绒哑光口红 持久不沾杯 03 豆沙色</div><div class="meta"><span class="price"><small>¥</small>89</span><span class="sales">月销2100</span></div></div>
+                  </div>
+                </div>
+              </div>
+              <div style="height:14px"></div>
+            </div>
+          </div>
+          <nav class="m-tabbar">
+            <div class="m-tab active"><svg><use href="#i-home"/></svg>首页</div>
+            <div class="m-tab"><svg><use href="#i-grid"/></svg>分类</div>
+            <div class="m-tab"><svg><use href="#i-cart-o"/></svg>购物车</div>
+            <div class="m-tab"><svg><use href="#i-user-o"/></svg>我的</div>
+          </nav>
+        </div></div>
+        <figcaption class="cap">
+          <div class="c-name"><span class="num">01</span>首页推荐流</div>
+          <div class="c-meta"><span><span class="k">route</span> /</span><span><span class="k">module</span> 02-home</span><span><span class="k">status</span> ➕</span></div>
+        </figcaption>
+      </figure>
+
+      <!-- ============ SCREEN 2: PRODUCT DETAIL ============ -->
+      <figure class="phone-item">
+        <div class="device"><div class="screen s-detail">
+          <div class="statusbar"><span class="sb-time">9:41</span><span class="sb-right"><svg width="18" height="12"><use href="#sb-signal"/></svg><svg width="16" height="12"><use href="#sb-wifi"/></svg><svg width="26" height="12"><use href="#sb-battery"/></svg></span></div>
+          <div class="m-navbar">
+            <div class="nb-side"><span class="nb-ic"><svg><use href="#i-arrow-left"/></svg></span></div>
+            <div class="nb-title">商品详情</div>
+            <div class="nb-side right"><span class="nb-ic" style="position:relative"><svg><use href="#i-more"/></svg></span><span class="nb-ic"><svg><use href="#i-service"/></svg></span></div>
+          </div>
+          <div class="m-scroll m-fade">
+            <div class="pd-carousel">
+              <span class="share"><svg><use href="#i-share"/></svg></span>
+              <span class="ph"><svg><use href="#i-headphone"/></svg></span>
+              <div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div class="pd-price">
+              <div class="row1">
+                <span class="now"><small>¥</small>199</span>
+                <span class="orig">¥299</span>
+                <span class="save"><span class="m-tag solid-red">省 ¥100</span></span>
+              </div>
+              <div class="title">Leno 轻量降噪蓝牙耳机 Pro Max 长续航 低延迟 主动降噪</div>
+              <div class="sub">星河蓝 · 适配 iOS / Android</div>
+              <div class="row3"><span>月销 1200</span><span class="sep">|</span><span>好评 98%</span><span class="sep">|</span><span>福建福州</span></div>
+            </div>
+            <div class="pd-spec">
+              <div class="m-cell">
+                <div class="lb">选择</div>
+                <div class="val">颜色 / 尺码 / 数量</div>
+                <span class="chev"><svg><use href="#i-chevron"/></svg></span>
+              </div>
+            </div>
+            <div class="pd-sec-title">商品详情</div>
+            <div class="pd-longimg">
+              <div class="li">— 长图 · 产品参数与卖点 —</div>
+              <div class="li">— 长图 · 降噪原理图解 —</div>
+            </div>
+            <div class="pd-sec-title" style="display:flex;align-items:center;justify-content:space-between">
+              评价 <span style="font-size:12px;color:var(--n7);font-weight:400">4.8 分 · 235 条</span>
+            </div>
+            <div class="pd-rev">
+              <div class="ritem">
+                <div class="rh2"><span class="av"></span><span class="nick">小***明</span><span class="stars">★ 5.0</span></div>
+                <div class="rc">降噪效果超出预期，佩戴舒适，续航也很顶，性价比之王。</div>
+              </div>
+              <div class="ritem">
+                <div class="rh2"><span class="av" style="background:linear-gradient(135deg,#9DBFFF,#5B9BFF)"></span><span class="nick">l***o</span><span class="stars">★ 4.8</span></div>
+                <div class="rc">音质清晰，连接稳定，通勤神器，已推荐给朋友。</div>
+              </div>
+            </div>
+            <div style="height:14px"></div>
+          </div>
+          <div class="pd-actionbar">
+            <div class="mini"><svg><use href="#i-headphone"/></svg>客服</div>
+            <div class="mini"><svg><use href="#i-shop"/></svg>店铺</div>
+            <div class="mini"><svg><use href="#i-heart-o"/></svg>收藏</div>
+            <div class="btns">
+              <button class="m-btn outline">加入购物车</button>
+              <button class="m-btn primary">立即购买</button>
+            </div>
+          </div>
+        </div></div>
+        <figcaption class="cap">
+          <div class="c-name"><span class="num">02</span>商品详情</div>
+          <div class="c-meta"><span><span class="k">route</span> /product/:id</span><span><span class="k">module</span> 03-catalog</span><span><span class="k">status</span> ✅</span></div>
+        </figcaption>
+      </figure>
+
+      <!-- ============ SCREEN 3: CART ============ -->
+      <figure class="phone-item">
+        <div class="device"><div class="screen s-cart">
+          <div class="statusbar"><span class="sb-time">9:41</span><span class="sb-right"><svg width="18" height="12"><use href="#sb-signal"/></svg><svg width="16" height="12"><use href="#sb-wifi"/></svg><svg width="26" height="12"><use href="#sb-battery"/></svg></span></div>
+          <div class="m-navbar">
+            <div class="nb-side"><span class="nb-ic"><svg><use href="#i-arrow-left"/></svg></span></div>
+            <div class="nb-title">购物车 <span style="font-size:13px;color:var(--n7);font-weight:400">(3)</span></div>
+            <div class="nb-side right"><span class="nb-action-text">管理</span></div>
+          </div>
+          <div class="m-scroll m-fade">
+            <div class="cart-body">
+              <!-- seller A -->
+              <div class="seller">
+                <div class="s-head">
+                  <span class="m-check on"><svg><use href="#i-check"/></svg></span>
+                  <span class="sname"><svg><use href="#i-shop"/></svg>Leno 数码旗舰店</span>
+                  <span class="go">进店<svg><use href="#i-chevron"/></svg></span>
+                </div>
+                <div class="ci">
+                  <span class="m-check on"><svg><use href="#i-check"/></svg></span>
+                  <div class="img" style="background:linear-gradient(135deg,#E6F0FF,#CFE2FF)"><svg style="color:#5B9BFF"><use href="#i-headphone"/></svg></div>
+                  <div class="info">
+                    <div class="nm">Leno 轻量降噪蓝牙耳机 Pro Max 长续航</div>
+                    <span class="sp">星河蓝</span>
+                    <div class="br">
+                      <span class="pr"><small>¥</small>199</span>
+                      <div class="m-stepper"><button>−</button><div class="val">1</div><button>+</button></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- seller B -->
+              <div class="seller">
+                <div class="s-head">
+                  <span class="m-check on"><svg><use href="#i-check"/></svg></span>
+                  <span class="sname"><svg><use href="#i-shop"/></svg>优履鞋类专营店</span>
+                  <span class="go">进店<svg><use href="#i-chevron"/></svg></span>
+                </div>
+                <div class="ci">
+                  <span class="m-check"><svg><use href="#i-check"/></svg></span>
+                  <div class="img" style="background:linear-gradient(135deg,#FFF1E6,#FFDEC2)"><svg style="color:#FF9F6B"><use href="#i-shoe"/></svg></div>
+                  <div class="info">
+                    <div class="nm">透气网面运动跑步鞋 男款轻便减震</div>
+                    <span class="sp">42 码 · 黑红</span>
+                    <div class="br">
+                      <span class="pr"><small>¥</small>259</span>
+                      <div class="m-stepper"><button>−</button><div class="val">2</div><button>+</button></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- invalid -->
+              <div class="inv-group">
+                <div class="inv-head">失效商品 (1)</div>
+                <div class="inv-item">
+                  <div class="img"><svg><use href="#i-bag"/></svg></div>
+                  <div class="info">
+                    <div class="nm">简约通勤双肩背包 防泼水大容量</div>
+                    <div class="rs"><span class="m-tag neutral">已下架</span></div>
+                  </div>
+                  <span class="del">删除</span>
+                </div>
+              </div>
+              <!-- recommend -->
+              <div class="rec-head"><span>为你推荐</span><span class="ln"></span></div>
+              <div class="rec-feed">
+                <div class="m-pcard">
+                  <div class="img" style="background:linear-gradient(135deg,#FFF0F6,#FFD6E7)"><span class="ph" style="color:#FF80B5"><svg><use href="#i-lipstick"/></svg></span></div>
+                  <div class="body"><div class="name">丝绒哑光口红 持久不沾杯</div><div class="meta"><span class="price"><small>¥</small>89</span><span class="sales">月销2100</span></div></div>
+                </div>
+                <div class="m-pcard">
+                  <div class="img" style="background:linear-gradient(135deg,#F0FBE6,#DCF5C6)"><span class="ph" style="color:#9CDD6E"><svg><use href="#i-bag"/></svg></span></div>
+                  <div class="body"><div class="name">简约通勤双肩背包 防泼水</div><div class="meta"><span class="price"><small>¥</small>129</span><span class="sales">月销320</span></div></div>
+                </div>
+              </div>
+              <div style="height:12px"></div>
+            </div>
+          </div>
+          <div class="settle-bar">
+            <div class="all"><span class="m-check on"><svg><use href="#i-check"/></svg></span>全选</div>
+            <div class="sum"><div class="lb">合计</div><div class="v"><small>¥</small>717</div></div>
+            <button class="go">结算(2)</button>
+          </div>
+          <nav class="m-tabbar">
+            <div class="m-tab"><svg><use href="#i-home-o"/></svg>首页</div>
+            <div class="m-tab"><svg><use href="#i-grid"/></svg>分类</div>
+            <div class="m-tab active"><svg><use href="#i-cart"/></svg>购物车</div>
+            <div class="m-tab"><svg><use href="#i-user-o"/></svg>我的</div>
+          </nav>
+        </div></div>
+        <figcaption class="cap">
+          <div class="c-name"><span class="num">03</span>购物车</div>
+          <div class="c-meta"><span><span class="k">route</span> /cart</span><span><span class="k">module</span> 05-cart</span><span><span class="k">status</span> ✅</span></div>
+        </figcaption>
+      </figure>
+
+      <!-- ============ SCREEN 4: SECKILL ORDER ============ -->
+      <figure class="phone-item">
+        <div class="device"><div class="screen s-seckill">
+          <div class="statusbar dark"><span class="sb-time">9:41</span><span class="sb-right"><svg width="18" height="12"><use href="#sb-signal"/></svg><svg width="16" height="12"><use href="#sb-wifi"/></svg><svg width="26" height="12"><use href="#sb-battery"/></svg></span></div>
+          <div class="m-navbar">
+            <div class="nb-side"><span class="nb-ic"><svg><use href="#i-arrow-left"/></svg></span></div>
+            <div class="nb-title">秒杀下单</div>
+            <div class="nb-side right"></div>
+          </div>
+          <!-- countdown strip -->
+          <div class="sk-cd-strip">
+            <div class="l">
+              <svg class="bolt"><use href="#i-bolt"/></svg>
+              <span class="lb">距结束</span>
+            </div>
+            <div class="cd" data-cd="9015"><b>02</b>:<b>30</b>:<b>15</b></div>
+            <div class="r">进行中<br>原子预扣库存</div>
+          </div>
+          <div class="m-scroll m-no-fade">
+            <div class="sk-body">
+              <!-- product -->
+              <div class="sk-prod">
+                <div class="img"><svg><use href="#i-headphone"/></svg></div>
+                <div class="info">
+                  <div class="nm">Leno 轻量降噪蓝牙耳机 Pro Max 长续航 主动降噪</div>
+                  <div class="pr"><span class="now"><small>¥</small>99</span><span class="orig">¥199</span></div>
+                  <div class="stock">仅剩 50 件<span class="bar"><i></i></span></div>
+                </div>
+              </div>
+              <!-- sku -->
+              <div class="sk-sku">
+                <div class="lb">规格</div>
+                <div class="chips">
+                  <span class="chip-sku on">星河蓝</span>
+                  <span class="chip-sku">幻夜黑</span>
+                  <span class="chip-sku">樱花粉</span>
+                </div>
+              </div>
+              <!-- address -->
+              <div class="sk-addr">
+                <span class="ic"><svg><use href="#i-location"/></svg></span>
+                <div class="info">
+                  <div class="r1">张三 <span class="ph">138****1234</span></div>
+                  <div class="r2">福建省福州市鼓楼区五四路 158 号 Leno 大厦</div>
+                </div>
+                <span class="chev"><svg><use href="#i-chevron"/></svg></span>
+              </div>
+              <!-- qty -->
+              <div class="sk-qty">
+                <div class="lb">购买数量<small>限购 1 件</small></div>
+                <div class="m-stepper"><button disabled>−</button><div class="val">1</div><button>+</button></div>
+              </div>
+              <!-- tips -->
+              <div style="margin-top:12px;padding:11px 12px;background:#FFF7E6;border-radius:var(--r-card);font-size:12px;color:var(--n9);display:flex;gap:8px;align-items:flex-start">
+                <svg style="width:15px;height:15px;color:var(--c-warning);flex:0 0 auto;margin-top:1px"><use href="#i-horn"/></svg>
+                <span>秒杀商品不支持使用优惠券与购物车，下单后 15 分钟内未支付将自动取消并释放预占库存。</span>
+              </div>
+            </div>
+          </div>
+          <div class="sk-foot">
+            <div class="p"><small>¥</small>99<span class="lb">秒杀价</span></div>
+            <button class="btn"><svg><use href="#i-bolt"/></svg>立即抢购</button>
+          </div>
+        </div></div>
+        <figcaption class="cap">
+          <div class="c-name urg"><span class="num">04</span>秒杀下单</div>
+          <div class="c-meta"><span><span class="k">route</span> /seckill/order/:activityId</span><span><span class="k">module</span> 06-order</span><span><span class="k">status</span> ✅</span></div>
+        </figcaption>
+      </figure>
+
+      <!-- ============ SCREEN 5: PAYMENT RESULT ============ -->
+      <figure class="phone-item">
+        <div class="device"><div class="screen s-payr">
+          <div class="statusbar"><span class="sb-time">9:41</span><span class="sb-right"><svg width="18" height="12"><use href="#sb-signal"/></svg><svg width="16" height="12"><use href="#sb-wifi"/></svg><svg width="26" height="12"><use href="#sb-battery"/></svg></span></div>
+          <div class="m-navbar">
+            <div class="nb-side"><span class="nb-ic"><svg><use href="#i-arrow-left"/></svg></span></div>
+            <div class="nb-title">支付结果</div>
+            <div class="nb-side right"></div>
+          </div>
+          <div class="m-scroll m-no-fade">
+            <div class="pr-top">
+              <div class="pr-icon"><svg><use href="#i-check-circle"/></svg></div>
+              <div class="pr-title">支付成功</div>
+              <div class="pr-desc">订单已支付，预计 2 小时内发货</div>
+            </div>
+            <div class="pr-sum">
+              <div class="row"><span class="lb">订单编号</span><span class="v">20260726001</span></div>
+              <div class="row"><span class="lb">支付方式</span><span class="v">支付宝</span></div>
+              <div class="row"><span class="lb">支付时间</span><span class="v">2026-07-26 10:24</span></div>
+              <div class="row"><span class="lb">商户单号</span><span class="v">PT20260726000124</span></div>
+              <div class="row"><span class="lb">应付金额</span><span class="v amt"><small>¥</small>347</span></div>
+            </div>
+            <div class="pr-acts">
+              <button class="m-btn primary block lg">查看订单</button>
+              <button class="m-btn outline block">继续购物</button>
+            </div>
+            <div style="padding:20px 16px 0;text-align:center;font-size:12px;color:var(--n7)">
+              获得 <span style="color:var(--c-warning);font-weight:600">347</span> 积分 · 成长值 +34 ·
+              <span style="color:var(--c-primary)">查看权益</span>
+            </div>
+          </div>
+        </div></div>
+        <figcaption class="cap">
+          <div class="c-name ok"><span class="num">05</span>支付结果</div>
+          <div class="c-meta"><span><span class="k">route</span> /payment/result/:orderId</span><span><span class="k">module</span> 07-payment</span><span><span class="k">status</span> ✅</span></div>
+        </figcaption>
+      </figure>
+
+      <!-- ============ SCREEN 6: PROFILE ============ -->
+      <figure class="phone-item">
+        <div class="device"><div class="screen s-profile">
+          <div class="statusbar dark"><span class="sb-time">9:41</span><span class="sb-right"><svg width="18" height="12"><use href="#sb-signal"/></svg><svg width="16" height="12"><use href="#sb-wifi"/></svg><svg width="26" height="12"><use href="#sb-battery"/></svg></span></div>
+          <div class="m-navbar" style="background:transparent;border:none;position:absolute;z-index:5;width:100%">
+            <div class="nb-side"><span class="nb-ic" style="color:#fff"><svg><use href="#i-arrow-left"/></svg></span></div>
+            <div class="nb-title" style="color:#fff">个人资料</div>
+            <div class="nb-side right"><span class="nb-action-text" style="color:#fff">保存</span></div>
+          </div>
+          <div class="m-scroll m-no-fade" style="margin-top:-46px;padding-top:0">
+            <div class="avatar-card" style="padding-top:70px">
+              <div class="av-wrap">
+                <div class="av"><svg><use href="#i-user"/></svg></div>
+                <div class="cam"><svg><use href="#i-camera"/></svg></div>
+              </div>
+              <div class="nick">买家小李 <span class="ed"><svg><use href="#i-edit"/></svg></span></div>
+              <div class="badges">
+                <span class="m-tag">账号正常</span>
+                <span class="m-tag">Buyer</span>
+                <span class="m-tag gold">V3 会员</span>
+              </div>
+            </div>
+            <div class="p-body">
+              <div class="grp-lb">账号信息</div>
+              <div class="m-cell-group acc">
+                <div class="m-cell"><div class="lb">用户名</div><div class="val">buyer001</div></div>
+                <div class="m-cell"><div class="lb">邮箱</div><div class="val">l***@x.com</div></div>
+                <div class="m-cell"><div class="lb">手机号</div><div class="val">138****5678</div></div>
+                <div class="m-cell"><div class="lb">注册时间</div><div class="val">2026-01-01</div></div>
+                <div class="m-cell"><div class="lb">最后更新</div><div class="val">2026-07-25</div></div>
+              </div>
+              <div class="grp-lb">模块入口</div>
+              <div class="m-cell-group">
+                <div class="m-cell"><span class="ic"><svg><use href="#i-location"/></svg></span><div class="lb">收货地址</div><div class="val">3 个</div><span class="chev"><svg><use href="#i-chevron"/></svg></span></div>
+                <div class="m-cell"><span class="ic"><svg><use href="#i-shield"/></svg></span><div class="lb">账号安全</div><div class="val warn">待绑定</div><span class="chev"><svg><use href="#i-chevron"/></svg></span></div>
+                <div class="m-cell"><span class="ic"><svg><use href="#i-heart"/></svg></span><div class="lb">商品收藏</div><div class="val">12</div><span class="chev"><svg><use href="#i-chevron"/></svg></span></div>
+                <div class="m-cell"><span class="ic"><svg><use href="#i-clock"/></svg></span><div class="lb">浏览历史</div><div class="val">5</div><span class="chev"><svg><use href="#i-chevron"/></svg></span></div>
+                <div class="m-cell"><span class="ic"><svg><use href="#i-bell"/></svg></span><div class="lb">通知偏好</div><span class="chev"><svg><use href="#i-chevron"/></svg></span></div>
+                <div class="m-cell"><span class="ic"><svg><use href="#i-setting"/></svg></span><div class="lb">系统设置</div><span class="chev"><svg><use href="#i-chevron"/></svg></span></div>
+              </div>
+              <div style="height:14px"></div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption class="cap">
+          <div class="c-name"><span class="num">06</span>个人资料</div>
+          <div class="c-meta"><span><span class="k">route</span> /profile</span><span><span class="k">module</span> 13-profile</span><span><span class="k">status</span> ✅</span></div>
+        </figcaption>
+      </figure>
+
+    </div>
+  </main>
+
+  <!-- ===== TOKENS AT A GLANCE ===== -->
+  <section class="tokens-sec">
+    <h2>设计系统一览</h2>
+    <div class="ts-sub">shared/design-system.md · W3C DTCG tokens · 4 端共享</div>
+    <div class="tk-grid">
+
+      <div class="tk-card">
+        <h3>色彩 <span class="hK">color/*</span></h3>
+        <div class="tk-colors">
+          <div class="tk-sw"><div class="sw" style="background:#1677FF"></div><div class="tx"><span class="nm">primary</span><span class="hv">#1677FF</span></div></div>
+          <div class="tk-sw"><div class="sw" style="background:#FF4D4F"></div><div class="tx"><span class="nm">error</span><span class="hv">#FF4D4F</span></div></div>
+          <div class="tk-sw"><div class="sw" style="background:#52C41A"></div><div class="tx"><span class="nm">success</span><span class="hv">#52C41A</span></div></div>
+          <div class="tk-sw"><div class="sw" style="background:#FAAD14"></div><div class="tx"><span class="nm">warning</span><span class="hv">#FAAD14</span></div></div>
+          <div class="tk-sw"><div class="sw" style="background:#000000D9"></div><div class="tx"><span class="nm">neutral/10</span><span class="hv">#000000D9</span></div></div>
+          <div class="tk-sw"><div class="sw" style="background:#8C8C8C"></div><div class="tx"><span class="nm">neutral/7</span><span class="hv">#8C8C8C</span></div></div>
+          <div class="tk-sw"><div class="sw" style="background:#D9D9D9"></div><div class="tx"><span class="nm">neutral/5</span><span class="hv">#D9D9D9</span></div></div>
+          <div class="tk-sw"><div class="sw" style="background:#FFFFFF;box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)"></div><div class="tx"><span class="nm">neutral/1</span><span class="hv">#FFFFFF</span></div></div>
+        </div>
+      </div>
+
+      <div class="tk-card">
+        <h3>字体 <span class="hK">font/*</span></h3>
+        <div class="tk-type">
+          <div class="row"><span class="ex" style="font-size:30px;font-weight:600">30</span><span class="mt">3xl · APP 首页大标题</span></div>
+          <div class="row"><span class="ex" style="font-size:24px;font-weight:600">24</span><span class="mt">2xl · 数据/价格数值</span></div>
+          <div class="row"><span class="ex" style="font-size:20px;font-weight:600">20</span><span class="mt">xl · 倒计时/结果文案</span></div>
+          <div class="row"><span class="ex" style="font-size:16px;font-weight:500">16</span><span class="mt">lg · 标题/卡片标题</span></div>
+          <div class="row"><span class="ex" style="font-size:14px">14</span><span class="mt">base · 正文/表格</span></div>
+          <div class="row"><span class="ex" style="font-size:12px;color:rgba(255,255,255,.7)">12</span><span class="mt">sm · 辅助/标签</span></div>
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:rgba(255,255,255,.4);font-family:var(--ff-mono)">PingFang SC · 400 / 500 / 600 · lh 1.5715</div>
+      </div>
+
+      <div class="tk-card">
+        <h3>间距 <span class="hK">spacing/*</span></h3>
+        <div class="tk-scale">
+          <div class="b" style="height:20%">4</div>
+          <div class="b" style="height:30%">8</div>
+          <div class="b" style="height:42%">12</div>
+          <div class="b" style="height:55%">16</div>
+          <div class="b" style="height:72%">24</div>
+          <div class="b" style="height:88%">32</div>
+          <div class="b" style="height:100%">48</div>
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:rgba(255,255,255,.45);font-family:var(--ff-mono);line-height:1.6">基于 4px 单位 · 禁用 5/10/15px 等非体系值</div>
+      </div>
+
+      <div class="tk-card">
+        <h3>圆角 <span class="hK">radius/*</span></h3>
+        <div class="tk-radii">
+          <div class="rc"><div class="r" style="border-radius:6px"></div><div class="rl">6 base</div></div>
+          <div class="rc"><div class="r" style="border-radius:8px"></div><div class="rl">8 card</div></div>
+          <div class="rc"><div class="r" style="border-radius:12px"></div><div class="rl">12 lg</div></div>
+          <div class="rc"><div class="r" style="border-radius:999px"></div><div class="rl">999 pill</div></div>
+        </div>
+        <div style="margin-top:14px;font-size:11px;color:rgba(255,255,255,.45);font-family:var(--ff-mono);line-height:1.6">按钮/输入 6 · 卡片 8 · 大容器 12</div>
+      </div>
+
+      <div class="tk-card">
+        <h3>动效 <span class="hK">motion/*</span></h3>
+        <div class="tk-motion">
+          <div class="mr"><span class="lb">fast</span><span class="bar" style="width:25%"></span><span class="v">100ms</span></div>
+          <div class="mr"><span class="lb">mid</span><span class="bar" style="width:50%"></span><span class="v">200ms</span></div>
+          <div class="mr"><span class="lb">slow</span><span class="bar" style="width:75%"></span><span class="v">300ms</span></div>
+        </div>
+        <div style="margin-top:14px;font-size:11px;color:rgba(255,255,255,.45);font-family:var(--ff-mono);line-height:1.6">standard cubic-bezier(.2,0,0,1)<br>decelerated (0,0,0,1) · accelerated (.8,0,1,1)</div>
+      </div>
+
+      <div class="tk-card">
+        <h3>阴影 <span class="hK">shadow/*</span></h3>
+        <div style="display:flex;gap:14px;align-items:center;margin-top:6px">
+          <div style="width:54px;height:54px;border-radius:8px;background:#fff;box-shadow:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02)"></div>
+          <div style="width:54px;height:54px;border-radius:8px;background:#fff;box-shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05)"></div>
+          <div style="width:54px;height:54px;border-radius:8px;background:#fff;box-shadow:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06)"></div>
+        </div>
+        <div style="margin-top:14px;font-size:11px;color:rgba(255,255,255,.45);font-family:var(--ff-mono);line-height:1.6">card · dropdown · modal<br>三档分层阴影</div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    <span>Leno · B2C E-Commerce · .NET 10 + DDD · 4 Ends</span>
+    <span>Generated from docs/design-prompts · buyer-app core flow</span>
+  </footer>
+
+</div>
+
+<script>
+/* 极简倒计时：首页秒杀卡片 + 秒杀下单页倒计时同步递减 */
+(function(){
+  function pad(n){return n<10?'0'+n:''+n;}
+  function fmt(sec){
+    var h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), s=sec%60;
+    return [pad(h),pad(m),pad(s)];
+  }
+  var nodes=document.querySelectorAll('[data-cd]');
+  if(!nodes.length) return;
+  function tick(){
+    nodes.forEach(function(el){
+      var sec=parseInt(el.getAttribute('data-cd'),10);
+      if(isNaN(sec)||sec<=0){el.setAttribute('data-cd','0');return;}
+      sec-=1; el.setAttribute('data-cd',String(sec));
+      var t=fmt(sec);
+      if(el.classList.contains('cd')){
+        el.innerHTML='<b>'+t[0]+'</b>:<b>'+t[1]+'</b>:<b>'+t[2]+'</b>';
+      }else{
+        el.textContent=t.join(':');
+      }
+    });
+  }
+  setInterval(tick,1000);
+})();
+
+/* 画廊键盘左右键浏览 */
+(function(){
+  var g=document.querySelector('.gallery');
+  if(!g) return;
+  var items=g.querySelectorAll('.phone-item');
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'){g.scrollBy({left:427,behavior:'smooth'});}
+    if(e.key==='ArrowLeft'){g.scrollBy({left:-427,behavior:'smooth'});}
+  });
+})();
+</script>
+</body>
+</html>
