@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统维护中 - Leno 系统管理后台</title>
+  <style>
+    :root {
+      --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+      --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+      --r-base:6px; --r-card:8px; --r-lg:12px;
+      --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+      --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+      --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+      --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+      --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+      --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    html, body {
+      height:100%;
+      font-family:var(--ff-app);
+      font-size:var(--fs-base);
+      color:var(--n10);
+      line-height:1.5715;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .app { min-height:100vh; display:flex; flex-direction:column; }
+
+    /* ===== Header ===== */
+    .header {
+      height:var(--header-h);
+      background:var(--n1);
+      border-bottom:1px solid var(--n5);
+      display:flex;
+      align-items:center;
+      padding:0 var(--s6);
+      position:sticky;
+      top:0;
+      z-index:100;
+      flex-shrink:0;
+    }
+
+    .logo {
+      display:flex;
+      align-items:center;
+      gap:var(--s2);
+      width:calc(var(--sider-width) - var(--s6));
+      flex-shrink:0;
+    }
+
+    .logo-mark {
+      width:32px;
+      height:32px;
+      border-radius:var(--r-base);
+      background:linear-gradient(135deg, #1677FF 0%, #0958D9 100%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-weight:var(--fw-semibold);
+      font-size:var(--fs-lg);
+      letter-spacing:-0.5px;
+    }
+
+    .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); }
+    .logo-text span { color:var(--n7); font-weight:var(--fw-normal); font-size:var(--fs-sm); margin-left:var(--s2); }
+
+    .breadcrumb {
+      display:flex;
+      align-items:center;
+      gap:var(--s2);
+      font-size:var(--fs-base);
+      color:var(--n7);
+      margin-left:var(--s4);
+    }
+    .breadcrumb .crumb-current { color:var(--n10); }
+    .breadcrumb .sep { color:var(--n5); font-size:12px; }
+
+    .header-right { margin-left:auto; display:flex; align-items:center; gap:var(--s4); }
+
+    .icon-btn {
+      width:36px;
+      height:36px;
+      border-radius:var(--r-base);
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--n9);
+      position:relative;
+      transition:background 100ms cubic-bezier(0.2,0,0,1);
+    }
+    .icon-btn:hover { background:var(--n3); }
+
+    .icon-btn .dot {
+      position:absolute;
+      top:6px;
+      right:6px;
+      min-width:16px;
+      height:16px;
+      padding:0 4px;
+      border-radius:8px;
+      background:var(--c-error);
+      color:#fff;
+      font-size:10px;
+      font-weight:var(--fw-semibold);
+      line-height:16px;
+      text-align:center;
+      border:2px solid var(--n1);
+      box-sizing:content-box;
+    }
+
+    .user-menu {
+      display:flex;
+      align-items:center;
+      gap:var(--s2);
+      padding:var(--s1) var(--s2) var(--s1) var(--s1);
+      border-radius:var(--r-base);
+      cursor:pointer;
+      transition:background 100ms cubic-bezier(0.2,0,0,1);
+    }
+    .user-menu:hover { background:var(--n3); }
+
+    .avatar {
+      width:32px;
+      height:32px;
+      border-radius:50%;
+      background:linear-gradient(135deg, #1677FF 0%, #0958D9 100%);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:var(--fs-sm);
+      font-weight:var(--fw-semibold);
+    }
+
+    .user-name { font-size:var(--fs-base); color:var(--n10); }
+
+    /* ===== Body ===== */
+    .body { flex:1; display:flex; min-height:0; }
+
+    /* ===== Sider ===== */
+    .sider {
+      width:var(--sider-width);
+      background:var(--sider-bg);
+      flex-shrink:0;
+      display:flex;
+      flex-direction:column;
+      padding:var(--s4) 0;
+    }
+
+    .menu-item {
+      display:flex;
+      align-items:center;
+      gap:var(--s3);
+      height:40px;
+      padding:0 var(--s6);
+      color:rgba(255,255,255,0.65);
+      font-size:var(--fs-base);
+      cursor:pointer;
+      transition:all 100ms cubic-bezier(0.2,0,0,1);
+      border-left:3px solid transparent;
+      margin:2px 0;
+    }
+    .menu-item:hover { color:#fff; background:rgba(255,255,255,0.04); }
+    .menu-item .m-icon { width:16px; height:16px; flex-shrink:0; }
+
+    .menu-item.is-disabled {
+      color:rgba(255,255,255,0.3);
+      cursor:not-allowed;
+    }
+    .menu-item.is-disabled:hover { background:transparent; }
+
+    .menu-group-title {
+      padding:var(--s6) var(--s6) var(--s2);
+      color:rgba(255,255,255,0.35);
+      font-size:var(--fs-sm);
+      letter-spacing:0.3px;
+    }
+
+    .sider-footer {
+      margin-top:auto;
+      padding:var(--s4) var(--s6);
+      color:rgba(255,255,255,0.3);
+      font-size:var(--fs-sm);
+      border-top:1px solid rgba(255,255,255,0.06);
+    }
+
+    .sider-banner {
+      margin:var(--s4) var(--s4);
+      padding:var(--s3);
+      background:rgba(250,173,20,0.12);
+      border:1px solid rgba(250,173,20,0.3);
+      border-radius:var(--r-base);
+      color:rgba(255,255,255,0.85);
+      font-size:var(--fs-sm);
+      display:flex;
+      gap:var(--s2);
+      align-items:flex-start;
+    }
+
+    .sider-banner svg { width:14px; height:14px; flex-shrink:0; margin-top:1px; color:#FAAD14; }
+
+    /* ===== Content ===== */
+    .content {
+      flex:1;
+      background:var(--n3);
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+
+    .content-scroll {
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:var(--s8) var(--s6);
+      overflow:auto;
+    }
+
+    /* ===== Error Card ===== */
+    .error-card {
+      background:var(--n1);
+      border-radius:var(--r-lg);
+      box-shadow:var(--sh-card);
+      padding:var(--s12) var(--s12);
+      max-width:640px;
+      width:100%;
+      text-align:center;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .error-card::before {
+      content:"";
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      height:4px;
+      background:var(--c-warning);
+    }
+
+    .illustration {
+      width:200px;
+      height:160px;
+      margin:0 auto var(--s6);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .error-code {
+      font-size:120px;
+      font-weight:var(--fw-semibold);
+      color:var(--c-warning);
+      line-height:1;
+      letter-spacing:-4px;
+      font-family:var(--ff-mono);
+      margin-bottom:var(--s4);
+      background:linear-gradient(180deg, #FAAD14 0%, #FFC53D 100%);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+
+    .error-title {
+      font-size:var(--fs-2xl);
+      font-weight:var(--fw-semibold);
+      color:var(--n10);
+      margin-bottom:var(--s3);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:var(--s2);
+    }
+
+    .error-title .pulse-dot {
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:var(--c-warning);
+      position:relative;
+    }
+
+    .error-title .pulse-dot::after {
+      content:"";
+      position:absolute;
+      inset:-4px;
+      border-radius:50%;
+      background:var(--c-warning);
+      opacity:0.3;
+      animation:pulse 1.8s ease-out infinite;
+    }
+
+    .error-desc {
+      font-size:var(--fs-base);
+      color:var(--n7);
+      line-height:1.5715;
+      max-width:440px;
+      margin:0 auto var(--s4);
+    }
+
+    .error-desc .hl {
+      color:var(--n9);
+      font-weight:var(--fw-medium);
+      font-family:var(--ff-mono);
+      background:#FFFBE6;
+      padding:1px 6px;
+      border-radius:4px;
+    }
+
+    /* 倒计时进度条 */
+    .progress-wrap {
+      margin:var(--s4) auto var(--s2);
+      max-width:420px;
+    }
+
+    .progress-meta {
+      display:flex;
+      justify-content:space-between;
+      font-size:var(--fs-sm);
+      color:var(--n7);
+      margin-bottom:var(--s2);
+    }
+
+    .progress-meta .pct { color:var(--c-warning); font-weight:var(--fw-semibold); font-family:var(--ff-mono); }
+
+    .progress-bar {
+      height:8px;
+      background:var(--n3);
+      border-radius:4px;
+      overflow:hidden;
+      position:relative;
+    }
+
+    .progress-fill {
+      height:100%;
+      width:62%;
+      background:linear-gradient(90deg, #FAAD14 0%, #FFC53D 100%);
+      border-radius:4px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .progress-fill::after {
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%);
+      animation:shimmer 1.8s linear infinite;
+    }
+
+    /* 时间线 */
+    .timeline {
+      margin:var(--s4) auto 0;
+      max-width:460px;
+      text-align:left;
+      background:var(--n2);
+      border:1px solid var(--n3);
+      border-radius:var(--r-card);
+      padding:var(--s3) var(--s4);
+    }
+
+    .timeline .t-title {
+      font-size:var(--fs-sm);
+      color:var(--n7);
+      margin-bottom:var(--s3);
+      display:flex;
+      align-items:center;
+      gap:var(--s2);
+    }
+
+    .t-item {
+      display:flex;
+      gap:var(--s3);
+      padding:var(--s2) 0;
+      position:relative;
+    }
+
+    .t-item:not(:last-child)::before {
+      content:"";
+      position:absolute;
+      left:5px;
+      top:22px;
+      bottom:-6px;
+      width:2px;
+      background:var(--n5);
+    }
+
+    .t-dot {
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      border:2px solid var(--n5);
+      background:var(--n1);
+      flex-shrink:0;
+      margin-top:2px;
+    }
+
+    .t-item.done .t-dot { border-color:var(--c-success); background:var(--c-success); }
+    .t-item.active .t-dot { border-color:var(--c-warning); background:var(--c-warning); box-shadow:0 0 0 4px rgba(250,173,20,0.15); }
+
+    .t-content { flex:1; }
+    .t-content .t-name { font-size:var(--fs-base); color:var(--n10); }
+    .t-item.active .t-content .t-name { font-weight:var(--fw-medium); }
+    .t-content .t-time { font-size:var(--fs-sm); color:var(--n7); font-family:var(--ff-mono); margin-top:2px; }
+
+    .action-group {
+      display:flex;
+      justify-content:center;
+      gap:var(--s3);
+      margin-top:var(--s6);
+      flex-wrap:wrap;
+    }
+
+    .btn {
+      height:36px;
+      padding:0 var(--s4);
+      border-radius:var(--r-base);
+      font-size:var(--fs-base);
+      font-weight:var(--fw-normal);
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:var(--s2);
+      transition:all 100ms cubic-bezier(0.2,0,0,1);
+      border:1px solid transparent;
+      font-family:inherit;
+      line-height:1;
+    }
+
+    .btn-primary {
+      background:var(--c-primary);
+      color:#fff;
+      border-color:var(--c-primary);
+      box-shadow:0 2px 0 rgba(5,145,255,0.1);
+    }
+    .btn-primary:hover { background:#4096FF; border-color:#4096FF; }
+    .btn-primary:active { background:#0958D9; border-color:#0958D9; }
+
+    .btn-warning {
+      background:var(--c-warning);
+      color:#fff;
+      border-color:var(--c-warning);
+      box-shadow:0 2px 0 rgba(250,173,20,0.15);
+    }
+    .btn-warning:hover { background:#FFC53D; border-color:#FFC53D; }
+    .btn-warning:active { background:#D48806; border-color:#D48806; }
+
+    .btn-default {
+      background:var(--n1);
+      color:var(--n10);
+      border-color:var(--n5);
+    }
+    .btn-default:hover { color:var(--c-primary); border-color:var(--c-primary); }
+    .btn .b-icon { width:14px; height:14px; }
+
+    .hint-row {
+      margin-top:var(--s6);
+      padding-top:var(--s4);
+      border-top:1px dashed var(--n5);
+      font-size:var(--fs-sm);
+      color:var(--n7);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:var(--s2);
+      flex-wrap:wrap;
+    }
+
+    .hint-row a { color:var(--c-primary); text-decoration:none; }
+    .hint-row a:hover { text-decoration:underline; }
+
+    /* ===== Footer ===== */
+    .footer {
+      height:32px;
+      background:var(--n1);
+      border-top:1px solid var(--n3);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 var(--s6);
+      font-size:var(--fs-sm);
+      color:var(--n7);
+      flex-shrink:0;
+    }
+
+    .footer .env-tag {
+      font-family:var(--ff-mono);
+      background:var(--n3);
+      padding:1px 6px;
+      border-radius:4px;
+      color:var(--n9);
+    }
+
+    @keyframes cardIn {
+      from { opacity:0; transform:translateY(12px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+    .error-card { animation:cardIn 300ms cubic-bezier(0,0,0,1); }
+
+    @keyframes float {
+      0%,100% { transform:translateY(0); }
+      50% { transform:translateY(-4px); }
+    }
+    .illustration svg { animation:float 3s ease-in-out infinite; }
+
+    @keyframes spinWrench {
+      0%,100% { transform:rotate(-12deg); }
+      50% { transform:rotate(12deg); }
+    }
+    .wrench-group { transform-origin:100px 84px; animation:spinWrench 2.5s ease-in-out infinite; }
+
+    @keyframes pulse {
+      0% { transform:scale(1); opacity:0.5; }
+      100% { transform:scale(2.2); opacity:0; }
+    }
+
+    @keyframes shimmer {
+      0% { transform:translateX(-100%); }
+      100% { transform:translateX(100%); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-mark">L</div>
+        <div class="logo-text">Leno<span>系统管理后台</span></div>
+      </div>
+      <nav class="breadcrumb">
+        <span>系统管理后台</span>
+        <span class="sep">/</span>
+        <span class="crumb-current">系统公告</span>
+      </nav>
+      <div class="header-right">
+        <button class="icon-btn" title="通知">
+          <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 928c33.056 0 59.904-26.848 59.904-59.904H452.096C452.096 901.152 478.944 928 512 928zM832 736v-265.6c0-150.4-101.76-274.88-244.8-308.16V128c0-41.6-33.6-75.2-75.2-75.2s-75.2 33.6-75.2 75.2v34.24C293.76 195.52 192 320 192 470.4V736l-64 64v32h768v-32l-64-64z"/></svg>
+          <span class="dot">5</span>
+        </button>
+        <div class="user-menu">
+          <div class="avatar">A</div>
+          <span class="user-name">超级管理员</span>
+          <svg width="12" height="12" viewBox="0 0 1024 1024" fill="rgba(0,0,0,0.45)"><path d="M884 256h-752l376 376 376-376z"/></svg>
+        </div>
+      </div>
+    </header>
+
+    <div class="body">
+      <!-- Sider -->
+      <aside class="sider">
+        <div class="menu-group-title">主导航</div>
+        <div class="menu-item is-disabled">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 805.8 705.6 327.4c-12.8-25.6-38.4-41.6-66.4-41.6s-53.6 16-66.4 41.6L353.6 805.8c-9.6 19.2-9.6 41.6 0 60.8 9.6 19.2 28.8 32 50.4 32h470.4c21.6 0 40.8-12.8 50.4-32 9.6-19.2 9.6-41.6 0-60.8zM639.2 824.2H544v-92.8h95.2v92.8z"/></svg>
+          <span>仪表盘</span>
+        </div>
+        <div class="menu-item is-disabled">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375 375 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.8 18.9-85 46-119.5 80.6a375 375 0 0 0-80.6 119.5A371.7 371.7 0 0 0 136 901.8a8 8 0 0 0 8 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C942.5 752.5 973.6 824.8 975.6 902c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 0 0 8-8.2c-1-47.8-10.9-94.3-29.5-138.2z"/></svg>
+          <span>用户与权限</span>
+        </div>
+        <div class="menu-item is-disabled">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+          <span>系统治理</span>
+        </div>
+        <div class="menu-item is-disabled">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 192c-181.1 0-328 146.9-328 328s146.9 328 328 328 328-146.9 328-328-146.9-328-328-328z"/></svg>
+          <span>运行时运维</span>
+        </div>
+        <div class="menu-item is-disabled">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112 144 112c-17.7 0-32 14.3-32 32l0 736c0 17.7 14.3 32 32 32l736 0c17.7 0 32-14.3 32-32L912 144C912 126.3 897.7 112 880 112z"/></svg>
+          <span>审计与对账</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375 375 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.8 18.9-85 46-119.5 80.6a375 375 0 0 0-80.6 119.5A371.7 371.7 0 0 0 136 901.8a8 8 0 0 0 8 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C942.5 752.5 973.6 824.8 975.6 902c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 0 0 8-8.2c-1-47.8-10.9-94.3-29.5-138.2z"/></svg>
+          <span>个人账号</span>
+        </div>
+        <div class="menu-item is-disabled">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 192c-181.1 0-328 146.9-328 328s146.9 328 328 328 328-146.9 328-328-146.9-328-328-328z"/></svg>
+          <span>系统监控</span>
+        </div>
+
+        <div class="sider-banner">
+          <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416z m32 352a48 48 0 1 1 0-96 48 48 0 0 1 0 96z"/></svg>
+          <span>系统维护中，业务模块暂不可用</span>
+        </div>
+
+        <div class="sider-footer">Leno Admin v1.4.0</div>
+      </aside>
+
+      <!-- Content -->
+      <main class="content">
+        <div class="content-scroll">
+          <div class="error-card">
+            <div class="illustration">
+              <!-- 维护中 扳手+工具箱插画 -->
+              <svg width="200" height="160" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="100" cy="146" rx="74" ry="6" fill="#F0F0F0"/>
+                <!-- 工具箱 -->
+                <rect x="46" y="64" width="108" height="72" rx="8" fill="#FFFBE6" stroke="#FAAD14" stroke-width="2.5"/>
+                <rect x="46" y="64" width="108" height="20" rx="8" fill="#FFF7E6"/>
+                <rect x="46" y="76" width="108" height="8" fill="#FFF7E6"/>
+                <!-- 工具箱提手 -->
+                <path d="M84 64 V54 Q84 46 92 46 L108 46 Q116 46 116 54 V64" stroke="#FAAD14" stroke-width="2.5" fill="none"/>
+                <!-- 工具箱锁扣 -->
+                <rect x="92" y="82" width="16" height="6" rx="2" fill="#FAAD14"/>
+                <!-- 工具箱内的横线装饰 -->
+                <line x1="60" y1="104" x2="92" y2="104" stroke="#FFE7BA" stroke-width="2" stroke-linecap="round"/>
+                <line x1="60" y1="116" x2="80" y2="116" stroke="#FFE7BA" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="130" cy="110" r="6" fill="#FFF7E6" stroke="#FFE7BA" stroke-width="1.5"/>
+                <circle cx="130" cy="110" r="2" fill="#FAAD14"/>
+                <!-- 扳手 -->
+                <g class="wrench-group">
+                  <path d="M100 44 Q108 30 124 32 Q134 34 138 44 Q142 54 134 62 L110 86 L92 68 Z" fill="#FAAD14" stroke="#D48806" stroke-width="1.5"/>
+                  <path d="M124 38 Q132 38 134 46 Q134 54 126 56 Q118 54 118 46 Z" fill="#FFFFFF"/>
+                  <rect x="92" y="68" width="22" height="8" rx="3" transform="rotate(45 92 68)" fill="#FAAD14" stroke="#D48806" stroke-width="1.5"/>
+                </g>
+                <!-- 螺丝刀 -->
+                <rect x="138" y="36" width="6" height="36" rx="3" transform="rotate(25 138 36)" fill="#FFC53D"/>
+                <rect x="135" y="68" width="12" height="10" rx="2" transform="rotate(25 141 73)" fill="#8C8C8C"/>
+                <!-- 装饰齿轮小 -->
+                <circle cx="40" cy="50" r="3" fill="#FFE7BA"/>
+                <circle cx="168" cy="118" r="2.5" fill="#FFF1B8"/>
+                <!-- 星星装饰 -->
+                <path d="M36 96 L38 100 L42 100 L39 103 L40 107 L36 105 L32 107 L33 103 L30 100 L34 100 Z" fill="#FFE7BA"/>
+              </svg>
+            </div>
+
+            <div class="error-code">503</div>
+            <h1 class="error-title">
+              <span class="pulse-dot"></span>
+              系统维护中
+            </h1>
+            <p class="error-desc">
+              平台正在升级维护，预计 <span class="hl">2026-07-26 22:00</span> 恢复服务，给您带来的不便敬请谅解。
+            </p>
+
+            <!-- 进度条 -->
+            <div class="progress-wrap">
+              <div class="progress-meta">
+                <span>维护进度</span>
+                <span class="pct">62%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill"></div>
+              </div>
+              <div class="progress-meta" style="margin-top:8px; margin-bottom:0;">
+                <span>开始 16:00</span>
+                <span>预计结束 22:00</span>
+              </div>
+            </div>
+
+            <!-- 维护时间线 -->
+            <div class="timeline">
+              <div class="t-title">
+                <svg width="12" height="12" viewBox="0 0 1024 1024" fill="var(--n7)"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z m0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 336a48 48 0 1 0 96 0 48 48 0 1 0-96 0ZM536 448h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V456c0-4.4-3.6-8-8-8z"/></svg>
+                维护任务进度
+              </div>
+              <div class="t-item done">
+                <span class="t-dot"></span>
+                <div class="t-content">
+                  <div class="t-name">数据库主从切换</div>
+                  <div class="t-time">16:00 - 16:45</div>
+                </div>
+              </div>
+              <div class="t-item done">
+                <span class="t-dot"></span>
+                <div class="t-content">
+                  <div class="t-name">Elasticsearch 索引重建</div>
+                  <div class="t-time">16:45 - 18:30</div>
+                </div>
+              </div>
+              <div class="t-item active">
+                <span class="t-dot"></span>
+                <div class="t-content">
+                  <div class="t-name">订单服务版本升级（进行中）</div>
+                  <div class="t-time">18:30 - 21:00</div>
+                </div>
+              </div>
+              <div class="t-item">
+                <span class="t-dot"></span>
+                <div class="t-content">
+                  <div class="t-name">全链路回归验证</div>
+                  <div class="t-time">21:00 - 22:00</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="action-group">
+              <button class="btn btn-primary" onclick="location.href='/system-governance/announcements'">
+                <svg class="b-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112 144 112c-17.7 0-32 14.3-32 32l0 736c0 17.7 14.3 32 32 32l736 0c17.7 0 32-14.3 32-32L912 144C912 126.3 897.7 112 880 112zM380.6 768l-97.4-205.2L185.8 768 112 768 255.6 466.4 116.4 192l73.8 0 88 191.8L370 192l73.8 0-148.6 274.4L442.4 768z M832 736L512 736 512 192l64 0 0 480 256 0z"/></svg>
+                查看维护公告
+              </button>
+              <button class="btn btn-default" onclick="location.reload()">
+                <svg class="b-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4 44.1C775.8 155.1 656.2 92 521.9 92 290 92 102.3 279.5 102 511.5 101.7 743.7 289.8 932 521.9 932c181.3 0 335.8-115 394.6-276.1 1.5-4.2-.7-8.9-4.9-10.3l-56.7-19.5a8 8 0 0 0-10.1 4.8c-1.8 5-3.8 10-5.9 14.9-17.3 41-42.1 77.8-73.7 109.4A344.77 344.77 0 0 1 655.9 829c-42.3 17.9-87.4 27-133.8 27-46.5 0-91.5-9.1-133.8-27A341.5 341.5 0 0 1 279 755.2a342.16 342.16 0 0 1-73.7-109.4c-17.9-42.4-27-87.4-27-133.9s9.1-91.5 27-133.9c17.3-41 42.1-77.8 73.7-109.4 31.6-31.6 68.4-56.4 109.3-73.8 42.3-17.9 87.4-27 133.8-27 46.5 0 91.5 9.1 133.8 27a341.5 341.5 0 0 1 109.3 73.8c9.9 9.9 19.2 20.4 27.8 31.4l-60.2 47a8 8 0 0 0 3 14.1l175.6 43c5 1.2 9.9-2.6 9.9-7.7l.8-180.9c-.1-6.6-7.8-10.3-13-6.2z"/></svg>
+                刷新状态
+              </button>
+            </div>
+
+            <div class="hint-row">
+              <svg width="14" height="14" viewBox="0 0 1024 1024" fill="var(--n7)"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z m0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 336a48 48 0 1 0 96 0 48 48 0 1 0-96 0ZM536 448h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V456c0-4.4-3.6-8-8-8z"/></svg>
+              <span>维护动态将通过</span>
+              <a href="/account/notifications">通知中心</a>
+              <span>实时推送，紧急事宜请联系 400-888-0000</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+          <span>© 2024-2026 Leno 电商平台 · 系统管理后台</span>
+          <span class="env-tag">prod · v1.4.0</span>
+        </footer>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

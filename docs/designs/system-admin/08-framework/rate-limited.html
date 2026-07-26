@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>429 请求被限流 - Leno 系统管理后台</title>
+  <style>
+    :root {
+      --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+      --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+      --r-base:6px; --r-card:8px; --r-lg:12px;
+      --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+      --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+      --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+      --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+      --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+      --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    html, body {
+      height:100%;
+      font-family:var(--ff-app);
+      font-size:var(--fs-base);
+      color:var(--n10);
+      line-height:1.5715;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .app { min-height:100vh; display:flex; flex-direction:column; }
+
+    /* ===== Header ===== */
+    .header {
+      height:var(--header-h);
+      background:var(--n1);
+      border-bottom:1px solid var(--n5);
+      display:flex;
+      align-items:center;
+      padding:0 var(--s6);
+      position:sticky;
+      top:0;
+      z-index:100;
+      flex-shrink:0;
+    }
+
+    .logo {
+      display:flex;
+      align-items:center;
+      gap:var(--s2);
+      width:calc(var(--sider-width) - var(--s6));
+      flex-shrink:0;
+    }
+
+    .logo-mark {
+      width:32px;
+      height:32px;
+      border-radius:var(--r-base);
+      background:linear-gradient(135deg, #1677FF 0%, #0958D9 100%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-weight:var(--fw-semibold);
+      font-size:var(--fs-lg);
+      letter-spacing:-0.5px;
+    }
+
+    .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); }
+    .logo-text span { color:var(--n7); font-weight:var(--fw-normal); font-size:var(--fs-sm); margin-left:var(--s2); }
+
+    .breadcrumb {
+      display:flex;
+      align-items:center;
+      gap:var(--s2);
+      font-size:var(--fs-base);
+      color:var(--n7);
+      margin-left:var(--s4);
+    }
+    .breadcrumb .crumb-current { color:var(--n10); }
+    .breadcrumb .sep { color:var(--n5); font-size:12px; }
+
+    .header-right { margin-left:auto; display:flex; align-items:center; gap:var(--s4); }
+
+    .icon-btn {
+      width:36px;
+      height:36px;
+      border-radius:var(--r-base);
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--n9);
+      position:relative;
+      transition:background 100ms cubic-bezier(0.2,0,0,1);
+    }
+    .icon-btn:hover { background:var(--n3); }
+
+    .icon-btn .dot {
+      position:absolute;
+      top:6px;
+      right:6px;
+      min-width:16px;
+      height:16px;
+      padding:0 4px;
+      border-radius:8px;
+      background:var(--c-error);
+      color:#fff;
+      font-size:10px;
+      font-weight:var(--fw-semibold);
+      line-height:16px;
+      text-align:center;
+      border:2px solid var(--n1);
+      box-sizing:content-box;
+    }
+
+    .user-menu {
+      display:flex;
+      align-items:center;
+      gap:var(--s2);
+      padding:var(--s1) var(--s2) var(--s1) var(--s1);
+      border-radius:var(--r-base);
+      cursor:pointer;
+      transition:background 100ms cubic-bezier(0.2,0,0,1);
+    }
+    .user-menu:hover { background:var(--n3); }
+
+    .avatar {
+      width:32px;
+      height:32px;
+      border-radius:50%;
+      background:linear-gradient(135deg, #1677FF 0%, #0958D9 100%);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:var(--fs-sm);
+      font-weight:var(--fw-semibold);
+    }
+
+    .user-name { font-size:var(--fs-base); color:var(--n10); }
+
+    /* ===== Body ===== */
+    .body { flex:1; display:flex; min-height:0; }
+
+    /* ===== Sider ===== */
+    .sider {
+      width:var(--sider-width);
+      background:var(--sider-bg);
+      flex-shrink:0;
+      display:flex;
+      flex-direction:column;
+      padding:var(--s4) 0;
+    }
+
+    .menu-item {
+      display:flex;
+      align-items:center;
+      gap:var(--s3);
+      height:40px;
+      padding:0 var(--s6);
+      color:rgba(255,255,255,0.65);
+      font-size:var(--fs-base);
+      cursor:pointer;
+      transition:all 100ms cubic-bezier(0.2,0,0,1);
+      border-left:3px solid transparent;
+      margin:2px 0;
+    }
+    .menu-item:hover { color:#fff; background:rgba(255,255,255,0.04); }
+    .menu-item .m-icon { width:16px; height:16px; flex-shrink:0; }
+
+    .menu-group-title {
+      padding:var(--s6) var(--s6) var(--s2);
+      color:rgba(255,255,255,0.35);
+      font-size:var(--fs-sm);
+      letter-spacing:0.3px;
+    }
+
+    .sider-footer {
+      margin-top:auto;
+      padding:var(--s4) var(--s6);
+      color:rgba(255,255,255,0.3);
+      font-size:var(--fs-sm);
+      border-top:1px solid rgba(255,255,255,0.06);
+    }
+
+    /* ===== Content ===== */
+    .content {
+      flex:1;
+      background:var(--n3);
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+
+    .content-scroll {
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:var(--s8) var(--s6);
+      overflow:auto;
+    }
+
+    /* ===== Error Card ===== */
+    .error-card {
+      background:var(--n1);
+      border-radius:var(--r-lg);
+      box-shadow:var(--sh-card);
+      padding:var(--s12) var(--s12);
+      max-width:660px;
+      width:100%;
+      text-align:center;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .error-card::before {
+      content:"";
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      height:4px;
+      background:var(--c-warning);
+    }
+
+    .illustration {
+      width:200px;
+      height:160px;
+      margin:0 auto var(--s6);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .error-code {
+      font-size:120px;
+      font-weight:var(--fw-semibold);
+      color:var(--c-warning);
+      line-height:1;
+      letter-spacing:-4px;
+      font-family:var(--ff-mono);
+      margin-bottom:var(--s4);
+      background:linear-gradient(180deg, #FAAD14 0%, #FFC53D 100%);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+
+    .error-title {
+      font-size:var(--fs-2xl);
+      font-weight:var(--fw-semibold);
+      color:var(--n10);
+      margin-bottom:var(--s3);
+    }
+
+    .error-desc {
+      font-size:var(--fs-base);
+      color:var(--n7);
+      line-height:1.5715;
+      max-width:460px;
+      margin:0 auto var(--s4);
+    }
+
+    .error-desc code {
+      font-family:var(--ff-mono);
+      background:#FFFBE6;
+      padding:1px 6px;
+      border-radius:4px;
+      font-size:13px;
+      color:var(--n9);
+    }
+
+    /* 倒计时圆环 */
+    .countdown-wrap {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:var(--s4);
+      margin:var(--s4) 0 var(--s2);
+    }
+
+    .countdown-ring {
+      position:relative;
+      width:88px;
+      height:88px;
+    }
+
+    .countdown-ring svg { transform:rotate(-90deg); }
+
+    .countdown-ring .track { stroke:var(--n3); }
+    .countdown-ring .fill {
+      stroke:var(--c-warning);
+      stroke-linecap:round;
+      transition:stroke-dashoffset 1s linear;
+    }
+
+    .countdown-num {
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:var(--ff-mono);
+      font-size:var(--fs-xl);
+      font-weight:var(--fw-semibold);
+      color:var(--c-warning);
+    }
+
+    .countdown-num .unit {
+      font-size:var(--fs-sm);
+      color:var(--n7);
+      font-weight:var(--fw-normal);
+      margin-left:2px;
+    }
+
+    .countdown-text {
+      text-align:left;
+    }
+
+    .countdown-text .ct-title {
+      font-size:var(--fs-base);
+      color:var(--n10);
+      font-weight:var(--fw-medium);
+      margin-bottom:var(--s1);
+    }
+
+    .countdown-text .ct-sub {
+      font-size:var(--fs-sm);
+      color:var(--n7);
+    }
+
+    /* 限流规则信息 */
+    .rule-block {
+      margin:var(--s4) auto 0;
+      max-width:520px;
+      background:var(--n2);
+      border:1px solid var(--n3);
+      border-radius:var(--r-card);
+      overflow:hidden;
+      text-align:left;
+    }
+
+    .rule-block .r-title {
+      padding:var(--s2) var(--s3);
+      font-size:var(--fs-sm);
+      color:var(--n7);
+      background:var(--n3);
+      border-bottom:1px solid var(--n3);
+      display:flex;
+      align-items:center;
+      gap:var(--s2);
+    }
+
+    .rule-block .r-title .r-badge {
+      margin-left:auto;
+      font-size:11px;
+      color:#FAAD14;
+      background:#FFFBE6;
+      border:1px solid #FFE7BA;
+      padding:1px var(--s2);
+      border-radius:10px;
+      font-weight:var(--fw-medium);
+    }
+
+    .rule-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:1px;
+      background:var(--n3);
+    }
+
+    .rule-cell {
+      background:var(--n2);
+      padding:var(--s3);
+    }
+
+    .rule-cell .rc-key {
+      font-size:var(--fs-sm);
+      color:var(--n7);
+      margin-bottom:var(--s1);
+    }
+
+    .rule-cell .rc-val {
+      font-size:var(--fs-base);
+      color:var(--n10);
+      font-family:var(--ff-mono);
+      word-break:break-all;
+    }
+
+    .rule-cell.full { grid-column:1 / -1; }
+
+    /* 用量进度 */
+    .usage-row {
+      padding:var(--s3);
+      background:var(--n2);
+      border-top:1px solid var(--n3);
+    }
+
+    .usage-head {
+      display:flex;
+      justify-content:space-between;
+      font-size:var(--fs-sm);
+      color:var(--n7);
+      margin-bottom:var(--s2);
+    }
+
+    .usage-head .usage-val { color:var(--c-error); font-family:var(--ff-mono); font-weight:var(--fw-semibold); }
+
+    .usage-bar {
+      height:6px;
+      background:var(--n3);
+      border-radius:3px;
+      overflow:hidden;
+    }
+
+    .usage-fill {
+      height:100%;
+      width:100%;
+      background:linear-gradient(90deg, #FAAD14 0%, #FF4D4F 100%);
+      border-radius:3px;
+    }
+
+    .action-group {
+      display:flex;
+      justify-content:center;
+      gap:var(--s3);
+      margin-top:var(--s6);
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .btn {
+      height:36px;
+      padding:0 var(--s4);
+      border-radius:var(--r-base);
+      font-size:var(--fs-base);
+      font-weight:var(--fw-normal);
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:var(--s2);
+      transition:all 100ms cubic-bezier(0.2,0,0,1);
+      border:1px solid transparent;
+      font-family:inherit;
+      line-height:1;
+    }
+
+    .btn-primary {
+      background:var(--c-primary);
+      color:#fff;
+      border-color:var(--c-primary);
+      box-shadow:0 2px 0 rgba(5,145,255,0.1);
+    }
+    .btn-primary:hover { background:#4096FF; border-color:#4096FF; }
+    .btn-primary:active { background:#0958D9; border-color:#0958D9; }
+
+    .btn-primary:disabled {
+      background:var(--n5);
+      border-color:var(--n5);
+      color:rgba(0,0,0,0.45);
+      cursor:not-allowed;
+      box-shadow:none;
+    }
+
+    .btn-default {
+      background:var(--n1);
+      color:var(--n10);
+      border-color:var(--n5);
+    }
+    .btn-default:hover { color:var(--c-primary); border-color:var(--c-primary); }
+    .btn .b-icon { width:14px; height:14px; }
+
+    .text-link {
+      background:none;
+      border:none;
+      color:var(--c-primary);
+      font-size:var(--fs-base);
+      cursor:pointer;
+      padding:0 var(--s2);
+      font-family:inherit;
+      display:inline-flex;
+      align-items:center;
+      gap:var(--s1);
+      transition:color 100ms cubic-bezier(0.2,0,0,1);
+    }
+    .text-link:hover { color:#4096FF; text-decoration:underline; }
+
+    .hint-row {
+      margin-top:var(--s6);
+      padding-top:var(--s4);
+      border-top:1px dashed var(--n5);
+      font-size:var(--fs-sm);
+      color:var(--n7);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:var(--s2);
+      flex-wrap:wrap;
+    }
+
+    .hint-row a { color:var(--c-primary); text-decoration:none; }
+    .hint-row a:hover { text-decoration:underline; }
+
+    /* ===== Footer ===== */
+    .footer {
+      height:32px;
+      background:var(--n1);
+      border-top:1px solid var(--n3);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 var(--s6);
+      font-size:var(--fs-sm);
+      color:var(--n7);
+      flex-shrink:0;
+    }
+
+    .footer .env-tag {
+      font-family:var(--ff-mono);
+      background:var(--n3);
+      padding:1px 6px;
+      border-radius:4px;
+      color:var(--n9);
+    }
+
+    @keyframes cardIn {
+      from { opacity:0; transform:translateY(12px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+    .error-card { animation:cardIn 300ms cubic-bezier(0,0,0,1); }
+
+    @keyframes float {
+      0%,100% { transform:translateY(0); }
+      50% { transform:translateY(-4px); }
+    }
+    .illustration svg { animation:float 3s ease-in-out infinite; }
+
+    /* 沙漏沙子流动 */
+    @keyframes sandFall {
+      0% { transform:scaleY(1); }
+      100% { transform:scaleY(0.2); }
+    }
+    .sand-top { transform-origin:top center; animation:sandFall 6s linear infinite; }
+
+    @keyframes sandGrow {
+      0% { transform:scaleY(0.2); }
+      100% { transform:scaleY(1); }
+    }
+    .sand-bottom { transform-origin:bottom center; animation:sandGrow 6s linear infinite; }
+
+    @keyframes sandDrop {
+      0%,100% { opacity:0; }
+      50% { opacity:1; }
+    }
+    .sand-drop { animation:sandDrop 1s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-mark">L</div>
+        <div class="logo-text">Leno<span>系统管理后台</span></div>
+      </div>
+      <nav class="breadcrumb">
+        <span>系统管理后台</span>
+        <span class="sep">/</span>
+        <span class="crumb-current">错误页</span>
+      </nav>
+      <div class="header-right">
+        <button class="icon-btn" title="通知">
+          <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 928c33.056 0 59.904-26.848 59.904-59.904H452.096C452.096 901.152 478.944 928 512 928zM832 736v-265.6c0-150.4-101.76-274.88-244.8-308.16V128c0-41.6-33.6-75.2-75.2-75.2s-75.2 33.6-75.2 75.2v34.24C293.76 195.52 192 320 192 470.4V736l-64 64v32h768v-32l-64-64z"/></svg>
+          <span class="dot">5</span>
+        </button>
+        <div class="user-menu">
+          <div class="avatar">A</div>
+          <span class="user-name">超级管理员</span>
+          <svg width="12" height="12" viewBox="0 0 1024 1024" fill="rgba(0,0,0,0.45)"><path d="M884 256h-752l376 376 376-376z"/></svg>
+        </div>
+      </div>
+    </header>
+
+    <div class="body">
+      <!-- Sider -->
+      <aside class="sider">
+        <div class="menu-group-title">主导航</div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 805.8 705.6 327.4c-12.8-25.6-38.4-41.6-66.4-41.6s-53.6 16-66.4 41.6L353.6 805.8c-9.6 19.2-9.6 41.6 0 60.8 9.6 19.2 28.8 32 50.4 32h470.4c21.6 0 40.8-12.8 50.4-32 9.6-19.2 9.6-41.6 0-60.8zM639.2 824.2H544v-92.8h95.2v92.8z m0-152H544v-216h95.2v216z"/></svg>
+          <span>仪表盘</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375 375 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.8 18.9-85 46-119.5 80.6a375 375 0 0 0-80.6 119.5A371.7 371.7 0 0 0 136 901.8a8 8 0 0 0 8 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C942.5 752.5 973.6 824.8 975.6 902c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 0 0 8-8.2c-1-47.8-10.9-94.3-29.5-138.2z"/></svg>
+          <span>用户与权限</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+          <span>系统治理</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 192c-181.1 0-328 146.9-328 328s146.9 328 328 328 328-146.9 328-328-146.9-328-328-328z m0 560c-128.1 0-232-103.9-232-232s103.9-232 232-232 232 103.9 232 232-103.9 232-232 232z"/></svg>
+          <span>运行时运维</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112 144 112c-17.7 0-32 14.3-32 32l0 736c0 17.7 14.3 32 32 32l736 0c17.7 0 32-14.3 32-32L912 144C912 126.3 897.7 112 880 112z"/></svg>
+          <span>审计与对账</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375 375 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.8 18.9-85 46-119.5 80.6a375 375 0 0 0-80.6 119.5A371.7 371.7 0 0 0 136 901.8a8 8 0 0 0 8 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C942.5 752.5 973.6 824.8 975.6 902c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 0 0 8-8.2c-1-47.8-10.9-94.3-29.5-138.2z"/></svg>
+          <span>个人账号</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 192c-181.1 0-328 146.9-328 328s146.9 328 328 328 328-146.9 328-328-146.9-328-328-328z m0 560c-128.1 0-232-103.9-232-232s103.9-232 232-232 232 103.9 232 232-103.9 232-232 232z"/></svg>
+          <span>系统监控</span>
+        </div>
+        <div class="sider-footer">Leno Admin v1.4.0</div>
+      </aside>
+
+      <!-- Content -->
+      <main class="content">
+        <div class="content-scroll">
+          <div class="error-card">
+            <div class="illustration">
+              <!-- 429 沙漏插画 -->
+              <svg width="200" height="160" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="100" cy="146" rx="68" ry="6" fill="#F0F0F0"/>
+                <!-- 沙漏外框 -->
+                <path d="M64 30 L136 30 L136 44 Q136 56 124 66 L112 76 Q104 82 104 88 Q104 94 112 100 L124 110 Q136 120 136 132 L136 136 L64 136 L64 132 Q64 120 76 110 L88 100 Q96 94 96 88 Q96 82 88 76 L76 66 Q64 56 64 44 Z" fill="#FFFBE6" stroke="#FAAD14" stroke-width="2.5"/>
+                <!-- 顶盖底盖 -->
+                <rect x="58" y="24" width="84" height="8" rx="3" fill="#FAAD14"/>
+                <rect x="58" y="134" width="84" height="8" rx="3" fill="#FAAD14"/>
+                <!-- 上方沙子 -->
+                <path class="sand-top" d="M72 50 L128 50 L116 70 L84 70 Z" fill="#FFC53D"/>
+                <!-- 下方沙子 -->
+                <path class="sand-bottom" d="M84 120 L116 120 L128 130 L72 130 Z" fill="#FFC53D"/>
+                <!-- 沙漏中间漏斗 -->
+                <path d="M96 78 L104 78 L104 98 L96 98 Z" fill="#FFE7BA"/>
+                <!-- 沙滴 -->
+                <circle class="sand-drop" cx="100" cy="106" r="2" fill="#FAAD14"/>
+                <!-- 警示钟 -->
+                <g transform="translate(140 28)">
+                  <path d="M14 0 Q20 0 20 6 L20 12 Q24 14 24 18 L4 18 Q4 14 8 12 L8 6 Q8 0 14 0 Z" fill="#FAAD14"/>
+                  <circle cx="14" cy="22" r="2" fill="#FAAD14"/>
+                  <circle cx="14" cy="3" r="3" fill="none" stroke="#FAAD14" stroke-width="1.5"/>
+                </g>
+                <!-- 装饰 -->
+                <circle cx="40" cy="50" r="2.5" fill="#FFE7BA"/>
+                <circle cx="34" cy="100" r="2" fill="#FFF1B8"/>
+                <circle cx="170" cy="80" r="2.5" fill="#FFE7BA"/>
+                <!-- 警示三角 -->
+                <path d="M40 22 L48 36 L32 36 Z" fill="none" stroke="#FAAD14" stroke-width="1.5"/>
+                <rect x="39" y="27" width="2" height="4" fill="#FAAD14"/>
+                <circle cx="40" cy="33.5" r="1" fill="#FAAD14"/>
+              </svg>
+            </div>
+
+            <div class="error-code">429</div>
+            <h1 class="error-title">请求被限流</h1>
+            <p class="error-desc">
+              接口 <code>/api/admin/dead-letters</code> 触发限流（阈值: 100/60s），请稍后重试。
+            </p>
+
+            <!-- 倒计时 -->
+            <div class="countdown-wrap">
+              <div class="countdown-ring">
+                <svg width="88" height="88" viewBox="0 0 88 88">
+                  <circle class="track" cx="44" cy="44" r="38" fill="none" stroke-width="6"/>
+                  <circle class="fill" id="ringFill" cx="44" cy="44" r="38" fill="none" stroke-width="6"
+                    stroke-dasharray="238.76" stroke-dashoffset="0"/>
+                </svg>
+                <div class="countdown-num">
+                  <span id="countdownNum">30</span><span class="unit">s</span>
+                </div>
+              </div>
+              <div class="countdown-text">
+                <div class="ct-title">请稍候后重试</div>
+                <div class="ct-sub">倒计时结束后可继续操作</div>
+              </div>
+            </div>
+
+            <!-- 限流规则信息 -->
+            <div class="rule-block">
+              <div class="r-title">
+                <svg width="12" height="12" viewBox="0 0 1024 1024" fill="var(--n7)"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-70v130c0 5.5-4.5 10-10 10h-52c-5.5 0-10-4.5-10-10V559h-70c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h70V363c0-5.5 4.5-10 10-10h52c5.5 0 10 4.5 10 10v130h70c5.5 0 10 4.5 10 10v46z"/></svg>
+                限流规则详情
+                <span class="r-badge">规则 ID: RL-2026-0073</span>
+              </div>
+              <div class="rule-grid">
+                <div class="rule-cell">
+                  <div class="rc-key">接口路径</div>
+                  <div class="rc-val">/api/admin/dead-letters</div>
+                </div>
+                <div class="rule-cell">
+                  <div class="rc-key">请求方法</div>
+                  <div class="rc-val">GET</div>
+                </div>
+                <div class="rule-cell">
+                  <div class="rc-key">阈值</div>
+                  <div class="rc-val">100 次</div>
+                </div>
+                <div class="rule-cell">
+                  <div class="rc-key">时间窗口</div>
+                  <div class="rc-val">60 秒</div>
+                </div>
+                <div class="rule-cell full">
+                  <div class="rc-key">限流策略</div>
+                  <div class="rc-val">滑动窗口 · 按用户维度（userId）</div>
+                </div>
+              </div>
+              <div class="usage-row">
+                <div class="usage-head">
+                  <span>当前窗口用量</span>
+                  <span class="usage-val">100 / 100（已触发）</span>
+                </div>
+                <div class="usage-bar">
+                  <div class="usage-fill"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="action-group">
+              <button class="btn btn-primary" id="confirmBtn" disabled onclick="onConfirm()">
+                <svg class="b-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 502.3c0-194.4-158.3-352.8-352.8-352.8-9.2 0-18.3.4-27.4 1.1l88.4-88.4c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L401.5 340.3c-12.5 12.5-12.5 32.8 0 45.3l173.4 173.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-87.5-87.5c6.4-.5 12.9-.8 19.4-.8 159.1 0 288.2 129.1 288.2 288.2 0 159.1-129.1 288.2-288.2 288.2S463.9 778.9 463.9 619.8c0-17.7-14.3-32-32-32s-32 14.3-32 32c0 194.4 158.3 352.8 352.8 352.8S912 696.7 912 502.3z"/></svg>
+                <span id="confirmText">我知道了（30s）</span>
+              </button>
+              <button class="text-link" onclick="location.href='/runtime-ops/rate-limit-rules'">
+                查看限流规则
+                <svg width="12" height="12" viewBox="0 0 1024 1024" fill="currentColor"><path d="M869 487.4L514.2 132.6a8 8 0 0 0-11.3 0l-43 43a8 8 0 0 0 0 11.3L784.1 512 459.9 836.2a8 8 0 0 0 0 11.3l43 43a8 8 0 0 0 11.3 0L869 535.6a31.9 31.9 0 0 0 0-48.2z"/></svg>
+              </button>
+            </div>
+
+            <div class="hint-row">
+              <svg width="14" height="14" viewBox="0 0 1024 1024" fill="var(--n7)"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z m0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 336a48 48 0 1 0 96 0 48 48 0 1 0-96 0ZM536 448h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V456c0-4.4-3.6-8-8-8z"/></svg>
+              <span>如需调整阈值，请联系</span>
+              <a href="/user-access/operators">平台架构组</a>
+              <span>·</span>
+              <a href="/runtime-ops/rate-limit-rules">限流规则管理</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+          <span>© 2024-2026 Leno 电商平台 · 系统管理后台</span>
+          <span class="env-tag">prod · v1.4.0</span>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var TOTAL = 30;
+      var remaining = TOTAL;
+      var CIRC = 2 * Math.PI * 38; // 约 238.76
+      var ring = document.getElementById('ringFill');
+      var numEl = document.getElementById('countdownNum');
+      var btn = document.getElementById('confirmBtn');
+      var btnText = document.getElementById('confirmText');
+
+      // 初始化圆环
+      ring.setAttribute('stroke-dasharray', CIRC);
+      ring.setAttribute('stroke-dashoffset', '0');
+
+      function update() {
+        numEl.innerText = remaining;
+        btnText.innerText = '我知道了（' + remaining + 's）';
+        var offset = CIRC * (1 - remaining / TOTAL);
+        ring.setAttribute('stroke-dashoffset', offset);
+      }
+
+      update();
+
+      var timer = setInterval(function () {
+        remaining--;
+        if (remaining <= 0) {
+          remaining = 0;
+          update();
+          clearInterval(timer);
+          btn.disabled = false;
+          btnText.innerText = '我知道了';
+        } else {
+          update();
+        }
+      }, 1000);
+
+      window.onConfirm = function () {
+        if (btn.disabled) return;
+        location.href = '/runtime-ops/dead-letter-queue';
+      };
+    })();
+  </script>
+</body>
+</html>

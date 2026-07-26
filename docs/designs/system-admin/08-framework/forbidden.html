@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>403 无访问权限 - Leno 系统管理后台</title>
+  <style>
+    :root {
+      --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+      --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+      --r-base:6px; --r-card:8px; --r-lg:12px;
+      --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+      --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+      --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+      --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+      --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+      --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    html, body {
+      height:100%;
+      font-family:var(--ff-app);
+      font-size:var(--fs-base);
+      color:var(--n10);
+      line-height:1.5715;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .app { min-height:100vh; display:flex; flex-direction:column; }
+
+    /* ===== Header ===== */
+    .header {
+      height:var(--header-h);
+      background:var(--n1);
+      border-bottom:1px solid var(--n5);
+      display:flex;
+      align-items:center;
+      padding:0 var(--s6);
+      position:sticky;
+      top:0;
+      z-index:100;
+      flex-shrink:0;
+    }
+
+    .logo {
+      display:flex;
+      align-items:center;
+      gap:var(--s2);
+      width:calc(var(--sider-width) - var(--s6));
+      flex-shrink:0;
+    }
+
+    .logo-mark {
+      width:32px;
+      height:32px;
+      border-radius:var(--r-base);
+      background:linear-gradient(135deg, #1677FF 0%, #0958D9 100%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-weight:var(--fw-semibold);
+      font-size:var(--fs-lg);
+      letter-spacing:-0.5px;
+    }
+
+    .logo-text {
+      font-size:var(--fs-lg);
+      font-weight:var(--fw-semibold);
+      color:var(--n10);
+    }
+
+    .logo-text span {
+      color:var(--n7);
+      font-weight:var(--fw-normal);
+      font-size:var(--fs-sm);
+      margin-left:var(--s2);
+    }
+
+    .breadcrumb {
+      display:flex;
+      align-items:center;
+      gap:var(--s2);
+      font-size:var(--fs-base);
+      color:var(--n7);
+      margin-left:var(--s4);
+    }
+
+    .breadcrumb .crumb-current { color:var(--n10); }
+    .breadcrumb .sep { color:var(--n5); font-size:12px; }
+
+    .header-right {
+      margin-left:auto;
+      display:flex;
+      align-items:center;
+      gap:var(--s4);
+    }
+
+    .icon-btn {
+      width:36px;
+      height:36px;
+      border-radius:var(--r-base);
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--n9);
+      position:relative;
+      transition:background 100ms cubic-bezier(0.2,0,0,1);
+    }
+
+    .icon-btn:hover { background:var(--n3); }
+
+    .icon-btn .dot {
+      position:absolute;
+      top:6px;
+      right:6px;
+      min-width:16px;
+      height:16px;
+      padding:0 4px;
+      border-radius:8px;
+      background:var(--c-error);
+      color:#fff;
+      font-size:10px;
+      font-weight:var(--fw-semibold);
+      line-height:16px;
+      text-align:center;
+      border:2px solid var(--n1);
+      box-sizing:content-box;
+    }
+
+    .user-menu {
+      display:flex;
+      align-items:center;
+      gap:var(--s2);
+      padding:var(--s1) var(--s2) var(--s1) var(--s1);
+      border-radius:var(--r-base);
+      cursor:pointer;
+      transition:background 100ms cubic-bezier(0.2,0,0,1);
+    }
+
+    .user-menu:hover { background:var(--n3); }
+
+    .avatar {
+      width:32px;
+      height:32px;
+      border-radius:50%;
+      background:linear-gradient(135deg, #FAAD14 0%, #D48806 100%);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:var(--fs-sm);
+      font-weight:var(--fw-semibold);
+    }
+
+    .user-name { font-size:var(--fs-base); color:var(--n10); }
+
+    /* ===== Body ===== */
+    .body { flex:1; display:flex; min-height:0; }
+
+    /* ===== Sider ===== */
+    .sider {
+      width:var(--sider-width);
+      background:var(--sider-bg);
+      flex-shrink:0;
+      display:flex;
+      flex-direction:column;
+      padding:var(--s4) 0;
+    }
+
+    .menu-item {
+      display:flex;
+      align-items:center;
+      gap:var(--s3);
+      height:40px;
+      padding:0 var(--s6);
+      color:rgba(255,255,255,0.65);
+      font-size:var(--fs-base);
+      cursor:pointer;
+      transition:all 100ms cubic-bezier(0.2,0,0,1);
+      border-left:3px solid transparent;
+      margin:2px 0;
+    }
+
+    .menu-item:hover { color:#fff; background:rgba(255,255,255,0.04); }
+    .menu-item .m-icon { width:16px; height:16px; flex-shrink:0; }
+
+    .menu-item.is-locked {
+      color:rgba(255,255,255,0.35);
+      cursor:not-allowed;
+    }
+
+    .menu-item.is-locked:hover { background:transparent; }
+
+    .menu-item .lock-tag {
+      margin-left:auto;
+      font-size:10px;
+      color:rgba(255,255,255,0.35);
+    }
+
+    .menu-group-title {
+      padding:var(--s6) var(--s6) var(--s2);
+      color:rgba(255,255,255,0.35);
+      font-size:var(--fs-sm);
+      letter-spacing:0.3px;
+    }
+
+    .sider-footer {
+      margin-top:auto;
+      padding:var(--s4) var(--s6);
+      color:rgba(255,255,255,0.3);
+      font-size:var(--fs-sm);
+      border-top:1px solid rgba(255,255,255,0.06);
+    }
+
+    /* ===== Content ===== */
+    .content {
+      flex:1;
+      background:var(--n3);
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+
+    .content-scroll {
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:var(--s8) var(--s6);
+      overflow:auto;
+    }
+
+    /* ===== Error Card ===== */
+    .error-card {
+      background:var(--n1);
+      border-radius:var(--r-lg);
+      box-shadow:var(--sh-card);
+      padding:var(--s12) var(--s12);
+      max-width:640px;
+      width:100%;
+      text-align:center;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .error-card::before {
+      content:"";
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      height:4px;
+      background:var(--c-error);
+    }
+
+    .illustration {
+      width:200px;
+      height:160px;
+      margin:0 auto var(--s6);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .error-code {
+      font-size:120px;
+      font-weight:var(--fw-semibold);
+      color:var(--c-error);
+      line-height:1;
+      letter-spacing:-4px;
+      font-family:var(--ff-mono);
+      margin-bottom:var(--s4);
+      background:linear-gradient(180deg, #FF4D4F 0%, #FF7875 100%);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+
+    .error-title {
+      font-size:var(--fs-2xl);
+      font-weight:var(--fw-semibold);
+      color:var(--n10);
+      margin-bottom:var(--s3);
+    }
+
+    .error-desc {
+      font-size:var(--fs-base);
+      color:var(--n7);
+      line-height:1.5715;
+      max-width:440px;
+      margin:0 auto var(--s4);
+    }
+
+    .error-desc strong { color:var(--n9); font-weight:var(--fw-medium); }
+
+    .role-tag {
+      display:inline-flex;
+      align-items:center;
+      gap:var(--s1);
+      padding:2px var(--s2);
+      background:var(--n3);
+      border-radius:4px;
+      font-size:var(--fs-sm);
+      color:var(--n9);
+      margin-top:var(--s2);
+      font-family:var(--ff-mono);
+    }
+
+    .action-group {
+      display:flex;
+      justify-content:center;
+      gap:var(--s3);
+      margin-top:var(--s6);
+    }
+
+    .btn {
+      height:36px;
+      padding:0 var(--s4);
+      border-radius:var(--r-base);
+      font-size:var(--fs-base);
+      font-weight:var(--fw-normal);
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:var(--s2);
+      transition:all 100ms cubic-bezier(0.2,0,0,1);
+      border:1px solid transparent;
+      font-family:inherit;
+      line-height:1;
+    }
+
+    .btn-primary {
+      background:var(--c-primary);
+      color:#fff;
+      border-color:var(--c-primary);
+      box-shadow:0 2px 0 rgba(5,145,255,0.1);
+    }
+
+    .btn-primary:hover { background:#4096FF; border-color:#4096FF; }
+    .btn-primary:active { background:#0958D9; border-color:#0958D9; }
+
+    .btn-default {
+      background:var(--n1);
+      color:var(--n10);
+      border-color:var(--n5);
+    }
+
+    .btn-default:hover { color:var(--c-primary); border-color:var(--c-primary); }
+    .btn .b-icon { width:14px; height:14px; }
+
+    .hint-row {
+      margin-top:var(--s6);
+      padding-top:var(--s4);
+      border-top:1px dashed var(--n5);
+      font-size:var(--fs-sm);
+      color:var(--n7);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:var(--s2);
+      flex-wrap:wrap;
+    }
+
+    .hint-row a { color:var(--c-primary); text-decoration:none; }
+    .hint-row a:hover { text-decoration:underline; }
+
+    /* ===== Footer ===== */
+    .footer {
+      height:32px;
+      background:var(--n1);
+      border-top:1px solid var(--n3);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 var(--s6);
+      font-size:var(--fs-sm);
+      color:var(--n7);
+      flex-shrink:0;
+    }
+
+    .footer .env-tag {
+      font-family:var(--ff-mono);
+      background:var(--n3);
+      padding:1px 6px;
+      border-radius:4px;
+      color:var(--n9);
+    }
+
+    @keyframes cardIn {
+      from { opacity:0; transform:translateY(12px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+    .error-card { animation:cardIn 300ms cubic-bezier(0,0,0,1); }
+
+    @keyframes float {
+      0%,100% { transform:translateY(0); }
+      50% { transform:translateY(-4px); }
+    }
+    .illustration svg { animation:float 3s ease-in-out infinite; }
+
+    @keyframes lockShake {
+      0%,100% { transform:rotate(0); }
+      25% { transform:rotate(-3deg); }
+      75% { transform:rotate(3deg); }
+    }
+    .lock-body { transform-origin:center; animation:lockShake 4s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-mark">L</div>
+        <div class="logo-text">Leno<span>系统管理后台</span></div>
+      </div>
+      <nav class="breadcrumb">
+        <span>系统管理后台</span>
+        <span class="sep">/</span>
+        <span class="crumb-current">错误页</span>
+      </nav>
+      <div class="header-right">
+        <button class="icon-btn" title="通知">
+          <svg width="20" height="20" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 928c33.056 0 59.904-26.848 59.904-59.904H452.096C452.096 901.152 478.944 928 512 928zM832 736v-265.6c0-150.4-101.76-274.88-244.8-308.16V128c0-41.6-33.6-75.2-75.2-75.2s-75.2 33.6-75.2 75.2v34.24C293.76 195.52 192 320 192 470.4V736l-64 64v32h768v-32l-64-64z"/></svg>
+          <span class="dot">5</span>
+        </button>
+        <div class="user-menu">
+          <div class="avatar">O</div>
+          <span class="user-name">运维员·李明</span>
+          <svg width="12" height="12" viewBox="0 0 1024 1024" fill="rgba(0,0,0,0.45)"><path d="M884 256h-752l376 376 376-376z"/></svg>
+        </div>
+      </div>
+    </header>
+
+    <div class="body">
+      <!-- Sider -->
+      <aside class="sider">
+        <div class="menu-group-title">主导航</div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 805.8 705.6 327.4c-12.8-25.6-38.4-41.6-66.4-41.6s-53.6 16-66.4 41.6L353.6 805.8c-9.6 19.2-9.6 41.6 0 60.8 9.6 19.2 28.8 32 50.4 32h470.4c21.6 0 40.8-12.8 50.4-32 9.6-19.2 9.6-41.6 0-60.8zM639.2 824.2H544v-92.8h95.2v92.8z m0-152H544v-216h95.2v216z"/></svg>
+          <span>仪表盘</span>
+        </div>
+        <div class="menu-item is-locked">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375 375 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.8 18.9-85 46-119.5 80.6a375 375 0 0 0-80.6 119.5A371.7 371.7 0 0 0 136 901.8a8 8 0 0 0 8 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C942.5 752.5 973.6 824.8 975.6 902c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 0 0 8-8.2c-1-47.8-10.9-94.3-29.5-138.2zM512 534c-45.9 0-89.1-17.9-121.6-50.4S340 407.9 340 362c0-45.9 17.9-89.1 50.4-121.6S466.1 190 512 190s89.1 17.9 121.6 50.4S684 316.1 684 362c0 45.9-17.9 89.1-50.4 121.6S557.9 534 512 534z"/></svg>
+          <span>用户与权限</span>
+          <span class="lock-tag">锁</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM404 549c0 5.5-4.5 10-10 10h-70v130c0 5.5-4.5 10-10 10h-52c-5.5 0-10-4.5-10-10V559h-70c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h70V363c0-5.5 4.5-10 10-10h52c5.5 0 10 4.5 10 10v130h70c5.5 0 10 4.5 10 10v46z m358 130c0 5.5-4.5 10-10 10H542c-5.5 0-10-4.5-10-10v-46c0-5.5 4.5-10 10-10h210c5.5 0 10 4.5 10 10v46z"/></svg>
+          <span>系统治理</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 192c-181.1 0-328 146.9-328 328s146.9 328 328 328 328-146.9 328-328-146.9-328-328-328z m0 560c-128.1 0-232-103.9-232-232s103.9-232 232-232 232 103.9 232 232-103.9 232-232 232z m0-392c-88.2 0-160 71.8-160 160s71.8 160 160 160 160-71.8 160-160-71.8-160-160-160z m0 248c-48.5 0-88-39.5-88-88s39.5-88 88-88 88 39.5 88 88-39.5 88-88 88z"/></svg>
+          <span>运行时运维</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112 144 112c-17.7 0-32 14.3-32 32l0 736c0 17.7 14.3 32 32 32l736 0c17.7 0 32-14.3 32-32L912 144C912 126.3 897.7 112 880 112zM380.6 768l-97.4-205.2L185.8 768 112 768 255.6 466.4 116.4 192l73.8 0 88 191.8L370 192l73.8 0-148.6 274.4L442.4 768z M832 736L512 736 512 192l64 0 0 480 256 0z"/></svg>
+          <span>审计与对账</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375 375 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.8 18.9-85 46-119.5 80.6a375 375 0 0 0-80.6 119.5A371.7 371.7 0 0 0 136 901.8a8 8 0 0 0 8 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C942.5 752.5 973.6 824.8 975.6 902c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 0 0 8-8.2c-1-47.8-10.9-94.3-29.5-138.2z"/></svg>
+          <span>个人账号</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 192c-181.1 0-328 146.9-328 328s146.9 328 328 328 328-146.9 328-328-146.9-328-328-328z m0 560c-128.1 0-232-103.9-232-232s103.9-232 232-232 232 103.9 232 232-103.9 232-232 232z"/></svg>
+          <span>系统监控</span>
+        </div>
+        <div class="sider-footer">Leno Admin v1.4.0</div>
+      </aside>
+
+      <!-- Content -->
+      <main class="content">
+        <div class="content-scroll">
+          <div class="error-card">
+            <div class="illustration">
+              <!-- 403 盾牌+锁插画 -->
+              <svg width="200" height="160" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="100" cy="146" rx="68" ry="6" fill="#F0F0F0"/>
+                <!-- 盾牌 -->
+                <path d="M100 22 L156 44 L156 86 Q156 118 100 138 Q44 118 44 86 L44 44 Z" fill="#FFF1F0" stroke="#FF4D4F" stroke-width="2.5"/>
+                <path d="M100 30 L148 48 L148 86 Q148 112 100 130 Q52 112 52 86 L52 48 Z" fill="#FFFFFF"/>
+                <!-- 锁体 -->
+                <g class="lock-body">
+                  <rect x="78" y="78" width="44" height="36" rx="6" fill="#FF4D4F"/>
+                  <rect x="82" y="82" width="36" height="28" rx="4" fill="#FFFFFF"/>
+                  <!-- 锁梁 -->
+                  <path d="M84 78 V70 Q84 58 100 58 Q116 58 116 70 V78" stroke="#FF4D4F" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+                  <!-- 锁孔 -->
+                  <circle cx="100" cy="94" r="4" fill="#FF4D4F"/>
+                  <rect x="98.5" y="96" width="3" height="9" rx="1.5" fill="#FF4D4F"/>
+                </g>
+                <!-- 装饰 -->
+                <circle cx="36" cy="56" r="3" fill="#FFE0E0"/>
+                <circle cx="168" cy="48" r="2.5" fill="#FFD6D6"/>
+                <circle cx="30" cy="100" r="2" fill="#FFE0E0"/>
+                <circle cx="172" cy="104" r="2.5" fill="#FFD6D6"/>
+                <!-- 警示三角小标 -->
+                <path d="M152 26 L162 44 L142 44 Z" fill="#FAAD14"/>
+                <rect x="150" y="32" width="4" height="6" rx="1" fill="#FFFFFF"/>
+                <circle cx="152" cy="41" r="1.3" fill="#FFFFFF"/>
+              </svg>
+            </div>
+
+            <div class="error-code">403</div>
+            <h1 class="error-title">无访问权限</h1>
+            <p class="error-desc">
+              您没有权限访问此页面，请联系<strong>超级管理员</strong>开通权限。
+            </p>
+            <div class="role-tag">
+              <svg width="12" height="12" viewBox="0 0 1024 1024" fill="var(--n7)"><path d="M864 260H728l-32.4-90.4a30.7 30.7 0 0 0-29.2-21H357.6a30.7 30.7 0 0 0-29.2 21L296 260H160c-19.2 0-32 12.8-32 32v544c0 19.2 12.8 32 32 32h704c19.2 0 32-12.8 32-32V292c0-19.2-12.8-32-32-32z"/></svg>
+              当前角色：Operator · 所需角色：Admin
+            </div>
+
+            <div class="action-group">
+              <button class="btn btn-primary" onclick="location.href='/dashboard/operations-overview'">
+                <svg class="b-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M946.5 505L560.1 118.8l-25.9-25.9a31.5 31.5 0 0 0-44.4 0L77.5 505a63.9 63.9 0 0 0-18.8 46c.4 35.2 29.7 63.3 64.9 63.3h42.5V940h691.8V614.3h43.4c17.1 0 33.2-6.7 45.3-18.8a63.6 63.6 0 0 0 18.7-45.3c0-17-6.7-33.1-18.8-45.2zM560 868H464V712h96v156z"/></svg>
+                返回首页
+              </button>
+              <button class="btn btn-default" onclick="location.href='/user-access/roles'">
+                <svg class="b-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M866.9 169.9 527.1 54.1C523 52.7 517.5 52 512 52s-11 .7-15.1 2.1L157.1 169.9c-8.3 2.8-15.1 12.4-15.1 21.2v482.4c0 8.8 5.7 20.4 12.6 25.9L499.3 968c3.5 2.5 8.1 3.8 12.7 3.8 4.6 0 9.2-1.3 12.7-3.8l344.7-268.6c6.9-5.4 12.6-17 12.6-25.9V191.1c.1-8.8-6.7-18.3-15.1-21.2z"/></svg>
+                查看权限
+              </button>
+            </div>
+
+            <div class="hint-row">
+              <svg width="14" height="14" viewBox="0 0 1024 1024" fill="var(--n7)"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z m0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path d="M464 336a48 48 0 1 0 96 0 48 48 0 1 0-96 0ZM536 448h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8h48c4.4 0 8-3.6 8-8V456c0-4.4-3.6-8-8-8z"/></svg>
+              <span>权限申请请前往</span>
+              <a href="/account/notifications">通知中心</a>
+              <span>提交工单，或联系直属上级</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+          <span>© 2024-2026 Leno 电商平台 · 系统管理后台</span>
+          <span class="env-tag">prod · v1.4.0</span>
+        </footer>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
