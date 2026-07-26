@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>系统维护中 - Leno 商家管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:var(--ff-app);background:var(--n3);color:var(--n10);font-size:var(--fs-base);line-height:1.5715;-webkit-font-smoothing:antialiased;}
+a{color:var(--c-primary);text-decoration:none;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;}
+
+.layout{min-height:100vh;display:flex;flex-direction:column;}
+
+/* Header */
+.header{height:var(--header-h);background:var(--n1);border-bottom:1px solid #f0f0f0;display:flex;align-items:center;padding:0 var(--s6);position:sticky;top:0;z-index:10;box-shadow:0 1px 4px rgba(0,21,41,.08);}
+.header-logo{display:flex;align-items:center;gap:var(--s2);width:calc(var(--sider-width) - var(--s6));font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);}
+.logo-mark{width:30px;height:30px;border-radius:var(--r-base);background:linear-gradient(135deg,#1677FF 0%,#4096FF 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:var(--fs-lg);letter-spacing:-.02em;box-shadow:0 2px 6px rgba(22,119,255,.35);}
+.logo-text{display:flex;flex-direction:column;line-height:1.2;}
+.logo-text .brand{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);}
+.logo-text .sub{font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal);}
+
+.breadcrumb{flex:1;display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-base);color:var(--n7);}
+.breadcrumb a{color:var(--n7);transition:color .2s;}
+.breadcrumb a:hover{color:var(--c-primary);}
+.breadcrumb .sep{color:var(--n5);}
+.breadcrumb .current{color:var(--n10);}
+
+.header-right{display:flex;align-items:center;gap:var(--s4);}
+.icon-btn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--n9);transition:background .2s;position:relative;}
+.icon-btn:hover{background:var(--n3);}
+.badge-dot{position:absolute;top:6px;right:7px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--c-error);color:#fff;font-size:10px;font-weight:var(--fw-semibold);display:flex;align-items:center;justify-content:center;line-height:1;border:1.5px solid var(--n1);box-sizing:content-box;}
+.user-chip{display:flex;align-items:center;gap:var(--s2);padding:var(--s1) var(--s2) var(--s1) var(--s1);border-radius:var(--r-base);transition:background .2s;cursor:pointer;}
+.user-chip:hover{background:var(--n3);}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#FF7A45,#FFA940);color:#fff;display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);font-weight:var(--fw-semibold);}
+.user-chip .uname{font-size:var(--fs-base);color:var(--n10);}
+.caret{color:var(--n7);}
+
+/* Body */
+.body{flex:1;display:flex;min-height:0;}
+
+/* Sider */
+.sider{width:var(--sider-width);background:var(--sider-bg);flex-shrink:0;display:flex;flex-direction:column;padding:var(--s2) 0;}
+.menu{display:flex;flex-direction:column;gap:2px;padding:0 var(--s2);}
+.menu-group-title{font-size:var(--fs-sm);color:rgba(255,255,255,.35);padding:var(--s4) var(--s4) var(--s2);letter-spacing:.04em;}
+.menu-item{display:flex;align-items:center;gap:var(--s3);height:40px;padding:0 var(--s4);border-radius:var(--r-base);color:rgba(255,255,255,.85);font-size:var(--fs-base);cursor:pointer;transition:all .2s;position:relative;}
+.menu-item .m-icon{width:16px;height:16px;flex-shrink:0;color:rgba(255,255,255,.75);}
+.menu-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+.menu-item:hover .m-icon{color:#fff;}
+.menu-item.active{background:var(--c-primary);color:#fff;box-shadow:0 2px 8px rgba(22,119,255,.35);}
+.menu-item.active .m-icon{color:#fff;}
+.menu-item .count{margin-left:auto;font-size:var(--fs-sm);background:var(--c-error);color:#fff;border-radius:10px;padding:0 6px;height:18px;display:flex;align-items:center;line-height:1;}
+
+/* Content */
+.content{flex:1;background:var(--n3);padding:var(--s6);display:flex;flex-direction:column;min-width:0;}
+.content-inner{flex:1;display:flex;align-items:center;justify-content:center;}
+
+/* Error card */
+.error-card{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:var(--s12) var(--s8);max-width:640px;width:100%;text-align:center;border:1px solid #f0f0f0;}
+.illus{display:flex;justify-content:center;margin-bottom:var(--s4);}
+.illus svg{display:block;}
+.err-code{font-size:120px;font-weight:var(--fw-semibold);color:var(--c-warning);line-height:1;letter-spacing:-.04em;font-family:var(--ff-app);}
+.err-title{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);color:var(--n10);margin-top:var(--s3);}
+.err-desc{font-size:var(--fs-base);color:var(--n7);margin-top:var(--s2);max-width:440px;margin-left:auto;margin-right:auto;line-height:1.7;}
+.err-desc strong{color:var(--n10);font-weight:var(--fw-semibold);}
+
+/* schedule card */
+.schedule{margin-top:var(--s6);background:var(--n2);border:1px solid var(--n3);border-radius:var(--r-card);padding:var(--s4) var(--s6);display:flex;align-items:center;justify-content:center;gap:var(--s6);}
+.schedule-item{display:flex;flex-direction:column;align-items:center;gap:var(--s1);}
+.schedule-item .lbl{font-size:var(--fs-sm);color:var(--n7);}
+.schedule-item .val{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--n10);font-variant-numeric:tabular-nums;}
+.schedule-item .val.warn{color:var(--c-warning);}
+.schedule-arrow{color:var(--n5);}
+.schedule-progress{flex:1;max-width:200px;height:6px;background:var(--n3);border-radius:3px;overflow:hidden;}
+.schedule-progress .bar{height:100%;width:42%;background:linear-gradient(90deg,#FAAD14,#FFC53D);border-radius:3px;animation:fill 2s cubic-bezier(.2,0,0,1) both;}
+.err-actions{display:flex;justify-content:center;gap:var(--s3);margin-top:var(--s8);}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);height:36px;padding:0 var(--s4);border-radius:var(--r-base);font-size:var(--fs-base);font-weight:var(--fw-normal);line-height:1;transition:all .2s;border:1px solid transparent;white-space:nowrap;}
+.btn .b-icon{width:14px;height:14px;}
+.btn-primary{background:var(--c-primary);color:#fff;border-color:var(--c-primary);}
+.btn-primary:hover{background:#4096FF;border-color:#4096FF;}
+.btn-primary:active{background:#0958d9;border-color:#0958d9;}
+.btn-default{background:var(--n1);color:var(--n10);border-color:var(--n5);}
+.btn-default:hover{border-color:var(--c-primary);color:var(--c-primary);}
+.btn-default:active{border-color:#0958d9;color:#0958d9;}
+
+/* Footer */
+.footer{height:32px;background:var(--n1);border-top:1px solid #f0f0f0;display:flex;align-items:center;justify-content:center;gap:var(--s4);font-size:var(--fs-sm);color:var(--n7);flex-shrink:0;}
+.footer a{color:var(--n7);}
+.footer a:hover{color:var(--c-primary);}
+.footer .dot{color:var(--n5);}
+
+/* animations */
+@keyframes rise{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{from{transform:rotate(0);}to{transform:rotate(360deg);}}
+@keyframes swing{0%,100%{transform:rotate(-12deg);}50%{transform:rotate(12deg);}}
+@keyframes fill{from{width:0;}to{width:42%;}}
+.error-card{animation:rise .4s cubic-bezier(.2,0,0,1) both;}
+.illus{animation:rise .5s cubic-bezier(0,0,0,1) both;}
+.err-code{animation:rise .5s .08s cubic-bezier(0,0,0,1) both;}
+.err-title{animation:rise .5s .16s cubic-bezier(0,0,0,1) both;}
+.err-desc{animation:rise .5s .22s cubic-bezier(0,0,0,1) both;}
+.schedule{animation:rise .5s .3s cubic-bezier(0,0,0,1) both;}
+.err-actions{animation:rise .5s .38s cubic-bezier(0,0,0,1) both;}
+.gear-m{transform-origin:104px 100px;animation:spin 8s linear infinite;}
+.wrench{transform-origin:96px 78px;animation:swing 2.6s ease-in-out infinite;}
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-logo">
+      <div class="logo-mark">L</div>
+      <div class="logo-text">
+        <span class="brand">Leno</span>
+        <span class="sub">商家管理后台</span>
+      </div>
+    </div>
+    <nav class="breadcrumb">
+      <a href="#">商家管理后台</a>
+      <span class="sep">/</span>
+      <span class="current">错误页</span>
+      <span class="sep">/</span>
+      <span class="current">系统维护中</span>
+    </nav>
+    <div class="header-right">
+      <button class="icon-btn" title="待发货订单">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13v10H3z"/><path d="M16 10h3.5L22 13v4h-6"/><circle cx="7" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg>
+        <span class="badge-dot">8</span>
+      </button>
+      <button class="icon-btn" title="通知中心">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+        <span class="badge-dot">3</span>
+      </button>
+      <div class="user-chip">
+        <div class="avatar">陈</div>
+        <span class="uname">陈思琪</span>
+        <span class="caret">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="body">
+    <!-- Sider -->
+    <aside class="sider">
+      <nav class="menu">
+        <div class="menu-group-title">经营</div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+          <span>工作台</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v11H3z"/><path d="M9 13h6"/></svg>
+          <span>商品管理</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13v10H3z"/><path d="M16 10h3.5L22 13v4h-6"/><circle cx="7" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg>
+          <span>订单履约</span>
+          <span class="count">8</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 9 6 9 18"/><polyline points="21 18 15 18 15 6"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
+          <span>售后处理</span>
+          <span class="count">3</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.6 6.1 20.2l1.2-6.6L2.5 9l6.6-.9z"/></svg>
+          <span>评价管理</span>
+        </div>
+
+        <div class="menu-group-title">配置</div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="1"/><path d="M3 8l3-5h12l3 5"/><path d="M9 13h6"/></svg>
+          <span>物流管理</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+          <span>店铺设置</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 8 12 3 17 8"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          <span>报表导出</span>
+        </div>
+        <div class="menu-item">
+          <svg class="m-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+          <span>个人中心</span>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Content -->
+    <main class="content">
+      <div class="content-inner">
+        <div class="error-card">
+          <div class="illus">
+            <!-- 系统维护中 扳手 + 工具箱 + 齿轮插画，Ant Design Empty 风格 -->
+            <svg width="210" height="160" viewBox="0 0 210 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- 背景虚线圆 -->
+              <circle cx="105" cy="82" r="64" fill="#F5F5F5" opacity="0.6"/>
+              <circle cx="105" cy="82" r="64" stroke="#E8E8E8" stroke-width="1" stroke-dasharray="3 4"/>
+              <!-- 工具箱主体 -->
+              <rect x="58" y="78" width="78" height="44" rx="6" fill="#FFFFFF" stroke="#D9D9D9" stroke-width="1.6"/>
+              <rect x="58" y="78" width="78" height="44" rx="6" fill="#FAAD14" opacity="0.05"/>
+              <!-- 工具箱提手 -->
+              <path d="M84 78 V70 C84 66 86 64 90 64 H104 C108 64 110 66 110 70 V78" fill="none" stroke="#D9D9D9" stroke-width="1.6" stroke-linejoin="round"/>
+              <!-- 工具箱分隔 -->
+              <line x1="97" y1="78" x2="97" y2="122" stroke="#E8E8E8" stroke-width="1.4"/>
+              <line x1="58" y1="96" x2="136" y2="96" stroke="#E8E8E8" stroke-width="1.4"/>
+              <!-- 锁扣 -->
+              <rect x="93" y="92" width="8" height="6" rx="1.5" fill="#FFFFFF" stroke="#BFBFBF" stroke-width="1.2"/>
+              <!-- 齿轮（在工具箱内） -->
+              <g class="gear-m">
+                <path d="M104 100 l2.4-1 .8 1.8 2-.2 .4 2 2 .6-.4 2 1.6 1.4-1.4 1.6 1.4 1.6-1.6 1.4 .4 2-2 .6-.4 2-2-.2-.8 1.8-2.4-1-1.8 1.4-1.8-1.4z" fill="#FFFFFF" stroke="#FAAD14" stroke-width="1.5" stroke-linejoin="round"/>
+                <circle cx="104" cy="100" r="4.2" fill="#FFFFFF" stroke="#FAAD14" stroke-width="1.5"/>
+              </g>
+              <!-- 扳手（外露，摆动） -->
+              <g class="wrench">
+                <path d="M132 56 q-6 -2 -10 2 q-4 4 -2 10 l6 6 l4 -4 l-6 -6 q-1 -3 1.5 -4.5 q2.5 -1.5 4.5 .5 l5 -5 q-1 -2 -3 -2z" fill="#FFFFFF" stroke="#FAAD14" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M132 56 q-6 -2 -10 2 q-4 4 -2 10 l6 6 l4 -4 l-6 -6 q-1 -3 1.5 -4.5 q2.5 -1.5 4.5 .5 l5 -5 q-1 -2 -3 -2z" fill="#FAAD14" opacity="0.06"/>
+              </g>
+              <!-- 螺丝钉装饰 -->
+              <path d="M148 116 l4 -4 l3 3 l-4 4 l3 3 l-3 3 l-3 -3 l-3 3 l-3 -3 l3 -3 l-3 -3 l3 -3 z" fill="#FFFFFF" stroke="#BFBFBF" stroke-width="1.2" stroke-linejoin="round" opacity="0.8"/>
+              <!-- 装饰小点 -->
+              <circle cx="46" cy="52" r="2.4" fill="#FAAD14"/>
+              <circle cx="168" cy="58" r="2" fill="#1677FF"/>
+              <circle cx="44" cy="120" r="1.8" fill="#D9D9D9"/>
+              <circle cx="172" cy="120" r="2.2" fill="#52C41A"/>
+              <!-- 装饰小十字 -->
+              <path d="M160 44h4M162 42v4" stroke="#BFBFBF" stroke-width="1.2" stroke-linecap="round"/>
+              <path d="M52 138h4M54 136v4" stroke="#BFBFBF" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="err-code">维护中</div>
+          <h1 class="err-title">系统维护中</h1>
+          <p class="err-desc">平台正在升级维护，预计 <strong>2026-07-26 22:00</strong> 恢复。维护期间商品发布与订单处理暂不可用，给您带来的不便敬请谅解。</p>
+
+          <div class="schedule">
+            <div class="schedule-item">
+              <span class="lbl">开始时间</span>
+              <span class="val">07-26 20:00</span>
+            </div>
+            <div class="schedule-progress"><div class="bar"></div></div>
+            <div class="schedule-item">
+              <span class="lbl">预计恢复</span>
+              <span class="val warn">07-26 22:00</span>
+            </div>
+          </div>
+
+          <div class="err-actions">
+            <button class="btn btn-primary">
+              <svg class="b-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M4 4l2 16h12l2-16"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+              查看公告
+            </button>
+            <button class="btn btn-default">
+              <svg class="b-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              刷新重试
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>© 2026 Leno 商家管理后台</span>
+    <span class="dot">·</span>
+    <a href="#">帮助中心</a>
+    <span class="dot">·</span>
+    <a href="#">商家服务协议</a>
+    <span class="dot">·</span>
+    <span>v4.2.1</span>
+  </footer>
+</div>
+</body>
+</html>
