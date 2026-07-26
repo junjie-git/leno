@@ -20,6 +20,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 
 namespace Leno.Identity.Infrastructure.Dependencies;
 
@@ -166,6 +167,36 @@ public static class ServiceCollectionExtensions
         //     c) OAuthClientAppService / UserInternalAppService（无 HttpClient 依赖，直接注册）
         services.AddScoped<IOAuthClientAppService, OAuthClientAppService>();
         services.AddScoped<IUserInternalAppService, UserInternalAppService>();
+
+        // 7.3 Task A3 补齐：OAuth2 配置 + Redis 临时存储实现 + 6 个应用服务注册到 DI 容器（供 Controller 注入）
+        //     a) OAuth2Options 配置（OAuthService 依赖 IOptions<OAuth2Options>，承载 redirectUri 白名单等安全配置）
+        services.Configure<OAuth2Options>(configuration.GetSection("OAuth2"));
+
+        //     b) Redis 临时存储实现：OAuthStateStore（CSRF state）+ PasswordResetTokenStore（密码重置令牌）
+        //        复用共享内核 Leno.Infrastructure 注册的 IConnectionMultiplexer 单例（Lazy 初始化，避免启动阻塞）
+        services.AddScoped<IOAuthStateStore>(sp =>
+        {
+            var multiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
+            var logger = sp.GetRequiredService<ILogger<RedisOAuthStateStore>>();
+            return new RedisOAuthStateStore(multiplexer, logger);
+        });
+        services.AddScoped<IPasswordResetTokenStore>(sp =>
+        {
+            var multiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
+            var logger = sp.GetRequiredService<ILogger<RedisPasswordResetTokenStore>>();
+            return new RedisPasswordResetTokenStore(multiplexer, logger);
+        });
+
+        //     c) Task A2 新增的 6 个应用服务注册（供 A3 AuthController / UsersController / AccountController 注入）
+        //        - AuthAppService 直接依赖具体类 AuthenticationAppService（已通过 IAuthenticationAppService 注册解析）
+        //        - OAuthService 依赖 IOAuthStateStore / OAuth2Options / AuthenticationAppService（均已注册）
+        //        - PasswordService 依赖 IPasswordResetTokenStore（已注册）
+        services.AddScoped<IAuthAppService, AuthAppService>();
+        services.AddScoped<IUserProfileAppService, UserProfileAppService>();
+        services.AddScoped<ITwoFactorService, TwoFactorService>();
+        services.AddScoped<IPasswordService, PasswordService>();
+        services.AddScoped<IExternalLoginService, ExternalLoginService>();
+        services.AddScoped<IOAuthService, OAuthService>();
 
         // 8. FluentValidation 校验器自动扫描
         services.AddValidatorsFromAssembly(typeof(IAuthenticationAppService).Assembly);

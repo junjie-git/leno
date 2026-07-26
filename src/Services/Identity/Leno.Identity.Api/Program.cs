@@ -45,3 +45,8 @@ app.UseLenoPipeline();
 // 启动时执行 EF Core 迁移（带 Redis 分布式锁，避免多实例并发冲突）
 await app.Services.MigrateWithLockAsync<IdentityDbContext>();
 app.Run();
+
+/// <summary>
+/// Program 类部分声明，供 WebApplicationFactory&lt;Program&gt; 在集成测试中引用。
+/// </summary>
+public partial class Program;
