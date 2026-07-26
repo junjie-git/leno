@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>双因子验证 - Leno 买家端</title>
+<style>
+  :root {
+    --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+    --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+    --r-base:6px; --r-card:8px; --r-lg:12px;
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+    --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+    --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+    --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+    --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { font-family: var(--ff-app); color: var(--n10); background:#E5E5E5; -webkit-font-smoothing:antialiased; }
+  body { display:flex; justify-content:center; min-height:100vh; }
+  .phone {
+    width:375px; min-height:812px; background:var(--n2); position:relative;
+    box-shadow:0 12px 48px rgba(0,0,0,.15); overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  /* 状态栏 */
+  .status-bar {
+    height:44px; padding:0 24px; display:flex; align-items:center; justify-content:space-between;
+    font-size:15px; font-weight:var(--fw-semibold); color:var(--n10); flex-shrink:0; background:var(--n1);
+  }
+  .status-bar .right { display:flex; align-items:center; gap:6px; }
+  .status-bar svg { display:block; }
+  /* NavBar */
+  .navbar {
+    height:46px; background:var(--n1); display:flex; align-items:center; padding:0 12px;
+    border-bottom:1px solid var(--n3); flex-shrink:0; position:relative;
+  }
+  .navbar-back {
+    width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+    color:var(--n10); cursor:pointer; border:none; background:none;
+  }
+  .navbar-back:active { opacity:.6; }
+  .navbar-title {
+    position:absolute; left:50%; transform:translateX(-50%);
+    font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10);
+  }
+  /* 内容 */
+  .content { flex:1; overflow-y:auto; padding:0 24px; display:flex; flex-direction:column; }
+  /* 提示区 */
+  .hero {
+    display:flex; flex-direction:column; align-items:center; padding-top:48px; padding-bottom:32px;
+  }
+  .shield-wrap {
+    width:72px; height:72px; border-radius:50%; background:#E6F4FF;
+    display:flex; align-items:center; justify-content:center; color:var(--c-primary);
+    margin-bottom:20px;
+  }
+  .hero-title {
+    font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); margin-bottom:8px;
+  }
+  .hero-desc {
+    font-size:var(--fs-base); color:var(--n9); text-align:center; line-height:1.6; max-width:260px;
+  }
+  .account-tag {
+    margin-top:12px; display:inline-flex; align-items:center; gap:6px;
+    background:var(--n3); border-radius:var(--r-base); padding:4px 10px;
+    font-size:var(--fs-sm); color:var(--n9);
+  }
+  .account-tag svg { width:14px; height:14px; color:var(--n7); }
+  /* 验证码输入 */
+  .code-section { margin-top:8px; }
+  .code-input-row {
+    display:flex; justify-content:space-between; gap:8px; position:relative;
+  }
+  .code-cell {
+    width:44px; height:56px; border:1.5px solid var(--n5); border-radius:var(--r-card);
+    background:var(--n1); display:flex; align-items:center; justify-content:center;
+    font-size:24px; font-weight:var(--fw-semibold); color:var(--n10);
+    font-family:var(--ff-app); cursor:pointer; transition:all .15s; position:relative;
+  }
+  .code-cell.filled { border-color:var(--c-primary); background:#F0F7FF; }
+  .code-cell.active {
+    border-color:var(--c-primary); border-width:2px;
+    box-shadow:0 0 0 3px rgba(22,119,255,.12);
+  }
+  .code-cell.error {
+    border-color:var(--c-error); background:#FFF1F0;
+    animation:shake .4s;
+  }
+  @keyframes shake {
+    0%,100% { transform:translateX(0); }
+    25% { transform:translateX(-4px); }
+    75% { transform:translateX(4px); }
+  }
+  .code-cell.active::after {
+    content:""; position:absolute; width:2px; height:24px; background:var(--c-primary);
+    animation:blink 1s infinite;
+  }
+  @keyframes blink { 0%,50% { opacity:1; } 51%,100% { opacity:0; } }
+  .code-cell.filled::after { display:none; }
+  .hidden-input {
+    position:absolute; opacity:0; width:1px; height:1px; left:-9999px;
+  }
+  /* 倒计时与重发 */
+  .resend-row {
+    margin-top:24px; text-align:center; font-size:var(--fs-base); color:var(--n7);
+    display:flex; align-items:center; justify-content:center; gap:4px;
+  }
+  .resend-btn {
+    background:none; border:none; color:var(--c-primary); font-size:var(--fs-base);
+    font-family:inherit; cursor:pointer; font-weight:var(--fw-medium); padding:4px 8px;
+  }
+  .resend-btn:disabled { color:var(--n7); cursor:not-allowed; }
+  .countdown-num { color:var(--c-error); font-weight:var(--fw-medium); }
+  /* 验证按钮 */
+  .verify-btn {
+    width:100%; height:48px; border:none; border-radius:var(--r-card);
+    background:var(--c-primary); color:#fff; font-size:var(--fs-lg);
+    font-weight:var(--fw-semibold); font-family:inherit; cursor:pointer;
+    margin-top:32px; display:flex; align-items:center; justify-content:center; gap:8px;
+    box-shadow:0 4px 12px rgba(22,119,255,.3); transition:opacity .2s;
+  }
+  .verify-btn:active { opacity:.85; }
+  .verify-btn:disabled { background:var(--n5); color:var(--n7); box-shadow:none; cursor:not-allowed; }
+  .verify-btn.loading { background:#4096FF; }
+  .spinner {
+    width:18px; height:18px; border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  /* 备用方式 */
+  .alt-options {
+    margin-top:24px; display:flex; flex-direction:column; gap:12px;
+  }
+  .alt-item {
+    display:flex; align-items:center; gap:10px; padding:14px 16px;
+    background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card);
+    cursor:pointer;
+  }
+  .alt-item:active { opacity:.8; }
+  .alt-icon {
+    width:36px; height:36px; border-radius:var(--r-card); background:var(--n3);
+    display:flex; align-items:center; justify-content:center; color:var(--n9); flex-shrink:0;
+  }
+  .alt-info { flex:1; }
+  .alt-title { font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-medium); }
+  .alt-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:2px; }
+  .alt-arrow { color:var(--n7); flex-shrink:0; }
+  /* 安全提示 */
+  .security-tip {
+    margin-top:auto; margin-bottom:24px; padding:12px; background:#FFF7E6; border-radius:var(--r-card);
+    display:flex; gap:8px; align-items:flex-start;
+  }
+  .security-tip svg { color:var(--c-warning); flex-shrink:0; margin-top:1px; }
+  .security-tip-text { font-size:var(--fs-sm); color:var(--n9); line-height:1.6; }
+  /* Toast */
+  .toast-mask {
+    position:fixed; inset:0; display:none; align-items:flex-start; justify-content:center;
+    z-index:999; pointer-events:none;
+  }
+  .toast-mask.show { display:flex; }
+  .toast {
+    margin-top:120px; background:rgba(0,0,0,.85); border-radius:var(--r-card);
+    padding:20px 24px; display:flex; flex-direction:column; align-items:center; gap:10px;
+    min-width:140px; animation:toastIn .25s ease;
+  }
+  @keyframes toastIn { from { opacity:0; transform:translateY(-12px);} to {opacity:1; transform:translateY(0);} }
+  .toast svg { width:36px; height:36px; }
+  .toast-text { color:#fff; font-size:var(--fs-base); text-align:center; }
+  /* 状态切换器 */
+  .state-switcher {
+    position:fixed; right:16px; bottom:24px; z-index:1000;
+    background:#fff; border-radius:var(--r-lg); box-shadow:0 4px 20px rgba(0,0,0,.15);
+    padding:8px; display:flex; flex-direction:column; gap:6px;
+  }
+  .state-switcher-title { font-size:11px; color:var(--n7); padding:2px 6px; }
+  .state-btn {
+    border:1px solid var(--n5); background:var(--n1); border-radius:var(--r-base);
+    padding:6px 10px; font-size:12px; cursor:pointer; font-family:inherit; color:var(--n9);
+  }
+  .state-btn.active { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
+</style>
+</head>
+<body>
+<div class="phone">
+  <!-- 状态栏 -->
+  <div class="status-bar">
+    <span>9:41</span>
+    <span class="right">
+      <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><path d="M1 9h2v2H1zm4-2h2v4H5zm4-2h2v6H9zm4-2h2v8h-2z"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor"><path d="M8 2.5c2 0 3.8.8 5.2 2L8 0 2.8 4.5C4.2 3.3 6 2.5 8 2.5z" opacity=".4"/><path d="M8 5.5c1.2 0 2.3.5 3.1 1.3L8 5.5 4.9 6.8C5.7 6 6.8 5.5 8 5.5z"/><path d="M8 8.5l-1.6-1.6C6.8 6.5 7.4 6.3 8 6.3s1.2.2 1.6.6L8 8.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="currentColor" stroke-opacity=".4"/><rect x="3" y="3" width="14" height="6" rx="1" fill="currentColor"/><rect x="22.5" y="4" width="1.5" height="4" rx=".5" fill="currentColor" fill-opacity=".4"/></svg>
+    </span>
+  </div>
+
+  <!-- NavBar -->
+  <div class="navbar">
+    <button class="navbar-back" type="button" aria-label="返回">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </button>
+    <div class="navbar-title">双因子验证</div>
+  </div>
+
+  <!-- 内容 -->
+  <div class="content">
+    <!-- 提示区 -->
+    <div class="hero">
+      <div class="shield-wrap">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>
+      </div>
+      <div class="hero-title">身份验证</div>
+      <div class="hero-desc">请输入身份验证器中的 6 位动态码，完成二次验证以保障账号安全</div>
+      <div class="account-tag">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+        <span>138****8888</span>
+      </div>
+    </div>
+
+    <!-- 验证码输入 -->
+    <div class="code-section">
+      <div class="code-input-row" id="codeRow">
+        <div class="code-cell active" data-index="0"></div>
+        <div class="code-cell" data-index="1"></div>
+        <div class="code-cell" data-index="2"></div>
+        <div class="code-cell" data-index="3"></div>
+        <div class="code-cell" data-index="4"></div>
+        <div class="code-cell" data-index="5"></div>
+        <input type="tel" class="hidden-input" id="hiddenInput" maxlength="6" inputmode="numeric" aria-label="6位验证码" autocomplete="off">
+      </div>
+
+      <!-- 倒计时重发 -->
+      <div class="resend-row" id="resendRow">
+        <span>未收到验证码？</span>
+        <button class="resend-btn" id="resendBtn" type="button" disabled>
+          <span id="resendText"><span class="countdown-num">30</span>s 后可重新发送</span>
+        </button>
+      </div>
+
+      <!-- 验证按钮 -->
+      <button class="verify-btn" id="verifyBtn" type="button" disabled>
+        <span>验证</span>
+      </button>
+
+      <!-- 备用方式 -->
+      <div class="alt-options">
+        <div class="alt-item" id="altSms">
+          <div class="alt-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="alt-info">
+            <div class="alt-title">通过短信验证码验证</div>
+            <div class="alt-desc">验证码发送至 138****8888</div>
+          </div>
+          <svg class="alt-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="alt-item" id="altRecovery">
+          <div class="alt-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 5-4 9-9 9s-9-4-9-9 4-9 9-9c2 0 4 .6 5.5 1.7"/></svg>
+          </div>
+          <div class="alt-info">
+            <div class="alt-title">使用恢复码登录</div>
+            <div class="alt-desc">输入启用双因子时保存的恢复码</div>
+          </div>
+          <svg class="alt-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- 安全提示 -->
+    <div class="security-tip">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="8"/></svg>
+      <div class="security-tip-text">动态验证码每 30 秒更新一次，请勿向他人泄露。如非本人操作，请立即修改密码。</div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-mask" id="toastMask">
+  <div class="toast" id="toastBox">
+    <svg id="toastIcon" viewBox="0 0 48 48"></svg>
+    <div class="toast-text" id="toastText">验证成功</div>
+  </div>
+</div>
+
+<!-- 状态切换器 -->
+<div class="state-switcher">
+  <div class="state-switcher-title">状态预览</div>
+  <button class="state-btn active" data-state="default">默认</button>
+  <button class="state-btn" data-state="filled">已填写</button>
+  <button class="state-btn" data-state="countdown">倒计时</button>
+  <button class="state-btn" data-state="error">验证失败</button>
+  <button class="state-btn" data-state="loading">验证中</button>
+  <button class="state-btn" data-state="success">验证成功</button>
+</div>
+
+<script>
+  var cells = document.querySelectorAll('.code-cell');
+  var hiddenInput = document.getElementById('hiddenInput');
+  var codeRow = document.getElementById('codeRow');
+  var verifyBtn = document.getElementById('verifyBtn');
+  var resendBtn = document.getElementById('resendBtn');
+  var resendText = document.getElementById('resendText');
+  var values = ['','','','','',''];
+  var activeIndex = 0;
+
+  function renderCells() {
+    cells.forEach(function(cell, i){
+      cell.textContent = values[i] || '';
+      cell.classList.toggle('filled', !!values[i]);
+      cell.classList.toggle('active', i === activeIndex);
+    });
+    verifyBtn.disabled = values.join('').length < 6;
+  }
+
+  function setActive(i) {
+    activeIndex = Math.max(0, Math.min(5, i));
+    renderCells();
+  }
+
+  cells.forEach(function(cell, i){
+    cell.addEventListener('click', function(){
+      hiddenInput.focus();
+      setActive(i);
+    });
+  });
+
+  codeRow.addEventListener('click', function(e){
+    if (e.target === codeRow) { hiddenInput.focus(); setActive(5); }
+  });
+  hiddenInput.addEventListener('focus', function(){ setActive(activeIndex); });
+
+  hiddenInput.addEventListener('input', function(e){
+    var raw = e.target.value.replace(/\D/g, '').slice(0, 6);
+    e.target.value = raw;
+    for (var i=0; i<6; i++) {
+      values[i] = raw[i] || '';
+    }
+    activeIndex = Math.min(raw.length, 5);
+    renderCells();
+    // 输满自动提交
+    if (raw.length === 6) {
+      activeIndex = -1; renderCells();
+      setTimeout(doVerify, 200);
+    }
+  });
+
+  hiddenInput.addEventListener('keydown', function(e){
+    if (e.key === 'Backspace' && !values[activeIndex] && activeIndex > 0) {
+      var raw = e.target.value;
+      if (raw.length <= activeIndex) {
+        activeIndex--;
+        renderCells();
+      }
+    }
+    if (e.key === 'Enter' && values.join('').length === 6) {
+      doVerify();
+    }
+  });
+
+  function clearError() {
+    cells.forEach(function(cell){ cell.classList.remove('error'); });
+  }
+  function showError() {
+    cells.forEach(function(cell){ cell.classList.add('error'); });
+    setTimeout(function(){
+      clearError();
+      values = ['','','','','',''];
+      hiddenInput.value = '';
+      activeIndex = 0;
+      renderCells();
+      hiddenInput.focus();
+    }, 600);
+  }
+
+  function setVerifyLoading(loading) {
+    if (loading) {
+      verifyBtn.disabled = true;
+      verifyBtn.classList.add('loading');
+      verifyBtn.innerHTML = '<span class="spinner"></span><span>验证中...</span>';
+    } else {
+      verifyBtn.classList.remove('loading');
+      verifyBtn.innerHTML = '<span>验证</span>';
+      verifyBtn.disabled = values.join('').length < 6;
+    }
+  }
+
+  function doVerify() {
+    if (values.join('').length < 6) return;
+    setVerifyLoading(true);
+    setTimeout(function(){
+      setVerifyLoading(false);
+      showError();
+      showToast('验证码错误', 'fail');
+    }, 1500);
+  }
+  verifyBtn.addEventListener('click', doVerify);
+
+  // 倒计时
+  var countdown = 30, timer = null;
+  function startCountdown() {
+    countdown = 30;
+    resendBtn.disabled = true;
+    resendText.innerHTML = '<span class="countdown-num">' + countdown + '</span>s 后可重新发送';
+    timer = setInterval(function(){
+      countdown--;
+      if (countdown <= 0) {
+        clearInterval(timer);
+        resendBtn.disabled = false;
+        resendText.innerHTML = '重新发送验证码';
+      } else {
+        resendText.innerHTML = '<span class="countdown-num">' + countdown + '</span>s 后可重新发送';
+      }
+    }, 1000);
+  }
+  startCountdown();
+  resendBtn.addEventListener('click', function(){
+    if (resendBtn.disabled) return;
+    startCountdown();
+    showToast('验证码已重新发送', 'success');
+  });
+
+  // Toast
+  var successIcon = '<circle cx="24" cy="24" r="22" fill="none" stroke="#52C41A" stroke-width="3"/><polyline points="16 25 21 30 33 18" fill="none" stroke="#52C41A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>';
+  var failIcon = '<circle cx="24" cy="24" r="22" fill="none" stroke="#FF4D4F" stroke-width="3"/><line x1="24" y1="14" x2="24" y2="28" stroke="#FF4D4F" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="34" r="2.5" fill="#FF4D4F"/>';
+  var toastMask = document.getElementById('toastMask');
+  var toastBox = document.getElementById('toastBox');
+  var toastIcon = document.getElementById('toastIcon');
+  var toastText = document.getElementById('toastText');
+  function showToast(text, type) {
+    toastText.textContent = text;
+    toastIcon.innerHTML = type === 'success' ? successIcon : failIcon;
+    toastBox.className = 'toast ' + (type || '');
+    toastMask.classList.add('show');
+    setTimeout(function(){ toastMask.classList.remove('show'); }, 2200);
+  }
+
+  // 备用方式
+  document.getElementById('altSms').addEventListener('click', function(){
+    showToast('短信验证码已发送', 'success');
+  });
+  document.getElementById('altRecovery').addEventListener('click', function(){
+    showToast('请输入恢复码', 'fail');
+  });
+
+  // 状态预览
+  var stateBtns = document.querySelectorAll('.state-btn');
+  stateBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      stateBtns.forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var s = btn.dataset.state;
+      setVerifyLoading(false);
+      toastMask.classList.remove('show');
+      clearError();
+      values = ['','','','','',''];
+      hiddenInput.value = '';
+      if (timer) { clearInterval(timer); }
+
+      if (s === 'default') {
+        activeIndex = 0; renderCells(); startCountdown();
+      } else if (s === 'filled') {
+        values = ['8','3','6','2','4','1']; activeIndex = -1; renderCells();
+        startCountdown();
+      } else if (s === 'countdown') {
+        activeIndex = 0; renderCells();
+        countdown = 15; resendBtn.disabled = true;
+        resendText.innerHTML = '<span class="countdown-num">15</span>s 后可重新发送';
+        timer = setInterval(function(){
+          countdown--;
+          if (countdown <= 0) {
+            clearInterval(timer); resendBtn.disabled = false;
+            resendText.innerHTML = '重新发送验证码';
+          } else {
+            resendText.innerHTML = '<span class="countdown-num">' + countdown + '</span>s 后可重新发送';
+          }
+        }, 1000);
+      } else if (s === 'error') {
+        values = ['1','2','3','4','5','6']; activeIndex = -1; renderCells();
+        setTimeout(function(){ showError(); showToast('验证码错误','fail'); }, 300);
+        startCountdown();
+      } else if (s === 'loading') {
+        values = ['8','3','6','2','4','1']; activeIndex = -1; renderCells();
+        setVerifyLoading(true);
+        startCountdown();
+      } else if (s === 'success') {
+        values = ['8','3','6','2','4','1']; activeIndex = -1; renderCells();
+        showToast('验证成功','success');
+        startCountdown();
+      }
+    });
+  });
+</script>
+</body>
+</html>

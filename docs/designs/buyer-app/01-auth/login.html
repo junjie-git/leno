@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 - Leno 买家端</title>
+<style>
+  :root {
+    --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+    --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+    --r-base:6px; --r-card:8px; --r-lg:12px;
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+    --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+    --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+    --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+    --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { font-family: var(--ff-app); color: var(--n10); background:#E5E5E5; -webkit-font-smoothing:antialiased; }
+  body { display:flex; justify-content:center; min-height:100vh; }
+  .phone {
+    width:375px; min-height:812px; background:var(--n1); position:relative;
+    box-shadow:0 12px 48px rgba(0,0,0,.15); overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  /* 状态栏 */
+  .status-bar {
+    height:44px; padding:0 24px; display:flex; align-items:center; justify-content:space-between;
+    font-size:15px; font-weight:var(--fw-semibold); color:var(--n10); flex-shrink:0;
+  }
+  .status-bar .right { display:flex; align-items:center; gap:6px; }
+  .status-bar svg { display:block; }
+  /* 品牌区 */
+  .brand {
+    display:flex; flex-direction:column; align-items:center;
+    padding-top:64px; padding-bottom:40px;
+  }
+  .logo {
+    width:80px; height:80px; border-radius:16px;
+    background:linear-gradient(135deg,#1677FF 0%,#4096FF 100%);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:44px; font-weight:var(--fw-semibold);
+    box-shadow:0 8px 24px rgba(22,119,255,.35);
+    letter-spacing:-2px;
+  }
+  .brand-name {
+    margin-top:16px; font-size:var(--fs-2xl); font-weight:var(--fw-semibold);
+    color:var(--n10); letter-spacing:1px;
+  }
+  .brand-slogan {
+    margin-top:6px; font-size:var(--fs-sm); color:var(--n7); letter-spacing:2px;
+  }
+  /* 表单区 */
+  .form-area { padding:0 24px; flex:1; }
+  .field-group { display:flex; flex-direction:column; gap:12px; }
+  .field {
+    position:relative;
+  }
+  .field-input-wrap {
+    display:flex; align-items:center; height:48px;
+    background:var(--n2); border:1px solid var(--n5); border-radius:var(--r-card);
+    padding:0 12px; transition:border-color .2s, background .2s;
+  }
+  .field-input-wrap.focused { border-color:var(--c-primary); background:var(--n1); }
+  .field-input-wrap.error { border-color:var(--c-error); background:#FFF1F0; }
+  .field-icon {
+    width:20px; height:20px; color:var(--n7); flex-shrink:0; margin-right:10px;
+  }
+  .field-input-wrap.focused .field-icon { color:var(--c-primary); }
+  .field-input {
+    flex:1; border:none; outline:none; background:transparent;
+    font-size:var(--fs-lg); color:var(--n10); height:100%; font-family:inherit;
+  }
+  .field-input::placeholder { color:var(--n7); font-size:var(--fs-base); }
+  .field-action {
+    width:24px; height:24px; display:flex; align-items:center; justify-content:center;
+    color:var(--n7); cursor:pointer; flex-shrink:0; margin-left:8px;
+  }
+  .field-action:active { color:var(--n9); }
+  .field-error {
+    margin-top:6px; padding-left:4px; font-size:var(--fs-sm); color:var(--c-error);
+    display:none; align-items:center; gap:4px;
+  }
+  .field-error.show { display:flex; }
+  .field-error svg { width:14px; height:14px; flex-shrink:0; }
+  /* 登录按钮 */
+  .login-btn {
+    width:100%; height:48px; border:none; border-radius:var(--r-card);
+    background:var(--c-primary); color:#fff; font-size:var(--fs-lg);
+    font-weight:var(--fw-semibold); font-family:inherit; cursor:pointer;
+    margin-top:24px; display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:opacity .2s; box-shadow:0 4px 12px rgba(22,119,255,.3);
+  }
+  .login-btn:active { opacity:.85; }
+  .login-btn:disabled { opacity:.7; cursor:not-allowed; }
+  .login-btn.loading { background:#4096FF; }
+  .spinner {
+    width:18px; height:18px; border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  /* 辅助链接 */
+  .aux-links {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:16px; padding:0 4px;
+  }
+  .aux-link {
+    font-size:var(--fs-base); color:var(--c-primary); text-decoration:none;
+    background:none; border:none; cursor:pointer; font-family:inherit; padding:4px 0;
+  }
+  .aux-link:active { opacity:.7; }
+  /* 第三方登录 */
+  .oauth-section { padding:0 24px 48px; }
+  .divider {
+    display:flex; align-items:center; margin:40px 0 24px; color:var(--n7);
+    font-size:var(--fs-sm);
+  }
+  .divider::before, .divider::after {
+    content:""; flex:1; height:1px; background:var(--n3);
+  }
+  .divider span { padding:0 12px; }
+  .oauth-buttons {
+    display:flex; justify-content:center; gap:32px;
+  }
+  .oauth-btn {
+    width:48px; height:48px; border-radius:50%; border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .15s; font-family:inherit;
+  }
+  .oauth-btn:active { transform:scale(.92); }
+  .oauth-btn.wechat { background:#07C160; box-shadow:0 4px 12px rgba(7,193,96,.3); }
+  .oauth-btn.alipay { background:#1677FF; box-shadow:0 4px 12px rgba(22,119,255,.3); }
+  .oauth-btn svg { display:block; }
+  .oauth-label {
+    text-align:center; margin-top:32px; font-size:var(--fs-sm); color:var(--n7);
+    line-height:1.6;
+  }
+  .oauth-label a { color:var(--c-primary); text-decoration:none; }
+  /* Toast */
+  .toast-mask {
+    position:fixed; inset:0; display:none; align-items:flex-start; justify-content:center;
+    z-index:999; pointer-events:none;
+  }
+  .toast-mask.show { display:flex; }
+  .toast {
+    margin-top:120px; background:rgba(0,0,0,.85); border-radius:var(--r-card);
+    padding:20px 24px; display:flex; flex-direction:column; align-items:center; gap:10px;
+    min-width:140px; animation:toastIn .25s ease;
+  }
+  @keyframes toastIn { from { opacity:0; transform:translateY(-12px);} to {opacity:1; transform:translateY(0);} }
+  .toast svg { width:36px; height:36px; }
+  .toast-text { color:#fff; font-size:var(--fs-base); text-align:center; }
+  /* 状态切换器（设计稿预览辅助） */
+  .state-switcher {
+    position:fixed; right:16px; bottom:24px; z-index:1000;
+    background:#fff; border-radius:var(--r-lg); box-shadow:0 4px 20px rgba(0,0,0,.15);
+    padding:8px; display:flex; flex-direction:column; gap:6px;
+  }
+  .state-switcher-title { font-size:11px; color:var(--n7); padding:2px 6px; }
+  .state-btn {
+    border:1px solid var(--n5); background:var(--n1); border-radius:var(--r-base);
+    padding:6px 10px; font-size:12px; cursor:pointer; font-family:inherit; color:var(--n9);
+  }
+  .state-btn.active { background:var(--c-primary); color:#fff; border-color:var(--c-primary); }
+</style>
+</head>
+<body>
+<div class="phone">
+  <!-- 状态栏 -->
+  <div class="status-bar">
+    <span>9:41</span>
+    <span class="right">
+      <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><path d="M1 9h2v2H1zm4-2h2v4H5zm4-2h2v6H9zm4-2h2v8h-2z"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor"><path d="M8 2.5c2 0 3.8.8 5.2 2L8 0 2.8 4.5C4.2 3.3 6 2.5 8 2.5z" opacity=".4"/><path d="M8 5.5c1.2 0 2.3.5 3.1 1.3L8 5.5 4.9 6.8C5.7 6 6.8 5.5 8 5.5z"/><path d="M8 8.5l-1.6-1.6C6.8 6.5 7.4 6.3 8 6.3s1.2.2 1.6.6L8 8.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="currentColor" stroke-opacity=".4"/><rect x="3" y="3" width="14" height="6" rx="1" fill="currentColor"/><rect x="22.5" y="4" width="1.5" height="4" rx=".5" fill="currentColor" fill-opacity=".4"/></svg>
+    </span>
+  </div>
+
+  <!-- 品牌区 -->
+  <div class="brand">
+    <div class="logo">L</div>
+    <div class="brand-name">Leno</div>
+    <div class="brand-slogan">品质生活 · 一触即达</div>
+  </div>
+
+  <!-- 表单区 -->
+  <div class="form-area">
+    <div class="field-group">
+      <!-- 用户名 -->
+      <div class="field">
+        <div class="field-input-wrap" id="usernameWrap">
+          <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+          <input type="text" class="field-input" id="username" placeholder="用户名 / 手机号 / 邮箱" aria-label="用户名" autocomplete="off">
+        </div>
+        <div class="field-error" id="usernameError">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          <span>请输入用户名</span>
+        </div>
+      </div>
+      <!-- 密码 -->
+      <div class="field">
+        <div class="field-input-wrap" id="passwordWrap">
+          <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          <input type="password" class="field-input" id="password" placeholder="请输入密码" aria-label="密码" autocomplete="off">
+          <span class="field-action" id="pwdToggle" role="button" aria-label="切换密码可见">
+            <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
+        <div class="field-error" id="passwordError">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          <span>密码长度需 6-32 位</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="login-btn" id="loginBtn" type="button">
+      <span id="loginBtnText">登录</span>
+    </button>
+
+    <div class="aux-links">
+      <button class="aux-link" type="button">注册账号</button>
+      <button class="aux-link" type="button">忘记密码</button>
+    </div>
+  </div>
+
+  <!-- 第三方登录 -->
+  <div class="oauth-section">
+    <div class="divider"><span>其他登录方式</span></div>
+    <div class="oauth-buttons">
+      <button class="oauth-btn wechat" type="button" aria-label="微信登录">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="#fff"><path d="M11.5 4C5.7 4 1 7.9 1 12.7c0 2.6 1.4 4.9 3.7 6.5L3.5 23l4.2-2.3c1.2.3 2.5.5 3.8.5.4 0 .8 0 1.2-.1-.4-.9-.6-1.9-.6-2.9 0-3.8 3.4-6.9 7.9-7.3C18.7 6.8 15.5 4 11.5 4zM8.3 9.5c-.7 0-1.3-.6-1.3-1.3s.6-1.3 1.3-1.3 1.3.6 1.3 1.3-.6 1.3-1.3 1.3zm6.4 0c-.7 0-1.3-.6-1.3-1.3s.6-1.3 1.3-1.3 1.3.6 1.3 1.3-.6 1.3-1.3 1.3z"/><path d="M30 17.2c0-4-3.9-7.2-8.7-7.2s-8.7 3.2-8.7 7.2 3.9 7.2 8.7 7.2c1 0 1.9-.1 2.8-.4l3.3 1.8-.9-2.9c2-1.2 3.5-3.2 3.5-5.7zm-11.5-1.2c-.5 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1zm5.5 0c-.5 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1z"/></svg>
+      </button>
+      <button class="oauth-btn alipay" type="button" aria-label="支付宝登录">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="#fff"><path d="M27 5H5C3.3 5 2 6.3 2 8v16c0 1.7 1.3 3 3 3h18.5c-2.1-1.2-4.8-2.7-7.6-4.3-1.4 1.6-3.2 2.6-5.1 2.6-3.2 0-4.3-2.1-2.8-4.3.5-.8 1.4-1.4 2.6-1.8 1.5-.4 3.4-.2 5.1.2.5-.7.9-1.5 1.3-2.3H8.5v-1.4h6.3v-1.8H7.2v-1.4h7.6v-2c0-.4.2-.6.6-.6h3.2v2.6h7.7v1.4h-7.7v1.8h6.3v1.4h-8.7c-.3.8-.7 1.6-1.1 2.3 1.8.6 3.5 1.2 4.8 1.6C24.5 20.5 28 22 28 22c0 .7-.2 1.3-.5 1.8H27c1.7 0 3-1.3 3-3V8c0-1.7-1.3-3-3-3z"/><path d="M10.7 21.1c-.6 1.1.1 2 1.4 1.7 1.1-.3 2.1-1 2.9-2-1.4-.4-3-.5-4.3.3z"/></svg>
+      </button>
+    </div>
+    <div class="oauth-label">
+      登录即代表您已阅读并同意 <a>《用户协议》</a> 与 <a>《隐私政策》</a>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-mask" id="toastMask">
+  <div class="toast">
+    <svg viewBox="0 0 48 48" fill="#fff"><circle cx="24" cy="24" r="22" fill="none" stroke="#fff" stroke-width="3"/><line x1="24" y1="14" x2="24" y2="28" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="34" r="2.5"/></svg>
+    <div class="toast-text" id="toastText">账号或密码错误</div>
+  </div>
+</div>
+
+<!-- 状态切换器（设计稿预览辅助） -->
+<div class="state-switcher">
+  <div class="state-switcher-title">状态预览</div>
+  <button class="state-btn active" data-state="default">默认</button>
+  <button class="state-btn" data-state="error">校验错误</button>
+  <button class="state-btn" data-state="loading">登录中</button>
+  <button class="state-btn" data-state="fail">登录失败</button>
+</div>
+
+<script>
+  var username = document.getElementById('username');
+  var password = document.getElementById('password');
+  var usernameWrap = document.getElementById('usernameWrap');
+  var passwordWrap = document.getElementById('passwordWrap');
+  var usernameError = document.getElementById('usernameError');
+  var passwordError = document.getElementById('passwordError');
+  var loginBtn = document.getElementById('loginBtn');
+  var loginBtnText = document.getElementById('loginBtnText');
+  var pwdToggle = document.getElementById('pwdToggle');
+  var eyeIcon = document.getElementById('eyeIcon');
+  var toastMask = document.getElementById('toastMask');
+  var toastText = document.getElementById('toastText');
+
+  var eyeOpen = '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>';
+  var eyeClose = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-8-10-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+
+  // 焦点态
+  function bindFocus(input, wrap) {
+    input.addEventListener('focus', function(){ wrap.classList.add('focused'); });
+    input.addEventListener('blur', function(){ wrap.classList.remove('focused'); });
+    input.addEventListener('input', function(){
+      wrap.classList.remove('error');
+      var err = input === username ? usernameError : passwordError;
+      err.classList.remove('show');
+    });
+  }
+  bindFocus(username, usernameWrap);
+  bindFocus(password, passwordWrap);
+
+  // 密码明文切换
+  var pwdVisible = false;
+  pwdToggle.addEventListener('click', function(){
+    pwdVisible = !pwdVisible;
+    password.type = pwdVisible ? 'text' : 'password';
+    eyeIcon.innerHTML = pwdVisible ? eyeClose : eyeOpen;
+  });
+
+  function showError(wrap, err) { wrap.classList.add('error'); err.classList.add('show'); }
+  function clearErrors() {
+    usernameWrap.classList.remove('error'); usernameError.classList.remove('show');
+    passwordWrap.classList.remove('error'); passwordError.classList.remove('show');
+  }
+  function showToast(text) {
+    toastText.textContent = text;
+    toastMask.classList.add('show');
+    setTimeout(function(){ toastMask.classList.remove('show'); }, 2500);
+  }
+  function setLoading(loading) {
+    if (loading) {
+      loginBtn.disabled = true;
+      loginBtn.classList.add('loading');
+      loginBtn.innerHTML = '<span class="spinner"></span><span>登录中...</span>';
+    } else {
+      loginBtn.disabled = false;
+      loginBtn.classList.remove('loading');
+      loginBtn.innerHTML = '<span>登录</span>';
+    }
+  }
+
+  function doLogin() {
+    clearErrors();
+    var u = username.value.trim();
+    var p = password.value;
+    var hasErr = false;
+    if (!u) { showError(usernameWrap, usernameError); usernameError.querySelector('span').textContent='请输入用户名'; hasErr = true; }
+    if (!p || p.length < 6 || p.length > 32) { showError(passwordWrap, passwordError); hasErr = true; }
+    if (hasErr) return;
+    setLoading(true);
+    setTimeout(function(){
+      setLoading(false);
+      showToast('账号或密码错误');
+      password.value = '';
+    }, 1600);
+  }
+  loginBtn.addEventListener('click', doLogin);
+
+  // 状态预览切换器
+  var stateBtns = document.querySelectorAll('.state-btn');
+  stateBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      stateBtns.forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var s = btn.dataset.state;
+      clearErrors();
+      setLoading(false);
+      toastMask.classList.remove('show');
+      username.value = ''; password.value = '';
+      if (s === 'error') {
+        username.value = '';
+        showError(usernameWrap, usernameError);
+        usernameError.querySelector('span').textContent='请输入用户名';
+        password.value = '123';
+        showError(passwordWrap, passwordError);
+      } else if (s === 'loading') {
+        username.value = '138****8888';
+        password.value = 'zhang123';
+        setLoading(true);
+      } else if (s === 'fail') {
+        username.value = '138****8888';
+        password.value = 'zhang123';
+        showToast('账号或密码错误');
+      } else {
+        password.type = 'password'; pwdVisible = false; eyeIcon.innerHTML = eyeOpen;
+      }
+    });
+  });
+</script>
+</body>
+</html>
