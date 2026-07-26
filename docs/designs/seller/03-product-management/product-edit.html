@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商品编辑 - 商家管理后台 - Leno 电商平台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+body { font-family:var(--ff-app); font-size:var(--fs-base); color:var(--n10); background:var(--n3); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { opacity:.85; }
+button { font-family:inherit; cursor:pointer; border:none; background:none; }
+ul, ol { list-style:none; }
+input, select, textarea { font-family:inherit; font-size:inherit; }
+
+.app-layout { min-height:100%; display:flex; flex-direction:column; }
+.app-header { position:sticky; top:0; z-index:100; height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5); display:flex; align-items:center; padding:0 var(--s4); box-shadow:0 1px 4px rgba(0,21,41,.08); }
+.app-header .logo { display:flex; align-items:center; gap:var(--s2); width:calc(var(--sider-width) - var(--s4)); flex-shrink:0; }
+.app-header .logo .logo-mark { width:32px; height:32px; border-radius:var(--r-base); background:linear-gradient(135deg,#1677FF,#0958D9); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:18px; }
+.app-header .logo .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); }
+.app-header .logo .shop-name { font-size:var(--fs-sm); color:var(--n7); margin-left:var(--s2); padding-left:var(--s2); border-left:1px solid var(--n5); }
+.app-header .header-breadcrumb { flex:1; display:flex; align-items:center; gap:var(--s2); color:var(--n7); font-size:var(--fs-base); padding-left:var(--s4); }
+.app-header .header-breadcrumb .sep { color:var(--n5); }
+.app-header .header-breadcrumb .current { color:var(--n10); }
+.app-header .header-right { display:flex; align-items:center; gap:var(--s4); }
+.app-header .header-right .icon-btn { width:40px; height:40px; border-radius:var(--r-base); display:flex; align-items:center; justify-content:center; color:var(--n9); position:relative; transition:all .2s; }
+.app-header .header-right .icon-btn:hover { background:var(--n3); color:var(--n10); }
+.app-header .header-right .icon-btn .badge { position:absolute; top:4px; right:4px; min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--c-error); color:#fff; font-size:10px; line-height:16px; text-align:center; font-weight:var(--fw-medium); }
+.app-header .header-right .user-chip { display:flex; align-items:center; gap:var(--s2); padding:var(--s1) var(--s2); border-radius:var(--r-base); cursor:pointer; transition:all .2s; }
+.app-header .header-right .user-chip:hover { background:var(--n3); }
+.app-header .header-right .user-chip .avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#52C41A,#389E0D); color:#fff; display:flex; align-items:center; justify-content:center; font-size:var(--fs-base); font-weight:var(--fw-semibold); }
+.app-header .header-right .user-chip .uname { font-size:var(--fs-base); color:var(--n10); }
+
+.app-body { display:flex; flex:1; }
+.app-sider { width:var(--sider-width); background:var(--sider-bg); flex-shrink:0; position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto; }
+.app-sider::-webkit-scrollbar { width:6px; }
+.app-sider::-webkit-scrollbar-thumb { background:rgba(255,255,255,.2); border-radius:3px; }
+.sider-menu { padding:var(--s2) 0; }
+.sider-menu-item { display:flex; align-items:center; gap:var(--s3); padding:0 var(--s6); height:40px; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .2s; }
+.sider-menu-item:hover { color:#fff; }
+.sider-menu-item .m-icon { width:16px; height:16px; flex-shrink:0; }
+.sider-menu-item.active { color:#fff; background:var(--c-primary); }
+.sider-menu-group-title { padding:var(--s4) var(--s6) var(--s2); color:rgba(255,255,255,.35); font-size:var(--fs-sm); }
+.sider-submenu-item { padding-left:var(--s12); height:40px; display:flex; align-items:center; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .2s; position:relative; }
+.sider-submenu-item:hover { color:#fff; }
+.sider-submenu-item.active { color:#fff; background:var(--c-primary); }
+
+.app-content { flex:1; background:var(--n3); padding:var(--s6); min-width:0; }
+.app-footer { height:32px; background:var(--n1); border-top:1px solid var(--n5); display:flex; align-items:center; justify-content:center; color:var(--n7); font-size:var(--fs-sm); }
+
+.page-title { font-size:var(--fs-xl); font-weight:var(--fw-medium); color:var(--n10); }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:var(--s1); height:32px; padding:0 var(--s4); border-radius:var(--r-base); font-size:var(--fs-base); font-weight:var(--fw-normal); transition:all .2s; white-space:nowrap; border:1px solid var(--n5); background:var(--n1); color:var(--n10); }
+.btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-link { border:none; background:none; color:var(--c-primary); padding:0; font-size:var(--fs-base); }
+.btn-link:hover { opacity:.85; }
+.btn .icon { width:14px; height:14px; }
+
+/* Tags */
+.tag { display:inline-flex; align-items:center; gap:var(--s1); height:22px; padding:0 var(--s2); border-radius:var(--r-base); font-size:var(--fs-sm); line-height:20px; border:1px solid; }
+.tag .dot { width:6px; height:6px; border-radius:50%; }
+.tag-success { color:var(--c-success); border-color:#B7EB8F; background:#F6FFED; }
+.tag-success .dot { background:var(--c-success); }
+.tag-warning { color:#D48806; border-color:#FFD591; background:#FFFBE6; }
+.tag-warning .dot { background:var(--c-warning); }
+
+/* Alert */
+.alert { display:flex; align-items:flex-start; gap:var(--s2); padding:var(--s3) var(--s4); border-radius:var(--r-base); margin-bottom:var(--s4); font-size:var(--fs-base); }
+.alert-warning { background:#FFFBE6; border:1px solid #FFE58F; }
+.alert-warning .alert-icon { color:var(--c-warning); flex-shrink:0; margin-top:2px; }
+.alert .alert-content { flex:1; color:var(--n9); }
+.alert .alert-content b { color:var(--n10); font-weight:var(--fw-medium); }
+
+/* Operation bar */
+.op-bar { display:flex; align-items:center; gap:var(--s3); background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:var(--s3) var(--s4); margin-bottom:var(--s4); }
+.op-bar .op-status { display:flex; align-items:center; gap:var(--s2); }
+.op-bar .op-status .label { font-size:var(--fs-sm); color:var(--n7); }
+.op-bar .op-spacer { flex:1; }
+
+/* Form */
+.edit-grid { display:grid; grid-template-columns:1fr 360px; gap:var(--s6); }
+.form-card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:var(--s6); margin-bottom:var(--s4); }
+.form-card .card-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); margin-bottom:var(--s4); display:flex; align-items:center; gap:var(--s2); }
+.form-card .card-title .title-bar { width:3px; height:16px; background:var(--c-primary); border-radius:2px; }
+.form-row { display:flex; gap:var(--s4); margin-bottom:var(--s4); }
+.form-row:last-child { margin-bottom:0; }
+.form-item { flex:1; }
+.form-item.w-half { flex:0 0 calc(50% - var(--s2)); }
+.form-item.w-third { flex:0 0 calc(33.33% - var(--s3)); }
+.form-label { display:flex; align-items:center; gap:var(--s1); font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-medium); margin-bottom:var(--s2); }
+.form-label .req { color:var(--c-error); }
+.form-label .opt { color:var(--n7); font-weight:var(--fw-normal); font-size:var(--fs-sm); }
+.input, .select, .textarea { width:100%; height:32px; padding:0 var(--s3); border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); color:var(--n10); font-size:var(--fs-base); transition:all .2s; outline:none; }
+.input:hover, .select:hover, .textarea:hover { border-color:var(--c-primary); }
+.input:focus, .select:focus, .textarea:focus { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.input::placeholder, .textarea::placeholder { color:var(--n7); }
+.textarea { height:auto; min-height:120px; padding:var(--s2) var(--s3); resize:vertical; line-height:1.6; }
+.select { appearance:none; -webkit-appearance:none; padding-right:28px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 1024 1024' fill='%238C8C8C'%3E%3Cpath d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.6l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.2.1-12.6-6.4-12.6z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; cursor:pointer; }
+.form-hint { font-size:var(--fs-sm); color:var(--n7); margin-top:var(--s1); }
+.form-hint.error { color:var(--c-error); }
+.char-count { font-size:var(--fs-sm); color:var(--n7); text-align:right; margin-top:var(--s1); }
+.input-error { border-color:var(--c-error); }
+.input-error:focus { box-shadow:0 0 0 2px rgba(255,77,79,.1); }
+
+/* Rich text editor */
+.rte { border:1px solid var(--n5); border-radius:var(--r-base); overflow:hidden; }
+.rte:focus-within { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.rte-toolbar { display:flex; align-items:center; gap:var(--s1); padding:var(--s2) var(--s3); border-bottom:1px solid var(--n3); background:var(--n2); flex-wrap:wrap; }
+.rte-toolbar .rte-btn { width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:var(--r-base); color:var(--n9); cursor:pointer; transition:all .2s; }
+.rte-toolbar .rte-btn:hover { background:var(--n3); color:var(--n10); }
+.rte-toolbar .rte-sep { width:1px; height:16px; background:var(--n5); margin:0 var(--s1); }
+.rte-toolbar .rte-select { height:28px; border:1px solid var(--n5); border-radius:var(--r-base); padding:0 var(--s2); font-size:var(--fs-sm); color:var(--n9); background:var(--n1); }
+.rte-content { min-height:160px; padding:var(--s3); font-size:var(--fs-base); line-height:1.8; color:var(--n10); outline:none; }
+.rte-content p { margin-bottom:var(--s2); }
+
+/* Upload */
+.upload-grid { display:flex; flex-wrap:wrap; gap:var(--s2); }
+.upload-item { position:relative; width:104px; height:104px; border-radius:var(--r-card); overflow:hidden; border:1px solid var(--n5); background:var(--n3); }
+.upload-item img { width:100%; height:100%; object-fit:cover; }
+.upload-item .main-badge { position:absolute; top:0; left:0; background:var(--c-primary); color:#fff; font-size:var(--fs-sm); padding:1px var(--s2); border-radius:0 0 var(--r-base) 0; }
+.upload-item .del-btn { position:absolute; top:var(--s1); right:var(--s1); width:20px; height:20px; border-radius:50%; background:rgba(0,0,0,.5); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:0; transition:all .2s; }
+.upload-item:hover .del-btn { opacity:1; }
+.upload-item .drag-handle { position:absolute; bottom:0; left:0; right:0; height:20px; background:rgba(0,0,0,.45); color:#fff; font-size:10px; display:flex; align-items:center; justify-content:center; opacity:0; transition:all .2s; }
+.upload-item:hover .drag-handle { opacity:1; }
+.upload-add { width:104px; height:104px; border:1px dashed var(--n5); border-radius:var(--r-card); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--s1); color:var(--n7); cursor:pointer; transition:all .2s; background:var(--n1); }
+.upload-add:hover { border-color:var(--c-primary); color:var(--c-primary); background:#F5F9FF; }
+.upload-add .plus { font-size:24px; line-height:1; }
+.upload-add .txt { font-size:var(--fs-sm); }
+.upload-tip { font-size:var(--fs-sm); color:var(--n7); margin-top:var(--s2); line-height:1.6; }
+
+/* Spec preview */
+.spec-list { display:flex; flex-direction:column; gap:var(--s2); }
+.spec-item { display:flex; align-items:center; gap:var(--s2); padding:var(--s2) var(--s3); background:var(--n2); border-radius:var(--r-base); border:1px solid var(--n3); }
+.spec-item .spec-tags { display:flex; gap:var(--s1); flex-wrap:wrap; flex:1; }
+.spec-tag { display:inline-flex; align-items:center; height:22px; padding:0 var(--s2); border:1px solid #91CAFF; background:#E6F4FF; color:var(--c-primary); border-radius:var(--r-base); font-size:var(--fs-sm); }
+.spec-item .spec-price { font-size:var(--fs-base); font-weight:var(--fw-semibold); color:var(--c-error); }
+.spec-item .spec-stock { font-size:var(--fs-sm); color:var(--n7); }
+.spec-empty { text-align:center; padding:var(--s6); color:var(--n7); font-size:var(--fs-sm); }
+
+/* Right column cards */
+.right-card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:var(--s6); margin-bottom:var(--s4); }
+.right-card .card-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); margin-bottom:var(--s4); display:flex; align-items:center; justify-content:space-between; }
+.right-card .card-title .title-left { display:flex; align-items:center; gap:var(--s2); }
+.right-card .card-title .title-bar { width:3px; height:16px; background:var(--c-primary); border-radius:2px; }
+
+/* Steps */
+.form-steps { display:flex; align-items:center; gap:0; margin-bottom:var(--s4); background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:var(--s4) var(--s6); }
+.form-step { display:flex; align-items:center; gap:var(--s2); }
+.form-step .step-num { width:24px; height:24px; border-radius:50%; background:var(--n3); color:var(--n7); display:flex; align-items:center; justify-content:center; font-size:var(--fs-sm); font-weight:var(--fw-medium); }
+.form-step.active .step-num { background:var(--c-primary); color:#fff; }
+.form-step.done .step-num { background:var(--c-success); color:#fff; }
+.form-step .step-label { font-size:var(--fs-base); color:var(--n9); }
+.form-step.active .step-label { color:var(--n10); font-weight:var(--fw-medium); }
+.form-step.done .step-label { color:var(--n10); }
+.form-step-line { flex:1; height:1px; background:var(--n5); margin:0 var(--s3); min-width:24px; }
+.form-step.done + .form-step-line { background:var(--c-success); }
+
+/* Input number with unit */
+.input-num-wrap { display:flex; align-items:center; }
+.input-num-wrap .input { border-radius:var(--r-base) 0 0 var(--r-base); }
+.input-num-wrap .unit { height:32px; padding:0 var(--s3); border:1px solid var(--n5); border-left:none; border-radius:0 var(--r-base) var(--r-base) 0; background:var(--n2); color:var(--n9); font-size:var(--fs-sm); display:flex; align-items:center; }
+
+/* Radio group */
+.radio-group { display:flex; gap:var(--s2); flex-wrap:wrap; }
+.radio-item { display:flex; align-items:center; gap:var(--s1); padding:var(--s1) var(--s3); border:1px solid var(--n5); border-radius:var(--r-base); cursor:pointer; transition:all .2s; font-size:var(--fs-base); color:var(--n9); }
+.radio-item:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.radio-item.checked { border-color:var(--c-primary); color:var(--c-primary); background:#E6F4FF; }
+.radio-item .radio-dot { width:14px; height:14px; border-radius:50%; border:2px solid var(--n5); position:relative; }
+.radio-item.checked .radio-dot { border-color:var(--c-primary); }
+.radio-item.checked .radio-dot::after { content:""; position:absolute; inset:2px; border-radius:50%; background:var(--c-primary); }
+</style>
+</head>
+<body>
+<div class="app-layout">
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-mark">L</div>
+      <span class="logo-text">Leno 商家</span>
+      <span class="shop-name">南极人官方旗舰店</span>
+    </div>
+    <nav class="header-breadcrumb">
+      <span>首页</span>
+      <span class="sep">/</span>
+      <span>商品管理</span>
+      <span class="sep">/</span>
+      <span>商品列表</span>
+      <span class="sep">/</span>
+      <span class="current">编辑商品</span>
+    </nav>
+    <div class="header-right">
+      <button class="icon-btn" title="待发货订单">
+        <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor"><path d="M832 320H192v448h640V320z m64-32v512a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V288a32 32 0 0 1 32-32h128V192a32 32 0 0 1 32-32h384a32 32 0 0 1 32 32v64h128a32 32 0 0 1 32 32zM384 192v64h256V192H384z"/></svg>
+        <span class="badge">12</span>
+      </button>
+      <button class="icon-btn" title="通知">
+        <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor"><path d="M832 832H192v-32l64-64V448c0-123.7 80.8-229.4 192-267.2V160a64 64 0 0 1 128 0v20.8C687.2 218.6 768 324.3 768 448v288l64 64v32zM384 832a128 128 0 0 0 256 0H384z"/></svg>
+        <span class="badge">5</span>
+      </button>
+      <div class="user-chip">
+        <div class="avatar">张</div>
+        <span class="uname">张老板</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="app-sider">
+      <nav class="sider-menu">
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 0 0 9.3-35.2l-.9-2.6a443.74 443.74 0 0 0-79.7-137.9l-1.8-2.1a32.12 32.12 0 0 0-35.1-9.5l-81.3 28.9c-30-24.6-63.5-44-99.7-57.6l-15.7-85a32.05 32.05 0 0 0-25.8-25.7l-2.7-.5c-52.1-9.4-106.9-9.4-159 0l-2.7.5a32.05 32.05 0 0 0-25.8 25.7l-15.8 85.4a351.86 351.86 0 0 0-99 57.4l-81.9-29.1a32 32 0 0 0-35.1 9.5l-1.8 2.1a446.02 446.02 0 0 0-79.7 137.9l-.9 2.6c-4.5 12.5-.8 26.5 9.3 35.2l66.3 56.6c-3.1 18.8-4.6 38-4.6 57.1 0 19.2 1.5 38.4 4.6 57.1L66 625.7a32.03 32.03 0 0 0-9.3 35.2l.9 2.6c18.1 50.4 44.9 96.9 79.7 137.9l1.8 2.1a32.12 32.12 0 0 0 35.1 9.5l81.9-29.1c29.8 24.5 63.1 43.9 99 57.4l15.8 85.4a32.05 32.05 0 0 0 25.8 25.7l2.7.5a449.4 449.4 0 0 0 159 0l2.7-.5a32.05 32.05 0 0 0 25.8-25.7l15.7-85a350 350 0 0 0 99.7-57.6l81.3 28.9a32 32 0 0 0 35.1-9.5l1.8-2.1c34.8-41.1 61.6-87.5 79.7-137.9l.9-2.6c4.5-12.6.8-26.6-9.3-35.2zM512 700c-104.1 0-188-83.9-188-188s83.9-188 188-188 188 83.9 188 188-83.9 188-188 188z"/></svg>
+          <span>工作台</span>
+        </div>
+        <div class="sider-menu-group-title">商品管理</div>
+        <div class="sider-submenu-item">商品列表</div>
+        <div class="sider-submenu-item active">商品编辑</div>
+        <div class="sider-submenu-item">SKU 管理</div>
+        <div class="sider-submenu-item">价格历史</div>
+        <div class="sider-menu-group-title">物流管理</div>
+        <div class="sider-submenu-item">运费模板</div>
+        <div class="sider-submenu-item">物流公司查询</div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+          <span>订单履约</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.63 375.63 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 535 760 463.5 760 382.2 760 248.9 651.1 140 517.8 140 384.5 140 275.6 248.9 275.6 382.2c0 81.3 41 152.8 103.1 198.4-.4.2-.8.3-1.2.5-43.8 18.7-83.1 45.4-116.9 79.6-33.9 33.9-60.9 73.1-79.6 116.9a375.5 375.5 0 0 0-29.1 145.5c0 17.7 14.3 32 32 32h675.2c17.7 0 32-14.3 32-32 0-49.4-9.7-97.3-28.8-142.5z"/></svg>
+          <span>售后处理</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+          <span>评价管理</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32z"/></svg>
+          <span>店铺设置</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 820V180c0-37-32-68-72-68H184c-40 0-72 31-72 68v640c0 37 32 68 72 68h656c40 0 72-31 72-68z"/></svg>
+          <span>报表导出</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.63 375.63 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 535 760 463.5 760 382.2 760 248.9 651.1 140 517.8 140 384.5 140 275.6 248.9 275.6 382.2c0 81.3 41 152.8 103.1 198.4-.4.2-.8.3-1.2.5-43.8 18.7-83.1 45.4-116.9 79.6-33.9 33.9-60.9 73.1-79.6 116.9a375.5 375.5 0 0 0-29.1 145.5c0 17.7 14.3 32 32 32h675.2c17.7 0 32-14.3 32-32 0-49.4-9.7-97.3-28.8-142.5z"/></svg>
+          <span>个人中心</span>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="app-content">
+      <div class="page-title" style="margin-bottom:var(--s4);">编辑商品</div>
+
+      <!-- Operation bar -->
+      <div class="op-bar">
+        <div class="op-status">
+          <span class="label">商品状态：</span>
+          <span class="tag tag-success"><span class="dot"></span>已上架</span>
+          <span class="label" style="margin-left:var(--s4);">SPU 编号：</span>
+          <span style="font-family:var(--ff-mono);font-size:var(--fs-sm);color:var(--n9);">NJ-TS-2026-001</span>
+        </div>
+        <div class="op-spacer"></div>
+        <button class="btn">取消</button>
+        <button class="btn">
+          <svg class="icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M893.3 293.3L730.7 130.7c-7.5-7.5-16.7-13-26.7-16V112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V338.5c0-17-6.7-33.2-18.7-45.2zM384 184h256v104H384V184zm456 656H184V184h136v136c0 4.4 3.6 8 8 8h304c4.4 0 8-3.6 8-8V184h76v210c0 3.4 2.2 6.5 5.4 7.6L840 432v408z"/></svg>
+          保存草稿
+        </button>
+        <button class="btn btn-primary">
+          <svg class="icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 502.3L690 280.4l-46 45.9 178.5 178.7-178.5 178.6 46 46 222-222.1a32 32 0 0 0 0-45.2zM184.5 504.9l178.5-178.6-46-45.9-222 221.9a32 32 0 0 0 0 45.2l222 222 46-46-178.5-178.6z"/></svg>
+          提交审核
+        </button>
+      </div>
+
+      <div class="edit-grid">
+        <!-- Left: Main form -->
+        <div>
+          <!-- Basic info -->
+          <div class="form-card">
+            <div class="card-title"><span class="title-bar"></span>基本信息</div>
+            <div class="form-row">
+              <div class="form-item">
+                <label class="form-label"><span class="req">*</span>商品标题</label>
+                <input class="input" type="text" value="南极人纯棉短袖T恤 男士夏季宽松半袖" placeholder="请输入商品标题（2-100 字）">
+                <div class="char-count">24 / 100</div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-item">
+                <label class="form-label">副标题 <span class="opt">（选填）</span></label>
+                <input class="input" type="text" value="新疆长绒棉 亲肤透气 多色可选" placeholder="请输入副标题（≤200 字）">
+                <div class="char-count">15 / 200</div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-item w-half">
+                <label class="form-label"><span class="req">*</span>商品分类</label>
+                <select class="select">
+                  <option>服装 / 男装 / T恤</option>
+                  <option>服装 / 男装 / 衬衫</option>
+                  <option>服装 / 女装 / 连衣裙</option>
+                  <option>数码 / 手机</option>
+                </select>
+                <div class="form-hint">请选择叶子分类，分类提交后不可修改</div>
+              </div>
+              <div class="form-item w-half">
+                <label class="form-label">品牌 <span class="opt">（选填）</span></label>
+                <select class="select">
+                  <option>南极人</option>
+                  <option>小米</option>
+                  <option>优衣库</option>
+                  <option>绿联</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-item">
+                <label class="form-label">商品关键词 <span class="opt">（选填）</span></label>
+                <input class="input" type="text" value="纯棉, 短袖, T恤, 夏季, 男装" placeholder="多个关键词用英文逗号分隔">
+                <div class="form-hint">用于搜索优化，最多 10 个关键词</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="form-card">
+            <div class="card-title"><span class="title-bar"></span>图文详情</div>
+            <div class="rte">
+              <div class="rte-toolbar">
+                <select class="rte-select"><option>正文</option><option>标题1</option><option>标题2</option></select>
+                <div class="rte-sep"></div>
+                <div class="rte-btn" title="加粗"><b>B</b></div>
+                <div class="rte-btn" title="斜体"><i>I</i></div>
+                <div class="rte-btn" title="下划线"><u>U</u></div>
+                <div class="rte-sep"></div>
+                <div class="rte-btn" title="左对齐">
+                  <svg viewBox="0 0 1024 1024" width="14" height="14" fill="currentColor"><path d="M848 128H176c-17.7 0-32 14.3-32 32v704c0 17.7 14.3 32 32 32h672c17.7 0 32-14.3 32-32V160c0-17.7-14.3-32-32-32zm-40 696H216V200h592v624zM328 368h232v56H328zm0 120h368v56H328zm0 120h368v56H328z"/></svg>
+                </div>
+                <div class="rte-btn" title="图片">
+                  <svg viewBox="0 0 1024 1024" width="14" height="14" fill="currentColor"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zM338 304c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm552 416H142L378 590l86 86 168-200 278 334z"/></svg>
+                </div>
+                <div class="rte-btn" title="链接">
+                  <svg viewBox="0 0 1024 1024" width="14" height="14" fill="currentColor"><path d="M574 665.4a8.03 8.03 0 0 0-11.3 0L446.5 781.6c-53.8 53.8-144.6 59.5-204 0-59.5-59.5-53.8-150.2 0-204l116.2-116.2c3.1-3.1 3.1-8.2 0-11.3l-39.8-39.8a8.03 8.03 0 0 0-11.3 0L191.4 526.5c-84.6 84.6-84.6 221.5 0 306s221.5 84.6 306 0l116.2-116.2c3.1-3.1 3.1-8.2 0-11.3L574 665.4zm251.7-373.4L709.5 175.9c-84.6-84.6-221.5-84.6-306 0L287.3 292.2a8.03 8.03 0 0 0 0 11.3l39.7 39.7c3.1 3.1 8.2 3.1 11.3 0l116.2-116.2c53.8-53.8 144.6-59.5 204 0 59.5 59.5 53.8 150.2 0 204L542.3 547.4a8.03 8.03 0 0 0 0 11.3l39.8 39.8c3.1 3.1 8.2 3.1 11.3 0l116.2-116.2c84.6-84.6 84.6-221.5 0-306.1z"/></svg>
+                </div>
+              </div>
+              <div class="rte-content" contenteditable="true">
+                <p><b>南极人纯棉短袖T恤</b>，采用新疆长绒棉精纺面料，亲肤透气，吸湿排汗。</p>
+                <p>产品特点：</p>
+                <p>1. 100% 纯棉材质，柔软舒适不起球</p>
+                <p>2. 经典圆领设计，百搭不挑人</p>
+                <p>3. 多色多码可选，满足不同穿搭需求</p>
+                <p>4. 精细走线，耐洗耐穿不掉色</p>
+              </div>
+            </div>
+            <div class="char-count">152 / 50000</div>
+          </div>
+
+          <!-- Price & Stock -->
+          <div class="form-card">
+            <div class="card-title"><span class="title-bar"></span>价格与库存</div>
+            <div class="form-row">
+              <div class="form-item w-third">
+                <label class="form-label">销售价 <span class="opt">（默认）</span></label>
+                <div class="input-num-wrap">
+                  <input class="input" type="text" value="29.90">
+                  <span class="unit">元</span>
+                </div>
+              </div>
+              <div class="form-item w-third">
+                <label class="form-label">市场价 <span class="opt">（选填）</span></label>
+                <div class="input-num-wrap">
+                  <input class="input" type="text" value="59.00">
+                  <span class="unit">元</span>
+                </div>
+              </div>
+              <div class="form-item w-third">
+                <label class="form-label">成本价 <span class="opt">（选填）</span></label>
+                <div class="input-num-wrap">
+                  <input class="input" type="text" value="15.50">
+                  <span class="unit">元</span>
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-item w-half">
+                <label class="form-label">库存合计</label>
+                <div class="input-num-wrap">
+                  <input class="input" type="text" value="2856">
+                  <span class="unit">件</span>
+                </div>
+                <div class="form-hint">由各 SKU 库存自动汇总，不可直接编辑</div>
+              </div>
+              <div class="form-item w-half">
+                <label class="form-label">库存预警阈值</label>
+                <div class="input-num-wrap">
+                  <input class="input" type="text" value="50">
+                  <span class="unit">件</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Logistics -->
+          <div class="form-card">
+            <div class="card-title"><span class="title-bar"></span>物流信息</div>
+            <div class="form-row">
+              <div class="form-item w-half">
+                <label class="form-label">运费模板</label>
+                <select class="select">
+                  <option>默认运费模板（按件计费）</option>
+                  <option>包邮模板</option>
+                  <option>偏远地区加运费</option>
+                </select>
+              </div>
+              <div class="form-item w-half">
+                <label class="form-label">发货地</label>
+                <select class="select">
+                  <option>浙江省 杭州市 余杭区</option>
+                  <option>广东省 广州市 白云区</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-item">
+                <label class="form-label">商品重量 <span class="opt">（选填）</span></label>
+                <div class="input-num-wrap" style="max-width:240px;">
+                  <input class="input" type="text" value="0.25">
+                  <span class="unit">kg</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column -->
+        <div>
+          <!-- Image upload -->
+          <div class="right-card">
+            <div class="card-title">
+              <div class="title-left"><span class="title-bar"></span>商品图片</div>
+              <span style="font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal);">5 / 9 张</span>
+            </div>
+            <div class="upload-grid">
+              <div class="upload-item">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='104' height='104'%3E%3Crect width='104' height='104' fill='%23FFF7E6'/%3E%3Ctext x='52' y='56' font-size='12' text-anchor='middle' fill='%23D48806'%3E主图%3C/text%3E%3C/svg%3E" alt="主图">
+                <span class="main-badge">主图</span>
+                <div class="del-btn">
+                  <svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9A7.98 7.98 0 0 0 203 838h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+                </div>
+                <div class="drag-handle">拖拽排序</div>
+              </div>
+              <div class="upload-item">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='104' height='104'%3E%3Crect width='104' height='104' fill='%23E6F4FF'/%3E%3Ctext x='52' y='56' font-size='11' text-anchor='middle' fill='%231677FF'%3E正面%3C/text%3E%3C/svg%3E" alt="详情图">
+                <div class="del-btn"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9A7.98 7.98 0 0 0 203 838h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg></div>
+                <div class="drag-handle">拖拽排序</div>
+              </div>
+              <div class="upload-item">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='104' height='104'%3E%3Crect width='104' height='104' fill='%23F6FFED'/%3E%3Ctext x='52' y='56' font-size='11' text-anchor='middle' fill='%2352C41A'%3E背面%3C/text%3E%3C/svg%3E" alt="详情图">
+                <div class="del-btn"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9A7.98 7.98 0 0 0 203 838h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg></div>
+                <div class="drag-handle">拖拽排序</div>
+              </div>
+              <div class="upload-item">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='104' height='104'%3E%3Crect width='104' height='104' fill='%23FFFBE6'/%3E%3Ctext x='52' y='56' font-size='11' text-anchor='middle' fill='%23D48806'%3E细节%3C/text%3E%3C/svg%3E" alt="详情图">
+                <div class="del-btn"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9A7.98 7.98 0 0 0 203 838h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg></div>
+                <div class="drag-handle">拖拽排序</div>
+              </div>
+              <div class="upload-item">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='104' height='104'%3E%3Crect width='104' height='104' fill='%23FFF2F0'/%3E%3Ctext x='52' y='56' font-size='11' text-anchor='middle' fill='%23FF4D4F'%3E细节%3C/text%3E%3C/svg%3E" alt="详情图">
+                <div class="del-btn"><svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9A7.98 7.98 0 0 0 203 838h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg></div>
+                <div class="drag-handle">拖拽排序</div>
+              </div>
+              <div class="upload-add">
+                <span class="plus">+</span>
+                <span class="txt">上传图片</span>
+              </div>
+            </div>
+            <div class="upload-tip">建议尺寸 800×800px，支持 JPG/PNG/WebP 格式，单张 ≤5MB。首张为主图，可拖拽排序。</div>
+          </div>
+
+          <!-- Spec preview -->
+          <div class="right-card">
+            <div class="card-title">
+              <div class="title-left"><span class="title-bar"></span>规格预览</div>
+              <a class="btn-link" href="sku-management.html">管理 SKU →</a>
+            </div>
+            <div style="font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s3);">规格维度：颜色 / 尺码</div>
+            <div class="spec-list">
+              <div class="spec-item">
+                <div class="spec-tags">
+                  <span class="spec-tag">白色</span>
+                  <span class="spec-tag">L</span>
+                </div>
+                <span class="spec-price">¥29.90</span>
+                <span class="spec-stock">库存 856</span>
+              </div>
+              <div class="spec-item">
+                <div class="spec-tags">
+                  <span class="spec-tag">白色</span>
+                  <span class="spec-tag">XL</span>
+                </div>
+                <span class="spec-price">¥32.90</span>
+                <span class="spec-stock">库存 620</span>
+              </div>
+              <div class="spec-item">
+                <div class="spec-tags">
+                  <span class="spec-tag">黑色</span>
+                  <span class="spec-tag">L</span>
+                </div>
+                <span class="spec-price">¥29.90</span>
+                <span class="spec-stock">库存 720</span>
+              </div>
+              <div class="spec-item">
+                <div class="spec-tags">
+                  <span class="spec-tag">黑色</span>
+                  <span class="spec-tag">XL</span>
+                </div>
+                <span class="spec-price">¥32.90</span>
+                <span class="spec-stock">库存 560</span>
+              </div>
+              <div class="spec-item">
+                <div class="spec-tags">
+                  <span class="spec-tag">蓝色</span>
+                  <span class="spec-tag">L</span>
+                </div>
+                <span class="spec-price">¥34.90</span>
+                <span class="spec-stock">库存 100</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Audit info -->
+          <div class="right-card">
+            <div class="card-title">
+              <div class="title-left"><span class="title-bar"></span>审核信息</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:var(--s2);font-size:var(--fs-sm);">
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--n7);">最近审核结果</span><span style="color:var(--c-success);font-weight:var(--fw-medium);">审核通过</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--n7);">审核人</span><span>运营 李四</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--n7);">审核时间</span><span>2026-07-20 16:00</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="color:var(--n7);">审核意见</span><span style="color:var(--n9);">符合上架标准</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="app-footer">
+    <span>Leno 电商平台 · 商家管理后台 · © 2026 南极人官方旗舰店</span>
+  </footer>
+</div>
+</body>
+</html>

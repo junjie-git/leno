@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物流公司查询 - 商家管理后台 - Leno 电商平台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+body { font-family:var(--ff-app); font-size:var(--fs-base); color:var(--n10); background:var(--n3); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { opacity:.85; }
+button { font-family:inherit; cursor:pointer; border:none; background:none; }
+ul, ol { list-style:none; }
+input, select { font-family:inherit; font-size:inherit; }
+
+.app-layout { min-height:100%; display:flex; flex-direction:column; }
+.app-header { position:sticky; top:0; z-index:100; height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5); display:flex; align-items:center; padding:0 var(--s4); box-shadow:0 1px 4px rgba(0,21,41,.08); }
+.app-header .logo { display:flex; align-items:center; gap:var(--s2); width:calc(var(--sider-width) - var(--s4)); flex-shrink:0; }
+.app-header .logo .logo-mark { width:32px; height:32px; border-radius:var(--r-base); background:linear-gradient(135deg,#1677FF,#0958D9); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:18px; }
+.app-header .logo .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); }
+.app-header .logo .shop-name { font-size:var(--fs-sm); color:var(--n7); margin-left:var(--s2); padding-left:var(--s2); border-left:1px solid var(--n5); }
+.app-header .header-breadcrumb { flex:1; display:flex; align-items:center; gap:var(--s2); color:var(--n7); font-size:var(--fs-base); padding-left:var(--s4); }
+.app-header .header-breadcrumb .sep { color:var(--n5); }
+.app-header .header-breadcrumb .current { color:var(--n10); }
+.app-header .header-right { display:flex; align-items:center; gap:var(--s4); }
+.app-header .header-right .icon-btn { width:40px; height:40px; border-radius:var(--r-base); display:flex; align-items:center; justify-content:center; color:var(--n9); position:relative; transition:all .2s; }
+.app-header .header-right .icon-btn:hover { background:var(--n3); color:var(--n10); }
+.app-header .header-right .icon-btn .badge { position:absolute; top:4px; right:4px; min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--c-error); color:#fff; font-size:10px; line-height:16px; text-align:center; font-weight:var(--fw-medium); }
+.app-header .header-right .user-chip { display:flex; align-items:center; gap:var(--s2); padding:var(--s1) var(--s2); border-radius:var(--r-base); cursor:pointer; transition:all .2s; }
+.app-header .header-right .user-chip:hover { background:var(--n3); }
+.app-header .header-right .user-chip .avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#52C41A,#389E0D); color:#fff; display:flex; align-items:center; justify-content:center; font-size:var(--fs-base); font-weight:var(--fw-semibold); }
+.app-header .header-right .user-chip .uname { font-size:var(--fs-base); color:var(--n10); }
+
+.app-body { display:flex; flex:1; }
+.app-sider { width:var(--sider-width); background:var(--sider-bg); flex-shrink:0; position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto; }
+.app-sider::-webkit-scrollbar { width:6px; }
+.app-sider::-webkit-scrollbar-thumb { background:rgba(255,255,255,.2); border-radius:3px; }
+.sider-menu { padding:var(--s2) 0; }
+.sider-menu-item { display:flex; align-items:center; gap:var(--s3); padding:0 var(--s6); height:40px; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .2s; }
+.sider-menu-item:hover { color:#fff; }
+.sider-menu-item .m-icon { width:16px; height:16px; flex-shrink:0; }
+.sider-menu-item.active { color:#fff; background:var(--c-primary); }
+.sider-menu-group-title { padding:var(--s4) var(--s6) var(--s2); color:rgba(255,255,255,.35); font-size:var(--fs-sm); }
+.sider-submenu-item { padding-left:var(--s12); height:40px; display:flex; align-items:center; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .2s; position:relative; }
+.sider-submenu-item:hover { color:#fff; }
+.sider-submenu-item.active { color:#fff; background:var(--c-primary); }
+
+.app-content { flex:1; background:var(--n3); padding:var(--s6); min-width:0; }
+.app-footer { height:32px; background:var(--n1); border-top:1px solid var(--n5); display:flex; align-items:center; justify-content:center; color:var(--n7); font-size:var(--fs-sm); }
+
+.page-title { font-size:var(--fs-xl); font-weight:var(--fw-medium); color:var(--n10); margin-bottom:var(--s4); }
+
+/* Alert banner */
+.alert { display:flex; align-items:flex-start; gap:var(--s2); padding:var(--s3) var(--s4); border-radius:var(--r-base); margin-bottom:var(--s3); font-size:var(--fs-base); }
+.alert-info { background:#E6F4FF; border:1px solid #91CAFF; color:var(--n9); }
+.alert .a-icon { width:16px; height:16px; flex-shrink:0; color:var(--c-primary); margin-top:2px; }
+.alert .a-body { flex:1; line-height:1.5715; }
+.alert .a-body strong { color:var(--n10); font-weight:var(--fw-medium); }
+
+/* Filter bar */
+.filter-bar { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:var(--s4) var(--s6); margin-bottom:var(--s4); display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap; }
+.filter-bar .f-label { font-size:var(--fs-base); color:var(--n9); white-space:nowrap; }
+.input, .select { height:32px; padding:0 var(--s3); border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); color:var(--n10); font-size:var(--fs-base); transition:all .2s; outline:none; }
+.input:hover, .select:hover { border-color:var(--c-primary); }
+.input:focus, .select:focus { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.input::placeholder { color:var(--n7); }
+.select { appearance:none; -webkit-appearance:none; padding-right:28px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 1024 1024' fill='%238C8C8C'%3E%3Cpath d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.6l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.2.1-12.6-6.4-12.6z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; cursor:pointer; }
+.search-input { width:260px; padding-left:32px; }
+.search-wrap { position:relative; display:inline-block; }
+.search-wrap .search-icon { position:absolute; left:10px; top:50%; transform:translateY(-50%); width:14px; height:14px; color:var(--n7); pointer-events:none; }
+.filter-bar .f-spacer { flex:1; }
+.filter-bar .stat-chip { display:inline-flex; align-items:center; gap:var(--s1); height:32px; padding:0 var(--s3); background:var(--n3); border-radius:var(--r-base); font-size:var(--fs-sm); color:var(--n9); }
+.filter-bar .stat-chip .num { color:var(--c-primary); font-weight:var(--fw-semibold); font-size:var(--fs-base); }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:var(--s1); height:32px; padding:0 var(--s4); border-radius:var(--r-base); font-size:var(--fs-base); font-weight:var(--fw-normal); transition:all .2s; white-space:nowrap; border:1px solid var(--n5); background:var(--n1); color:var(--n10); }
+.btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-link { border:none; background:none; color:var(--c-primary); padding:0; font-size:var(--fs-sm); display:inline-flex; align-items:center; gap:var(--s1); }
+.btn-link:hover { opacity:.85; }
+.btn-link .icon { width:14px; height:14px; }
+.btn-link.disabled { color:var(--n7); cursor:not-allowed; }
+.btn-link.disabled:hover { opacity:1; }
+
+/* Tags */
+.tag { display:inline-flex; align-items:center; gap:var(--s1); height:22px; padding:0 var(--s2); border-radius:var(--r-base); font-size:var(--fs-sm); line-height:20px; border:1px solid; }
+.tag .t-icon { width:12px; height:12px; }
+.tag-success { color:var(--c-success); border-color:#B7EB8F; background:#F6FFED; }
+.tag-default { color:var(--n9); border-color:var(--n5); background:var(--n3); }
+.tag-info { color:var(--c-primary); border-color:#91CAFF; background:#E6F4FF; }
+
+/* Table */
+.table-wrap { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); overflow:hidden; }
+.table-toolbar { display:flex; align-items:center; padding:var(--s4) var(--s6); border-bottom:1px solid var(--n3); }
+.table-toolbar .toolbar-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); display:flex; align-items:center; gap:var(--s2); }
+.table-toolbar .toolbar-title .title-bar { width:3px; height:16px; background:var(--c-primary); border-radius:2px; }
+.table-toolbar .toolbar-spacer { flex:1; }
+.state-switcher { display:flex; align-items:center; gap:var(--s1); background:var(--n3); border-radius:var(--r-base); padding:2px; }
+.state-switcher .ss-label { font-size:var(--fs-sm); color:var(--n7); padding:0 var(--s2); }
+.state-switcher .ss-btn { height:24px; padding:0 var(--s2); border-radius:4px; font-size:var(--fs-sm); color:var(--n9); transition:all .2s; }
+.state-switcher .ss-btn:hover { color:var(--n10); }
+.state-switcher .ss-btn.active { background:var(--n1); color:var(--c-primary); font-weight:var(--fw-medium); box-shadow:0 1px 2px rgba(0,0,0,.06); }
+
+table.data-table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+table.data-table thead th { background:var(--n2); color:var(--n9); font-weight:var(--fw-medium); text-align:left; padding:var(--s3) var(--s4); border-bottom:1px solid var(--n5); white-space:nowrap; font-size:var(--fs-sm); }
+table.data-table tbody td { padding:var(--s3) var(--s4); border-bottom:1px solid var(--n3); color:var(--n10); vertical-align:middle; height:48px; }
+table.data-table tbody tr:hover { background:var(--n2); }
+table.data-table tbody tr:last-child td { border-bottom:none; }
+.company-cell { display:flex; align-items:center; gap:var(--s3); }
+.company-cell .co-logo { width:36px; height:36px; border-radius:var(--r-base); display:flex; align-items:center; justify-content:center; color:#fff; font-size:var(--fs-base); font-weight:var(--fw-semibold); flex-shrink:0; }
+.company-cell .co-info { min-width:0; }
+.company-cell .co-name { font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-medium); }
+.company-cell .co-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:1px; }
+.code-cell { font-family:var(--ff-mono); font-size:var(--fs-base); font-weight:var(--fw-semibold); color:var(--n10); letter-spacing:.5px; }
+.phone-cell { font-family:var(--ff-mono); font-size:var(--fs-base); color:var(--n9); }
+.disabled-text { color:var(--n7); font-size:var(--fs-sm); }
+.ops { display:flex; align-items:center; gap:var(--s1); }
+
+/* Pagination */
+.pagination { display:flex; align-items:center; justify-content:flex-end; gap:var(--s2); padding:var(--s4) var(--s6); background:var(--n1); border-top:1px solid var(--n3); }
+.pagination .pg-info { font-size:var(--fs-sm); color:var(--n7); margin-right:auto; }
+.pagination .pg-btn { min-width:32px; height:32px; padding:0 var(--s2); border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); color:var(--n10); font-size:var(--fs-base); display:inline-flex; align-items:center; justify-content:center; transition:all .2s; }
+.pagination .pg-btn:hover:not(:disabled) { border-color:var(--c-primary); color:var(--c-primary); }
+.pagination .pg-btn:disabled { color:var(--n5); cursor:not-allowed; }
+.pagination .pg-btn.active { border-color:var(--c-primary); background:var(--c-primary); color:#fff; }
+.pagination .pg-ellipsis { color:var(--n7); padding:0 var(--s1); }
+.pagination .pg-size { height:32px; padding:0 28px 0 var(--s3); border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 1024 1024' fill='%238C8C8C'%3E%3Cpath d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.6l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.2.1-12.6-6.4-12.6z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; cursor:pointer; }
+
+/* Skeleton */
+.skeleton-row td { padding:var(--s3) var(--s4); }
+.sk-block { height:16px; border-radius:var(--s1); background:linear-gradient(90deg, var(--n3) 25%, var(--n2) 37%, var(--n3) 63%); background-size:400% 100%; animation:sk-loading 1.4s ease infinite; }
+.sk-block.circle { width:36px; height:36px; border-radius:50%; }
+@keyframes sk-loading { 0%{background-position:100% 50%;} 100%{background-position:0 50%;} }
+
+/* Empty & Error */
+.state-box { padding:var(--s12) var(--s6); text-align:center; }
+.state-box .sb-icon { width:64px; height:64px; margin:0 auto var(--s4); display:flex; align-items:center; justify-content:center; }
+.state-box .sb-icon.empty-icon { color:var(--n5); }
+.state-box .sb-icon.error-icon { color:var(--c-error); }
+.state-box .sb-title { font-size:var(--fs-lg); color:var(--n10); font-weight:var(--fw-medium); margin-bottom:var(--s2); }
+.state-box .sb-desc { font-size:var(--fs-base); color:var(--n7); margin-bottom:var(--s4); }
+
+/* Toast message */
+.toast-wrap { position:fixed; top:80px; left:50%; transform:translateX(-50%); z-index:1000; display:flex; flex-direction:column; gap:var(--s2); pointer-events:none; }
+.toast { display:inline-flex; align-items:center; gap:var(--s2); padding:var(--s2) var(--s4); border-radius:var(--r-base); background:var(--n1); box-shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05); font-size:var(--fs-base); color:var(--n10); pointer-events:auto; animation:toast-in .3s ease; }
+.toast.success .t-icon { color:var(--c-success); }
+.toast.error .t-icon { color:var(--c-error); }
+.toast .t-icon { width:16px; height:16px; flex-shrink:0; }
+@keyframes toast-in { from{opacity:0; transform:translateY(-12px);} to{opacity:1; transform:translateY(0);} }
+</style>
+</head>
+<body>
+<div class="app-layout">
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-mark">L</div>
+      <span class="logo-text">Leno 商家</span>
+      <span class="shop-name">南极人官方旗舰店</span>
+    </div>
+    <nav class="header-breadcrumb">
+      <span>首页</span>
+      <span class="sep">/</span>
+      <span>物流管理</span>
+      <span class="sep">/</span>
+      <span class="current">物流公司查询</span>
+    </nav>
+    <div class="header-right">
+      <button class="icon-btn" title="待发货订单">
+        <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor"><path d="M832 320H192v448h640V320z m64-32v512a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V288a32 32 0 0 1 32-32h128V192a32 32 0 0 1 32-32h384a32 32 0 0 1 32 32v64h128a32 32 0 0 1 32 32zM384 192v64h256V192H384z"/></svg>
+        <span class="badge">12</span>
+      </button>
+      <button class="icon-btn" title="通知">
+        <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor"><path d="M832 832H192v-32l64-64V448c0-123.7 80.8-229.4 192-267.2V160a64 64 0 0 1 128 0v20.8C687.2 218.6 768 324.3 768 448v288l64 64v32zM384 832a128 128 0 0 0 256 0H384z"/></svg>
+        <span class="badge">5</span>
+      </button>
+      <div class="user-chip">
+        <div class="avatar">张</div>
+        <span class="uname">张老板</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="app-sider">
+      <nav class="sider-menu">
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 0 0 9.3-35.2l-.9-2.6a443.74 443.74 0 0 0-79.7-137.9l-1.8-2.1a32.12 32.12 0 0 0-35.1-9.5l-81.3 28.9c-30-24.6-63.5-44-99.7-57.6l-15.7-85a32.05 32.05 0 0 0-25.8-25.7l-2.7-.5c-52.1-9.4-106.9-9.4-159 0l-2.7.5a32.05 32.05 0 0 0-25.8 25.7l-15.8 85.4a351.86 351.86 0 0 0-99 57.4l-81.9-29.1a32 32 0 0 0-35.1 9.5l-1.8 2.1a446.02 446.02 0 0 0-79.7 137.9l-.9 2.6c-4.5 12.5-.8 26.5 9.3 35.2l66.3 56.6c-3.1 18.8-4.6 38-4.6 57.1 0 19.2 1.5 38.4 4.6 57.1L66 625.7a32.03 32.03 0 0 0-9.3 35.2l.9 2.6c18.1 50.4 44.9 96.9 79.7 137.9l1.8 2.1a32.12 32.12 0 0 0 35.1 9.5l81.9-29.1c29.8 24.5 63.1 43.9 99 57.4l15.8 85.4a32.05 32.05 0 0 0 25.8 25.7l2.7.5a449.4 449.4 0 0 0 159 0l2.7-.5a32.05 32.05 0 0 0 25.8-25.7l15.7-85a350 350 0 0 0 99.7-57.6l81.3 28.9a32 32 0 0 0 35.1-9.5l1.8-2.1c34.8-41.1 61.6-87.5 79.7-137.9l.9-2.6c4.5-12.6.8-26.6-9.3-35.2zM512 700c-104.1 0-188-83.9-188-188s83.9-188 188-188 188 83.9 188 188-83.9 188-188 188z"/></svg>
+          <span>工作台</span>
+        </div>
+        <div class="sider-menu-group-title">商品管理</div>
+        <div class="sider-submenu-item">商品列表</div>
+        <div class="sider-submenu-item">商品编辑</div>
+        <div class="sider-submenu-item">SKU 管理</div>
+        <div class="sider-submenu-item">价格历史</div>
+        <div class="sider-menu-group-title">物流管理</div>
+        <div class="sider-submenu-item">运费模板</div>
+        <div class="sider-submenu-item active">物流公司查询</div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+          <span>订单履约</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.63 375.63 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 535 760 463.5 760 382.2 760 248.9 651.1 140 517.8 140 384.5 140 275.6 248.9 275.6 382.2c0 81.3 41 152.8 103.1 198.4-.4.2-.8.3-1.2.5-43.8 18.7-83.1 45.4-116.9 79.6-33.9 33.9-60.9 73.1-79.6 116.9a375.5 375.5 0 0 0-29.1 145.5c0 17.7 14.3 32 32 32h675.2c17.7 0 32-14.3 32-32 0-49.4-9.7-97.3-28.8-142.5z"/></svg>
+          <span>售后处理</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+          <span>评价管理</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32z"/></svg>
+          <span>店铺设置</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 820V180c0-37-32-68-72-68H184c-40 0-72 31-72 68v640c0 37 32 68 72 68h656c40 0 72-31 72-68z"/></svg>
+          <span>报表导出</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.63 375.63 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 535 760 463.5 760 382.2 760 248.9 651.1 140 517.8 140 384.5 140 275.6 248.9 275.6 382.2c0 81.3 41 152.8 103.1 198.4-.4.2-.8.3-1.2.5-43.8 18.7-83.1 45.4-116.9 79.6-33.9 33.9-60.9 73.1-79.6 116.9a375.5 375.5 0 0 0-29.1 145.5c0 17.7 14.3 32 32 32h675.2c17.7 0 32-14.3 32-32 0-49.4-9.7-97.3-28.8-142.5z"/></svg>
+          <span>个人中心</span>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="app-content">
+      <div class="page-title">物流公司查询</div>
+
+      <!-- Alert banner -->
+      <div class="alert alert-info">
+        <svg class="a-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm32 664c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V456c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272zm-32-344a48.01 48.01 0 0 1 0-96 48.01 48.01 0 0 1 0 96z"/></svg>
+        <div class="a-body">以下为<strong>平台运营维护</strong>的物流公司，发货时请选择<strong>启用状态</strong>的公司。如需新增或调整，请联系平台运营。</div>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.8 542.7 715 477.3 715 406.3 715 242.4 582.6 110 418.7 110S122.4 242.4 122.4 406.3 254.8 702.6 418.7 702.6c71 0 136.4-24.2 188.5-65.1l259.7 259.6a39.94 39.94 0 0 0 56.6 0l40.1-40.1c15.6-15.6 15.6-41 0-56.5z m-490.9-198c-137.6 0-249.2-111.6-249.2-249.2S281.1 158.1 418.7 158.1s249.2 111.6 249.2 249.2-111.6 249.1-249.2 249.1z"/></svg>
+          <input id="searchInput" class="input search-input" type="text" placeholder="公司名称 / 编码" aria-label="搜索物流公司">
+        </div>
+        <span class="f-label">状态</span>
+        <select class="select" style="width:120px;" aria-label="状态筛选">
+          <option>全部</option>
+          <option>启用</option>
+          <option>停用</option>
+        </select>
+        <span class="f-label">轨迹查询</span>
+        <select class="select" style="width:140px;" aria-label="轨迹支持筛选">
+          <option>全部</option>
+          <option>支持查询</option>
+          <option>不支持</option>
+        </select>
+        <button class="btn btn-primary" id="searchBtn">
+          <svg style="width:14px;height:14px;" viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.8 542.7 715 477.3 715 406.3 715 242.4 582.6 110 418.7 110S122.4 242.4 122.4 406.3 254.8 702.6 418.7 702.6c71 0 136.4-24.2 188.5-65.1l259.7 259.6a39.94 39.94 0 0 0 56.6 0l40.1-40.1c15.6-15.6 15.6-41 0-56.5z m-490.9-198c-137.6 0-249.2-111.6-249.2-249.2S281.1 158.1 418.7 158.1s249.2 111.6 249.2 249.2-111.6 249.1-249.2 249.1z"/></svg>
+          查询
+        </button>
+        <button class="btn" id="resetBtn">重置</button>
+        <div class="f-spacer"></div>
+        <span class="stat-chip">共 <span class="num">8</span> 家物流公司 · 启用 <span class="num">6</span> · 停用 <span class="num">2</span></span>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <span class="toolbar-title"><span class="title-bar"></span>物流公司列表</span>
+          <span style="font-size:var(--fs-sm);color:var(--n7);margin-left:var(--s3);">数据缓存 10 分钟，降低重复请求</span>
+          <div class="toolbar-spacer"></div>
+          <div class="state-switcher" role="tablist" aria-label="预览交互状态">
+            <span class="ss-label">预览状态</span>
+            <button class="ss-btn active" data-state="data" role="tab">数据</button>
+            <button class="ss-btn" data-state="loading" role="tab">加载中</button>
+            <button class="ss-btn" data-state="empty" role="tab">空数据</button>
+            <button class="ss-btn" data-state="error" role="tab">错误</button>
+          </div>
+        </div>
+
+        <!-- 数据态 -->
+        <div id="state-data">
+          <table class="data-table" aria-label="物流公司列表">
+            <thead>
+              <tr>
+                <th style="width:240px;">公司名称</th>
+                <th style="width:120px;">编码</th>
+                <th style="width:140px;">客服电话</th>
+                <th style="width:130px;">轨迹查询</th>
+                <th style="width:100px;">状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="company-cell">
+                    <div class="co-logo" style="background:linear-gradient(135deg,#F27224,#D4521A);">SF</div>
+                    <div class="co-info">
+                      <div class="co-name">顺丰速运</div>
+                      <div class="co-desc">国内时效快递 · 同城即时配送</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="code-cell">SF</span></td>
+                <td><span class="phone-cell">95338</span></td>
+                <td>
+                  <span class="tag tag-success">
+                    <svg class="t-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M699 353h-46.9c-10.2 0-19.9 4.9-25.9 13.3L469 584.3l-71.6-98.8c-6-8.3-15.6-13.3-25.9-13.3H325c-6.5 0-10.3 7.4-6.5 12.7l124.6 172.3a31.8 31.8 0 0 0 51.7 0l210.6-291.4c3.9-5.4.1-12.8-6.4-12.8z"/><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 558L525.4 854.5a31.8 31.8 0 0 1-51.7 0L293.5 622a8.01 8.01 0 0 1 6.5-12.7H346c10.3 0 19.9 5 25.9 13.3L443.5 660l144.6-199.7c6-8.3 15.7-13.3 25.9-13.3h46.9c6.5 0 10.3 7.4 6.5 12.7z"/></svg>
+                    支持
+                  </span>
+                </td>
+                <td><span class="tag tag-success"><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success);"></span>启用</span></td>
+                <td>
+                  <div class="ops">
+                    <button class="btn-link copy-btn" data-code="SF" aria-label="复制编码 SF">
+                      <svg class="icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H296c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h496v688c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V96c0-17.7-14.3-32-32-32zM704 192H192c-17.7 0-32 14.3-32 32v530.7c0 8.5 3.4 16.6 9.4 22.6l173.3 173.3c2.2 2.2 4.7 4 7.4 5.5v1.9h4.2c3.5 1 7.2 1.6 10.9 1.6H704c17.7 0 32-14.3 32-32V224c0-17.7-14.3-32-32-32zM350 856.2L263.9 770H350v86.2zM664 888H414V746c0-4.4-3.6-8-8-8H264V264h400v624z"/></svg>
+                      复制编码
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="company-cell">
+                    <div class="co-logo" style="background:linear-gradient(135deg,#1A73E8,#0F5BB5);">ZTO</div>
+                    <div class="co-info">
+                      <div class="co-name">中通快递</div>
+                      <div class="co-desc">覆盖全国 · 性价比之选</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="code-cell">ZTO</span></td>
+                <td><span class="phone-cell">95311</span></td>
+                <td>
+                  <span class="tag tag-success">
+                    <svg class="t-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M699 353h-46.9c-10.2 0-19.9 4.9-25.9 13.3L469 584.3l-71.6-98.8c-6-8.3-15.6-13.3-25.9-13.3H325c-6.5 0-10.3 7.4-6.5 12.7l124.6 172.3a31.8 31.8 0 0 0 51.7 0l210.6-291.4c3.9-5.4.1-12.8-6.4-12.8z"/><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 558L525.4 854.5a31.8 31.8 0 0 1-51.7 0L293.5 622a8.01 8.01 0 0 1 6.5-12.7H346c10.3 0 19.9 5 25.9 13.3L443.5 660l144.6-199.7c6-8.3 15.7-13.3 25.9-13.3h46.9c6.5 0 10.3 7.4 6.5 12.7z"/></svg>
+                    支持
+                  </span>
+                </td>
+                <td><span class="tag tag-success"><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success);"></span>启用</span></td>
+                <td>
+                  <div class="ops">
+                    <button class="btn-link copy-btn" data-code="ZTO" aria-label="复制编码 ZTO">
+                      <svg class="icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H296c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h496v688c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V96c0-17.7-14.3-32-32-32zM704 192H192c-17.7 0-32 14.3-32 32v530.7c0 8.5 3.4 16.6 9.4 22.6l173.3 173.3c2.2 2.2 4.7 4 7.4 5.5v1.9h4.2c3.5 1 7.2 1.6 10.9 1.6H704c17.7 0 32-14.3 32-32V224c0-17.7-14.3-32-32-32zM350 856.2L263.9 770H350v86.2zM664 888H414V746c0-4.4-3.6-8-8-8H264V264h400v624z"/></svg>
+                      复制编码
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="company-cell">
+                    <div class="co-logo" style="background:linear-gradient(135deg,#0DB14B,#088838);">YTO</div>
+                    <div class="co-info">
+                      <div class="co-name">圆通速递</div>
+                      <div class="co-desc">航空件 · 电商专线</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="code-cell">YTO</span></td>
+                <td><span class="phone-cell">95554</span></td>
+                <td>
+                  <span class="tag tag-default">
+                    <svg class="t-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2-12.3 5.5l-228 271.8-228-271.8c-3.2-3.5-7.6-5.5-12.3-5.5H179.8c-6.8 0-10.5 7.9-6.1 13.1L436.2 512 173.7 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2 12.3-5.5l228-271.8 228 271.8c3.2 3.5 7.6 5.5 12.3 5.5h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+                    不支持
+                  </span>
+                </td>
+                <td><span class="tag tag-success"><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success);"></span>启用</span></td>
+                <td>
+                  <div class="ops">
+                    <button class="btn-link copy-btn" data-code="YTO" aria-label="复制编码 YTO">
+                      <svg class="icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H296c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h496v688c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V96c0-17.7-14.3-32-32-32zM704 192H192c-17.7 0-32 14.3-32 32v530.7c0 8.5 3.4 16.6 9.4 22.6l173.3 173.3c2.2 2.2 4.7 4 7.4 5.5v1.9h4.2c3.5 1 7.2 1.6 10.9 1.6H704c17.7 0 32-14.3 32-32V224c0-17.7-14.3-32-32-32zM350 856.2L263.9 770H350v86.2zM664 888H414V746c0-4.4-3.6-8-8-8H264V264h400v624z"/></svg>
+                      复制编码
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="company-cell">
+                    <div class="co-logo" style="background:linear-gradient(135deg,#E60012,#B3000E);">STO</div>
+                    <div class="co-info">
+                      <div class="co-name">申通快递</div>
+                      <div class="co-desc">老牌快递 · 全国无盲区</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="code-cell">STO</span></td>
+                <td><span class="phone-cell">95543</span></td>
+                <td>
+                  <span class="tag tag-success">
+                    <svg class="t-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M699 353h-46.9c-10.2 0-19.9 4.9-25.9 13.3L469 584.3l-71.6-98.8c-6-8.3-15.6-13.3-25.9-13.3H325c-6.5 0-10.3 7.4-6.5 12.7l124.6 172.3a31.8 31.8 0 0 0 51.7 0l210.6-291.4c3.9-5.4.1-12.8-6.4-12.8z"/><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 558L525.4 854.5a31.8 31.8 0 0 1-51.7 0L293.5 622a8.01 8.01 0 0 1 6.5-12.7H346c10.3 0 19.9 5 25.9 13.3L443.5 660l144.6-199.7c6-8.3 15.7-13.3 25.9-13.3h46.9c6.5 0 10.3 7.4 6.5 12.7z"/></svg>
+                    支持
+                  </span>
+                </td>
+                <td><span class="tag tag-default"><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--n7);"></span>停用</span></td>
+                <td>
+                  <span class="disabled-text">已停用</span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="company-cell">
+                    <div class="co-logo" style="background:linear-gradient(135deg,#FF7F00,#CC6600);">YD</div>
+                    <div class="co-info">
+                      <div class="co-name">韵达快递</div>
+                      <div class="co-desc">高性价比 · 电商件主力</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="code-cell">YD</span></td>
+                <td><span class="phone-cell">95546</span></td>
+                <td>
+                  <span class="tag tag-success">
+                    <svg class="t-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M699 353h-46.9c-10.2 0-19.9 4.9-25.9 13.3L469 584.3l-71.6-98.8c-6-8.3-15.6-13.3-25.9-13.3H325c-6.5 0-10.3 7.4-6.5 12.7l124.6 172.3a31.8 31.8 0 0 0 51.7 0l210.6-291.4c3.9-5.4.1-12.8-6.4-12.8z"/><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 558L525.4 854.5a31.8 31.8 0 0 1-51.7 0L293.5 622a8.01 8.01 0 0 1 6.5-12.7H346c10.3 0 19.9 5 25.9 13.3L443.5 660l144.6-199.7c6-8.3 15.7-13.3 25.9-13.3h46.9c6.5 0 10.3 7.4 6.5 12.7z"/></svg>
+                    支持
+                  </span>
+                </td>
+                <td><span class="tag tag-success"><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success);"></span>启用</span></td>
+                <td>
+                  <div class="ops">
+                    <button class="btn-link copy-btn" data-code="YD" aria-label="复制编码 YD">
+                      <svg class="icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H296c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h496v688c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V96c0-17.7-14.3-32-32-32zM704 192H192c-17.7 0-32 14.3-32 32v530.7c0 8.5 3.4 16.6 9.4 22.6l173.3 173.3c2.2 2.2 4.7 4 7.4 5.5v1.9h4.2c3.5 1 7.2 1.6 10.9 1.6H704c17.7 0 32-14.3 32-32V224c0-17.7-14.3-32-32-32zM350 856.2L263.9 770H350v86.2zM664 888H414V746c0-4.4-3.6-8-8-8H264V264h400v624z"/></svg>
+                      复制编码
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="company-cell">
+                    <div class="co-logo" style="background:linear-gradient(135deg,#FF3B30,#CC2F26);">JD</div>
+                    <div class="co-info">
+                      <div class="co-name">京东物流</div>
+                      <div class="co-desc">仓配一体 · 次日达</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="code-cell">JD</span></td>
+                <td><span class="phone-cell">950616</span></td>
+                <td>
+                  <span class="tag tag-success">
+                    <svg class="t-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M699 353h-46.9c-10.2 0-19.9 4.9-25.9 13.3L469 584.3l-71.6-98.8c-6-8.3-15.6-13.3-25.9-13.3H325c-6.5 0-10.3 7.4-6.5 12.7l124.6 172.3a31.8 31.8 0 0 0 51.7 0l210.6-291.4c3.9-5.4.1-12.8-6.4-12.8z"/><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 558L525.4 854.5a31.8 31.8 0 0 1-51.7 0L293.5 622a8.01 8.01 0 0 1 6.5-12.7H346c10.3 0 19.9 5 25.9 13.3L443.5 660l144.6-199.7c6-8.3 15.7-13.3 25.9-13.3h46.9c6.5 0 10.3 7.4 6.5 12.7z"/></svg>
+                    支持
+                  </span>
+                </td>
+                <td><span class="tag tag-success"><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success);"></span>启用</span></td>
+                <td>
+                  <div class="ops">
+                    <button class="btn-link copy-btn" data-code="JD" aria-label="复制编码 JD">
+                      <svg class="icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H296c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h496v688c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V96c0-17.7-14.3-32-32-32zM704 192H192c-17.7 0-32 14.3-32 32v530.7c0 8.5 3.4 16.6 9.4 22.6l173.3 173.3c2.2 2.2 4.7 4 7.4 5.5v1.9h4.2c3.5 1 7.2 1.6 10.9 1.6H704c17.7 0 32-14.3 32-32V224c0-17.7-14.3-32-32-32zM350 856.2L263.9 770H350v86.2zM664 888H414V746c0-4.4-3.6-8-8-8H264V264h400v624z"/></svg>
+                      复制编码
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="company-cell">
+                    <div class="co-logo" style="background:linear-gradient(135deg,#7B68EE,#5C4FE0);">DBL</div>
+                    <div class="co-info">
+                      <div class="co-name">德邦快递</div>
+                      <div class="co-desc">大件快递 · 重货专家</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="code-cell">DBL</span></td>
+                <td><span class="phone-cell">95353</span></td>
+                <td>
+                  <span class="tag tag-success">
+                    <svg class="t-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M699 353h-46.9c-10.2 0-19.9 4.9-25.9 13.3L469 584.3l-71.6-98.8c-6-8.3-15.6-13.3-25.9-13.3H325c-6.5 0-10.3 7.4-6.5 12.7l124.6 172.3a31.8 31.8 0 0 0 51.7 0l210.6-291.4c3.9-5.4.1-12.8-6.4-12.8z"/><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 558L525.4 854.5a31.8 31.8 0 0 1-51.7 0L293.5 622a8.01 8.01 0 0 1 6.5-12.7H346c10.3 0 19.9 5 25.9 13.3L443.5 660l144.6-199.7c6-8.3 15.7-13.3 25.9-13.3h46.9c6.5 0 10.3 7.4 6.5 12.7z"/></svg>
+                    支持
+                  </span>
+                </td>
+                <td><span class="tag tag-success"><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c-success);"></span>启用</span></td>
+                <td>
+                  <div class="ops">
+                    <button class="btn-link copy-btn" data-code="DBL" aria-label="复制编码 DBL">
+                      <svg class="icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H296c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h496v688c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V96c0-17.7-14.3-32-32-32zM704 192H192c-17.7 0-32 14.3-32 32v530.7c0 8.5 3.4 16.6 9.4 22.6l173.3 173.3c2.2 2.2 4.7 4 7.4 5.5v1.9h4.2c3.5 1 7.2 1.6 10.9 1.6H704c17.7 0 32-14.3 32-32V224c0-17.7-14.3-32-32-32zM350 856.2L263.9 770H350v86.2zM664 888H414V746c0-4.4-3.6-8-8-8H264V264h400v624z"/></svg>
+                      复制编码
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="company-cell">
+                    <div class="co-logo" style="background:linear-gradient(135deg,#9AA0A6,#6B7280);">HTKY</div>
+                    <div class="co-info">
+                      <div class="co-name">百世快递</div>
+                      <div class="co-desc">综合物流服务</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="code-cell">HTKY</span></td>
+                <td><span class="phone-cell">95320</span></td>
+                <td>
+                  <span class="tag tag-default">
+                    <svg class="t-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2-12.3 5.5l-228 271.8-228-271.8c-3.2-3.5-7.6-5.5-12.3-5.5H179.8c-6.8 0-10.5 7.9-6.1 13.1L436.2 512 173.7 824.9c-4.4 5.2-.7 13.1 6.1 13.1h79.8c4.7 0 9.2-2 12.3-5.5l228-271.8 228 271.8c3.2 3.5 7.6 5.5 12.3 5.5h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+                    不支持
+                  </span>
+                </td>
+                <td><span class="tag tag-default"><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--n7);"></span>停用</span></td>
+                <td>
+                  <span class="disabled-text">已停用</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <span class="pg-info">第 1-8 条 / 共 8 条</span>
+            <button class="pg-btn" disabled aria-label="上一页">
+              <svg viewBox="0 0 1024 1024" width="14" height="14" fill="currentColor"><path d="M724 218.3V141.9c0-6.7-7.7-10.4-12.9-6.3L260.3 486.8a31.86 31.86 0 0 0 0 50.3l450.8 351.1c5.3 4.1 12.9.4 12.9-6.3v-76.4c0-4.9-2.3-9.6-6.1-12.6l-360-281.1 360-281.1c3.9-3 6.1-7.7 6.1-12.6z"/></svg>
+            </button>
+            <button class="pg-btn active">1</button>
+            <button class="pg-size" aria-label="每页条数">
+              <option>20 条/页</option>
+            </button>
+            <button class="pg-btn" disabled aria-label="下一页">
+              <svg viewBox="0 0 1024 1024" width="14" height="14" fill="currentColor"><path d="M765.7 486.8L314.9 134.7c-5.3-4.1-12.9-.4-12.9 6.3v77.4c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V881c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.86 31.86 0 0 0 0-50.4z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 加载态 Skeleton -->
+        <div id="state-loading" style="display:none;">
+          <table class="data-table" aria-label="物流公司列表加载中">
+            <thead>
+              <tr>
+                <th style="width:240px;">公司名称</th>
+                <th style="width:120px;">编码</th>
+                <th style="width:140px;">客服电话</th>
+                <th style="width:130px;">轨迹查询</th>
+                <th style="width:100px;">状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="skeleton-row"><td><div style="display:flex;gap:var(--s3);align-items:center;"><div class="sk-block circle"></div><div style="flex:1;"><div class="sk-block" style="width:60%;margin-bottom:6px;"></div><div class="sk-block" style="width:80%;height:12px;"></div></div></div></td><td><div class="sk-block" style="width:50px;"></div></td><td><div class="sk-block" style="width:70px;"></div></td><td><div class="sk-block" style="width:60px;height:22px;border-radius:var(--r-base);"></div></td><td><div class="sk-block" style="width:50px;height:22px;border-radius:var(--r-base);"></div></td><td><div class="sk-block" style="width:70px;"></div></td></tr>
+              <tr class="skeleton-row"><td><div style="display:flex;gap:var(--s3);align-items:center;"><div class="sk-block circle"></div><div style="flex:1;"><div class="sk-block" style="width:55%;margin-bottom:6px;"></div><div class="sk-block" style="width:75%;height:12px;"></div></div></div></td><td><div class="sk-block" style="width:48px;"></div></td><td><div class="sk-block" style="width:68px;"></div></td><td><div class="sk-block" style="width:60px;height:22px;border-radius:var(--r-base);"></div></td><td><div class="sk-block" style="width:50px;height:22px;border-radius:var(--r-base);"></div></td><td><div class="sk-block" style="width:70px;"></div></td></tr>
+              <tr class="skeleton-row"><td><div style="display:flex;gap:var(--s3);align-items:center;"><div class="sk-block circle"></div><div style="flex:1;"><div class="sk-block" style="width:65%;margin-bottom:6px;"></div><div class="sk-block" style="width:85%;height:12px;"></div></div></div></td><td><div class="sk-block" style="width:52px;"></div></td><td><div class="sk-block" style="width:72px;"></div></td><td><div class="sk-block" style="width:60px;height:22px;border-radius:var(--r-base);"></div></td><td><div class="sk-block" style="width:50px;height:22px;border-radius:var(--r-base);"></div></td><td><div class="sk-block" style="width:70px;"></div></td></tr>
+              <tr class="skeleton-row"><td><div style="display:flex;gap:var(--s3);align-items:center;"><div class="sk-block circle"></div><div style="flex:1;"><div class="sk-block" style="width:58%;margin-bottom:6px;"></div><div class="sk-block" style="width:78%;height:12px;"></div></div></div></td><td><div class="sk-block" style="width:50px;"></div></td><td><div class="sk-block" style="width:70px;"></div></td><td><div class="sk-block" style="width:60px;height:22px;border-radius:var(--r-base);"></div></td><td><div class="sk-block" style="width:50px;height:22px;border-radius:var(--r-base);"></div></td><td><div class="sk-block" style="width:70px;"></div></td></tr>
+              <tr class="skeleton-row"><td><div style="display:flex;gap:var(--s3);align-items:center;"><div class="sk-block circle"></div><div style="flex:1;"><div class="sk-block" style="width:62%;margin-bottom:6px;"></div><div class="sk-block" style="width:82%;height:12px;"></div></div></div></td><td><div class="sk-block" style="width:50px;"></div></td><td><div class="sk-block" style="width:70px;"></div></td><td><div class="sk-block" style="width:60px;height:22px;border-radius:var(--r-base);"></div></td><td><div class="sk-block" style="width:50px;height:22px;border-radius:var(--r-base);"></div></td><td><div class="sk-block" style="width:70px;"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 空数据态 Empty -->
+        <div id="state-empty" style="display:none;">
+          <div class="state-box">
+            <div class="sb-icon empty-icon">
+              <svg viewBox="0 0 1024 1024" width="64" height="64" fill="currentColor"><path d="M432 672a48 48 0 1 0 96 0 48 48 0 0 0-96 0zm-240-64V224c0-17.7 14.3-32 32-32h448c17.7 0 32 14.3 32 32v384h64V224c0-53-43-96-96-96H224c-53 0-96 43-96 96v576c0 53 43 96 96 96h320v-64H224c-17.7 0-32-14.3-32-32V608h-0.4l64-0.6h-63.6z m320 320a32 32 0 0 0 32 32h320a32 32 0 0 0 32-32V544a32 32 0 0 0-32-32H544a32 32 0 0 0-32 32v384z"/></svg>
+            </div>
+            <div class="sb-title">暂无物流公司</div>
+            <div class="sb-desc">平台尚未配置物流公司，请联系运营添加</div>
+          </div>
+        </div>
+
+        <!-- 错误态 Error -->
+        <div id="state-error" style="display:none;">
+          <div class="state-box">
+            <div class="sb-icon error-icon">
+              <svg viewBox="0 0 1024 1024" width="64" height="64" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 0 1 0-96 48.01 48.01 0 0 1 0 96z"/></svg>
+            </div>
+            <div class="sb-title">网络异常</div>
+            <div class="sb-desc">物流公司列表加载失败，请检查网络后重试</div>
+            <button class="btn btn-primary" onclick="showToast('error','网络异常，请稍后重试')">
+              <svg style="width:14px;height:14px;" viewBox="0 0 1024 1024" fill="currentColor"><path d="M909.1 209.3l-56.4 44.1C775.8 155.1 657.7 96 536 96c-181.1 0-331.9 131.7-360.8 305.1L116 353.5c-3.7-3.7-9.7-3.7-13.4 0l-42.9 42.9c-3.7 3.7-3.7 9.7 0 13.4l124.4 124.4c3.7 3.7 9.7 3.7 13.4 0l124.4-124.4c3.7-3.7 3.7-9.7 0-13.4l-42.9-42.9c-3.7-3.7-9.7-3.7-13.4 0L210 385.4C237.5 254.7 350.8 160 488 160c100.1 0 191.4 49.8 247.5 126.8l-56.4 44.1c-3.7 3.7-3.7 9.7 0 13.4l42.9 42.9c3.7 3.7 9.7 3.7 13.4 0l124.4-124.4c3.7-3.7 3.7-9.7 0-13.4z"/></svg>
+              重新加载
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 物流跟踪测试卡 -->
+      <div class="table-wrap" style="margin-top:var(--s4);">
+        <div class="table-toolbar">
+          <span class="toolbar-title"><span class="title-bar"></span>物流跟踪测试</span>
+          <span style="font-size:var(--fs-sm);color:var(--n7);margin-left:var(--s3);">输入运单号查询轨迹，验证所选物流公司的轨迹查询能力</span>
+          <div class="toolbar-spacer"></div>
+        </div>
+        <div style="padding:var(--s6); display:flex; flex-direction:column; gap:var(--s3);">
+          <div style="display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap;">
+            <span class="f-label" style="font-size:var(--fs-base);color:var(--n9);white-space:nowrap;">物流公司</span>
+            <select class="select" style="width:180px;" aria-label="选择物流公司">
+              <option>顺丰速运（SF）</option>
+              <option>中通快递（ZTO）</option>
+              <option>韵达快递（YD）</option>
+              <option>京东物流（JD）</option>
+              <option>德邦快递（DBL）</option>
+            </select>
+            <span class="f-label" style="font-size:var(--fs-base);color:var(--n9);white-space:nowrap;margin-left:var(--s2);">运单号</span>
+            <input class="input" style="width:240px;" type="text" value="SF1234567890123" placeholder="请输入运单号" aria-label="运单号">
+            <button class="btn btn-primary">
+              <svg style="width:14px;height:14px;" viewBox="0 0 1024 1024" fill="currentColor"><path d="M942.2 486.2C847.4 286.5 703.1 186.5 512 186.5c-191.2 0-335.4 100-430.2 299.7a31.9 31.9 0 0 0 0 28.6C176.6 914.5 320.9 1014.5 512 1014.5c191.2 0 335.4-100 430.2-299.7a31.9 31.9 0 0 0 0-28.6zM512 897c-96.1 0-174-77.9-174-174s77.9-174 174-174 174 77.9 174 174-77.9 174-174 174z"/></svg>
+              查询轨迹
+            </button>
+            <div class="f-spacer"></div>
+            <span class="stat-chip">
+              <svg style="width:14px;height:14px;color:var(--c-success);" viewBox="0 0 1024 1024" fill="currentColor"><path d="M699 353h-46.9c-10.2 0-19.9 4.9-25.9 13.3L469 584.3l-71.6-98.8c-6-8.3-15.6-13.3-25.9-13.3H325c-6.5 0-10.3 7.4-6.5 12.7l124.6 172.3a31.8 31.8 0 0 0 51.7 0l210.6-291.4c3.9-5.4.1-12.8-6.4-12.8z"/><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 558L525.4 854.5a31.8 31.8 0 0 1-51.7 0L293.5 622a8.01 8.01 0 0 1 6.5-12.7H346c10.3 0 19.9 5 25.9 13.3L443.5 660l144.6-199.7c6-8.3 15.7-13.3 25.9-13.3h46.9c6.5 0 10.3 7.4 6.5 12.7z"/></svg>
+              轨迹接口：已对接
+            </span>
+          </div>
+          <div style="display:flex; gap:var(--s4); padding:var(--s4); background:var(--n3); border-radius:var(--r-card);">
+            <div style="flex:1; display:flex; flex-direction:column; gap:var(--s2);">
+              <div style="font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-medium);">运单状态</div>
+              <div style="font-size:var(--fs-lg);color:var(--c-success);font-weight:var(--fw-semibold);">运输中</div>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; gap:var(--s2);">
+              <div style="font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-medium);">始发地</div>
+              <div style="font-size:var(--fs-base);color:var(--n10);">浙江·杭州转运中心</div>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; gap:var(--s2);">
+              <div style="font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-medium);">目的地</div>
+              <div style="font-size:var(--fs-base);color:var(--n10);">广东·深圳南山区</div>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; gap:var(--s2);">
+              <div style="font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-medium);">最新更新</div>
+              <div style="font-size:var(--fs-base);color:var(--n10);">2026-07-26 15:42 · 深圳转运中心已发出</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="app-footer">
+    <span>Leno 电商平台 · 商家管理后台 · © 2026 南极人官方旗舰店</span>
+  </footer>
+</div>
+
+<!-- Toast message container -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// 复制编码到剪贴板
+function copyCode(code) {
+  var textarea = document.createElement('textarea');
+  textarea.value = code;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code);
+    } else {
+      document.execCommand('copy');
+    }
+    showToast('success', '编码「' + code + '」已复制，可粘贴至发货弹窗');
+  } catch (e) {
+    showToast('error', '复制失败，请手动复制编码：' + code);
+  }
+  document.body.removeChild(textarea);
+}
+
+// 显示 Toast 消息
+function showToast(type, text) {
+  var wrap = document.getElementById('toastWrap');
+  var toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  var iconPath = type === 'success'
+    ? '<path d="M699 353h-46.9c-10.2 0-19.9 4.9-25.9 13.3L469 584.3l-71.6-98.8c-6-8.3-15.6-13.3-25.9-13.3H325c-6.5 0-10.3 7.4-6.5 12.7l124.6 172.3a31.8 31.8 0 0 0 51.7 0l210.6-291.4c3.9-5.4.1-12.8-6.4-12.8z"/><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 558L525.4 854.5a31.8 31.8 0 0 1-51.7 0L293.5 622a8.01 8.01 0 0 1 6.5-12.7H346c10.3 0 19.9 5 25.9 13.3L443.5 660l144.6-199.7c6-8.3 15.7-13.3 25.9-13.3h46.9c6.5 0 10.3 7.4 6.5 12.7z"/>'
+    : '<path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 0 1 0-96 48.01 48.01 0 0 1 0 96z"/>';
+  toast.innerHTML = '<svg class="t-icon" viewBox="0 0 1024 1024" fill="currentColor">' + iconPath + '</svg><span>' + text + '</span>';
+  wrap.appendChild(toast);
+  setTimeout(function() {
+    toast.style.transition = 'opacity .3s, transform .3s';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-12px)';
+    setTimeout(function() { wrap.removeChild(toast); }, 300);
+  }, 2400);
+}
+
+// 绑定复制编码按钮
+document.querySelectorAll('.copy-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    copyCode(this.getAttribute('data-code'));
+  });
+});
+
+// 状态切换器
+document.querySelectorAll('.state-switcher .ss-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.state-switcher .ss-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var state = btn.getAttribute('data-state');
+    ['data', 'loading', 'empty', 'error'].forEach(function(s) {
+      var el = document.getElementById('state-' + s);
+      if (el) el.style.display = (s === state) ? 'block' : 'none';
+    });
+  });
+});
+
+// 搜索防抖 300ms
+var searchTimer = null;
+document.getElementById('searchInput').addEventListener('input', function() {
+  var val = this.value;
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(function() {
+    if (val.trim()) {
+      showToast('success', '已按关键词「' + val + '」查询');
+    }
+  }, 300);
+});
+
+// 查询按钮
+document.getElementById('searchBtn').addEventListener('click', function() {
+  showToast('success', '查询完成');
+});
+
+// 重置按钮
+document.getElementById('resetBtn').addEventListener('click', function() {
+  document.getElementById('searchInput').value = '';
+  showToast('success', '筛选条件已重置');
+});
+</script>
+</body>
+</html>

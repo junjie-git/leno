@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>运费模板 - 商家管理后台 - Leno 电商平台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+body { font-family:var(--ff-app); font-size:var(--fs-base); color:var(--n10); background:var(--n3); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { opacity:.85; }
+button { font-family:inherit; cursor:pointer; border:none; background:none; }
+ul, ol { list-style:none; }
+input, select { font-family:inherit; font-size:inherit; }
+
+.app-layout { min-height:100%; display:flex; flex-direction:column; }
+.app-header { position:sticky; top:0; z-index:100; height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5); display:flex; align-items:center; padding:0 var(--s4); box-shadow:0 1px 4px rgba(0,21,41,.08); }
+.app-header .logo { display:flex; align-items:center; gap:var(--s2); width:calc(var(--sider-width) - var(--s4)); flex-shrink:0; }
+.app-header .logo .logo-mark { width:32px; height:32px; border-radius:var(--r-base); background:linear-gradient(135deg,#1677FF,#0958D9); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:18px; }
+.app-header .logo .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); }
+.app-header .logo .shop-name { font-size:var(--fs-sm); color:var(--n7); margin-left:var(--s2); padding-left:var(--s2); border-left:1px solid var(--n5); }
+.app-header .header-breadcrumb { flex:1; display:flex; align-items:center; gap:var(--s2); color:var(--n7); font-size:var(--fs-base); padding-left:var(--s4); }
+.app-header .header-breadcrumb .sep { color:var(--n5); }
+.app-header .header-breadcrumb .current { color:var(--n10); }
+.app-header .header-right { display:flex; align-items:center; gap:var(--s4); }
+.app-header .header-right .icon-btn { width:40px; height:40px; border-radius:var(--r-base); display:flex; align-items:center; justify-content:center; color:var(--n9); position:relative; transition:all .2s; }
+.app-header .header-right .icon-btn:hover { background:var(--n3); color:var(--n10); }
+.app-header .header-right .icon-btn .badge { position:absolute; top:4px; right:4px; min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--c-error); color:#fff; font-size:10px; line-height:16px; text-align:center; font-weight:var(--fw-medium); }
+.app-header .header-right .user-chip { display:flex; align-items:center; gap:var(--s2); padding:var(--s1) var(--s2); border-radius:var(--r-base); cursor:pointer; transition:all .2s; }
+.app-header .header-right .user-chip:hover { background:var(--n3); }
+.app-header .header-right .user-chip .avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#52C41A,#389E0D); color:#fff; display:flex; align-items:center; justify-content:center; font-size:var(--fs-base); font-weight:var(--fw-semibold); }
+.app-header .header-right .user-chip .uname { font-size:var(--fs-base); color:var(--n10); }
+
+.app-body { display:flex; flex:1; }
+.app-sider { width:var(--sider-width); background:var(--sider-bg); flex-shrink:0; position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto; }
+.app-sider::-webkit-scrollbar { width:6px; }
+.app-sider::-webkit-scrollbar-thumb { background:rgba(255,255,255,.2); border-radius:3px; }
+.sider-menu { padding:var(--s2) 0; }
+.sider-menu-item { display:flex; align-items:center; gap:var(--s3); padding:0 var(--s6); height:40px; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .2s; }
+.sider-menu-item:hover { color:#fff; }
+.sider-menu-item .m-icon { width:16px; height:16px; flex-shrink:0; }
+.sider-menu-item.active { color:#fff; background:var(--c-primary); }
+.sider-menu-group-title { padding:var(--s4) var(--s6) var(--s2); color:rgba(255,255,255,.35); font-size:var(--fs-sm); }
+.sider-submenu-item { padding-left:var(--s12); height:40px; display:flex; align-items:center; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .2s; position:relative; }
+.sider-submenu-item:hover { color:#fff; }
+.sider-submenu-item.active { color:#fff; background:var(--c-primary); }
+
+.app-content { flex:1; background:var(--n3); padding:var(--s6); min-width:0; }
+.app-footer { height:32px; background:var(--n1); border-top:1px solid var(--n5); display:flex; align-items:center; justify-content:center; color:var(--n7); font-size:var(--fs-sm); }
+
+.page-title { font-size:var(--fs-xl); font-weight:var(--fw-medium); color:var(--n10); margin-bottom:var(--s4); }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:var(--s1); height:32px; padding:0 var(--s4); border-radius:var(--r-base); font-size:var(--fs-base); font-weight:var(--fw-normal); transition:all .2s; white-space:nowrap; border:1px solid var(--n5); background:var(--n1); color:var(--n10); }
+.btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-danger { color:var(--c-error); border-color:var(--c-error); }
+.btn-danger:hover { background:var(--c-error); color:#fff; }
+.btn-link { border:none; background:none; color:var(--c-primary); padding:0; font-size:var(--fs-sm); }
+.btn-link:hover { opacity:.85; }
+.btn-link.danger { color:var(--c-error); }
+.btn .icon { width:14px; height:14px; }
+
+/* Tags */
+.tag { display:inline-flex; align-items:center; gap:var(--s1); height:22px; padding:0 var(--s2); border-radius:var(--r-base); font-size:var(--fs-sm); line-height:20px; border:1px solid; }
+.tag .dot { width:6px; height:6px; border-radius:50%; }
+.tag-success { color:var(--c-success); border-color:#B7EB8F; background:#F6FFED; }
+.tag-success .dot { background:var(--c-success); }
+.tag-default { color:var(--n9); border-color:var(--n5); background:var(--n3); }
+.tag-default .dot { background:var(--n7); }
+
+/* Summary card */
+.summary-card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:var(--s4) var(--s6); margin-bottom:var(--s4); display:flex; align-items:center; gap:var(--s6); }
+.summary-card .sc-icon { width:48px; height:48px; border-radius:var(--r-card); background:#E6F4FF; color:var(--c-primary); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.summary-card .sc-info { flex:1; }
+.summary-card .sc-name { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); display:flex; align-items:center; gap:var(--s2); }
+.summary-card .sc-meta { font-size:var(--fs-sm); color:var(--n7); margin-top:var(--s1); display:flex; gap:var(--s4); }
+.summary-card .sc-meta .meta-item { display:flex; align-items:center; gap:var(--s1); }
+
+/* Form card */
+.form-card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:var(--s6); margin-bottom:var(--s4); }
+.form-card .card-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); margin-bottom:var(--s4); display:flex; align-items:center; gap:var(--s2); }
+.form-card .card-title .title-bar { width:3px; height:16px; background:var(--c-primary); border-radius:2px; }
+.form-row { display:flex; gap:var(--s4); margin-bottom:var(--s4); align-items:flex-start; }
+.form-row:last-child { margin-bottom:0; }
+.form-item { flex:1; }
+.form-item.w-half { flex:0 0 calc(50% - var(--s2)); }
+.form-item.w-third { flex:0 0 calc(33.33% - var(--s3)); }
+.form-item.w-fixed { flex:0 0 240px; }
+.form-label { display:flex; align-items:center; gap:var(--s1); font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-medium); margin-bottom:var(--s2); }
+.form-label .req { color:var(--c-error); }
+.form-label .opt { color:var(--n7); font-weight:var(--fw-normal); font-size:var(--fs-sm); }
+.input, .select { width:100%; height:32px; padding:0 var(--s3); border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); color:var(--n10); font-size:var(--fs-base); transition:all .2s; outline:none; }
+.input:hover, .select:hover { border-color:var(--c-primary); }
+.input:focus, .select:focus { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.input::placeholder { color:var(--n7); }
+.select { appearance:none; -webkit-appearance:none; padding-right:28px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 1024 1024' fill='%238C8C8C'%3E%3Cpath d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.6l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.2.1-12.6-6.4-12.6z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; cursor:pointer; }
+.form-hint { font-size:var(--fs-sm); color:var(--n7); margin-top:var(--s1); }
+.input-num-wrap { display:flex; align-items:center; }
+.input-num-wrap .input { border-radius:var(--r-base) 0 0 var(--r-base); }
+.input-num-wrap .unit { height:32px; padding:0 var(--s3); border:1px solid var(--n5); border-left:none; border-radius:0 var(--r-base) var(--r-base) 0; background:var(--n2); color:var(--n9); font-size:var(--fs-sm); display:flex; align-items:center; white-space:nowrap; }
+
+/* Radio group */
+.radio-group { display:flex; gap:var(--s3); flex-wrap:wrap; }
+.radio-card { display:flex; align-items:flex-start; gap:var(--s2); padding:var(--s3) var(--s4); border:1px solid var(--n5); border-radius:var(--r-card); cursor:pointer; transition:all .2s; min-width:160px; }
+.radio-card:hover { border-color:var(--c-primary); }
+.radio-card.checked { border-color:var(--c-primary); background:#F5F9FF; }
+.radio-card .radio-dot { width:16px; height:16px; border-radius:50%; border:2px solid var(--n5); position:relative; flex-shrink:0; margin-top:2px; transition:all .2s; }
+.radio-card.checked .radio-dot { border-color:var(--c-primary); }
+.radio-card.checked .radio-dot::after { content:""; position:absolute; inset:3px; border-radius:50%; background:var(--c-primary); }
+.radio-card .radio-text { flex:1; }
+.radio-card .radio-label { font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-medium); }
+.radio-card .radio-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:2px; }
+
+/* Switch */
+.switch { display:inline-flex; align-items:center; width:44px; height:22px; border-radius:11px; background:var(--n5); cursor:pointer; transition:all .2s; position:relative; flex-shrink:0; }
+.switch.on { background:var(--c-primary); }
+.switch .switch-handle { position:absolute; left:2px; top:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:all .2s; box-shadow:0 2px 4px rgba(0,0,0,.2); }
+.switch.on .switch-handle { left:24px; }
+
+/* Table */
+.table-wrap { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); overflow:hidden; }
+.table-toolbar { display:flex; align-items:center; padding:var(--s4) var(--s6); border-bottom:1px solid var(--n3); }
+.table-toolbar .toolbar-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); }
+.table-toolbar .toolbar-spacer { flex:1; }
+table.data-table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+table.data-table thead th { background:var(--n2); color:var(--n9); font-weight:var(--fw-medium); text-align:left; padding:var(--s3) var(--s4); border-bottom:1px solid var(--n5); white-space:nowrap; font-size:var(--fs-sm); }
+table.data-table tbody td { padding:var(--s3) var(--s4); border-bottom:1px solid var(--n3); color:var(--n10); vertical-align:middle; }
+table.data-table tbody tr:hover { background:var(--n2); }
+table.data-table tbody tr:last-child td { border-bottom:none; }
+.region-cell { display:flex; align-items:center; gap:var(--s2); }
+.region-cell .region-icon { width:16px; height:16px; color:var(--c-primary); }
+.region-cell .region-name { font-weight:var(--fw-medium); }
+.region-cell .region-code { font-family:var(--ff-mono); font-size:var(--fs-sm); color:var(--n7); }
+.price-cell { font-weight:var(--fw-semibold); }
+.ops { display:flex; align-items:center; gap:var(--s1); }
+.ops .op-sep { color:var(--n5); font-size:var(--fs-sm); }
+
+/* Operation bar */
+.op-bar { display:flex; align-items:center; gap:var(--s4); background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:var(--s3) var(--s6); }
+.op-bar .op-switch-label { font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-medium); display:flex; align-items:center; gap:var(--s2); }
+.op-bar .op-spacer { flex:1; }
+
+/* Popconfirm */
+.popconfirm { position:relative; display:inline-block; }
+.popconfirm-pop { position:absolute; top:calc(100% + 8px); right:0; background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:var(--s3); width:240px; z-index:50; display:none; }
+.popconfirm-pop.show { display:block; }
+.popconfirm-pop .pc-text { font-size:var(--fs-sm); color:var(--n10); margin-bottom:var(--s2); display:flex; gap:var(--s2); align-items:flex-start; }
+.popconfirm-pop .pc-icon { color:var(--c-warning); flex-shrink:0; margin-top:1px; }
+.popconfirm-pop .pc-actions { display:flex; justify-content:flex-end; gap:var(--s2); }
+</style>
+</head>
+<body>
+<div class="app-layout">
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-mark">L</div>
+      <span class="logo-text">Leno 商家</span>
+      <span class="shop-name">南极人官方旗舰店</span>
+    </div>
+    <nav class="header-breadcrumb">
+      <span>首页</span>
+      <span class="sep">/</span>
+      <span>物流管理</span>
+      <span class="sep">/</span>
+      <span class="current">运费模板</span>
+    </nav>
+    <div class="header-right">
+      <button class="icon-btn" title="待发货订单">
+        <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor"><path d="M832 320H192v448h640V320z m64-32v512a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V288a32 32 0 0 1 32-32h128V192a32 32 0 0 1 32-32h384a32 32 0 0 1 32 32v64h128a32 32 0 0 1 32 32zM384 192v64h256V192H384z"/></svg>
+        <span class="badge">12</span>
+      </button>
+      <button class="icon-btn" title="通知">
+        <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor"><path d="M832 832H192v-32l64-64V448c0-123.7 80.8-229.4 192-267.2V160a64 64 0 0 1 128 0v20.8C687.2 218.6 768 324.3 768 448v288l64 64v32zM384 832a128 128 0 0 0 256 0H384z"/></svg>
+        <span class="badge">5</span>
+      </button>
+      <div class="user-chip">
+        <div class="avatar">张</div>
+        <span class="uname">张老板</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="app-sider">
+      <nav class="sider-menu">
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 0 0 9.3-35.2l-.9-2.6a443.74 443.74 0 0 0-79.7-137.9l-1.8-2.1a32.12 32.12 0 0 0-35.1-9.5l-81.3 28.9c-30-24.6-63.5-44-99.7-57.6l-15.7-85a32.05 32.05 0 0 0-25.8-25.7l-2.7-.5c-52.1-9.4-106.9-9.4-159 0l-2.7.5a32.05 32.05 0 0 0-25.8 25.7l-15.8 85.4a351.86 351.86 0 0 0-99 57.4l-81.9-29.1a32 32 0 0 0-35.1 9.5l-1.8 2.1a446.02 446.02 0 0 0-79.7 137.9l-.9 2.6c-4.5 12.5-.8 26.5 9.3 35.2l66.3 56.6c-3.1 18.8-4.6 38-4.6 57.1 0 19.2 1.5 38.4 4.6 57.1L66 625.7a32.03 32.03 0 0 0-9.3 35.2l.9 2.6c18.1 50.4 44.9 96.9 79.7 137.9l1.8 2.1a32.12 32.12 0 0 0 35.1 9.5l81.9-29.1c29.8 24.5 63.1 43.9 99 57.4l15.8 85.4a32.05 32.05 0 0 0 25.8 25.7l2.7.5a449.4 449.4 0 0 0 159 0l2.7-.5a32.05 32.05 0 0 0 25.8-25.7l15.7-85a350 350 0 0 0 99.7-57.6l81.3 28.9a32 32 0 0 0 35.1-9.5l1.8-2.1c34.8-41.1 61.6-87.5 79.7-137.9l.9-2.6c4.5-12.6.8-26.6-9.3-35.2zM512 700c-104.1 0-188-83.9-188-188s83.9-188 188-188 188 83.9 188 188-83.9 188-188 188z"/></svg>
+          <span>工作台</span>
+        </div>
+        <div class="sider-menu-group-title">商品管理</div>
+        <div class="sider-submenu-item">商品列表</div>
+        <div class="sider-submenu-item">商品编辑</div>
+        <div class="sider-submenu-item">SKU 管理</div>
+        <div class="sider-submenu-item">价格历史</div>
+        <div class="sider-menu-group-title">物流管理</div>
+        <div class="sider-submenu-item active">运费模板</div>
+        <div class="sider-submenu-item">物流公司查询</div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+          <span>订单履约</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.63 375.63 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 535 760 463.5 760 382.2 760 248.9 651.1 140 517.8 140 384.5 140 275.6 248.9 275.6 382.2c0 81.3 41 152.8 103.1 198.4-.4.2-.8.3-1.2.5-43.8 18.7-83.1 45.4-116.9 79.6-33.9 33.9-60.9 73.1-79.6 116.9a375.5 375.5 0 0 0-29.1 145.5c0 17.7 14.3 32 32 32h675.2c17.7 0 32-14.3 32-32 0-49.4-9.7-97.3-28.8-142.5z"/></svg>
+          <span>售后处理</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+          <span>评价管理</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32z"/></svg>
+          <span>店铺设置</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 820V180c0-37-32-68-72-68H184c-40 0-72 31-72 68v640c0 37 32 68 72 68h656c40 0 72-31 72-68z"/></svg>
+          <span>报表导出</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.63 375.63 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 535 760 463.5 760 382.2 760 248.9 651.1 140 517.8 140 384.5 140 275.6 248.9 275.6 382.2c0 81.3 41 152.8 103.1 198.4-.4.2-.8.3-1.2.5-43.8 18.7-83.1 45.4-116.9 79.6-33.9 33.9-60.9 73.1-79.6 116.9a375.5 375.5 0 0 0-29.1 145.5c0 17.7 14.3 32 32 32h675.2c17.7 0 32-14.3 32-32 0-49.4-9.7-97.3-28.8-142.5z"/></svg>
+          <span>个人中心</span>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="app-content">
+      <div class="page-title">运费模板</div>
+
+      <!-- Summary card -->
+      <div class="summary-card">
+        <div class="sc-icon">
+          <svg viewBox="0 0 1024 1024" width="24" height="24" fill="currentColor"><path d="M832 320H192v448h640V320z m64-32v512a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V288a32 32 0 0 1 32-32h128V192a32 32 0 0 1 32-32h384a32 32 0 0 1 32 32v64h128a32 32 0 0 1 32 32zM384 192v64h256V192H384z"/></svg>
+        </div>
+        <div class="sc-info">
+          <div class="sc-name">
+            默认运费模板
+            <span class="tag tag-success"><span class="dot"></span>启用</span>
+          </div>
+          <div class="sc-meta">
+            <span class="meta-item">计费方式：按件计费</span>
+            <span class="meta-item">地区规则：4 条</span>
+            <span class="meta-item">满额包邮：¥99.00</span>
+            <span class="meta-item">更新于 2026-07-25 14:30</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Billing config -->
+      <div class="form-card">
+        <div class="card-title"><span class="title-bar"></span>计费配置</div>
+        <div class="form-row">
+          <div class="form-item">
+            <label class="form-label"><span class="req">*</span>模板名称</label>
+            <input class="input" type="text" value="默认运费模板" placeholder="请输入模板名称（1-64 字）">
+            <div class="form-hint">模板名称用于商品发布时选择，建议使用有意义的名称</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-item">
+            <label class="form-label"><span class="req">*</span>计费类型</label>
+            <div class="radio-group">
+              <div class="radio-card">
+                <div class="radio-dot"></div>
+                <div class="radio-text">
+                  <div class="radio-label">按重量计费</div>
+                  <div class="radio-desc">根据商品重量计算运费</div>
+                </div>
+              </div>
+              <div class="radio-card checked">
+                <div class="radio-dot"></div>
+                <div class="radio-text">
+                  <div class="radio-label">按件数计费</div>
+                  <div class="radio-desc">根据商品件数计算运费</div>
+                </div>
+              </div>
+              <div class="radio-card">
+                <div class="radio-dot"></div>
+                <div class="radio-text">
+                  <div class="radio-label">固定运费</div>
+                  <div class="radio-desc">统一运费，不区分地区</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-item w-fixed">
+            <label class="form-label">满额包邮 <span class="opt">（选填）</span></label>
+            <div class="input-num-wrap">
+              <input class="input" type="text" value="99.00" placeholder="留空表示不包邮">
+              <span class="unit">元</span>
+            </div>
+            <div class="form-hint">订单满此金额免运费，留空表示不启用满额包邮</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Region rules table -->
+      <div class="table-wrap" style="margin-bottom:var(--s4);">
+        <div class="table-toolbar">
+          <span class="toolbar-title">地区规则</span>
+          <span style="font-size:var(--fs-sm);color:var(--n7);margin-left:var(--s3);">计费方式：按件数</span>
+          <div class="toolbar-spacer"></div>
+          <button class="btn btn-primary">
+            <svg class="icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"/><path d="M176 474h672q8 0 8 8v60q0 8-8 8H176q-8 0-8-8v-60q0-8 8-8z"/></svg>
+            新增规则
+          </button>
+        </div>
+        <table class="data-table" aria-label="地区运费规则">
+          <thead>
+            <tr>
+              <th style="width:200px;">地区</th>
+              <th style="width:100px;">首件（件）</th>
+              <th style="width:120px;">首费</th>
+              <th style="width:100px;">续件（件）</th>
+              <th style="width:120px;">续费</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="region-cell">
+                  <svg class="region-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 320H192v448h640V320z"/></svg>
+                  <div>
+                    <div class="region-name">全国（默认）</div>
+                    <div class="region-code">CN-ALL</div>
+                  </div>
+                </div>
+              </td>
+              <td>1</td>
+              <td><span class="price-cell">¥10.00</span></td>
+              <td>1</td>
+              <td><span class="price-cell">¥2.00</span></td>
+              <td>
+                <div class="ops">
+                  <button class="btn-link">编辑</button>
+                  <span class="op-sep">|</span>
+                  <div class="popconfirm">
+                    <button class="btn-link danger" id="delTrigger">删除</button>
+                    <div class="popconfirm-pop" id="delPop">
+                      <div class="pc-text">
+                        <svg class="pc-icon" viewBox="0 0 1024 1024" width="14" height="14" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-32 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm32 440a48.01 48.01 0 0 1 0-96 48.01 48.01 0 0 1 0 96z"/></svg>
+                        <span>确认删除该地区规则？保存后生效。</span>
+                      </div>
+                      <div class="pc-actions">
+                        <button class="btn" style="height:24px;font-size:var(--fs-sm);padding:0 var(--s2);">取消</button>
+                        <button class="btn btn-danger" style="height:24px;font-size:var(--fs-sm);padding:0 var(--s2);">删除</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="region-cell">
+                  <svg class="region-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 320H192v448h640V320z"/></svg>
+                  <div>
+                    <div class="region-name">新疆、西藏</div>
+                    <div class="region-code">CN-XZ, CN-XJ</div>
+                  </div>
+                </div>
+              </td>
+              <td>1</td>
+              <td><span class="price-cell">¥15.00</span></td>
+              <td>1</td>
+              <td><span class="price-cell">¥5.00</span></td>
+              <td>
+                <div class="ops">
+                  <button class="btn-link">编辑</button>
+                  <span class="op-sep">|</span>
+                  <button class="btn-link danger">删除</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="region-cell">
+                  <svg class="region-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 320H192v448h640V320z"/></svg>
+                  <div>
+                    <div class="region-name">青海、甘肃、宁夏</div>
+                    <div class="region-code">CN-QH, CN-GS, CN-NX</div>
+                  </div>
+                </div>
+              </td>
+              <td>1</td>
+              <td><span class="price-cell">¥12.00</span></td>
+              <td>1</td>
+              <td><span class="price-cell">¥3.00</span></td>
+              <td>
+                <div class="ops">
+                  <button class="btn-link">编辑</button>
+                  <span class="op-sep">|</span>
+                  <button class="btn-link danger">删除</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="region-cell">
+                  <svg class="region-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 320H192v448h640V320z"/></svg>
+                  <div>
+                    <div class="region-name">内蒙古、黑龙江</div>
+                    <div class="region-code">CN-NM, CN-HL</div>
+                  </div>
+                </div>
+              </td>
+              <td>1</td>
+              <td><span class="price-cell">¥13.00</span></td>
+              <td>1</td>
+              <td><span class="price-cell">¥4.00</span></td>
+              <td>
+                <div class="ops">
+                  <button class="btn-link">编辑</button>
+                  <span class="op-sep">|</span>
+                  <button class="btn-link danger">删除</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Operation bar -->
+      <div class="op-bar">
+        <div class="op-switch-label">
+          启用模板
+          <div class="switch on" id="enableSwitch">
+            <div class="switch-handle"></div>
+          </div>
+          <span style="font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal);">启用后，新订单可使用此模板计算运费</span>
+        </div>
+        <div class="op-spacer"></div>
+        <button class="btn">取消</button>
+        <button class="btn btn-primary">
+          <svg class="icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M893.3 293.3L730.7 130.7c-7.5-7.5-16.7-13-26.7-16V112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V338.5c0-17-6.7-33.2-18.7-45.2z"/></svg>
+          保存
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <footer class="app-footer">
+    <span>Leno 电商平台 · 商家管理后台 · © 2026 南极人官方旗舰店</span>
+  </footer>
+</div>
+
+<script>
+// 计费类型切换
+document.querySelectorAll('.radio-card').forEach(function(card){
+  card.addEventListener('click', function(){
+    document.querySelectorAll('.radio-card').forEach(function(c){ c.classList.remove('checked'); });
+    card.classList.add('checked');
+  });
+});
+// 启用开关
+document.getElementById('enableSwitch').addEventListener('click', function(){
+  this.classList.toggle('on');
+});
+// 删除确认 Popconfirm
+document.getElementById('delTrigger').addEventListener('click', function(e){
+  e.stopPropagation();
+  document.getElementById('delPop').classList.toggle('show');
+});
+document.addEventListener('click', function(){
+  document.getElementById('delPop').classList.remove('show');
+});
+document.getElementById('delPop').addEventListener('click', function(e){ e.stopPropagation(); });
+</script>
+</body>
+</html>

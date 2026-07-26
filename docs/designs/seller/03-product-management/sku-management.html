@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKU 管理 - 商家管理后台 - Leno 电商平台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+body { font-family:var(--ff-app); font-size:var(--fs-base); color:var(--n10); background:var(--n3); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { opacity:.85; }
+button { font-family:inherit; cursor:pointer; border:none; background:none; }
+ul, ol { list-style:none; }
+input, select, textarea { font-family:inherit; font-size:inherit; }
+
+.app-layout { min-height:100%; display:flex; flex-direction:column; }
+.app-header { position:sticky; top:0; z-index:100; height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5); display:flex; align-items:center; padding:0 var(--s4); box-shadow:0 1px 4px rgba(0,21,41,.08); }
+.app-header .logo { display:flex; align-items:center; gap:var(--s2); width:calc(var(--sider-width) - var(--s4)); flex-shrink:0; }
+.app-header .logo .logo-mark { width:32px; height:32px; border-radius:var(--r-base); background:linear-gradient(135deg,#1677FF,#0958D9); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:18px; }
+.app-header .logo .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); }
+.app-header .logo .shop-name { font-size:var(--fs-sm); color:var(--n7); margin-left:var(--s2); padding-left:var(--s2); border-left:1px solid var(--n5); }
+.app-header .header-breadcrumb { flex:1; display:flex; align-items:center; gap:var(--s2); color:var(--n7); font-size:var(--fs-base); padding-left:var(--s4); }
+.app-header .header-breadcrumb .sep { color:var(--n5); }
+.app-header .header-breadcrumb .current { color:var(--n10); }
+.app-header .header-right { display:flex; align-items:center; gap:var(--s4); }
+.app-header .header-right .icon-btn { width:40px; height:40px; border-radius:var(--r-base); display:flex; align-items:center; justify-content:center; color:var(--n9); position:relative; transition:all .2s; }
+.app-header .header-right .icon-btn:hover { background:var(--n3); color:var(--n10); }
+.app-header .header-right .icon-btn .badge { position:absolute; top:4px; right:4px; min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--c-error); color:#fff; font-size:10px; line-height:16px; text-align:center; font-weight:var(--fw-medium); }
+.app-header .header-right .user-chip { display:flex; align-items:center; gap:var(--s2); padding:var(--s1) var(--s2); border-radius:var(--r-base); cursor:pointer; transition:all .2s; }
+.app-header .header-right .user-chip:hover { background:var(--n3); }
+.app-header .header-right .user-chip .avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#52C41A,#389E0D); color:#fff; display:flex; align-items:center; justify-content:center; font-size:var(--fs-base); font-weight:var(--fw-semibold); }
+.app-header .header-right .user-chip .uname { font-size:var(--fs-base); color:var(--n10); }
+
+.app-body { display:flex; flex:1; }
+.app-sider { width:var(--sider-width); background:var(--sider-bg); flex-shrink:0; position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto; }
+.app-sider::-webkit-scrollbar { width:6px; }
+.app-sider::-webkit-scrollbar-thumb { background:rgba(255,255,255,.2); border-radius:3px; }
+.sider-menu { padding:var(--s2) 0; }
+.sider-menu-item { display:flex; align-items:center; gap:var(--s3); padding:0 var(--s6); height:40px; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .2s; }
+.sider-menu-item:hover { color:#fff; }
+.sider-menu-item .m-icon { width:16px; height:16px; flex-shrink:0; }
+.sider-menu-item.active { color:#fff; background:var(--c-primary); }
+.sider-menu-group-title { padding:var(--s4) var(--s6) var(--s2); color:rgba(255,255,255,.35); font-size:var(--fs-sm); }
+.sider-submenu-item { padding-left:var(--s12); height:40px; display:flex; align-items:center; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .2s; position:relative; }
+.sider-submenu-item:hover { color:#fff; }
+.sider-submenu-item.active { color:#fff; background:var(--c-primary); }
+
+.app-content { flex:1; background:var(--n3); padding:var(--s6); min-width:0; }
+.app-footer { height:32px; background:var(--n1); border-top:1px solid var(--n5); display:flex; align-items:center; justify-content:center; color:var(--n7); font-size:var(--fs-sm); }
+
+.page-title { font-size:var(--fs-xl); font-weight:var(--fw-medium); color:var(--n10); margin-bottom:var(--s4); }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:var(--s1); height:32px; padding:0 var(--s4); border-radius:var(--r-base); font-size:var(--fs-base); font-weight:var(--fw-normal); transition:all .2s; white-space:nowrap; border:1px solid var(--n5); background:var(--n1); color:var(--n10); }
+.btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-danger { color:var(--c-error); border-color:var(--c-error); }
+.btn-danger:hover { background:var(--c-error); color:#fff; }
+.btn-link { border:none; background:none; color:var(--c-primary); padding:0; font-size:var(--fs-sm); }
+.btn-link:hover { opacity:.85; }
+.btn-link.danger { color:var(--c-error); }
+.btn .icon { width:14px; height:14px; }
+
+/* Tags */
+.tag { display:inline-flex; align-items:center; gap:var(--s1); height:22px; padding:0 var(--s2); border-radius:var(--r-base); font-size:var(--fs-sm); line-height:20px; border:1px solid; }
+.tag .dot { width:6px; height:6px; border-radius:50%; }
+.tag-success { color:var(--c-success); border-color:#B7EB8F; background:#F6FFED; }
+.tag-success .dot { background:var(--c-success); }
+.tag-warning { color:#D48806; border-color:#FFD591; background:#FFFBE6; }
+.tag-warning .dot { background:var(--c-warning); }
+.tag-default { color:var(--n9); border-color:var(--n5); background:var(--n3); }
+.tag-default .dot { background:var(--n7); }
+.spec-tag { display:inline-flex; align-items:center; height:22px; padding:0 var(--s2); border:1px solid #91CAFF; background:#E6F4FF; color:var(--c-primary); border-radius:var(--r-base); font-size:var(--fs-sm); }
+
+/* Descriptions */
+.desc-card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); padding:var(--s4) var(--s6); margin-bottom:var(--s4); }
+.desc-grid { display:flex; flex-wrap:wrap; gap:var(--s6) var(--s8); }
+.desc-item { display:flex; align-items:center; gap:var(--s2); }
+.desc-item .d-label { font-size:var(--fs-sm); color:var(--n7); white-space:nowrap; }
+.desc-item .d-value { font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-medium); }
+.desc-item .d-value.mono { font-family:var(--ff-mono); }
+
+/* Table */
+.table-wrap { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); overflow:hidden; }
+.table-toolbar { display:flex; align-items:center; padding:var(--s4); border-bottom:1px solid var(--n3); }
+.table-toolbar .toolbar-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); }
+.table-toolbar .toolbar-spacer { flex:1; }
+table.data-table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+table.data-table thead th { background:var(--n2); color:var(--n9); font-weight:var(--fw-medium); text-align:left; padding:var(--s3) var(--s4); border-bottom:1px solid var(--n5); white-space:nowrap; font-size:var(--fs-sm); }
+table.data-table tbody td { padding:var(--s3) var(--s4); border-bottom:1px solid var(--n3); color:var(--n10); vertical-align:middle; }
+table.data-table tbody tr:hover { background:var(--n2); }
+table.data-table tbody tr:last-child td { border-bottom:none; }
+.sku-code { font-family:var(--ff-mono); font-size:var(--fs-sm); color:var(--n9); }
+.spec-tags { display:flex; gap:var(--s1); flex-wrap:wrap; }
+.price-cell { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--c-error); }
+.stock-cell { font-weight:var(--fw-medium); }
+.stock-cell.warn { color:var(--c-warning); }
+.stock-cell.danger { color:var(--c-error); }
+.ops { display:flex; align-items:center; gap:var(--s1); }
+.ops .op-sep { color:var(--n5); font-size:var(--fs-sm); }
+
+/* Pagination */
+.pagination { display:flex; align-items:center; justify-content:flex-end; gap:var(--s1); padding:var(--s4); }
+.pagination .pg-total { font-size:var(--fs-sm); color:var(--n7); margin-right:var(--s2); }
+.pagination .pg-item { min-width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:1px solid var(--n5); border-radius:var(--r-base); font-size:var(--fs-base); color:var(--n10); cursor:pointer; transition:all .2s; padding:0 var(--s1); }
+.pagination .pg-item:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.pagination .pg-item.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.pagination .pg-item.disabled { color:rgba(0,0,0,.25); cursor:not-allowed; }
+
+/* Drawer */
+.drawer-mask { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; }
+.drawer { position:fixed; top:0; right:0; bottom:0; width:480px; max-width:90vw; background:var(--n1); box-shadow:var(--sh-modal); z-index:1001; display:flex; flex-direction:column; }
+.drawer-head { padding:var(--s4) var(--s6); border-bottom:1px solid var(--n3); display:flex; align-items:center; justify-content:space-between; }
+.drawer-head .d-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); }
+.drawer-head .d-close { width:24px; height:24px; display:flex; align-items:center; justify-content:center; color:var(--n7); cursor:pointer; border-radius:var(--r-base); }
+.drawer-head .d-close:hover { background:var(--n3); color:var(--n10); }
+.drawer-body { flex:1; overflow-y:auto; padding:var(--s6); }
+.drawer-foot { padding:var(--s3) var(--s6); border-top:1px solid var(--n3); display:flex; justify-content:flex-end; gap:var(--s2); }
+
+/* Form */
+.form-item { margin-bottom:var(--s4); }
+.form-label { display:flex; align-items:center; gap:var(--s1); font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-medium); margin-bottom:var(--s2); }
+.form-label .req { color:var(--c-error); }
+.form-label .opt { color:var(--n7); font-weight:var(--fw-normal); font-size:var(--fs-sm); }
+.input, .select, .textarea { width:100%; height:32px; padding:0 var(--s3); border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); color:var(--n10); font-size:var(--fs-base); transition:all .2s; outline:none; }
+.input:hover, .select:hover { border-color:var(--c-primary); }
+.input:focus, .select:focus { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.input::placeholder { color:var(--n7); }
+.select { appearance:none; -webkit-appearance:none; padding-right:28px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 1024 1024' fill='%238C8C8C'%3E%3Cpath d='M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.6l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.2.1-12.6-6.4-12.6z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; cursor:pointer; }
+.form-hint { font-size:var(--fs-sm); color:var(--n7); margin-top:var(--s1); }
+.form-row-drawer { display:flex; gap:var(--s3); }
+.form-row-drawer .form-item { flex:1; }
+.input-num-wrap { display:flex; align-items:center; }
+.input-num-wrap .input { border-radius:var(--r-base) 0 0 var(--r-base); }
+.input-num-wrap .unit { height:32px; padding:0 var(--s3); border:1px solid var(--n5); border-left:none; border-radius:0 var(--r-base) var(--r-base) 0; background:var(--n2); color:var(--n9); font-size:var(--fs-sm); display:flex; align-items:center; white-space:nowrap; }
+.divider { height:1px; background:var(--n3); margin:var(--s4) 0; }
+.divider-title { font-size:var(--fs-sm); color:var(--n9); font-weight:var(--fw-medium); margin-bottom:var(--s3); }
+
+/* Upload mini */
+.upload-mini { width:80px; height:80px; border:1px dashed var(--n5); border-radius:var(--r-card); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--s1); color:var(--n7); cursor:pointer; transition:all .2s; background:var(--n1); }
+.upload-mini:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.upload-mini .plus { font-size:20px; line-height:1; }
+
+/* Modal */
+.modal-mask { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1100; display:flex; align-items:center; justify-content:center; }
+.modal { background:var(--n1); border-radius:var(--r-card); width:440px; max-width:90vw; box-shadow:var(--sh-modal); overflow:hidden; }
+.modal-head { padding:var(--s4) var(--s6); border-bottom:1px solid var(--n3); display:flex; align-items:center; justify-content:space-between; }
+.modal-head .m-title { font-size:var(--fs-lg); font-weight:var(--fw-medium); color:var(--n10); }
+.modal-head .m-close { width:24px; height:24px; display:flex; align-items:center; justify-content:center; color:var(--n7); cursor:pointer; border-radius:var(--r-base); }
+.modal-head .m-close:hover { background:var(--n3); color:var(--n10); }
+.modal-body { padding:var(--s6); }
+.modal-foot { padding:var(--s3) var(--s6); border-top:1px solid var(--n3); display:flex; justify-content:flex-end; gap:var(--s2); }
+.modal-info { background:var(--n2); border-radius:var(--r-base); padding:var(--s3); margin-bottom:var(--s4); }
+.modal-info-row { display:flex; justify-content:space-between; font-size:var(--fs-sm); margin-bottom:var(--s1); }
+.modal-info-row:last-child { margin-bottom:0; }
+.modal-info-row .mi-label { color:var(--n7); }
+.modal-info-row .mi-value { color:var(--n10); font-weight:var(--fw-medium); }
+.price-change-old { color:var(--n7); text-decoration:line-through; }
+.price-change-new { color:var(--c-error); font-weight:var(--fw-semibold); }
+</style>
+</head>
+<body>
+<div class="app-layout">
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-mark">L</div>
+      <span class="logo-text">Leno 商家</span>
+      <span class="shop-name">南极人官方旗舰店</span>
+    </div>
+    <nav class="header-breadcrumb">
+      <span>首页</span>
+      <span class="sep">/</span>
+      <span>商品管理</span>
+      <span class="sep">/</span>
+      <span>商品列表</span>
+      <span class="sep">/</span>
+      <span class="current">SKU 管理</span>
+    </nav>
+    <div class="header-right">
+      <button class="icon-btn" title="待发货订单">
+        <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor"><path d="M832 320H192v448h640V320z m64-32v512a32 32 0 0 1-32 32H160a32 32 0 0 1-32-32V288a32 32 0 0 1 32-32h128V192a32 32 0 0 1 32-32h384a32 32 0 0 1 32 32v64h128a32 32 0 0 1 32 32zM384 192v64h256V192H384z"/></svg>
+        <span class="badge">12</span>
+      </button>
+      <button class="icon-btn" title="通知">
+        <svg viewBox="0 0 1024 1024" width="20" height="20" fill="currentColor"><path d="M832 832H192v-32l64-64V448c0-123.7 80.8-229.4 192-267.2V160a64 64 0 0 1 128 0v20.8C687.2 218.6 768 324.3 768 448v288l64 64v32zM384 832a128 128 0 0 0 256 0H384z"/></svg>
+        <span class="badge">5</span>
+      </button>
+      <div class="user-chip">
+        <div class="avatar">张</div>
+        <span class="uname">张老板</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="app-sider">
+      <nav class="sider-menu">
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M924.8 625.7l-65.5-56c3.1-19 4.7-38.4 4.7-57.8s-1.6-38.8-4.7-57.8l65.5-56a32.03 32.03 0 0 0 9.3-35.2l-.9-2.6a443.74 443.74 0 0 0-79.7-137.9l-1.8-2.1a32.12 32.12 0 0 0-35.1-9.5l-81.3 28.9c-30-24.6-63.5-44-99.7-57.6l-15.7-85a32.05 32.05 0 0 0-25.8-25.7l-2.7-.5c-52.1-9.4-106.9-9.4-159 0l-2.7.5a32.05 32.05 0 0 0-25.8 25.7l-15.8 85.4a351.86 351.86 0 0 0-99 57.4l-81.9-29.1a32 32 0 0 0-35.1 9.5l-1.8 2.1a446.02 446.02 0 0 0-79.7 137.9l-.9 2.6c-4.5 12.5-.8 26.5 9.3 35.2l66.3 56.6c-3.1 18.8-4.6 38-4.6 57.1 0 19.2 1.5 38.4 4.6 57.1L66 625.7a32.03 32.03 0 0 0-9.3 35.2l.9 2.6c18.1 50.4 44.9 96.9 79.7 137.9l1.8 2.1a32.12 32.12 0 0 0 35.1 9.5l81.9-29.1c29.8 24.5 63.1 43.9 99 57.4l15.8 85.4a32.05 32.05 0 0 0 25.8 25.7l2.7.5a449.4 449.4 0 0 0 159 0l2.7-.5a32.05 32.05 0 0 0 25.8-25.7l15.7-85a350 350 0 0 0 99.7-57.6l81.3 28.9a32 32 0 0 0 35.1-9.5l1.8-2.1c34.8-41.1 61.6-87.5 79.7-137.9l.9-2.6c4.5-12.6.8-26.6-9.3-35.2zM512 700c-104.1 0-188-83.9-188-188s83.9-188 188-188 188 83.9 188 188-83.9 188-188 188z"/></svg>
+          <span>工作台</span>
+        </div>
+        <div class="sider-menu-group-title">商品管理</div>
+        <div class="sider-submenu-item">商品列表</div>
+        <div class="sider-submenu-item">商品编辑</div>
+        <div class="sider-submenu-item active">SKU 管理</div>
+        <div class="sider-submenu-item">价格历史</div>
+        <div class="sider-menu-group-title">物流管理</div>
+        <div class="sider-submenu-item">运费模板</div>
+        <div class="sider-submenu-item">物流公司查询</div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>
+          <span>订单履约</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.63 375.63 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 535 760 463.5 760 382.2 760 248.9 651.1 140 517.8 140 384.5 140 275.6 248.9 275.6 382.2c0 81.3 41 152.8 103.1 198.4-.4.2-.8.3-1.2.5-43.8 18.7-83.1 45.4-116.9 79.6-33.9 33.9-60.9 73.1-79.6 116.9a375.5 375.5 0 0 0-29.1 145.5c0 17.7 14.3 32 32 32h675.2c17.7 0 32-14.3 32-32 0-49.4-9.7-97.3-28.8-142.5z"/></svg>
+          <span>售后处理</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"/></svg>
+          <span>评价管理</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32z"/></svg>
+          <span>店铺设置</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M912 820V180c0-37-32-68-72-68H184c-40 0-72 31-72 68v640c0 37 32 68 72 68h656c40 0 72-31 72-68z"/></svg>
+          <span>报表导出</span>
+        </div>
+        <div class="sider-menu-item">
+          <svg class="m-icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M858.5 763.6a374 374 0 0 0-80.6-119.5 375.63 375.63 0 0 0-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719 535 760 463.5 760 382.2 760 248.9 651.1 140 517.8 140 384.5 140 275.6 248.9 275.6 382.2c0 81.3 41 152.8 103.1 198.4-.4.2-.8.3-1.2.5-43.8 18.7-83.1 45.4-116.9 79.6-33.9 33.9-60.9 73.1-79.6 116.9a375.5 375.5 0 0 0-29.1 145.5c0 17.7 14.3 32 32 32h675.2c17.7 0 32-14.3 32-32 0-49.4-9.7-97.3-28.8-142.5z"/></svg>
+          <span>个人中心</span>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="app-content">
+      <div class="page-title">SKU 管理</div>
+
+      <!-- Product summary -->
+      <div class="desc-card">
+        <div class="desc-grid">
+          <div class="desc-item">
+            <span class="d-label">商品标题：</span>
+            <span class="d-value">南极人纯棉短袖T恤 男士夏季宽松半袖</span>
+          </div>
+          <div class="desc-item">
+            <span class="d-label">商品状态：</span>
+            <span class="tag tag-success"><span class="dot"></span>已上架</span>
+          </div>
+          <div class="desc-item">
+            <span class="d-label">SPU 编号：</span>
+            <span class="d-value mono">NJ-TS-2026-001</span>
+          </div>
+          <div class="desc-item">
+            <span class="d-label">分类：</span>
+            <span class="d-value">服装 / 男装 / T恤</span>
+          </div>
+          <div class="desc-item">
+            <span class="d-label">品牌：</span>
+            <span class="d-value">南极人</span>
+          </div>
+          <div class="desc-item">
+            <span class="d-label">规格维度：</span>
+            <span class="d-value">颜色 / 尺码</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SKU table -->
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <span class="toolbar-title">SKU 列表</span>
+          <span style="font-size:var(--fs-sm);color:var(--n7);margin-left:var(--s3);">共 5 个 SKU</span>
+          <div class="toolbar-spacer"></div>
+          <button class="btn btn-sm" style="height:32px;">
+            <svg class="icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M880 472H544V136c0-17.7-14.3-32-32-32h-32c-17.7 0-32 14.3-32 32v336H112c-17.7 0-32 14.3-32 32v32c0 17.7 14.3 32 32 32h336v336c0 17.7 14.3 32 32 32h32c17.7 0 32-14.3 32-32V568h336c17.7 0 32-14.3 32-32v-32c0-17.7-14.3-32-32-32z"/></svg>
+            批量设置
+          </button>
+          <button class="btn btn-primary" style="margin-left:var(--s2);">
+            <svg class="icon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"/><path d="M176 474h672q8 0 8 8v60q0 8-8 8H176q-8 0-8-8v-60q0-8 8-8z"/></svg>
+            新增 SKU
+          </button>
+        </div>
+        <table class="data-table" aria-label="SKU 列表">
+          <thead>
+            <tr>
+              <th style="width:130px;">SKU 编码</th>
+              <th style="width:180px;">规格组合</th>
+              <th style="width:110px;">价格</th>
+              <th style="width:90px;">库存</th>
+              <th style="width:90px;">销量</th>
+              <th style="width:90px;">状态</th>
+              <th style="width:130px;">条码</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="sku-code">SKU-NJ-001</span></td>
+              <td><div class="spec-tags"><span class="spec-tag">白色</span><span class="spec-tag">L</span></div></td>
+              <td><span class="price-cell">¥29.90</span></td>
+              <td><span class="stock-cell">856</span></td>
+              <td><span style="color:var(--n9);">1,256</span></td>
+              <td><span class="tag tag-success"><span class="dot"></span>可售</span></td>
+              <td><span class="sku-code">6901234500011</span></td>
+              <td>
+                <div class="ops">
+                  <button class="btn-link">编辑</button>
+                  <span class="op-sep">|</span>
+                  <button class="btn-link">调价</button>
+                  <span class="op-sep">|</span>
+                  <button class="btn-link">补货</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="sku-code">SKU-NJ-002</span></td>
+              <td><div class="spec-tags"><span class="spec-tag">白色</span><span class="spec-tag">XL</span></div></td>
+              <td><span class="price-cell">¥32.90</span></td>
+              <td><span class="stock-cell">620</span></td>
+              <td><span style="color:var(--n9);">892</span></td>
+              <td><span class="tag tag-success"><span class="dot"></span>可售</span></td>
+              <td><span class="sku-code">6901234500028</span></td>
+              <td>
+                <div class="ops">
+                  <button class="btn-link">编辑</button>
+                  <span class="op-sep">|</span>
+                  <button class="btn-link">调价</button>
+                  <span class="op-sep">|</span>
+                  <button class="btn-link">补货</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="sku-code">SKU-NJ-003</span></td>
+              <td><div class="spec-tags"><span class="spec-tag">黑色</span><span class="spec-tag">L</span></div></td>
+              <td><span class="price-cell">¥29.90</span></td>
+              <td><span class="stock-cell">720</span></td>
+              <td><span style="color:var(--n9);">1,089</span></td>
+              <td><span class="tag tag-success"><span class="dot"></span>可售</span></td>
+              <td><span class="sku-code">6901234500035</span></td>
+              <td>
+                <div class="ops">
+                  <button class="btn-link">编辑</button>
+                  <span class="op-sep">|</span>
+                  <button class="btn-link">调价</button>
+                  <span class="op-sep">|</span>
+                  <button class="btn-link">补货</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="sku-code">SKU-NJ-004</span></td>
+              <td><div class="spec-tags"><span class="spec-tag">黑色</span><span class="spec-tag">XL</span></div></td>
+              <td><span class="price-cell">¥32.90</span></td>
+              <td><span class="stock-cell danger">0</span></td>
+              <td><span style="color:var(--n9);">745</span></td>
+              <td><span class="tag tag-warning"><span class="dot"></span>缺货</span></td>
+              <td><span class="sku-code">6901234500042</span></td>
+              <td>
+                <div class="ops">
+                  <button class="btn-link">编辑</button>
+                  <span class="op-sep">|</span>
+                  <button class="btn-link">调价</button>
+                  <span class="op-sep">|</span>
+                  <button class="btn-link">补货</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="sku-code">SKU-NJ-005</span></td>
+              <td><div class="spec-tags"><span class="spec-tag">蓝色</span><span class="spec-tag">L</span></div></td>
+              <td><span class="price-cell">¥34.90</span></td>
+              <td><span class="stock-cell warn">48</span></td>
+              <td><span style="color:var(--n9);">234</span></td>
+              <td><span class="tag tag-success"><span class="dot"></span>可售</span></td>
+              <td><span class="sku-code">6901234500059</span></td>
+              <td>
+                <div class="ops">
+                  <button class="btn-link">编辑</button>
+                  <span class="op-sep">|</span>
+                  <button class="btn-link">调价</button>
+                  <span class="op-sep">|</span>
+                  <button class="btn-link">补货</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span class="pg-total">共 5 条</span>
+          <button class="pg-item disabled">‹</button>
+          <button class="pg-item active">1</button>
+          <button class="pg-item disabled">›</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="app-footer">
+    <span>Leno 电商平台 · 商家管理后台 · © 2026 南极人官方旗舰店</span>
+  </footer>
+</div>
+
+<!-- 新增 SKU 抽屉 -->
+<div class="drawer-mask"></div>
+<div class="drawer">
+  <div class="drawer-head">
+    <span class="d-title">新增 SKU</span>
+    <div class="d-close">
+      <svg viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9A7.98 7.98 0 0 0 203 838h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+    </div>
+  </div>
+  <div class="drawer-body">
+    <div class="divider-title">规格属性</div>
+    <div class="form-row-drawer">
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>颜色</label>
+        <select class="select">
+          <option>请选择颜色</option>
+          <option>白色</option>
+          <option>黑色</option>
+          <option>蓝色</option>
+          <option>灰色</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>尺码</label>
+        <select class="select">
+          <option>请选择尺码</option>
+          <option>S</option>
+          <option>M</option>
+          <option>L</option>
+          <option>XL</option>
+          <option>XXL</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-hint" style="margin-top:-8px;margin-bottom:var(--s4);">规格组合需唯一，不可与已有 SKU 重复</div>
+
+    <div class="divider"></div>
+    <div class="divider-title">SKU 信息</div>
+    <div class="form-item">
+      <label class="form-label"><span class="req">*</span>SKU 编码</label>
+      <input class="input" type="text" placeholder="请输入 SKU 编码" value="SKU-NJ-006">
+      <div class="form-hint">用于内部管理，建议使用「品牌-序号」格式</div>
+    </div>
+    <div class="form-row-drawer">
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>销售价</label>
+        <div class="input-num-wrap">
+          <input class="input" type="text" value="29.90">
+          <span class="unit">元</span>
+        </div>
+      </div>
+      <div class="form-item">
+        <label class="form-label">库存数量</label>
+        <div class="input-num-wrap">
+          <input class="input" type="text" value="500">
+          <span class="unit">件</span>
+        </div>
+      </div>
+    </div>
+    <div class="form-item">
+      <label class="form-label">条形码 <span class="opt">（选填）</span></label>
+      <input class="input" type="text" placeholder="请输入条形码（EAN-13）">
+    </div>
+    <div class="form-item">
+      <label class="form-label">商品重量 <span class="opt">（选填）</span></label>
+      <div class="input-num-wrap">
+        <input class="input" type="text" value="0.25" placeholder="0.00">
+        <span class="unit">kg</span>
+      </div>
+    </div>
+    <div class="form-item">
+      <label class="form-label">SKU 专属图 <span class="opt">（选填）</span></label>
+      <div class="upload-mini">
+        <span class="plus">+</span>
+        <span style="font-size:var(--fs-sm);">上传</span>
+      </div>
+      <div class="form-hint">建议尺寸 800×800px，≤5MB</div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn">取消</button>
+    <button class="btn btn-primary">确认新增</button>
+  </div>
+</div>
+
+<!-- 调价确认弹窗（演示交互态） -->
+<div class="modal-mask" style="display:none;" id="priceModal">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="m-title">调整价格</span>
+      <div class="m-close">
+        <svg viewBox="0 0 1024 1024" width="16" height="16" fill="currentColor"><path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9A7.98 7.98 0 0 0 203 838h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"/></svg>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-info">
+        <div class="modal-info-row"><span class="mi-label">SKU 编码</span><span class="mi-value">SKU-NJ-001</span></div>
+        <div class="modal-info-row"><span class="mi-label">规格组合</span><span class="mi-value">白色 / L</span></div>
+        <div class="modal-info-row"><span class="mi-label">当前价格</span><span class="mi-value">¥29.90</span></div>
+      </div>
+      <div class="form-item">
+        <label class="form-label"><span class="req">*</span>新价格</label>
+        <div class="input-num-wrap">
+          <input class="input" type="text" value="35.90">
+          <span class="unit">元</span>
+        </div>
+        <div class="form-hint" style="color:var(--c-error);">价格变动幅度较大（涨幅 20.1%），需二次确认</div>
+      </div>
+      <div class="form-item">
+        <label class="form-label">变更原因 <span class="opt">（选填）</span></label>
+        <input class="input" type="text" placeholder="请输入调价原因，如：夏季促销">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn">取消</button>
+      <button class="btn btn-danger">确认调整</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// 调价弹窗演示
+document.querySelectorAll('.btn-link').forEach(function(btn){
+  if(btn.textContent.trim() === '调价'){
+    btn.addEventListener('click', function(){
+      document.getElementById('priceModal').style.display = 'flex';
+    });
+  }
+});
+document.querySelectorAll('#priceModal .m-close, #priceModal .btn:not(.btn-danger)').forEach(function(el){
+  el.addEventListener('click', function(){
+    document.getElementById('priceModal').style.display = 'none';
+  });
+});
+// 抽屉关闭
+document.querySelector('.drawer .d-close').addEventListener('click', function(){
+  document.querySelector('.drawer-mask').style.display = 'none';
+  document.querySelector('.drawer').style.display = 'none';
+});
+</script>
+</body>
+</html>
