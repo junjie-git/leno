@@ -68,6 +68,22 @@ public sealed class MemberAppService : IMemberAppService
         return ToDto(level);
     }
 
+    /// <inheritdoc />
+    public async Task EnableLevelAsync(Guid levelId, CancellationToken ct = default)
+    {
+        var level = await RequireLevelAsync(levelId, ct);
+        level.Enable();
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task DisableLevelAsync(Guid levelId, CancellationToken ct = default)
+    {
+        var level = await RequireLevelAsync(levelId, ct);
+        level.Disable();
+        await _unitOfWork.SaveEntitiesAsync(ct);
+    }
+
     private async Task<MemberLevelDefinitionAggregate> RequireLevelAsync(Guid levelId, CancellationToken ct)
         => await _levelRepository.GetByIdAsync(levelId, ct)
            ?? throw new MembershipDomainException(
@@ -97,6 +113,7 @@ public sealed class MemberAppService : IMemberAppService
             MinGrowthValue = level.MinGrowthValue,
             MaxGrowthValue = level.MaxGrowthValue,
             Description = level.Description,
-            LevelUpBonusPoints = level.LevelUpBonusPoints
+            LevelUpBonusPoints = level.LevelUpBonusPoints,
+            Status = level.Status
         };
 }

@@ -1,4 +1,5 @@
 using Leno.Membership.Domain.Repositories;
+using Leno.Membership.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -82,8 +83,11 @@ public sealed class MemberLevelEvaluationJob : BackgroundService
             return;
         }
 
-        // 转换聚合根为值对象列表，供 Member.EvaluateGrowthLevel 使用
-        var levels = definitions.Select(d => d.ToValueObject()).ToList();
+        // 仅启用等级定义参与评估，停用等级不参与（运营停用后已有会员等级不受影响，但新评估不再匹配停用等级）
+        var levels = definitions
+            .Where(d => d.Status == LevelDefinitionStatus.Enabled)
+            .Select(d => d.ToValueObject())
+            .ToList();
 
         var totalEvaluated = 0;
         var totalChanged = 0;

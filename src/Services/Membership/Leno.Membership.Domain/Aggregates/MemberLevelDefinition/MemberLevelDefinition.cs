@@ -35,6 +35,9 @@ public sealed class MemberLevelDefinition : AggregateRoot
     /// <summary>等级提升奖励积分数（由 Points BC 消费 MemberLevelChangedIntegrationEvent 时发放）。</summary>
     public int LevelUpBonusPoints { get; private set; }
 
+    /// <summary>等级定义状态，控制是否参与等级评估与展示。</summary>
+    public LevelDefinitionStatus Status { get; private set; }
+
     /// <summary>EF Core 无参构造。</summary>
     private MemberLevelDefinition() { }
 
@@ -73,7 +76,8 @@ public sealed class MemberLevelDefinition : AggregateRoot
             MinGrowthValue = minGrowthValue,
             MaxGrowthValue = maxGrowthValue,
             Description = description ?? string.Empty,
-            LevelUpBonusPoints = levelUpBonusPoints
+            LevelUpBonusPoints = levelUpBonusPoints,
+            Status = LevelDefinitionStatus.Enabled
         };
     }
 
@@ -104,6 +108,32 @@ public sealed class MemberLevelDefinition : AggregateRoot
         MaxGrowthValue = maxGrowthValue;
         Description = description ?? string.Empty;
         LevelUpBonusPoints = levelUpBonusPoints;
+    }
+
+    /// <summary>
+    /// 启用等级定义，启用后参与等级评估与买家端展示。
+    /// </summary>
+    public void Enable()
+    {
+        if (Status == LevelDefinitionStatus.Enabled)
+        {
+            throw new MembershipDomainException("会员等级定义已启用", "MEMBER_LEVEL_ALREADY_ENABLED");
+        }
+
+        Status = LevelDefinitionStatus.Enabled;
+    }
+
+    /// <summary>
+    /// 停用等级定义，停用后不参与等级评估，已有会员等级不受影响。
+    /// </summary>
+    public void Disable()
+    {
+        if (Status == LevelDefinitionStatus.Disabled)
+        {
+            throw new MembershipDomainException("会员等级定义已停用", "MEMBER_LEVEL_ALREADY_DISABLED");
+        }
+
+        Status = LevelDefinitionStatus.Disabled;
     }
 
     /// <summary>

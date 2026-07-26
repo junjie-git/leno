@@ -22,6 +22,7 @@ public sealed class MemberLevelDefinitionConfiguration : IEntityTypeConfiguratio
         builder.Property(l => l.MaxGrowthValue).HasColumnName("max_growth_value");
         builder.Property(l => l.Description).HasColumnName("description").HasMaxLength(512);
         builder.Property(l => l.LevelUpBonusPoints).HasColumnName("level_up_bonus_points");
+        builder.Property(l => l.Status).HasColumnName("status");
 
         builder.Property(l => l.CreatedAt).HasColumnName("created_at");
         builder.Property(l => l.UpdatedAt).HasColumnName("updated_at");

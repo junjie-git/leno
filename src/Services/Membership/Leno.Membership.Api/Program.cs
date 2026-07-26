@@ -3,6 +3,8 @@ using Leno.Infrastructure.Dependencies;
 using Leno.Infrastructure.Persistence;
 using Leno.Infrastructure.ServiceDiscovery;
 using Leno.Infrastructure.Telemetry;
+using Leno.Membership.Application;
+using Leno.Membership.Application.Services;
 using Leno.Membership.Infrastructure;
 using Leno.Membership.Infrastructure.Dependencies;
 
@@ -19,7 +21,13 @@ builder.Services.AddLenoApi<MembershipDbContext>(
     builder.Configuration,
     "leno-membership-api",
     cfg => cfg.AddMembershipConsumers(),
-    s => s.AddMembershipInfrastructure(builder.Configuration));
+    s =>
+    {
+        s.AddMembershipInfrastructure(builder.Configuration);
+        // 注册 Membership BC 应用服务（Application 层）
+        s.AddScoped<IMemberAppService, MemberAppService>();
+        s.AddScoped<IMembershipPackageAppService, MembershipPackageAppService>();
+    });
 
 // 启用 Consul KV 配置中心
 builder.AddLenoConsulConfig();
@@ -49,3 +57,8 @@ app.UseLenoPipeline();
 // 双轨期迁移独立运行，不影响旧 points_membership_db
 await app.Services.MigrateWithLockAsync<MembershipDbContext>();
 app.Run();
+
+/// <summary>
+/// Program 类部分声明，供 WebApplicationFactory&lt;Program&gt; 在集成测试中引用。
+/// </summary>
+public partial class Program;

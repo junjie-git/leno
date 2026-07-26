@@ -1,59 +1,53 @@
+using Leno.Infrastructure.Auth;
 using Leno.Membership.Application;
 using Leno.Membership.Application.DTOs;
+using Leno.SharedContracts.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Leno.Membership.Api.Controllers;
 
 /// <summary>
-/// 会员信息查询与运营端等级定义管理接口。
+/// 会员信息控制器（买家端）。
+/// 路由 /api/members/*，需 Buyer 角色。
+/// 对应 design-prompts operations/08-membership-ops/members.md 的 1 个买家端端点：
+/// 查询当前用户会员档案。
+/// 返工：从 GET api/members/{userId} 改为 GET api/members/me，userId 从 JWT 解析，禁止客户端传 userId。
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/members")]
+[Authorize(Roles = "Buyer")]
 public sealed class MembersController : ControllerBase
 {
     private readonly IMemberAppService _memberAppService;
+    private readonly ICurrentUserContext _currentUser;
 
-    public MembersController(IMemberAppService memberAppService)
+    public MembersController(
+        IMemberAppService memberAppService,
+        ICurrentUserContext currentUser)
     {
+        ArgumentNullException.ThrowIfNull(memberAppService);
+        ArgumentNullException.ThrowIfNull(currentUser);
         _memberAppService = memberAppService;
+        _currentUser = currentUser;
     }
 
-    /// <summary>
-    /// 获取当前用户会员档案。
-    /// </summary>
-    /// <param name="userId">用户标识。</param>
-    /// <param name="ct">取消令牌。</param>
-    [HttpGet("{userId:guid}")]
-    [Authorize]
-    public async Task<ActionResult<MemberDto>> GetMemberInfo(Guid userId, CancellationToken ct)
-        => Ok(await _memberAppService.GetMemberInfoAsync(userId, ct));
-
-    /// <summary>
-    /// 获取全部会员等级定义，按成长值门槛升序。
-    /// </summary>
-    [HttpGet("levels")]
-    public async Task<ActionResult<List<MemberLevelDefinitionDto>>> GetLevels(CancellationToken ct)
-        => Ok(await _memberAppService.GetLevelsAsync(ct));
-
-    /// <summary>
-    /// 创建会员等级定义（运营端）。
-    /// </summary>
-    [HttpPost("levels")]
-    [Authorize(Policy = "AdminOnly")]
-    public async Task<ActionResult<MemberLevelDefinitionDto>> CreateLevel(
-        [FromBody] CreateMemberLevelDefinitionDto dto, CancellationToken ct)
+    /// <summary>查询当前用户会员档案，userId 从 JWT 解析。</summary>
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(ApiResponse<MemberDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMyMemberInfoAsync(CancellationToken ct)
     {
-        var level = await _memberAppService.CreateLevelAsync(dto, ct);
-        return CreatedAtAction(nameof(GetLevels), new { }, level);
+        var result = await _memberAppService.GetMemberInfoAsync(GetCurrentUserId(), ct);
+        return Ok(ApiResponse.Success(result));
     }
 
-    /// <summary>
-    /// 更新会员等级定义（运营端，等级编号不可改）。
-    /// </summary>
-    [HttpPut("levels/{levelId:guid}")]
-    [Authorize(Policy = "AdminOnly")]
-    public async Task<ActionResult<MemberLevelDefinitionDto>> UpdateLevel(
-        Guid levelId, [FromBody] UpdateMemberLevelDefinitionDto dto, CancellationToken ct)
-        => Ok(await _memberAppService.UpdateLevelAsync(levelId, dto, ct));
+    private Guid GetCurrentUserId()
+    {
+        if (!_currentUser.IsAuthenticated || !_currentUser.UserId.HasValue)
+        {
+            throw new UnauthorizedAccessException("未认证");
+        }
+
+        return _currentUser.UserId.Value;
+    }
 }

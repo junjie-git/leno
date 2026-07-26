@@ -43,3 +43,16 @@ public enum PackageStatus
     /// <summary>停用。</summary>
     Disabled = 1
 }
+
+/// <summary>
+/// 会员等级定义状态枚举，控制等级定义是否参与等级评估与展示。
+/// 流转：Enabled ↔ Disabled（运营启停）。
+/// </summary>
+public enum LevelDefinitionStatus
+{
+    /// <summary>启用：参与等级评估与买家端展示。</summary>
+    Enabled = 0,
+
+    /// <summary>停用：不参与等级评估，已有会员等级不受影响。</summary>
+    Disabled = 1
+}
