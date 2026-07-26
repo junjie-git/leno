@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物流轨迹 - Leno 买家端</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:#F0F2F5;line-height:1.5715;}
+body{max-width:375px;margin:0 auto;min-height:100vh;background:var(--n3);box-shadow:0 0 24px rgba(0,0,0,.12);position:relative;overflow-x:hidden;padding-bottom:70px;}
+
+/* NavBar */
+.navbar{position:sticky;top:0;z-index:100;height:46px;background:var(--n1);border-bottom:1px solid var(--n3);display:flex;align-items:center;padding:0 var(--s3);}
+.navbar .nav-back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--n10);cursor:pointer;}
+.navbar .nav-back svg{width:20px;height:20px;}
+.navbar .nav-title{flex:1;text-align:center;font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);margin-right:32px;}
+
+/* Notice Bar */
+.notice-bar{display:flex;align-items:center;gap:var(--s2);background:#FFFBE6;border-bottom:1px solid #FFE58F;padding:var(--s2) var(--s3);font-size:var(--fs-sm);color:#AD6800;}
+.notice-bar svg{width:16px;height:16px;flex-shrink:0;color:var(--c-warning);}
+
+/* Status Banner */
+.status-banner{background:linear-gradient(135deg,var(--c-primary) 0%,#4096FF 100%);padding:var(--s6) var(--s4);color:#fff;display:flex;align-items:center;gap:var(--s3);}
+.status-banner .status-icon{width:40px;height:40px;flex-shrink:0;}
+.status-banner .status-info{flex:1;}
+.status-banner .status-text{font-size:var(--fs-xl);font-weight:var(--fw-semibold);margin-bottom:2px;}
+.status-banner .status-desc{font-size:var(--fs-sm);opacity:.95;}
+
+/* Section */
+.section{margin:var(--s3);background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);overflow:hidden;}
+
+/* Logistics Company Card */
+.company-card{margin:var(--s3);background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);overflow:hidden;}
+.company-row{display:flex;align-items:center;padding:var(--s3);gap:var(--s3);}
+.company-logo{width:40px;height:40px;border-radius:var(--r-base);background:linear-gradient(135deg,#1677FF,#4096FF);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;font-size:var(--fs-lg);font-weight:var(--fw-semibold);}
+.company-logo svg{width:24px;height:24px;}
+.company-info{flex:1;min-width:0;}
+.company-name{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);margin-bottom:2px;}
+.company-sub{font-size:var(--fs-sm);color:var(--n7);}
+.company-phone{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--n3);color:var(--c-primary);cursor:pointer;flex-shrink:0;}
+.company-phone svg{width:18px;height:18px;}
+.tracking-row{display:flex;align-items:center;justify-content:space-between;padding:var(--s2) var(--s3) var(--s3);border-top:1px solid var(--n3);}
+.tracking-label{font-size:var(--fs-sm);color:var(--n7);}
+.tracking-no{font-size:var(--fs-base);color:var(--n9);font-family:var(--ff-mono);}
+.copy-btn{display:inline-flex;align-items:center;gap:2px;color:var(--c-primary);font-size:var(--fs-sm);cursor:pointer;border:1px solid var(--c-primary);border-radius:var(--r-base);padding:2px 8px;}
+.copy-btn svg{width:12px;height:12px;}
+
+/* Goods Mini */
+.goods-mini{display:flex;align-items:center;gap:var(--s2);padding:var(--s3);}
+.goods-mini img{width:48px;height:48px;border-radius:var(--r-base);object-fit:cover;flex-shrink:0;}
+.goods-mini .info{flex:1;min-width:0;}
+.goods-mini .title{font-size:var(--fs-sm);color:var(--n10);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.goods-mini .spec{font-size:var(--fs-sm);color:var(--n7);}
+.goods-mini .link{font-size:var(--fs-sm);color:var(--c-primary);}
+
+/* Timeline */
+.timeline{margin:var(--s3);background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s4) var(--s3);}
+.timeline-title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);margin-bottom:var(--s3);display:flex;align-items:center;gap:6px;}
+.timeline-title svg{width:16px;height:16px;color:var(--c-primary);}
+.timeline-list{position:relative;padding-left:8px;}
+.timeline-item{position:relative;padding:0 0 var(--s4) 24px;}
+.timeline-item:last-child{padding-bottom:0;}
+.timeline-item::before{content:"";position:absolute;left:5px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--n5);border:2px solid var(--n1);z-index:1;}
+.timeline-item::after{content:"";position:absolute;left:9px;top:14px;bottom:-4px;width:2px;background:var(--n3);}
+.timeline-item:last-child::after{display:none;}
+.timeline-item.active::before{background:var(--c-primary);width:14px;height:14px;left:3px;top:2px;box-shadow:0 0 0 4px rgba(22,119,255,.15);}
+.timeline-item .node-desc{font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium);line-height:1.4;margin-bottom:4px;}
+.timeline-item.active .node-desc{color:var(--c-primary);}
+.timeline-item .node-time{font-size:var(--fs-sm);color:var(--n7);font-family:var(--ff-mono);margin-bottom:2px;}
+.timeline-item .node-location{font-size:var(--fs-sm);color:var(--n7);display:flex;align-items:center;gap:4px;}
+.timeline-item .node-location svg{width:12px;height:12px;}
+
+/* Empty */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px var(--s4);text-align:center;display:none;}
+.empty-state.show{display:flex;}
+.empty-state .empty-icon{width:100px;height:100px;color:var(--n5);margin-bottom:var(--s4);}
+.empty-state .empty-title{font-size:var(--fs-base);color:var(--n7);margin-bottom:var(--s2);}
+
+/* Bottom Bar */
+.bottom-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:375px;height:60px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;padding:0 var(--s3);gap:var(--s3);z-index:200;padding-bottom:env(safe-area-inset-bottom);}
+.bar-btn{flex:1;height:40px;border-radius:20px;font-size:var(--fs-base);border:1px solid var(--n5);background:var(--n1);color:var(--n9);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.bar-btn svg{width:16px;height:16px;}
+.bar-btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:#fff;}
+
+/* Toast */
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.7);color:#fff;padding:10px 16px;border-radius:var(--r-base);font-size:var(--fs-sm);z-index:999;opacity:0;transition:opacity .2s;pointer-events:none;}
+.toast.show{opacity:1;}
+
+/* Skeleton */
+.skeleton-card{margin:var(--s3);background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s4);display:none;}
+.skeleton-card.show{display:block;}
+.sk-block{background:linear-gradient(90deg,var(--n3) 25%,var(--n2) 37%,var(--n3) 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite;border-radius:var(--r-base);}
+@keyframes shimmer{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
+</style>
+</head>
+<body>
+<!-- NavBar -->
+<div class="navbar">
+  <div class="nav-back" aria-label="返回" onclick="history.back()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+  </div>
+  <div class="nav-title">物流轨迹</div>
+</div>
+
+<!-- 缓存警告条 -->
+<div class="notice-bar" id="noticeBar" style="display:none;">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  <span>物流查询异常，展示缓存数据</span>
+</div>
+
+<!-- 状态横幅 -->
+<div class="status-banner">
+  <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+  <div class="status-info">
+    <div class="status-text">已签收</div>
+    <div class="status-desc">您的包裹已签收，请确认收货</div>
+  </div>
+</div>
+
+<!-- 物流公司卡 -->
+<div class="company-card">
+  <div class="company-row">
+    <div class="company-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    </div>
+    <div class="company-info">
+      <div class="company-name">顺丰速运</div>
+      <div class="company-sub">官方客服 95338</div>
+    </div>
+    <div class="company-phone" onclick="window.location.href='tel:95338'" aria-label="拨打客服电话">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    </div>
+  </div>
+  <div class="tracking-row">
+    <span class="tracking-label">运单号</span>
+    <span class="tracking-no">SF1234567890</span>
+    <span class="copy-btn" onclick="copyText('SF1234567890')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      复制
+    </span>
+  </div>
+</div>
+
+<!-- 商品信息 -->
+<div class="section">
+  <div class="goods-mini">
+    <img src="https://picsum.photos/seed/huawei-band8/96/96" alt="华为手环 8">
+    <div class="info">
+      <div class="title">华为手环 8 智能运动手环心率血氧睡眠监测长续航</div>
+      <div class="spec">曜石黑；x1</div>
+    </div>
+    <span class="link" onclick="showToast('查看商品详情')">查看商品</span>
+  </div>
+</div>
+
+<!-- 骨架屏（加载态） -->
+<div class="skeleton-card" id="skeletonCard">
+  <div style="display:flex;gap:12px;margin-bottom:16px;">
+    <div class="sk-block" style="width:40px;height:40px;border-radius:8px;"></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:8px;justify-content:center;">
+      <div class="sk-block" style="width:60%;height:14px;"></div>
+      <div class="sk-block" style="width:40%;height:12px;"></div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;gap:12px;align-items:center;">
+      <div class="sk-block" style="width:12px;height:12px;border-radius:50%;"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <div class="sk-block" style="width:70%;height:14px;"></div>
+        <div class="sk-block" style="width:40%;height:12px;"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <div class="sk-block" style="width:12px;height:12px;border-radius:50%;"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <div class="sk-block" style="width:60%;height:14px;"></div>
+        <div class="sk-block" style="width:35%;height:12px;"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <div class="sk-block" style="width:12px;height:12px;border-radius:50%;"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <div class="sk-block" style="width:55%;height:14px;"></div>
+        <div class="sk-block" style="width:30%;height:12px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 物流时间轴 -->
+<div class="timeline" id="timeline">
+  <div class="timeline-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    物流轨迹
+  </div>
+  <div class="timeline-list">
+    <div class="timeline-item active">
+      <div class="node-desc">已签收，您的快件已签收，签收人：本人</div>
+      <div class="node-time">2026-07-26 14:30:25</div>
+      <div class="node-location">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        福建省福州市鼓楼区 福州软件园F区代收点
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="node-desc">派送中，派送员：李师傅 138****5678，即将送达</div>
+      <div class="node-time">2026-07-26 09:00:12</div>
+      <div class="node-location">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        福建省福州市鼓楼区 鼓楼营业点
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="node-desc">已到达派送网点，正在安排派送</div>
+      <div class="node-time">2026-07-26 07:35:48</div>
+      <div class="node-location">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        福建省福州市鼓楼区 鼓楼营业点
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="node-desc">运输中，快件已到达福州转运中心</div>
+      <div class="node-time">2026-07-25 18:00:33</div>
+      <div class="node-location">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        福建省福州市 福州转运中心
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="node-desc">运输中，快件已从深圳转运中心发出</div>
+      <div class="node-time">2026-07-25 10:22:09</div>
+      <div class="node-location">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        广东省深圳市 深圳转运中心
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="node-desc">已揽收，顺丰速运已收件</div>
+      <div class="node-time">2026-07-24 20:15:50</div>
+      <div class="node-location">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        广东省深圳市南山区 华强北营业点
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 空状态 -->
+<div class="empty-state" id="emptyState">
+  <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+  </svg>
+  <div class="empty-title">暂无物流信息</div>
+  <div style="font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s6);">卖家尚未上传物流信息，请稍后查询</div>
+</div>
+
+<!-- 底部操作栏 -->
+<div class="bottom-bar">
+  <button class="bar-btn" onclick="window.location.href='tel:95338'">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    联系快递
+  </button>
+  <button class="bar-btn bar-btn-primary" onclick="refreshTrace()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    刷新轨迹
+  </button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},1500);
+}
+function copyText(text){
+  if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){showToast('已复制');});}
+  else{showToast('已复制运单号');}
+}
+function refreshTrace(){
+  showToast('正在刷新物流...');
+  var tl=document.getElementById('timeline');
+  var sk=document.getElementById('skeletonCard');
+  tl.style.display='none';
+  sk.classList.add('show');
+  setTimeout(function(){
+    sk.classList.remove('show');
+    tl.style.display='block';
+    showToast('刷新成功');
+  },1200);
+}
+</script>
+</body>
+</html>

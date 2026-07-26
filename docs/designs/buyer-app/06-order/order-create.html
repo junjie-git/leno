@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>立即购买 - Leno 买家端</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:#F0F2F5;line-height:1.5715;}
+body{max-width:375px;margin:0 auto;min-height:100vh;background:var(--n3);box-shadow:0 0 24px rgba(0,0,0,.12);position:relative;overflow-x:hidden;padding-bottom:70px;}
+
+/* NavBar */
+.navbar{position:sticky;top:0;z-index:100;height:46px;background:var(--n1);border-bottom:1px solid var(--n3);display:flex;align-items:center;padding:0 var(--s3);}
+.navbar .nav-back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--n10);cursor:pointer;}
+.navbar .nav-back svg{width:20px;height:20px;}
+.navbar .nav-title{flex:1;text-align:center;font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);margin-right:32px;}
+
+/* Section */
+.section{margin:var(--s3);background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);overflow:hidden;}
+.section-title{padding:var(--s3) var(--s3) var(--s2);font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);display:flex;align-items:center;justify-content:space-between;}
+.section-title .label{display:flex;align-items:center;gap:6px;}
+.section-title .label svg{width:16px;height:16px;color:var(--c-primary);}
+.section-title .hint{font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal);}
+
+/* Address */
+.address-card{margin:var(--s3);background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s3);position:relative;overflow:hidden;cursor:pointer;}
+.address-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c-primary);}
+.address-card .addr-head{display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s2);}
+.address-card .addr-icon{width:20px;height:20px;color:var(--c-primary);flex-shrink:0;}
+.address-card .recipient{font-size:var(--fs-base);font-weight:var(--fw-semibold);color:var(--n10);}
+.address-card .phone{font-size:var(--fs-base);color:var(--n9);}
+.address-card .tag{font-size:10px;color:var(--c-primary);border:1px solid var(--c-primary);border-radius:3px;padding:0 4px;margin-left:var(--s1);}
+.address-card .addr-detail{font-size:var(--fs-sm);color:var(--n9);line-height:1.6;padding-left:28px;}
+.address-card .arrow-right{position:absolute;right:var(--s3);top:50%;transform:translateY(-50%);color:var(--n7);}
+.address-card .arrow-right svg{width:16px;height:16px;}
+.address-empty{margin:var(--s3);background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s6) var(--s4);text-align:center;color:var(--c-primary);font-size:var(--fs-base);cursor:pointer;display:none;}
+
+/* Product Card */
+.product-card{padding:var(--s3);}
+.product-row{display:flex;gap:var(--s2);}
+.product-img{width:96px;height:96px;border-radius:var(--r-base);background:var(--n3);flex-shrink:0;object-fit:cover;}
+.product-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between;}
+.product-title{font-size:var(--fs-base);color:var(--n10);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.product-spec{font-size:var(--fs-sm);color:var(--n7);background:var(--n3);padding:2px 6px;border-radius:var(--r-base);align-self:flex-start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.product-price-row{display:flex;justify-content:space-between;align-items:flex-end;}
+.product-price{font-size:var(--fs-lg);color:var(--c-error);font-weight:var(--fw-semibold);}
+.product-price small{font-size:var(--fs-sm);font-weight:var(--fw-normal);}
+
+/* Stepper */
+.stepper{display:flex;align-items:center;gap:var(--s2);justify-content:flex-end;padding:var(--s2) var(--s3) var(--s3);border-top:1px solid var(--n3);margin-top:var(--s2);}
+.stepper-label{flex:1;font-size:var(--fs-sm);color:var(--n9);}
+.stepper .step-btn{width:28px;height:28px;border-radius:var(--r-base);border:1px solid var(--n5);background:var(--n1);color:var(--n9);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.stepper .step-btn:active{background:var(--n3);}
+.stepper .step-btn:disabled{color:var(--n5);cursor:not-allowed;}
+.stepper .step-val{min-width:36px;text-align:center;font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium);}
+
+/* Payment */
+.payment-list{padding:0 var(--s3) var(--s2);}
+.payment-item{display:flex;align-items:center;gap:var(--s2);padding:var(--s3) 0;border-bottom:1px solid var(--n3);}
+.payment-item:last-child{border-bottom:none;}
+.payment-icon{width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.payment-icon.alipay{color:#1677FF;}
+.payment-icon.wechat{color:#07C160;}
+.payment-icon svg{width:24px;height:24px;}
+.payment-name{flex:1;font-size:var(--fs-base);color:var(--n10);}
+.radio{width:18px;height:18px;border:2px solid var(--n5);border-radius:50%;flex-shrink:0;position:relative;cursor:pointer;transition:all .2s;}
+.radio.checked{border-color:var(--c-primary);}
+.radio.checked::after{content:"";position:absolute;top:3px;left:3px;width:8px;height:8px;border-radius:50%;background:var(--c-primary);}
+
+/* Points */
+.points-row{display:flex;align-items:center;justify-content:space-between;padding:var(--s3);}
+.points-info{display:flex;flex-direction:column;gap:2px;}
+.points-label{font-size:var(--fs-base);color:var(--n10);}
+.points-desc{font-size:var(--fs-sm);color:var(--n7);}
+.points-value{font-size:var(--fs-sm);color:var(--c-success);font-weight:var(--fw-medium);}
+.switch{width:44px;height:24px;border-radius:12px;background:var(--n5);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.switch.on{background:var(--c-primary);}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.switch.on::after{transform:translateX(20px);}
+.points-input-row{display:none;align-items:center;gap:var(--s2);padding:0 var(--s3) var(--s3);border-top:1px solid var(--n3);padding-top:var(--s3);}
+.points-input-row.show{display:flex;}
+.points-input-row label{font-size:var(--fs-sm);color:var(--n9);}
+.points-input{flex:1;height:32px;border:1px solid var(--n5);border-radius:var(--r-base);padding:0 var(--s2);font-size:var(--fs-base);color:var(--n10);font-family:var(--ff-mono);outline:none;}
+.points-input:focus{border-color:var(--c-primary);}
+.points-max{font-size:var(--fs-sm);color:var(--c-primary);cursor:pointer;}
+
+/* Amount */
+.amount-list{padding:var(--s2) var(--s3) var(--s3);}
+.amount-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:var(--fs-base);color:var(--n9);}
+.amount-row .val{color:var(--n10);}
+.amount-row.discount .val{color:var(--c-success);}
+.amount-row.total{border-top:1px dashed var(--n5);margin-top:var(--s2);padding-top:var(--s3);}
+.amount-row.total .label{color:var(--n10);font-weight:var(--fw-medium);}
+.amount-row.total .val{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--c-error);}
+
+/* Submit Bar */
+.submit-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:375px;height:50px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;padding:0 var(--s3);gap:var(--s3);z-index:200;padding-bottom:env(safe-area-inset-bottom);}
+.submit-total{display:flex;flex-direction:column;justify-content:center;flex:1;}
+.submit-total .label{font-size:var(--fs-sm);color:var(--n7);}
+.submit-total .amount{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--c-error);line-height:1.2;}
+.submit-total .amount small{font-size:var(--fs-sm);}
+.submit-btn{height:40px;padding:0 32px;border-radius:20px;background:var(--c-primary);color:#fff;border:none;font-size:var(--fs-lg);font-weight:var(--fw-medium);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .2s;}
+.submit-btn:active{opacity:.85;}
+.submit-btn.loading{opacity:.7;pointer-events:none;}
+.submit-btn .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Toast */
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.7);color:#fff;padding:10px 16px;border-radius:var(--r-base);font-size:var(--fs-sm);z-index:999;opacity:0;transition:opacity .2s;pointer-events:none;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<!-- NavBar -->
+<div class="navbar">
+  <div class="nav-back" aria-label="返回" onclick="history.back()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+  </div>
+  <div class="nav-title">立即购买</div>
+</div>
+
+<!-- 收货地址 -->
+<div class="address-card" onclick="showToast('跳转地址管理')">
+  <svg class="addr-icon" style="position:absolute;left:12px;top:18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+  <div style="padding-left:28px;">
+    <div class="addr-head" style="margin-bottom:4px;">
+      <span class="recipient">张三</span>
+      <span class="phone">138****1234</span>
+      <span class="tag">默认</span>
+    </div>
+    <div class="addr-detail" style="padding-left:0;">福建省福州市鼓楼区软件大道89号福州软件园F区 8栋 1203室</div>
+  </div>
+  <span class="arrow-right">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+  </span>
+</div>
+
+<!-- 商品卡 -->
+<div class="section">
+  <div class="section-title">
+    <span class="label">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/></svg>
+      小米官方旗舰店
+    </span>
+  </div>
+  <div class="product-card">
+    <div class="product-row">
+      <img class="product-img" src="https://picsum.photos/seed/redmi-note13/128/128" alt="小米 Redmi Note 13">
+      <div class="product-info">
+        <div class="product-title">小米 Redmi Note 13 5G 手机 1亿像素 5000mAh 长续航</div>
+        <div class="product-spec">子夜黑；8GB+256GB</div>
+        <div class="product-price-row">
+          <span class="product-price"><small>¥</small>1199.00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="stepper">
+    <span class="stepper-label">购买数量（库存 999 件）</span>
+    <button class="step-btn" id="decBtn" onclick="changeQty(-1)">−</button>
+    <span class="step-val" id="qtyVal">1</span>
+    <button class="step-btn" id="incBtn" onclick="changeQty(1)">+</button>
+  </div>
+</div>
+
+<!-- 支付方式 -->
+<div class="section">
+  <div class="section-title">支付方式</div>
+  <div class="payment-list" role="radiogroup">
+    <div class="payment-item" onclick="selectPayment('alipay')">
+      <span class="payment-icon alipay">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h11v-2.5c-1.5.5-3.5.5-5.5-.5-2-1-3.5-3-3.5-5 0 0 3 2 6 2 1 0 2-.2 3-.5.1-1 .8-2 2-2.5h.5c.8 0 1.5.5 1.8 1.2H20a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zm-4.5 8.8c.3.4.5.8.5 1.2 0 .6-.4 1-1 1s-1-.4-1-1c0-.5.3-1 .8-1.4-.5-1.2-1.5-2.3-2.8-3 1.8.4 3.2 1.4 4 2.6-.5-.2-1-.4-1.5-.4.7.3 1.4.6 2 1z"/></svg>
+      </span>
+      <span class="payment-name">支付宝</span>
+      <span class="radio checked" id="radio-alipay"></span>
+    </div>
+    <div class="payment-item" onclick="selectPayment('wechat')">
+      <span class="payment-icon wechat">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 4C4.9 4 2 6.4 2 9.4c0 1.7.9 3.2 2.4 4.2L4 16l2.3-1.2c.7.2 1.4.3 2.2.3h.6c-.1-.4-.2-.8-.2-1.3 0-2.9 2.8-5.2 6.3-5.2h.6C15.4 5.9 12.3 4 8.5 4zm-2 3a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm5 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm5 2c-3 0-5.5 2-5.5 4.5S13.5 18 16.5 18c.7 0 1.3-.1 1.9-.3L20 19l-.5-1.6c1.2-.8 2-2 2-3.4C21.5 11 19 9 16.5 9zm-2 2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zm4 0a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6z"/></svg>
+      </span>
+      <span class="payment-name">微信支付</span>
+      <span class="radio" id="radio-wechat"></span>
+    </div>
+  </div>
+</div>
+
+<!-- 积分抵扣 -->
+<div class="section">
+  <div class="points-row">
+    <div class="points-info">
+      <span class="points-label">积分抵扣</span>
+      <span class="points-desc">可用 2500 积分，抵扣 <span class="points-value">¥25.00</span></span>
+    </div>
+    <div class="switch" id="pointsSwitch" onclick="togglePoints()"></div>
+  </div>
+  <div class="points-input-row" id="pointsInputRow">
+    <label>使用积分</label>
+    <input type="number" class="points-input" id="pointsInput" value="2500" min="0" max="2500" oninput="recalc()">
+    <span class="points-max" onclick="document.getElementById('pointsInput').value=2500;recalc()">全部使用</span>
+  </div>
+</div>
+
+<!-- 金额明细 -->
+<div class="section">
+  <div class="section-title">金额明细</div>
+  <div class="amount-list">
+    <div class="amount-row">
+      <span>商品总额</span>
+      <span class="val" id="itemsTotal">¥1199.00</span>
+    </div>
+    <div class="amount-row discount" id="pointsRow">
+      <span>积分抵扣</span>
+      <span class="val" id="pointsDiscount">-¥0.00</span>
+    </div>
+    <div class="amount-row">
+      <span>运费（预估）</span>
+      <span class="val">¥0.00</span>
+    </div>
+    <div class="amount-row total">
+      <span class="label">应付总额</span>
+      <span class="val" id="payTotal"><small>¥</small>1199.00</span>
+    </div>
+  </div>
+</div>
+
+<!-- 底部提交栏 -->
+<div class="submit-bar">
+  <div class="submit-total">
+    <span class="label">应付总额</span>
+    <span class="amount" id="barTotal"><small>¥</small>1199.00</span>
+  </div>
+  <button class="submit-btn" id="submitBtn" onclick="submitOrder()">
+    提交订单
+  </button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+var UNIT_PRICE=1199.00;
+var qty=1;
+var pointsEnabled=false;
+var payment='alipay';
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},1500);
+}
+function changeQty(delta){
+  var n=qty+delta;
+  if(n<1){n=1;}
+  if(n>999){n=999;showToast('已达库存上限');}
+  qty=n;
+  document.getElementById('qtyVal').textContent=qty;
+  document.getElementById('decBtn').disabled=(qty<=1);
+  recalc();
+}
+function selectPayment(method){
+  payment=method;
+  document.getElementById('radio-alipay').classList.toggle('checked',method==='alipay');
+  document.getElementById('radio-wechat').classList.toggle('checked',method==='wechat');
+}
+function togglePoints(){
+  pointsEnabled=!pointsEnabled;
+  document.getElementById('pointsSwitch').classList.toggle('on',pointsEnabled);
+  document.getElementById('pointsInputRow').classList.toggle('show',pointsEnabled);
+  recalc();
+}
+function recalc(){
+  var itemsTotal=UNIT_PRICE*qty;
+  var pointsDiscount=0;
+  if(pointsEnabled){
+    var used=parseInt(document.getElementById('pointsInput').value)||0;
+    if(used>2500){used=2500;document.getElementById('pointsInput').value=2500;}
+    if(used<0){used=0;document.getElementById('pointsInput').value=0;}
+    pointsDiscount=used/100;
+  }
+  var total=itemsTotal-pointsDiscount;
+  document.getElementById('itemsTotal').textContent='¥'+itemsTotal.toFixed(2);
+  document.getElementById('pointsDiscount').textContent='-¥'+pointsDiscount.toFixed(2);
+  document.getElementById('payTotal').innerHTML='<small>¥</small>'+total.toFixed(2);
+  document.getElementById('barTotal').innerHTML='<small>¥</small>'+total.toFixed(2);
+}
+function submitOrder(){
+  var btn=document.getElementById('submitBtn');
+  btn.classList.add('loading');
+  btn.innerHTML='<span class="spinner"></span>提交中';
+  setTimeout(function(){
+    btn.classList.remove('loading');
+    btn.innerHTML='提交订单';
+    showToast('订单提交成功，跳转支付');
+  },1500);
+}
+recalc();
+</script>
+</body>
+</html>
