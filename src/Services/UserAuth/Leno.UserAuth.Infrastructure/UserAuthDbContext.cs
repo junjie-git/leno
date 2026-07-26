@@ -29,4 +29,13 @@ public sealed class UserAuthDbContext : BaseDbContext
 
     /// <summary>OAuth2 客户端配置聚合根。</summary>
     public DbSet<OAuthClient> OAuthClients => Set<OAuthClient>();
+
+    /// <summary>通知偏好聚合根。</summary>
+    public DbSet<NotificationPreferences> NotificationPreferences => Set<NotificationPreferences>();
+
+    /// <summary>商品收藏聚合根。</summary>
+    public DbSet<Favorite> Favorites => Set<Favorite>();
+
+    /// <summary>浏览历史聚合根。</summary>
+    public DbSet<BrowseHistory> BrowseHistories => Set<BrowseHistory>();
 }

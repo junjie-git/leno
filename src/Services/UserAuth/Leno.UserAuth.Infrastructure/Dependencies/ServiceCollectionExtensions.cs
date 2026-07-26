@@ -70,6 +70,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAddressRepository, EfCoreAddressRepository>();
         services.AddScoped<IAuditLogRepository, EfCoreAuditLogRepository>();
         services.AddScoped<IOAuthClientRepository, EfCoreOAuthClientRepository>();
+        services.AddScoped<INotificationPreferencesRepository, EfCoreNotificationPreferencesRepository>();
+        services.AddScoped<IFavoriteRepository, EfCoreFavoriteRepository>();
+        services.AddScoped<IBrowseHistoryRepository, EfCoreBrowseHistoryRepository>();
 
         services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<IUserUniquenessChecker, UserUniquenessChecker>();
@@ -140,6 +143,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPermissionAppService, PermissionAppService>();
         services.AddScoped<IOAuthClientAppService, OAuthClientAppService>();
         services.AddScoped<IAccountAppService, AccountAppService>();
+        services.AddScoped<INotificationPreferencesAppService, NotificationPreferencesAppService>();
+        services.AddScoped<IFavoritesAppService, FavoritesAppService>();
+        services.AddScoped<IBrowseHistoryAppService, BrowseHistoryAppService>();
 
         services.AddValidatorsFromAssembly(typeof(IUserAppService).Assembly);
 
