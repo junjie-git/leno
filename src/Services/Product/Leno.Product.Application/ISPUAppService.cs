@@ -41,6 +41,28 @@ public interface ISPUAppService
     /// <summary>运营审核驳回。</summary>
     Task RejectAsync(Guid spuId, Guid reviewedBy, ActionReasonDto dto, CancellationToken ct = default);
 
+    /// <summary>
+    /// 批量审核通过上架。遍历 <paramref name="ids"/> 逐个调用 <see cref="ApproveAsync"/>，
+    /// 单个失败（商品不存在、状态不可流转等）捕获并记录到 <see cref="BatchOperationResultDto.Failures"/>，
+    /// 不阻塞整批；成功的标识收集到 <see cref="BatchOperationResultDto.SucceededIds"/>。
+    /// </summary>
+    /// <param name="ids">商品标识列表。</param>
+    /// <param name="reviewedBy">审核人标识，透传给单个 <see cref="ApproveAsync"/> 用于审核历史记录。</param>
+    /// <param name="reason">审核原因，通过时可选（仅记录，不参与状态流转校验）。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task<BatchOperationResultDto> BatchApproveAsync(List<Guid> ids, Guid reviewedBy, string? reason, CancellationToken ct = default);
+
+    /// <summary>
+    /// 批量审核驳回。遍历 <paramref name="ids"/> 逐个调用 <see cref="RejectAsync"/>，
+    /// 单个失败捕获并记录到 <see cref="BatchOperationResultDto.Failures"/>，不阻塞整批；
+    /// 成功的标识收集到 <see cref="BatchOperationResultDto.SucceededIds"/>。
+    /// </summary>
+    /// <param name="ids">商品标识列表。</param>
+    /// <param name="reviewedBy">审核人标识，透传给单个 <see cref="RejectAsync"/> 用于审核历史记录。</param>
+    /// <param name="reason">驳回原因，必填，会写入审核历史。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task<BatchOperationResultDto> BatchRejectAsync(List<Guid> ids, Guid reviewedBy, string reason, CancellationToken ct = default);
+
     /// <summary>调整 SKU 价格，记录价格变更历史。</summary>
     Task AdjustPriceAsync(Guid spuId, Guid skuId, AdjustPriceDto dto, string changedBy, CancellationToken ct = default);
 

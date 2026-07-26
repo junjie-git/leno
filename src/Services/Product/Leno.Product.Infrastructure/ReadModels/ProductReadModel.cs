@@ -74,4 +74,10 @@ public sealed class ProductReadModel
 
     /// <summary>评分最近一次更新时间（UTC），用于排查评分同步延迟。</summary>
     public DateTime ScoreUpdatedAt { get; set; }
+
+    /// <summary>
+    /// 累计销量（销售件数），由订单域事件驱动增量维护，用于 hot/sales 排序。
+    /// 0 表示未产生销量或未同步，仍参与排序（按 0 倒序排到末尾）。
+    /// </summary>
+    public long SalesCount { get; set; }
 }

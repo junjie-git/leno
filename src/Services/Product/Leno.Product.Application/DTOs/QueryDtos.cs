@@ -90,7 +90,16 @@ public sealed class ProductSearchQueryDto
     /// <summary>最高价格，可空。</summary>
     public decimal? MaxPrice { get; init; }
 
-    /// <summary>排序方式：price_asc / price_desc / default，可空。</summary>
+    /// <summary>
+    /// 排序方式，可空。取值（大小写不敏感）：
+    /// <list type="bullet">
+    /// <item><c>price_asc</c>：按最低 SKU 价格升序。</item>
+    /// <item><c>price_desc</c>：按最低 SKU 价格降序。</item>
+    /// <item><c>hot</c>：综合热度，按 SalesCount 倒序（综合热度近似为销量倒序）。</item>
+    /// <item><c>sales</c>：销量倒序（按 SalesCount 倒序）。</item>
+    /// <item><c>default</c> / <c>relevance</c> / 空：默认相关性得分排序。</item>
+    /// </list>
+    /// </summary>
     public string? Sort { get; init; }
 
     /// <summary>页码，从 1 起。</summary>
@@ -98,4 +107,40 @@ public sealed class ProductSearchQueryDto
 
     /// <summary>每页条数，最大 100。</summary>
     public int PageSize { get; init; } = 20;
+}
+
+/// <summary>
+/// 批量审核请求 DTO，用于批量审核通过/驳回。
+/// </summary>
+public sealed class BatchReviewRequestDto
+{
+    /// <summary>商品标识列表，不可为空。</summary>
+    public List<Guid> Ids { get; init; } = new();
+
+    /// <summary>审核原因（驳回时必填，通过时可选）。</summary>
+    public string? Reason { get; init; }
+}
+
+/// <summary>
+/// 批量操作结果 DTO，承载成功与失败明细，保证单个失败不阻塞整批。
+/// </summary>
+public sealed class BatchOperationResultDto
+{
+    /// <summary>成功处理的标识列表。</summary>
+    public List<Guid> SucceededIds { get; init; } = new();
+
+    /// <summary>失败处理的标识与原因映射。</summary>
+    public List<BatchFailureItem> Failures { get; init; } = new();
+}
+
+/// <summary>
+/// 批量操作失败项，记录失败标识与失败原因。
+/// </summary>
+public sealed class BatchFailureItem
+{
+    /// <summary>失败的商品标识。</summary>
+    public Guid Id { get; init; }
+
+    /// <summary>失败原因。</summary>
+    public string Reason { get; init; } = string.Empty;
 }

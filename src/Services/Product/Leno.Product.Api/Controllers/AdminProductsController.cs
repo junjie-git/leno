@@ -49,6 +49,32 @@ public sealed class AdminProductsController : ProductControllerBase
         return Ok(ApiResponse.Success("已驳回"));
     }
 
+    /// <summary>批量审核通过上架。单个失败不阻塞整批，结果返回成功与失败明细。</summary>
+    [HttpPost("batch-approve")]
+    [ProducesResponseType(typeof(ApiResponse<BatchOperationResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> BatchApproveAsync([FromBody] BatchReviewRequestDto request, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var reviewedBy = GetCurrentUserId();
+        var result = await _spuAppService.BatchApproveAsync(request.Ids, reviewedBy, request.Reason, ct);
+        return Ok(ApiResponse.Success(result));
+    }
+
+    /// <summary>批量审核驳回。单个失败不阻塞整批，结果返回成功与失败明细。</summary>
+    [HttpPost("batch-reject")]
+    [ProducesResponseType(typeof(ApiResponse<BatchOperationResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> BatchRejectAsync([FromBody] BatchReviewRequestDto request, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            return Ok(ApiResponse.Fail<BatchOperationResultDto>(400, "驳回原因不可为空"));
+        }
+        var reviewedBy = GetCurrentUserId();
+        var result = await _spuAppService.BatchRejectAsync(request.Ids, reviewedBy, request.Reason!, ct);
+        return Ok(ApiResponse.Success(result));
+    }
+
     /// <summary>卖家/运营为指定 SKU 补货。</summary>
     [HttpPost("skus/{skuId:guid}/replenish")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]

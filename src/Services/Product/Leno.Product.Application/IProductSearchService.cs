@@ -17,7 +17,7 @@ public interface IProductSearchService
     /// <param name="brandId">品牌过滤，可空。</param>
     /// <param name="minPrice">最低价格，可空。</param>
     /// <param name="maxPrice">最高价格，可空。</param>
-    /// <param name="sort">排序方式：price_asc / price_desc / default，可空。</param>
+    /// <param name="sort">排序方式：price_asc / price_desc / hot（综合热度，按 SalesCount 倒序）/ sales（销量倒序）/ default，可空。</param>
     /// <param name="page">页码，从 1 起。</param>
     /// <param name="pageSize">每页条数，最大 100。</param>
     Task<PageResult<ProductSearchResultDto>> SearchAsync(

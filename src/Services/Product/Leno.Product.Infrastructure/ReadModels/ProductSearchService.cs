@@ -81,7 +81,7 @@ public sealed class ProductSearchService : IProductSearchService
     /// <summary>
     /// 根据 sort 参数构建 ES 搜索请求配置回调。
     /// 返回 null 表示无需额外配置（走默认相关性得分排序）；非 null 表示需在搜索描述符上追加排序。
-    /// 无效排序值或读模型不支持的排序字段（如 sales_desc）记录警告并回退到相关性排序。
+    /// 无效排序值记录警告并回退到相关性排序。
     /// </summary>
     private Action<SearchRequestDescriptor<ProductReadModel>>? BuildSortConfigure(string? sort)
     {
@@ -105,8 +105,20 @@ public sealed class ProductSearchService : IProductSearchService
                     Infer.Field<ProductReadModel>(p => p.MinPrice),
                     o => o.Order(SortOrder.Desc)));
 
+            // hot：综合热度（近似为销量倒序），按 SalesCount 倒序
+            case "hot":
+                return descriptor => descriptor.Sort(s => s.Field(
+                    Infer.Field<ProductReadModel>(p => p.SalesCount),
+                    o => o.Order(SortOrder.Desc)));
+
+            // sales：销量倒序，按 SalesCount 倒序
+            case "sales":
+                return descriptor => descriptor.Sort(s => s.Field(
+                    Infer.Field<ProductReadModel>(p => p.SalesCount),
+                    o => o.Order(SortOrder.Desc)));
+
             case "sales_desc":
-                // 读模型当前无 SalesCount 字段，暂回退到相关性排序
+                // 读模型当前无独立 SalesCount 字段对应此别名（保留兼容性回退）
                 _logger.LogWarning("排序值 Sort={Sort} 对应的销量字段在读模型中不存在，回退到相关性排序", sort);
                 return null;
 

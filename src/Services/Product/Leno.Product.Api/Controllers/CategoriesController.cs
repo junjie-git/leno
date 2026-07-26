@@ -23,13 +23,16 @@ public sealed class CategoriesController : ProductControllerBase
         _categoryAppService = categoryAppService;
     }
 
-    /// <summary>查询分类树（仅启用分类，按层级与排序组装）。</summary>
+    /// <summary>
+    /// 查询分类树（仅启用分类，按层级与排序组装）。
+    /// 支持可选 <paramref name="keyword"/> 过滤：非空时只返回名称包含 keyword 的节点及其所有祖先节点（构建父链）。
+    /// </summary>
     [Authorize]
     [HttpGet("api/categories/tree")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<CategoryDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetTreeAsync(CancellationToken ct)
+    public async Task<IActionResult> GetTreeAsync([FromQuery] string? keyword, CancellationToken ct = default)
     {
-        var tree = await _categoryAppService.GetTreeAsync(ct);
+        var tree = await _categoryAppService.GetTreeAsync(keyword, ct);
         return Ok(ApiResponse.Success(tree));
     }
 

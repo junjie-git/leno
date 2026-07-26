@@ -28,6 +28,10 @@ public sealed class ProductSearchQuery
     /// <summary>每页条数，最大 100。</summary>
     public int PageSize { get; init; } = 20;
 
-    /// <summary>排序方式：price_asc / price_desc / created_desc / default，可空。</summary>
+    /// <summary>
+    /// 排序方式，可空。取值（大小写不敏感）：
+    /// <c>price_asc</c> / <c>price_desc</c> / <c>hot</c>（综合热度，按 SalesCount 倒序）
+    /// / <c>sales</c>（销量倒序）/ <c>created_desc</c> / <c>default</c>。
+    /// </summary>
     public string? SortBy { get; init; }
 }

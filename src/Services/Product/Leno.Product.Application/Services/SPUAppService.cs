@@ -236,6 +236,83 @@ public sealed class SPUAppService : ISPUAppService
     }
 
     /// <inheritdoc />
+    public async Task<BatchOperationResultDto> BatchApproveAsync(List<Guid> ids, Guid reviewedBy, string? reason, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+
+        var succeeded = new List<Guid>();
+        var failures = new List<BatchFailureItem>();
+
+        foreach (var id in ids)
+        {
+            try
+            {
+                await ApproveAsync(id, reviewedBy, ct);
+                succeeded.Add(id);
+            }
+            catch (Exception ex) when (ex is OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                failures.Add(new BatchFailureItem
+                {
+                    Id = id,
+                    Reason = ex is ProductDomainException de ? de.Message : ex.Message
+                });
+            }
+        }
+
+        return new BatchOperationResultDto
+        {
+            SucceededIds = succeeded,
+            Failures = failures
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task<BatchOperationResultDto> BatchRejectAsync(List<Guid> ids, Guid reviewedBy, string reason, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new ProductDomainException("操作原因不可为空", "SPU_REASON_EMPTY");
+        }
+
+        var succeeded = new List<Guid>();
+        var failures = new List<BatchFailureItem>();
+        var dto = new ActionReasonDto { Reason = reason };
+
+        foreach (var id in ids)
+        {
+            try
+            {
+                await RejectAsync(id, reviewedBy, dto, ct);
+                succeeded.Add(id);
+            }
+            catch (Exception ex) when (ex is OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                failures.Add(new BatchFailureItem
+                {
+                    Id = id,
+                    Reason = ex is ProductDomainException de ? de.Message : ex.Message
+                });
+            }
+        }
+
+        return new BatchOperationResultDto
+        {
+            SucceededIds = succeeded,
+            Failures = failures
+        };
+    }
+
+    /// <inheritdoc />
     public async Task AdjustPriceAsync(Guid spuId, Guid skuId, AdjustPriceDto dto, string changedBy, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(dto);

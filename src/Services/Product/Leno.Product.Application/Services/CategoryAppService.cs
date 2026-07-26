@@ -91,11 +91,60 @@ public sealed class CategoryAppService : ICategoryAppService
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<CategoryDto>> GetTreeAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<CategoryDto>> GetTreeAsync(string? keyword = null, CancellationToken ct = default)
     {
         var all = await _categoryRepository.GetTreeAsync(ct);
-        var lookup = all.ToLookup(c => c.ParentId);
-        var roots = all.Where(c => c.ParentId is null)
+
+        // keyword 为空：返回完整分类树
+        if (string.IsNullOrWhiteSpace(keyword))
+        {
+            var fullLookup = all.ToLookup(c => c.ParentId);
+            var fullRoots = all.Where(c => c.ParentId is null)
+                .OrderBy(c => c.SortOrder)
+                .Select(c => ToCategoryDto(c, fullLookup))
+                .ToList();
+            return fullRoots;
+        }
+
+        // keyword 非空：过滤出 Name Contains keyword（不区分大小写）的节点及其所有祖先节点
+        var kw = keyword.Trim();
+        var matched = all
+            .Where(c => c.Name.Contains(kw, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (matched.Count == 0)
+        {
+            return Array.Empty<CategoryDto>();
+        }
+
+        // 收集匹配节点及其所有祖先节点 Id 集合
+        var byId = all.ToDictionary(c => c.Id);
+        var keepIds = new HashSet<Guid>();
+        foreach (var node in matched)
+        {
+            var current = node;
+            while (current is not null && keepIds.Add(current.Id))
+            {
+                if (current.ParentId.HasValue && byId.TryGetValue(current.ParentId.Value, out var parent))
+                {
+                    current = parent;
+                }
+                else
+                {
+                    current = null;
+                }
+            }
+        }
+
+        var filtered = all
+            .Where(c => keepIds.Contains(c.Id))
+            .OrderBy(c => c.Level)
+            .ThenBy(c => c.SortOrder)
+            .ToList();
+
+        var lookup = filtered.ToLookup(c => c.ParentId);
+        var roots = filtered
+            .Where(c => c.ParentId is null || !keepIds.Contains(c.ParentId.Value))
             .OrderBy(c => c.SortOrder)
             .Select(c => ToCategoryDto(c, lookup))
             .ToList();
