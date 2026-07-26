@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的优惠券 - Leno</title>
+  <style>
+    :root {
+      --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+      --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+      --r-base:6px; --r-card:8px; --r-lg:12px;
+      --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+      --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+      --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+      --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+      --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    html, body {
+      font-family: var(--ff-app);
+      font-size: var(--fs-base);
+      color: var(--n10);
+      background: #F0F2F5;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5715;
+    }
+
+    body {
+      max-width: 375px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--n2);
+      box-shadow: 0 0 24px rgba(0,0,0,.08);
+      position: relative;
+    }
+
+    /* NavBar */
+    .nav-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      height: 46px;
+      background: var(--n1);
+      border-bottom: 1px solid var(--n3);
+      padding: 0 var(--s3);
+    }
+    .nav-bar__back {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      color: var(--n10);
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .nav-bar__title {
+      flex: 1;
+      text-align: center;
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-medium);
+      color: var(--n10);
+      margin-right: 0;
+    }
+    .nav-bar__right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      font-family: var(--ff-app);
+      font-size: var(--fs-sm);
+      color: var(--c-primary);
+      cursor: pointer;
+      padding: var(--s2);
+    }
+
+    /* Tabs */
+    .tabs {
+      position: sticky;
+      top: 46px;
+      z-index: 90;
+      display: flex;
+      background: var(--n1);
+      border-bottom: 1px solid var(--n3);
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: var(--s3) 0;
+      font-size: var(--fs-base);
+      color: var(--n9);
+      cursor: pointer;
+      position: relative;
+      transition: color 100ms;
+    }
+    .tab.active {
+      color: var(--c-primary);
+      font-weight: var(--fw-medium);
+    }
+    .tab.active::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 3px;
+      background: var(--c-primary);
+      border-radius: 2px;
+    }
+    .tab .count {
+      display: inline-block;
+      min-width: 16px;
+      height: 16px;
+      line-height: 16px;
+      padding: 0 4px;
+      margin-left: 4px;
+      font-size: 10px;
+      color: #fff;
+      background: var(--c-error);
+      border-radius: 8px;
+      font-weight: var(--fw-medium);
+    }
+
+    .content {
+      padding: var(--s3);
+      padding-bottom: var(--s8);
+    }
+
+    /* 兑换码入口 */
+    .redeem-entry {
+      display: flex;
+      align-items: center;
+      gap: var(--s2);
+      background: linear-gradient(135deg, #E6F0FF 0%, #F0F7FF 100%);
+      border: 1px dashed var(--c-primary);
+      border-radius: var(--r-lg);
+      padding: var(--s3) var(--s4);
+      margin-bottom: var(--s3);
+    }
+    .redeem-entry__icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--r-base);
+      background: var(--c-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .redeem-entry__body {
+      flex: 1;
+      min-width: 0;
+    }
+    .redeem-entry__title {
+      font-size: var(--fs-base);
+      font-weight: var(--fw-medium);
+      color: var(--c-primary);
+    }
+    .redeem-entry__desc {
+      font-size: var(--fs-sm);
+      color: var(--n9);
+      margin-top: 1px;
+    }
+    .redeem-entry__arrow {
+      color: var(--c-primary);
+      flex-shrink: 0;
+    }
+
+    /* 优惠券卡片 */
+    .coupon-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--s3);
+    }
+    .coupon-card {
+      display: flex;
+      background: var(--n1);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-card);
+      overflow: hidden;
+      position: relative;
+      min-height: 100px;
+      border: 1px solid transparent;
+    }
+    .coupon-card--usable {
+      border-color: rgba(22,119,255,.25);
+    }
+    .coupon-card--used,
+    .coupon-card--expired {
+      opacity: .65;
+    }
+
+    /* 左侧金额区 */
+    .coupon-card__left {
+      width: 104px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--s2);
+      position: relative;
+      background: linear-gradient(135deg, #1677FF 0%, #0E5FCC 100%);
+      color: #fff;
+    }
+    .coupon-card--used .coupon-card__left,
+    .coupon-card--expired .coupon-card__left {
+      background: linear-gradient(135deg, #BFBFBF 0%, #8C8C8C 100%);
+    }
+    .coupon-card__left::before,
+    .coupon-card__left::after {
+      content: "";
+      position: absolute;
+      right: -4px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--n1);
+    }
+    .coupon-card__left::before { top: -4px; }
+    .coupon-card__left::after { bottom: -4px; }
+    .coupon-card__amount {
+      display: flex;
+      align-items: baseline;
+      font-weight: var(--fw-semibold);
+      line-height: 1;
+    }
+    .coupon-card__amount .symbol {
+      font-size: var(--fs-lg);
+      margin-right: 1px;
+    }
+    .coupon-card__amount .num {
+      font-size: 30px;
+    }
+    .coupon-card__threshold-label {
+      font-size: var(--fs-sm);
+      margin-top: var(--s1);
+      opacity: .9;
+    }
+
+    /* 右侧信息区 */
+    .coupon-card__right {
+      flex: 1;
+      padding: var(--s3);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-width: 0;
+      border-left: 1px dashed var(--n5);
+      position: relative;
+    }
+    .coupon-card__name {
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-medium);
+      color: var(--n10);
+    }
+    .coupon-card__scope {
+      font-size: var(--fs-sm);
+      color: var(--n9);
+      margin-top: 2px;
+    }
+    .coupon-card__bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: var(--s2);
+    }
+    .coupon-card__validity {
+      font-size: var(--fs-sm);
+      color: var(--n7);
+    }
+    .use-btn {
+      background: var(--c-primary);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 6px 14px;
+      font-size: var(--fs-sm);
+      font-weight: var(--fw-medium);
+      font-family: var(--ff-app);
+      cursor: pointer;
+      transition: opacity 100ms;
+      white-space: nowrap;
+    }
+    .use-btn:active { opacity: .85; }
+    .use-btn:disabled {
+      background: var(--n3);
+      color: var(--n7);
+      cursor: not-allowed;
+    }
+
+    /* 已使用/已过期标记 */
+    .status-stamp {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-size: 11px;
+      font-weight: var(--fw-semibold);
+      padding: 2px 8px;
+      border-radius: var(--r-base);
+    }
+    .status-stamp--used {
+      color: var(--n7);
+      background: var(--n3);
+    }
+    .status-stamp--expired {
+      color: var(--n7);
+      background: var(--n3);
+    }
+
+    /* 空状态 */
+    .empty-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--s12) 0;
+      text-align: center;
+    }
+    .empty-state.show { display: flex; }
+    .empty-state__icon {
+      width: 96px;
+      height: 96px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--s3);
+    }
+    .empty-state__title {
+      font-size: var(--fs-base);
+      color: var(--n7);
+      margin-bottom: var(--s4);
+    }
+    .empty-state__btn {
+      background: var(--c-primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--r-base);
+      padding: 8px 20px;
+      font-size: var(--fs-base);
+      font-weight: var(--fw-medium);
+      font-family: var(--ff-app);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- NavBar -->
+  <header class="nav-bar">
+    <button class="nav-bar__back" aria-label="返回">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M12.5 4L7 10l5.5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <h1 class="nav-bar__title">我的优惠券</h1>
+    <button class="nav-bar__right" aria-label="领券中心">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M2 4h12v3a2 2 0 000 4v3H2v-3a2 2 0 000-4V4Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+        <path d="M8 4v9" stroke="currentColor" stroke-width="1.3" stroke-dasharray="1.5 1.5"/>
+      </svg>
+      <span>领券中心</span>
+    </button>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="tabs" role="tablist">
+    <div class="tab active" data-tab="usable" role="tab" aria-selected="true">未使用<span class="count">2</span></div>
+    <div class="tab" data-tab="used" role="tab" aria-selected="false">已使用</div>
+    <div class="tab" data-tab="expired" role="tab" aria-selected="false">已过期</div>
+  </nav>
+
+  <main class="content">
+    <!-- 兑换码入口 -->
+    <div class="redeem-entry" role="button" tabindex="0" aria-label="兑换码兑换">
+      <div class="redeem-entry__icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M3 5.5a1.5 1.5 0 011.5-1.5h9A1.5 1.5 0 0115 5.5v7a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 013 12.5v-7Z" stroke="#fff" stroke-width="1.3"/>
+          <path d="M6 7.5h6M6 10.5h3" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="redeem-entry__body">
+        <div class="redeem-entry__title">兑换码兑换</div>
+        <div class="redeem-entry__desc">输入兑换码领取专属优惠券</div>
+      </div>
+      <div class="redeem-entry__arrow">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 未使用列表 -->
+    <div class="coupon-list" id="usableList">
+      <article class="coupon-card coupon-card--usable" role="article">
+        <div class="coupon-card__left">
+          <div class="coupon-card__amount" aria-label="面额30元">
+            <span class="symbol">¥</span><span class="num">30</span>
+          </div>
+          <div class="coupon-card__threshold-label">满200可用</div>
+        </div>
+        <div class="coupon-card__right">
+          <div>
+            <div class="coupon-card__name">满 200 减 30</div>
+            <div class="coupon-card__scope">全品类通用</div>
+          </div>
+          <div class="coupon-card__bottom">
+            <div class="coupon-card__validity">2026.07.26 - 2026.07.31</div>
+            <button class="use-btn" aria-label="去使用">去使用</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="coupon-card coupon-card--usable" role="article">
+        <div class="coupon-card__left">
+          <div class="coupon-card__amount" aria-label="面额20元">
+            <span class="symbol">¥</span><span class="num">20</span>
+          </div>
+          <div class="coupon-card__threshold-label">无门槛</div>
+        </div>
+        <div class="coupon-card__right">
+          <div>
+            <div class="coupon-card__name">新人立减 20</div>
+            <div class="coupon-card__scope">新人专享·全品类</div>
+          </div>
+          <div class="coupon-card__bottom">
+            <div class="coupon-card__validity">2026.07.26 - 2026.08.26</div>
+            <button class="use-btn" aria-label="去使用">去使用</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- 已使用列表 -->
+    <div class="coupon-list" id="usedList" style="display:none;">
+      <article class="coupon-card coupon-card--used" role="article">
+        <div class="coupon-card__left">
+          <div class="coupon-card__amount">
+            <span class="symbol">¥</span><span class="num">80</span>
+          </div>
+          <div class="coupon-card__threshold-label">满500可用</div>
+        </div>
+        <div class="coupon-card__right">
+          <span class="status-stamp status-stamp--used">已使用</span>
+          <div>
+            <div class="coupon-card__name">满 500 减 80</div>
+            <div class="coupon-card__scope">数码家电专享</div>
+          </div>
+          <div class="coupon-card__bottom">
+            <div class="coupon-card__validity">使用于 NO202607201023001 · 2026.07.20</div>
+            <button class="use-btn" disabled>已使用</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- 已过期列表 -->
+    <div class="coupon-list" id="expiredList" style="display:none;">
+      <article class="coupon-card coupon-card--expired" role="article">
+        <div class="coupon-card__left">
+          <div class="coupon-card__amount">
+            <span class="symbol">¥</span><span class="num">15</span>
+          </div>
+          <div class="coupon-card__threshold-label">满99可用</div>
+        </div>
+        <div class="coupon-card__right">
+          <span class="status-stamp status-stamp--expired">已过期</span>
+          <div>
+            <div class="coupon-card__name">满 99 减 15</div>
+            <div class="coupon-card__scope">生鲜食品专享</div>
+          </div>
+          <div class="coupon-card__bottom">
+            <div class="coupon-card__validity">已于 2026.06.30 过期</div>
+            <button class="use-btn" disabled>已过期</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- 空状态 -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-state__icon">
+        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+          <rect x="14" y="22" width="52" height="36" rx="6" fill="#F5F5F5"/>
+          <rect x="14" y="22" width="52" height="36" rx="6" stroke="#D9D9D9" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <path d="M14 32h52" stroke="#D9D9D9" stroke-width="1.5" stroke-dasharray="2 3"/>
+          <rect x="20" y="40" width="16" height="6" rx="2" fill="#D9D9D9"/>
+          <rect x="20" y="49" width="24" height="4" rx="1.5" fill="#E8E8E8"/>
+          <circle cx="54" cy="44" r="3" fill="#1677FF" opacity=".3"/>
+        </svg>
+      </div>
+      <div class="empty-state__title" id="emptyTitle">暂无优惠券</div>
+      <button class="empty-state__btn" id="goReceive">去领取</button>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var tabs = document.querySelectorAll('.tab');
+      var lists = {
+        usable: document.getElementById('usableList'),
+        used: document.getElementById('usedList'),
+        expired: document.getElementById('expiredList')
+      };
+      var emptyState = document.getElementById('emptyState');
+      var emptyTitle = document.getElementById('emptyTitle');
+      var emptyBtn = document.getElementById('goReceive');
+      var emptyText = {
+        usable: '暂无可用优惠券',
+        used: '暂无已使用优惠券',
+        expired: '暂无已过期优惠券'
+      };
+
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          tabs.forEach(function (t) {
+            t.classList.remove('active');
+            t.setAttribute('aria-selected', 'false');
+          });
+          tab.classList.add('active');
+          tab.setAttribute('aria-selected', 'true');
+          var type = tab.dataset.tab;
+          var hasData = false;
+          Object.keys(lists).forEach(function (key) {
+            if (key === type) {
+              lists[key].style.display = '';
+              hasData = lists[key].children.length > 0;
+            } else {
+              lists[key].style.display = 'none';
+            }
+          });
+          emptyTitle.textContent = emptyText[type];
+          emptyBtn.style.display = type === 'usable' ? '' : 'none';
+          emptyState.classList.toggle('show', !hasData);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

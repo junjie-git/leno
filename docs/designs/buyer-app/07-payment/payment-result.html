@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>支付结果 - Leno</title>
+  <style>
+    :root {
+      --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+      --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+      --r-base:6px; --r-card:8px; --r-lg:12px;
+      --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+      --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+      --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+      --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+      --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    html, body {
+      font-family: var(--ff-app);
+      font-size: var(--fs-base);
+      color: var(--n10);
+      background: #F0F2F5;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5715;
+    }
+
+    body {
+      max-width: 375px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--n2);
+      box-shadow: 0 0 24px rgba(0,0,0,.08);
+      position: relative;
+    }
+
+    /* NavBar */
+    .nav-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      height: 46px;
+      background: var(--n1);
+      border-bottom: 1px solid var(--n3);
+      padding: 0 var(--s3);
+    }
+    .nav-bar__back {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      color: var(--n10);
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .nav-bar__title {
+      flex: 1;
+      text-align: center;
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-medium);
+      color: var(--n10);
+      margin-right: 32px;
+    }
+
+    .content {
+      padding: var(--s3);
+      padding-bottom: 48px;
+    }
+
+    /* 结果头部 */
+    .result-header {
+      text-align: center;
+      padding: var(--s8) 0 var(--s6);
+    }
+    .result-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--s4);
+    }
+    .result-icon--success {
+      background: rgba(82,196,26,.12);
+      animation: pop 300ms cubic-bezier(0,0,0,1);
+    }
+    .result-icon--fail {
+      background: rgba(255,77,79,.12);
+      animation: pop 300ms cubic-bezier(0,0,0,1);
+    }
+    @keyframes pop {
+      0% { transform: scale(0.6); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .result-title {
+      font-size: var(--fs-xl);
+      font-weight: var(--fw-semibold);
+      color: var(--n10);
+      margin-bottom: var(--s1);
+    }
+    .result-title--success { color: var(--c-success); }
+    .result-title--fail { color: var(--c-error); }
+    .result-reason {
+      font-size: var(--fs-base);
+      color: var(--n7);
+      margin-top: var(--s1);
+    }
+
+    /* 金额展示（成功态） */
+    .result-amount {
+      margin-top: var(--s4);
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 2px;
+    }
+    .result-amount .symbol {
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-medium);
+      color: var(--c-error);
+    }
+    .result-amount .num {
+      font-size: var(--fs-2xl);
+      font-weight: var(--fw-semibold);
+      color: var(--c-error);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 订单摘要卡片 */
+    .summary-card {
+      background: var(--n1);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-card);
+      overflow: hidden;
+      margin-top: var(--s4);
+    }
+    .summary-card__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--s3) var(--s4);
+      border-bottom: 1px solid var(--n3);
+    }
+    .summary-card__title {
+      font-size: var(--fs-base);
+      font-weight: var(--fw-medium);
+      color: var(--n10);
+    }
+    .summary-card__tag {
+      font-size: var(--fs-sm);
+      color: var(--c-success);
+      background: rgba(82,196,26,.1);
+      padding: 2px 8px;
+      border-radius: var(--r-base);
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--s3) var(--s4);
+      font-size: var(--fs-base);
+    }
+    .summary-row + .summary-row {
+      border-top: 1px solid var(--n3);
+    }
+    .summary-row__label {
+      color: var(--n9);
+      flex-shrink: 0;
+    }
+    .summary-row__value {
+      color: var(--n10);
+      font-weight: var(--fw-medium);
+      text-align: right;
+    }
+    .summary-row__value--amount {
+      color: var(--c-error);
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-semibold);
+      font-variant-numeric: tabular-nums;
+    }
+    .summary-row__value--mono {
+      font-variant-numeric: tabular-nums;
+      font-size: var(--fs-sm);
+    }
+
+    /* 操作按钮 */
+    .actions {
+      margin-top: var(--s6);
+      padding: 0 var(--s2);
+    }
+    .btn {
+      width: 100%;
+      height: 44px;
+      border-radius: 22px;
+      font-size: var(--fs-lg);
+      font-weight: var(--fw-medium);
+      font-family: var(--ff-app);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 100ms;
+      border: none;
+    }
+    .btn:active { opacity: .85; }
+    .btn + .btn { margin-top: var(--s3); }
+    .btn--primary {
+      background: var(--c-primary);
+      color: #fff;
+    }
+    .btn--ghost {
+      background: var(--n1);
+      color: var(--n10);
+      border: 1px solid var(--n5);
+    }
+
+    /* 状态切换器（仅用于设计稿预览两种状态） */
+    .state-switcher {
+      position: fixed;
+      right: 12px;
+      bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 60;
+    }
+    .state-switcher button {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: var(--c-primary);
+      color: #fff;
+      font-size: 11px;
+      font-weight: var(--fw-semibold);
+      cursor: pointer;
+      box-shadow: var(--sh-card);
+      font-family: var(--ff-app);
+      line-height: 1.1;
+    }
+    .state-switcher button.fail {
+      background: var(--c-error);
+    }
+  </style>
+</head>
+<body>
+  <!-- NavBar -->
+  <header class="nav-bar">
+    <button class="nav-bar__back" aria-label="返回">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M12.5 4L7 10l5.5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <h1 class="nav-bar__title">支付结果</h1>
+  </header>
+
+  <main class="content">
+    <!-- 成功状态 -->
+    <section id="successView">
+      <div class="result-header">
+        <div class="result-icon result-icon--success" aria-label="支付成功">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="20" fill="#52C41A"/>
+            <path d="M12 20.5L17.5 26L28.5 14.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="result-title result-title--success">支付成功</div>
+        <div class="result-reason">订单支付成功，商品即将为您发出</div>
+        <div class="result-amount">
+          <span class="symbol">¥</span><span class="num">299.00</span>
+        </div>
+      </div>
+
+      <!-- 订单摘要 -->
+      <div class="summary-card" role="region" aria-label="订单摘要">
+        <div class="summary-card__header">
+          <span class="summary-card__title">订单信息</span>
+          <span class="summary-card__tag">已支付</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row__label">订单编号</span>
+          <span class="summary-row__value summary-row__value--mono">NO202607261523001</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row__label">支付方式</span>
+          <span class="summary-row__value">微信支付</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row__label">支付时间</span>
+          <span class="summary-row__value summary-row__value--mono">2026-07-26 15:24:08</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row__label">交易流水号</span>
+          <span class="summary-row__value summary-row__value--mono">WX2407261524008123</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row__label">支付金额</span>
+          <span class="summary-row__value summary-row__value--amount">¥299.00</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn--primary" aria-label="查看订单">查看订单</button>
+        <button class="btn btn--ghost" aria-label="继续购物">继续购物</button>
+      </div>
+    </section>
+
+    <!-- 失败状态 -->
+    <section id="failView" style="display:none;">
+      <div class="result-header">
+        <div class="result-icon result-icon--fail" aria-label="支付失败">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="20" fill="#FF4D4F"/>
+            <path d="M20 11V22" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>
+            <circle cx="20" cy="28.5" r="1.8" fill="#fff"/>
+          </svg>
+        </div>
+        <div class="result-title result-title--fail">支付失败</div>
+        <div class="result-reason">支付未通过，原因：支付渠道响应超时，请重新支付</div>
+      </div>
+
+      <!-- 订单摘要 -->
+      <div class="summary-card" role="region" aria-label="订单摘要">
+        <div class="summary-card__header">
+          <span class="summary-card__title">订单信息</span>
+          <span class="summary-card__tag" style="color:var(--c-error);background:rgba(255,77,79,.1)">支付失败</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row__label">订单编号</span>
+          <span class="summary-row__value summary-row__value--mono">NO202607261523001</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row__label">支付方式</span>
+          <span class="summary-row__value">微信支付</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row__label">失败时间</span>
+          <span class="summary-row__value summary-row__value--mono">2026-07-26 15:24:08</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row__label">应付金额</span>
+          <span class="summary-row__value summary-row__value--amount">¥299.00</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn--primary" aria-label="重新支付">重新支付</button>
+        <button class="btn btn--ghost" aria-label="返回订单">返回订单</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- 状态切换器（设计稿预览用） -->
+  <div class="state-switcher" aria-hidden="true">
+    <button id="toSuccess" title="预览成功状态">成功</button>
+    <button id="toFail" class="fail" title="预览失败状态">失败</button>
+  </div>
+
+  <script>
+    (function () {
+      var successView = document.getElementById('successView');
+      var failView = document.getElementById('failView');
+      document.getElementById('toSuccess').addEventListener('click', function () {
+        successView.style.display = '';
+        failView.style.display = 'none';
+      });
+      document.getElementById('toFail').addEventListener('click', function () {
+        successView.style.display = 'none';
+        failView.style.display = '';
+      });
+    })();
+  </script>
+</body>
+</html>
