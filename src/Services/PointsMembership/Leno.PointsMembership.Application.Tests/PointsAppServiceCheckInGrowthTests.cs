@@ -27,7 +27,7 @@ public sealed class PointsAppServiceCheckInGrowthTests
     public PointsAppServiceCheckInGrowthTests()
     {
         _unitOfWorkMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
         _checkInRepoMock.Setup(r => r.GetByUserIdAndDateAsync(UserId, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((CheckInRecord?)null);
         _checkInRepoMock.Setup(r => r.GetLatestByUserIdAsync(UserId, It.IsAny<CancellationToken>()))

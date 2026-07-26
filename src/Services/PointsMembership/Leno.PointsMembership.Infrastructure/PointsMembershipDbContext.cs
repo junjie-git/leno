@@ -47,4 +47,7 @@ public sealed class PointsMembershipDbContext : BaseDbContext
 
     /// <summary>用户任务实体。</summary>
     public DbSet<UserTask> UserTasks => Set<UserTask>();
+
+    /// <summary>积分规则聚合根，运营配置的积分发放规则。</summary>
+    public DbSet<PointsRule> PointsRules => Set<PointsRule>();
 }

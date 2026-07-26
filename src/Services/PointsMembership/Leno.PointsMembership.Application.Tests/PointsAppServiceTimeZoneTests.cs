@@ -36,7 +36,7 @@ public sealed class PointsAppServiceTimeZoneTests
 
         var uowMock = new Mock<IUnitOfWork>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         var memberRepoMock = new Mock<IMemberRepository>();
 
@@ -79,7 +79,7 @@ public sealed class PointsAppServiceTimeZoneTests
 
         var uowMock = new Mock<IUnitOfWork>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         var memberRepoMock = new Mock<IMemberRepository>();
 
@@ -120,7 +120,7 @@ public sealed class PointsAppServiceTimeZoneTests
 
         var uowMock = new Mock<IUnitOfWork>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         var memberRepoMock = new Mock<IMemberRepository>();
 

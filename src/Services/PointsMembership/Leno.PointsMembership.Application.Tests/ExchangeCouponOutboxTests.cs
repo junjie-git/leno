@@ -28,7 +28,7 @@ public sealed class ExchangeCouponOutboxTests
     public ExchangeCouponOutboxTests()
     {
         _unitOfWorkMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync(true);
 
         _service = new ExchangeCouponAppService(
             _accountRepoMock.Object,

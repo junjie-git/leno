@@ -31,7 +31,7 @@ public class InternalPointsControllerConfirmTests
         // Assert
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var apiResponse = okResult.Value.Should().BeOfType<ApiResponse>().Subject;
-        apiResponse.Success.Should().BeTrue("积分确认应成功");
+        apiResponse.Code.Should().Be(200, "积分确认应成功");
         mockService.Verify(x => x.ConfirmAsync(input, It.IsAny<CancellationToken>()), Times.Once);
     }
 

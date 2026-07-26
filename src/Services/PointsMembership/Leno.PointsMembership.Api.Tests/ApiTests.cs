@@ -5,6 +5,8 @@ using System.Text.Encodings.Web;
 using Leno.Infrastructure.Auth;
 using Leno.PointsMembership.Application;
 using Leno.PointsMembership.Application.DTOs;
+using Leno.PointsMembership.Domain.Exceptions;
+using Leno.PointsMembership.Domain.ValueObjects;
 using Leno.SharedContracts.Responses;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
@@ -23,6 +25,7 @@ public class PointsMembershipApiTests : IClassFixture<WebApplicationFactory<Prog
     private readonly Mock<IMemberAppService> _memberAppServiceMock = new();
     private readonly Mock<IMembershipPackageAppService> _packageAppServiceMock = new();
     private readonly Mock<IPointsInternalAppService> _internalAppServiceMock = new();
+    private readonly Mock<IPointsRuleAppService> _ruleAppServiceMock = new();
     private readonly Mock<ICurrentUserContext> _currentUserMock = new();
 
     private const string TestInternalKey = "test-internal-key-pm";
@@ -30,12 +33,13 @@ public class PointsMembershipApiTests : IClassFixture<WebApplicationFactory<Prog
     private static readonly Guid UserId = Guid.NewGuid();
     private static readonly Guid PackageId = Guid.NewGuid();
     private static readonly Guid LevelId = Guid.NewGuid();
+    private static readonly Guid RuleId = Guid.NewGuid();
 
     public PointsMembershipApiTests(WebApplicationFactory<Program> factory)
     {
         _client = factory.WithWebHostBuilder(builder =>
         {
-            builder.UseSetting("Environment", "Testing");
+            builder.UseSetting("Environment", "Development");
 
             builder.ConfigureServices(services =>
             {
@@ -43,6 +47,7 @@ public class PointsMembershipApiTests : IClassFixture<WebApplicationFactory<Prog
                 services.AddSingleton(_memberAppServiceMock.Object);
                 services.AddSingleton(_packageAppServiceMock.Object);
                 services.AddSingleton(_internalAppServiceMock.Object);
+                services.AddSingleton(_ruleAppServiceMock.Object);
                 services.AddSingleton(_currentUserMock.Object);
 
                 services.Configure<InternalApiKeyOptions>(o =>
@@ -441,6 +446,199 @@ public class PointsMembershipApiTests : IClassFixture<WebApplicationFactory<Prog
         var response = await _client.SendAsync(request);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    #endregion
+
+    #region PointsRulesController - Admin
+
+    [Fact]
+    public async Task GetRules_ShouldReturnRuleList()
+    {
+        SetupAdminAuth();
+        var rules = new List<PointsRuleDto>
+        {
+            new()
+            {
+                Id = RuleId, Code = "DAILY_CHECK", Name = "每日签到",
+                ActionType = PointsActionType.CheckIn, Points = 5, DailyLimit = 1,
+                Status = PointsRuleStatus.Enabled, UpdatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = Guid.NewGuid(), Code = "ORDER_DONE", Name = "下单得积分",
+                ActionType = PointsActionType.Order, Points = 10, DailyLimit = 5,
+                Status = PointsRuleStatus.Enabled, UpdatedAt = DateTime.UtcNow
+            }
+        };
+        _ruleAppServiceMock.Setup(s => s.GetRulesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rules);
+
+        var response = await _client.GetAsync("/api/admin/points/rules");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<PointsRuleDto>>>();
+        result!.Data.Should().HaveCount(2);
+        result.Data![0].Code.Should().Be("DAILY_CHECK");
+        result.Data[1].Code.Should().Be("ORDER_DONE");
+    }
+
+    [Fact]
+    public async Task CreateRule_ShouldReturnCreatedRule()
+    {
+        SetupAdminAuth();
+        var dto = new PointsRuleDto
+        {
+            Id = RuleId, Code = "DAILY_CHECK", Name = "每日签到",
+            ActionType = PointsActionType.CheckIn, Points = 5, DailyLimit = 1,
+            Status = PointsRuleStatus.Enabled, UpdatedAt = DateTime.UtcNow
+        };
+        _ruleAppServiceMock.Setup(s => s.CreateRuleAsync(It.IsAny<CreatePointsRuleDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dto);
+
+        var body = new
+        {
+            code = "DAILY_CHECK", name = "每日签到",
+            actionType = (int)PointsActionType.CheckIn, points = 5, dailyLimit = 1
+        };
+        var response = await _client.PostAsJsonAsync("/api/admin/points/rules", body);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<PointsRuleDto>>();
+        result!.Data!.Code.Should().Be("DAILY_CHECK");
+        result.Data.Points.Should().Be(5);
+    }
+
+    [Fact]
+    public async Task CreateRule_DuplicateCode_ShouldReturnConflict()
+    {
+        SetupAdminAuth();
+        _ruleAppServiceMock.Setup(s => s.CreateRuleAsync(It.IsAny<CreatePointsRuleDto>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new PointsDomainException("积分规则编码 DAILY_CHECK 已存在", "POINTS_RULE_CODE_EXISTS"));
+
+        var body = new
+        {
+            code = "DAILY_CHECK", name = "每日签到",
+            actionType = (int)PointsActionType.CheckIn, points = 5, dailyLimit = 1
+        };
+        var response = await _client.PostAsJsonAsync("/api/admin/points/rules", body);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(409);
+    }
+
+    [Fact]
+    public async Task UpdateRule_ShouldReturnUpdatedRule()
+    {
+        SetupAdminAuth();
+        var dto = new PointsRuleDto
+        {
+            Id = RuleId, Code = "DAILY_CHECK", Name = "每日签到（更新）",
+            ActionType = PointsActionType.CheckIn, Points = 10, DailyLimit = 2,
+            Status = PointsRuleStatus.Enabled, UpdatedAt = DateTime.UtcNow
+        };
+        _ruleAppServiceMock.Setup(s => s.UpdateRuleAsync(RuleId, It.IsAny<UpdatePointsRuleDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dto);
+
+        var body = new
+        {
+            name = "每日签到（更新）",
+            actionType = (int)PointsActionType.CheckIn, points = 10, dailyLimit = 2
+        };
+        var response = await _client.PutAsJsonAsync($"/api/admin/points/rules/{RuleId}", body);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<PointsRuleDto>>();
+        result!.Data!.Name.Should().Be("每日签到（更新）");
+        result.Data.Points.Should().Be(10);
+        result.Data.Code.Should().Be("DAILY_CHECK");
+    }
+
+    [Fact]
+    public async Task UpdateRule_NotExist_ShouldReturnNotFound()
+    {
+        SetupAdminAuth();
+        _ruleAppServiceMock.Setup(s => s.UpdateRuleAsync(RuleId, It.IsAny<UpdatePointsRuleDto>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new PointsDomainException($"积分规则 {RuleId} 不存在", "POINTS_RULE_NOT_FOUND"));
+
+        var body = new
+        {
+            name = "不存在规则",
+            actionType = (int)PointsActionType.CheckIn, points = 5, dailyLimit = 1
+        };
+        var response = await _client.PutAsJsonAsync($"/api/admin/points/rules/{RuleId}", body);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task EnableRule_ShouldReturnSuccess()
+    {
+        SetupAdminAuth();
+        _ruleAppServiceMock.Setup(s => s.EnableRuleAsync(RuleId, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var response = await _client.PostAsync($"/api/admin/points/rules/{RuleId}/enable", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(200);
+    }
+
+    [Fact]
+    public async Task EnableRule_AlreadyEnabled_ShouldReturnConflict()
+    {
+        SetupAdminAuth();
+        _ruleAppServiceMock.Setup(s => s.EnableRuleAsync(RuleId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new PointsDomainException("积分规则已启用", "POINTS_RULE_ALREADY_ENABLED"));
+
+        var response = await _client.PostAsync($"/api/admin/points/rules/{RuleId}/enable", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(409);
+    }
+
+    [Fact]
+    public async Task DisableRule_ShouldReturnSuccess()
+    {
+        SetupAdminAuth();
+        _ruleAppServiceMock.Setup(s => s.DisableRuleAsync(RuleId, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var response = await _client.PostAsync($"/api/admin/points/rules/{RuleId}/disable", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(200);
+    }
+
+    [Fact]
+    public async Task DisableRule_NotExist_ShouldReturnNotFound()
+    {
+        SetupAdminAuth();
+        _ruleAppServiceMock.Setup(s => s.DisableRuleAsync(RuleId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new PointsDomainException($"积分规则 {RuleId} 不存在", "POINTS_RULE_NOT_FOUND"));
+
+        var response = await _client.PostAsync($"/api/admin/points/rules/{RuleId}/disable", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        result!.Code.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task PointsRules_WithoutToken_ShouldReturnUnauthorized()
+    {
+        _client.DefaultRequestHeaders.Authorization = null;
+        var response = await _client.GetAsync("/api/admin/points/rules");
+        _client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Test");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     #endregion

@@ -54,6 +54,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMemberLevelRepository, EfCoreMemberLevelRepository>();
         services.AddScoped<ITaskRepository, EfCoreTaskRepository>();
         services.AddScoped<IUserTaskRepository, EfCoreUserTaskRepository>();
+        services.AddScoped<IPointsRuleRepository, EfCorePointsRuleRepository>();
 
         // 应用服务
         services.AddScoped<IPointsAppService, PointsAppService>();
@@ -62,6 +63,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMembershipPackageAppService, MembershipPackageAppService>();
         services.AddScoped<IExchangeCouponAppService, ExchangeCouponAppService>();
         services.AddScoped<ITaskAppService, TaskAppService>();
+        services.AddScoped<IPointsRuleAppService, PointsRuleAppService>();
 
         // FluentValidation 校验器
         services.AddValidatorsFromAssembly(typeof(IPointsAppService).Assembly);
