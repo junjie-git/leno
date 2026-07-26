@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prometheus 监控大盘 - Leno 系统管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { font-family:var(--ff-app); color:var(--n10); background:var(--n3); font-size:var(--fs-base); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+body { min-height:100vh; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+button { font-family:inherit; cursor:pointer; }
+svg { display:inline-block; vertical-align:middle; }
+.hidden { display:none !important; }
+
+.app { display:flex; flex-direction:column; min-height:100vh; }
+.app-header { height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5); display:flex; align-items:center; padding:0 24px 0 0; position:sticky; top:0; z-index:200; box-shadow:0 1px 4px rgba(0,21,41,.08); }
+.app-header .logo { width:var(--sider-width); height:100%; display:flex; align-items:center; gap:10px; padding:0 20px; flex-shrink:0; }
+.app-header .logo-mark { width:32px; height:32px; border-radius:6px; background:linear-gradient(135deg,#FA541C 0%,#FF7A45 100%); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:var(--fw-semibold); font-size:18px; box-shadow:0 2px 8px rgba(250,84,28,.35); }
+.app-header .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); white-space:nowrap; }
+.app-header .logo-text small { display:block; font-size:var(--fs-sm); font-weight:var(--fw-normal); color:var(--n7); margin-top:-2px; }
+.app-header .header-body { flex:1; display:flex; align-items:center; justify-content:space-between; padding-left:24px; }
+.collapse-btn { width:40px; height:var(--header-h); display:flex; align-items:center; justify-content:center; color:var(--n9); background:none; border:none; font-size:18px; cursor:pointer; }
+.collapse-btn:hover { color:var(--c-primary); background:var(--n3); }
+.breadcrumb { display:flex; align-items:center; gap:6px; font-size:var(--fs-base); color:var(--n9); }
+.breadcrumb a { color:var(--n9); } .breadcrumb a:hover { color:var(--c-primary); }
+.breadcrumb .sep { color:var(--n5); font-size:12px; } .breadcrumb .current { color:var(--n10); }
+.header-actions { display:flex; align-items:center; gap:8px; }
+.global-search { width:220px; height:32px; background:var(--n3); border:1px solid transparent; border-radius:var(--r-base); display:flex; align-items:center; padding:0 12px; gap:8px; transition:all .2s; }
+.global-search:hover { border-color:var(--c-primary); background:var(--n1); }
+.global-search input { flex:1; border:none; outline:none; background:transparent; font-size:var(--fs-sm); color:var(--n10); }
+.global-search input::placeholder { color:var(--n7); }
+.global-search .kbd { font-size:11px; color:var(--n7); background:var(--n1); border:1px solid var(--n5); border-radius:4px; padding:0 5px; line-height:18px; }
+.icon-btn { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--n9); position:relative; background:none; border:none; font-size:18px; }
+.icon-btn:hover { background:var(--n3); color:var(--c-primary); }
+.icon-btn .badge-dot { position:absolute; top:6px; right:6px; min-width:16px; height:16px; padding:0 4px; background:var(--c-error); color:#fff; border-radius:8px; font-size:10px; line-height:16px; font-weight:var(--fw-medium); border:2px solid var(--n1); }
+.avatar-wrap { display:flex; align-items:center; gap:8px; padding:4px 8px 4px 4px; border-radius:var(--r-base); cursor:pointer; }
+.avatar-wrap:hover { background:var(--n3); }
+.avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#FA541C,#FF7A45); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:var(--fw-medium); }
+.avatar-name { font-size:var(--fs-base); color:var(--n10); } .avatar-role { font-size:var(--fs-sm); color:var(--n7); }
+
+.app-body { flex:1; display:flex; }
+.app-sider { width:var(--sider-width); background:var(--sider-bg); flex-shrink:0; display:flex; flex-direction:column; position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto; }
+.menu { list-style:none; padding:8px 0; flex:1; }
+.menu-link { display:flex; align-items:center; gap:10px; height:40px; padding:0 16px 0 24px; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .15s; position:relative; }
+.menu-link:hover { color:#fff; }
+.menu-link .m-icon { width:16px; height:16px; flex-shrink:0; }
+.menu-link .m-arrow { margin-left:auto; font-size:10px; transition:transform .2s; }
+.menu-item.open > .menu-link .m-arrow { transform:rotate(90deg); }
+.menu-item.active > .menu-link { color:#fff; background:var(--c-primary); }
+.menu-item.active > .menu-link::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#fff; }
+.menu-sub { list-style:none; max-height:0; overflow:hidden; transition:max-height .25s ease; }
+.menu-item.open > .menu-sub { max-height:500px; }
+.menu-sub .menu-link { height:36px; padding-left:48px; font-size:var(--fs-sm); }
+.menu-sub .menu-link.active { color:#fff; background:rgba(22,119,255,.15); }
+.menu-sub .menu-link.active::before { display:none; }
+
+.app-content { flex:1; display:flex; flex-direction:column; min-width:0; }
+.page-scroll { flex:1; overflow-y:auto; padding:var(--s6); }
+.app-footer { height:32px; background:var(--n1); border-top:1px solid var(--n3); display:flex; align-items:center; justify-content:center; font-size:var(--fs-sm); color:var(--n7); padding:0 24px; }
+
+.page-header { margin-bottom:var(--s4); }
+.page-header h1 { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); }
+.page-header .sub { margin-top:4px; font-size:var(--fs-sm); color:var(--n7); }
+
+.card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; }
+.card + .card { margin-top:var(--s4); }
+
+.toolbar { display:flex; flex-wrap:wrap; gap:12px; padding:var(--s4); align-items:center; }
+.toolbar .spacer { flex:1; }
+.tool-group { display:flex; align-items:center; gap:8px; }
+.tool-label { font-size:var(--fs-sm); color:var(--n9); white-space:nowrap; }
+.select { height:32px; min-width:150px; padding:0 28px 0 11px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:flex; align-items:center; gap:6px; cursor:pointer; position:relative; transition:all .2s; }
+.select:hover { border-color:var(--c-primary); }
+.select::after { content:''; position:absolute; right:11px; width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:5px solid var(--n7); }
+.radio-group { display:inline-flex; background:var(--n3); border-radius:var(--r-base); padding:2px; gap:2px; }
+.radio-btn { height:26px; padding:0 10px; border:none; background:none; border-radius:4px; font-size:var(--fs-sm); color:var(--n9); cursor:pointer; transition:all .15s; display:flex; align-items:center; }
+.radio-btn:hover { color:var(--n10); }
+.radio-btn.active { background:var(--n1); color:var(--c-primary); font-weight:var(--fw-medium); box-shadow:0 1px 2px rgba(0,0,0,.06); }
+.btn { height:32px; padding:0 15px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; gap:6px; transition:all .15s; white-space:nowrap; }
+.btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.btn .b-icon { width:14px; height:14px; }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+
+/* metric cards grid */
+.metric-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:var(--s4); padding:var(--s4); }
+@media (max-width:1400px){ .metric-grid { grid-template-columns:repeat(3,1fr); } }
+@media (max-width:992px){ .metric-grid { grid-template-columns:repeat(2,1fr); } }
+.metric-card { background:var(--n1); border:1px solid #F0F0F0; border-radius:var(--r-card); padding:var(--s4); position:relative; overflow:hidden; }
+.metric-card .mc-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.metric-card .mc-title { font-size:var(--fs-sm); color:var(--n7); display:flex; align-items:center; gap:6px; }
+.metric-card .mc-icon { width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; }
+.metric-card .mc-icon.blue { background:#E6F4FF; color:var(--c-primary); }
+.metric-card .mc-icon.green { background:#F6FFED; color:var(--c-success); }
+.metric-card .mc-icon.yellow { background:#FFFBE6; color:var(--c-warning); }
+.metric-card .mc-icon.red { background:#FFF1F0; color:var(--c-error); }
+.metric-card .mc-value { font-size:var(--fs-2xl); font-weight:var(--fw-semibold); color:var(--n10); line-height:1.2; font-family:var(--ff-mono); }
+.metric-card .mc-value.danger { color:var(--c-error); }
+.metric-card .mc-value.warning { color:var(--c-warning); }
+.metric-card .mc-unit { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-normal); margin-left:2px; }
+.metric-card .mc-trend { font-size:var(--fs-sm); margin-top:2px; display:flex; align-items:center; gap:4px; }
+.metric-card .mc-trend.up { color:var(--c-success); }
+.metric-card .mc-trend.down { color:var(--c-error); }
+.metric-card .mc-spark { height:32px; margin-top:8px; }
+
+/* chart grid */
+.chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--s4); padding:var(--s4); }
+.chart-grid.full { grid-template-columns:1fr; }
+.chart-card { background:var(--n1); border:1px solid #F0F0F0; border-radius:var(--r-card); padding:var(--s4); }
+.chart-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--s3); }
+.chart-title { font-size:var(--fs-base); font-weight:var(--fw-medium); color:var(--n10); display:flex; align-items:center; gap:6px; }
+.chart-legend { display:flex; gap:12px; font-size:var(--fs-sm); color:var(--n9); }
+.legend-item { display:flex; align-items:center; gap:4px; }
+.legend-dot { width:10px; height:3px; border-radius:2px; }
+.chart-body { height:220px; }
+.chart-body svg { width:100%; height:100%; }
+.chart-axis-text { font-size:10px; fill:var(--n7); font-family:var(--ff-mono); }
+
+/* gauge */
+.gauge-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; height:220px; }
+.gauge-svg { width:240px; height:160px; }
+.gauge-value { font-size:var(--fs-2xl); font-weight:var(--fw-semibold); font-family:var(--ff-mono); }
+
+.alert-bar { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:var(--r-base); font-size:var(--fs-sm); margin:var(--s4); background:#FFF1F0; border:1px solid #FFCCC7; color:var(--c-error); }
+.alert-bar .a-icon { flex-shrink:0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-mark">L</div>
+      <div class="logo-text">Leno<small>系统管理后台</small></div>
+    </div>
+    <div class="header-body">
+      <div style="display:flex;align-items:center;gap:0;">
+        <button class="collapse-btn" aria-label="折叠菜单"><svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"/></svg></button>
+        <nav class="breadcrumb" style="margin-left:16px;"><a href="#">系统监控</a><span class="sep">/</span><span class="current">Prometheus 监控大盘</span></nav>
+      </div>
+      <div class="header-actions">
+        <div class="global-search"><svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"/></svg><input placeholder="搜索菜单、TraceId、端点" /><span class="kbd">Ctrl K</span></div>
+        <button class="icon-btn" aria-label="通知" title="通知中心"><svg viewBox="64 64 896 896" width="18" height="18" fill="currentColor"><path d="M512 128c-212.1 0-384 171.9-384 384v360c0 13.3 10.7 24 24 24h184c35.3 0 64-28.7 64-64V640c0-35.3-28.7-64-64-64H200v-64c0-172.3 139.7-312 312-312s312 139.7 312 312v64H680c-35.3 0-64 28.7-64 64v192c0 35.3 28.7 64 64 64h184c13.3 0 24-10.7 24-24V512c0-212.1-171.9-384-384-384z"/></svg><span class="badge-dot">8</span></button>
+        <div class="avatar-wrap"><div class="avatar">张</div><div><div class="avatar-name">张管理员</div><div class="avatar-role">系统管理员</div></div><svg viewBox="64 64 896 896" width="12" height="12" fill="currentColor" style="color:var(--n7);"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="app-sider">
+      <ul class="menu">
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01136 560c0-98.8 38.5-191.6 108.4-261.4C314.3 228.5 407 190 505.9 190c98.8 0 191.6 38.5 261.4 108.4C837.5 368.4 876 461.2 876 560c0 110.7-44.2 213.9-114.6 276z"/></svg></span>仪表盘<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.3 44.5-118.6 78.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C779 752.7 810 825 812 902.2c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.2z"/></svg></span>用户与权限<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM641.7 599.6c0 4.6-3.7 8.3-8.3 8.3h-67.5v67.5c0 4.6-3.7 8.3-8.3 8.3h-77.2c-4.6 0-8.3-3.7-8.3-8.3v-67.5h-67.5c-4.6 0-8.3-3.7-8.3-8.3v-77.2c0-4.6 3.7-8.3 8.3-8.3h67.5v-67.5c0-4.6 3.7-8.3 8.3-8.3h77.2c4.6 0 8.3 3.7 8.3 8.3v67.5h67.5c4.6 0 8.3 3.7 8.3 8.3v77.2z"/></svg></span>系统治理<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg></span>运行时运维<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM464.5 651.5l-99.8-99.8c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L421.4 518l235.5-235.5c12.5-12.5 32.8-12.5 45.3 0s12.5 32.8 0 45.3L509.8 651.5c-12.5 12.5-32.8 12.5-45.3 0z"/></svg></span>审计与对账<span class="m-arrow">›</span></div></li>
+        <li class="menu-item"><div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.3 44.5-118.6 78.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C779 752.7 810 825 812 902.2c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.2z"/></svg></span>个人账号<span class="m-arrow">›</span></div></li>
+        <li class="menu-item open active">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4z"/></svg></span>系统监控<span class="m-arrow">›</span></div>
+          <ul class="menu-sub"><li><div class="menu-link active">Prometheus 监控大盘</div></li></ul>
+        </li>
+      </ul>
+      <div style="padding:16px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.35);text-align:center;">Leno SystemAdmin v1.0.0</div>
+    </aside>
+
+    <main class="app-content">
+      <div class="page-scroll">
+        <div class="page-header">
+          <h1>Prometheus 监控大盘</h1>
+          <div class="sub">整合 Prometheus 指标，按限界上下文分组展示 QPS、延迟（P50/P95/P99）、错误率、MQ 队列长度、Redis 命中率、JVM/CLR 内存与 GC，辅助故障定位与容量规划。数据每 30s 轮询刷新。</div>
+        </div>
+
+        <div class="card">
+          <!-- Toolbar -->
+          <div class="toolbar">
+            <div class="tool-group">
+              <span class="tool-label">限界上下文</span>
+              <div class="select"><svg class="s-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg>全部模块</div>
+            </div>
+            <div class="tool-group">
+              <span class="tool-label">时间范围</span>
+              <div class="radio-group" id="rangeFilter">
+                <button class="radio-btn active" data-range="1h">1h</button>
+                <button class="radio-btn" data-range="6h">6h</button>
+                <button class="radio-btn" data-range="24h">24h</button>
+                <button class="radio-btn" data-range="7d">7d</button>
+                <button class="radio-btn" data-range="custom">自定义</button>
+              </div>
+            </div>
+            <div class="tool-group">
+              <span class="tool-label">刷新</span>
+              <button class="btn" id="refreshBtn"><svg class="b-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M909.1 209.3l-56.4 44.1C775.8 155.1 656.2 92 521.9 92 290 92 102.3 279.5 102 511.5 101.7 743.7 289.8 932 521.9 932c181.3 0 335.8-115 394.6-276.1 1.5-4.2-.7-8.9-4.9-10.3l-56.7-19.5a8 8 0 00-10.1 4.8c-1.8 5-3.8 10-5.9 14.9-17.3 41-42.1 77.8-73.7 109.4A344.77 344.77 0 01655.9 829c-42.3 17.9-87.4 27-133.8 27-46.5 0-91.5-9.1-133.8-27A341.5 341.5 0 01279 755.2a342.16 342.16 0 01-73.7-109.4c-17.9-42.4-27-87.4-27-133.9s9.1-91.5 27-133.9c17.3-41 42.1-77.8 73.7-109.4 31.6-31.6 68.4-56.4 109.3-73.8 42.3-17.9 87.4-27 133.8-27 46.5 0 91.5 9.1 133.8 27a341.5 341.5 0 01109.3 73.8c9.9 9.9 19.2 20.4 27.8 31.4l-60.2 47a8 8 0 003 14.1l175.6 43c5 1.2 9.9-2.6 9.9-7.7l.8-180.9c-.1-6.6-7.8-10.3-13-6.2z"/></svg>手动刷新</button>
+              <div class="select" style="min-width:120px;">自动刷新 15s</div>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn" onclick="alert('新窗口打开 Grafana 看板（携带 module=All&from=1h）')"><svg class="b-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M576 696v64c0 8.8-7.2 16-16 16H192c-8.8 0-16-7.2-16-16v-64c0-8.8 7.2-16 16-16h368c8.8 0 16 7.2 16 16z"/><path d="M925.3 417.7L733.1 225.5c-12.5-12.5-32.8-12.5-45.3 0l-58.5 58.5c-12.5 12.5-12.5 32.8 0 45.3L704.7 405H288c-17.7 0-32 14.3-32 32v44c0 17.7 14.3 32 32 32h416.7l-75.4 75.4c-12.5 12.5-12.5 32.8 0 45.3l58.5 58.5c12.5 12.5 32.8 12.5 45.3 0l192.2-192.2c12.5-12.5 12.5-32.8 0-45.3z"/></svg>Grafana</button>
+            <button class="btn" onclick="alert('新窗口打开 Jaeger 链路追踪（携带 module=All&from=1h）')"><svg class="b-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M925.3 417.7L733.1 225.5c-12.5-12.5-32.8-12.5-45.3 0l-58.5 58.5c-12.5 12.5-12.5 32.8 0 45.3L704.7 405H288c-17.7 0-32 14.3-32 32v44c0 17.7 14.3 32 32 32h416.7l-75.4 75.4c-12.5 12.5-12.5 32.8 0 45.3l58.5 58.5c12.5 12.5 32.8 12.5 45.3 0l192.2-192.2c12.5-12.5 12.5-32.8 0-45.3z"/></svg>Jaeger</button>
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="card" style="margin-top:var(--s4);">
+          <div class="metric-grid">
+            <div class="metric-card">
+              <div class="mc-head"><div class="mc-title">总 QPS</div><div class="mc-icon blue"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v384c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32z"/></svg></div></div>
+              <div class="mc-value">1.28<span class="mc-unit">k req/s</span></div>
+              <div class="mc-trend up"><svg viewBox="64 64 896 896" width="10" height="10" fill="currentColor"><path d="M858.9 689L530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z"/></svg>12.5% vs 1h 前</div>
+              <div class="mc-spark" id="spark-qps"></div>
+            </div>
+            <div class="metric-card">
+              <div class="mc-head"><div class="mc-title">平均延迟 P95</div><div class="mc-icon yellow"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 01-11.2 1.8L483.3 569.8a7.92 7.92 0 01-3.3-6.5V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v247.5l142.6 103.1c3.6 2.5 4.4 7.5 1.8 11.1z"/></svg></div></div>
+              <div class="mc-value">85<span class="mc-unit">ms</span></div>
+              <div class="mc-trend up"><svg viewBox="64 64 896 896" width="10" height="10" fill="currentColor"><path d="M858.9 689L530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z"/></svg>4.8% vs 1h 前</div>
+              <div class="mc-spark" id="spark-latency"></div>
+            </div>
+            <div class="metric-card">
+              <div class="mc-head"><div class="mc-title">错误率</div><div class="mc-icon red"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416zm32 352a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg></div></div>
+              <div class="mc-value danger">0.3<span class="mc-unit">%</span></div>
+              <div class="mc-trend down"><svg viewBox="64 64 896 896" width="10" height="10" fill="currentColor" style="transform:rotate(180deg);"><path d="M858.9 689L530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z"/></svg>0.1% vs 1h 前</div>
+              <div class="mc-spark" id="spark-error"></div>
+            </div>
+            <div class="metric-card">
+              <div class="mc-head"><div class="mc-title">MQ 队列积压</div><div class="mc-icon yellow"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M885.2 446.3l-0.2-0.8-112.2-285.1c-5-16.1-19.9-27.2-36.8-27.2H281.2c-17 0-32.1 11.3-36.9 27.6L139.4 443l-0.3 0.7-0.2 0.8c-1.3 4.9-1.7 9.9-1 14.8-0.1 1.6-0.2 3.2-0.2 4.8V830a60.9 60.9 0 0060.8 60.8h627.2c33.5 0 60.8-27.3 60.9-60.8V464.1c0-1.3 0-2.6-0.2-3.9 0.4-4.7 0-9.4-1.2-13.9z"/></svg></div></div>
+              <div class="mc-value warning">156<span class="mc-unit">条</span></div>
+              <div class="mc-trend down"><svg viewBox="64 64 896 896" width="10" height="10" fill="currentColor" style="transform:rotate(180deg);"><path d="M858.9 689L530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z"/></svg>23 vs 1h 前</div>
+              <div class="mc-spark" id="spark-mq"></div>
+            </div>
+            <div class="metric-card">
+              <div class="mc-head"><div class="mc-title">Redis 命中率</div><div class="mc-icon green"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-600 72h560v208H232V136z"/></svg></div></div>
+              <div class="mc-value">98<span class="mc-unit">%</span></div>
+              <div class="mc-trend up"><svg viewBox="64 64 896 896" width="10" height="10" fill="currentColor"><path d="M858.9 689L530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z"/></svg>1.2% vs 1h 前</div>
+              <div class="mc-spark" id="spark-redis"></div>
+            </div>
+            <div class="metric-card">
+              <div class="mc-head"><div class="mc-title">活跃实例数</div><div class="mc-icon blue"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M894 462c-9-95-86-171-183-178-34-92-122-160-226-160S293 192 259 284c-97 7-174 83-183 178H40v52h36c9 95 86 171 183 178 34 92 122 160 226 160s192-68 226-160c97-7 174-83 183-178h36v-52h-36z"/></svg></div></div>
+              <div class="mc-value">8<span class="mc-unit">实例</span></div>
+              <div class="mc-trend up" style="color:var(--n7);">全部 Up</div>
+              <div class="mc-spark" id="spark-instances"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trend Charts -->
+        <div class="card" style="margin-top:var(--s4);">
+          <div class="chart-grid">
+            <div class="chart-card">
+              <div class="chart-head">
+                <div class="chart-title"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor" style="color:var(--c-primary);"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6z"/></svg>QPS 趋势（近 1h，按模块分系列）</div>
+                <div class="chart-legend"><span class="legend-item"><span class="legend-dot" style="background:var(--c-primary);"></span>全部</span><span class="legend-item"><span class="legend-dot" style="background:var(--c-success);"></span>Order</span><span class="legend-item"><span class="legend-dot" style="background:var(--c-warning);"></span>Payment</span></div>
+              </div>
+              <div class="chart-body" id="chart-qps"></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head">
+                <div class="chart-title"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor" style="color:var(--c-warning);"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 01-11.2 1.8L483.3 569.8a7.92 7.92 0 01-3.3-6.5V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v247.5l142.6 103.1c3.6 2.5 4.4 7.5 1.8 11.1z"/></svg>延迟分位数趋势（P50/P95/P99）</div>
+                <div class="chart-legend"><span class="legend-item"><span class="legend-dot" style="background:var(--c-success);"></span>P50</span><span class="legend-item"><span class="legend-dot" style="background:var(--c-warning);"></span>P95</span><span class="legend-item"><span class="legend-dot" style="background:var(--c-error);"></span>P99</span></div>
+              </div>
+              <div class="chart-body" id="chart-latency"></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head">
+                <div class="chart-title"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor" style="color:var(--c-error);"><path d="M955.7 856l-416-720c-6.2-10.7-16.9-16-27.7-16s-21.6 5.3-27.7 16l-416 720C56 877.4 71.4 904 96 904h832c24.6 0 40-26.6 27.7-48zM480 416c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v184c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V416z"/></svg>错误率趋势</div>
+                <div class="chart-legend"><span class="legend-item"><span class="legend-dot" style="background:var(--c-error);"></span>error_rate</span><span class="legend-item"><span style="color:var(--n7);">阈值 1.0%</span></div>
+              </div>
+              <div class="chart-body" id="chart-error"></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head">
+                <div class="chart-title"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor" style="color:var(--c-warning);"><path d="M885.2 446.3l-0.2-0.8-112.2-285.1c-5-16.1-19.9-27.2-36.8-27.2H281.2c-17 0-32.1 11.3-36.9 27.6L139.4 443l-0.3 0.7-0.2 0.8c-1.3 4.9-1.7 9.9-1 14.8-0.1 1.6-0.2 3.2-0.2 4.8V830a60.9 60.9 0 0060.8 60.8h627.2c33.5 0 60.8-27.3 60.9-60.8V464.1c0-1.3 0-2.6-0.2-3.9 0.4-4.7 0-9.4-1.2-13.9z"/></svg>MQ 队列长度趋势</div>
+                <div class="chart-legend"><span class="legend-item"><span class="legend-dot" style="background:var(--c-warning);"></span>Notification</span><span class="legend-item"><span class="legend-dot" style="background:var(--c-primary);"></span>Order</span></div>
+              </div>
+              <div class="chart-body" id="chart-mq"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resource Metrics -->
+        <div class="card" style="margin-top:var(--s4);">
+          <div class="chart-grid">
+            <div class="chart-card">
+              <div class="chart-head">
+                <div class="chart-title"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor" style="color:var(--c-primary);"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32z"/></svg>CLR 堆内存趋势</div>
+                <div class="chart-legend"><span class="legend-item"><span class="legend-dot" style="background:var(--c-primary);"></span>heap_used</span><span class="legend-item"><span style="color:var(--n7);">阈值 4GB</span></div>
+              </div>
+              <div class="chart-body" id="chart-heap"></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head">
+                <div class="chart-title"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor" style="color:#722ED1;"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg>GC Gen2 收集频率趋势</div>
+                <div class="chart-legend"><span class="legend-item"><span class="legend-dot" style="background:#722ED1;"></span>gen2_collections/s</span></div>
+              </div>
+              <div class="chart-body" id="chart-gc"></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-head">
+                <div class="chart-title"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor" style="color:var(--c-success);"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32z"/></svg>Redis 命中率仪表盘</div>
+                <div class="chart-legend"><span style="color:var(--n7);">阈值 &lt;95% 红 / 95-98% 黄 / &gt;98% 绿</span></div>
+              </div>
+              <div class="gauge-wrap" id="chart-gauge"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="app-footer">© 2026 Leno 电商平台 · 系统管理后台 v1.0.0 · Prometheus 数据源 http://prometheus:9090 · 每 30s 自动刷新</div>
+    </main>
+  </div>
+</div>
+
+<script>
+/* ===== Chart rendering helpers ===== */
+var COLORS={primary:'#1677FF',success:'#52C41A',warning:'#FAAD14',error:'#FF4D4F',purple:'#722ED1'};
+function ns(tag,attrs){var e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(var k in attrs)e.setAttribute(k,attrs[k]);return e;}
+
+function renderLine(containerId, series, opts){
+  opts=opts||{};
+  var el=document.getElementById(containerId); if(!el)return;
+  var W=600,H=220, padL=44, padR=12, padT=14, padB=26;
+  var cw=W-padL-padR, ch=H-padT-padB;
+  var allVals=[]; series.forEach(function(s){s.data.forEach(function(v){allVals.push(v);});});
+  var minV=opts.min!==undefined?opts.min:Math.min.apply(null,allVals);
+  var maxV=opts.max!==undefined?opts.max:Math.max.apply(null,allVals);
+  if(opts.baseline!==undefined) minV=Math.min(minV,opts.baseline);
+  if(opts.threshold!==undefined) maxV=Math.max(maxV,opts.threshold);
+  var range=maxV-minV||1; minV=minV-range*0.1; maxV=maxV+range*0.1; range=maxV-minV;
+  var n=series[0].data.length;
+  var xStep=cw/(n-1);
+  var yFor=function(v){return padT+ch-((v-minV)/range)*ch;};
+  var svg=ns('svg',{viewBox:'0 0 '+W+' '+H, preserveAspectRatio:'none'});
+  // grid + y labels
+  for(var i=0;i<=4;i++){
+    var y=padT+(ch/4)*i;
+    svg.appendChild(ns('line',{x1:padL,y1:y,x2:W-padR,y2:y,stroke:'#F0F0F0','stroke-width':1}));
+    var val=maxV-(range/4)*i;
+    var lbl=opts.fmt?opts.fmt(val):Math.round(val*100)/100;
+    var t=ns('text',{x:padL-6,y:y+3,'text-anchor':'end',class:'chart-axis-text'}); t.textContent=lbl; svg.appendChild(t);
+  }
+  // x labels
+  var xLabels=opts.xLabels||[];
+  var xStepLbl=Math.ceil(n/6);
+  for(var j=0;j<n;j+=xStepLbl){
+    var x=padL+j*xStep;
+    var t2=ns('text',{x:x,y:H-6,'text-anchor':'middle',class:'chart-axis-text'}); t2.textContent=xLabels[j]||(''); svg.appendChild(t2);
+  }
+  // threshold line
+  if(opts.threshold!==undefined){
+    var ty=yFor(opts.threshold);
+    svg.appendChild(ns('line',{x1:padL,y1:ty,x2:W-padR,y2:ty,stroke:COLORS.error,'stroke-width':1,'stroke-dasharray':'4 3',opacity:.7}));
+    var tt=ns('text',{x:W-padR-4,y:ty-4,'text-anchor':'end',class:'chart-axis-text',fill:COLORS.error}); tt.textContent=opts.thresholdLabel||opts.threshold; svg.appendChild(tt);
+  }
+  // series
+  series.forEach(function(s){
+    var d=''; var areaD='M';
+    s.data.forEach(function(v,i){
+      var x=padL+i*xStep, y=yFor(v);
+      d+=(i===0?'M':'L')+x+','+y+' ';
+      areaD+=(i===0?'':'L')+x+','+y+' ';
+    });
+    areaD+='L'+(padL+(n-1)*xStep)+','+(padT+ch)+' L'+padL+','+(padT+ch)+' Z';
+    if(s.fill){ var area=ns('path',{d:areaD,fill:s.color,opacity:.08}); svg.appendChild(area); }
+    svg.appendChild(ns('path',{d:d,fill:'none',stroke:s.color,'stroke-width':2,'stroke-linejoin':'round','stroke-linecap':'round'}));
+    // last point dot
+    var lastX=padL+(n-1)*xStep, lastY=yFor(s.data[n-1]);
+    svg.appendChild(ns('circle',{cx:lastX,cy:lastY,r:3,fill:s.color}));
+  });
+  el.innerHTML=''; el.appendChild(svg);
+}
+
+function renderSpark(containerId, data, color){
+  var el=document.getElementById(containerId); if(!el)return;
+  var W=160,H=32; var minV=Math.min.apply(null,data), maxV=Math.max.apply(null,data), range=maxV-minV||1;
+  var xStep=W/(data.length-1);
+  var d=''; var areaD='';
+  data.forEach(function(v,i){ var x=i*xStep, y=H-2-((v-minV)/range)*(H-4); d+=(i===0?'M':'L')+x+','+y+' '; areaD+=(i===0?'M':'L')+x+','+y+' '; });
+  areaD+='L'+W+','+H+' L0,'+H+' Z';
+  var svg=ns('svg',{viewBox:'0 0 '+W+' '+H, preserveAspectRatio:'none'});
+  svg.appendChild(ns('path',{d:areaD,fill:color,opacity:.12}));
+  svg.appendChild(ns('path',{d:d,fill:'none',stroke:color,'stroke-width':1.5,'stroke-linejoin':'round','stroke-linecap':'round'}));
+  el.innerHTML=''; el.appendChild(svg);
+}
+
+function renderGauge(containerId, value, thresholds, title){
+  var el=document.getElementById(containerId); if(!el)return;
+  var W=240,H=160, cx=W/2, cy=130, r=86;
+  var startAngle=180, endAngle=0; // semicircle
+  var valAngle=startAngle-(value/100)*(startAngle-endAngle);
+  function polar(cx,cy,r,deg){ var rad=deg*Math.PI/180; return {x:cx+r*Math.cos(rad), y:cy-r*Math.sin(rad)}; }
+  function arc(cx,cy,r,a1,a2){ var p1=polar(cx,cy,r,a1), p2=polar(cx,cy,r,a2); var large=a1-a2>180?1:0; return 'M'+p1.x+' '+p1.y+' A'+r+' '+r+' 0 '+large+' 0 '+p2.x+' '+p2.y; }
+  var svg=ns('svg',{viewBox:'0 0 '+W+' '+H});
+  // background arc
+  svg.appendChild(ns('path',{d:arc(cx,cy,r,startAngle,endAngle),fill:'none',stroke:'#F0F0F0','stroke-width':14,'stroke-linecap':'round'}));
+  // threshold arcs
+  var t1=thresholds[0], t2=thresholds[1];
+  var aRed=startAngle-(t1/100)*startAngle;
+  var aYellow=startAngle-(t2/100)*startAngle;
+  svg.appendChild(ns('path',{d:arc(cx,cy,r,startAngle,aRed),fill:'none',stroke:COLORS.error,'stroke-width':14,'stroke-linecap':'round',opacity:.25}));
+  svg.appendChild(ns('path',{d:arc(cx,cy,r,aRed,aYellow),fill:'none',stroke:COLORS.warning,'stroke-width':14,opacity:.25}));
+  svg.appendChild(ns('path',{d:arc(cx,cy,r,aYellow,endAngle),fill:'none',stroke:COLORS.success,'stroke-width':14,opacity:.25}));
+  // value arc
+  var valColor=value<t1?COLORS.error:(value<t2?COLORS.warning:COLORS.success);
+  var valArcEnd=startAngle-(value/100)*startAngle;
+  svg.appendChild(ns('path',{d:arc(cx,cy,r,startAngle,valArcEnd),fill:'none',stroke:valColor,'stroke-width':14,'stroke-linecap':'round'}));
+  // value text
+  var vt=ns('text',{x:cx,y:cy-20,'text-anchor':'middle',class:'gauge-value',fill:valColor}); vt.textContent=value+'%'; svg.appendChild(vt);
+  var tl=ns('text',{x:cx,y:cy-2,'text-anchor':'middle',class:'chart-axis-text'}); tl.textContent=title||''; svg.appendChild(tl);
+  // min/max labels
+  var mn=ns('text',{x:cx-r-4,y:cy+6,'text-anchor':'end',class:'chart-axis-text'}); mn.textContent='0%'; svg.appendChild(mn);
+  var mx=ns('text',{x:cx+r+4,y:cy+6,'text-anchor':'start',class:'chart-axis-text'}); mx.textContent='100%'; svg.appendChild(mx);
+  el.innerHTML=''; el.appendChild(svg);
+}
+
+/* ===== Data ===== */
+var timeLabels=['13:30','13:40','13:50','14:00','14:10','14:20','14:30'];
+// QPS multi-series
+renderLine('chart-qps',[
+  {data:[1080,1120,1180,1240,1280,1320,1280],color:COLORS.primary,fill:true},
+  {data:[420,440,460,510,520,540,530],color:COLORS.success},
+  {data:[280,300,310,330,350,360,355],color:COLORS.warning}
+],{xLabels:timeLabels,fmt:function(v){return (v/1000).toFixed(1)+'k';}});
+// Latency P50/P95/P99
+renderLine('chart-latency',[
+  {data:[32,34,33,36,38,35,34],color:COLORS.success},
+  {data:[78,82,85,92,88,90,85],color:COLORS.warning},
+  {data:[156,168,172,195,182,190,178],color:COLORS.error}
+],{xLabels:timeLabels,fmt:function(v){return v+'ms';}});
+// Error rate
+renderLine('chart-error',[
+  {data:[0.18,0.22,0.31,0.45,0.38,0.33,0.30],color:COLORS.error,fill:true}
+],{xLabels:timeLabels,threshold:1.0,thresholdLabel:'1.0%',fmt:function(v){return v.toFixed(1)+'%';}});
+// MQ queue
+renderLine('chart-mq',[
+  {data:[86,95,110,132,142,150,156],color:COLORS.warning,fill:true},
+  {data:[42,38,45,52,48,55,60],color:COLORS.primary}
+],{xLabels:timeLabels,fmt:function(v){return v;}});
+// CLR heap
+renderLine('chart-heap',[
+  {data:[1.8,2.1,2.4,2.8,3.1,3.3,3.2],color:COLORS.primary,fill:true}
+],{xLabels:timeLabels,threshold:4.0,thresholdLabel:'4GB',fmt:function(v){return v.toFixed(1)+'G';}});
+// GC Gen2
+renderLine('chart-gc',[
+  {data:[0.8,1.2,1.5,2.1,1.8,1.6,1.4],color:COLORS.purple,fill:true}
+],{xLabels:timeLabels,fmt:function(v){return v.toFixed(1);}});
+// Gauge Redis
+renderGauge('chart-gauge',98,[95,98],'Redis 命中率');
+
+// Sparklines
+renderSpark('spark-qps',[1080,1120,1180,1240,1280,1320,1280],COLORS.primary);
+renderSpark('spark-latency',[78,82,85,92,88,90,85],COLORS.warning);
+renderSpark('spark-error',[0.18,0.22,0.31,0.45,0.38,0.33,0.30],COLORS.error);
+renderSpark('spark-mq',[86,95,110,132,142,150,156],COLORS.warning);
+renderSpark('spark-redis',[96,96.5,97,97.5,97.8,98,98],COLORS.success);
+renderSpark('spark-instances',[8,8,8,8,8,8,8],COLORS.primary);
+
+// toolbar interactions
+document.querySelectorAll('#rangeFilter .radio-btn').forEach(function(b){
+  b.addEventListener('click',function(){document.querySelectorAll('#rangeFilter .radio-btn').forEach(function(x){x.classList.remove('active');});this.classList.add('active');});
+});
+document.getElementById('refreshBtn').addEventListener('click',function(){
+  var ic=this.querySelector('svg'); ic.style.transition='transform .6s'; ic.style.transform='rotate(360deg)';
+  setTimeout(function(){ ic.style.transition='none'; ic.style.transform='rotate(0deg)'; }, 600);
+});
+</script>
+</body>
+</html>

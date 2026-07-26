@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>对账管理 - Leno 系统管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { font-family:var(--ff-app); color:var(--n10); background:var(--n3); font-size:var(--fs-base); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+body { min-height:100vh; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+button { font-family:inherit; cursor:pointer; }
+svg { display:inline-block; vertical-align:middle; }
+.hidden { display:none !important; }
+
+/* ===== Layout ===== */
+.app { display:flex; flex-direction:column; min-height:100vh; }
+.app-header { height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5); display:flex; align-items:center; padding:0 24px 0 0; position:sticky; top:0; z-index:200; box-shadow:0 1px 4px rgba(0,21,41,.08); }
+.app-header .logo { width:var(--sider-width); height:100%; display:flex; align-items:center; gap:10px; padding:0 20px; flex-shrink:0; }
+.app-header .logo-mark { width:32px; height:32px; border-radius:6px; background:linear-gradient(135deg,#FA541C 0%,#FF7A45 100%); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:var(--fw-semibold); font-size:18px; box-shadow:0 2px 8px rgba(250,84,28,.35); }
+.app-header .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); white-space:nowrap; }
+.app-header .logo-text small { display:block; font-size:var(--fs-sm); font-weight:var(--fw-normal); color:var(--n7); margin-top:-2px; }
+.app-header .header-body { flex:1; display:flex; align-items:center; justify-content:space-between; padding-left:24px; }
+.collapse-btn { width:40px; height:var(--header-h); display:flex; align-items:center; justify-content:center; color:var(--n9); background:none; border:none; font-size:18px; cursor:pointer; }
+.collapse-btn:hover { color:var(--c-primary); background:var(--n3); }
+.breadcrumb { display:flex; align-items:center; gap:6px; font-size:var(--fs-base); color:var(--n9); }
+.breadcrumb a { color:var(--n9); }
+.breadcrumb a:hover { color:var(--c-primary); }
+.breadcrumb .sep { color:var(--n5); font-size:12px; }
+.breadcrumb .current { color:var(--n10); }
+.header-actions { display:flex; align-items:center; gap:8px; }
+.global-search { width:220px; height:32px; background:var(--n3); border:1px solid transparent; border-radius:var(--r-base); display:flex; align-items:center; padding:0 12px; gap:8px; transition:all .2s; }
+.global-search:hover { border-color:var(--c-primary); background:var(--n1); }
+.global-search input { flex:1; border:none; outline:none; background:transparent; font-size:var(--fs-sm); color:var(--n10); }
+.global-search input::placeholder { color:var(--n7); }
+.global-search .kbd { font-size:11px; color:var(--n7); background:var(--n1); border:1px solid var(--n5); border-radius:4px; padding:0 5px; line-height:18px; }
+.icon-btn { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--n9); position:relative; background:none; border:none; font-size:18px; }
+.icon-btn:hover { background:var(--n3); color:var(--c-primary); }
+.icon-btn .badge-dot { position:absolute; top:6px; right:6px; min-width:16px; height:16px; padding:0 4px; background:var(--c-error); color:#fff; border-radius:8px; font-size:10px; line-height:16px; font-weight:var(--fw-medium); border:2px solid var(--n1); }
+.avatar-wrap { display:flex; align-items:center; gap:8px; padding:4px 8px 4px 4px; border-radius:var(--r-base); cursor:pointer; }
+.avatar-wrap:hover { background:var(--n3); }
+.avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#FA541C,#FF7A45); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:var(--fw-medium); }
+.avatar-name { font-size:var(--fs-base); color:var(--n10); }
+.avatar-role { font-size:var(--fs-sm); color:var(--n7); }
+
+.app-body { flex:1; display:flex; }
+.app-sider { width:var(--sider-width); background:var(--sider-bg); flex-shrink:0; display:flex; flex-direction:column; position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto; }
+.menu { list-style:none; padding:8px 0; flex:1; }
+.menu-link { display:flex; align-items:center; gap:10px; height:40px; padding:0 16px 0 24px; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .15s; position:relative; }
+.menu-link:hover { color:#fff; }
+.menu-link .m-icon { width:16px; height:16px; flex-shrink:0; font-size:16px; }
+.menu-link .m-arrow { margin-left:auto; font-size:10px; transition:transform .2s; }
+.menu-item.open > .menu-link .m-arrow { transform:rotate(90deg); }
+.menu-item.active > .menu-link { color:#fff; background:var(--c-primary); }
+.menu-item.active > .menu-link::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#fff; }
+.menu-sub { list-style:none; max-height:0; overflow:hidden; transition:max-height .25s ease; }
+.menu-item.open > .menu-sub { max-height:500px; }
+.menu-sub .menu-link { height:36px; padding-left:48px; font-size:var(--fs-sm); }
+.menu-sub .menu-link.active { color:#fff; background:rgba(22,119,255,.15); }
+.menu-sub .menu-link.active::before { display:none; }
+
+.app-content { flex:1; display:flex; flex-direction:column; min-width:0; }
+.page-scroll { flex:1; overflow-y:auto; padding:var(--s6); }
+.app-footer { height:32px; background:var(--n1); border-top:1px solid var(--n3); display:flex; align-items:center; justify-content:center; font-size:var(--fs-sm); color:var(--n7); padding:0 24px; }
+
+/* ===== Page Header ===== */
+.page-header { margin-bottom:var(--s4); }
+.page-header h1 { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); }
+.page-header .sub { margin-top:4px; font-size:var(--fs-sm); color:var(--n7); }
+
+/* ===== Stat Cards ===== */
+.stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--s4); margin-bottom:var(--s4); }
+.stat-card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; padding:var(--s4); display:flex; align-items:center; gap:var(--s4); }
+.stat-card .stat-icon { width:48px; height:48px; border-radius:var(--r-base); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:24px; }
+.stat-icon.total { background:#E6F4FF; color:var(--c-primary); }
+.stat-icon.done { background:#F6FFED; color:var(--c-success); }
+.stat-icon.diff { background:#FFF7E6; color:var(--c-warning); }
+.stat-icon.amount { background:#F9F0FF; color:#722ED1; }
+.stat-card .stat-body { flex:1; min-width:0; }
+.stat-card .stat-label { font-size:var(--fs-sm); color:var(--n9); margin-bottom:4px; }
+.stat-card .stat-value { font-size:var(--fs-2xl); font-weight:var(--fw-semibold); color:var(--n10); line-height:1.2; }
+.stat-card .stat-value .unit { font-size:var(--fs-sm); font-weight:var(--fw-normal); color:var(--n7); margin-left:2px; }
+.stat-card .stat-trend { font-size:var(--fs-sm); color:var(--n7); margin-top:4px; }
+.stat-card .stat-trend .up { color:var(--c-success); }
+.stat-card .stat-trend .down { color:var(--c-error); }
+
+/* ===== Card ===== */
+.card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; }
+.card-pad { padding:var(--s4); }
+.card + .card { margin-top:var(--s4); }
+.card-head { display:flex; align-items:center; justify-content:space-between; padding:var(--s4); border-bottom:1px solid var(--n3); }
+.card-head .card-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); }
+.card-head .card-title .card-sub { font-size:var(--fs-sm); font-weight:var(--fw-normal); color:var(--n7); margin-left:8px; }
+
+/* ===== Filter Bar ===== */
+.filter-bar { display:flex; flex-wrap:wrap; gap:12px; padding:var(--s4); align-items:flex-end; border-bottom:1px solid var(--n3); }
+.filter-item { display:flex; flex-direction:column; gap:4px; }
+.filter-item label { font-size:var(--fs-sm); color:var(--n9); }
+.form-control { height:32px; min-width:140px; padding:0 11px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:flex; align-items:center; gap:6px; transition:border-color .2s,box-shadow .2s; }
+.form-control:hover { border-color:var(--c-primary); }
+.form-control:focus-within { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.form-control input { flex:1; border:none; outline:none; background:transparent; font-size:var(--fs-base); color:var(--n10); min-width:0; }
+.form-control input::placeholder { color:var(--n7); }
+.form-control.select { cursor:pointer; position:relative; }
+.form-control.select::after { content:''; width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:5px solid var(--n7); margin-left:auto; flex-shrink:0; }
+.form-control .placeholder { color:var(--n7); }
+
+/* ===== Buttons ===== */
+.btn { height:32px; padding:0 15px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; gap:6px; transition:all .15s; white-space:nowrap; }
+.btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.btn .b-icon { width:14px; height:14px; font-size:14px; }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-danger { background:var(--n1); border-color:var(--c-error); color:var(--c-error); }
+.btn-danger:hover { background:var(--c-error); color:#fff; }
+.btn-link { background:none; border:none; color:var(--c-primary); padding:0 4px; height:auto; font-size:var(--fs-base); }
+.btn-link:hover { color:#4096FF; background:none; }
+.btn-link[disabled] { color:var(--n7); cursor:not-allowed; pointer-events:none; }
+.btn[disabled] { color:var(--n7); background:var(--n3); border-color:var(--n5); cursor:not-allowed; }
+
+/* ===== Table ===== */
+.table-wrap { overflow-x:auto; }
+table.data-table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+.data-table thead th { height:44px; padding:0 12px; background:var(--n2); color:var(--n9); font-weight:var(--fw-medium); font-size:var(--fs-sm); text-align:left; border-bottom:1px solid var(--n5); white-space:nowrap; }
+.data-table tbody td { height:48px; padding:0 12px; color:var(--n10); border-bottom:1px solid #F0F0F0; vertical-align:middle; }
+.data-table tbody tr { transition:background .15s; }
+.data-table tbody tr:hover { background:var(--n2); }
+.data-table tbody tr:last-child td { border-bottom:none; }
+.data-table .td-mono { font-family:var(--ff-mono); font-size:var(--fs-sm); color:var(--n9); }
+.data-table .td-amount { font-family:var(--ff-mono); font-weight:var(--fw-medium); color:var(--n10); }
+.data-table .td-diff-pos { font-family:var(--ff-mono); font-size:var(--fs-sm); color:var(--c-error); font-weight:var(--fw-medium); }
+.data-table .td-diff-neg { font-family:var(--ff-mono); font-size:var(--fs-sm); color:var(--c-success); font-weight:var(--fw-medium); }
+.data-table tbody tr.row-diff { background:#FFFBEB; }
+.data-table tbody tr.row-diff:hover { background:#FFF7E6; }
+
+/* ===== Tags ===== */
+.tag { display:inline-flex; align-items:center; height:22px; padding:0 8px; border-radius:4px; font-size:var(--fs-sm); line-height:20px; border:1px solid; font-weight:var(--fw-normal); white-space:nowrap; }
+.tag-green { color:#389E0D; background:#F6FFED; border-color:#B7EB8F; }
+.tag-yellow { color:#D48806; background:#FFF7E6; border-color:#FFD591; }
+.tag-red { color:#CF1322; background:#FFF2F0; border-color:#FFCCC7; }
+.tag-blue { color:#0958D9; background:#E6F4FF; border-color:#91CAFF; }
+.tag-gray { color:#595959; background:var(--n3); border-color:var(--n5); }
+.tag-purple { color:#531DAB; background:#F9F0FF; border-color:#D3ADF7; }
+
+/* ===== Pagination ===== */
+.pagination { display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:16px; }
+.pagination .total { font-size:var(--fs-sm); color:var(--n9); margin-right:auto; }
+.page-btn { min-width:32px; height:32px; padding:0 8px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; justify-content:center; }
+.page-btn:hover:not(.disabled):not(.active) { border-color:var(--c-primary); color:var(--c-primary); }
+.page-btn.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.page-btn.disabled { color:var(--n7); cursor:not-allowed; background:var(--n3); }
+
+/* ===== Drawer ===== */
+.mask { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; opacity:0; visibility:hidden; transition:opacity .25s; }
+.mask.show { opacity:1; visibility:visible; }
+.drawer { position:fixed; top:0; right:0; bottom:0; width:720px; max-width:calc(100vw - 32px); background:var(--n1); z-index:1001; transform:translateX(100%); transition:transform .3s cubic-bezier(.16,1,.3,1); box-shadow:-6px 0 16px rgba(0,0,0,.08); display:flex; flex-direction:column; }
+.drawer.show { transform:translateX(0); }
+.drawer-header { height:56px; padding:0 24px; border-bottom:1px solid var(--n5); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.drawer-header h3 { font-size:var(--fs-lg); font-weight:var(--fw-semibold); }
+.drawer-header .drawer-sub { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-normal); margin-left:8px; }
+.drawer-close { width:28px; height:28px; border:none; background:none; font-size:16px; color:var(--n7); border-radius:4px; display:flex; align-items:center; justify-content:center; }
+.drawer-close:hover { background:var(--n3); color:var(--n10); }
+.drawer-body { flex:1; overflow-y:auto; padding:24px; }
+.drawer-footer { padding:12px 24px; border-top:1px solid var(--n5); display:flex; justify-content:flex-end; gap:8px; flex-shrink:0; }
+
+.drawer-section { margin-bottom:var(--s6); }
+.drawer-section-title { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-medium); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+.drawer-section-title .dot { width:3px; height:12px; background:var(--c-primary); border-radius:2px; }
+.drawer-meta { display:grid; grid-template-columns:repeat(2,1fr); gap:12px 24px; }
+.drawer-meta-row { display:flex; gap:8px; font-size:var(--fs-sm); align-items:flex-start; }
+.drawer-meta-row .meta-label { color:var(--n7); width:72px; flex-shrink:0; }
+.drawer-meta-row .meta-value { color:var(--n10); flex:1; word-break:break-all; }
+.drawer-meta-row .meta-value.mono { font-family:var(--ff-mono); font-size:var(--fs-sm); }
+
+/* ===== Skeleton ===== */
+.skeleton { background:var(--n3); border-radius:var(--r-base); position:relative; overflow:hidden; }
+.skeleton::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent); animation:shimmer 1.4s infinite; }
+@keyframes shimmer { 0%{transform:translateX(-100%);} 100%{transform:translateX(100%);} }
+.sk-stat { height:80px; }
+.sk-row { display:flex; gap:12px; padding:0 12px; height:48px; align-items:center; border-bottom:1px solid #F0F0F0; }
+.sk-cell { height:14px; }
+
+/* ===== Empty ===== */
+.empty-state { padding:64px 0; text-align:center; }
+.empty-state .empty-icon { width:64px; height:64px; margin:0 auto 16px; color:#D9D9D9; }
+.empty-state .empty-title { font-size:var(--fs-base); color:var(--n9); }
+.empty-state .empty-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:4px; margin-bottom:16px; }
+
+/* ===== Toast ===== */
+.toast { position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-20px); background:var(--n1); border-radius:var(--r-base); box-shadow:var(--sh-dropdown); padding:9px 16px; display:flex; align-items:center; gap:8px; font-size:var(--fs-base); z-index:2000; opacity:0; visibility:hidden; transition:all .25s; border:1px solid var(--n5); }
+.toast.show { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+.toast.success .toast-icon { color:var(--c-success); }
+.toast.error .toast-icon { color:var(--c-error); }
+.toast .toast-icon { width:16px; height:16px; }
+
+/* ===== Modal Confirm ===== */
+.modal-confirm { position:fixed; top:0; left:50%; transform:translateX(-50%) translateY(-20px); margin-top:100px; width:420px; background:var(--n1); border-radius:var(--r-lg); z-index:1001; opacity:0; visibility:hidden; transition:all .25s; box-shadow:var(--sh-modal); }
+.modal-confirm.show { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+.modal-confirm-header { padding:16px 24px 0; display:flex; align-items:flex-start; gap:12px; }
+.modal-confirm-icon { width:22px; height:22px; flex-shrink:0; margin-top:1px; color:var(--c-warning); }
+.modal-confirm-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); flex:1; }
+.modal-confirm-body { padding:8px 24px 24px; padding-left:58px; }
+.modal-confirm-body p { font-size:var(--fs-base); color:var(--n9); line-height:1.6; }
+.modal-confirm-body .confirm-detail { background:var(--n3); border-radius:var(--r-base); padding:12px; margin-top:12px; font-size:var(--fs-sm); }
+.modal-confirm-body .confirm-detail .cd-row { display:flex; justify-content:space-between; margin-bottom:4px; }
+.modal-confirm-body .confirm-detail .cd-row:last-child { margin-bottom:0; }
+.modal-confirm-body .confirm-detail .cd-label { color:var(--n7); }
+.modal-confirm-body .confirm-detail .cd-value { color:var(--n10); font-weight:var(--fw-medium); }
+.modal-confirm-footer { padding:12px 24px 24px; display:flex; justify-content:flex-end; gap:8px; padding-left:58px; }
+
+/* ===== State Preview ===== */
+.state-preview { position:fixed; bottom:48px; right:24px; z-index:500; display:flex; flex-direction:column; gap:8px; background:var(--n1); padding:10px; border-radius:var(--r-card); box-shadow:var(--sh-dropdown); border:1px solid var(--n5); }
+.state-preview .sp-title { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-medium); padding:0 4px; }
+.state-preview .sp-btn { height:28px; padding:0 12px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-sm); color:var(--n9); display:flex; align-items:center; gap:4px; }
+.state-preview .sp-btn:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.state-preview .sp-btn.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+
+/* ===== Tabs ===== */
+.tabs { display:flex; gap:32px; border-bottom:1px solid var(--n5); padding:0 var(--s4); }
+.tab-item { padding:12px 4px; font-size:var(--fs-base); color:var(--n9); cursor:pointer; position:relative; transition:color .15s; border-bottom:2px solid transparent; margin-bottom:-1px; }
+.tab-item:hover { color:var(--c-primary); }
+.tab-item.active { color:var(--c-primary); font-weight:var(--fw-medium); border-bottom-color:var(--c-primary); }
+.tab-item .badge-count { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; background:var(--n3); color:var(--n9); border-radius:9px; font-size:11px; margin-left:6px; font-weight:var(--fw-normal); }
+.tab-item.active .badge-count { background:#E6F4FF; color:var(--c-primary); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-mark">L</div>
+      <div class="logo-text">Leno<small>系统管理后台</small></div>
+    </div>
+    <div class="header-body">
+      <div style="display:flex;align-items:center;gap:0;">
+        <button class="collapse-btn" aria-label="折叠菜单">
+          <svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"/></svg>
+        </button>
+        <nav class="breadcrumb" style="margin-left:16px;">
+          <a href="#">审计与对账</a>
+          <span class="sep">/</span>
+          <span class="current">对账管理</span>
+        </nav>
+      </div>
+      <div class="header-actions">
+        <div class="global-search">
+          <svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"/></svg>
+          <input placeholder="搜索批次号、订单号" />
+          <span class="kbd">Ctrl K</span>
+        </div>
+        <button class="icon-btn" aria-label="通知" title="通知中心">
+          <svg viewBox="64 64 896 896" width="18" height="18" fill="currentColor"><path d="M512 128c-212.1 0-384 171.9-384 384v360c0 13.3 10.7 24 24 24h184c35.3 0 64-28.7 64-64V640c0-35.3-28.7-64-64-64H200v-64c0-172.3 139.7-312 312-312s312 139.7 312 312v64H680c-35.3 0-64 28.7-64 64v192c0 35.3 28.7 64 64 64h184c13.3 0 24-10.7 24-24V512c0-212.1-171.9-384-384-384z"/></svg>
+          <span class="badge-dot">8</span>
+        </button>
+        <div class="avatar-wrap">
+          <div class="avatar">张</div>
+          <div>
+            <div class="avatar-name">张管理员</div>
+            <div class="avatar-role">系统管理员</div>
+          </div>
+          <svg viewBox="64 64 896 896" width="12" height="12" fill="currentColor" style="color:var(--n7);"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- Sider -->
+    <aside class="app-sider">
+      <ul class="menu">
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01136 560c0-98.8 38.5-191.6 108.4-261.4C314.3 228.5 407 190 505.9 190c98.8 0 191.6 38.5 261.4 108.4C837.5 368.4 876 461.2 876 560c0 110.7-44.2 213.9-114.6 276z"/></svg></span>仪表盘<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.3 44.5-118.6 78.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C779 752.7 810 825 812 902.2c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.2z"/></svg></span>用户与权限<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM641.7 599.6c0 4.6-3.7 8.3-8.3 8.3h-67.5v67.5c0 4.6-3.7 8.3-8.3 8.3h-77.2c-4.6 0-8.3-3.7-8.3-8.3v-67.5h-67.5c-4.6 0-8.3-3.7-8.3-8.3v-77.2c0-4.6 3.7-8.3 8.3-8.3h67.5v-67.5c0-4.6 3.7-8.3 8.3-8.3h77.2c4.6 0 8.3 3.7 8.3 8.3v67.5h67.5c4.6 0 8.3 3.7 8.3 8.3v77.2z"/></svg></span>系统治理<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg></span>运行时运维<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item open active">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM464.5 651.5l-99.8-99.8c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L421.4 518l235.5-235.5c12.5-12.5 32.8-12.5 45.3 0s12.5 32.8 0 45.3L509.8 651.5c-12.5 12.5-32.8 12.5-45.3 0z"/></svg></span>审计与对账<span class="m-arrow">›</span></div>
+          <ul class="menu-sub">
+            <li><div class="menu-link">审计日志</div></li>
+            <li><div class="menu-link active">对账管理</div></li>
+            <li><div class="menu-link">Outbox 监控</div></li>
+          </ul>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.3 44.5-118.6 78.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C779 752.7 810 825 812 902.2c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.2z"/></svg></span>个人账号<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4z"/></svg></span>系统监控<span class="m-arrow">›</span></div>
+        </li>
+      </ul>
+      <div style="padding:16px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.35);text-align:center;">
+        Leno SystemAdmin v1.0.0
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <main class="app-content">
+      <div class="page-scroll">
+        <div class="page-header">
+          <h1>对账管理</h1>
+          <div class="sub">查看支付渠道对账批次状态，管理差异项补偿与重跑，确保平台与渠道（微信/支付宝/银联）交易数据一致。</div>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="stat-grid" id="statGrid">
+          <div class="stat-card">
+            <div class="stat-icon total">
+              <svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z"/><path d="M641.7 599.6c0 4.6-3.7 8.3-8.3 8.3h-67.5v67.5c0 4.6-3.7 8.3-8.3 8.3h-77.2c-4.6 0-8.3-3.7-8.3-8.3v-67.5h-67.5c-4.6 0-8.3-3.7-8.3-8.3v-77.2c0-4.6 3.7-8.3 8.3-8.3h67.5v-67.5c0-4.6 3.7-8.3 8.3-8.3h77.2c4.6 0 8.3 3.7 8.3 8.3v67.5h67.5c4.6 0 8.3 3.7 8.3 8.3v77.2z"/></svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">总笔数（今日）</div>
+              <div class="stat-value">12,486<span class="unit">笔</span></div>
+              <div class="stat-trend"><span class="up">↑ 8.2%</span> 较昨日</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon done">
+              <svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L423.4 811.6c-1.5 2.1-3.9 3.4-6.5 3.4h-67.6c-2.6 0-5.1-1.3-6.6-3.5L201.9 596.5c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l93.6 138.6c1.6 2.3 4.8 3 7.2 1.5l.2-.1c2.4-1.5 3.1-4.6 1.6-7L348.8 526.9c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l272.8 404.5c2.3 3.4 1.4 8-2 10.3l-59.5 40.4c-3.4 2.3-8 1.4-10.3-2z"/></svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">已对账</div>
+              <div class="stat-value">12,431<span class="unit">笔</span></div>
+              <div class="stat-trend">对账率 99.56%</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon diff">
+              <svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm40 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">差异笔数</div>
+              <div class="stat-value" style="color:var(--c-warning);">55<span class="unit">笔</span></div>
+              <div class="stat-trend"><span class="down">↑ 12</span> 较昨日</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon amount">
+              <svg viewBox="64 64 896 896" width="24" height="24" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm64 664c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8v-56.7c-31.7-1.7-60.5-9.2-80.1-21.8-10.8-6.9-16.6-18.8-15.1-31.6l.6-4.8c2.2-17.9 19.6-29.2 36.7-23.5 18.3 6.1 38.1 10.1 57.9 10.1 18.9 0 38.7-5.1 38.7-22.5 0-10.9-6.4-17.2-27.5-25.6l-32.5-12.8c-43.8-17.3-63.8-39.4-63.8-74.6 0-39.9 28.9-68.7 78.1-75.6V408c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v53.5c25.3 2.8 46.2 10.3 61.8 19.7 10.4 6.3 15.6 18.3 13.3 30.4l-.7 4.2c-2.6 16.7-19.3 27.5-35.7 22.3-15.3-4.8-29.1-7.5-42.2-7.5-22.4 0-35.6 6.3-35.6 18.9 0 10.5 8.3 16.3 28.2 23.9l32.2 12.8c47.5 18.9 65.1 43.3 65.1 78.8 0 42.2-33.1 72.9-84.8 79.6V728z"/></svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">对账金额（今日）</div>
+              <div class="stat-value">¥896,432<span class="unit">.50</span></div>
+              <div class="stat-trend"><span class="up">↑ 5.1%</span> 较昨日</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Batch List Card -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">对账批次列表<span class="card-sub">近 7 天对账批次</span></div>
+          </div>
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <div class="filter-item">
+              <label>渠道</label>
+              <div class="form-control select">
+                <span>全部渠道</span>
+              </div>
+            </div>
+            <div class="filter-item">
+              <label>状态</label>
+              <div class="form-control select">
+                <span class="placeholder">全部状态</span>
+              </div>
+            </div>
+            <div class="filter-item">
+              <label>批次号</label>
+              <div class="form-control" style="min-width:180px;">
+                <input placeholder="输入批次号查询" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <label>日期范围</label>
+              <div class="form-control select" style="min-width:240px;">
+                <span>2026-07-20 ~ 2026-07-26</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;padding-bottom:1px;">
+              <button class="btn btn-primary" onclick="refreshBatches()">
+                <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"/></svg>
+                查询
+              </button>
+              <button class="btn" onclick="resetFilter()">重置</button>
+            </div>
+          </div>
+
+          <!-- Table Normal -->
+          <div id="tableNormal">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width:160px;">批次号</th>
+                    <th style="width:100px;">渠道</th>
+                    <th style="width:120px;">对账日期</th>
+                    <th style="width:100px;">状态</th>
+                    <th style="width:90px;">笔数</th>
+                    <th style="width:130px;">金额</th>
+                    <th style="width:120px;">差异笔数</th>
+                    <th style="width:150px;">对账时间</th>
+                    <th style="width:140px;">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="row-diff">
+                    <td class="td-mono">RB20260726001</td>
+                    <td><span class="tag tag-green">微信支付</span></td>
+                    <td class="td-mono">2026-07-26</td>
+                    <td><span class="tag tag-yellow">有差异</span></td>
+                    <td>4,286</td>
+                    <td class="td-amount">¥312,548.00</td>
+                    <td class="td-diff-pos">23</td>
+                    <td class="td-mono">2026-07-26 14:00:12</td>
+                    <td>
+                      <button class="btn-link" onclick="openDetail(1)">查看</button>
+                      <button class="btn-link" onclick="openRerunConfirm(1)">重跑</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="td-mono">RB20260726002</td>
+                    <td><span class="tag tag-blue">支付宝</span></td>
+                    <td class="td-mono">2026-07-26</td>
+                    <td><span class="tag tag-green">已对账</span></td>
+                    <td>3,912</td>
+                    <td class="td-amount">¥278,310.50</td>
+                    <td>0</td>
+                    <td class="td-mono">2026-07-26 06:00:05</td>
+                    <td>
+                      <button class="btn-link" onclick="openDetail(2)">查看</button>
+                      <button class="btn-link" onclick="openRerunConfirm(2)">重跑</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="td-mono">RB20260726003</td>
+                    <td><span class="tag tag-purple">银联</span></td>
+                    <td class="td-mono">2026-07-26</td>
+                    <td><span class="tag tag-green">已对账</span></td>
+                    <td>862</td>
+                    <td class="td-amount">¥156,820.00</td>
+                    <td>0</td>
+                    <td class="td-mono">2026-07-26 06:00:08</td>
+                    <td>
+                      <button class="btn-link" onclick="openDetail(3)">查看</button>
+                      <button class="btn-link" onclick="openRerunConfirm(3)">重跑</button>
+                    </td>
+                  </tr>
+                  <tr class="row-diff">
+                    <td class="td-mono">RB20260725001</td>
+                    <td><span class="tag tag-green">微信支付</span></td>
+                    <td class="td-mono">2026-07-25</td>
+                    <td><span class="tag tag-yellow">有差异</span></td>
+                    <td>3,958</td>
+                    <td class="td-amount">¥289,104.00</td>
+                    <td class="td-diff-pos">18</td>
+                    <td class="td-mono">2026-07-25 14:00:10</td>
+                    <td>
+                      <button class="btn-link" onclick="openDetail(4)">查看</button>
+                      <button class="btn-link" onclick="openRerunConfirm(4)">重跑</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="td-mono">RB20260725002</td>
+                    <td><span class="tag tag-blue">支付宝</span></td>
+                    <td class="td-mono">2026-07-25</td>
+                    <td><span class="tag tag-green">已对账</span></td>
+                    <td>3,721</td>
+                    <td class="td-amount">¥265,330.00</td>
+                    <td>0</td>
+                    <td class="td-mono">2026-07-25 06:00:03</td>
+                    <td>
+                      <button class="btn-link" onclick="openDetail(5)">查看</button>
+                      <button class="btn-link" onclick="openRerunConfirm(5)">重跑</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="td-mono">RB20260724001</td>
+                    <td><span class="tag tag-green">微信支付</span></td>
+                    <td class="td-mono">2026-07-24</td>
+                    <td><span class="tag tag-yellow">有差异</span></td>
+                    <td>4,102</td>
+                    <td class="td-amount">¥301,780.00</td>
+                    <td class="td-diff-pos">14</td>
+                    <td class="td-mono">2026-07-24 14:00:15</td>
+                    <td>
+                      <button class="btn-link" onclick="openDetail(6)">查看</button>
+                      <button class="btn-link" onclick="openRerunConfirm(6)">重跑</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="td-mono">RB20260724002</td>
+                    <td><span class="tag tag-blue">支付宝</span></td>
+                    <td class="td-mono">2026-07-24</td>
+                    <td><span class="tag tag-gray">待对账</span></td>
+                    <td>3,580</td>
+                    <td class="td-amount">¥248,500.00</td>
+                    <td>—</td>
+                    <td class="td-mono">—</td>
+                    <td>
+                      <button class="btn-link" onclick="openDetail(7)">查看</button>
+                      <button class="btn-link" onclick="openRerunConfirm(7)">重跑</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="total">共 21 条</span>
+              <button class="page-btn disabled">‹</button>
+              <button class="page-btn active">1</button>
+              <button class="page-btn">2</button>
+              <button class="page-btn">3</button>
+              <button class="page-btn">›</button>
+            </div>
+          </div>
+
+          <!-- Loading State -->
+          <div id="tableLoading" class="hidden">
+            <div class="sk-row"><div class="skeleton sk-cell" style="width:140px;"></div><div class="skeleton sk-cell" style="width:80px;"></div><div class="skeleton sk-cell" style="width:100px;"></div><div class="skeleton sk-cell" style="width:80px;"></div><div class="skeleton sk-cell" style="width:60px;"></div><div class="skeleton sk-cell" style="width:110px;"></div><div class="skeleton sk-cell" style="width:80px;"></div><div class="skeleton sk-cell" style="width:120px;"></div></div>
+            <div class="sk-row"><div class="skeleton sk-cell" style="width:140px;"></div><div class="skeleton sk-cell" style="width:80px;"></div><div class="skeleton sk-cell" style="width:100px;"></div><div class="skeleton sk-cell" style="width:80px;"></div><div class="skeleton sk-cell" style="width:60px;"></div><div class="skeleton sk-cell" style="width:110px;"></div><div class="skeleton sk-cell" style="width:80px;"></div><div class="skeleton sk-cell" style="width:120px;"></div></div>
+            <div class="sk-row"><div class="skeleton sk-cell" style="width:140px;"></div><div class="skeleton sk-cell" style="width:80px;"></div><div class="skeleton sk-cell" style="width:100px;"></div><div class="skeleton sk-cell" style="width:80px;"></div><div class="skeleton sk-cell" style="width:60px;"></div><div class="skeleton sk-cell" style="width:110px;"></div><div class="skeleton sk-cell" style="width:80px;"></div><div class="skeleton sk-cell" style="width:120px;"></div></div>
+            <div class="sk-row"><div class="skeleton sk-cell" style="width:140px;"></div><div class="skeleton sk-cell" style="width:80px;"></div><div class="skeleton sk-cell" style="width:100px;"></div><div class="skeleton sk-cell" style="width:80px;"></div><div class="skeleton sk-cell" style="width:60px;"></div><div class="skeleton sk-cell" style="width:110px;"></div><div class="skeleton sk-cell" style="width:80px;"></div><div class="skeleton sk-cell" style="width:120px;"></div></div>
+          </div>
+
+          <!-- Empty State -->
+          <div id="tableEmpty" class="hidden">
+            <div class="empty-state">
+              <svg class="empty-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M512 128c-212.1 0-384 171.9-384 384v360c0 13.3 10.7 24 24 24h184c35.3 0 64-28.7 64-64V640c0-35.3-28.7-64-64-64H200v-64c0-172.3 139.7-312 312-312s312 139.7 312 312v64H680c-35.3 0-64 28.7-64 64v192c0 35.3 28.7 64 64 64h184c13.3 0 24-10.7 24-24V512c0-212.1-171.9-384-384-384z"/></svg>
+              <div class="empty-title">暂无对账批次</div>
+              <div class="empty-desc">当前筛选条件下没有匹配的对账记录</div>
+              <button class="btn btn-primary" onclick="resetFilter()">清空筛选条件</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Difference Detail Card -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">差异明细<span class="card-sub">批次 RB20260726001 · 微信支付 · 2026-07-26</span></div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width:170px;">订单号</th>
+                  <th style="width:120px;">渠道流水号</th>
+                  <th style="width:130px;">平台金额</th>
+                  <th style="width:130px;">渠道金额</th>
+                  <th style="width:100px;">差异</th>
+                  <th style="width:100px;">状态</th>
+                  <th style="width:150px;">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-diff">
+                  <td class="td-mono">O20260726001438</td>
+                  <td class="td-mono">WX240726143812</td>
+                  <td class="td-amount">¥299.00</td>
+                  <td class="td-amount">¥0.00</td>
+                  <td class="td-diff-pos">+¥299.00</td>
+                  <td><span class="tag tag-yellow">待处理</span></td>
+                  <td>
+                    <button class="btn-link" onclick="showToast('success','差异已标记为平台多记')">标记</button>
+                    <button class="btn-link" onclick="showToast('success','补偿请求已提交')">补偿</button>
+                  </td>
+                </tr>
+                <tr class="row-diff">
+                  <td class="td-mono">O20260726001352</td>
+                  <td class="td-mono">WX240726135201</td>
+                  <td class="td-amount">¥0.00</td>
+                  <td class="td-amount">¥158.50</td>
+                  <td class="td-diff-neg">-¥158.50</td>
+                  <td><span class="tag tag-yellow">待处理</span></td>
+                  <td>
+                    <button class="btn-link" onclick="showToast('success','差异已标记为渠道多记')">标记</button>
+                    <button class="btn-link" onclick="showToast('success','补偿请求已提交')">补偿</button>
+                  </td>
+                </tr>
+                <tr class="row-diff">
+                  <td class="td-mono">O20260726001288</td>
+                  <td class="td-mono">WX240726128845</td>
+                  <td class="td-amount">¥599.00</td>
+                  <td class="td-amount">¥598.00</td>
+                  <td class="td-diff-pos">+¥1.00</td>
+                  <td><span class="tag tag-blue">已标记</span></td>
+                  <td>
+                    <button class="btn-link" disabled>已标记</button>
+                    <button class="btn-link" onclick="showToast('success','补偿请求已提交')">补偿</button>
+                  </td>
+                </tr>
+                <tr class="row-diff">
+                  <td class="td-mono">O20260726001156</td>
+                  <td class="td-mono">WX240726115622</td>
+                  <td class="td-amount">¥1,299.00</td>
+                  <td class="td-amount">¥0.00</td>
+                  <td class="td-diff-pos">+¥1,299.00</td>
+                  <td><span class="tag tag-green">已补偿</span></td>
+                  <td>
+                    <button class="btn-link" disabled>已标记</button>
+                    <button class="btn-link" disabled>已补偿</button>
+                  </td>
+                </tr>
+                <tr class="row-diff">
+                  <td class="td-mono">O20260726001002</td>
+                  <td class="td-mono">WX240726100238</td>
+                  <td class="td-amount">¥0.00</td>
+                  <td class="td-amount">¥89.90</td>
+                  <td class="td-diff-neg">-¥89.90</td>
+                  <td><span class="tag tag-green">已补偿</span></td>
+                  <td>
+                    <button class="btn-link" disabled>已标记</button>
+                    <button class="btn-link" disabled>已补偿</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 23 条差异</span>
+            <button class="page-btn disabled">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">›</button>
+          </div>
+        </div>
+      </div>
+      <footer class="app-footer">Leno 电商平台 · 系统管理后台 © 2026 · 对账数据每 6 小时自动执行</footer>
+    </main>
+  </div>
+</div>
+
+<!-- Detail Drawer -->
+<div class="mask" id="drawerMask" onclick="closeDrawer()"></div>
+<div class="drawer" id="detailDrawer">
+  <div class="drawer-header">
+    <div>
+      <h3 id="drawerTitle">对账批次详情</h3>
+      <span class="drawer-sub" id="drawerSub">RB20260726001</span>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">
+      <svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M563.8 512l261.9-261.9c10.5-10.5 10.5-27.6 0-38.1l-45.3-45.3c-10.5-10.5-27.6-10.5-38.1 0L480.5 428.6 218.6 147.4c-10.5-10.5-27.6-10.5-38.1 0l-45.3 45.3c-10.5 10.5-10.5 27.6 0 38.1L397 512 135.2 773.9c-10.5 10.5-10.5 27.6 0 38.1l45.3 45.3c10.5 10.5 27.6 10.5 38.1 0L480.5 595.4l261.9 261.9c10.5 10.5 27.6 10.5 38.1 0l45.3-45.3c10.5-10.5 10.5-27.6 0-38.1L563.8 512z"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-section">
+      <div class="drawer-section-title"><span class="dot"></span>基本信息</div>
+      <div class="drawer-meta">
+        <div class="drawer-meta-row"><span class="meta-label">批次号</span><span class="meta-value mono" id="dBatchId">RB20260726001</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">渠道</span><span class="meta-value" id="dChannel">微信支付</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">对账日期</span><span class="meta-value mono" id="dDate">2026-07-26</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">状态</span><span class="meta-value" id="dStatus"><span class="tag tag-yellow">有差异</span></span></div>
+        <div class="drawer-meta-row"><span class="meta-label">总笔数</span><span class="meta-value" id="dCount">4,286 笔</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">差异笔数</span><span class="meta-value" id="dDiffCount" style="color:var(--c-warning);font-weight:var(--fw-medium);">23 笔</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">对账金额</span><span class="meta-value mono" id="dAmount">¥312,548.00</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">对账时间</span><span class="meta-value mono" id="dTime">2026-07-26 14:00:12</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">触发方式</span><span class="meta-value" id="dTrigger">自动调度（定时 14:00）</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">耗时</span><span class="meta-value mono" id="dDuration">3 分 28 秒</span></div>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title"><span class="dot"></span>差异汇总</div>
+      <div class="drawer-meta">
+        <div class="drawer-meta-row"><span class="meta-label">平台多记</span><span class="meta-value" style="color:var(--c-error);">14 笔 · ¥2,156.50</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">渠道多记</span><span class="meta-value" style="color:var(--c-success);">9 笔 · ¥890.30</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">已标记</span><span class="meta-value">8 笔</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">已补偿</span><span class="meta-value">5 笔</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">待处理</span><span class="meta-value" style="color:var(--c-warning);font-weight:var(--fw-medium);">10 笔</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">净差异</span><span class="meta-value mono" style="color:var(--c-error);">+¥1,266.20</span></div>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title"><span class="dot"></span>渠道对账文件</div>
+      <div class="drawer-meta">
+        <div class="drawer-meta-row"><span class="meta-label">文件名</span><span class="meta-value mono">WX_20260726_recon.csv</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">下载时间</span><span class="meta-value mono">2026-07-26 14:00:02</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">文件大小</span><span class="meta-value mono">2.4 MB</span></div>
+        <div class="drawer-meta-row"><span class="meta-label">记录数</span><span class="meta-value mono">4,286 行</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn" onclick="closeDrawer()">关闭</button>
+    <button class="btn btn-primary" onclick="closeDrawer();openRerunConfirm(1)">
+      <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6z"/></svg>
+      重跑对账
+    </button>
+  </div>
+</div>
+
+<!-- Rerun Confirm Modal -->
+<div class="mask" id="confirmMask" onclick="closeConfirm()"></div>
+<div class="modal-confirm" id="rerunConfirm">
+  <div class="modal-confirm-header">
+    <svg class="modal-confirm-icon" viewBox="64 64 896 896" width="22" height="22" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm40 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+    <div class="modal-confirm-title">确认重跑对账</div>
+  </div>
+  <div class="modal-confirm-body">
+    <p>重跑对账将重新拉取渠道对账文件并与平台交易数据逐笔比对，可能耗时较长（视数据量而定）。已标记与已补偿的差异项状态将保留，不影响已处置记录。</p>
+    <div class="confirm-detail">
+      <div class="cd-row"><span class="cd-label">批次号</span><span class="cd-value" id="cfBatchId">RB20260726001</span></div>
+      <div class="cd-row"><span class="cd-label">渠道</span><span class="cd-value" id="cfChannel">微信支付</span></div>
+      <div class="cd-row"><span class="cd-label">对账日期</span><span class="cd-value" id="cfDate">2026-07-26</span></div>
+      <div class="cd-row"><span class="cd-label">预计耗时</span><span class="cd-value">约 3-5 分钟</span></div>
+    </div>
+  </div>
+  <div class="modal-confirm-footer">
+    <button class="btn" onclick="closeConfirm()">取消</button>
+    <button class="btn btn-primary" onclick="closeConfirm();showToast('success','对账重跑任务已创建，预计 3-5 分钟完成')">确认重跑</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <svg class="toast-icon" viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L423.4 811.6c-1.5 2.1-3.9 3.4-6.5 3.4h-67.6c-2.6 0-5.1-1.3-6.6-3.5L201.9 596.5c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l93.6 138.6c1.6 2.3 4.8 3 7.2 1.5l.2-.1c2.4-1.5 3.1-4.6 1.6-7L348.8 526.9c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l272.8 404.5c2.3 3.4 1.4 8-2 10.3l-59.5 40.4c-3.4 2.3-8 1.4-10.3-2z"/></svg>
+  <span id="toastMsg">操作成功</span>
+</div>
+
+<!-- State Preview -->
+<div class="state-preview">
+  <div class="sp-title">交互状态预览</div>
+  <button class="sp-btn active" onclick="setTableState('normal', this)">正常数据</button>
+  <button class="sp-btn" onclick="setTableState('loading', this)">加载中</button>
+  <button class="sp-btn" onclick="setTableState('empty', this)">空数据</button>
+</div>
+
+<script>
+var detailData = {
+  1: { batchId:'RB20260726001', channel:'微信支付', date:'2026-07-26', status:'<span class="tag tag-yellow">有差异</span>', count:'4,286 笔', diffCount:'23 笔', amount:'¥312,548.00', time:'2026-07-26 14:00:12', trigger:'自动调度（定时 14:00）', duration:'3 分 28 秒' },
+  2: { batchId:'RB20260726002', channel:'支付宝', date:'2026-07-26', status:'<span class="tag tag-green">已对账</span>', count:'3,912 笔', diffCount:'0 笔', amount:'¥278,310.50', time:'2026-07-26 06:00:05', trigger:'自动调度（定时 06:00）', duration:'2 分 15 秒' },
+  3: { batchId:'RB20260726003', channel:'银联', date:'2026-07-26', status:'<span class="tag tag-green">已对账</span>', count:'862 笔', diffCount:'0 笔', amount:'¥156,820.00', time:'2026-07-26 06:00:08', trigger:'自动调度（定时 06:00）', duration:'48 秒' },
+  4: { batchId:'RB20260725001', channel:'微信支付', date:'2026-07-25', status:'<span class="tag tag-yellow">有差异</span>', count:'3,958 笔', diffCount:'18 笔', amount:'¥289,104.00', time:'2026-07-25 14:00:10', trigger:'自动调度（定时 14:00）', duration:'3 分 02 秒' },
+  5: { batchId:'RB20260725002', channel:'支付宝', date:'2026-07-25', status:'<span class="tag tag-green">已对账</span>', count:'3,721 笔', diffCount:'0 笔', amount:'¥265,330.00', time:'2026-07-25 06:00:03', trigger:'自动调度（定时 06:00）', duration:'2 分 08 秒' },
+  6: { batchId:'RB20260724001', channel:'微信支付', date:'2026-07-24', status:'<span class="tag tag-yellow">有差异</span>', count:'4,102 笔', diffCount:'14 笔', amount:'¥301,780.00', time:'2026-07-24 14:00:15', trigger:'手动触发（张管理员）', duration:'3 分 45 秒' },
+  7: { batchId:'RB20260724002', channel:'支付宝', date:'2026-07-24', status:'<span class="tag tag-gray">待对账</span>', count:'3,580 笔', diffCount:'—', amount:'¥248,500.00', time:'—', trigger:'—', duration:'—' }
+};
+
+function openDetail(id) {
+  var d = detailData[id] || detailData[1];
+  document.getElementById('drawerSub').textContent = d.batchId;
+  document.getElementById('dBatchId').textContent = d.batchId;
+  document.getElementById('dChannel').textContent = d.channel;
+  document.getElementById('dDate').textContent = d.date;
+  document.getElementById('dStatus').innerHTML = d.status;
+  document.getElementById('dCount').textContent = d.count;
+  document.getElementById('dDiffCount').textContent = d.diffCount;
+  document.getElementById('dDiffCount').style.color = d.diffCount === '0 笔' ? 'var(--n10)' : 'var(--c-warning)';
+  document.getElementById('dAmount').textContent = d.amount;
+  document.getElementById('dTime').textContent = d.time;
+  document.getElementById('dTrigger').textContent = d.trigger;
+  document.getElementById('dDuration').textContent = d.duration;
+  document.getElementById('detailDrawer').classList.add('show');
+  document.getElementById('drawerMask').classList.add('show');
+}
+
+function closeDrawer() {
+  document.getElementById('detailDrawer').classList.remove('show');
+  document.getElementById('drawerMask').classList.remove('show');
+}
+
+function openRerunConfirm(id) {
+  var d = detailData[id] || detailData[1];
+  document.getElementById('cfBatchId').textContent = d.batchId;
+  document.getElementById('cfChannel').textContent = d.channel;
+  document.getElementById('cfDate').textContent = d.date;
+  document.getElementById('rerunConfirm').classList.add('show');
+  document.getElementById('confirmMask').classList.add('show');
+}
+
+function closeConfirm() {
+  document.getElementById('rerunConfirm').classList.remove('show');
+  document.getElementById('confirmMask').classList.remove('show');
+}
+
+function showToast(type, msg) {
+  var toast = document.getElementById('toast');
+  toast.className = 'toast ' + type;
+  document.getElementById('toastMsg').textContent = msg;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 2000);
+}
+
+function refreshBatches() {
+  setTableState('loading', document.querySelector('.sp-btn'));
+  setTimeout(function() {
+    setTableState('normal', document.querySelector('.sp-btn'));
+    showToast('success', '查询完成，共 21 条对账批次');
+  }, 1200);
+}
+
+function resetFilter() {
+  showToast('success', '筛选条件已重置');
+}
+
+function setTableState(state, btn) {
+  document.querySelectorAll('.state-preview .sp-btn').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  var normal = document.getElementById('tableNormal');
+  var loading = document.getElementById('tableLoading');
+  var empty = document.getElementById('tableEmpty');
+  normal.classList.add('hidden');
+  loading.classList.add('hidden');
+  empty.classList.add('hidden');
+  if (state === 'normal') normal.classList.remove('hidden');
+  else if (state === 'loading') loading.classList.remove('hidden');
+  else if (state === 'empty') empty.classList.remove('hidden');
+}
+</script>
+</body>
+</html>
