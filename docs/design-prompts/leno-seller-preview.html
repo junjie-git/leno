@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leno 卖家端 · 核心页面预览</title>
+<style>
+:root{
+  --c-primary:#1677FF; --c-primary-soft:#E6F0FF;
+  --c-success:#52C41A; --c-success-soft:#F0FBE6;
+  --c-warning:#FAAD14; --c-warning-soft:#FFF7E6;
+  --c-error:#FF4D4F; --c-error-soft:#FFF1F0;
+  --c-purple:#722ED1; --c-purple-soft:#F9F0FF;
+  --c-disabled:#00000040;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n4:#F0F0F0;
+  --n5:#D9D9D9; --n6:#BFBFBF; --n7:#8C8C8C; --n8:#7A7A7A;
+  --n9:#595959; --n10:#000000D9; --n-solid:#000000;
+  --sider-bg:#001529; --sider-bg-light:#000c17; --sider-active:#1677FF;
+  --r-base:6px; --r-card:8px; --r-lg:12px; --r-pill:999px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --lh-base:1.5715;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono","Cascadia Code","JetBrains Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --d-fast:100ms; --d-mid:200ms; --d-slow:300ms;
+  --ease-std:cubic-bezier(.2,0,0,1);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{font-family:var(--ff-app);}
+body{
+  color:#fff;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(22,119,255,.15), transparent 42%),
+    radial-gradient(circle at 85% 15%, rgba(255,77,79,.12), transparent 42%),
+    radial-gradient(circle at 80% 92%, rgba(82,196,26,.10), transparent 46%),
+    linear-gradient(180deg,#080D1A 0%,#0A1120 50%,#070B16 100%);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ============ Gallery shell ============ */
+.gallery-wrap{max-width:1360px;margin:0 auto;padding:56px 40px 80px;}
+.gallery-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:24px;}
+.gh-left{display:flex;align-items:center;gap:14px;}
+.logo-box{
+  width:46px;height:46px;border-radius:13px;
+  background:linear-gradient(135deg,#52C41A,#389E0D);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:22px;font-weight:600;
+  box-shadow:0 6px 18px -4px rgba(82,196,26,.45);
+}
+.gh-titles{display:flex;flex-direction:column;gap:4px;}
+.gh-title{font-size:22px;font-weight:600;color:#fff;line-height:1.2;}
+.gh-sub-mono{font-family:var(--ff-mono);font-size:12px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:1.5px;}
+.meta-chips{display:flex;gap:8px;flex-wrap:wrap;}
+.meta-chip{
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:var(--r-pill);
+  padding:6px 12px;
+  font-family:var(--ff-mono);font-size:12px;color:rgba(255,255,255,.7);
+}
+.hero-block{margin-top:36px;}
+.hero-title{font-size:34px;font-weight:600;color:#fff;line-height:1.25;letter-spacing:.5px;}
+.hero-sub{margin-top:14px;font-size:14px;color:rgba(255,255,255,.5);max-width:620px;line-height:1.7;}
+
+.previews{display:flex;flex-direction:column;gap:48px;margin-top:48px;align-items:center;}
+
+/* ============ Preview & caption ============ */
+.preview{display:flex;flex-direction:column;gap:18px;width:1280px;}
+.cap{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;}
+.c-name{display:flex;align-items:center;gap:12px;}
+.num-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:30px;height:30px;padding:0 9px;border-radius:var(--r-base);
+  background:linear-gradient(135deg,#52C41A,#389E0D);
+  color:#fff;font-size:13px;font-weight:600;font-family:var(--ff-mono);
+  box-shadow:0 4px 12px -2px rgba(82,196,26,.5);
+}
+.c-name-text{font-size:16px;font-weight:600;color:#fff;}
+.c-meta{font-family:var(--ff-mono);font-size:12px;color:rgba(255,255,255,.42);}
+.c-meta .sep{margin:0 8px;color:rgba(255,255,255,.2);}
+
+/* ============ Browser frame ============ */
+.browser{
+  width:1280px;border-radius:var(--r-lg);
+  box-shadow:var(--sh-modal);background:#fff;overflow:hidden;
+}
+.browser-bar{
+  height:36px;background:#E8EAED;
+  display:flex;align-items:center;padding:0 16px;gap:8px;
+}
+.dot{width:12px;height:12px;border-radius:50%;}
+.dot.r{background:#FF5F57;} .dot.y{background:#FEBC2E;} .dot.g{background:#28C840;}
+.url{
+  flex:1;text-align:center;background:#fff;border-radius:var(--r-base);
+  height:22px;line-height:22px;font-family:var(--ff-mono);font-size:12px;color:var(--n9);
+  margin:0 auto;display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.url .lock{opacity:.6;}
+.browser-content{height:720px;display:flex;flex-direction:column;overflow:hidden;background:var(--n3);}
+
+/* ============ App header ============ */
+.app-header{
+  height:56px;background:var(--n1);padding:0 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--n4);flex-shrink:0;
+}
+.header-left{display:flex;align-items:center;gap:12px;}
+.collapse-btn{display:flex;align-items:center;cursor:pointer;}
+.logo-text{font-size:var(--fs-lg);font-weight:600;color:var(--n10);}
+.h-divider{width:1px;height:18px;background:var(--n4);}
+.shop-name{font-size:var(--fs-base);color:var(--n9);}
+.header-center{font-size:var(--fs-base);}
+.crumb{color:var(--n7);}
+.crumb.cur{color:var(--n10);}
+.crumb-sep{margin:0 8px;color:var(--n6);}
+.header-right{display:flex;align-items:center;gap:12px;}
+.hbadge{
+  background:var(--c-error-soft);color:var(--c-error);
+  border-radius:var(--r-base);padding:4px 10px;
+  font-size:var(--fs-sm);font-weight:var(--fw-medium);line-height:1;
+}
+.bell-wrap{position:relative;display:flex;align-items:center;cursor:pointer;}
+.bell-dot{position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-radius:50%;background:var(--c-error);border:1.5px solid #fff;}
+.avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:linear-gradient(135deg,#D9D9D9,#BFBFBF);
+  display:flex;align-items:center;justify-content:center;
+}
+.user-cell{display:flex;align-items:center;gap:6px;cursor:pointer;}
+
+/* ============ App body & sider ============ */
+.app-body{flex:1;display:flex;overflow:hidden;}
+.sider{
+  width:180px;background:var(--sider-bg);flex-shrink:0;
+  padding-top:8px;overflow-y:auto;
+}
+.menu-item{
+  height:40px;padding:0 16px;display:flex;align-items:center;gap:10px;
+  color:rgba(255,255,255,.65);font-size:var(--fs-base);cursor:pointer;
+  transition:background var(--d-mid) var(--ease-std),color var(--d-mid) var(--ease-std);
+}
+.menu-item:hover{color:#fff;}
+.menu-item.active{background:var(--sider-active);color:#fff;}
+.menu-item svg{flex-shrink:0;}
+.submenu{background:var(--sider-bg-light);}
+.submenu-item{
+  height:36px;padding-left:42px;display:flex;align-items:center;
+  color:rgba(255,255,255,.55);font-size:var(--fs-base);cursor:pointer;
+  position:relative;transition:color var(--d-mid) var(--ease-std);
+}
+.submenu-item:hover{color:#fff;}
+.submenu-item.active{color:#fff;}
+.submenu-item.active::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c-primary);
+}
+
+.content{flex:1;background:var(--n3);padding:20px;overflow:auto;}
+
+/* ============ Components: a-card ============ */
+.a-card{
+  background:var(--n1);border-radius:var(--r-card);
+  box-shadow:var(--sh-card);padding:16px;
+}
+.a-card.flush{padding:0;}
+
+/* ============ a-table ============ */
+.a-table-wrap{background:var(--n1);border-radius:var(--r-card);box-shadow:var(--sh-card);overflow:hidden;}
+.a-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+.a-table thead th{
+  background:var(--n2);font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);
+  padding:12px;text-align:left;border-bottom:1px solid var(--n4);white-space:nowrap;
+}
+.a-table tbody td{
+  background:var(--n1);font-size:var(--fs-base);color:var(--n10);
+  padding:12px;border-bottom:1px solid var(--n3);vertical-align:middle;
+}
+.a-table tbody tr:last-child td{border-bottom:none;}
+.a-table tbody tr:hover td{background:var(--n2);}
+.cell-title{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);}
+.cell-price{font-size:var(--fs-base);font-weight:var(--fw-semibold);color:var(--c-error);}
+.cell-muted{font-size:var(--fs-sm);color:var(--n7);}
+.cell-mono{font-family:var(--ff-mono);font-size:var(--fs-base);}
+.cell-strong-red{font-size:var(--fs-base);font-weight:var(--fw-semibold);color:var(--c-error);}
+.op-cell{display:flex;gap:12px;}
+.product-thumb{
+  width:48px;height:48px;border-radius:var(--r-base);background:var(--n4);
+  display:flex;align-items:center;justify-content:center;
+}
+.order-thumb{
+  width:40px;height:40px;border-radius:var(--s1);background:var(--n4);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.sum-cell{display:flex;align-items:center;gap:8px;}
+
+/* ============ a-button ============ */
+.a-button{
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  height:32px;padding:0 16px;border-radius:var(--r-base);border:none;
+  font-size:var(--fs-base);font-family:var(--ff-app);cursor:pointer;
+  background:transparent;color:var(--n10);line-height:1;transition:all var(--d-fast) var(--ease-std);
+}
+.a-button.primary{background:var(--c-primary);color:#fff;}
+.a-button.default{background:var(--n1);border:1px solid var(--n5);color:var(--n10);}
+.a-button.danger{background:var(--c-error);color:#fff;}
+.a-button.link{background:none;border:none;color:var(--c-primary);height:auto;padding:0;font-size:var(--fs-base);}
+.a-button.danger-link{background:none;border:none;color:var(--c-error);height:auto;padding:0;font-size:var(--fs-base);}
+.a-button.sm{height:28px;padding:0 12px;font-size:var(--fs-sm);}
+
+/* ============ a-tag ============ */
+.a-tag{
+  display:inline-flex;align-items:center;border-radius:var(--r-base);
+  padding:0 8px;font-size:var(--fs-sm);line-height:20px;border:1px solid;white-space:nowrap;
+}
+.a-tag.warning{background:var(--c-warning-soft);color:var(--c-warning);border-color:#FFD591;}
+.a-tag.success{background:var(--c-success-soft);color:var(--c-success);border-color:#B7EB8F;}
+.a-tag.danger{background:var(--c-error-soft);color:var(--c-error);border-color:#FFA39E;}
+.a-tag.gray{background:var(--n3);color:var(--n7);border-color:var(--n5);}
+.a-tag.blue{background:var(--c-primary-soft);color:var(--c-primary);border-color:#91CAFF;}
+.a-tag.purple{background:var(--c-purple-soft);color:var(--c-purple);border-color:#D3ADF7;}
+
+/* ============ a-alert ============ */
+.a-alert{
+  border-radius:var(--r-base);padding:8px 12px;display:flex;align-items:flex-start;gap:8px;
+}
+.a-alert.warning{background:var(--c-warning-soft);border-left:4px solid var(--c-warning);}
+.a-alert .alert-icon{flex-shrink:0;margin-top:1px;}
+.a-alert .alert-text{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);line-height:1.5;}
+
+/* ============ a-input / a-select ============ */
+.a-input,.a-select{
+  height:32px;border:1px solid var(--n5);border-radius:var(--r-base);
+  padding:0 11px;font-size:var(--fs-base);font-family:var(--ff-app);color:var(--n10);
+  background:var(--n1);display:inline-flex;align-items:center;
+  transition:border-color var(--d-fast) var(--ease-std);outline:none;
+}
+.a-input::placeholder,.a-input .ph{color:var(--n7);}
+.a-input.focus,.a-select.focus{border-color:var(--c-primary);}
+.a-input-search{display:inline-flex;align-items:center;height:32px;border:1px solid var(--n5);border-radius:var(--r-base);background:var(--n1);overflow:hidden;}
+.a-input-search .a-input{border:none;border-radius:0;height:32px;flex:1;}
+.a-input-search .search-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--n2);border-left:1px solid var(--n5);cursor:pointer;}
+.a-input-search.focus{border-color:var(--c-primary);}
+.a-select{justify-content:space-between;gap:8px;cursor:pointer;}
+.a-select .sel-val{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.a-input.with-icon{gap:8px;}
+
+/* ============ a-pagination ============ */
+.a-pagination{display:flex;align-items:center;justify-content:flex-end;gap:8px;}
+.a-pagination .total{font-size:var(--fs-base);color:var(--n7);}
+.pg-page{
+  min-width:32px;height:32px;border-radius:var(--r-base);border:1px solid var(--n5);
+  background:var(--n1);display:inline-flex;align-items:center;justify-content:center;
+  font-size:var(--fs-base);color:var(--n10);cursor:pointer;padding:0 6px;
+}
+.pg-page.active{background:var(--c-primary);color:#fff;border-color:var(--c-primary);}
+.pg-sizer{height:32px;border:1px solid var(--n5);border-radius:var(--r-base);background:var(--n1);display:inline-flex;align-items:center;gap:4px;padding:0 11px;font-size:var(--fs-base);color:var(--n10);cursor:pointer;}
+
+/* ============ a-segmented ============ */
+.seg{display:inline-flex;background:var(--n3);border-radius:var(--r-base);padding:2px;gap:2px;}
+.seg-item{padding:4px 12px;border-radius:var(--r-base);font-size:var(--fs-sm);color:var(--n9);cursor:pointer;transition:all var(--d-fast) var(--ease-std);}
+.seg-item.active{background:var(--c-primary);color:#fff;}
+
+/* ============ Dashboard specific ============ */
+.stats-row{display:flex;gap:16px;}
+.stat-card{flex:1;display:flex;align-items:center;gap:12px;}
+.stat-icon{width:48px;height:48px;border-radius:var(--r-card);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.stat-info{display:flex;flex-direction:column;gap:2px;}
+.stat-label{font-size:var(--fs-base);color:var(--n7);}
+.stat-value{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);color:var(--n10);line-height:1.2;}
+.stat-trend{font-size:var(--fs-sm);}
+
+.chart-card{margin-top:16px;}
+.chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.chart-title{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);}
+.chart-area{height:220px;}
+.chart-area svg{width:100%;height:100%;display:block;}
+.chart-legend{display:flex;gap:16px;align-items:center;}
+.leg{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--n9);}
+.leg i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.leg .dot-blue{background:var(--c-primary);} .leg .dot-green{background:var(--c-success);}
+
+.bottom-row{display:flex;gap:16px;margin-top:16px;}
+.list-card{flex:1;}
+.list-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.list-title{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);}
+.list-more{font-size:var(--fs-base);color:var(--c-primary);display:inline-flex;align-items:center;gap:4px;cursor:pointer;}
+.a-list-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--n3);}
+.a-list-row:last-child{border-bottom:none;}
+.list-left{display:flex;align-items:center;gap:10px;}
+.list-ord{font-family:var(--ff-mono);font-size:var(--fs-base);color:var(--n10);}
+.list-buyer{font-size:var(--fs-base);color:var(--n9);}
+.list-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+.list-amt{font-size:var(--fs-base);font-weight:var(--fw-semibold);color:var(--c-error);}
+.list-time{font-size:var(--fs-sm);color:var(--n7);}
+
+/* filter bar */
+.filter-bar{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.filter-bar .spacer{flex:1;}
+
+.wait-green{font-size:var(--fs-base);font-weight:var(--fw-semibold);color:var(--c-success);}
+.wait-yellow{font-size:var(--fs-base);font-weight:var(--fw-semibold);color:var(--c-warning);}
+.wait-red{font-size:var(--fs-base);font-weight:var(--fw-semibold);color:var(--c-error);}
+.stock-zero{color:var(--c-error);}
+</style>
+</head>
+<body>
+<div class="gallery-wrap">
+  <!-- ============ Gallery head ============ -->
+  <div class="gallery-head">
+    <div class="gh-left">
+      <div class="logo-box">S</div>
+      <div class="gh-titles">
+        <div class="gh-title">Leno 卖家端</div>
+        <div class="gh-sub-mono">SELLER BACKEND · CORE PAGES</div>
+      </div>
+    </div>
+    <div class="meta-chips">
+      <span class="meta-chip">Vue 3.5</span>
+      <span class="meta-chip">Ant Design Vue 4</span>
+      <span class="meta-chip">1440px</span>
+      <span class="meta-chip">Seller</span>
+    </div>
+  </div>
+  <div class="hero-block">
+    <div class="hero-title">商家管理后台 核心页面预览</div>
+    <div class="hero-sub">基于工作区 seller/ 页面提示词生成，严格遵循 shared/design-system.md 设计令牌：主色 #1677FF、价格红 #FF4D4F、圆角 6/8/12、间距 4-48 体系、字号 12-30、PingFang SC。</div>
+  </div>
+
+  <div class="previews">
+
+    <!-- ============================================================ -->
+    <!-- PAGE 1: 经营概览（工作台） -->
+    <!-- ============================================================ -->
+    <div class="preview">
+      <div class="cap">
+        <div class="c-name">
+          <span class="num-badge">01</span>
+          <span class="c-name-text">经营概览（工作台）</span>
+        </div>
+        <div class="c-meta">/dashboard/overview<span class="sep">·</span>模块：工作台</div>
+      </div>
+      <div class="browser">
+        <div class="browser-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <div class="url"><span class="lock">
+            <svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="#8C8C8C" stroke-width="1.3"><rect x="2.5" y="5.5" width="7" height="5" rx="1"/><path d="M4 5.5V4a2 2 0 014 0v1.5"/></svg>
+          </span>https://seller.leno.com/dashboard/overview</div>
+        </div>
+        <div class="browser-content">
+          <!-- Header -->
+          <div class="app-header">
+            <div class="header-left">
+              <span class="collapse-btn"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="#595959" stroke-width="1.6"><path d="M3 6h14M3 10h14M3 14h14"/></svg></span>
+              <span class="logo-text">Leno 卖家</span>
+              <span class="h-divider"></span>
+              <span class="shop-name">Leno数码旗舰店</span>
+            </div>
+            <div class="header-center">
+              <span class="crumb">首页</span><span class="crumb-sep">/</span><span class="crumb">工作台</span><span class="crumb-sep">/</span><span class="crumb cur">经营概览</span>
+            </div>
+            <div class="header-right">
+              <span class="hbadge">待发货 23</span>
+              <span class="hbadge">售后 5</span>
+              <span class="bell-wrap">
+                <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="#595959" stroke-width="1.4"><path d="M5 14h10l-1.2-2V9a3.8 3.8 0 00-7.6 0v3z"/><path d="M8.5 16a1.5 1.5 0 003 0"/></svg>
+                <span class="bell-dot"></span>
+              </span>
+              <span class="user-cell">
+                <span class="avatar"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.4"><circle cx="10" cy="7" r="3"/><path d="M3.5 17c0-3 3-5 6.5-5s6.5 2 6.5 5"/></svg></span>
+                <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="#8C8C8C" stroke-width="1.4"><path d="M3 4.5L6 7.5L9 4.5"/></svg>
+              </span>
+            </div>
+          </div>
+          <div class="app-body">
+            <!-- Sider -->
+            <div class="sider">
+              <div class="menu-item active">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+                工作台
+              </div>
+              <div class="submenu">
+                <div class="submenu-item active">经营概览</div>
+                <div class="submenu-item">销售报表</div>
+              </div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 1.5L14 4.5V11.5L8 14.5L2 11.5V4.5L8 1.5Z"/><path d="M2 4.5L8 7.5L14 4.5M8 7.5V14.5"/></svg>商品管理</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4H10V11H1.5z"/><path d="M10 6.5H13L14.5 8.5V11H10"/><circle cx="4" cy="12.5" r="1.3"/><circle cx="12" cy="12.5" r="1.3"/></svg>物流管理</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="2" width="10" height="12" rx="1.5"/><rect x="5.5" y="1" width="5" height="2.5" rx="0.5"/><path d="M5.5 7h5M5.5 10h3"/></svg>订单履约</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 6h7a4 4 0 110 8H6"/><path d="M5 4L3 6L5 8"/></svg>售后处理</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 1.5L10.2 5.9L15 6.6L11.5 10L12.4 14.8L8 12.5L3.6 14.8L4.5 10L1 6.6L5.8 5.9z"/></svg>评价管理</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.2"/><path d="M8 1v2M8 13v2M15 8h-2M3 8H1M13 3l-1.4 1.4M4.4 11.6L3 13M13 13l-1.4-1.4M4.4 4.4L3 3"/></svg>店铺设置</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 13h12"/><rect x="3.5" y="8" width="2.5" height="5"/><rect x="6.75" y="5" width="2.5" height="8"/><rect x="10" y="9" width="2.5" height="4"/></svg>报表导出</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.8"/><path d="M2.5 14c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5"/></svg>个人中心</div>
+            </div>
+            <!-- Content -->
+            <div class="content">
+              <div class="stats-row">
+                <div class="a-card stat-card">
+                  <div class="stat-icon" style="background:#E6F0FF;">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#1677FF" stroke-width="1.6"><circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/><path d="M3 4h2l2.2 11h9.6L19 8H6"/></svg>
+                  </div>
+                  <div class="stat-info">
+                    <span class="stat-label">今日订单数</span>
+                    <span class="stat-value">128</span>
+                    <span class="stat-trend" style="color:#52C41A;">↑ 12%</span>
+                  </div>
+                </div>
+                <div class="a-card stat-card">
+                  <div class="stat-icon" style="background:#F0FBE6;">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#52C41A" stroke-width="1.6"><path d="M12 3v18M16 7c0-1.5-1.8-2.5-4-2.5S8 5.5 8 7.5 9.8 10 12 10s4 .8 4 3-1.8 2.5-4 2.5-4-1-4-2.5"/></svg>
+                  </div>
+                  <div class="stat-info">
+                    <span class="stat-label">今日销售额</span>
+                    <span class="stat-value">¥12,856</span>
+                    <span class="stat-trend" style="color:#52C41A;">↑ 8%</span>
+                  </div>
+                </div>
+                <div class="a-card stat-card">
+                  <div class="stat-icon" style="background:#FFF7E6;">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#FAAD14" stroke-width="1.6"><path d="M2 7h11v8H2z"/><path d="M13 10h4l3 3v2h-7"/><circle cx="6" cy="17" r="1.6"/><circle cx="17" cy="17" r="1.6"/></svg>
+                  </div>
+                  <div class="stat-info">
+                    <span class="stat-label">待发货</span>
+                    <span class="stat-value" style="color:#FAAD14;">23</span>
+                  </div>
+                </div>
+                <div class="a-card stat-card">
+                  <div class="stat-icon" style="background:#FFF1F0;">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#FF4D4F" stroke-width="1.6"><path d="M4 13a8 8 0 0116 0"/><rect x="3" y="13" width="3.5" height="6" rx="1.5"/><rect x="17.5" y="13" width="3.5" height="6" rx="1.5"/><path d="M19 19v1a3 3 0 01-3 3h-3"/></svg>
+                  </div>
+                  <div class="stat-info">
+                    <span class="stat-label">售后待处理</span>
+                    <span class="stat-value" style="color:#FAAD14;">5</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="a-card chart-card">
+                <div class="chart-head">
+                  <span class="chart-title">近 7 日销售趋势</span>
+                  <div class="seg">
+                    <span class="seg-item active">近7天</span>
+                    <span class="seg-item">近30天</span>
+                  </div>
+                </div>
+                <div class="chart-area">
+                  <svg viewBox="0 0 600 220" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="saleFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#1677FF" stop-opacity="0.25"/>
+                        <stop offset="100%" stop-color="#1677FF" stop-opacity="0"/>
+                      </linearGradient>
+                    </defs>
+                    <!-- grid lines -->
+                    <line x1="45" y1="30" x2="560" y2="30" stroke="#F5F5F5" stroke-width="1" stroke-dasharray="4 4"/>
+                    <line x1="45" y1="81.67" x2="560" y2="81.67" stroke="#F5F5F5" stroke-width="1" stroke-dasharray="4 4"/>
+                    <line x1="45" y1="133.33" x2="560" y2="133.33" stroke="#F5F5F5" stroke-width="1" stroke-dasharray="4 4"/>
+                    <line x1="45" y1="185" x2="560" y2="185" stroke="#F0F0F0" stroke-width="1"/>
+                    <!-- left Y labels (sales) -->
+                    <text x="38" y="34" font-size="12" fill="#8C8C8C" text-anchor="end" font-family="SF Mono,monospace">15k</text>
+                    <text x="38" y="86" font-size="12" fill="#8C8C8C" text-anchor="end" font-family="SF Mono,monospace">10k</text>
+                    <text x="38" y="137" font-size="12" fill="#8C8C8C" text-anchor="end" font-family="SF Mono,monospace">5k</text>
+                    <text x="38" y="189" font-size="12" fill="#8C8C8C" text-anchor="end" font-family="SF Mono,monospace">0</text>
+                    <!-- right Y labels (orders) -->
+                    <text x="568" y="34" font-size="12" fill="#8C8C8C" text-anchor="start" font-family="SF Mono,monospace">150</text>
+                    <text x="568" y="86" font-size="12" fill="#8C8C8C" text-anchor="start" font-family="SF Mono,monospace">100</text>
+                    <text x="568" y="137" font-size="12" fill="#8C8C8C" text-anchor="start" font-family="SF Mono,monospace">50</text>
+                    <text x="568" y="189" font-size="12" fill="#8C8C8C" text-anchor="start" font-family="SF Mono,monospace">0</text>
+                    <!-- X labels -->
+                    <text x="45" y="206" font-size="12" fill="#8C8C8C" text-anchor="middle" font-family="SF Mono,monospace">07-20</text>
+                    <text x="131" y="206" font-size="12" fill="#8C8C8C" text-anchor="middle" font-family="SF Mono,monospace">07-21</text>
+                    <text x="217" y="206" font-size="12" fill="#8C8C8C" text-anchor="middle" font-family="SF Mono,monospace">07-22</text>
+                    <text x="303" y="206" font-size="12" fill="#8C8C8C" text-anchor="middle" font-family="SF Mono,monospace">07-23</text>
+                    <text x="388" y="206" font-size="12" fill="#8C8C8C" text-anchor="middle" font-family="SF Mono,monospace">07-24</text>
+                    <text x="474" y="206" font-size="12" fill="#8C8C8C" text-anchor="middle" font-family="SF Mono,monospace">07-25</text>
+                    <text x="560" y="206" font-size="12" fill="#8C8C8C" text-anchor="middle" font-family="SF Mono,monospace">07-26</text>
+                    <!-- legend -->
+                    <circle cx="420" cy="14" r="4" fill="#1677FF"/><text x="430" y="18" font-size="12" fill="#595959">销售额</text>
+                    <circle cx="495" cy="14" r="4" fill="#52C41A"/><text x="505" y="18" font-size="12" fill="#595959">订单数</text>
+                    <!-- sales fill area -->
+                    <path d="M 45,102 C 88,102 88,87 131,87 C 174,87 174,111 217,111 C 260,111 260,71 303,71 C 346,71 345,56 388,56 C 431,56 431,82 474,82 C 517,82 517,52 560,52 L 560,185 L 45,185 Z" fill="url(#saleFill)"/>
+                    <!-- sales line (blue) -->
+                    <path d="M 45,102 C 88,102 88,87 131,87 C 174,87 174,111 217,111 C 260,111 260,71 303,71 C 346,71 345,56 388,56 C 431,56 431,82 474,82 C 517,82 517,52 560,52" fill="none" stroke="#1677FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- orders line (green) -->
+                    <path d="M 45,123 C 88,123 88,108 131,108 C 174,108 174,92 217,92 C 260,92 260,97 303,97 C 346,97 345,71 388,71 C 431,71 431,87 474,87 C 517,87 517,53 560,53" fill="none" stroke="#52C41A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- sales data points -->
+                    <circle cx="45" cy="102" r="4" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                    <circle cx="131" cy="87" r="4" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                    <circle cx="217" cy="111" r="4" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                    <circle cx="303" cy="71" r="4" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                    <circle cx="388" cy="56" r="4" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                    <circle cx="474" cy="82" r="4" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                    <circle cx="560" cy="52" r="4" fill="#fff" stroke="#1677FF" stroke-width="2"/>
+                    <!-- orders data points -->
+                    <circle cx="45" cy="123" r="4" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+                    <circle cx="131" cy="108" r="4" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+                    <circle cx="217" cy="92" r="4" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+                    <circle cx="303" cy="97" r="4" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+                    <circle cx="388" cy="71" r="4" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+                    <circle cx="474" cy="87" r="4" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+                    <circle cx="560" cy="53" r="4" fill="#fff" stroke="#52C41A" stroke-width="2"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="bottom-row">
+                <div class="a-card list-card">
+                  <div class="list-head">
+                    <span class="list-title">待发货订单 (23)</span>
+                    <span class="list-more">查看全部 <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 6h6M6 3l3 3-3 3"/></svg></span>
+                  </div>
+                  <div class="a-list-row">
+                    <div class="list-left"><span class="list-ord">#ORD001</span><span class="list-buyer">买家A</span></div>
+                    <div class="list-right"><span class="list-amt">¥299</span><span class="list-time">10:30</span></div>
+                  </div>
+                  <div class="a-list-row">
+                    <div class="list-left"><span class="list-ord">#ORD002</span><span class="list-buyer">买家B</span></div>
+                    <div class="list-right"><span class="list-amt">¥159</span><span class="list-time">09:45</span></div>
+                  </div>
+                  <div class="a-list-row">
+                    <div class="list-left"><span class="list-ord">#ORD003</span><span class="list-buyer">买家C</span></div>
+                    <div class="list-right"><span class="list-amt">¥89</span><span class="list-time">09:20</span></div>
+                  </div>
+                  <div class="a-list-row">
+                    <div class="list-left"><span class="list-ord">#ORD004</span><span class="list-buyer">买家D</span></div>
+                    <div class="list-right"><span class="list-amt">¥1,299</span><span class="list-time">08:50</span></div>
+                  </div>
+                  <div class="a-list-row">
+                    <div class="list-left"><span class="list-ord">#ORD005</span><span class="list-buyer">买家E</span></div>
+                    <div class="list-right"><span class="list-amt">¥49</span><span class="list-time">08:15</span></div>
+                  </div>
+                </div>
+                <div class="a-card list-card">
+                  <div class="list-head">
+                    <span class="list-title">售后待处理 (5)</span>
+                    <span class="list-more">查看全部 <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 6h6M6 3l3 3-3 3"/></svg></span>
+                  </div>
+                  <div class="a-list-row">
+                    <div class="list-left"><span class="list-ord">#AS001</span><span class="list-buyer">仅退款</span></div>
+                    <div class="list-right"><span class="list-amt">¥99</span><span class="list-time">09:15</span></div>
+                  </div>
+                  <div class="a-list-row">
+                    <div class="list-left"><span class="list-ord">#AS002</span><span class="list-buyer">退货退款</span></div>
+                    <div class="list-right"><span class="list-amt">¥199</span><span class="list-time">08:40</span></div>
+                  </div>
+                  <div class="a-list-row">
+                    <div class="list-left"><span class="list-ord">#AS003</span><span class="list-buyer">仅退款</span></div>
+                    <div class="list-right"><span class="list-amt">¥49</span><span class="list-time">07:50</span></div>
+                  </div>
+                  <div class="a-list-row">
+                    <div class="list-left"><span class="list-ord">#AS004</span><span class="list-buyer">换货</span></div>
+                    <div class="list-right"><span class="list-amt">¥0</span><span class="list-time">07:20</span></div>
+                  </div>
+                  <div class="a-list-row">
+                    <div class="list-left"><span class="list-ord">#AS005</span><span class="list-buyer">退货退款</span></div>
+                    <div class="list-right"><span class="list-amt">¥299</span><span class="list-time">06:30</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- PAGE 2: 商品列表 -->
+    <!-- ============================================================ -->
+    <div class="preview">
+      <div class="cap">
+        <div class="c-name">
+          <span class="num-badge">02</span>
+          <span class="c-name-text">商品列表</span>
+        </div>
+        <div class="c-meta">/products<span class="sep">·</span>模块：商品管理</div>
+      </div>
+      <div class="browser">
+        <div class="browser-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <div class="url"><span class="lock">
+            <svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="#8C8C8C" stroke-width="1.3"><rect x="2.5" y="5.5" width="7" height="5" rx="1"/><path d="M4 5.5V4a2 2 0 014 0v1.5"/></svg>
+          </span>https://seller.leno.com/products</div>
+        </div>
+        <div class="browser-content">
+          <div class="app-header">
+            <div class="header-left">
+              <span class="collapse-btn"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="#595959" stroke-width="1.6"><path d="M3 6h14M3 10h14M3 14h14"/></svg></span>
+              <span class="logo-text">Leno 卖家</span>
+              <span class="h-divider"></span>
+              <span class="shop-name">Leno数码旗舰店</span>
+            </div>
+            <div class="header-center">
+              <span class="crumb">首页</span><span class="crumb-sep">/</span><span class="crumb">商品管理</span><span class="crumb-sep">/</span><span class="crumb cur">商品列表</span>
+            </div>
+            <div class="header-right">
+              <span class="hbadge">待发货 23</span>
+              <span class="hbadge">售后 5</span>
+              <span class="bell-wrap">
+                <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="#595959" stroke-width="1.4"><path d="M5 14h10l-1.2-2V9a3.8 3.8 0 00-7.6 0v3z"/><path d="M8.5 16a1.5 1.5 0 003 0"/></svg>
+                <span class="bell-dot"></span>
+              </span>
+              <span class="user-cell">
+                <span class="avatar"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.4"><circle cx="10" cy="7" r="3"/><path d="M3.5 17c0-3 3-5 6.5-5s6.5 2 6.5 5"/></svg></span>
+                <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="#8C8C8C" stroke-width="1.4"><path d="M3 4.5L6 7.5L9 4.5"/></svg>
+              </span>
+            </div>
+          </div>
+          <div class="app-body">
+            <div class="sider">
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>工作台</div>
+              <div class="menu-item active">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 1.5L14 4.5V11.5L8 14.5L2 11.5V4.5L8 1.5Z"/><path d="M2 4.5L8 7.5L14 4.5M8 7.5V14.5"/></svg>商品管理
+              </div>
+              <div class="submenu">
+                <div class="submenu-item active">商品列表</div>
+                <div class="submenu-item">商品分类</div>
+                <div class="submenu-item">品牌管理</div>
+                <div class="submenu-item">规格管理</div>
+              </div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4H10V11H1.5z"/><path d="M10 6.5H13L14.5 8.5V11H10"/><circle cx="4" cy="12.5" r="1.3"/><circle cx="12" cy="12.5" r="1.3"/></svg>物流管理</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="2" width="10" height="12" rx="1.5"/><rect x="5.5" y="1" width="5" height="2.5" rx="0.5"/><path d="M5.5 7h5M5.5 10h3"/></svg>订单履约</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 6h7a4 4 0 110 8H6"/><path d="M5 4L3 6L5 8"/></svg>售后处理</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 1.5L10.2 5.9L15 6.6L11.5 10L12.4 14.8L8 12.5L3.6 14.8L4.5 10L1 6.6L5.8 5.9z"/></svg>评价管理</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.2"/><path d="M8 1v2M8 13v2M15 8h-2M3 8H1M13 3l-1.4 1.4M4.4 11.6L3 13M13 13l-1.4-1.4M4.4 4.4L3 3"/></svg>店铺设置</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 13h12"/><rect x="3.5" y="8" width="2.5" height="5"/><rect x="6.75" y="5" width="2.5" height="8"/><rect x="10" y="9" width="2.5" height="4"/></svg>报表导出</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.8"/><path d="M2.5 14c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5"/></svg>个人中心</div>
+            </div>
+            <div class="content">
+              <div class="a-card filter-bar">
+                <div class="a-input-search focus" style="width:240px;">
+                  <input class="a-input" placeholder="请输入商品标题" style="border:none;outline:none;width:100%;"/>
+                  <span class="search-btn"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#8C8C8C" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg></span>
+                </div>
+                <div class="a-select" style="width:120px;">
+                  <span class="sel-val">全部</span>
+                  <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="#8C8C8C" stroke-width="1.4"><path d="M3 4.5L6 7.5L9 4.5"/></svg>
+                </div>
+                <div class="a-select" style="width:120px;">
+                  <span class="sel-val">全部</span>
+                  <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="#8C8C8C" stroke-width="1.4"><path d="M3 4.5L6 7.5L9 4.5"/></svg>
+                </div>
+                <div class="spacer"></div>
+                <button class="a-button primary">+ 新增商品</button>
+              </div>
+
+              <div class="a-table-wrap">
+                <table class="a-table">
+                  <colgroup>
+                    <col style="width:72px"><col><col style="width:110px"><col style="width:80px"><col style="width:80px"><col style="width:96px"><col style="width:116px"><col style="width:130px">
+                  </colgroup>
+                  <thead>
+                    <tr><th>主图</th><th>商品标题</th><th>价格区间</th><th>库存</th><th>销量</th><th>状态</th><th>更新时间</th><th>操作</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><div class="product-thumb"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#BFBFBF" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M4 16l4-4 5 5 3-3 4 4"/></svg></div></td>
+                      <td><span class="cell-title">Leno 轻量降噪蓝牙耳机 Pro Max</span></td>
+                      <td><span class="cell-price">¥99-299</span></td>
+                      <td>256</td>
+                      <td><span class="cell-muted">1.2k</span></td>
+                      <td><span class="a-tag success">已上架</span></td>
+                      <td><span class="cell-muted">2026-07-25</span></td>
+                      <td><div class="op-cell"><a class="a-button link">编辑</a><a class="a-button link">下架</a></div></td>
+                    </tr>
+                    <tr>
+                      <td><div class="product-thumb"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#BFBFBF" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M4 16l4-4 5 5 3-3 4 4"/></svg></div></td>
+                      <td><span class="cell-title">运动蓝牙耳机 入耳式 防水</span></td>
+                      <td><span class="cell-price">¥49-89</span></td>
+                      <td><span class="stock-zero">0</span></td>
+                      <td><span class="cell-muted">856</span></td>
+                      <td><span class="a-tag gray">已下架</span></td>
+                      <td><span class="cell-muted">2026-07-24</span></td>
+                      <td><div class="op-cell"><a class="a-button link">编辑</a><a class="a-button link">上架</a></div></td>
+                    </tr>
+                    <tr>
+                      <td><div class="product-thumb"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#BFBFBF" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M4 16l4-4 5 5 3-3 4 4"/></svg></div></td>
+                      <td><span class="cell-title">Type-C 快充数据线 1m 尼龙编织</span></td>
+                      <td><span class="cell-price">¥19-39</span></td>
+                      <td>1,200</td>
+                      <td><span class="cell-muted">3.4k</span></td>
+                      <td><span class="a-tag warning">待审核</span></td>
+                      <td><span class="cell-muted">2026-07-25</span></td>
+                      <td><div class="op-cell"><a class="a-button link">编辑</a></div></td>
+                    </tr>
+                    <tr>
+                      <td><div class="product-thumb"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#BFBFBF" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M4 16l4-4 5 5 3-3 4 4"/></svg></div></td>
+                      <td><span class="cell-title">智能手表 GPS 运动版 长续航</span></td>
+                      <td><span class="cell-price">¥299-499</span></td>
+                      <td>48</td>
+                      <td><span class="cell-muted">320</span></td>
+                      <td><span class="a-tag gray">草稿</span></td>
+                      <td><span class="cell-muted">2026-07-26</span></td>
+                      <td><div class="op-cell"><a class="a-button link">编辑</a></div></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="a-pagination" style="margin-top:16px;">
+                <span class="total">共 42 条</span>
+                <span class="pg-page active">1</span>
+                <span class="pg-page">2</span>
+                <span class="pg-page">3</span>
+                <span class="pg-sizer">20条/页 <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="#8C8C8C" stroke-width="1.4"><path d="M3 4.5L6 7.5L9 4.5"/></svg></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- PAGE 3: 待发货订单 -->
+    <!-- ============================================================ -->
+    <div class="preview">
+      <div class="cap">
+        <div class="c-name">
+          <span class="num-badge">03</span>
+          <span class="c-name-text">待发货订单</span>
+        </div>
+        <div class="c-meta">/orders/pending-shipment<span class="sep">·</span>模块：订单履约</div>
+      </div>
+      <div class="browser">
+        <div class="browser-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <div class="url"><span class="lock">
+            <svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="#8C8C8C" stroke-width="1.3"><rect x="2.5" y="5.5" width="7" height="5" rx="1"/><path d="M4 5.5V4a2 2 0 014 0v1.5"/></svg>
+          </span>https://seller.leno.com/orders/pending-shipment</div>
+        </div>
+        <div class="browser-content">
+          <div class="app-header">
+            <div class="header-left">
+              <span class="collapse-btn"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="#595959" stroke-width="1.6"><path d="M3 6h14M3 10h14M3 14h14"/></svg></span>
+              <span class="logo-text">Leno 卖家</span>
+              <span class="h-divider"></span>
+              <span class="shop-name">Leno数码旗舰店</span>
+            </div>
+            <div class="header-center">
+              <span class="crumb">首页</span><span class="crumb-sep">/</span><span class="crumb">订单履约</span><span class="crumb-sep">/</span><span class="crumb cur">待发货订单</span>
+            </div>
+            <div class="header-right">
+              <span class="hbadge">待发货 23</span>
+              <span class="hbadge">售后 5</span>
+              <span class="bell-wrap">
+                <svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="#595959" stroke-width="1.4"><path d="M5 14h10l-1.2-2V9a3.8 3.8 0 00-7.6 0v3z"/><path d="M8.5 16a1.5 1.5 0 003 0"/></svg>
+                <span class="bell-dot"></span>
+              </span>
+              <span class="user-cell">
+                <span class="avatar"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.4"><circle cx="10" cy="7" r="3"/><path d="M3.5 17c0-3 3-5 6.5-5s6.5 2 6.5 5"/></svg></span>
+                <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="#8C8C8C" stroke-width="1.4"><path d="M3 4.5L6 7.5L9 4.5"/></svg>
+              </span>
+            </div>
+          </div>
+          <div class="app-body">
+            <div class="sider">
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>工作台</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 1.5L14 4.5V11.5L8 14.5L2 11.5V4.5L8 1.5Z"/><path d="M2 4.5L8 7.5L14 4.5M8 7.5V14.5"/></svg>商品管理</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1.5 4H10V11H1.5z"/><path d="M10 6.5H13L14.5 8.5V11H10"/><circle cx="4" cy="12.5" r="1.3"/><circle cx="12" cy="12.5" r="1.3"/></svg>物流管理</div>
+              <div class="menu-item active">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="2" width="10" height="12" rx="1.5"/><rect x="5.5" y="1" width="5" height="2.5" rx="0.5"/><path d="M5.5 7h5M5.5 10h3"/></svg>订单履约
+              </div>
+              <div class="submenu">
+                <div class="submenu-item active">待发货订单</div>
+                <div class="submenu-item">已发货订单</div>
+                <div class="submenu-item">已完成订单</div>
+                <div class="submenu-item">退款订单</div>
+              </div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 6h7a4 4 0 110 8H6"/><path d="M5 4L3 6L5 8"/></svg>售后处理</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 1.5L10.2 5.9L15 6.6L11.5 10L12.4 14.8L8 12.5L3.6 14.8L4.5 10L1 6.6L5.8 5.9z"/></svg>评价管理</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.2"/><path d="M8 1v2M8 13v2M15 8h-2M3 8H1M13 3l-1.4 1.4M4.4 11.6L3 13M13 13l-1.4-1.4M4.4 4.4L3 3"/></svg>店铺设置</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 13h12"/><rect x="3.5" y="8" width="2.5" height="5"/><rect x="6.75" y="5" width="2.5" height="8"/><rect x="10" y="9" width="2.5" height="4"/></svg>报表导出</div>
+              <div class="menu-item"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.8"/><path d="M2.5 14c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5"/></svg>个人中心</div>
+            </div>
+            <div class="content">
+              <div class="a-alert warning" style="margin-bottom:16px;">
+                <span class="alert-icon"><svg viewBox="0 0 16 16" width="16" height="16" fill="#FAAD14"><path d="M8 1.5L15 14H1z"/><path d="M8 6v3" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.5" r="0.6" fill="#fff"/></svg></span>
+                <span class="alert-text">当前有 12 单待发货，其中 3 单已超 24 小时未发货</span>
+              </div>
+
+              <div class="filter-bar">
+                <div class="a-input-search" style="width:220px;">
+                  <input class="a-input" placeholder="请输入订单号" style="border:none;outline:none;width:100%;"/>
+                  <span class="search-btn"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#8C8C8C" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg></span>
+                </div>
+                <div class="a-input with-icon" style="width:220px;">
+                  <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#8C8C8C" stroke-width="1.4"><rect x="2" y="3.5" width="12" height="10.5" rx="1.5"/><path d="M2 6.5h12M5 2v3M11 2v3"/></svg>
+                  <span class="ph" style="flex:1;">2026-07-01 ~ 2026-07-26</span>
+                </div>
+                <div class="a-select" style="width:120px;">
+                  <span class="sel-val">支付时间</span>
+                  <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="#8C8C8C" stroke-width="1.4"><path d="M3 4.5L6 7.5L9 4.5"/></svg>
+                </div>
+                <div class="spacer"></div>
+              </div>
+
+              <div class="a-table-wrap">
+                <table class="a-table">
+                  <colgroup>
+                    <col style="width:150px"><col style="width:120px"><col><col style="width:90px"><col style="width:110px"><col style="width:90px"><col style="width:100px">
+                  </colgroup>
+                  <thead>
+                    <tr><th>订单号</th><th>买家</th><th>商品摘要</th><th>金额</th><th>支付时间</th><th>等待时长</th><th>操作</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="cell-mono">NO20260726001</span></td>
+                      <td>138****5678</td>
+                      <td><div class="sum-cell"><div class="order-thumb"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#BFBFBF" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M4 16l4-4 5 5 3-3 4 4"/></svg></div><span>蓝牙耳机×2</span></div></td>
+                      <td><span class="cell-strong-red">¥598</span></td>
+                      <td><span class="cell-muted">07-26 10:00</span></td>
+                      <td><span class="wait-green">2h</span></td>
+                      <td><button class="a-button primary sm">发货</button></td>
+                    </tr>
+                    <tr>
+                      <td><span class="cell-mono">NO20260726002</span></td>
+                      <td>139****1234</td>
+                      <td><div class="sum-cell"><div class="order-thumb"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#BFBFBF" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M4 16l4-4 5 5 3-3 4 4"/></svg></div><span>T恤×1</span></div></td>
+                      <td><span class="cell-strong-red">¥49</span></td>
+                      <td><span class="cell-muted">07-26 08:00</span></td>
+                      <td><span class="wait-green">4h</span></td>
+                      <td><button class="a-button primary sm">发货</button></td>
+                    </tr>
+                    <tr>
+                      <td><span class="cell-mono">NO20260725003</span></td>
+                      <td>137****8888</td>
+                      <td><div class="sum-cell"><div class="order-thumb"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#BFBFBF" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M4 16l4-4 5 5 3-3 4 4"/></svg></div><span>手机壳×3</span></div></td>
+                      <td><span class="cell-strong-red">¥87</span></td>
+                      <td><span class="cell-muted">07-25 14:00</span></td>
+                      <td><span class="wait-yellow">20h</span></td>
+                      <td><button class="a-button primary sm">发货</button></td>
+                    </tr>
+                    <tr>
+                      <td><span class="cell-mono">NO20260725004</span></td>
+                      <td>136****6666</td>
+                      <td><div class="sum-cell"><div class="order-thumb"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#BFBFBF" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M4 16l4-4 5 5 3-3 4 4"/></svg></div><span>运动鞋×1</span></div></td>
+                      <td><span class="cell-strong-red">¥299</span></td>
+                      <td><span class="cell-muted">07-25 08:00</span></td>
+                      <td><span class="wait-red">26h</span></td>
+                      <td><button class="a-button primary sm">发货</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="a-pagination" style="margin-top:16px;">
+                <span class="total">共 12 条</span>
+                <span class="pg-page active">1</span>
+                <span class="pg-sizer">20条/页 <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="#8C8C8C" stroke-width="1.4"><path d="M3 4.5L6 7.5L9 4.5"/></svg></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
