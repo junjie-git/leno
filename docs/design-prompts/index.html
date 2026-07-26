@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Leno 电商平台 · 多端界面预览总览</title>
+<style>
+  :root{
+    /* color tokens */
+    --color-primary:#1677FF;
+    --color-success:#52C41A;
+    --color-warning:#FAAD14;
+    --color-error:#FF4D4F;
+    --color-n1:#FFFFFF;
+    --color-n2:#FAFAFA;
+    --color-n3:#F5F5F5;
+    --color-n5:#D9D9D9;
+    --color-n7:#8C8C8C;
+    --color-n9:#595959;
+    --color-n10:#000000D9;
+    /* radius tokens */
+    --radius-base:6px;
+    --radius-card:8px;
+    --radius-lg:12px;
+    /* spacing tokens */
+    --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-6:24px;--sp-8:32px;--sp-12:48px;
+    /* font tokens */
+    --font-family:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --fs-sm:12px;--fs-base:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:30px;
+    --fw-normal:400;--fw-medium:500;--fw-semibold:600;
+    --lh-base:1.5715;
+    /* shadow tokens */
+    --shadow-card:0 1px 2px 0 rgba(0,0,0,0.03),0 1px 6px -1px rgba(0,0,0,0.02),0 2px 4px 0 rgba(0,0,0,0.02);
+    --shadow-dropdown:0 6px 16px 0 rgba(0,0,0,0.08),0 3px 6px -4px rgba(0,0,0,0.12),0 9px 28px 8px rgba(0,0,0,0.05);
+    --shadow-modal:0 12px 32px 4px rgba(0,0,0,0.08),0 8px 20px 8px rgba(0,0,0,0.06);
+    /* motion tokens */
+    --dur-fast:100ms;--dur-mid:200ms;--dur-slow:300ms;
+    --ease-standard:cubic-bezier(0.2,0,0,1);
+    --ease-decel:cubic-bezier(0,0,0,1);
+    --ease-accel:cubic-bezier(0.8,0,1,1);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:var(--font-family);
+    font-size:var(--fs-base);
+    line-height:var(--lh-base);
+    color:var(--color-n10);
+    background:linear-gradient(180deg,#F0F5FF 0%,#FAFAFA 280px,#FFFFFF 600px);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* ===== Hero ===== */
+  .hero{
+    max-width:1200px;
+    margin:0 auto;
+    padding:var(--sp-12) var(--sp-8) var(--sp-8);
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:var(--sp-3);
+    margin-bottom:var(--sp-8);
+  }
+  .brand-logo{
+    width:44px;height:44px;
+    border-radius:var(--radius-card);
+    background:linear-gradient(135deg,var(--color-primary) 0%,#0958D9 100%);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:var(--fs-xl);font-weight:var(--fw-semibold);
+    box-shadow:0 6px 16px 0 rgba(22,119,255,0.28);
+    letter-spacing:-0.5px;
+  }
+  .brand-name{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--color-n10);}
+  .brand-tag{
+    font-size:var(--fs-sm);
+    color:var(--color-primary);
+    background:rgba(22,119,255,0.08);
+    padding:var(--sp-1) var(--sp-2);
+    border-radius:var(--radius-base);
+    margin-left:var(--sp-2);
+    font-weight:var(--fw-medium);
+  }
+
+  .hero-title{
+    font-size:var(--fs-3xl);
+    font-weight:var(--fw-semibold);
+    color:var(--color-n10);
+    letter-spacing:-0.5px;
+    margin-bottom:var(--sp-3);
+  }
+  .hero-sub{
+    font-size:var(--fs-lg);
+    color:var(--color-n9);
+    max-width:720px;
+    line-height:1.7;
+  }
+
+  .hero-meta{
+    display:flex;
+    flex-wrap:wrap;
+    gap:var(--sp-4);
+    margin-top:var(--sp-6);
+  }
+  .meta-chip{
+    display:inline-flex;align-items:center;gap:var(--sp-2);
+    padding:var(--sp-1) var(--sp-3);
+    background:var(--color-n1);
+    border:1px solid var(--color-n3);
+    border-radius:999px;
+    font-size:var(--fs-sm);
+    color:var(--color-n9);
+    box-shadow:var(--shadow-card);
+  }
+  .meta-dot{width:6px;height:6px;border-radius:50%;}
+
+  /* ===== Section ===== */
+  .section{
+    max-width:1200px;
+    margin:0 auto;
+    padding:0 var(--sp-8) var(--sp-12);
+  }
+  .section-head{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    margin-bottom:var(--sp-6);
+    padding-bottom:var(--sp-4);
+    border-bottom:1px solid var(--color-n3);
+  }
+  .section-title{
+    font-size:var(--fs-xl);
+    font-weight:var(--fw-semibold);
+    color:var(--color-n10);
+  }
+  .section-desc{font-size:var(--fs-sm);color:var(--color-n7);}
+
+  /* ===== Cards Grid ===== */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:var(--sp-6);
+  }
+  @media (max-width:880px){
+    .grid{grid-template-columns:1fr;}
+    .hero{padding:var(--sp-8) var(--sp-4) var(--sp-6);}
+    .section{padding:0 var(--sp-4) var(--sp-8);}
+  }
+
+  .card{
+    position:relative;
+    background:var(--color-n1);
+    border:1px solid var(--color-n3);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-card);
+    padding:var(--sp-6);
+    transition:transform var(--dur-mid) var(--ease-standard),
+               box-shadow var(--dur-mid) var(--ease-standard),
+               border-color var(--dur-mid) var(--ease-standard);
+    overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+  .card::before{
+    content:"";
+    position:absolute;left:0;top:0;bottom:0;width:4px;
+    background:var(--accent,var(--color-primary));
+    transition:width var(--dur-mid) var(--ease-standard);
+  }
+  .card:hover{
+    transform:translateY(-4px);
+    box-shadow:var(--shadow-dropdown);
+    border-color:var(--accent,var(--color-primary));
+  }
+  .card:hover::before{width:6px;}
+
+  .card-head{
+    display:flex;align-items:center;gap:var(--sp-3);
+    margin-bottom:var(--sp-4);
+  }
+  .card-icon{
+    width:48px;height:48px;
+    border-radius:var(--radius-card);
+    display:flex;align-items:center;justify-content:center;
+    background:var(--accent-bg,rgba(22,119,255,0.10));
+    color:var(--accent,var(--color-primary));
+    flex-shrink:0;
+  }
+  .card-icon svg{width:24px;height:24px;}
+  .card-title-wrap{flex:1;min-width:0;}
+  .card-title{
+    font-size:var(--fs-lg);
+    font-weight:var(--fw-semibold);
+    color:var(--color-n10);
+    display:flex;align-items:center;gap:var(--sp-2);
+  }
+  .card-role{
+    font-size:var(--fs-sm);
+    font-weight:var(--fw-medium);
+    color:var(--accent,var(--color-primary));
+    background:var(--accent-bg,rgba(22,119,255,0.10));
+    padding:1px var(--sp-2);
+    border-radius:var(--radius-base);
+  }
+  .card-sub{font-size:var(--fs-sm);color:var(--color-n7);margin-top:2px;}
+
+  .card-desc{
+    font-size:var(--fs-base);
+    color:var(--color-n9);
+    line-height:1.7;
+    margin-bottom:var(--sp-4);
+  }
+
+  .page-list{
+    list-style:none;
+    margin-bottom:var(--sp-6);
+    border-top:1px solid var(--color-n3);
+    padding-top:var(--sp-3);
+  }
+  .page-list li{
+    display:flex;align-items:center;gap:var(--sp-2);
+    padding:var(--sp-2) 0;
+    font-size:var(--fs-base);
+    color:var(--color-n10);
+  }
+  .page-list li+li{border-top:1px dashed var(--color-n3);}
+  .page-idx{
+    width:20px;height:20px;
+    border-radius:50%;
+    background:var(--color-n3);
+    color:var(--color-n9);
+    font-size:var(--fs-sm);
+    font-weight:var(--fw-semibold);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .page-name{flex:1;font-weight:var(--fw-medium);}
+  .page-en{font-size:var(--fs-sm);color:var(--color-n7);font-family:monospace;}
+
+  .card-foot{
+    margin-top:auto;
+    display:flex;align-items:center;justify-content:space-between;
+    gap:var(--sp-3);
+  }
+  .stats{
+    display:flex;gap:var(--sp-4);
+    font-size:var(--fs-sm);color:var(--color-n7);
+  }
+  .stats b{color:var(--color-n10);font-weight:var(--fw-semibold);font-size:var(--fs-base);}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:var(--sp-2);
+    padding:var(--sp-2) var(--sp-4);
+    border-radius:var(--radius-base);
+    font-size:var(--fs-base);
+    font-weight:var(--fw-medium);
+    text-decoration:none;
+    border:1px solid var(--accent,var(--color-primary));
+    background:var(--accent,var(--color-primary));
+    color:#fff;
+    transition:all var(--dur-fast) var(--ease-standard);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .btn:hover{filter:brightness(0.94);box-shadow:0 4px 12px 0 rgba(22,119,255,0.25);}
+  .btn svg{width:14px;height:14px;}
+
+  /* accent variants */
+  .card.buyer{--accent:#722ED1;--accent-bg:rgba(114,46,209,0.10);}
+  .card.ops{--accent:#1677FF;--accent-bg:rgba(22,119,255,0.10);}
+  .card.seller{--accent:#13C2C2;--accent-bg:rgba(19,194,194,0.12);}
+  .card.admin{--accent:#FA541C;--accent-bg:rgba(250,84,28,0.10);}
+
+  /* ===== Tech stack strip ===== */
+  .stack{
+    max-width:1200px;
+    margin:0 auto;
+    padding:0 var(--sp-8) var(--sp-8);
+  }
+  .stack-inner{
+    background:var(--color-n1);
+    border:1px solid var(--color-n3);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-card);
+    padding:var(--sp-6);
+  }
+  .stack-title{
+    font-size:var(--fs-base);
+    font-weight:var(--fw-semibold);
+    color:var(--color-n10);
+    margin-bottom:var(--sp-4);
+    display:flex;align-items:center;gap:var(--sp-2);
+  }
+  .stack-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:var(--sp-4);
+  }
+  @media (max-width:880px){.stack-grid{grid-template-columns:repeat(2,1fr);}}
+  .stack-item{padding:var(--sp-3);background:var(--color-n2);border-radius:var(--radius-card);}
+  .stack-label{font-size:var(--fs-sm);color:var(--color-n7);margin-bottom:var(--sp-1);}
+  .stack-value{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--color-n10);}
+
+  /* ===== Footer ===== */
+  .footer{
+    max-width:1200px;
+    margin:0 auto;
+    padding:var(--sp-6) var(--sp-8) var(--sp-8);
+    text-align:center;
+    font-size:var(--fs-sm);
+    color:var(--color-n7);
+    border-top:1px solid var(--color-n3);
+  }
+  .footer a{color:var(--color-primary);text-decoration:none;}
+  .footer a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="brand">
+    <div class="brand-logo">L</div>
+    <div class="brand-name">Leno 电商平台</div>
+    <span class="brand-tag">多端界面预览总览</span>
+  </div>
+
+  <h1 class="hero-title">四端一体 · 共享设计系统的电商前端预览</h1>
+  <p class="hero-sub">
+    基于 Vue 3.5 + Ant Design Vue 4.x / Vant 4.x 构建的全链路电商界面方案。本总览页串联买家端 APP、运营管理后台、商家管理后台、系统管理后台四端核心流程页面，统一遵循 Leno 共享设计系统令牌（色彩 / 圆角 / 间距 / 字体 / 阴影 / 动效）。
+  </p>
+
+  <div class="hero-meta">
+    <span class="meta-chip"><span class="meta-dot" style="background:var(--color-primary)"></span>主色 #1677FF</span>
+    <span class="meta-chip"><span class="meta-dot" style="background:var(--color-success)"></span>4px 间距体系</span>
+    <span class="meta-chip"><span class="meta-dot" style="background:var(--color-warning)"></span>W3C DTCG 令牌</span>
+    <span class="meta-chip"><span class="meta-dot" style="background:#722ED1"></span>12 核心页面</span>
+    <span class="meta-chip"><span class="meta-dot" style="background:#13C2C2"></span>自包含 HTML 预览</span>
+  </div>
+</header>
+
+<section class="section">
+  <div class="section-head">
+    <div class="section-title">选择端入口</div>
+    <div class="section-desc">点击卡片右下角「进入预览」查看该端多页流程</div>
+  </div>
+
+  <div class="grid">
+
+    <!-- 买家端 APP -->
+    <article class="card buyer">
+      <div class="card-head">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2.5"/>
+            <line x1="12" y1="18" x2="12" y2="18"/>
+          </svg>
+        </div>
+        <div class="card-title-wrap">
+          <div class="card-title">买家端 APP <span class="card-role">消费者</span></div>
+          <div class="card-sub">Vant 4.x · 移动端 PWA</div>
+        </div>
+      </div>
+      <p class="card-desc">面向终端消费者的购物 App，覆盖登录注册、首页推荐、商品目录、购物车下单、支付、订单履约跟踪、售后申请、积分会员等完整购物闭环。</p>
+      <ul class="page-list">
+        <li><span class="page-idx">1</span><span class="page-name">登录与注册</span><span class="page-en">auth</span></li>
+        <li><span class="page-idx">2</span><span class="page-name">首页 / 分类 / 搜索</span><span class="page-en">home · catalog</span></li>
+        <li><span class="page-idx">3</span><span class="page-name">购物车 / 结算 / 支付</span><span class="page-en">cart · payment</span></li>
+        <li><span class="page-idx">4</span><span class="page-name">订单 / 物流 / 售后</span><span class="page-en">order · after-sales</span></li>
+      </ul>
+      <div class="card-foot">
+        <div class="stats"><span>模块 <b>14</b></span><span>页面 <b>40+</b></span></div>
+        <a class="btn" href="leno-buyer-app-preview.html">
+          进入预览
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </div>
+    </article>
+
+    <!-- 运营管理后台 -->
+    <article class="card ops">
+      <div class="card-head">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+        </div>
+        <div class="card-title-wrap">
+          <div class="card-title">运营管理后台 <span class="card-role">运营</span></div>
+          <div class="card-sub">Ant Design Vue 4.x · 桌面端</div>
+        </div>
+      </div>
+      <p class="card-desc">面向平台运营团队的中后台，覆盖运营总览看板、商品审核、订单管理、营销活动、卖家治理、支付对账、通知配置、会员积分规则与数据导出等运营职能。</p>
+      <ul class="page-list">
+        <li><span class="page-idx">1</span><span class="page-name">运营总览看板</span><span class="page-en">dashboard/overview</span></li>
+        <li><span class="page-idx">2</span><span class="page-name">商品审核</span><span class="page-en">product-audit</span></li>
+        <li><span class="page-idx">3</span><span class="page-name">订单管理</span><span class="page-en">order-management</span></li>
+      </ul>
+      <div class="card-foot">
+        <div class="stats"><span>模块 <b>10</b></span><span>页面 <b>30+</b></span></div>
+        <a class="btn" href="leno-operations-preview.html">
+          进入预览
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </div>
+    </article>
+
+    <!-- 商家管理后台 -->
+    <article class="card seller">
+      <div class="card-head">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l1-5h16l1 5"/>
+            <path d="M4 9v11h16V9"/>
+            <path d="M9 20v-6h6v6"/>
+          </svg>
+        </div>
+        <div class="card-title-wrap">
+          <div class="card-title">商家管理后台 <span class="card-role">卖家</span></div>
+          <div class="card-sub">Ant Design Vue 4.x · 桌面端</div>
+        </div>
+      </div>
+      <p class="card-desc">面向入驻卖家的店铺经营后台，覆盖入驻申请、经营概览、商品管理（SKU/价格/库存）、物流模板、订单履约发货、售后处理、评价回复与销售数据导出。</p>
+      <ul class="page-list">
+        <li><span class="page-idx">1</span><span class="page-name">经营概览看板</span><span class="page-en">dashboard/overview</span></li>
+        <li><span class="page-idx">2</span><span class="page-name">商品列表</span><span class="page-en">product-list</span></li>
+        <li><span class="page-idx">3</span><span class="page-name">待发货订单</span><span class="page-en">pending-shipment</span></li>
+      </ul>
+      <div class="card-foot">
+        <div class="stats"><span>模块 <b>9</b></span><span>页面 <b>20+</b></span></div>
+        <a class="btn" href="leno-seller-preview.html">
+          进入预览
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </div>
+    </article>
+
+    <!-- 系统管理后台 -->
+    <article class="card admin">
+      <div class="card-head">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <div class="card-title-wrap">
+          <div class="card-title">系统管理后台 <span class="card-role">系统管理员</span></div>
+          <div class="card-sub">Ant Design Vue 4.x · 桌面端</div>
+        </div>
+      </div>
+      <p class="card-desc">面向系统管理员的基础设施与安全治理后台，覆盖运营总览、用户与角色权限、系统配置与特性开关、运行时运维（死信队列/索引重建/定时任务）、审计日志与对账、Prometheus 监控。</p>
+      <ul class="page-list">
+        <li><span class="page-idx">1</span><span class="page-name">运营总览看板</span><span class="page-en">operations-overview</span></li>
+        <li><span class="page-idx">2</span><span class="page-name">用户管理</span><span class="page-en">user-management</span></li>
+        <li><span class="page-idx">3</span><span class="page-name">审计日志</span><span class="page-en">audit-logs</span></li>
+      </ul>
+      <div class="card-foot">
+        <div class="stats"><span>模块 <b>7</b></span><span>页面 <b>20+</b></span></div>
+        <a class="btn" href="leno-system-admin-preview.html">
+          进入预览
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<section class="stack">
+  <div class="stack-inner">
+    <div class="stack-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      统一技术栈与设计令牌
+    </div>
+    <div class="stack-grid">
+      <div class="stack-item"><div class="stack-label">框架</div><div class="stack-value">Vue 3.5 + TypeScript</div></div>
+      <div class="stack-item"><div class="stack-label">构建</div><div class="stack-value">Vite 6</div></div>
+      <div class="stack-item"><div class="stack-label">后台 UI</div><div class="stack-value">Ant Design Vue 4.x</div></div>
+      <div class="stack-item"><div class="stack-label">移动 UI</div><div class="stack-value">Vant 4.x</div></div>
+      <div class="stack-item"><div class="stack-label">状态 / 路由</div><div class="stack-value">Pinia 2 + Vue Router 4</div></div>
+      <div class="stack-item"><div class="stack-label">图表</div><div class="stack-value">@vue-echarts 7 (ECharts 5.5)</div></div>
+      <div class="stack-item"><div class="stack-label">主色</div><div class="stack-value">#1677FF</div></div>
+      <div class="stack-item"><div class="stack-label">令牌格式</div><div class="stack-value">W3C DTCG</div></div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>Leno 电商平台 · 多端界面预览总览 · 基于 <a href="shared/design-system.md">shared/design-system.md</a> 设计令牌体系构建</p>
+</footer>
+
+</body>
+</html>
