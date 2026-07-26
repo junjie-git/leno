@@ -43,8 +43,8 @@
 | GET | `/api/admin/coupons` | 分页查询券模板（按状态过滤） | Operator, Admin |
 | POST | `/api/admin/coupons` | 创建券模板 | Operator, Admin |
 | PUT | `/api/admin/coupons/{couponId}` | 更新券模板 | Operator, Admin |
-| POST | `/api/admin/coupons/{couponId}/enable` | 启用券模板 | Operator, Admin |
-| POST | `/api/admin/coupons/{couponId}/disable` | 停用券模板 | Operator, Admin |
+| POST | `/api/admin/coupons/{couponId}/publish` | 发布券模板（启用） | Operator, Admin |
+| POST | `/api/admin/coupons/{couponId}/stop` | 停用券模板 | Operator, Admin |
 | POST | `/api/admin/coupons/{couponId}/issue` | 批量发放优惠券（增加发放量） | Operator, Admin |
 
 - **请求参数**：`CreateCouponDto` 含 `Name`、`Type`（FullReduction/Discount/NoThreshold）、`FaceValue`、`Threshold`、`ValidDays`、`TotalQuantity`、`PerUserLimit`、`Scope`；查询参数 `status`（CouponTemplateStatus）、`page`、`pageSize`；发放参数 `quantity`（int，query）。
@@ -57,7 +57,7 @@
   1. 进入页面 → 加载启用券模板列表 → 渲染表格
   2. 点击「新增券模板」→ 打开抽屉 → 配置券信息 → `<IdempotencyButton>` 提交 → 列表新增行
   3. 点击「发放」→ 弹出发放对话框 → 输入数量 → 确认 → 调用 issue → 已领/总量列更新
-  4. 点击「停用」→ `<ConfirmDialog>` 确认 → 调用 disable → 状态列更新
+  4. 点击「停用」→ `<ConfirmDialog>` 确认 → 调用 stop → 状态列更新
 - **分支流程**：
   - 发放数量校验：须为正整数且不超剩余库存（TotalQuantity - IssuedQuantity）
   - 停用券模板后买家端不可见，已领取的券仍有效
