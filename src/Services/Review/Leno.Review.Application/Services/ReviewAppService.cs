@@ -14,12 +14,14 @@ namespace Leno.Review.Application.Services;
 /// 评价应用服务实现，编排评价提交、卖家回复、运营审核与查询用例。
 /// 提交前经 <see cref="IReviewEligibilityChecker"/> 校验订单完成且未评价。
 /// 买家按订单行查询评价时通过 <see cref="IOrderStatusProvider"/> 反查订单归属，防止越权查询他人评价。
+/// 卖家侧评价列表按 productName 过滤时经 <see cref="IProductInfoQueryService"/> 防腐层反查 SPU 名称映射。
 /// </summary>
 public sealed class ReviewAppService : IReviewAppService
 {
     private readonly IReviewRepository _reviewRepository;
     private readonly IReviewEligibilityChecker _eligibilityChecker;
     private readonly IOrderStatusProvider _orderStatusProvider;
+    private readonly IProductInfoQueryService _productInfoQueryService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ReviewAppService> _logger;
 
@@ -27,17 +29,20 @@ public sealed class ReviewAppService : IReviewAppService
         IReviewRepository reviewRepository,
         IReviewEligibilityChecker eligibilityChecker,
         IOrderStatusProvider orderStatusProvider,
+        IProductInfoQueryService productInfoQueryService,
         IUnitOfWork unitOfWork,
         ILogger<ReviewAppService> logger)
     {
         ArgumentNullException.ThrowIfNull(reviewRepository);
         ArgumentNullException.ThrowIfNull(eligibilityChecker);
         ArgumentNullException.ThrowIfNull(orderStatusProvider);
+        ArgumentNullException.ThrowIfNull(productInfoQueryService);
         ArgumentNullException.ThrowIfNull(unitOfWork);
         ArgumentNullException.ThrowIfNull(logger);
         _reviewRepository = reviewRepository;
         _eligibilityChecker = eligibilityChecker;
         _orderStatusProvider = orderStatusProvider;
+        _productInfoQueryService = productInfoQueryService;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -146,6 +151,96 @@ public sealed class ReviewAppService : IReviewAppService
         return new ReviewListResultDto { Items = items.ConvertAll(ToDto), Total = total, Page = page, PageSize = pageSize };
     }
 
+    /// <inheritdoc />
+    public async Task<ReviewDto> AppendAdditionalReviewAsync(Guid reviewId, Guid userId, AppendReviewDto dto, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+
+        var review = await _reviewRepository.GetByIdAsync(reviewId, ct)
+            ?? throw new InvalidOperationException($"评价不存在 ReviewId={reviewId}");
+
+        // 越权校验：仅评价人（买家）本人可追评，防止他人冒充追评
+        if (review.UserId != userId)
+        {
+            throw new ReviewDomainException("无权追评此评价", "REVIEW_FORBIDDEN");
+        }
+
+        review.AppendAdditionalReview(dto.Content, dto.Images);
+        await _reviewRepository.UpdateAsync(review, ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
+
+        _logger.LogInformation("买家追评已提交 ReviewId={ReviewId} UserId={UserId}", reviewId, userId);
+        return ToDto(review);
+    }
+
+    /// <inheritdoc />
+    public async Task<ReviewListResultDto> GetBySellerAsync(
+        Guid sellerId,
+        int? rating,
+        bool? replied,
+        string? productName,
+        DateTime? startDate,
+        DateTime? endDate,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        // productName 模糊搜索需经商品域 ACL 过滤 SpuId 列表：
+        // 1. 查询本店铺已通过评价关联的去重 SpuId 列表（评价域内查询，无远程调用）
+        // 2. 调用商品域 ACL 批量获取 SpuId → 商品名称映射
+        // 3. 在内存中按 productName 模糊匹配过滤 SpuId 列表
+        // 4. 将过滤后的 SpuId 列表传入仓储查询；若无匹配 SpuId，直接返回空结果避免全表扫描
+        IReadOnlyList<Guid>? filteredSpuIds = null;
+        if (!string.IsNullOrWhiteSpace(productName))
+        {
+            var sellerSpuIds = await _reviewRepository.GetDistinctSpuIdsBySellerAsync(sellerId, ct);
+            if (sellerSpuIds.Count == 0)
+            {
+                return new ReviewListResultDto { Items = new List<ReviewDto>(), Total = 0, Page = page, PageSize = pageSize };
+            }
+
+            var productNameMap = await _productInfoQueryService.GetProductNamesBySpuIdsAsync(sellerSpuIds, ct);
+            var keyword = productName.Trim();
+            filteredSpuIds = productNameMap
+                .Where(kv => kv.Value.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                .Select(kv => kv.Key)
+                .ToList();
+
+            if (filteredSpuIds.Count == 0)
+            {
+                return new ReviewListResultDto { Items = new List<ReviewDto>(), Total = 0, Page = page, PageSize = pageSize };
+            }
+        }
+
+        var items = await _reviewRepository.QueryBySellerAsync(
+            sellerId, rating, replied, filteredSpuIds, startDate, endDate, page, pageSize, ct);
+        var total = await _reviewRepository.CountBySellerAsync(
+            sellerId, rating, replied, filteredSpuIds, startDate, endDate, ct);
+
+        return new ReviewListResultDto
+        {
+            Items = items.ConvertAll(ToDto),
+            Total = total,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task<ReviewDto> GetSellerReviewDetailAsync(Guid reviewId, Guid sellerId, CancellationToken ct = default)
+    {
+        var review = await _reviewRepository.GetByIdAsync(reviewId, ct)
+            ?? throw new InvalidOperationException($"评价不存在 ReviewId={reviewId}");
+
+        // 越权校验：仅评价归属卖家本人可查看详情，防止卖家 A 越权查看卖家 B 的店铺评价
+        if (review.SellerId != sellerId)
+        {
+            throw new ReviewDomainException("无权查看此评价", "REVIEW_FORBIDDEN");
+        }
+
+        return ToDto(review);
+    }
+
     private static ReviewDto ToDto(ReviewAggregate review)
     {
         return new ReviewDto
@@ -156,6 +251,7 @@ public sealed class ReviewAppService : IReviewAppService
             SpuId = review.SpuId,
             SkuId = review.SkuId,
             UserId = review.UserId,
+            SellerId = review.SellerId,
             Rating = review.Rating,
             Content = review.Content,
             Images = review.Images.ToList(),
@@ -165,7 +261,10 @@ public sealed class ReviewAppService : IReviewAppService
             SellerReplyAt = review.SellerReplyAt,
             SubmittedAt = review.SubmittedAt,
             AuditedAt = review.AuditedAt,
-            HiddenAt = review.HiddenAt
+            HiddenAt = review.HiddenAt,
+            AppendContent = review.AppendContent,
+            AppendImages = review.AppendImages.ToList(),
+            AppendedAt = review.AppendedAt
         };
     }
 }

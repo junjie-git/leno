@@ -91,3 +91,26 @@ public sealed class ReviewModeratedDomainEvent : DomainEventBase
         Action = action ?? string.Empty;
     }
 }
+
+/// <summary>
+/// 评价追评领域事件，由 <see cref="Aggregates.Review"/> 聚合在 AppendAdditionalReview 方法中收集。
+/// 消费方：商品域（更新评价数与评分摘要）、消息通知域（通知卖家有新追评）。
+/// </summary>
+public sealed class ReviewAppendedDomainEvent : DomainEventBase
+{
+    public Guid ReviewId { get; init; }
+    public Guid UserId { get; init; }
+    public Guid SpuId { get; init; }
+    public Guid SellerId { get; init; }
+    public int Rating { get; init; }
+
+    public ReviewAppendedDomainEvent(Guid reviewId, Guid userId, Guid spuId, Guid sellerId, int rating)
+        : base(reviewId)
+    {
+        ReviewId = reviewId;
+        UserId = userId;
+        SpuId = spuId;
+        SellerId = sellerId;
+        Rating = rating;
+    }
+}

@@ -117,6 +117,52 @@ public sealed class EfCoreReviewRepository : IReviewRepository
     }
 
     /// <inheritdoc />
+    public async Task<List<ReviewAggregate>> QueryBySellerAsync(
+        Guid sellerId,
+        int? rating,
+        bool? replied,
+        IReadOnlyList<Guid>? spuIds,
+        DateTime? startDate,
+        DateTime? endDate,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var query = ApplySellerFilters(_context.Reviews.AsNoTracking(), sellerId, rating, replied, spuIds, startDate, endDate);
+
+        return await query
+            .OrderByDescending(r => r.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<int> CountBySellerAsync(
+        Guid sellerId,
+        int? rating,
+        bool? replied,
+        IReadOnlyList<Guid>? spuIds,
+        DateTime? startDate,
+        DateTime? endDate,
+        CancellationToken ct = default)
+    {
+        var query = ApplySellerFilters(_context.Reviews.AsNoTracking(), sellerId, rating, replied, spuIds, startDate, endDate);
+        return await query.CountAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<Guid>> GetDistinctSpuIdsBySellerAsync(Guid sellerId, CancellationToken ct = default)
+    {
+        return await _context.Reviews
+            .AsNoTracking()
+            .Where(r => r.SellerId == sellerId && r.Status == ReviewStatus.Approved)
+            .Select(r => r.SpuId)
+            .Distinct()
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
     public async Task AddAsync(ReviewAggregate aggregate, CancellationToken ct = default)
         => await _context.Reviews.AddAsync(aggregate, ct);
 
@@ -158,6 +204,51 @@ public sealed class EfCoreReviewRepository : IReviewRepository
         if (status is not null)
         {
             query = query.Where(r => r.Status == status);
+        }
+
+        return query;
+    }
+
+    /// <summary>
+    /// 卖家端查询统一过滤条件：强制 sellerId + Approved 状态，叠加评分/回复状态/SpuId 列表/时间范围。
+    /// 回复状态通过 SellerReplyAt 是否为空判定（已回复 = SellerReplyAt != null）。
+    /// </summary>
+    private static IQueryable<ReviewAggregate> ApplySellerFilters(
+        IQueryable<ReviewAggregate> query,
+        Guid sellerId,
+        int? rating,
+        bool? replied,
+        IReadOnlyList<Guid>? spuIds,
+        DateTime? startDate,
+        DateTime? endDate)
+    {
+        query = query.Where(r => r.SellerId == sellerId && r.Status == ReviewStatus.Approved);
+
+        if (rating is not null)
+        {
+            query = query.Where(r => r.Rating == rating);
+        }
+
+        if (replied is not null)
+        {
+            query = replied.Value
+                ? query.Where(r => r.SellerReplyAt != null)
+                : query.Where(r => r.SellerReplyAt == null);
+        }
+
+        if (spuIds is not null && spuIds.Count > 0)
+        {
+            query = query.Where(r => spuIds.Contains(r.SpuId));
+        }
+
+        if (startDate is not null)
+        {
+            query = query.Where(r => r.SubmittedAt >= startDate);
+        }
+
+        if (endDate is not null)
+        {
+            query = query.Where(r => r.SubmittedAt <= endDate);
         }
 
         return query;

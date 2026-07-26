@@ -111,12 +111,35 @@ public static class ServiceCollectionExtensions
                 services.AddScoped<IOrderStatusProvider>(sp =>
                     sp.GetRequiredService<InfraServices.HttpOrderStatusProvider>());
             }
+
+            // Product 单轨（IProductInfoQueryService）
+            // 卖家侧评价列表按商品名称过滤场景使用，无 HttpClient 降级实现，
+            // gRPC 端点缺失时降级到 NullProductInfoQueryService（fail-open，返回空字典，按 productName 过滤返回空列表）。
+            var productGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Product");
+            if (!string.IsNullOrWhiteSpace(productGrpcEndpoint))
+            {
+                // 评价域 Task C1 阶段未迁移 GrpcProductInfoQueryService（依赖商品域 ProductInternalService proto），
+                // 此处暂以 NullProductInfoQueryService 占位，后续任务补齐 gRPC 客户端实现。
+                // 配置存在时同样降级到 Null 实现，仅记录 Information 级别日志标识配置已就绪待实现补齐。
+                services.AddScoped<IProductInfoQueryService, InfraServices.NullProductInfoQueryService>();
+            }
+            else
+            {
+                // 降级到 NullProductInfoQueryService：注册启动时告警 HostedService，再注册 Null 实现作为唯一实现。
+                services.AddHostedService(sp => new GrpcDegradationWarningHostedService(
+                    sp.GetRequiredService<ILogger<GrpcDegradationWarningHostedService>>(),
+                    "Product",
+                    "AntiCorruption:GrpcEndpoints:Product"));
+                services.AddScoped<IProductInfoQueryService, InfraServices.NullProductInfoQueryService>();
+            }
         }
         else
         {
             // UseGrpc=false：直接注册 HttpClient 实现（兼容期）
             services.AddScoped<IOrderStatusProvider>(sp =>
                 sp.GetRequiredService<InfraServices.HttpOrderStatusProvider>());
+            // Product 无 HttpClient 实现，UseGrpc=false 时降级到 NullProductInfoQueryService（fail-open）
+            services.AddScoped<IProductInfoQueryService, InfraServices.NullProductInfoQueryService>();
         }
 
         // 资格校验器（依赖 IOrderStatusProvider，无论双轨与否都注册）

@@ -37,4 +37,44 @@ public interface IReviewAppService
 
     /// <summary>运营端分页查询评价（按状态过滤）。</summary>
     Task<ReviewListResultDto> QueryReviewsAsync(ReviewStatus? status, int page, int pageSize, CancellationToken ct = default);
+
+    /// <summary>
+    /// 买家追评，仅已通过（Approved）态评价可追评一次。
+    /// 校验当前用户为评价归属买家，防止越权追评他人评价。
+    /// </summary>
+    /// <param name="reviewId">评价标识。</param>
+    /// <param name="userId">当前用户标识，须等于评价的 UserId。</param>
+    /// <param name="dto">追评请求 DTO。</param>
+    Task<ReviewDto> AppendAdditionalReviewAsync(Guid reviewId, Guid userId, AppendReviewDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// 卖家端分页查询本店铺商品评价，仅返回已通过（Approved）态评价。
+    /// 支持按评分、回复状态、商品名称（经商品域 ACL 过滤 SpuId 列表）、时间范围过滤。
+    /// </summary>
+    /// <param name="sellerId">卖家标识，从 JWT 注入，仅返回 SellerId 匹配的评价。</param>
+    /// <param name="rating">评分过滤（1-5），为空不过滤。</param>
+    /// <param name="replied">回复状态过滤：true=已回复 / false=待回复 / null=全部。</param>
+    /// <param name="productName">商品名称模糊搜索，为空不过滤；非空时经商品域 ACL 过滤 SpuId 列表。</param>
+    /// <param name="startDate">评价提交时间起点（含），为空不过滤。</param>
+    /// <param name="endDate">评价提交时间终点（含），为空不过滤。</param>
+    /// <param name="page">页码（从 1 起）。</param>
+    /// <param name="pageSize">每页大小。</param>
+    Task<ReviewListResultDto> GetBySellerAsync(
+        Guid sellerId,
+        int? rating,
+        bool? replied,
+        string? productName,
+        DateTime? startDate,
+        DateTime? endDate,
+        int page,
+        int pageSize,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// 卖家端查询评价详情，校验归属卖家（sellerId 匹配评价聚合 SellerId）后返回单条评价。
+    /// 通过 JWT sellerId 与评价聚合 SellerId 比对，防止越权查看他人店铺评价。
+    /// </summary>
+    /// <param name="reviewId">评价标识。</param>
+    /// <param name="sellerId">当前卖家标识，须等于评价的 SellerId。</param>
+    Task<ReviewDto> GetSellerReviewDetailAsync(Guid reviewId, Guid sellerId, CancellationToken ct = default);
 }
