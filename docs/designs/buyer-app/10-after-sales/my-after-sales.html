@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的售后</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);-webkit-font-smoothing:antialiased;}
+body{max-width:375px;margin:0 auto;min-height:100vh;background:var(--n2);box-shadow:0 0 24px rgba(0,0,0,.08);overflow-x:hidden;}
+
+/* NavBar */
+.navbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;height:46px;background:var(--n1);border-bottom:1px solid var(--n3);padding:0 var(--s3);}
+.navbar .nav-back{display:flex;align-items:center;justify-content:center;width:32px;height:32px;cursor:pointer;color:var(--n10);}
+.navbar .nav-title{flex:1;text-align:center;font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);margin-right:32px;}
+
+/* Tabs */
+.tabs{display:flex;background:var(--n1);border-bottom:1px solid var(--n3);position:sticky;top:46px;z-index:99;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex-shrink:0;display:flex;align-items:center;justify-content:center;height:44px;padding:0 var(--s4);cursor:pointer;position:relative;transition:color .2s;white-space:nowrap;}
+.tab__text{font-size:var(--fs-base);color:var(--n9);transition:color .2s;}
+.tab.active .tab__text{color:var(--c-primary);font-weight:var(--fw-medium);}
+.tab.active::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:24px;height:2px;background:var(--c-primary);border-radius:1px;}
+
+/* Content */
+.content{padding:var(--s3);}
+
+/* After-Sales Card */
+.as-list{display:flex;flex-direction:column;gap:var(--s3);}
+.as-card{background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);overflow:hidden;}
+.as-card__head{display:flex;align-items:center;justify-content:space-between;padding:var(--s2) var(--s3);background:var(--n2);border-bottom:1px solid var(--n3);}
+.as-card__no{font-size:var(--fs-sm);color:var(--n7);}
+.as-card__no .no-value{color:var(--n9);font-weight:var(--fw-medium);}
+.status-tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--r-base);font-size:var(--fs-sm);font-weight:var(--fw-medium);}
+.status-tag.pending{background:rgba(250,173,20,.1);color:var(--c-warning);}
+.status-tag.processing{background:rgba(22,119,255,.1);color:var(--c-primary);}
+.status-tag.completed{background:rgba(82,196,26,.1);color:var(--c-success);}
+.status-tag.cancelled{background:rgba(140,140,140,.1);color:var(--n7);}
+.status-tag.rejected{background:rgba(255,77,79,.1);color:var(--c-error);}
+.status-tag .dot{width:6px;height:6px;border-radius:50%;margin-right:4px;}
+.status-tag.pending .dot{background:var(--c-warning);animation:pulse 1.5s ease infinite;}
+.status-tag.processing .dot{background:var(--c-primary);animation:pulse 1.5s ease infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+.as-card__body{padding:var(--s3);}
+.as-card__product{display:flex;gap:var(--s2);}
+.as-card__img{width:64px;height:64px;border-radius:var(--r-card);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--n7);}
+.as-card__info{flex:1;min-width:0;}
+.as-card__name{font-size:var(--fs-base);color:var(--n10);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.as-card__sku{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+.as-card__detail{display:flex;align-items:center;justify-content:space-between;margin-top:var(--s2);}
+.as-card__type{font-size:var(--fs-sm);color:var(--n9);}
+.as-card__type .tag{display:inline-block;padding:1px 6px;border-radius:var(--r-base);font-size:10px;font-weight:var(--fw-medium);margin-right:4px;}
+.as-card__type .tag.refund{background:rgba(22,119,255,.1);color:var(--c-primary);}
+.as-card__type .tag.return{background:rgba(250,173,20,.1);color:var(--c-warning);}
+.as-card__amount{font-size:var(--fs-lg);color:var(--c-error);font-weight:var(--fw-semibold);}
+
+.as-card__footer{display:flex;align-items:center;justify-content:space-between;margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--n3);}
+.as-card__time{font-size:var(--fs-sm);color:var(--n7);}
+.as-card__actions{display:flex;gap:var(--s2);}
+.btn-sm{display:inline-flex;align-items:center;justify-content:center;padding:5px 14px;border-radius:var(--r-base);font-size:var(--fs-sm);font-weight:var(--fw-medium);cursor:pointer;border:none;font-family:var(--ff-app);transition:opacity .2s;}
+.btn-sm:active{opacity:.85;}
+.btn-sm--primary{background:var(--c-primary);color:#fff;}
+.btn-sm--outline{background:var(--n1);color:var(--c-primary);border:1px solid var(--c-primary);}
+.btn-sm--danger{background:var(--n1);color:var(--c-error);border:1px solid var(--c-error);}
+.btn-sm--default{background:var(--n2);color:var(--n9);}
+
+/* Load More */
+.load-more{display:flex;align-items:center;justify-content:center;gap:var(--s2);padding:var(--s4);color:var(--n7);font-size:var(--fs-sm);}
+
+/* Status Preview Section */
+.status-section{margin-top:var(--s6);padding-top:var(--s4);border-top:8px solid var(--n2);}
+.status-section__title{font-size:var(--fs-base);color:var(--n9);font-weight:var(--fw-medium);margin-bottom:var(--s3);display:flex;align-items:center;gap:var(--s2);}
+.status-section__title::before{content:'';width:3px;height:14px;background:var(--c-primary);border-radius:2px;}
+
+/* Skeleton */
+.skeleton-card{background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s3);margin-bottom:var(--s3);overflow:hidden;}
+.skeleton{background:linear-gradient(90deg,var(--n2) 25%,var(--n3) 37%,var(--n2) 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite;border-radius:var(--r-base);}
+@keyframes shimmer{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
+.skeleton-img{width:64px;height:64px;border-radius:var(--r-card);}
+.skeleton-line{height:12px;border-radius:var(--r-base);}
+.skeleton-line.short{width:50%;}
+.skeleton-line.mid{width:75%;}
+.skeleton-head{height:32px;border-radius:var(--r-card);margin-bottom:var(--s3);}
+
+/* Empty State */
+.empty-state{background:var(--n1);border-radius:var(--r-lg);padding:var(--s12) var(--s4);text-align:center;box-shadow:var(--sh-card);}
+.empty-state__icon{width:96px;height:96px;margin:0 auto var(--s4);}
+.empty-state__title{font-size:var(--fs-base);color:var(--n7);margin-bottom:var(--s3);}
+.empty-state__btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 24px;background:var(--c-primary);color:#fff;border-radius:var(--r-base);font-size:var(--fs-base);font-weight:var(--fw-medium);cursor:pointer;border:none;}
+
+/* Error State */
+.error-state{background:var(--n1);border-radius:var(--r-lg);padding:var(--s12) var(--s4);text-align:center;box-shadow:var(--sh-card);}
+.error-state__icon{width:64px;height:64px;margin:0 auto var(--s4);color:var(--c-error);}
+.error-state__title{font-size:var(--fs-base);color:var(--n9);margin-bottom:var(--s2);}
+.error-state__desc{font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s4);}
+.error-state__btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 24px;background:var(--n1);color:var(--c-primary);border:1px solid var(--c-primary);border-radius:var(--r-base);font-size:var(--fs-base);font-weight:var(--fw-medium);cursor:pointer;gap:4px;}
+</style>
+</head>
+<body>
+
+<!-- NavBar -->
+<div class="navbar">
+  <div class="nav-back">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15.5 4L8 11.5L15.5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="nav-title">我的售后</div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active"><div class="tab__text">全部</div></div>
+  <div class="tab"><div class="tab__text">处理中</div></div>
+  <div class="tab"><div class="tab__text">已完成</div></div>
+</div>
+
+<!-- Content -->
+<div class="content">
+
+  <!-- After-Sales List -->
+  <div class="as-list">
+
+    <!-- Card 1: Pending Review -->
+    <div class="as-card">
+      <div class="as-card__head">
+        <div class="as-card__no">售后单号 <span class="no-value">AS20260726001</span></div>
+        <div class="status-tag pending"><span class="dot"></span>待卖家审核</div>
+      </div>
+      <div class="as-card__body">
+        <div class="as-card__product">
+          <div class="as-card__img" style="background:linear-gradient(135deg,#FF6B6B,#FF8E8E);">T恤图</div>
+          <div class="as-card__info">
+            <div class="as-card__name">南极人纯棉短袖T恤 男士夏季宽松透气半袖打底衫</div>
+            <div class="as-card__sku">规格：红色 L</div>
+            <div class="as-card__detail">
+              <div class="as-card__type"><span class="tag refund">仅退款</span>质量问题</div>
+              <div class="as-card__amount">¥99.00</div>
+            </div>
+          </div>
+        </div>
+        <div class="as-card__footer">
+          <div class="as-card__time">2026-07-26 10:23</div>
+          <div class="as-card__actions">
+            <button class="btn-sm btn-sm--danger">撤销</button>
+            <button class="btn-sm btn-sm--outline">查看详情</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Processing - Refund -->
+    <div class="as-card">
+      <div class="as-card__head">
+        <div class="as-card__no">售后单号 <span class="no-value">AS20260725001</span></div>
+        <div class="status-tag processing"><span class="dot"></span>退款中</div>
+      </div>
+      <div class="as-card__body">
+        <div class="as-card__product">
+          <div class="as-card__img" style="background:linear-gradient(135deg,#A8DADC,#6FA8DC);">牛仔裤</div>
+          <div class="as-card__info">
+            <div class="as-card__name">南极人男士牛仔裤 直筒宽松弹力长裤</div>
+            <div class="as-card__sku">规格：深蓝色 32</div>
+            <div class="as-card__detail">
+              <div class="as-card__type"><span class="tag return">退货退款</span>尺码不合</div>
+              <div class="as-card__amount">¥199.00</div>
+            </div>
+          </div>
+        </div>
+        <div class="as-card__footer">
+          <div class="as-card__time">2026-07-25 14:30</div>
+          <div class="as-card__actions">
+            <button class="btn-sm btn-sm--outline">查看详情</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Completed -->
+    <div class="as-card">
+      <div class="as-card__head">
+        <div class="as-card__no">售后单号 <span class="no-value">AS20260720001</span></div>
+        <div class="status-tag completed">已完成</div>
+      </div>
+      <div class="as-card__body">
+        <div class="as-card__product">
+          <div class="as-card__img" style="background:linear-gradient(135deg,#FFE66D,#FFC93C);">袜子图</div>
+          <div class="as-card__info">
+            <div class="as-card__name">南极人男士纯棉袜 5双装 透气抗菌防臭</div>
+            <div class="as-card__sku">规格：混色 5双装</div>
+            <div class="as-card__detail">
+              <div class="as-card__type"><span class="tag refund">仅退款</span>不喜欢</div>
+              <div class="as-card__amount">¥59.00</div>
+            </div>
+          </div>
+        </div>
+        <div class="as-card__footer">
+          <div class="as-card__time">2026-07-20 09:15</div>
+          <div class="as-card__actions">
+            <button class="btn-sm btn-sm--default">查看详情</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 4: Completed - Return Refund -->
+    <div class="as-card">
+      <div class="as-card__head">
+        <div class="as-card__no">售后单号 <span class="no-value">AS20260715002</span></div>
+        <div class="status-tag completed">已完成</div>
+      </div>
+      <div class="as-card__body">
+        <div class="as-card__product">
+          <div class="as-card__img" style="background:linear-gradient(135deg,#B8B8B8,#7C7C7C);">短裤图</div>
+          <div class="as-card__info">
+            <div class="as-card__name">南极人男士冰丝休闲短裤 夏季速干透气五分裤</div>
+            <div class="as-card__sku">规格：黑色 M</div>
+            <div class="as-card__detail">
+              <div class="as-card__type"><span class="tag return">退货退款</span>与描述不符</div>
+              <div class="as-card__amount">¥79.00</div>
+            </div>
+          </div>
+        </div>
+        <div class="as-card__footer">
+          <div class="as-card__time">2026-07-15 16:42</div>
+          <div class="as-card__actions">
+            <button class="btn-sm btn-sm--default">查看详情</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 5: Cancelled -->
+    <div class="as-card">
+      <div class="as-card__head">
+        <div class="as-card__no">售后单号 <span class="no-value">AS20260710003</span></div>
+        <div class="status-tag cancelled">已撤销</div>
+      </div>
+      <div class="as-card__body">
+        <div class="as-card__product">
+          <div class="as-card__img" style="background:linear-gradient(135deg,#D4A5A5,#C9A0A0);">背心图</div>
+          <div class="as-card__info">
+            <div class="as-card__name">南极人男士冰丝背心 夏季冰丝凉爽无袖</div>
+            <div class="as-card__sku">规格：白色 L</div>
+            <div class="as-card__detail">
+              <div class="as-card__type"><span class="tag refund">仅退款</span>不喜欢</div>
+              <div class="as-card__amount" style="color:var(--n7);">¥39.00</div>
+            </div>
+          </div>
+        </div>
+        <div class="as-card__footer">
+          <div class="as-card__time">2026-07-10 11:20</div>
+          <div class="as-card__actions">
+            <button class="btn-sm btn-sm--default">查看详情</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Load More -->
+  <div class="load-more">
+    <span>没有更多了</span>
+  </div>
+
+  <!-- Status Preview Section -->
+  <div class="status-section">
+    <div class="status-section__title">交互状态预览</div>
+
+    <!-- Skeleton Loading -->
+    <div style="font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s2);">加载骨架屏</div>
+    <div class="skeleton-card">
+      <div class="skeleton skeleton-head"></div>
+      <div style="display:flex;gap:var(--s2);">
+        <div class="skeleton skeleton-img"></div>
+        <div style="flex:1;">
+          <div class="skeleton skeleton-line mid" style="margin-bottom:6px;"></div>
+          <div class="skeleton skeleton-line short" style="height:10px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div style="font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s2);margin-top:var(--s4);">空数据状态</div>
+    <div class="empty-state">
+      <div class="empty-state__icon">
+        <svg viewBox="0 0 120 120" fill="none">
+          <rect x="20" y="25" width="80" height="70" rx="8" fill="#F5F5F5"/>
+          <path d="M20 45h80" stroke="#D9D9D9" stroke-width="2"/>
+          <rect x="30" y="55" width="40" height="24" rx="4" fill="#E8E8E8"/>
+          <rect x="76" y="55" width="14" height="14" rx="3" fill="#E8E8E8"/>
+          <rect x="76" y="73" width="14" height="6" rx="3" fill="#E8E8E8"/>
+          <circle cx="30" cy="35" r="3" fill="#FF6B6B"/>
+          <circle cx="38" cy="35" r="3" fill="#FFE66D"/>
+          <circle cx="46" cy="35" r="3" fill="#52C41A"/>
+        </svg>
+      </div>
+      <div class="empty-state__title">暂无售后记录</div>
+      <button class="empty-state__btn">去逛逛</button>
+    </div>
+
+    <!-- Error State -->
+    <div style="font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s2);margin-top:var(--s4);">错误状态</div>
+    <div class="error-state">
+      <div class="error-state__icon">
+        <svg viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="28" stroke="#FF4D4F" stroke-width="3"/>
+          <path d="M22 22l20 20M42 22L22 42" stroke="#FF4D4F" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="error-state__title">加载失败</div>
+      <div class="error-state__desc">网络异常，请检查后重试</div>
+      <button class="error-state__btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M1 4v6h6M23 20v-6h-6M3.5 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0 0 20.5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        重新加载
+      </button>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>发表评价 - 南极人纯棉短袖T恤</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);-webkit-font-smoothing:antialiased;}
+body{max-width:375px;margin:0 auto;min-height:100vh;background:var(--n2);box-shadow:0 0 24px rgba(0,0,0,.08);overflow-x:hidden;padding-bottom:70px;}
+
+/* NavBar */
+.navbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;height:46px;background:var(--n1);border-bottom:1px solid var(--n3);padding:0 var(--s3);}
+.navbar .nav-back{display:flex;align-items:center;justify-content:center;width:32px;height:32px;cursor:pointer;color:var(--n10);}
+.navbar .nav-title{flex:1;text-align:center;font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);margin-right:32px;}
+
+/* Content */
+.content{padding:var(--s3);display:flex;flex-direction:column;gap:var(--s3);}
+
+/* Section Card */
+.section-card{background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);overflow:hidden;}
+.section-card__body{padding:var(--s3);}
+
+/* Product Card */
+.product-card{background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s3);display:flex;gap:var(--s3);}
+.product-card__img{width:72px;height:72px;border-radius:var(--r-card);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7);}
+.product-card__info{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0;}
+.product-card__name{font-size:var(--fs-base);color:var(--n10);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.product-card__sku{font-size:var(--fs-sm);color:var(--n7);}
+.product-card__price{font-size:var(--fs-base);color:var(--c-error);font-weight:var(--fw-semibold);}
+
+/* Rating Section */
+.rating-section{background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s3);}
+.rating-section__title{font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium);margin-bottom:var(--s3);}
+.rating-overall{display:flex;flex-direction:column;align-items:center;gap:var(--s2);padding:var(--s4) 0;border-bottom:1px solid var(--n3);}
+.rating-overall__stars{display:flex;gap:var(--s1);}
+.rating-overall__stars .star-btn{width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n5);transition:color .2s;}
+.rating-overall__stars .star-btn.active{color:var(--c-warning);}
+.rating-overall__desc{font-size:var(--fs-lg);font-weight:var(--fw-medium);}
+.rating-overall__desc.good{color:var(--c-success);}
+.rating-overall__desc.mid{color:var(--c-warning);}
+.rating-overall__desc.bad{color:var(--c-error);}
+.rating-items{display:flex;flex-direction:column;gap:var(--s3);margin-top:var(--s3);}
+.rating-item{display:flex;align-items:center;justify-content:space-between;}
+.rating-item__label{font-size:var(--fs-base);color:var(--n9);}
+.rating-item__stars{display:flex;gap:2px;}
+.rating-item__stars .star-btn{width:24px;height:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--n5);transition:color .2s;}
+.rating-item__stars .star-btn.active{color:var(--c-warning);}
+
+/* Textarea */
+.textarea-section{background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s3);}
+.textarea-section__title{font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium);margin-bottom:var(--s2);}
+.textarea-wrap{position:relative;}
+.textarea{width:100%;min-height:120px;border:1px solid var(--n3);border-radius:var(--r-card);padding:var(--s3);font-size:var(--fs-base);font-family:var(--ff-app);color:var(--n10);resize:none;line-height:1.6;outline:none;transition:border-color .2s;}
+.textarea:focus{border-color:var(--c-primary);}
+.textarea::placeholder{color:var(--n7);}
+.textarea-counter{text-align:right;font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s1);}
+.textarea-counter .current{color:var(--n9);}
+.textarea-counter .max{color:var(--n7);}
+.textarea-tips{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s2);display:flex;align-items:center;gap:4px;}
+
+/* Image Uploader */
+.uploader-section{background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s3);}
+.uploader-section__title{font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium);margin-bottom:var(--s2);display:flex;align-items:center;justify-content:space-between;}
+.uploader-section__title .hint{font-size:var(--fs-sm);color:var(--n7);font-weight:var(--fw-normal);}
+.uploader-grid{display:flex;flex-wrap:wrap;gap:var(--s2);}
+.uploader-item{width:96px;height:96px;border-radius:var(--r-card);position:relative;overflow:hidden;}
+.uploader-item__img{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7);}
+.uploader-item__delete{position:absolute;top:4px;right:4px;width:18px;height:18px;background:rgba(0,0,0,.5);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.uploader-item__delete svg{color:#fff;}
+.uploader-add{width:96px;height:96px;border:1px dashed var(--n5);border-radius:var(--r-card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s1);cursor:pointer;color:var(--n7);transition:border-color .2s;}
+.uploader-add:hover{border-color:var(--c-primary);color:var(--c-primary);}
+.uploader-add__text{font-size:var(--fs-sm);}
+
+/* Switch Cell */
+.switch-cell{background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s3) var(--s4);display:flex;align-items:center;justify-content:space-between;}
+.switch-cell__left{display:flex;flex-direction:column;gap:2px;}
+.switch-cell__label{font-size:var(--fs-base);color:var(--n10);}
+.switch-cell__desc{font-size:var(--fs-sm);color:var(--n7);}
+.switch{position:relative;width:44px;height:24px;background:var(--n5);border-radius:12px;cursor:pointer;transition:background .2s;}
+.switch.on{background:var(--c-primary);}
+.switch__thumb{position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s cubic-bezier(0.2,0,0,1);box-shadow:0 2px 4px rgba(0,0,0,.2);}
+.switch.on .switch__thumb{transform:translateX(20px);}
+
+/* Submit Bar */
+.submit-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:375px;background:var(--n1);border-top:1px solid var(--n3);padding:var(--s2) var(--s3);box-shadow:0 -2px 8px rgba(0,0,0,.04);z-index:100;}
+.submit-btn{width:100%;height:44px;background:var(--c-primary);color:#fff;border:none;border-radius:var(--r-base);font-size:var(--fs-lg);font-weight:var(--fw-semibold);font-family:var(--ff-app);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:var(--s2);transition:opacity .2s;}
+.submit-btn:active{opacity:.85;}
+.submit-btn .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none;}
+.submit-btn.loading .spinner{display:block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<!-- NavBar -->
+<div class="navbar">
+  <div class="nav-back">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15.5 4L8 11.5L15.5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="nav-title">发表评价</div>
+</div>
+
+<!-- Content -->
+<div class="content">
+
+  <!-- Product Card -->
+  <div class="product-card">
+    <div class="product-card__img" style="background:linear-gradient(135deg,#FF6B6B,#FF8E8E);">T恤图</div>
+    <div class="product-card__info">
+      <div class="product-card__name">南极人纯棉短袖T恤 男士夏季宽松透气半袖打底衫</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+        <div class="product-card__sku">规格：红色 L</div>
+        <div class="product-card__price">¥99.00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overall Rating -->
+  <div class="rating-section">
+    <div class="rating-section__title">总体评分</div>
+    <div class="rating-overall">
+      <div class="rating-overall__stars">
+        <div class="star-btn active">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+        </div>
+        <div class="star-btn active">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+        </div>
+        <div class="star-btn active">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+        </div>
+        <div class="star-btn active">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+        </div>
+        <div class="star-btn active">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+        </div>
+      </div>
+      <div class="rating-overall__desc good">好评</div>
+    </div>
+
+    <!-- Sub Ratings -->
+    <div class="rating-items">
+      <div class="rating-item">
+        <div class="rating-item__label">描述相符</div>
+        <div class="rating-item__stars">
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+        </div>
+      </div>
+      <div class="rating-item">
+        <div class="rating-item__label">物流服务</div>
+        <div class="rating-item__stars">
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+          <div class="star-btn"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+        </div>
+      </div>
+      <div class="rating-item">
+        <div class="rating-item__label">服务态度</div>
+        <div class="rating-item__stars">
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+          <div class="star-btn active"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Textarea -->
+  <div class="textarea-section">
+    <div class="textarea-section__title">评价内容</div>
+    <div class="textarea-wrap">
+      <textarea class="textarea" placeholder="说说商品体验吧～ 宝宝的真实评价对其他买家很重要哦" maxlength="500">质量不错，面料舒服，尺码标准，穿着很合适。洗了一次没有掉色也没有变形，性价比很高！</textarea>
+      <div class="textarea-counter"><span class="current">37</span>/<span class="max">500</span></div>
+    </div>
+    <div class="textarea-tips">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color:var(--c-warning);"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      <span>至少输入 5 个字，最多 500 字</span>
+    </div>
+  </div>
+
+  <!-- Image Uploader -->
+  <div class="uploader-section">
+    <div class="uploader-section__title">
+      <span>添加图片</span>
+      <span class="hint">最多 6 张，每张不超过 5MB</span>
+    </div>
+    <div class="uploader-grid">
+      <div class="uploader-item">
+        <div class="uploader-item__img" style="background:linear-gradient(135deg,#FF6B6B,#FF8E8E);">评价图1</div>
+        <div class="uploader-item__delete">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="uploader-item">
+        <div class="uploader-item__img" style="background:linear-gradient(135deg,#4ECDC4,#44A8A0);">评价图2</div>
+        <div class="uploader-item__delete">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="uploader-add">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span class="uploader-add__text">添加图片</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Anonymous Switch -->
+  <div class="switch-cell">
+    <div class="switch-cell__left">
+      <div class="switch-cell__label">匿名评价</div>
+      <div class="switch-cell__desc">开启后将以「匿名用户」展示</div>
+    </div>
+    <div class="switch on">
+      <div class="switch__thumb"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Submit Bar -->
+<div class="submit-bar">
+  <button class="submit-btn">
+    <div class="spinner"></div>
+    <span>提交评价</span>
+  </button>
+</div>
+
+</body>
+</html>

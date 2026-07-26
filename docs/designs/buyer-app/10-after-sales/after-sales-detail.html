@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>售后详情</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);-webkit-font-smoothing:antialiased;}
+body{max-width:375px;margin:0 auto;min-height:100vh;background:var(--n2);box-shadow:0 0 24px rgba(0,0,0,.08);overflow-x:hidden;padding-bottom:70px;}
+
+/* NavBar */
+.navbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;height:46px;background:var(--n1);border-bottom:1px solid var(--n3);padding:0 var(--s3);}
+.navbar .nav-back{display:flex;align-items:center;justify-content:center;width:32px;height:32px;cursor:pointer;color:var(--n10);}
+.navbar .nav-title{flex:1;text-align:center;font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);margin-right:32px;}
+
+/* Content */
+.content{padding:var(--s3);display:flex;flex-direction:column;gap:var(--s3);}
+
+/* Status Header */
+.status-header{background:linear-gradient(135deg,#FAAD14 0%,#F0A800 100%);border-radius:var(--r-lg);padding:var(--s4);color:#fff;box-shadow:var(--sh-card);}
+.status-header__title{font-size:var(--fs-xl);font-weight:var(--fw-semibold);display:flex;align-items:center;gap:var(--s2);}
+.status-header__desc{font-size:var(--fs-sm);opacity:.9;margin-top:var(--s1);}
+.status-header__amount{display:flex;align-items:baseline;gap:var(--s1);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid rgba(255,255,255,.2);}
+.status-header__amount-label{font-size:var(--fs-sm);opacity:.9;}
+.status-header__amount-value{font-size:var(--fs-2xl);font-weight:var(--fw-semibold);}
+
+/* Card */
+.card{background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);padding:var(--s3);}
+.card__title{font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium);margin-bottom:var(--s3);display:flex;align-items:center;gap:var(--s2);}
+.card__title::before{content:'';width:3px;height:14px;background:var(--c-primary);border-radius:2px;}
+
+/* Progress Steps */
+.steps{display:flex;flex-direction:column;gap:0;}
+.step{display:flex;gap:var(--s3);position:relative;padding-bottom:var(--s4);}
+.step:last-child{padding-bottom:0;}
+.step__line{position:absolute;left:9px;top:24px;bottom:0;width:2px;background:var(--n3);}
+.step:last-child .step__line{display:none;}
+.step__line.active{background:var(--c-primary);}
+.step__dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;z-index:1;background:var(--n1);border:2px solid var(--n5);position:relative;}
+.step__dot.done{border-color:var(--c-primary);background:var(--c-primary);}
+.step__dot.done svg{color:#fff;}
+.step__dot.active{border-color:var(--c-warning);background:var(--c-warning);}
+.step__dot.active::after{content:'';width:8px;height:8px;border-radius:50%;background:#fff;position:absolute;}
+.step__content{flex:1;padding-bottom:0;}
+.step__title{font-size:var(--fs-base);color:var(--n9);font-weight:var(--fw-medium);display:flex;align-items:center;gap:var(--s2);}
+.step__title.done{color:var(--n10);}
+.step__title.active{color:var(--c-warning);}
+.step__time{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+.step__desc{font-size:var(--fs-sm);color:var(--n7);margin-top:2px;}
+
+/* Product Card */
+.product-row{display:flex;gap:var(--s2);}
+.product-row__img{width:64px;height:64px;border-radius:var(--r-card);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--n7);}
+.product-row__info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between;}
+.product-row__name{font-size:var(--fs-base);color:var(--n10);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.product-row__bottom{display:flex;justify-content:space-between;align-items:center;}
+.product-row__sku{font-size:var(--fs-sm);color:var(--n7);}
+.product-row__price{font-size:var(--fs-sm);color:var(--c-error);font-weight:var(--fw-medium);}
+
+/* Info Group */
+.info-row{display:flex;align-items:flex-start;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--n3);}
+.info-row:last-child{border-bottom:none;}
+.info-row__label{font-size:var(--fs-base);color:var(--n7);min-width:76px;flex-shrink:0;}
+.info-row__value{flex:1;font-size:var(--fs-base);color:var(--n10);text-align:right;word-break:break-all;}
+.info-row__value.copy{display:flex;align-items:center;justify-content:flex-end;gap:var(--s1);cursor:pointer;}
+.info-row__value .copy-icon{color:var(--c-primary);flex-shrink:0;}
+.info-row__value .tag{display:inline-block;padding:2px 8px;border-radius:var(--r-base);font-size:var(--fs-sm);font-weight:var(--fw-medium);}
+.info-row__value .tag.refund{background:rgba(22,119,255,.1);color:var(--c-primary);}
+.info-row__value .tag.return{background:rgba(250,173,20,.1);color:var(--c-warning);}
+
+/* Evidence Gallery */
+.evidence-grid{display:flex;flex-wrap:wrap;gap:var(--s2);}
+.evidence-item{width:72px;height:72px;border-radius:var(--r-card);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--n7);cursor:pointer;}
+
+/* Negotiation Timeline */
+.negotiation{display:flex;flex-direction:column;gap:var(--s4);}
+.nego-item{display:flex;gap:var(--s2);}
+.nego-item__avatar{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-sm);font-weight:var(--fw-medium);}
+.nego-item__body{flex:1;}
+.nego-item__head{display:flex;align-items:center;gap:var(--s2);margin-bottom:4px;}
+.nego-item__name{font-size:var(--fs-sm);color:var(--n9);font-weight:var(--fw-medium);}
+.nego-item__role{font-size:10px;padding:1px 6px;border-radius:var(--r-base);}
+.nego-item__role.buyer{background:rgba(22,119,255,.1);color:var(--c-primary);}
+.nego-item__role.seller{background:rgba(82,196,26,.1);color:var(--c-success);}
+.nego-item__role.platform{background:rgba(140,140,140,.1);color:var(--n7);}
+.nego-item__time{font-size:var(--fs-sm);color:var(--n7);}
+.nego-item__bubble{background:var(--n2);border-radius:var(--r-card);padding:var(--s2) var(--s3);font-size:var(--fs-sm);color:var(--n9);line-height:1.5;}
+.nego-item__bubble.seller{background:rgba(82,196,26,.06);}
+.nego-item__bubble.platform{background:rgba(250,173,20,.06);}
+
+/* Action Bar */
+.action-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:375px;background:var(--n1);border-top:1px solid var(--n3);padding:var(--s2) var(--s3);box-shadow:0 -2px 8px rgba(0,0,0,.04);z-index:100;display:flex;gap:var(--s3);}
+.action-btn{flex:1;height:44px;border-radius:var(--r-base);font-size:var(--fs-lg);font-weight:var(--fw-semibold);font-family:var(--ff-app);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:var(--s2);transition:opacity .2s;border:none;}
+.action-btn:active{opacity:.85;}
+.action-btn--danger{background:var(--n1);color:var(--c-error);border:1px solid var(--c-error);}
+.action-btn--outline{background:var(--n1);color:var(--c-primary);border:1px solid var(--c-primary);}
+</style>
+</head>
+<body>
+
+<!-- NavBar -->
+<div class="navbar">
+  <div class="nav-back">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15.5 4L8 11.5L15.5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="nav-title">售后详情</div>
+</div>
+
+<!-- Content -->
+<div class="content">
+
+  <!-- Status Header -->
+  <div class="status-header">
+    <div class="status-header__title">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+      待卖家审核
+    </div>
+    <div class="status-header__desc">卖家将在 48 小时内处理，超时未处理系统将自动同意退款</div>
+    <div class="status-header__amount">
+      <span class="status-header__amount-label">退款金额</span>
+      <span class="status-header__amount-value">¥99.00</span>
+    </div>
+  </div>
+
+  <!-- Progress Steps -->
+  <div class="card">
+    <div class="card__title">售后进度</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step__line active"></div>
+        <div class="step__dot done">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="step__content">
+          <div class="step__title done">申请提交</div>
+          <div class="step__time">2026-07-26 10:23</div>
+          <div class="step__desc">您已提交售后申请，等待卖家审核</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step__line"></div>
+        <div class="step__dot active"></div>
+        <div class="step__content">
+          <div class="step__title active">卖家审核中</div>
+          <div class="step__time">预计 2026-07-28 10:23 前完成</div>
+          <div class="step__desc">卖家正在审核您的售后申请</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step__line"></div>
+        <div class="step__dot"></div>
+        <div class="step__content">
+          <div class="step__title">退款中</div>
+          <div class="step__time">待处理</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step__dot"></div>
+        <div class="step__content">
+          <div class="step__title">退款完成</div>
+          <div class="step__time">待处理</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Info -->
+  <div class="card">
+    <div class="card__title">商品信息</div>
+    <div class="product-row">
+      <div class="product-row__img" style="background:linear-gradient(135deg,#FF6B6B,#FF8E8E);">T恤图</div>
+      <div class="product-row__info">
+        <div class="product-row__name">南极人纯棉短袖T恤 男士夏季宽松透气半袖打底衫</div>
+        <div class="product-row__bottom">
+          <div class="product-row__sku">规格：红色 L</div>
+          <div class="product-row__price">¥99.00 ×1</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Info -->
+  <div class="card">
+    <div class="card__title">申请信息</div>
+    <div class="info-row">
+      <div class="info-row__label">售后单号</div>
+      <div class="info-row__value copy">
+        AS20260726001
+        <span class="copy-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="2"/></svg>
+        </span>
+      </div>
+    </div>
+    <div class="info-row">
+      <div class="info-row__label">订单编号</div>
+      <div class="info-row__value">NO202607261523001</div>
+    </div>
+    <div class="info-row">
+      <div class="info-row__label">售后类型</div>
+      <div class="info-row__value"><span class="tag refund">仅退款</span></div>
+    </div>
+    <div class="info-row">
+      <div class="info-row__label">申请原因</div>
+      <div class="info-row__value">质量问题</div>
+    </div>
+    <div class="info-row">
+      <div class="info-row__label">退款金额</div>
+      <div class="info-row__value" style="color:var(--c-error);font-weight:var(--fw-semibold);">¥99.00</div>
+    </div>
+    <div class="info-row">
+      <div class="info-row__label">问题描述</div>
+      <div class="info-row__value" style="text-align:left;line-height:1.5;">收到商品后发现领口处有线头脱线，做工存在质量问题，拍照已上传凭证，请处理退款。</div>
+    </div>
+    <div class="info-row">
+      <div class="info-row__label">联系电话</div>
+      <div class="info-row__value">138****5678</div>
+    </div>
+    <div class="info-row">
+      <div class="info-row__label">申请时间</div>
+      <div class="info-row__value">2026-07-26 10:23:05</div>
+    </div>
+  </div>
+
+  <!-- Evidence -->
+  <div class="card">
+    <div class="card__title">凭证图片</div>
+    <div class="evidence-grid">
+      <div class="evidence-item" style="background:linear-gradient(135deg,#FF6B6B,#FF4444);">凭证1</div>
+      <div class="evidence-item" style="background:linear-gradient(135deg,#A8DADC,#6FA8DC);">凭证2</div>
+    </div>
+  </div>
+
+  <!-- Negotiation Records -->
+  <div class="card">
+    <div class="card__title">协商记录</div>
+    <div class="negotiation">
+      <div class="nego-item">
+        <div class="nego-item__avatar" style="background:var(--c-primary);">我</div>
+        <div class="nego-item__body">
+          <div class="nego-item__head">
+            <span class="nego-item__name">买家</span>
+            <span class="nego-item__role buyer">本人</span>
+            <span class="nego-item__time">2026-07-26 10:23</span>
+          </div>
+          <div class="nego-item__bubble">收到商品后发现领口处有线头脱线，做工存在质量问题，请尽快处理退款。</div>
+        </div>
+      </div>
+      <div class="nego-item">
+        <div class="nego-item__avatar" style="background:var(--c-warning);">客</div>
+        <div class="nego-item__body">
+          <div class="nego-item__head">
+            <span class="nego-item__name">平台客服</span>
+            <span class="nego-item__role platform">系统</span>
+            <span class="nego-item__time">2026-07-26 10:24</span>
+          </div>
+          <div class="nego-item__bubble platform">您的售后申请已提交，已通知卖家在 48 小时内处理。如超时未处理，系统将自动同意退款。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Action Bar -->
+<div class="action-bar">
+  <button class="action-btn action-btn--danger">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    撤销申请
+  </button>
+  <button class="action-btn action-btn--outline">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    联系客服
+  </button>
+</div>
+
+</body>
+</html>

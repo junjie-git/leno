@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商品评价 - 南极人纯棉短袖T恤</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{font-family:var(--ff-app);font-size:var(--fs-base);color:var(--n10);background:var(--n3);-webkit-font-smoothing:antialiased;}
+body{max-width:375px;margin:0 auto;min-height:100vh;background:var(--n2);box-shadow:0 0 24px rgba(0,0,0,.08);overflow-x:hidden;}
+
+/* NavBar */
+.navbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;height:46px;background:var(--n1);border-bottom:1px solid var(--n3);padding:0 var(--s3);}
+.navbar .nav-back{display:flex;align-items:center;justify-content:center;width:32px;height:32px;cursor:pointer;color:var(--n10);}
+.navbar .nav-title{flex:1;text-align:center;font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);margin-right:32px;}
+.navbar .nav-title .count{color:var(--n7);font-size:var(--fs-base);font-weight:var(--fw-normal);}
+
+/* Content */
+.content{padding:var(--s3);}
+
+/* Rating Overview Card */
+.rating-overview{background:var(--n1);border-radius:var(--r-lg);padding:var(--s4);box-shadow:var(--sh-card);margin-bottom:var(--s3);}
+.rating-overview__top{display:flex;align-items:center;gap:var(--s6);}
+.rating-overview__score{display:flex;flex-direction:column;align-items:center;min-width:96px;border-right:1px solid var(--n3);padding-right:var(--s4);}
+.rating-overview__score-num{font-size:var(--fs-3xl);font-weight:var(--fw-semibold);color:var(--c-primary);line-height:1.1;}
+.rating-overview__score-stars{display:flex;gap:2px;margin-top:var(--s1);}
+.rating-overview__score-desc{font-size:var(--fs-sm);color:var(--n7);margin-top:var(--s2);}
+.rating-overview__dist{flex:1;display:flex;flex-direction:column;gap:6px;}
+.dist-row{display:flex;align-items:center;gap:var(--s2);}
+.dist-row__label{font-size:var(--fs-sm);color:var(--n9);width:28px;display:flex;align-items:center;gap:2px;}
+.dist-row__label .star-fill{color:var(--c-warning);}
+.dist-row__bar{flex:1;height:8px;background:var(--n3);border-radius:4px;overflow:hidden;}
+.dist-row__bar-fill{height:100%;border-radius:4px;background:var(--c-warning);transition:width .6s cubic-bezier(0.2,0,0,1);}
+.dist-row__bar-fill.s5{background:var(--c-success);}
+.dist-row__bar-fill.s4{background:var(--c-warning);}
+.dist-row__bar-fill.s3{background:var(--c-warning);}
+.dist-row__bar-fill.s2{background:var(--c-error);}
+.dist-row__bar-fill.s1{background:var(--c-error);}
+.dist-row__pct{font-size:var(--fs-sm);color:var(--n7);width:36px;text-align:right;}
+.rating-overview__bottom{margin-top:var(--s4);padding-top:var(--s3);border-top:1px solid var(--n3);display:flex;align-items:center;justify-content:space-between;}
+.rating-overview__rate{font-size:var(--fs-sm);color:var(--n7);}
+.rating-overview__rate strong{color:var(--c-success);font-size:var(--fs-lg);font-weight:var(--fw-semibold);margin:0 4px;}
+
+/* Tag Filter */
+.tag-filter{display:flex;gap:var(--s2);padding:var(--s3);background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);margin-bottom:var(--s3);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.tag-filter::-webkit-scrollbar{display:none;}
+.tag-filter__item{flex-shrink:0;display:flex;align-items:center;gap:4px;padding:6px 14px;border-radius:var(--r-base);background:var(--n2);font-size:var(--fs-sm);color:var(--n9);cursor:pointer;transition:all .2s;white-space:nowrap;}
+.tag-filter__item.active{background:var(--c-primary);color:#fff;}
+.tag-filter__item .badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--n3);font-size:10px;color:var(--n7);font-weight:var(--fw-medium);}
+.tag-filter__item.active .badge{background:rgba(255,255,255,.3);color:#fff;}
+
+/* Review Card */
+.review-list{display:flex;flex-direction:column;gap:var(--s3);}
+.review-card{background:var(--n1);border-radius:var(--r-lg);padding:var(--s3);box-shadow:var(--sh-card);}
+.review-card__head{display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s2);}
+.review-card__avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-base);font-weight:var(--fw-medium);}
+.review-card__user{flex:1;}
+.review-card__name{font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium);}
+.review-card__meta{display:flex;align-items:center;gap:var(--s2);margin-top:2px;}
+.review-card__stars{display:flex;gap:1px;}
+.review-card__stars .star{width:14px;height:14px;}
+.review-card__date{font-size:var(--fs-sm);color:var(--n7);}
+.review-card__sku{font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s2);margin-top:var(--s1);}
+.review-card__sku .sku-tag{display:inline-block;background:var(--n2);border-radius:var(--r-base);padding:2px 8px;color:var(--n9);}
+.review-card__content{font-size:var(--fs-base);color:var(--n9);line-height:1.6;margin-bottom:var(--s2);}
+.review-card__images{display:flex;flex-wrap:wrap;gap:var(--s2);margin-bottom:var(--s2);}
+.review-card__img{width:72px;height:72px;border-radius:var(--r-card);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:var(--fs-sm);color:var(--n7);cursor:pointer;}
+.review-card__reply{background:var(--n2);border-radius:var(--r-card);padding:var(--s2) var(--s3);margin-top:var(--s2);}
+.review-card__reply-label{font-size:var(--fs-sm);color:var(--c-primary);font-weight:var(--fw-medium);margin-bottom:4px;display:flex;align-items:center;gap:4px;}
+.review-card__reply-text{font-size:13px;color:var(--n9);line-height:1.5;}
+.review-card__reply-time{font-size:var(--fs-sm);color:var(--n7);margin-top:4px;}
+.review-card__append{margin-top:var(--s2);padding:var(--s2) var(--s3);background:#FFFBE6;border-radius:var(--r-card);border-left:3px solid var(--c-warning);}
+.review-card__append-label{font-size:var(--fs-sm);color:var(--c-warning);font-weight:var(--fw-medium);margin-bottom:4px;}
+.review-card__append-text{font-size:13px;color:var(--n9);line-height:1.5;}
+.review-card__append-time{font-size:var(--fs-sm);color:var(--n7);margin-top:4px;}
+.review-card__footer{display:flex;align-items:center;justify-content:space-between;margin-top:var(--s2);}
+.review-card__time{font-size:var(--fs-sm);color:var(--n7);}
+.review-card__actions{display:flex;gap:var(--s3);}
+.review-card__action{display:flex;align-items:center;gap:4px;font-size:var(--fs-sm);color:var(--n7);cursor:pointer;}
+.review-card__action svg{width:14px;height:14px;}
+
+/* Load More */
+.load-more{display:flex;align-items:center;justify-content:center;gap:var(--s2);padding:var(--s4);color:var(--n7);font-size:var(--fs-sm);}
+.load-more .spinner{width:14px;height:14px;border:2px solid var(--n3);border-top-color:var(--c-primary);border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Status Preview Section */
+.status-section{margin-top:var(--s6);padding-top:var(--s6);border-top:8px solid var(--n2);}
+.status-section__title{font-size:var(--fs-base);color:var(--n9);font-weight:var(--fw-medium);margin-bottom:var(--s3);display:flex;align-items:center;gap:var(--s2);}
+.status-section__title::before{content:'';width:3px;height:14px;background:var(--c-primary);border-radius:2px;}
+
+/* Skeleton */
+.skeleton-card{background:var(--n1);border-radius:var(--r-lg);padding:var(--s3);box-shadow:var(--sh-card);margin-bottom:var(--s3);}
+.skeleton{background:linear-gradient(90deg,var(--n2) 25%,var(--n3) 37%,var(--n2) 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite;border-radius:var(--r-base);}
+@keyframes shimmer{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
+.skeleton-avatar{width:36px;height:36px;border-radius:50%;}
+.skeleton-line{height:12px;border-radius:var(--r-base);}
+.skeleton-line.short{width:60%;}
+.skeleton-line.mid{width:80%;}
+.skeleton-block{height:64px;border-radius:var(--r-card);margin-top:var(--s2);}
+.skeleton-img-row{display:flex;gap:var(--s2);margin-top:var(--s2);}
+.skeleton-img{width:72px;height:72px;border-radius:var(--r-card);}
+
+/* Empty State */
+.empty-state{background:var(--n1);border-radius:var(--r-lg);padding:var(--s12) var(--s4);text-align:center;box-shadow:var(--sh-card);}
+.empty-state__icon{width:96px;height:96px;margin:0 auto var(--s4);}
+.empty-state__title{font-size:var(--fs-base);color:var(--n7);margin-bottom:var(--s3);}
+.empty-state__btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 24px;background:var(--c-primary);color:#fff;border-radius:var(--r-base);font-size:var(--fs-base);font-weight:var(--fw-medium);cursor:pointer;border:none;}
+
+/* Error State */
+.error-state{background:var(--n1);border-radius:var(--r-lg);padding:var(--s12) var(--s4);text-align:center;box-shadow:var(--sh-card);}
+.error-state__icon{width:64px;height:64px;margin:0 auto var(--s4);color:var(--c-error);}
+.error-state__title{font-size:var(--fs-base);color:var(--n9);margin-bottom:var(--s2);}
+.error-state__desc{font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s4);}
+.error-state__btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 24px;background:var(--n1);color:var(--c-primary);border:1px solid var(--c-primary);border-radius:var(--r-base);font-size:var(--fs-base);font-weight:var(--fw-medium);cursor:pointer;gap:4px;}
+
+/* SVG helpers */
+.star{color:var(--c-warning);}
+.star-empty{color:var(--n5);}
+</style>
+</head>
+<body>
+
+<!-- NavBar -->
+<div class="navbar">
+  <div class="nav-back">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15.5 4L8 11.5L15.5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="nav-title">商品评价 <span class="count">(256条)</span></div>
+</div>
+
+<!-- Content -->
+<div class="content">
+
+  <!-- Rating Overview -->
+  <div class="rating-overview">
+    <div class="rating-overview__top">
+      <div class="rating-overview__score">
+        <div class="rating-overview__score-num">4.8</div>
+        <div class="rating-overview__score-stars">
+          <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+          <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+          <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+          <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+          <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+        </div>
+        <div class="rating-overview__score-desc">累计 256 条评价</div>
+      </div>
+      <div class="rating-overview__dist">
+        <div class="dist-row">
+          <div class="dist-row__label">5<span class="star-fill">★</span></div>
+          <div class="dist-row__bar"><div class="dist-row__bar-fill s5" style="width:85%"></div></div>
+          <div class="dist-row__pct">218</div>
+        </div>
+        <div class="dist-row">
+          <div class="dist-row__label">4<span class="star-fill">★</span></div>
+          <div class="dist-row__bar"><div class="dist-row__bar-fill s4" style="width:8%"></div></div>
+          <div class="dist-row__pct">20</div>
+        </div>
+        <div class="dist-row">
+          <div class="dist-row__label">3<span class="star-fill">★</span></div>
+          <div class="dist-row__bar"><div class="dist-row__bar-fill s3" style="width:4%"></div></div>
+          <div class="dist-row__pct">10</div>
+        </div>
+        <div class="dist-row">
+          <div class="dist-row__label">2<span class="star-fill">★</span></div>
+          <div class="dist-row__bar"><div class="dist-row__bar-fill s2" style="width:2%"></div></div>
+          <div class="dist-row__pct">5</div>
+        </div>
+        <div class="dist-row">
+          <div class="dist-row__label">1<span class="star-fill">★</span></div>
+          <div class="dist-row__bar"><div class="dist-row__bar-fill s1" style="width:1%"></div></div>
+          <div class="dist-row__pct">3</div>
+        </div>
+      </div>
+    </div>
+    <div class="rating-overview__bottom">
+      <div class="rating-overview__rate">好评率 <strong>96%</strong></div>
+      <div class="rating-overview__rate" style="color:var(--n7);">有图评价 89 条</div>
+    </div>
+  </div>
+
+  <!-- Tag Filter -->
+  <div class="tag-filter">
+    <div class="tag-filter__item active">全部 <span class="badge">256</span></div>
+    <div class="tag-filter__item">有图 <span class="badge">89</span></div>
+    <div class="tag-filter__item">好评 <span class="badge">238</span></div>
+    <div class="tag-filter__item">中评 <span class="badge">10</span></div>
+    <div class="tag-filter__item">差评 <span class="badge">8</span></div>
+    <div class="tag-filter__item">有追评 <span class="badge">12</span></div>
+  </div>
+
+  <!-- Review List -->
+  <div class="review-list">
+
+    <!-- Review 1 -->
+    <div class="review-card">
+      <div class="review-card__head">
+        <div class="review-card__avatar" style="background:#1677FF;">张</div>
+        <div class="review-card__user">
+          <div class="review-card__name">张***明</div>
+          <div class="review-card__meta">
+            <div class="review-card__stars">
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+            </div>
+            <div class="review-card__date">2026-07-25</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-card__sku"><span class="sku-tag">红色 L</span></div>
+      <div class="review-card__content">质量不错，面料舒服，尺码标准，穿着很合适。洗了一次没有掉色也没有变形，性价比很高，会回购！</div>
+      <div class="review-card__images">
+        <div class="review-card__img" style="background:linear-gradient(135deg,#FF6B6B,#FF8E8E);">商品图1</div>
+        <div class="review-card__img" style="background:linear-gradient(135deg,#4ECDC4,#44A8A0);">商品图2</div>
+        <div class="review-card__img" style="background:linear-gradient(135deg,#FFE66D,#FFC93C);">商品图3</div>
+      </div>
+      <div class="review-card__append">
+        <div class="review-card__append-label">买家追评</div>
+        <div class="review-card__append-text">穿了一周后追评：确实耐穿，领口没有变形，推荐购买。</div>
+        <div class="review-card__append-time">2026-08-01</div>
+      </div>
+      <div class="review-card__reply">
+        <div class="review-card__reply-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+          卖家回复
+        </div>
+        <div class="review-card__reply-text">感谢您的支持与认可！南极人一直注重品质，期待您再次光临。</div>
+        <div class="review-card__reply-time">2026-07-25 15:30</div>
+      </div>
+      <div class="review-card__footer">
+        <div class="review-card__time">2026-07-25 10:23</div>
+        <div class="review-card__actions">
+          <div class="review-card__action">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
+            128
+          </div>
+          <div class="review-card__action">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3z" stroke="currentColor" stroke-width="2"/></svg>
+            36
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Review 2 -->
+    <div class="review-card">
+      <div class="review-card__head">
+        <div class="review-card__avatar" style="background:#52C41A;">李</div>
+        <div class="review-card__user">
+          <div class="review-card__name">李***华</div>
+          <div class="review-card__meta">
+            <div class="review-card__stars">
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+            </div>
+            <div class="review-card__date">2026-07-23</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-card__sku"><span class="sku-tag">白色 M</span></div>
+      <div class="review-card__content">面料柔软，透气性好，夏天穿很凉爽。做工精细，无线头，白色也不透，很满意。</div>
+      <div class="review-card__images">
+        <div class="review-card__img" style="background:linear-gradient(135deg,#E8E8E8,#C0C0C0);">商品图1</div>
+      </div>
+      <div class="review-card__footer">
+        <div class="review-card__time">2026-07-23 14:08</div>
+        <div class="review-card__actions">
+          <div class="review-card__action">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
+            89
+          </div>
+          <div class="review-card__action">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3z" stroke="currentColor" stroke-width="2"/></svg>
+            15
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Review 3 -->
+    <div class="review-card">
+      <div class="review-card__head">
+        <div class="review-card__avatar" style="background:#FAAD14;">王</div>
+        <div class="review-card__user">
+          <div class="review-card__name">王***芳</div>
+          <div class="review-card__meta">
+            <div class="review-card__stars">
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star star-empty" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+            </div>
+            <div class="review-card__date">2026-07-22</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-card__sku"><span class="sku-tag">黑色 XL</span></div>
+      <div class="review-card__content">衣服质量不错，就是稍微有点大，下次买小一码。黑色偏深，整体还行。</div>
+      <div class="review-card__footer">
+        <div class="review-card__time">2026-07-22 09:45</div>
+        <div class="review-card__actions">
+          <div class="review-card__action">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
+            52
+          </div>
+          <div class="review-card__action">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3z" stroke="currentColor" stroke-width="2"/></svg>
+            8
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Review 4 -->
+    <div class="review-card">
+      <div class="review-card__head">
+        <div class="review-card__avatar" style="background:#8C8C8C;">匿</div>
+        <div class="review-card__user">
+          <div class="review-card__name">匿名用户</div>
+          <div class="review-card__meta">
+            <div class="review-card__stars">
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star star-empty" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+              <svg class="star star-empty" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg>
+            </div>
+            <div class="review-card__date">2026-07-20</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-card__sku"><span class="sku-tag">灰色 L</span></div>
+      <div class="review-card__content">一般般，颜色和图片有点色差，面料偏薄。但这个价位也不能要求太高，凑合穿吧。</div>
+      <div class="review-card__reply">
+        <div class="review-card__reply-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+          卖家回复
+        </div>
+        <div class="review-card__reply-text">很抱歉给您带来不好的体验，不同显示器可能存在轻微色差，如需退换可联系客服处理。</div>
+        <div class="review-card__reply-time">2026-07-20 16:00</div>
+      </div>
+      <div class="review-card__footer">
+        <div class="review-card__time">2026-07-20 14:12</div>
+        <div class="review-card__actions">
+          <div class="review-card__action">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
+            24
+          </div>
+          <div class="review-card__action">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3z" stroke="currentColor" stroke-width="2"/></svg>
+            3
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Load More -->
+  <div class="load-more">
+    <div class="spinner"></div>
+    <span>加载中...</span>
+  </div>
+
+  <!-- Status Preview Section -->
+  <div class="status-section">
+    <div class="status-section__title">交互状态预览</div>
+
+    <!-- Skeleton Loading -->
+    <div style="font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s2);">加载骨架屏</div>
+    <div class="skeleton-card">
+      <div style="display:flex;align-items:center;gap:var(--s2);">
+        <div class="skeleton skeleton-avatar"></div>
+        <div style="flex:1;">
+          <div class="skeleton skeleton-line mid" style="margin-bottom:6px;"></div>
+          <div class="skeleton skeleton-line short" style="height:10px;"></div>
+        </div>
+      </div>
+      <div class="skeleton skeleton-block"></div>
+      <div class="skeleton-img-row">
+        <div class="skeleton skeleton-img"></div>
+        <div class="skeleton skeleton-img"></div>
+        <div class="skeleton skeleton-img"></div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div style="font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s2);margin-top:var(--s4);">空数据状态</div>
+    <div class="empty-state">
+      <div class="empty-state__icon">
+        <svg viewBox="0 0 120 120" fill="none">
+          <rect x="20" y="30" width="80" height="60" rx="8" fill="#F5F5F5"/>
+          <path d="M40 55c5-5 15-5 20 0 5-5 15-5 20 0" stroke="#D9D9D9" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="45" cy="48" r="4" fill="#D9D9D9"/>
+          <rect x="30" y="70" width="60" height="8" rx="4" fill="#E8E8E8"/>
+          <rect x="30" y="82" width="40" height="6" rx="3" fill="#E8E8E8"/>
+        </svg>
+      </div>
+      <div class="empty-state__title">暂无评价</div>
+      <button class="empty-state__btn">去购买</button>
+    </div>
+
+    <!-- Error State -->
+    <div style="font-size:var(--fs-sm);color:var(--n7);margin-bottom:var(--s2);margin-top:var(--s4);">错误状态</div>
+    <div class="error-state">
+      <div class="error-state__icon">
+        <svg viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="28" stroke="#FF4D4F" stroke-width="3"/>
+          <path d="M22 22l20 20M42 22L22 42" stroke="#FF4D4F" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="error-state__title">加载失败</div>
+      <div class="error-state__desc">网络异常，请检查后重试</div>
+      <button class="error-state__btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M1 4v6h6M23 20v-6h-6M3.5 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0 0 20.5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        重新加载
+      </button>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
