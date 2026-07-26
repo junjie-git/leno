@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会员套餐 - Leno 运营管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+  --c-bronze:#CD7F32; --c-silver:#C0C0C0; --c-gold:#FFD700; --c-platinum:#E5E4E2; --c-diamond:#B9F2FF;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { font-family:var(--ff-app); color:var(--n10); background:var(--n3); font-size:var(--fs-base); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+body { min-height:100vh; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+button { font-family:inherit; cursor:pointer; }
+svg { display:inline-block; vertical-align:middle; }
+
+/* ===== Layout ===== */
+.app { display:flex; flex-direction:column; min-height:100vh; }
+.app-header {
+  height:var(--header-h); background:var(--n1); border-bottom:1px solid var(--n5);
+  display:flex; align-items:center; padding:0 24px 0 0; position:sticky; top:0; z-index:200;
+  box-shadow:0 1px 4px rgba(0,21,41,.08);
+}
+.app-header .logo { width:var(--sider-width); height:100%; display:flex; align-items:center; gap:10px; padding:0 20px; flex-shrink:0; }
+.app-header .logo-mark { width:32px; height:32px; border-radius:6px; background:linear-gradient(135deg,#1677FF 0%,#4096FF 100%); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:var(--fw-semibold); font-size:18px; box-shadow:0 2px 8px rgba(22,119,255,.35); }
+.app-header .logo-text { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); white-space:nowrap; }
+.app-header .logo-text small { display:block; font-size:var(--fs-sm); font-weight:var(--fw-normal); color:var(--n7); margin-top:-2px; }
+.app-header .header-body { flex:1; display:flex; align-items:center; justify-content:space-between; padding-left:24px; }
+.collapse-btn { width:40px; height:var(--header-h); display:flex; align-items:center; justify-content:center; color:var(--n9); background:none; border:none; font-size:18px; cursor:pointer; }
+.collapse-btn:hover { color:var(--c-primary); background:var(--n3); }
+.breadcrumb { display:flex; align-items:center; gap:6px; font-size:var(--fs-base); color:var(--n9); }
+.breadcrumb a { color:var(--n9); }
+.breadcrumb a:hover { color:var(--c-primary); }
+.breadcrumb .sep { color:var(--n5); font-size:12px; }
+.breadcrumb .current { color:var(--n10); }
+.header-actions { display:flex; align-items:center; gap:8px; }
+.global-search { width:220px; height:32px; background:var(--n3); border:1px solid transparent; border-radius:var(--r-base); display:flex; align-items:center; padding:0 12px; gap:8px; transition:all .2s; }
+.global-search:hover { border-color:var(--c-primary); background:var(--n1); }
+.global-search input { flex:1; border:none; outline:none; background:transparent; font-size:var(--fs-sm); color:var(--n10); }
+.global-search input::placeholder { color:var(--n7); }
+.global-search .kbd { font-size:11px; color:var(--n7); background:var(--n1); border:1px solid var(--n5); border-radius:4px; padding:0 5px; line-height:18px; }
+.icon-btn { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--n9); position:relative; background:none; border:none; font-size:18px; }
+.icon-btn:hover { background:var(--n3); color:var(--c-primary); }
+.icon-btn .badge-dot { position:absolute; top:6px; right:6px; min-width:16px; height:16px; padding:0 4px; background:var(--c-error); color:#fff; border-radius:8px; font-size:10px; line-height:16px; font-weight:var(--fw-medium); border:2px solid var(--n1); }
+.avatar-wrap { display:flex; align-items:center; gap:8px; padding:4px 8px 4px 4px; border-radius:var(--r-base); cursor:pointer; }
+.avatar-wrap:hover { background:var(--n3); }
+.avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#1677FF,#4096FF); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:var(--fw-medium); }
+.avatar-name { font-size:var(--fs-base); color:var(--n10); }
+.avatar-role { font-size:var(--fs-sm); color:var(--n7); }
+
+.app-body { flex:1; display:flex; }
+.app-sider { width:var(--sider-width); background:var(--sider-bg); flex-shrink:0; display:flex; flex-direction:column; position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto; }
+.menu { list-style:none; padding:8px 0; flex:1; }
+.menu-link { display:flex; align-items:center; gap:10px; height:40px; padding:0 16px 0 24px; color:rgba(255,255,255,.65); font-size:var(--fs-base); cursor:pointer; transition:all .15s; position:relative; }
+.menu-link:hover { color:#fff; background:transparent; }
+.menu-link .m-icon { width:16px; height:16px; flex-shrink:0; font-size:16px; }
+.menu-link .m-arrow { margin-left:auto; font-size:10px; transition:transform .2s; }
+.menu-item.open > .menu-link .m-arrow { transform:rotate(90deg); }
+.menu-item.active > .menu-link { color:#fff; background:var(--c-primary); }
+.menu-item.active > .menu-link::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#fff; }
+.menu-sub { list-style:none; max-height:0; overflow:hidden; transition:max-height .25s ease; }
+.menu-item.open > .menu-sub { max-height:500px; }
+.menu-sub .menu-link { height:36px; padding-left:48px; font-size:var(--fs-sm); }
+.menu-sub .menu-link.active { color:#fff; background:rgba(22,119,255,.15); }
+.menu-sub .menu-link.active::before { display:none; }
+
+.app-content { flex:1; display:flex; flex-direction:column; min-width:0; }
+.page-scroll { flex:1; overflow-y:auto; padding:var(--s6); }
+.app-footer { height:32px; background:var(--n1); border-top:1px solid var(--n3); display:flex; align-items:center; justify-content:center; font-size:var(--fs-sm); color:var(--n7); padding:0 24px; }
+
+/* ===== Page Header ===== */
+.page-header { margin-bottom:var(--s4); }
+.page-header h1 { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); display:flex; align-items:center; gap:8px; }
+.page-header .sub { margin-top:4px; font-size:var(--fs-sm); color:var(--n7); }
+
+/* ===== Card ===== */
+.card { background:var(--n1); border-radius:var(--r-card); box-shadow:var(--sh-card); border:1px solid #F0F0F0; }
+.card-pad { padding:var(--s4); }
+.card + .card { margin-top:var(--s4); }
+
+/* ===== Tabs ===== */
+.tabs { display:flex; gap:32px; border-bottom:1px solid var(--n5); padding:0 var(--s4); }
+.tab-item { padding:12px 4px; font-size:var(--fs-base); color:var(--n9); cursor:pointer; position:relative; transition:color .15s; border-bottom:2px solid transparent; margin-bottom:-1px; }
+.tab-item:hover { color:var(--c-primary); }
+.tab-item.active { color:var(--c-primary); font-weight:var(--fw-medium); border-bottom-color:var(--c-primary); }
+.tab-item .badge-count { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; background:var(--n3); color:var(--n9); border-radius:9px; font-size:11px; margin-left:6px; font-weight:var(--fw-normal); }
+.tab-item.active .badge-count { background:#E6F4FF; color:var(--c-primary); }
+
+/* ===== Toolbar ===== */
+.toolbar { display:flex; align-items:center; justify-content:space-between; padding:var(--s3) var(--s4); border-top:1px solid var(--n3); }
+.toolbar-left, .toolbar-right { display:flex; align-items:center; gap:var(--s2); }
+.toolbar-hint { font-size:var(--fs-sm); color:var(--n9); margin-left:var(--s2); }
+.toolbar-hint .num { color:var(--c-primary); font-weight:var(--fw-medium); }
+
+/* ===== Buttons ===== */
+.btn { height:32px; padding:0 15px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; gap:6px; transition:all .15s; white-space:nowrap; }
+.btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.btn .b-icon { width:14px; height:14px; font-size:14px; }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-danger { background:var(--n1); border-color:var(--c-error); color:var(--c-error); }
+.btn-danger:hover { background:var(--c-error); color:#fff; }
+.btn-link { background:none; border:none; color:var(--c-primary); padding:0 4px; height:auto; font-size:var(--fs-base); }
+.btn-link:hover { color:#4096FF; background:none; }
+.btn-link.danger { color:var(--c-error); }
+.btn-link.danger:hover { color:#FF7875; }
+.btn-link[disabled] { color:var(--n7); cursor:not-allowed; pointer-events:none; }
+.btn-sm { height:24px; padding:0 7px; font-size:var(--fs-sm); }
+.btn-sm .b-icon { width:12px; height:12px; font-size:12px; }
+.btn[disabled] { color:var(--n7); background:var(--n3); border-color:var(--n5); cursor:not-allowed; }
+
+/* ===== Table ===== */
+.table-wrap { overflow-x:auto; }
+table.data-table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+.data-table thead th { background:var(--n2); color:var(--n9); font-weight:var(--fw-medium); font-size:var(--fs-sm); text-align:left; padding:10px 12px; border-bottom:1px solid var(--n5); white-space:nowrap; }
+.data-table tbody td { padding:12px; border-bottom:1px solid #F0F0F0; color:var(--n10); vertical-align:middle; }
+.data-table tbody tr { transition:background .15s; height:48px; }
+.data-table tbody tr:hover { background:var(--n2); }
+.data-table .col-actions { white-space:nowrap; }
+.cell-actions { display:flex; gap:4px; align-items:center; }
+.text-mono { font-family:var(--ff-mono); font-size:var(--fs-sm); color:var(--n9); }
+.text-muted { color:var(--n7); font-size:var(--fs-sm); }
+.price { color:var(--c-error); font-size:var(--fs-lg); font-weight:var(--fw-semibold); }
+.price-small { font-size:var(--fs-sm); font-weight:var(--fw-normal); color:var(--n9); }
+.level-badge { display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 8px; border-radius:12px; font-size:var(--fs-sm); font-weight:var(--fw-medium); }
+.level-badge .lv-dot { width:8px; height:8px; border-radius:50%; }
+.level-gold { background:#FFFBE6; color:#D48806; border:1px solid #FFE58F; }
+.level-gold .lv-dot { background:var(--c-gold); box-shadow:0 0 0 1px #D48806; }
+.level-diamond { background:#E6FFFB; color:#08979C; border:1px solid #87E8DE; }
+.level-diamond .lv-dot { background:var(--c-diamond); box-shadow:0 0 0 1px #08979C; }
+.level-silver { background:#FAFAFA; color:#595959; border:1px solid #D9D9D9; }
+.level-silver .lv-dot { background:var(--c-silver); box-shadow:0 0 0 1px #595959; }
+.level-bronze { background:#FFF2E8; color:#874D00; border:1px solid #FFBB96; }
+.level-bronze .lv-dot { background:var(--c-bronze); box-shadow:0 0 0 1px #874D00; }
+
+/* ===== Tag ===== */
+.tag { display:inline-flex; align-items:center; gap:4px; height:22px; padding:0 8px; border-radius:var(--r-base); font-size:var(--fs-sm); line-height:20px; border:1px solid; }
+.tag .dot { width:6px; height:6px; border-radius:50%; }
+.tag.success { color:#389E0D; background:#F6FFED; border-color:#B7EB8F; }
+.tag.success .dot { background:var(--c-success); }
+.tag.neutral { color:var(--n9); background:var(--n3); border-color:var(--n5); }
+.tag.neutral .dot { background:var(--n7); }
+.tag.primary { color:#0958D9; background:#E6F4FF; border-color:#91CAFF; }
+.tag.primary .dot { background:var(--c-primary); }
+.tag.warning { color:#D48806; background:#FFF7E6; border-color:#FFD591; }
+.tag.warning .dot { background:var(--c-warning); }
+.benefit-tags { display:flex; flex-wrap:wrap; gap:4px; max-width:260px; }
+.benefit-tag { font-size:var(--fs-sm); padding:0 6px; height:20px; line-height:18px; border-radius:4px; background:#E6F4FF; color:#0958D9; border:1px solid #91CAFF; white-space:nowrap; }
+
+/* ===== Switch ===== */
+.switch { width:36px; height:20px; border-radius:10px; background:var(--c-success); position:relative; cursor:pointer; transition:background .2s; display:inline-block; flex-shrink:0; }
+.switch::after { content:''; position:absolute; top:2px; left:18px; width:16px; height:16px; border-radius:50%; background:#fff; transition:all .2s; box-shadow:0 2px 4px rgba(0,0,0,.2); }
+.switch.off { background:rgba(0,0,0,.25); }
+.switch.off::after { left:2px; }
+
+/* ===== Pagination ===== */
+.pagination { display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:16px; }
+.pagination .total { font-size:var(--fs-sm); color:var(--n9); margin-right:auto; }
+.page-btn { min-width:32px; height:32px; padding:0 8px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; justify-content:center; }
+.page-btn:hover:not(.disabled):not(.active) { border-color:var(--c-primary); color:var(--c-primary); }
+.page-btn.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.page-btn.disabled { color:var(--n7); cursor:not-allowed; background:var(--n3); }
+
+/* ===== Form ===== */
+.form-item { margin-bottom:var(--s4); }
+.form-item label { display:block; font-size:var(--fs-base); color:var(--n10); margin-bottom:6px; }
+.form-item label .req { color:var(--c-error); margin-right:4px; }
+.form-item .req-hint { font-size:var(--fs-sm); color:var(--n7); margin-top:4px; }
+.form-control { height:32px; width:100%; padding:0 11px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:flex; align-items:center; gap:6px; transition:border-color .2s,box-shadow .2s; }
+.form-control:hover { border-color:var(--c-primary); }
+.form-control:focus-within { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.form-control input { flex:1; border:none; outline:none; background:transparent; font-size:var(--fs-base); color:var(--n10); min-width:0; }
+.form-control input::placeholder { color:var(--n7); }
+.form-control .ctrl-suffix { color:var(--n7); font-size:12px; flex-shrink:0; }
+.form-control.select { cursor:pointer; position:relative; }
+.form-control.select::after { content:''; width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:5px solid var(--n7); margin-left:auto; flex-shrink:0; }
+.form-control .placeholder { color:var(--n7); }
+.form-control.readonly { background:var(--n3); color:var(--n9); cursor:not-allowed; }
+.form-control.readonly input { cursor:not-allowed; }
+.form-control.error { border-color:var(--c-error); }
+.form-control.error:focus-within { box-shadow:0 0 0 2px rgba(255,77,79,.1); }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:0 var(--s6); }
+
+/* ===== Checkbox Group ===== */
+.checkbox-group { display:flex; flex-wrap:wrap; gap:12px; }
+.checkbox-item { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid var(--n5); border-radius:var(--r-base); cursor:pointer; transition:all .15s; background:var(--n1); }
+.checkbox-item:hover { border-color:var(--c-primary); }
+.checkbox-item.checked { border-color:var(--c-primary); background:#E6F4FF; }
+.checkbox-item .cb { width:16px; height:16px; border:1px solid var(--n5); border-radius:3px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.checkbox-item.checked .cb { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.checkbox-item .cb-label { font-size:var(--fs-base); color:var(--n10); }
+.checkbox-item.checked .cb-label { color:var(--c-primary); }
+
+/* ===== Modal ===== */
+.mask { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; opacity:0; visibility:hidden; transition:opacity .25s; }
+.mask.show { opacity:1; visibility:visible; }
+.modal-lg { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(.95); width:640px; max-width:calc(100vw - 32px); background:var(--n1); border-radius:var(--r-lg); z-index:1001; opacity:0; visibility:hidden; transition:all .25s; box-shadow:var(--sh-modal); max-height:calc(100vh - 64px); display:flex; flex-direction:column; }
+.modal-lg.show { opacity:1; visibility:visible; transform:translate(-50%,-50%) scale(1); }
+.modal-lg-header { height:56px; padding:0 24px; border-bottom:1px solid var(--n5); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.modal-lg-header h3 { font-size:var(--fs-lg); font-weight:var(--fw-semibold); }
+.modal-lg-close { width:28px; height:28px; border:none; background:none; font-size:16px; color:var(--n7); border-radius:4px; display:flex; align-items:center; justify-content:center; }
+.modal-lg-close:hover { background:var(--n3); color:var(--n10); }
+.modal-lg-body { flex:1; overflow-y:auto; padding:24px; }
+.modal-lg-footer { padding:12px 24px; border-top:1px solid var(--n5); display:flex; justify-content:flex-end; gap:8px; flex-shrink:0; }
+.modal-section-title { font-size:var(--fs-base); color:var(--n10); font-weight:var(--fw-medium); margin-bottom:var(--s3); padding-left:8px; border-left:3px solid var(--c-primary); }
+
+/* ===== Confirm Modal ===== */
+.modal-confirm { position:fixed; top:0; left:50%; transform:translateX(-50%) translateY(-20px); margin-top:100px; width:420px; background:var(--n1); border-radius:var(--r-lg); z-index:1001; opacity:0; visibility:hidden; transition:all .25s; box-shadow:var(--sh-modal); }
+.modal-confirm.show { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+.modal-confirm-header { padding:16px 24px 0; display:flex; align-items:flex-start; gap:12px; }
+.modal-confirm-icon { width:22px; height:22px; flex-shrink:0; margin-top:1px; color:var(--c-error); }
+.modal-confirm-icon.warning { color:var(--c-warning); }
+.modal-confirm-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); flex:1; }
+.modal-confirm-body { padding:8px 24px 24px; padding-left:58px; }
+.modal-confirm-body p { font-size:var(--fs-base); color:var(--n9); line-height:1.6; }
+.modal-confirm-body .highlight { color:var(--c-error); font-weight:var(--fw-medium); }
+.modal-confirm-footer { padding:12px 24px 24px; display:flex; justify-content:flex-end; gap:8px; padding-left:58px; }
+.btn-danger-solid { background:var(--c-error); border-color:var(--c-error); color:#fff; }
+.btn-danger-solid:hover { background:#FF7875; border-color:#FF7875; color:#fff; }
+
+/* ===== Skeleton ===== */
+.skeleton { background:var(--n3); border-radius:var(--r-base); position:relative; overflow:hidden; }
+.skeleton::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent); animation:shimmer 1.4s infinite; }
+@keyframes shimmer { 0%{transform:translateX(-100%);} 100%{transform:translateX(100%);} }
+.sk-row { display:flex; gap:12px; padding:14px 12px; border-bottom:1px solid #F0F0F0; align-items:center; height:48px; }
+.sk-cell { flex:1; height:14px; }
+
+/* ===== Empty ===== */
+.empty-state { padding:64px 0; text-align:center; }
+.empty-state .empty-icon { width:64px; height:64px; margin:0 auto 16px; color:#D9D9D9; }
+.empty-state .empty-title { font-size:var(--fs-base); color:var(--n9); }
+.empty-state .empty-desc { font-size:var(--fs-sm); color:var(--n7); margin-top:4px; margin-bottom:16px; }
+
+/* ===== State Toggle ===== */
+.state-preview { position:fixed; bottom:48px; right:24px; z-index:500; display:flex; flex-direction:column; gap:8px; background:var(--n1); padding:10px; border-radius:var(--r-card); box-shadow:var(--sh-dropdown); border:1px solid var(--n5); }
+.state-preview .sp-title { font-size:var(--fs-sm); color:var(--n7); font-weight:var(--fw-medium); padding:0 4px; }
+.state-preview .sp-btn { height:28px; padding:0 12px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1); font-size:var(--fs-sm); color:var(--n9); display:flex; align-items:center; gap:4px; }
+.state-preview .sp-btn:hover { border-color:var(--c-primary); color:var(--c-primary); }
+.state-preview .sp-btn.active { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+
+/* ===== Toast ===== */
+.toast { position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-20px); background:var(--n1); border-radius:var(--r-base); box-shadow:var(--sh-dropdown); padding:9px 16px; display:flex; align-items:center; gap:8px; font-size:var(--fs-base); z-index:2000; opacity:0; visibility:hidden; transition:all .25s; border:1px solid var(--n5); }
+.toast.show { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+.toast.success .toast-icon { color:var(--c-success); }
+.toast.error .toast-icon { color:var(--c-error); }
+.toast .toast-icon { width:16px; height:16px; }
+
+.hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="logo">
+      <div class="logo-mark">L</div>
+      <div class="logo-text">Leno<small>运营管理后台</small></div>
+    </div>
+    <div class="header-body">
+      <div style="display:flex;align-items:center;gap:0;">
+        <button class="collapse-btn" aria-label="折叠菜单">
+          <svg viewBox="64 64 896 896" width="20" height="20" fill="currentColor"><path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"/></svg>
+        </button>
+        <nav class="breadcrumb" style="margin-left:16px;">
+          <a href="#">会员运营</a>
+          <span class="sep">/</span>
+          <span class="current">会员套餐</span>
+        </nav>
+      </div>
+      <div class="header-actions">
+        <div class="global-search">
+          <svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"/></svg>
+          <input placeholder="搜索套餐、等级、订阅号" />
+          <span class="kbd">Ctrl K</span>
+        </div>
+        <button class="icon-btn" aria-label="待办" title="待办工作台">
+          <svg viewBox="64 64 896 896" width="18" height="18" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656zM304.8 524h50.4c3.4 0 6.3-2.7 6.6-6.1C367 443.5 432.4 384 512 384s145 59.5 150.2 133.9c.3 3.4 3.2 6.1 6.6 6.1h50.4c3.8 0 6.9-3.2 6.6-7C720.2 413 626 336 512 336s-208.2 77-216.6 181c-.3 3.8 2.8 7 6.6 7zM484 700h56v-56h-56v56z"/></svg>
+          <span class="badge-dot">12</span>
+        </button>
+        <button class="icon-btn" aria-label="通知" title="通知中心">
+          <svg viewBox="64 64 896 896" width="18" height="18" fill="currentColor"><path d="M880 112c-3.8 0-7.7.7-11.6 2.1L111.9 459.3c-18.7 7.1-27.4 27.7-19.7 46.2 4.4 10.6 12.7 18.4 22.9 22.1l142.5 49.2 49.2 142.5c3.7 10.2 11.5 18.5 22.1 22.9 18.5 7.7 39.1-1 46.2-19.7L713.9 84.4C722.3 62.5 705 41.6 684 41.6c-4.3 0-8.6.8-12.6 2.4l-90.9 34.5c-1.9.7-3.9 1.1-5.9 1.1H880zM704.8 524h50.4c3.4 0 6.3-2.7 6.6-6.1C767 443.5 832.4 384 912 384s145 59.5 150.2 133.9c.3 3.4 3.2 6.1 6.6 6.1h50.4c3.8 0 6.9-3.2 6.6-7C1120.2 413 1026 336 912 336s-208.2 77-216.6 181c-.3 3.8 2.8 7 6.6 7zM400 720l160-160-160-160z"/></svg>
+          <span class="badge-dot" style="background:var(--c-warning);">5</span>
+        </button>
+        <div class="avatar-wrap">
+          <div class="avatar">张</div>
+          <div>
+            <div class="avatar-name">张运营</div>
+            <div class="avatar-role">运营管理员</div>
+          </div>
+          <svg viewBox="64 64 896 896" width="12" height="12" fill="currentColor" style="color:var(--n7);"><path d="M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z"/></svg>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- Sider -->
+    <aside class="app-sider">
+      <ul class="menu">
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M924.8 385.6a446.7 446.7 0 00-96-142.4 446.7 446.7 0 00-142.4-96C631.1 123.8 572.5 112 512 112s-119.1 11.8-174.4 35.2a446.7 446.7 0 00-142.4 96 446.7 446.7 0 00-96 142.4C75.8 440.9 64 499.5 64 560c0 132.7 58.3 257.7 159.9 343.1l1.7 1.4c5.8 4.8 13.1 7.5 20.6 7.5h531.7c7.5 0 14.8-2.7 20.6-7.5l1.7-1.4C901.7 817.7 960 692.7 960 560c0-60.5-11.9-119.1-35.2-174.4zM761.4 836H262.6A371.12 371.12 0 01136 560c0-98.8 38.5-191.6 108.4-261.4C314.3 228.5 407 190 505.9 190c98.8 0 191.6 38.5 261.4 108.4C837.5 368.4 876 461.2 876 560c0 110.7-44.2 213.9-114.6 276z M484 560c0-21.6 6.2-42.8 17.9-61.2 11.7-18.4 28.4-33.2 48.3-42.6 19.9-9.4 42.2-13.4 64.3-11.6 22.1 1.8 43.4 9.3 61.6 21.6l-58.9 58.9 45.1 45.1 58.9-58.9c12.3 18.2 19.8 39.5 21.6 61.6 1.8 22.1-2.2 44.4-11.6 64.3-9.4 19.9-24.2 36.6-42.6 48.3-18.4 11.7-39.6 17.9-61.2 17.9-27.9 0-54.7-11.1-74.5-30.9S484 587.9 484 560z"/></svg></span>数据看板<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM528 722c0 17.7-14.3 32-32 32H320c-17.7 0-32-14.3-32-32V544c0-17.7 14.3-32 32-32h176c17.7 0 32 14.3 32 32v178zm0-302c0 17.7-14.3 32-32 32H320c-17.7 0-32-14.3-32-32V320c0-17.7 14.3-32 32-32h176c17.7 0 32 14.3 32 32v100zm176 302c0 17.7-14.3 32-32 32H640c-17.7 0-32-14.3-32-32V544c0-17.7 14.3-32 32-32h32c17.7 0 32 14.3 32 32v178zm0-302c0 17.7-14.3 32-32 32h-32c-17.7 0-32-14.3-32-32V320c0-17.7 14.3-32 32-32h32c17.7 0 32 14.3 32 32v100z"/></svg></span>商品运营<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-260 72h96v209.9L621.5 312 572 347.4V136zm220 752H232V136h280v296.9c0 3.3 1.4 6.5 3.9 8.8a12.1 12.1 0 0017.3-1.1l55.8-66.1 55.8 66.1c2.3 2.7 5.6 4.2 9 4.2 4.3 0 8.3-2.1 10.8-5.6 1.6-2.3 2.5-5.1 2.5-7.9V136h144v752z"/></svg></span>促销运营<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.3 44.5-118.6 78.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C779 752.7 810 825 812 902.2c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.2zM512 534c-45.9 0-89.1-17.9-121.6-50.4S340 407.9 340 362c0-45.9 17.9-89.1 50.4-121.6S466.1 190 512 190s89.1 17.9 121.6 50.4S684 316.1 684 362c0 45.9-17.9 89.1-50.4 121.6S557.9 534 512 534z"/></svg></span>卖家运营<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zM641.7 599.6c0 4.6-3.7 8.3-8.3 8.3h-67.5v67.5c0 4.6-3.7 8.3-8.3 8.3h-77.2c-4.6 0-8.3-3.7-8.3-8.3v-67.5h-67.5c-4.6 0-8.3-3.7-8.3-8.3v-77.2c0-4.6 3.7-8.3 8.3-8.3h67.5v-67.5c0-4.6 3.7-8.3 8.3-8.3h77.2c4.6 0 8.3 3.7 8.3 8.3v67.5h67.5c4.6 0 8.3 3.7 8.3 8.3v77.2z"/></svg></span>订单运营<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372zm47.7-268.2l-99.8-99.8L403.1 600.7l99.8 99.8c6.7 6.7 17.5 6.7 24.2 0L768.4 259.2c6.7-6.7 6.7-17.5 0-24.2l-43.2-43.2c-6.7-6.7-17.5-6.7-24.2 0L449.8 453.9z"/></svg></span>支付运营<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M512 128c-212.1 0-384 171.9-384 384v360c0 13.3 10.7 24 24 24h184c35.3 0 64-28.7 64-64V640c0-35.3-28.7-64-64-64H200v-64c0-172.3 139.7-312 312-312s312 139.7 312 312v64H680c-35.3 0-64 28.7-64 64v192c0 35.3 28.7 64 64 64h184c13.3 0 24-10.7 24-24V512c0-212.1-171.9-384-384-384z"/></svg></span>通知运营<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item open active">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M742 318V184h86c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H196c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h86v134c0 81.9 49.2 152.3 119.4 183.2.4.2.8.3 1.2.5-22.9 24.3-36.2 56.5-36.2 90.8v224c0 4.4 3.6 8 8 8h268c4.4 0 8-3.6 8-8V593.5c0-34.3-13.3-66.5-36.2-90.8.4-.2.8-.3 1.2-.5C692.8 470.3 742 399.9 742 318z"/></svg></span>会员运营<span class="m-arrow">›</span></div>
+          <ul class="menu-sub">
+            <li><div class="menu-link">会员等级</div></li>
+            <li><div class="menu-link active">会员套餐</div></li>
+            <li><div class="menu-link">积分规则</div></li>
+          </ul>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.3 44.5-118.6 78.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C779 752.7 810 825 812 902.2c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.2z"/></svg></span>个人中心<span class="m-arrow">›</span></div>
+        </li>
+        <li class="menu-item">
+          <div class="menu-link"><span class="m-icon"><svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M505.7 661a8 8 0 0012.6 0l112-141.7c4.1-5.2.4-12.9-6.3-12.9h-74.1V168c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v338.3H400c-6.7 0-10.4 7.7-6.3 12.9l112 141.8zM878 626h-60c-4.4 0-8 3.6-8 8v154H214V634c0-4.4-3.6-8-8-8h-60c-4.4 0-8 3.6-8 8v198c0 17.7 14.3 32 32 32h684c17.7 0 32-14.3 32-32V634c0-4.4-3.6-8-8-8z"/></svg></span>数据导出<span class="m-arrow">›</span></div>
+        </li>
+      </ul>
+      <div style="padding:16px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.35);text-align:center;">
+        Leno Operations v1.0.0
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <main class="app-content">
+      <div class="page-scroll" id="pageContent">
+        <div class="page-header">
+          <h1>会员套餐</h1>
+          <div class="sub">维护付费会员套餐（价格、时长、权益），控制套餐启停，为买家订阅会员提供选项。停用不影响已订阅用户权益。</div>
+        </div>
+
+        <!-- Main Card -->
+        <div class="card">
+          <!-- Tabs -->
+          <div class="tabs" id="tabsBar">
+            <div class="tab-item active" data-tab="list">套餐列表<span class="badge-count">4</span></div>
+            <div class="tab-item" data-tab="compare">权益对比</div>
+          </div>
+
+          <!-- Tab: List -->
+          <div id="tab-list">
+            <!-- Toolbar -->
+            <div class="toolbar" style="border-top:none;">
+              <div class="toolbar-left">
+                <button class="btn btn-primary" onclick="openPackageModal()">
+                  <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M482 152h60q8 0 8 8v704q0 8-8 8h-60q-8 0-8-8V160q0-8 8-8z"/><path d="M176 476h672q8 0 8 8v60q0 8-8 8H176q-8 0-8-8v-60q0-8 8-8z"/></svg>
+                  新增套餐
+                </button>
+              </div>
+              <div class="toolbar-right">
+                <span class="toolbar-hint">共 <span class="num">4</span> 个套餐</span>
+                <button class="btn" onclick="refreshList()">
+                  <svg class="b-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M909.1 209.3l-56.4 44.1C775.8 155.1 656.2 92 521.9 92 290 92 102.3 279.5 102 511.5 101.7 743.7 289.8 932 521.9 932c181.3 0 335.8-115 394.6-276.1 1.5-4.2-.7-8.9-4.9-10.3l-56.7-19.5a8 8 0 00-10.1 4.8c-1.8 5-3.8 10-5.9 14.9-17.3 41-42.1 77.8-73.7 109.4A344.77 344.77 0 01655.9 824c-42.3 17.9-87.4 27-133.8 27-46.5 0-91.5-9.1-133.8-27A341.5 341.5 0 01279 755.2a342.16 342.16 0 01-73.7-109.4c-17.9-42.4-27-87.4-27-133.9s9.1-91.5 27-133.9c17.3-41 42.1-77.8 73.7-109.4 31.6-31.6 68.4-56.4 109.3-73.7 42.3-17.9 87.4-27 133.8-27 46.5 0 91.5 9.1 133.8 27a341.5 341.5 0 01109.3 68.9c9.9 9.9 19.2 20.4 27.8 31.4l-60.2 47a8 8 0 003 14.1l175.6 43c5 .8 9.7-2.6 10.5-7.6l.8-3.6.2-.6 28.1-178.6a8 8 0 00-12.7-7.8z"/></svg>
+                  刷新
+                </button>
+              </div>
+            </div>
+
+            <!-- Table: Normal State -->
+            <div id="packageTable">
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>套餐名称</th>
+                      <th>价格</th>
+                      <th>时长</th>
+                      <th>关联等级</th>
+                      <th>权益摘要</th>
+                      <th>订阅数</th>
+                      <th>状态</th>
+                      <th class="col-actions">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="packageTbody">
+                    <tr>
+                      <td style="font-weight:var(--fw-medium);">月度会员</td>
+                      <td><span class="price">¥30</span> <span class="price-small">/ 月</span></td>
+                      <td><span class="text-muted">1 个月</span></td>
+                      <td><span class="level-badge level-gold"><span class="lv-dot"></span>黄金 V3</span></td>
+                      <td><div class="benefit-tags"><span class="benefit-tag">专属客服</span><span class="benefit-tag">95 折</span></div></td>
+                      <td><a href="#" style="font-weight:var(--fw-medium);">156</a></td>
+                      <td><span class="tag success"><span class="dot"></span>启用</span></td>
+                      <td class="col-actions"><div class="cell-actions">
+                        <button class="btn-link" onclick="openPackageModal('MONTH')">编辑</button>
+                        <button class="btn-link danger" onclick="openConfirm('确认停用套餐', '停用「月度会员」后，新用户将无法订阅此套餐。已订阅 <span class="highlight">156</span> 名用户的权益<span class="highlight">不受影响</span>，可继续使用至到期。', '确认停用')">停用</button>
+                      </div></td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:var(--fw-medium);">季度会员</td>
+                      <td><span class="price">¥88</span> <span class="price-small">/ 季</span></td>
+                      <td><span class="text-muted">3 个月</span></td>
+                      <td><span class="level-badge level-gold"><span class="lv-dot"></span>黄金 V3</span></td>
+                      <td><div class="benefit-tags"><span class="benefit-tag">专属客服</span><span class="benefit-tag">95 折</span><span class="benefit-tag">积分加速</span></div></td>
+                      <td><a href="#" style="font-weight:var(--fw-medium);">423</a></td>
+                      <td><span class="tag success"><span class="dot"></span>启用</span></td>
+                      <td class="col-actions"><div class="cell-actions">
+                        <button class="btn-link" onclick="openPackageModal('QUARTER')">编辑</button>
+                        <button class="btn-link danger" onclick="openConfirm('确认停用套餐', '停用「季度会员」后，新用户将无法订阅此套餐。已订阅 <span class="highlight">423</span> 名用户的权益<span class="highlight">不受影响</span>，可继续使用至到期。', '确认停用')">停用</button>
+                      </div></td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:var(--fw-medium);">年度会员</td>
+                      <td><span class="price">¥288</span> <span class="price-small">/ 年</span></td>
+                      <td><span class="text-muted">12 个月</span></td>
+                      <td><span class="level-badge level-gold"><span class="lv-dot"></span>黄金 V3</span></td>
+                      <td><div class="benefit-tags"><span class="benefit-tag">专属客服</span><span class="benefit-tag">95 折</span><span class="benefit-tag">生日礼</span><span class="benefit-tag">积分加速</span></div></td>
+                      <td><a href="#" style="font-weight:var(--fw-medium);">892</a></td>
+                      <td><span class="tag success"><span class="dot"></span>启用</span></td>
+                      <td class="col-actions"><div class="cell-actions">
+                        <button class="btn-link" onclick="openPackageModal('YEAR')">编辑</button>
+                        <button class="btn-link danger" onclick="openConfirm('确认停用套餐', '停用「年度会员」后，新用户将无法订阅此套餐。已订阅 <span class="highlight">892</span> 名用户的权益<span class="highlight">不受影响</span>，可继续使用至到期。', '确认停用')">停用</button>
+                      </div></td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:var(--fw-medium);">钻石年卡</td>
+                      <td><span class="price">¥888</span> <span class="price-small">/ 年</span></td>
+                      <td><span class="text-muted">12 个月</span></td>
+                      <td><span class="level-badge level-diamond"><span class="lv-dot"></span>钻石 V5</span></td>
+                      <td><div class="benefit-tags"><span class="benefit-tag">专属客服</span><span class="benefit-tag">8 折</span><span class="benefit-tag">生日礼</span><span class="benefit-tag">积分 2 倍</span><span class="benefit-tag">免费退换</span></div></td>
+                      <td><a href="#" style="font-weight:var(--fw-medium);">56</a></td>
+                      <td><span class="tag neutral"><span class="dot"></span>停用</span></td>
+                      <td class="col-actions"><div class="cell-actions">
+                        <button class="btn-link" onclick="openPackageModal('DIAMOND')">编辑</button>
+                        <button class="btn-link" onclick="showToast('success','套餐已启用')">启用</button>
+                      </div></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <span class="total">共 4 条</span>
+                <button class="page-btn disabled">‹</button>
+                <button class="page-btn active">1</button>
+                <button class="page-btn disabled">›</button>
+              </div>
+            </div>
+
+            <!-- Table: Loading State -->
+            <div id="packageLoading" class="hidden">
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>套餐名称</th><th>价格</th><th>时长</th><th>关联等级</th><th>权益摘要</th><th>订阅数</th><th>状态</th><th>操作</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr class="sk-row"><td colspan="8"><div class="skeleton" style="width:100%;height:14px;"></div></td></tr>
+                    <tr class="sk-row"><td colspan="8"><div class="skeleton" style="width:100%;height:14px;"></div></td></tr>
+                    <tr class="sk-row"><td colspan="8"><div class="skeleton" style="width:100%;height:14px;"></div></td></tr>
+                    <tr class="sk-row"><td colspan="8"><div class="skeleton" style="width:100%;height:14px;"></div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Table: Empty State -->
+            <div id="packageEmpty" class="hidden">
+              <div class="empty-state">
+                <svg class="empty-icon" viewBox="64 64 896 896" fill="currentColor"><path d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-260 72h96v209.9L621.5 312 572 347.4V136zm220 752H232V136h280v296.9c0 3.3 1.4 6.5 3.9 8.8a12.1 12.1 0 0017.3-1.1l55.8-66.1 55.8 66.1c2.3 2.7 5.6 4.2 9 4.2 4.3 0 8.3-2.1 10.8-5.6 1.6-2.3 2.5-5.1 2.5-7.9V136h144v752z"/></svg>
+                <div class="empty-title">暂无会员套餐</div>
+                <div class="empty-desc">点击下方按钮新增第一个会员套餐</div>
+                <button class="btn btn-primary" onclick="openPackageModal()">新增套餐</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Benefit Compare -->
+          <div id="tab-compare" class="hidden">
+            <div class="card-pad">
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>权益项</th>
+                      <th>月度会员</th>
+                      <th>季度会员</th>
+                      <th>年度会员</th>
+                      <th>钻石年卡</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style="font-weight:var(--fw-medium);">价格</td>
+                      <td><span class="price">¥30</span> <span class="price-small">/ 月</span></td>
+                      <td><span class="price">¥88</span> <span class="price-small">/ 季</span></td>
+                      <td><span class="price">¥288</span> <span class="price-small">/ 年</span></td>
+                      <td><span class="price">¥888</span> <span class="price-small">/ 年</span></td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:var(--fw-medium);">月均价格</td>
+                      <td>¥30.00</td>
+                      <td>¥29.33</td>
+                      <td>¥24.00</td>
+                      <td>¥74.00</td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:var(--fw-medium);">关联等级</td>
+                      <td><span class="level-badge level-gold"><span class="lv-dot"></span>黄金 V3</span></td>
+                      <td><span class="level-badge level-gold"><span class="lv-dot"></span>黄金 V3</span></td>
+                      <td><span class="level-badge level-gold"><span class="lv-dot"></span>黄金 V3</span></td>
+                      <td><span class="level-badge level-diamond"><span class="lv-dot"></span>钻石 V5</span></td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:var(--fw-medium);">专属客服</td>
+                      <td><svg viewBox="64 64 896 896" width="16" height="16" fill="#52C41A"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg></td>
+                      <td><svg viewBox="64 64 896 896" width="16" height="16" fill="#52C41A"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg></td>
+                      <td><svg viewBox="64 64 896 896" width="16" height="16" fill="#52C41A"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg></td>
+                      <td><svg viewBox="64 64 896 896" width="16" height="16" fill="#52C41A"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg></td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:var(--fw-medium);">购物折扣</td>
+                      <td>95 折</td>
+                      <td>95 折</td>
+                      <td>95 折</td>
+                      <td>8 折</td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:var(--fw-medium);">生日礼包</td>
+                      <td><span class="text-muted">—</span></td>
+                      <td><span class="text-muted">—</span></td>
+                      <td><svg viewBox="64 64 896 896" width="16" height="16" fill="#52C41A"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg></td>
+                      <td><svg viewBox="64 64 896 896" width="16" height="16" fill="#52C41A"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg></td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:var(--fw-medium);">积分加速</td>
+                      <td><span class="text-muted">—</span></td>
+                      <td>1.2 倍</td>
+                      <td>1.5 倍</td>
+                      <td>2.0 倍</td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:var(--fw-medium);">免费退换</td>
+                      <td><span class="text-muted">—</span></td>
+                      <td><span class="text-muted">—</span></td>
+                      <td><span class="text-muted">—</span></td>
+                      <td><svg viewBox="64 64 896 896" width="16" height="16" fill="#52C41A"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <footer class="app-footer">Leno 电商平台 · 运营管理后台 © 2026</footer>
+    </main>
+  </div>
+</div>
+
+<!-- Package Modal -->
+<div class="mask" id="packageMask" onclick="closePackageModal()"></div>
+<div class="modal-lg" id="packageModal">
+  <div class="modal-lg-header">
+    <h3 id="packageModalTitle">新增会员套餐</h3>
+    <button class="modal-lg-close" onclick="closePackageModal()">
+      <svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M563.8 512l261.9-261.9c10.5-10.5 10.5-27.6 0-38.1l-45.3-45.3c-10.5-10.5-27.6-10.5-38.1 0L480.5 428.6 218.6 147.4c-10.5-10.5-27.6-10.5-38.1 0l-45.3 45.3c-10.5 10.5-10.5 27.6 0 38.1L397 512 135.2 773.9c-10.5 10.5-10.5 27.6 0 38.1l45.3 45.3c10.5 10.5 27.6 10.5 38.1 0L480.5 595.4l261.9 261.9c10.5 10.5 27.6 10.5 38.1 0l45.3-45.3c10.5-10.5 10.5-27.6 0-38.1L563.8 512z"/></svg>
+    </button>
+  </div>
+  <div class="modal-lg-body">
+    <div class="modal-section-title">基础信息</div>
+    <div class="form-grid">
+      <div class="form-item">
+        <label><span class="req">*</span>套餐名称</label>
+        <div class="form-control">
+          <input placeholder="输入套餐名称，如 月度会员" value="月度会员" id="packageName" />
+        </div>
+      </div>
+      <div class="form-item">
+        <label><span class="req">*</span>价格</label>
+        <div class="form-control">
+          <input type="number" placeholder="输入价格" value="30" />
+          <span class="ctrl-suffix">元</span>
+        </div>
+        <div class="req-hint">价格须大于 0，年卡月均价应低于月卡</div>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-item">
+        <label><span class="req">*</span>时长</label>
+        <div class="form-control">
+          <input type="number" placeholder="输入时长" value="1" />
+          <span class="ctrl-suffix">个月</span>
+        </div>
+      </div>
+      <div class="form-item">
+        <label><span class="req">*</span>关联会员等级</label>
+        <div class="form-control select">
+          <span>黄金 V3</span>
+        </div>
+        <div class="req-hint">须选择已启用的会员等级</div>
+      </div>
+    </div>
+
+    <div class="modal-section-title" style="margin-top:var(--s6);">权益配置</div>
+    <div class="checkbox-group" id="benefitGroup">
+      <div class="checkbox-item checked" onclick="toggleBenefit(this)">
+        <span class="cb"><svg viewBox="64 64 896 896" width="12" height="12" fill="currentColor"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg></span>
+        <span class="cb-label">专属客服</span>
+      </div>
+      <div class="checkbox-item" onclick="toggleBenefit(this)">
+        <span class="cb"></span>
+        <span class="cb-label">生日礼包</span>
+      </div>
+      <div class="checkbox-item" onclick="toggleBenefit(this)">
+        <span class="cb"></span>
+        <span class="cb-label">购物折扣</span>
+      </div>
+      <div class="checkbox-item" onclick="toggleBenefit(this)">
+        <span class="cb"></span>
+        <span class="cb-label">积分加速</span>
+      </div>
+      <div class="checkbox-item" onclick="toggleBenefit(this)">
+        <span class="cb"></span>
+        <span class="cb-label">免费退换</span>
+      </div>
+    </div>
+    <div class="req-hint" style="margin-top:var(--s3);">至少选择一项权益，已选 <span id="benefitCount" style="color:var(--c-primary);font-weight:var(--fw-medium);">1</span> 项</div>
+
+    <div class="modal-section-title" style="margin-top:var(--s6);">状态设置</div>
+    <div class="form-item" style="margin-bottom:0;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="switch" id="packageStatusSwitch" onclick="this.classList.toggle('off')"></div>
+        <span style="font-size:var(--fs-sm);color:var(--n9);">启用套餐（停用后新用户不可订阅，已订阅用户不受影响）</span>
+      </div>
+    </div>
+  </div>
+  <div class="modal-lg-footer">
+    <button class="btn" onclick="closePackageModal()">取消</button>
+    <button class="btn btn-primary" onclick="closePackageModal();showToast('success','套餐保存成功')">保存</button>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="mask" id="confirmMask" onclick="closeConfirm()"></div>
+<div class="modal-confirm" id="confirmModal">
+  <div class="modal-confirm-header">
+    <svg class="modal-confirm-icon" id="confirmIcon" viewBox="64 64 896 896" width="22" height="22" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm40 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+    <span class="modal-confirm-title" id="confirmTitle">确认停用套餐</span>
+  </div>
+  <div class="modal-confirm-body">
+    <p id="confirmBody">停用后新用户将无法订阅此套餐。</p>
+  </div>
+  <div class="modal-confirm-footer">
+    <button class="btn" onclick="closeConfirm()">取消</button>
+    <button class="btn btn-danger-solid" id="confirmOk" onclick="closeConfirm();showToast('success','套餐已停用')">确认停用</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <svg class="toast-icon" viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L423.4 811.6c-1.5 2.1-3.9 3.4-6.5 3.4h-67.6c-2.6 0-5.1-1.3-6.6-3.5L201.9 596.5c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l93.6 138.6c1.6 2.3 4.8 3 7.2 1.5l.2-.1c2.4-1.5 3.1-4.6 1.6-7L348.8 526.9c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l272.8 404.5c2.3 3.4 1.4 8-2 10.3l-59.5 40.4c-3.4 2.3-8 1.4-10.3-2z"/></svg>
+  <span id="toastMsg">操作成功</span>
+</div>
+
+<!-- State Preview -->
+<div class="state-preview">
+  <div class="sp-title">交互状态预览</div>
+  <button class="sp-btn active" onclick="setPackageState('normal')">正常数据</button>
+  <button class="sp-btn" onclick="setPackageState('loading')">加载中</button>
+  <button class="sp-btn" onclick="setPackageState('empty')">空数据</button>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab-item').forEach(function(el) { el.classList.toggle('active', el.dataset.tab === tab); });
+  document.getElementById('tab-list').classList.toggle('hidden', tab !== 'list');
+  document.getElementById('tab-compare').classList.toggle('hidden', tab !== 'compare');
+}
+document.querySelectorAll('.tab-item').forEach(function(el) {
+  el.addEventListener('click', function() { switchTab(el.dataset.tab); });
+});
+
+function openPackageModal(code) {
+  var modal = document.getElementById('packageModal');
+  var mask = document.getElementById('packageMask');
+  var title = document.getElementById('packageModalTitle');
+  if (code) {
+    title.textContent = '编辑会员套餐';
+    var preset = {
+      'MONTH': { name: '月度会员', price: 30, duration: 1 },
+      'QUARTER': { name: '季度会员', price: 88, duration: 3 },
+      'YEAR': { name: '年度会员', price: 288, duration: 12 },
+      'DIAMOND': { name: '钻石年卡', price: 888, duration: 12 }
+    };
+    if (preset[code]) {
+      document.getElementById('packageName').value = preset[code].name;
+    }
+  } else {
+    title.textContent = '新增会员套餐';
+    document.getElementById('packageName').value = '';
+  }
+  modal.classList.add('show');
+  mask.classList.add('show');
+}
+
+function closePackageModal() {
+  document.getElementById('packageModal').classList.remove('show');
+  document.getElementById('packageMask').classList.remove('show');
+}
+
+function toggleBenefit(el) {
+  el.classList.toggle('checked');
+  var checked = el.querySelector('.cb');
+  if (el.classList.contains('checked')) {
+    checked.innerHTML = '<svg viewBox="64 64 896 896" width="12" height="12" fill="currentColor"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg>';
+  } else {
+    checked.innerHTML = '';
+  }
+  var count = document.querySelectorAll('.checkbox-item.checked').length;
+  document.getElementById('benefitCount').textContent = count;
+}
+
+function openConfirm(title, body, okText) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmBody').innerHTML = body;
+  document.getElementById('confirmOk').textContent = okText || '确认';
+  document.getElementById('confirmModal').classList.add('show');
+  document.getElementById('confirmMask').classList.add('show');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmModal').classList.remove('show');
+  document.getElementById('confirmMask').classList.remove('show');
+}
+
+function showToast(type, msg) {
+  var toast = document.getElementById('toast');
+  toast.className = 'toast ' + type;
+  document.getElementById('toastMsg').textContent = msg;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 1500);
+}
+
+function refreshList() {
+  setPackageState('loading');
+  setTimeout(function() { setPackageState('normal'); }, 1200);
+}
+
+function setPackageState(state) {
+  document.querySelectorAll('.state-preview .sp-btn').forEach(function(b) { b.classList.remove('active'); });
+  event.target.classList.add('active');
+  var normal = document.getElementById('packageTable');
+  var loading = document.getElementById('packageLoading');
+  var empty = document.getElementById('packageEmpty');
+  normal.classList.add('hidden');
+  loading.classList.add('hidden');
+  empty.classList.add('hidden');
+  if (state === 'normal') normal.classList.remove('hidden');
+  else if (state === 'loading') loading.classList.remove('hidden');
+  else if (state === 'empty') empty.classList.remove('hidden');
+}
+</script>
+</body>
+</html>

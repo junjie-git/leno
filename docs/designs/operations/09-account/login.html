@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 - Leno 运营管理后台</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --ff-mono:"SF Mono",Consolas,monospace;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --sh-dropdown:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --sh-modal:0 12px 32px 4px rgba(0,0,0,.08),0 8px 20px 8px rgba(0,0,0,.06);
+  --sider-bg:#001529; --sider-width:200px; --header-h:64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { font-family:var(--ff-app); color:var(--n10); font-size:var(--fs-base); line-height:1.5715; -webkit-font-smoothing:antialiased; }
+body { min-height:100vh; }
+a { color:var(--c-primary); text-decoration:none; }
+a:hover { color:#4096FF; }
+button { font-family:inherit; cursor:pointer; }
+svg { display:inline-block; vertical-align:middle; }
+
+/* ===== Login Layout ===== */
+.login-page {
+  min-height:100vh;
+  background:linear-gradient(135deg, #001529 0%, #003A8C 50%, #0050B3 100%);
+  display:flex; align-items:center; justify-content:center;
+  padding:var(--s6); position:relative; overflow:hidden;
+}
+/* Decorative background blobs */
+.login-page::before {
+  content:''; position:absolute; top:-200px; right:-200px;
+  width:600px; height:600px; border-radius:50%;
+  background:radial-gradient(circle, rgba(22,119,255,.25) 0%, transparent 70%);
+  pointer-events:none;
+}
+.login-page::after {
+  content:''; position:absolute; bottom:-150px; left:-150px;
+  width:500px; height:500px; border-radius:50%;
+  background:radial-gradient(circle, rgba(64,150,255,.18) 0%, transparent 70%);
+  pointer-events:none;
+}
+.bg-grid {
+  position:absolute; inset:0; opacity:.05;
+  background-image:linear-gradient(rgba(255,255,255,.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.3) 1px, transparent 1px);
+  background-size:40px 40px; pointer-events:none;
+}
+
+.login-card {
+  width:400px; max-width:calc(100vw - 32px);
+  background:var(--n1); border-radius:var(--r-lg);
+  box-shadow:0 20px 60px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.15);
+  padding:40px 40px 32px; position:relative; z-index:1;
+  animation:cardIn .5s cubic-bezier(.16,1,.3,1);
+}
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(20px) scale(.98); }
+  to { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.login-logo {
+  display:flex; align-items:center; gap:12px; margin-bottom:8px; justify-content:center;
+}
+.login-logo .logo-mark {
+  width:48px; height:48px; border-radius:10px;
+  background:linear-gradient(135deg,#1677FF 0%,#4096FF 100%);
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:var(--fw-semibold); font-size:26px;
+  box-shadow:0 4px 12px rgba(22,119,255,.4);
+}
+.login-logo .logo-info { text-align:left; }
+.login-logo .logo-title { font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10); line-height:1.2; }
+.login-logo .logo-sub { font-size:var(--fs-sm); color:var(--n7); margin-top:2px; }
+
+.login-tagline {
+  text-align:center; font-size:var(--fs-sm); color:var(--n7);
+  margin:8px 0 32px; letter-spacing:2px;
+}
+
+/* ===== Form ===== */
+.form-item { margin-bottom:20px; }
+.form-item label { display:block; font-size:var(--fs-base); color:var(--n10); margin-bottom:6px; font-weight:var(--fw-medium); }
+.form-item label .req { color:var(--c-error); margin-right:4px; }
+.form-item .req-hint { font-size:var(--fs-sm); color:var(--n7); margin-top:4px; }
+.form-control {
+  height:40px; width:100%; padding:0 11px; border:1px solid var(--n5); border-radius:var(--r-base);
+  background:var(--n1); font-size:var(--fs-base); color:var(--n10); display:flex; align-items:center; gap:8px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.form-control:hover { border-color:var(--c-primary); }
+.form-control:focus-within { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.form-control .ctrl-icon { color:var(--n7); flex-shrink:0; display:flex; align-items:center; }
+.form-control input { flex:1; border:none; outline:none; background:transparent; font-size:var(--fs-base); color:var(--n10); min-width:0; height:100%; }
+.form-control input::placeholder { color:var(--n7); }
+.form-control .ctrl-suffix { color:var(--n7); cursor:pointer; display:flex; align-items:center; padding:4px; border-radius:4px; transition:color .15s; }
+.form-control .ctrl-suffix:hover { color:var(--n9); }
+.form-control.error { border-color:var(--c-error); }
+.form-control.error:focus-within { box-shadow:0 0 0 2px rgba(255,77,79,.1); }
+.error-msg { font-size:var(--fs-sm); color:var(--c-error); margin-top:4px; display:flex; align-items:center; gap:4px; }
+
+/* Captcha */
+.captcha-row { display:flex; gap:8px; }
+.captcha-row .form-control { flex:1; }
+.captcha-img {
+  width:110px; height:40px; border:1px solid var(--n5); border-radius:var(--r-base);
+  background:linear-gradient(135deg, #F0F5FF 0%, #E6F4FF 100%); display:flex; align-items:center; justify-content:center;
+  font-family:var(--ff-mono); font-size:20px; font-weight:var(--fw-semibold); letter-spacing:4px;
+  color:#0958D9; cursor:pointer; user-select:none; flex-shrink:0;
+  text-decoration:line-through; text-decoration-color:rgba(9,88,217,.3);
+  transition:transform .15s;
+}
+.captcha-img:hover { transform:scale(1.02); }
+
+/* Remember + forgot */
+.form-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+.checkbox-wrap { display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:var(--fs-base); color:var(--n9); }
+.checkbox-wrap .cb { width:16px; height:16px; border:1px solid var(--n5); border-radius:3px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .15s; }
+.checkbox-wrap.checked .cb { background:var(--c-primary); border-color:var(--c-primary); color:#fff; }
+.forgot-link { font-size:var(--fs-base); color:var(--c-primary); }
+.forgot-link:hover { color:#4096FF; }
+
+/* ===== Buttons ===== */
+.btn {
+  height:40px; padding:0 15px; border:1px solid var(--n5); border-radius:var(--r-base); background:var(--n1);
+  font-size:var(--fs-base); color:var(--n10); display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all .15s; white-space:nowrap;
+}
+.btn:hover { color:var(--c-primary); border-color:var(--c-primary); }
+.btn .b-icon { width:14px; height:14px; font-size:14px; }
+.btn-primary { background:var(--c-primary); border-color:var(--c-primary); color:#fff; width:100%; font-weight:var(--fw-medium); }
+.btn-primary:hover { background:#4096FF; border-color:#4096FF; color:#fff; }
+.btn-primary:active { background:#0958D9; border-color:#0958D9; }
+.btn-primary.loading { background:#4096FF; border-color:#4096FF; pointer-events:none; }
+.btn-link { background:none; border:none; color:var(--c-primary); padding:0; height:auto; font-size:var(--fs-base); }
+.btn-link:hover { color:#4096FF; background:none; }
+.btn[disabled] { color:var(--n7); background:var(--n3); border-color:var(--n5); cursor:not-allowed; }
+
+/* ===== Alert ===== */
+.alert {
+  display:flex; align-items:flex-start; gap:8px; padding:8px 12px; border-radius:var(--r-base); margin-bottom:20px;
+  font-size:var(--fs-sm); border:1px solid;
+}
+.alert.error { background:#FFF2F0; border-color:#FFCCC7; color:#CF1322; }
+.alert .alert-icon { color:var(--c-error); flex-shrink:0; margin-top:1px; }
+.alert .alert-content { flex:1; line-height:1.5; }
+
+/* ===== Loading Spinner ===== */
+.spinner { width:14px; height:14px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ===== Security Hints ===== */
+.security-hints {
+  margin-top:32px; padding-top:24px; border-top:1px solid var(--n3);
+  display:flex; justify-content:space-around; gap:12px;
+}
+.security-hint { display:flex; align-items:center; gap:6px; font-size:var(--fs-sm); color:var(--n7); }
+.security-hint .hint-icon { color:var(--c-success); display:flex; align-items:center; }
+
+/* ===== Toast ===== */
+.toast { position:fixed; top:24px; left:50%; transform:translateX(-50%) translateY(-20px); background:var(--n1); border-radius:var(--r-base); box-shadow:var(--sh-dropdown); padding:9px 16px; display:flex; align-items:center; gap:8px; font-size:var(--fs-base); z-index:2000; opacity:0; visibility:hidden; transition:all .25s; border:1px solid var(--n5); }
+.toast.show { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+.toast.success .toast-icon { color:var(--c-success); }
+.toast.error .toast-icon { color:var(--c-error); }
+.toast .toast-icon { width:16px; height:16px; }
+
+/* ===== Modal ===== */
+.mask { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; opacity:0; visibility:hidden; transition:opacity .25s; }
+.mask.show { opacity:1; visibility:visible; }
+.modal-confirm { position:fixed; top:0; left:50%; transform:translateX(-50%) translateY(-20px); margin-top:100px; width:420px; background:var(--n1); border-radius:var(--r-lg); z-index:1001; opacity:0; visibility:hidden; transition:all .25s; box-shadow:var(--sh-modal); }
+.modal-confirm.show { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+.modal-confirm-header { padding:16px 24px 0; display:flex; align-items:flex-start; gap:12px; }
+.modal-confirm-icon { width:22px; height:22px; flex-shrink:0; margin-top:1px; color:var(--c-warning); }
+.modal-confirm-title { font-size:var(--fs-lg); font-weight:var(--fw-semibold); color:var(--n10); flex:1; }
+.modal-confirm-body { padding:8px 24px 24px; padding-left:58px; }
+.modal-confirm-body p { font-size:var(--fs-base); color:var(--n9); line-height:1.6; }
+.modal-confirm-footer { padding:12px 24px 24px; display:flex; justify-content:flex-end; gap:8px; padding-left:58px; }
+
+/* ===== Forgot Password Panel ===== */
+.modal-lg { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(.95); width:420px; max-width:calc(100vw - 32px); background:var(--n1); border-radius:var(--r-lg); z-index:1001; opacity:0; visibility:hidden; transition:all .25s; box-shadow:var(--sh-modal); max-height:calc(100vh - 64px); display:flex; flex-direction:column; }
+.modal-lg.show { opacity:1; visibility:visible; transform:translate(-50%,-50%) scale(1); }
+.modal-lg-header { height:56px; padding:0 24px; border-bottom:1px solid var(--n5); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.modal-lg-header h3 { font-size:var(--fs-lg); font-weight:var(--fw-semibold); }
+.modal-lg-close { width:28px; height:28px; border:none; background:none; font-size:16px; color:var(--n7); border-radius:4px; display:flex; align-items:center; justify-content:center; }
+.modal-lg-close:hover { background:var(--n3); color:var(--n10); }
+.modal-lg-body { flex:1; overflow-y:auto; padding:24px; }
+.modal-lg-footer { padding:12px 24px; border-top:1px solid var(--n5); display:flex; justify-content:flex-end; gap:8px; flex-shrink:0; }
+
+/* ===== TOTP Panel (Two-factor) ===== */
+.totp-panel { text-align:center; }
+.totp-panel .totp-title { font-size:var(--fs-base); color:var(--n9); margin-bottom:8px; }
+.totp-panel .totp-desc { font-size:var(--fs-sm); color:var(--n7); margin-bottom:24px; }
+.otp-inputs { display:flex; gap:8px; justify-content:center; margin-bottom:24px; }
+.otp-input {
+  width:44px; height:48px; border:1px solid var(--n5); border-radius:var(--r-base);
+  text-align:center; font-size:var(--fs-xl); font-weight:var(--fw-semibold); color:var(--n10);
+  font-family:var(--ff-mono); outline:none; transition:all .15s;
+}
+.otp-input:focus { border-color:var(--c-primary); box-shadow:0 0 0 2px rgba(22,119,255,.1); }
+.otp-input.filled { border-color:var(--c-primary); background:#E6F4FF; }
+.totp-resend { font-size:var(--fs-sm); color:var(--n7); margin-top:16px; }
+.totp-resend a { color:var(--c-primary); }
+
+/* ===== Footer ===== */
+.login-footer {
+  position:absolute; bottom:16px; left:0; right:0; text-align:center;
+  font-size:var(--fs-sm); color:rgba(255,255,255,.5); z-index:1;
+}
+.login-footer a { color:rgba(255,255,255,.7); margin:0 8px; }
+.login-footer a:hover { color:#fff; }
+</style>
+</head>
+<body>
+<div class="login-page">
+  <div class="bg-grid"></div>
+
+  <!-- Login Card -->
+  <div class="login-card" id="loginCard">
+    <div class="login-logo">
+      <div class="logo-mark">L</div>
+      <div class="logo-info">
+        <div class="logo-title">Leno 运营管理后台</div>
+        <div class="logo-sub">简洁 · 安全 · 高效</div>
+      </div>
+    </div>
+    <div class="login-tagline">OPERATIONS MANAGEMENT CONSOLE</div>
+
+    <!-- Error Alert -->
+    <div class="alert error hidden" id="loginAlert">
+      <svg class="alert-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm40 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+      <div class="alert-content" id="alertContent">用户名或密码错误，请重新输入</div>
+    </div>
+
+    <!-- Login Form -->
+    <div id="loginForm">
+      <div class="form-item">
+        <label><span class="req">*</span>用户名 / 邮箱</label>
+        <div class="form-control">
+          <span class="ctrl-icon"><svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M858.5 763.6a374 374 0 00-80.6-119.5 375.6 375.6 0 00-119.5-80.6c-.4-.2-.8-.3-1.2-.5C719.5 518 760 444.7 760 362c0-137-111-248-248-248S264 225 264 362c0 82.7 40.5 156 102.8 201.1-.4.2-.8.3-1.2.5-44.4 18.3-84.3 44.5-118.6 78.6a375.6 375.6 0 00-80.6 119.5A371.7 371.7 0 00136 901.8a8 8 0 008 8.2h60c4.4 0 7.9-3.5 8-7.8 2-77.2 33-149.5 87.8-204.3 56.7-56.7 132-87.9 212.2-87.9s155.5 31.2 212.2 87.9C779 752.7 810 825 812 902.2c.1 4.4 3.6 7.8 8 7.8h60a8 8 0 008-8.2c-1-47.8-10.9-94.3-29.5-138.2zM512 534c-45.9 0-89.1-17.9-121.6-50.4S340 407.9 340 362c0-45.9 17.9-89.1 50.4-121.6S466.1 190 512 190s89.1 17.9 121.6 50.4S684 316.1 684 362c0 45.9-17.9 89.1-50.4 121.6S557.9 534 512 534z"/></svg></span>
+          <input id="loginAccount" placeholder="请输入用户名或邮箱" value="zhangyy" autocomplete="username" />
+        </div>
+      </div>
+
+      <div class="form-item">
+        <label><span class="req">*</span>密码</label>
+        <div class="form-control" id="pwdControl">
+          <span class="ctrl-icon"><svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M832 464h-68V240c0-70.7-57.3-128-128-128H388c-70.7 0-128 57.3-128 128v224h-68c-17.7 0-32 14.3-32 32v384c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V496c0-17.7-14.3-32-32-32zM332 240c0-30.9 25.1-56 56-56h248c30.9 0 56 25.1 56 56v224H332V240zm460 600H232V536h560v304zM484 720h56c4.4 0 8-3.6 8-8v-80c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v80c0 4.4 3.6 8 8 8z"/></svg></span>
+          <input id="loginPassword" type="password" placeholder="请输入密码" value="••••••••" autocomplete="current-password" />
+          <span class="ctrl-suffix" id="pwdToggle" onclick="togglePwd()">
+            <svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M942.2 486.2c-17.5-29.9-38.9-57.8-63.2-82.4-24.4-24.6-52.2-46.4-82.6-64.9C706.7 295.1 613.7 265.3 512 265.3c-101.7 0-194.7 29.8-284.4 73.6-30.4 18.5-58.2 40.3-82.6 64.9-24.3 24.6-45.7 52.5-63.2 82.4-3.1 5.3-3.1 11.9 0 17.2 17.5 29.9 38.9 57.8 63.2 82.4 24.4 24.6 52.2 46.4 82.6 64.9 89.7 43.8 182.7 73.6 284.4 73.6 101.7 0 194.7-29.8 284.4-73.6 30.4-18.5 58.2-40.3 82.6-64.9 24.3-24.6 45.7-52.5 63.2-82.4 3.1-5.3 3.1-11.9 0-17.2zM512 672c-88.4 0-160-71.6-160-160s71.6-160 160-160 160 71.6 160 160-71.6 160-160 160zm0-256c-53 0-96 43-96 96s43 96 96 96 96-43 96-96-43-96-96-96z"/></svg>
+          </span>
+        </div>
+      </div>
+
+      <div class="form-item">
+        <label><span class="req">*</span>图形验证码</label>
+        <div class="captcha-row">
+          <div class="form-control">
+            <span class="ctrl-icon"><svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z M313.2 396.8l77.6 78.4 78.4-78.4 196-196c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L434.9 388.5l-34-34.1c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l-77.4 77.4 44.6 44.7c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3z"/></svg></span>
+            <input id="loginCaptcha" placeholder="请输入验证码" />
+          </div>
+          <div class="captcha-img" id="captchaImg" onclick="refreshCaptcha()" title="点击刷新验证码">8K3M</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="checkbox-wrap checked" id="rememberMe" onclick="this.classList.toggle('checked')">
+          <span class="cb"><svg viewBox="64 64 896 896" width="12" height="12" fill="currentColor"><path d="M912 190h-69.9c-14.8 0-26.9 12.1-26.9 26.9V492c0 134.4-106.6 243.5-240 248.8v100.9h122.9c14.8 0 26.9 12.1 26.9 26.9v56c0 14.8-12.1 26.9-26.9 26.9H405c-14.8 0-26.9-12.1-26.9-26.9v-56c0-14.8 12.1-26.9 26.9-26.9H528V740.8C394.6 735.5 288 626.4 288 492V216.9c0-14.8-12.1-26.9-26.9-26.9H192c-17.7 0-32 14.3-32 32s14.3 32 32 32h32v232c0 141.2 96.9 260.3 228 293.7v25.5c-119.4-20.4-213.6-115.9-233.9-233.9H200c-17.7 0-32 14.3-32 32s14.3 32 32 32h20.5C247.6 749.9 371.9 856 512 856s264.4-106.1 291.5-244h20.5c17.7 0 32-14.3 32-32s-14.3-32-32-32h-18.1C785.6 666.1 691.4 771.6 572 792v-25.5c131.1-33.4 228-152.5 228-293.7V242h32c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg></span>
+          <span>记住我（7 天免登录）</span>
+        </div>
+        <a href="#" class="forgot-link" onclick="openForgotModal();return false;">忘记密码？</a>
+      </div>
+
+      <button class="btn btn-primary" id="loginBtn" onclick="handleLogin()">
+        <span id="loginBtnText">登 录</span>
+      </button>
+    </div>
+
+    <!-- Two-Factor Panel (hidden by default) -->
+    <div class="totp-panel hidden" id="totpPanel">
+      <div class="totp-title">双因子认证</div>
+      <div class="totp-desc">请打开 Authenticator App，输入 6 位动态验证码</div>
+      <div class="otp-inputs">
+        <input class="otp-input" maxlength="1" oninput="moveOtp(this, 0)" />
+        <input class="otp-input" maxlength="1" oninput="moveOtp(this, 1)" />
+        <input class="otp-input" maxlength="1" oninput="moveOtp(this, 2)" />
+        <input class="otp-input" maxlength="1" oninput="moveOtp(this, 3)" />
+        <input class="otp-input" maxlength="1" oninput="moveOtp(this, 4)" />
+        <input class="otp-input" maxlength="1" oninput="moveOtp(this, 5)" />
+      </div>
+      <button class="btn btn-primary" onclick="verifyTotp()">验证并登录</button>
+      <div class="totp-resend">收不到验证码？<a href="#" onclick="showToast('success','验证码已重新发送');return false;">重新发送</a></div>
+    </div>
+
+    <!-- Security Hints -->
+    <div class="security-hints">
+      <div class="security-hint">
+        <svg class="hint-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M866.9 169.9L527.1 54.1C523 52.7 517.5 52 512 52s-11 .7-15.1 2.1L157.1 169.9c-8.3 2.8-15.1 12.4-15.1 21.2v482.4c0 8.8 5.7 20.4 12.6 25.9L499.3 968c3.5 2.7 8 4.1 12.6 4.1s9.2-1.4 12.6-4.1l344.7-268.6c6.9-5.4 12.6-17 12.6-25.9V191.1c.2-8.8-6.6-18.3-14.9-21.2zM694.5 340.7L461.4 575.4 329.5 442.9c-3.1-3.1-8.2-3.1-11.3 0l-45.1 45c-3.1 3.1-3.1 8.2 0 11.3l176.4 176.4c3.1 3.1 8.2 3.1 11.3 0l278.7-278.7c3.1-3.1 3.1-8.2 0-11.3l-45-45.1c-3.1-3-8.2-3-11.3 0z"/></svg>
+        IP 白名单
+      </div>
+      <div class="security-hint">
+        <svg class="hint-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M866.9 169.9L527.1 54.1C523 52.7 517.5 52 512 52s-11 .7-15.1 2.1L157.1 169.9c-8.3 2.8-15.1 12.4-15.1 21.2v482.4c0 8.8 5.7 20.4 12.6 25.9L499.3 968c3.5 2.7 8 4.1 12.6 4.1s9.2-1.4 12.6-4.1l344.7-268.6c6.9-5.4 12.6-17 12.6-25.9V191.1c.2-8.8-6.6-18.3-14.9-21.2zM694.5 340.7L461.4 575.4 329.5 442.9c-3.1-3.1-8.2-3.1-11.3 0l-45.1 45c-3.1 3.1-3.1 8.2 0 11.3l176.4 176.4c3.1 3.1 8.2 3.1 11.3 0l278.7-278.7c3.1-3.1 3.1-8.2 0-11.3l-45-45.1c-3.1-3-8.2-3-11.3 0z"/></svg>
+        操作审计
+      </div>
+      <div class="security-hint">
+        <svg class="hint-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M866.9 169.9L527.1 54.1C523 52.7 517.5 52 512 52s-11 .7-15.1 2.1L157.1 169.9c-8.3 2.8-15.1 12.4-15.1 21.2v482.4c0 8.8 5.7 20.4 12.6 25.9L499.3 968c3.5 2.7 8 4.1 12.6 4.1s9.2-1.4 12.6-4.1l344.7-268.6c6.9-5.4 12.6-17 12.6-25.9V191.1c.2-8.8-6.6-18.3-14.9-21.2zM694.5 340.7L461.4 575.4 329.5 442.9c-3.1-3.1-8.2-3.1-11.3 0l-45.1 45c-3.1 3.1-3.1 8.2 0 11.3l176.4 176.4c3.1 3.1 8.2 3.1 11.3 0l278.7-278.7c3.1-3.1 3.1-8.2 0-11.3l-45-45.1c-3.1-3-8.2-3-11.3 0z"/></svg>
+        HTTPS 加密
+      </div>
+    </div>
+  </div>
+
+  <div class="login-footer">
+    <span>Leno 电商平台 · 运营管理后台 © 2026</span>
+    <a href="#">服务条款</a>·<a href="#">隐私政策</a>·<a href="#">帮助中心</a>
+  </div>
+</div>
+
+<!-- Forgot Password Modal -->
+<div class="mask" id="forgotMask" onclick="closeForgotModal()"></div>
+<div class="modal-lg" id="forgotModal">
+  <div class="modal-lg-header">
+    <h3>找回密码</h3>
+    <button class="modal-lg-close" onclick="closeForgotModal()">
+      <svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M563.8 512l261.9-261.9c10.5-10.5 10.5-27.6 0-38.1l-45.3-45.3c-10.5-10.5-27.6-10.5-38.1 0L480.5 428.6 218.6 147.4c-10.5-10.5-27.6-10.5-38.1 0l-45.3 45.3c-10.5 10.5-10.5 27.6 0 38.1L397 512 135.2 773.9c-10.5 10.5-10.5 27.6 0 38.1l45.3 45.3c10.5 10.5 27.6 10.5 38.1 0L480.5 595.4l261.9 261.9c10.5 10.5 27.6 10.5 38.1 0l45.3-45.3c10.5-10.5 10.5-27.6 0-38.1L563.8 512z"/></svg>
+    </button>
+  </div>
+  <div class="modal-lg-body">
+    <div class="alert" style="background:#E6F4FF;border-color:#91CAFF;color:#0958D9;margin-bottom:20px;">
+      <svg class="alert-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor" style="color:#1677FF;"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm-48 232c0-4.4 3.6-8 8-8h48c4.4 0 8 3.6 8 8v272c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8V296zm40 440a48.01 48.01 0 010-96 48.01 48.01 0 010 96z"/></svg>
+      <div class="alert-content">重置链接将发送至您注册的邮箱，有效期为 30 分钟。</div>
+    </div>
+    <div class="form-item">
+      <label><span class="req">*</span>注册邮箱</label>
+      <div class="form-control">
+        <span class="ctrl-icon"><svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M928 160H96c-17.7 0-32 14.3-32 32v640c0 17.7 14.3 32 32 32h832c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32zm-40 110.8V792H136V270.8l-27.6-21.5 39.3-50.5 51.2 40.4H825.1l51.2-40.4 39.3 50.5-27.6 21.5zM833.6 232.7L512 482 190.4 232.7l-39.3-50.5h721.8l-39.3 50.5z"/></svg></span>
+        <input placeholder="请输入注册邮箱" value="zhangsan@leno.com" />
+      </div>
+    </div>
+    <div class="form-item">
+      <label><span class="req">*</span>图形验证码</label>
+      <div class="captcha-row">
+        <div class="form-control">
+          <span class="ctrl-icon"><svg viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M880 112H144c-17.7 0-32 14.3-32 32v736c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V144c0-17.7-14.3-32-32-32zm-40 728H184V184h656v656z M313.2 396.8l77.6 78.4 78.4-78.4 196-196c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L434.9 388.5l-34-34.1c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l-77.4 77.4 44.6 44.7c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3z"/></svg></span>
+          <input placeholder="请输入验证码" />
+        </div>
+        <div class="captcha-img" onclick="refreshCaptcha2(this)">2X9P</div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-lg-footer">
+    <button class="btn" onclick="closeForgotModal()">取消</button>
+    <button class="btn btn-primary" style="width:auto;" onclick="closeForgotModal();showToast('success','重置链接已发送至邮箱，请查收')">发送重置链接</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <svg class="toast-icon" viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm193.5 301.7L423.4 811.6c-1.5 2.1-3.9 3.4-6.5 3.4h-67.6c-2.6 0-5.1-1.3-6.6-3.5L201.9 596.5c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l93.6 138.6c1.6 2.3 4.8 3 7.2 1.5l.2-.1c2.4-1.5 3.1-4.6 1.6-7L348.8 526.9c-2.3-3.4-1.4-8 2-10.3l59.5-40.4c3.4-2.3 8-1.4 10.3 2l272.8 404.5c2.3 3.4 1.4 8-2 10.3l-59.5 40.4c-3.4 2.3-8 1.4-10.3-2z"/></svg>
+  <span id="toastMsg">操作成功</span>
+</div>
+
+<script>
+function togglePwd() {
+  var input = document.getElementById('loginPassword');
+  var toggle = document.getElementById('pwdToggle');
+  if (input.type === 'password') {
+    input.type = 'text';
+    input.value = 'Leno@2026';
+    toggle.innerHTML = '<svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M942.2 486.2c-17.5-29.9-38.9-57.8-63.2-82.4-24.4-24.6-52.2-46.4-82.6-64.9C706.7 295.1 613.7 265.3 512 265.3c-101.7 0-194.7 29.8-284.4 73.6-30.4 18.5-58.2 40.3-82.6 64.9-24.3 24.6-45.7 52.5-63.2 82.4-3.1 5.3-3.1 11.9 0 17.2 17.5 29.9 38.9 57.8 63.2 82.4 24.4 24.6 52.2 46.4 82.6 64.9 89.7 43.8 182.7 73.6 284.4 73.6 101.7 0 194.7-29.8 284.4-73.6 30.4-18.5 58.2-40.3 82.6-64.9 24.3-24.6 45.7-52.5 63.2-82.4 3.1-5.3 3.1-11.9 0-17.2zM512 672c-88.4 0-160-71.6-160-160s71.6-160 160-160 160 71.6 160 160-71.6 160-160 160zm0-256c-53 0-96 43-96 96s43 96 96 96 96-43 96-96-43-96-96-96z"/><path d="M512 480m-40 0a40 40 0 1 0 80 0 40 40 0 1 0-80 0Z" fill="currentColor"/><path d="M942.2 486.2C924.7 456.3 903.3 428.4 879 403.8c-24.4-24.6-52.2-46.4-82.6-64.9C706.7 295.1 613.7 265.3 512 265.3c-101.7 0-194.7 29.8-284.4 73.6-30.4 18.5-58.2 40.3-82.6 64.9-24.3 24.6-45.7 52.5-63.2 82.4-3.1 5.3-3.1 11.9 0 17.2 17.5 29.9 38.9 57.8 63.2 82.4 24.4 24.6 52.2 46.4 82.6 64.9 89.7 43.8 182.7 73.6 284.4 73.6 101.7 0 194.7-29.8 284.4-73.6 30.4-18.5 58.2-40.3 82.6-64.9 24.3-24.6 45.7-52.5 63.2-82.4 3.1-5.3 3.1-11.9 0-17.2z" fill="none" stroke="currentColor" stroke-width="48"/></svg>';
+  } else {
+    input.type = 'password';
+    input.value = '••••••••';
+    toggle.innerHTML = '<svg viewBox="64 64 896 896" width="16" height="16" fill="currentColor"><path d="M942.2 486.2c-17.5-29.9-38.9-57.8-63.2-82.4-24.4-24.6-52.2-46.4-82.6-64.9C706.7 295.1 613.7 265.3 512 265.3c-101.7 0-194.7 29.8-284.4 73.6-30.4 18.5-58.2 40.3-82.6 64.9-24.3 24.6-45.7 52.5-63.2 82.4-3.1 5.3-3.1 11.9 0 17.2 17.5 29.9 38.9 57.8 63.2 82.4 24.4 24.6 52.2 46.4 82.6 64.9 89.7 43.8 182.7 73.6 284.4 73.6 101.7 0 194.7-29.8 284.4-73.6 30.4-18.5 58.2-40.3 82.6-64.9 24.3-24.6 45.7-52.5 63.2-82.4 3.1-5.3 3.1-11.9 0-17.2zM512 672c-88.4 0-160-71.6-160-160s71.6-160 160-160 160 71.6 160 160-71.6 160-160 160zm0-256c-53 0-96 43-96 96s43 96 96 96 96-43 96-96-43-96-96-96z"/></svg>';
+  }
+}
+
+function refreshCaptcha() {
+  var chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  var code = '';
+  for (var i = 0; i < 4; i++) { code += chars.charAt(Math.floor(Math.random() * chars.length)); }
+  document.getElementById('captchaImg').textContent = code;
+}
+
+function refreshCaptcha2(el) {
+  var chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  var code = '';
+  for (var i = 0; i < 4; i++) { code += chars.charAt(Math.floor(Math.random() * chars.length)); }
+  el.textContent = code;
+}
+
+function handleLogin() {
+  var btn = document.getElementById('loginBtn');
+  var btnText = document.getElementById('loginBtnText');
+  var account = document.getElementById('loginAccount').value;
+  var captcha = document.getElementById('loginCaptcha').value;
+  var alertBox = document.getElementById('loginAlert');
+
+  if (!account || !captcha) {
+    alertBox.classList.remove('hidden');
+    document.getElementById('alertContent').textContent = '请填写完整的登录信息';
+    return;
+  }
+
+  btn.classList.add('loading');
+  btnText.innerHTML = '<span class="spinner"></span> 登录中...';
+
+  setTimeout(function() {
+    btn.classList.remove('loading');
+    btnText.textContent = '登 录';
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('totpPanel').classList.remove('hidden');
+    showToast('success', '账号验证通过，请完成双因子认证');
+  }, 1000);
+}
+
+function moveOtp(input, idx) {
+  if (input.value) {
+    input.classList.add('filled');
+    var inputs = document.querySelectorAll('.otp-input');
+    if (idx < 5) inputs[idx + 1].focus();
+  } else {
+    input.classList.remove('filled');
+  }
+}
+
+function verifyTotp() {
+  showToast('success', '登录成功，正在跳转...');
+  setTimeout(function() {
+    alert('登录成功，已跳转至运营总览（演示）');
+  }, 800);
+}
+
+function openForgotModal() {
+  document.getElementById('forgotModal').classList.add('show');
+  document.getElementById('forgotMask').classList.add('show');
+}
+
+function closeForgotModal() {
+  document.getElementById('forgotModal').classList.remove('show');
+  document.getElementById('forgotMask').classList.remove('show');
+}
+
+function showToast(type, msg) {
+  var toast = document.getElementById('toast');
+  toast.className = 'toast ' + type;
+  document.getElementById('toastMsg').textContent = msg;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 2000);
+}
+</script>
+</body>
+</html>
