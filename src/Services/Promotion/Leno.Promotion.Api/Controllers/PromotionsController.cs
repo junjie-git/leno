@@ -80,12 +80,29 @@ public sealed class PromotionsController : PromotionControllerBase
         return Ok(ApiResponse.Success(activity));
     }
 
-    /// <summary>分页查询满减活动（按状态可选过滤）。</summary>
+    /// <summary>
+    /// 分页查询满减活动，支持按名称模糊、状态精确、时间区间可选过滤。
+    /// </summary>
+    /// <param name="name">名称模糊匹配关键词。</param>
+    /// <param name="status">活动状态精确匹配。</param>
+    /// <param name="startTime">活动开始时间下界（>=）。</param>
+    /// <param name="endTime">活动结束时间上界（<=）。</param>
+    /// <param name="page">页码（从 1 开始）。</param>
+    /// <param name="pageSize">每页条数。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>分页结果，包含当前页活动列表与总记录数。</returns>
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<List<PromotionActivityDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> QueryAsync([FromQuery] PromotionStatus? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    [ProducesResponseType(typeof(ApiResponse<PromotionListResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListAsync(
+        [FromQuery] string? name,
+        [FromQuery] PromotionStatus? status,
+        [FromQuery] DateTime? startTime,
+        [FromQuery] DateTime? endTime,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
     {
-        var activities = await _promotionAppService.QueryAsync(status, page, pageSize, ct);
-        return Ok(ApiResponse.Success(activities));
+        var result = await _promotionAppService.QueryAsync(name, status, startTime, endTime, page, pageSize, ct);
+        return Ok(ApiResponse.Success(result));
     }
 }

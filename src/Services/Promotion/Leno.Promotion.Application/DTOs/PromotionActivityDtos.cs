@@ -59,3 +59,15 @@ public sealed class UpdatePromotionActivityDto
 
     public List<PromotionRuleDto> Rules { get; init; } = new();
 }
+
+/// <summary>
+/// 满减活动分页查询结果 DTO，包含当前页数据与总记录数。
+/// </summary>
+public sealed class PromotionListResultDto
+{
+    /// <summary>当前页的活动列表。</summary>
+    public IReadOnlyList<PromotionActivityDto> Items { get; init; } = Array.Empty<PromotionActivityDto>();
+
+    /// <summary>满足筛选条件的总记录数。</summary>
+    public int Total { get; init; }
+}

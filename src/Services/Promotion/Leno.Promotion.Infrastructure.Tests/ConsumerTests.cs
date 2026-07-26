@@ -357,7 +357,7 @@ public class SeckillOrderCreationFailedEventConsumerTests
         var activityId = Guid.NewGuid();
         var skuId = Guid.NewGuid();
         var orderId = Guid.NewGuid();
-        var activity = SeckillActivity.Create(activityId, Guid.NewGuid(), skuId, 99m, 199m, 100, 1,
+        var activity = SeckillActivity.Create(activityId, "测试秒杀活动", Guid.NewGuid(), skuId, 99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(2));
         activity.Activate();
         activity.DeductStock(Guid.NewGuid(), 5);

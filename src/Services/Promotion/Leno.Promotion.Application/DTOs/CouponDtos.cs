@@ -101,3 +101,15 @@ public sealed class UserCouponDto
 
     public DateTime? ExpiredAt { get; init; }
 }
+
+/// <summary>
+/// 优惠券模板分页查询结果 DTO，包含当前页数据与总记录数。
+/// </summary>
+public sealed class CouponListResultDto
+{
+    /// <summary>当前页的券模板列表。</summary>
+    public IReadOnlyList<CouponDto> Items { get; init; } = Array.Empty<CouponDto>();
+
+    /// <summary>满足筛选条件的总记录数。</summary>
+    public int Total { get; init; }
+}

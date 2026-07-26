@@ -31,23 +31,53 @@ public sealed class EfCoreSeckillActivityRepository : ISeckillActivityRepository
             .ToListAsync(ct);
 
     /// <inheritdoc />
-    public async Task<List<SeckillActivityAggregate>> GetByStatusAsync(
+    public async Task<List<SeckillActivityAggregate>> QueryAsync(
+        string? name,
         SeckillStatus? status,
         int page,
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _context.SeckillActivities.AsQueryable();
-        if (status.HasValue)
-        {
-            query = query.Where(s => s.Status == status.Value);
-        }
+        var query = BuildQuery(name, status);
 
         return await query
             .OrderByDescending(s => s.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<int> CountAsync(
+        string? name,
+        SeckillStatus? status,
+        CancellationToken ct = default)
+    {
+        var query = BuildQuery(name, status);
+        return await query.CountAsync(ct);
+    }
+
+    /// <summary>
+    /// 构建带筛选条件的 IQueryable，供 QueryAsync 与 CountAsync 复用，确保两处筛选逻辑一致。
+    /// name 非空白时按 Name Contains 模糊匹配；status 非空时按 Status 精确匹配。
+    /// </summary>
+    private IQueryable<SeckillActivityAggregate> BuildQuery(
+        string? name,
+        SeckillStatus? status)
+    {
+        var query = _context.SeckillActivities.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            query = query.Where(s => s.Name.Contains(name));
+        }
+
+        if (status.HasValue)
+        {
+            query = query.Where(s => s.Status == status.Value);
+        }
+
+        return query;
     }
 
     /// <inheritdoc />

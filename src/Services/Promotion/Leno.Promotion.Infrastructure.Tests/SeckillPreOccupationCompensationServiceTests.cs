@@ -49,7 +49,7 @@ public class SeckillPreOccupationCompensationServiceTests
     [Fact]
     public async Task Compensate_ValidRecord_ShouldRestoreAndMarkRolledBack()
     {
-        var activity = SeckillActivity.Create(ActivityId, Guid.NewGuid(), SkuId, 99m, 199m, 100, 1,
+        var activity = SeckillActivity.Create(ActivityId, "测试秒杀活动", Guid.NewGuid(), SkuId, 99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(2));
         activity.Activate();
         var record = CreateRecord();

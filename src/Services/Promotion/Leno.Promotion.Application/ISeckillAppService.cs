@@ -47,6 +47,19 @@ public interface ISeckillAppService
     /// <summary>查询当前进行中的秒杀活动列表（买家侧展示）。</summary>
     Task<List<SeckillActivityDto>> GetActiveAsync(CancellationToken ct = default);
 
-    /// <summary>按状态分页查询秒杀活动（运营后台）。</summary>
-    Task<List<SeckillActivityDto>> QueryAsync(SeckillStatus? status, int page, int pageSize, CancellationToken ct = default);
+    /// <summary>
+    /// 按多条件分页查询秒杀活动（运营后台），返回当前页数据与总记录数。
+    /// </summary>
+    /// <param name="name">名称模糊匹配关键词，null 或空白时忽略。</param>
+    /// <param name="status">活动状态精确匹配，null 时忽略。</param>
+    /// <param name="page">页码（从 1 开始）。</param>
+    /// <param name="pageSize">每页条数。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>分页结果，包含当前页秒杀活动列表与总记录数。</returns>
+    Task<SeckillListResultDto> QueryAsync(
+        string? name,
+        SeckillStatus? status,
+        int page,
+        int pageSize,
+        CancellationToken ct = default);
 }

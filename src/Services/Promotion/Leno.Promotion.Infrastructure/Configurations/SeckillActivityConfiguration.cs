@@ -15,6 +15,7 @@ public sealed class SeckillActivityConfiguration : IEntityTypeConfiguration<Seck
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.Id).HasColumnName("id");
+        builder.Property(s => s.Name).HasColumnName("name").HasMaxLength(128).IsRequired();
         builder.Property(s => s.SpuId).HasColumnName("spu_id");
         builder.Property(s => s.SkuId).HasColumnName("sku_id");
         builder.Property(s => s.SeckillPrice).HasColumnName("seckill_price").HasPrecision(18, 2);

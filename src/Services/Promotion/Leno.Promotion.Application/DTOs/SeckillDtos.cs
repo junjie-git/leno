@@ -9,6 +9,9 @@ public sealed class SeckillActivityDto
 {
     public Guid Id { get; init; }
 
+    /// <summary>活动名称。</summary>
+    public string Name { get; init; } = string.Empty;
+
     public Guid SpuId { get; init; }
 
     public Guid SkuId { get; init; }
@@ -41,6 +44,9 @@ public sealed class SeckillActivityDto
 /// </summary>
 public sealed class CreateSeckillActivityDto
 {
+    /// <summary>活动名称，不可为空。</summary>
+    public string Name { get; init; } = string.Empty;
+
     public Guid SpuId { get; init; }
 
     public Guid SkuId { get; init; }
@@ -56,6 +62,18 @@ public sealed class CreateSeckillActivityDto
     public DateTime StartTime { get; init; }
 
     public DateTime EndTime { get; init; }
+}
+
+/// <summary>
+/// 秒杀活动分页查询结果 DTO，包含当前页数据与总记录数。
+/// </summary>
+public sealed class SeckillListResultDto
+{
+    /// <summary>当前页的秒杀活动列表。</summary>
+    public IReadOnlyList<SeckillActivityDto> Items { get; init; } = Array.Empty<SeckillActivityDto>();
+
+    /// <summary>满足筛选条件的总记录数。</summary>
+    public int Total { get; init; }
 }
 
 /// <summary>

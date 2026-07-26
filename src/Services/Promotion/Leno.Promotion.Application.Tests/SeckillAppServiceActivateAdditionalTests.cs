@@ -68,7 +68,7 @@ public class SeckillAppServiceActivateAdditionalTests
     private static SeckillActivity CreateActivity()
     {
         return SeckillActivity.Create(
-            ActivityId, SpuId, SkuId, 99m, 199m, 100, 1,
+            ActivityId, "测试秒杀活动", SpuId, SkuId, 99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(2));
     }
 }

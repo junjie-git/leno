@@ -34,23 +34,62 @@ public sealed class EfCoreCouponRepository : ICouponRepository
     }
 
     /// <inheritdoc />
-    public async Task<List<CouponAggregate>> GetByStatusAsync(
+    public async Task<List<CouponAggregate>> QueryAsync(
+        string? name,
+        CouponType? type,
         CouponTemplateStatus? status,
         int page,
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _context.Coupons.AsQueryable();
-        if (status.HasValue)
-        {
-            query = query.Where(c => c.Status == status.Value);
-        }
+        var query = BuildQuery(name, type, status);
 
         return await query
             .OrderByDescending(c => c.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<int> CountAsync(
+        string? name,
+        CouponType? type,
+        CouponTemplateStatus? status,
+        CancellationToken ct = default)
+    {
+        var query = BuildQuery(name, type, status);
+        return await query.CountAsync(ct);
+    }
+
+    /// <summary>
+    /// 构建带筛选条件的 IQueryable，供 QueryAsync 与 CountAsync 复用，确保两处筛选逻辑一致。
+    /// name 非空白时按 Name Contains 模糊匹配；type 非空时按 Type 精确匹配；
+    /// status 非空时按 Status 精确匹配。
+    /// </summary>
+    private IQueryable<CouponAggregate> BuildQuery(
+        string? name,
+        CouponType? type,
+        CouponTemplateStatus? status)
+    {
+        var query = _context.Coupons.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            query = query.Where(c => c.Name.Contains(name));
+        }
+
+        if (type.HasValue)
+        {
+            query = query.Where(c => c.Type == type.Value);
+        }
+
+        if (status.HasValue)
+        {
+            query = query.Where(c => c.Status == status.Value);
+        }
+
+        return query;
     }
 
     /// <inheritdoc />

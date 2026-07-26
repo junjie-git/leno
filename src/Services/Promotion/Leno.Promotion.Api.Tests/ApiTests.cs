@@ -204,14 +204,16 @@ public class PromotionApiTests : IClassFixture<WebApplicationFactory<Program>>
     {
         SetupAdminAuth();
         var list = new List<PromotionActivityDto> { new() { Id = ActivityId, Name = "活动1" } };
-        _promotionAppServiceMock.Setup(s => s.QueryAsync(null, 1, 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(list);
+        var resultDto = new PromotionListResultDto { Items = list, Total = 1 };
+        _promotionAppServiceMock.Setup(s => s.QueryAsync(null, null, null, null, 1, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(resultDto);
 
         var response = await _client.GetAsync("/api/admin/promotions?page=1&pageSize=20");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<PromotionActivityDto>>>();
-        result!.Data!.Should().HaveCount(1);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<PromotionListResultDto>>();
+        result!.Data!.Items.Should().HaveCount(1);
+        result.Data.Total.Should().Be(1);
     }
 
     #endregion
@@ -299,14 +301,16 @@ public class PromotionApiTests : IClassFixture<WebApplicationFactory<Program>>
     {
         SetupAdminAuth();
         var list = new List<CouponDto> { new() { Id = CouponId, Name = "券1" } };
-        _couponAppServiceMock.Setup(s => s.QueryAsync(null, 1, 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(list);
+        var resultDto = new CouponListResultDto { Items = list, Total = 1 };
+        _couponAppServiceMock.Setup(s => s.QueryAsync(null, null, null, 1, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(resultDto);
 
         var response = await _client.GetAsync("/api/admin/coupons?page=1&pageSize=20");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<CouponDto>>>();
-        result!.Data!.Should().HaveCount(1);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<CouponListResultDto>>();
+        result!.Data!.Items.Should().HaveCount(1);
+        result.Data.Total.Should().Be(1);
     }
 
     #endregion
@@ -368,7 +372,7 @@ public class PromotionApiTests : IClassFixture<WebApplicationFactory<Program>>
         SetupAdminAuth();
         var dto = new SeckillActivityDto
         {
-            Id = ActivityId, SpuId = SpuId, SkuId = SkuId, SeckillPrice = 99m, OriginalPrice = 199m,
+            Id = ActivityId, Name = "测试秒杀活动", SpuId = SpuId, SkuId = SkuId, SeckillPrice = 99m, OriginalPrice = 199m,
             TotalStock = 100, Status = SeckillStatus.Pending
         };
         _seckillAppServiceMock.Setup(s => s.CreateAsync(It.IsAny<CreateSeckillActivityDto>(), It.IsAny<CancellationToken>()))
@@ -376,6 +380,7 @@ public class PromotionApiTests : IClassFixture<WebApplicationFactory<Program>>
 
         var body = new
         {
+            Name = "测试秒杀活动",
             SpuId = SpuId, SkuId = SkuId, SeckillPrice = 99m, OriginalPrice = 199m,
             TotalStock = 100, LimitPerUser = 1,
             StartTime = DateTime.UtcNow.AddHours(1), EndTime = DateTime.UtcNow.AddHours(2)
@@ -385,6 +390,7 @@ public class PromotionApiTests : IClassFixture<WebApplicationFactory<Program>>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonAsync<ApiResponse<SeckillActivityDto>>();
         result!.Data!.SeckillPrice.Should().Be(99m);
+        result.Data.Name.Should().Be("测试秒杀活动");
     }
 
     [Fact]
@@ -418,14 +424,16 @@ public class PromotionApiTests : IClassFixture<WebApplicationFactory<Program>>
     {
         SetupAdminAuth();
         var list = new List<SeckillActivityDto> { new() { Id = ActivityId, SeckillPrice = 99m } };
-        _seckillAppServiceMock.Setup(s => s.QueryAsync(null, 1, 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(list);
+        var resultDto = new SeckillListResultDto { Items = list, Total = 1 };
+        _seckillAppServiceMock.Setup(s => s.QueryAsync(null, null, 1, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(resultDto);
 
         var response = await _client.GetAsync("/api/admin/seckill/activities?page=1&pageSize=20");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<SeckillActivityDto>>>();
-        result!.Data!.Should().HaveCount(1);
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<SeckillListResultDto>>();
+        result!.Data!.Items.Should().HaveCount(1);
+        result.Data.Total.Should().Be(1);
     }
 
     #endregion

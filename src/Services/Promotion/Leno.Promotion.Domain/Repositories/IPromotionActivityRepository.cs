@@ -16,11 +16,38 @@ public interface IPromotionActivityRepository : IRepository<PromotionActivityAgg
     Task<List<PromotionActivityAggregate>> GetActiveAsync(DateTime now, CancellationToken ct = default);
 
     /// <summary>
-    /// 按状态分页查询活动（运营后台）。
+    /// 按多条件分页查询活动（运营后台），支持名称模糊、状态精确、时间区间过滤。
     /// </summary>
-    Task<List<PromotionActivityAggregate>> GetByStatusAsync(
+    /// <param name="name">名称模糊匹配关键词，null 或空白时忽略。</param>
+    /// <param name="status">活动状态精确匹配，null 时忽略。</param>
+    /// <param name="startTime">活动开始时间下界（>=），null 时忽略。</param>
+    /// <param name="endTime">活动结束时间上界（<=），null 时忽略。</param>
+    /// <param name="page">页码（从 1 开始）。</param>
+    /// <param name="pageSize">每页条数。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>当前页的活动列表。</returns>
+    Task<List<PromotionActivityAggregate>> QueryAsync(
+        string? name,
         PromotionStatus? status,
+        DateTime? startTime,
+        DateTime? endTime,
         int page,
         int pageSize,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// 按多条件统计活动总数（运营后台），筛选条件与 <see cref="QueryAsync"/> 一致。
+    /// </summary>
+    /// <param name="name">名称模糊匹配关键词，null 或空白时忽略。</param>
+    /// <param name="status">活动状态精确匹配，null 时忽略。</param>
+    /// <param name="startTime">活动开始时间下界（>=），null 时忽略。</param>
+    /// <param name="endTime">活动结束时间上界（<=），null 时忽略。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>满足筛选条件的总记录数。</returns>
+    Task<int> CountAsync(
+        string? name,
+        PromotionStatus? status,
+        DateTime? startTime,
+        DateTime? endTime,
         CancellationToken ct = default);
 }

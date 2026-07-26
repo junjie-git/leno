@@ -57,14 +57,27 @@ public sealed class SeckillController : PromotionControllerBase
         return Ok(ApiResponse.Success());
     }
 
-    /// <summary>按状态分页查询秒杀活动（运营后台）。</summary>
+    /// <summary>
+    /// 分页查询秒杀活动，支持按名称模糊、状态精确可选过滤。
+    /// </summary>
+    /// <param name="name">名称模糊匹配关键词。</param>
+    /// <param name="status">活动状态精确匹配。</param>
+    /// <param name="page">页码（从 1 开始）。</param>
+    /// <param name="pageSize">每页条数。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>分页结果，包含当前页秒杀活动列表与总记录数。</returns>
     [Authorize(Roles = "Operator,Admin")]
     [HttpGet("api/admin/seckill/activities")]
-    [ProducesResponseType(typeof(ApiResponse<List<SeckillActivityDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> QueryAsync([FromQuery] SeckillStatus? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    [ProducesResponseType(typeof(ApiResponse<SeckillListResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListAsync(
+        [FromQuery] string? name,
+        [FromQuery] SeckillStatus? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
     {
-        var activities = await _seckillAppService.QueryAsync(status, page, pageSize, ct);
-        return Ok(ApiResponse.Success(activities));
+        var result = await _seckillAppService.QueryAsync(name, status, page, pageSize, ct);
+        return Ok(ApiResponse.Success(result));
     }
 
     // ========== 买家端 ==========

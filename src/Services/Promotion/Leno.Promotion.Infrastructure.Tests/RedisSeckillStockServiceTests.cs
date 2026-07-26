@@ -32,7 +32,7 @@ public class RedisSeckillStockServiceTests
     private static SeckillActivity CreateActiveActivity(int totalStock)
     {
         var activity = SeckillActivity.Create(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            Guid.NewGuid(), "测试秒杀活动", Guid.NewGuid(), Guid.NewGuid(),
             99m, 199m, totalStock, 5,
             DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(2));
         activity.Activate();
@@ -160,7 +160,7 @@ public class SeckillActivitySyncFromRedisTests
     private static SeckillActivity CreateActiveActivity(int totalStock)
     {
         var activity = SeckillActivity.Create(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            Guid.NewGuid(), "测试秒杀活动", Guid.NewGuid(), Guid.NewGuid(),
             99m, 199m, totalStock, 5,
             DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(2));
         activity.Activate();

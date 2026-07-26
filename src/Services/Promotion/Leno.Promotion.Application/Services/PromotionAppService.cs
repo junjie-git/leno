@@ -90,10 +90,23 @@ public sealed class PromotionAppService : IPromotionAppService
     }
 
     /// <inheritdoc />
-    public async Task<List<PromotionActivityDto>> QueryAsync(PromotionStatus? status, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PromotionListResultDto> QueryAsync(
+        string? name,
+        PromotionStatus? status,
+        DateTime? startTime,
+        DateTime? endTime,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
     {
-        var activities = await _repository.GetByStatusAsync(status, page, pageSize, ct);
-        return activities.Select(ToDto).ToList();
+        var activities = await _repository.QueryAsync(name, status, startTime, endTime, page, pageSize, ct);
+        var total = await _repository.CountAsync(name, status, startTime, endTime, ct);
+
+        return new PromotionListResultDto
+        {
+            Items = activities.Select(ToDto).ToList(),
+            Total = total
+        };
     }
 
     private async Task<PromotionActivityAggregate> RequireActivityAsync(Guid activityId, CancellationToken ct)

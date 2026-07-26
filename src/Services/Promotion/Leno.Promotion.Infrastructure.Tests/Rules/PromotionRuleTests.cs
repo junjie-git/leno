@@ -339,7 +339,7 @@ public class SeckillDiscountRuleTests
     private static SeckillActivity CreateActiveSeckill()
     {
         var activity = SeckillActivity.Create(
-            Guid.NewGuid(), Guid.NewGuid(), SkuId,
+            Guid.NewGuid(), "测试秒杀活动", Guid.NewGuid(), SkuId,
             99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(1));
         activity.Activate();

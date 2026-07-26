@@ -77,10 +77,22 @@ public sealed class CouponAppService : ICouponAppService
     }
 
     /// <inheritdoc />
-    public async Task<List<CouponDto>> QueryAsync(CouponTemplateStatus? status, int page, int pageSize, CancellationToken ct = default)
+    public async Task<CouponListResultDto> QueryAsync(
+        string? name,
+        CouponType? type,
+        CouponTemplateStatus? status,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
     {
-        var coupons = await _couponRepository.GetByStatusAsync(status, page, pageSize, ct);
-        return coupons.Select(ToDto).ToList();
+        var coupons = await _couponRepository.QueryAsync(name, type, status, page, pageSize, ct);
+        var total = await _couponRepository.CountAsync(name, type, status, ct);
+
+        return new CouponListResultDto
+        {
+            Items = coupons.Select(ToDto).ToList(),
+            Total = total
+        };
     }
 
     /// <inheritdoc />

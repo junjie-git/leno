@@ -13,6 +13,9 @@ namespace Leno.Promotion.Domain.Aggregates;
 /// </summary>
 public sealed class SeckillActivity : AggregateRoot
 {
+    /// <summary>活动名称，用于运营后台展示与模糊检索。</summary>
+    public string Name { get; private set; } = string.Empty;
+
     /// <summary>关联商品 SPU 标识。</summary>
     public Guid SpuId { get; private set; }
 
@@ -52,6 +55,7 @@ public sealed class SeckillActivity : AggregateRoot
     /// 工厂方法，校验秒杀价 &lt; 原价、库存 &gt; 0、时间合法，置待生效态。
     /// </summary>
     /// <param name="activityId">活动标识，由应用层生成。</param>
+    /// <param name="name">活动名称，不可为空。</param>
     /// <param name="spuId">SPU 标识。</param>
     /// <param name="skuId">SKU 标识。</param>
     /// <param name="seckillPrice">秒杀价。</param>
@@ -62,6 +66,7 @@ public sealed class SeckillActivity : AggregateRoot
     /// <param name="endTime">结束时间（UTC）。</param>
     public static SeckillActivity Create(
         Guid activityId,
+        string name,
         Guid spuId,
         Guid skuId,
         decimal seckillPrice,
@@ -71,6 +76,11 @@ public sealed class SeckillActivity : AggregateRoot
         DateTime startTime,
         DateTime endTime)
     {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new PromotionDomainException("活动名称不可为空", "SECKILL_NAME_EMPTY");
+        }
+
         if (spuId == Guid.Empty)
         {
             throw new PromotionDomainException("SpuId 不可为空", "SECKILL_SPU_EMPTY");
@@ -113,6 +123,7 @@ public sealed class SeckillActivity : AggregateRoot
 
         return new SeckillActivity(activityId == Guid.Empty ? Guid.NewGuid() : activityId)
         {
+            Name = name,
             SpuId = spuId,
             SkuId = skuId,
             SeckillPrice = seckillPrice,

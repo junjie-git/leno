@@ -243,6 +243,7 @@ public class SeckillAppServiceTests
 
         var dto = new CreateSeckillActivityDto
         {
+            Name = "测试秒杀活动",
             SpuId = SpuId, SkuId = SkuId, SeckillPrice = 99m, OriginalPrice = 199m,
             TotalStock = 100, LimitPerUser = 1,
             StartTime = DateTime.UtcNow.AddHours(1), EndTime = DateTime.UtcNow.AddHours(2)
@@ -251,6 +252,7 @@ public class SeckillAppServiceTests
         var result = await _sut.CreateAsync(dto);
 
         result.Should().NotBeNull();
+        result.Name.Should().Be("测试秒杀活动");
         result.SpuId.Should().Be(SpuId);
         result.Status.Should().Be(SeckillStatus.Pending);
         _repoMock.Verify(r => r.AddAsync(It.IsAny<SeckillActivity>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -459,17 +461,19 @@ public class SeckillAppServiceTests
     public async Task QueryAsync_ShouldReturnList()
     {
         var activities = new List<SeckillActivity> { CreateActivity() };
-        _repoMock.Setup(r => r.GetByStatusAsync(null, 1, 20, It.IsAny<CancellationToken>())).ReturnsAsync(activities);
+        _repoMock.Setup(r => r.QueryAsync(null, null, 1, 20, It.IsAny<CancellationToken>())).ReturnsAsync(activities);
+        _repoMock.Setup(r => r.CountAsync(null, null, It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var result = await _sut.QueryAsync(null, 1, 20);
+        var result = await _sut.QueryAsync(null, null, 1, 20);
 
-        result.Should().HaveCount(1);
+        result.Items.Should().HaveCount(1);
+        result.Total.Should().Be(1);
     }
 
     private static SeckillActivity CreateActivity()
     {
         return SeckillActivity.Create(
-            ActivityId, SpuId, SkuId, 99m, 199m, 100, 1,
+            ActivityId, "测试秒杀活动", SpuId, SkuId, 99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(2));
     }
 }

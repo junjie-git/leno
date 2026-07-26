@@ -38,6 +38,7 @@ public sealed class SeckillAppService : ISeckillAppService
     {
         var activity = SeckillActivityAggregate.Create(
             Guid.NewGuid(),
+            dto.Name,
             dto.SpuId,
             dto.SkuId,
             dto.SeckillPrice,
@@ -212,18 +213,34 @@ public sealed class SeckillAppService : ISeckillAppService
     }
 
     /// <inheritdoc />
-    public async Task<List<SeckillActivityDto>> QueryAsync(SeckillStatus? status, int page, int pageSize, CancellationToken ct = default)
+    public async Task<SeckillListResultDto> QueryAsync(
+        string? name,
+        SeckillStatus? status,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
     {
-        var activities = await _repository.GetByStatusAsync(status, page, pageSize, ct);
+        var activities = await _repository.QueryAsync(name, status, page, pageSize, ct);
+        var total = await _repository.CountAsync(name, status, ct);
+
         if (activities.Count == 0)
         {
-            return new List<SeckillActivityDto>();
+            return new SeckillListResultDto
+            {
+                Items = new List<SeckillActivityDto>(),
+                Total = total
+            };
         }
 
         // 并行调用 ToDtoAsync（内部含 Redis 往返），将 N 次串行改为 N 次并行
         var dtoTasks = activities.Select(a => ToDtoAsync(a, ct)).ToArray();
         var dtos = await Task.WhenAll(dtoTasks);
-        return dtos.ToList();
+
+        return new SeckillListResultDto
+        {
+            Items = dtos.ToList(),
+            Total = total
+        };
     }
 
     private async Task<SeckillActivityAggregate> RequireActivityAsync(Guid activityId, CancellationToken ct)
@@ -242,6 +259,7 @@ public sealed class SeckillAppService : ISeckillAppService
         return new SeckillActivityDto
         {
             Id = activity.Id,
+            Name = activity.Name,
             SpuId = activity.SpuId,
             SkuId = activity.SkuId,
             SeckillPrice = activity.SeckillPrice,

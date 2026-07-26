@@ -1,4 +1,4 @@
-﻿﻿using Leno.Promotion.Domain.Aggregates;
+﻿using Leno.Promotion.Domain.Aggregates;
 using Leno.Promotion.Domain.Events;
 using Leno.Promotion.Domain.Exceptions;
 using Leno.Promotion.Domain.Services;
@@ -27,17 +27,37 @@ public class SeckillActivityTests
     public void Create_SeckillPriceNotLessThanOriginal_ShouldThrowException()
     {
         var act = () => SeckillActivity.Create(
-            Guid.NewGuid(), SpuId, SkuId, 199m, 100m, 100, 1,
+            Guid.NewGuid(), "测试秒杀活动", SpuId, SkuId, 199m, 100m, 100, 1,
             DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
 
         act.Should().Throw<PromotionDomainException>().WithMessage("*小于*");
     }
 
     [Fact]
+    public void Create_EmptyName_ShouldThrowException()
+    {
+        var act = () => SeckillActivity.Create(
+            Guid.NewGuid(), "", SpuId, SkuId, 99m, 199m, 100, 1,
+            DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
+
+        act.Should().Throw<PromotionDomainException>().WithMessage("*活动名称*");
+    }
+
+    [Fact]
+    public void Create_ValidName_ShouldSetNameProperty()
+    {
+        var activity = SeckillActivity.Create(
+            Guid.NewGuid(), "双11秒杀专场", SpuId, SkuId, 99m, 199m, 100, 1,
+            DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(2));
+
+        activity.Name.Should().Be("双11秒杀专场");
+    }
+
+    [Fact]
     public void Create_EmptySpuId_ShouldThrowException()
     {
         var act = () => SeckillActivity.Create(
-            Guid.NewGuid(), Guid.Empty, SkuId, 99m, 199m, 100, 1,
+            Guid.NewGuid(), "测试秒杀活动", Guid.Empty, SkuId, 99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
 
         act.Should().Throw<PromotionDomainException>().WithMessage("*SpuId*");
@@ -47,7 +67,7 @@ public class SeckillActivityTests
     public void Create_EmptySkuId_ShouldThrowException()
     {
         var act = () => SeckillActivity.Create(
-            Guid.NewGuid(), SpuId, Guid.Empty, 99m, 199m, 100, 1,
+            Guid.NewGuid(), "测试秒杀活动", SpuId, Guid.Empty, 99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
 
         act.Should().Throw<PromotionDomainException>().WithMessage("*SkuId*");
@@ -57,7 +77,7 @@ public class SeckillActivityTests
     public void Create_ZeroSeckillPrice_ShouldThrowException()
     {
         var act = () => SeckillActivity.Create(
-            Guid.NewGuid(), SpuId, SkuId, 0m, 199m, 100, 1,
+            Guid.NewGuid(), "测试秒杀活动", SpuId, SkuId, 0m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
 
         act.Should().Throw<PromotionDomainException>().WithMessage("*秒杀价*");
@@ -67,7 +87,7 @@ public class SeckillActivityTests
     public void Create_ZeroOriginalPrice_ShouldThrowException()
     {
         var act = () => SeckillActivity.Create(
-            Guid.NewGuid(), SpuId, SkuId, 99m, 0m, 100, 1,
+            Guid.NewGuid(), "测试秒杀活动", SpuId, SkuId, 99m, 0m, 100, 1,
             DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
 
         act.Should().Throw<PromotionDomainException>().WithMessage("*原价*");
@@ -77,7 +97,7 @@ public class SeckillActivityTests
     public void Create_ZeroTotalStock_ShouldThrowException()
     {
         var act = () => SeckillActivity.Create(
-            Guid.NewGuid(), SpuId, SkuId, 99m, 199m, 0, 1,
+            Guid.NewGuid(), "测试秒杀活动", SpuId, SkuId, 99m, 199m, 0, 1,
             DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
 
         act.Should().Throw<PromotionDomainException>().WithMessage("*库存*");
@@ -87,7 +107,7 @@ public class SeckillActivityTests
     public void Create_ZeroLimitPerUser_ShouldThrowException()
     {
         var act = () => SeckillActivity.Create(
-            Guid.NewGuid(), SpuId, SkuId, 99m, 199m, 100, 0,
+            Guid.NewGuid(), "测试秒杀活动", SpuId, SkuId, 99m, 199m, 100, 0,
             DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
 
         act.Should().Throw<PromotionDomainException>().WithMessage("*限购*");
@@ -97,7 +117,7 @@ public class SeckillActivityTests
     public void Create_EndTimeNotAfterStartTime_ShouldThrowException()
     {
         var act = () => SeckillActivity.Create(
-            Guid.NewGuid(), SpuId, SkuId, 99m, 199m, 100, 1,
+            Guid.NewGuid(), "测试秒杀活动", SpuId, SkuId, 99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(2), DateTime.UtcNow.AddHours(1));
 
         act.Should().Throw<PromotionDomainException>().WithMessage("*时间*");
@@ -107,7 +127,7 @@ public class SeckillActivityTests
     public void Create_EmptyActivityId_ShouldGenerateNewId()
     {
         var activity = SeckillActivity.Create(
-            Guid.Empty, SpuId, SkuId, 99m, 199m, 100, 1,
+            Guid.Empty, "测试秒杀活动", SpuId, SkuId, 99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
 
         activity.Id.Should().NotBe(Guid.Empty);
@@ -247,7 +267,7 @@ public class SeckillActivityTests
     public void DeductStock_OutsideActiveWindow_ShouldThrowException()
     {
         var activity = SeckillActivity.Create(
-            Guid.NewGuid(), SpuId, SkuId, 99m, 199m, 100, 1,
+            Guid.NewGuid(), "测试秒杀活动", SpuId, SkuId, 99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
         activity.Activate();
 
@@ -353,7 +373,7 @@ public class SeckillActivityTests
     public void IsWithinActiveWindow_BeforeStart_ShouldReturnFalse()
     {
         var activity = SeckillActivity.Create(
-            Guid.NewGuid(), SpuId, SkuId, 99m, 199m, 100, 1,
+            Guid.NewGuid(), "测试秒杀活动", SpuId, SkuId, 99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2));
 
         activity.IsWithinActiveWindow(DateTime.UtcNow).Should().BeFalse();
@@ -363,7 +383,7 @@ public class SeckillActivityTests
     public void IsWithinActiveWindow_AfterEnd_ShouldReturnFalse()
     {
         var activity = SeckillActivity.Create(
-            Guid.NewGuid(), SpuId, SkuId, 99m, 199m, 100, 1,
+            Guid.NewGuid(), "测试秒杀活动", SpuId, SkuId, 99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(-2), DateTime.UtcNow.AddHours(-1));
 
         activity.IsWithinActiveWindow(DateTime.UtcNow).Should().BeFalse();
@@ -392,7 +412,7 @@ public class SeckillActivityTests
     private static SeckillActivity CreateActivity()
     {
         return SeckillActivity.Create(
-            Guid.NewGuid(), SpuId, SkuId, 99m, 199m, 100, 1,
+            Guid.NewGuid(), "测试秒杀活动", SpuId, SkuId, 99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(2));
     }
 }

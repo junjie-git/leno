@@ -20,7 +20,25 @@ public interface IPromotionAppService
 
     Task<PromotionActivityDto> GetByIdAsync(Guid activityId, CancellationToken ct = default);
 
-    Task<List<PromotionActivityDto>> QueryAsync(PromotionStatus? status, int page, int pageSize, CancellationToken ct = default);
+    /// <summary>
+    /// 按多条件分页查询满减活动（运营后台），返回当前页数据与总记录数。
+    /// </summary>
+    /// <param name="name">名称模糊匹配关键词，null 或空白时忽略。</param>
+    /// <param name="status">活动状态精确匹配，null 时忽略。</param>
+    /// <param name="startTime">活动开始时间下界（>=），null 时忽略。</param>
+    /// <param name="endTime">活动结束时间上界（<=），null 时忽略。</param>
+    /// <param name="page">页码（从 1 开始）。</param>
+    /// <param name="pageSize">每页条数。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>分页结果，包含当前页活动列表与总记录数。</returns>
+    Task<PromotionListResultDto> QueryAsync(
+        string? name,
+        PromotionStatus? status,
+        DateTime? startTime,
+        DateTime? endTime,
+        int page,
+        int pageSize,
+        CancellationToken ct = default);
 }
 
 /// <summary>
@@ -39,7 +57,23 @@ public interface ICouponAppService
 
     Task IssueAsync(Guid couponId, int quantity, CancellationToken ct = default);
 
-    Task<List<CouponDto>> QueryAsync(CouponTemplateStatus? status, int page, int pageSize, CancellationToken ct = default);
+    /// <summary>
+    /// 按多条件分页查询券模板（运营后台），返回当前页数据与总记录数。
+    /// </summary>
+    /// <param name="name">名称模糊匹配关键词，null 或空白时忽略。</param>
+    /// <param name="type">券类型精确匹配，null 时忽略。</param>
+    /// <param name="status">券模板状态精确匹配，null 时忽略。</param>
+    /// <param name="page">页码（从 1 开始）。</param>
+    /// <param name="pageSize">每页条数。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>分页结果，包含当前页券模板列表与总记录数。</returns>
+    Task<CouponListResultDto> QueryAsync(
+        string? name,
+        CouponType? type,
+        CouponTemplateStatus? status,
+        int page,
+        int pageSize,
+        CancellationToken ct = default);
 
     /// <summary>
     /// 按券模板标识查询详情（gRPC/REST 单条查询用）。

@@ -77,14 +77,29 @@ public sealed class CouponsController : PromotionControllerBase
         return Ok(ApiResponse.Success());
     }
 
-    /// <summary>分页查询优惠券模板（按状态可选过滤）。</summary>
+    /// <summary>
+    /// 分页查询优惠券模板，支持按名称模糊、类型精确、状态精确可选过滤。
+    /// </summary>
+    /// <param name="name">名称模糊匹配关键词。</param>
+    /// <param name="type">券类型精确匹配。</param>
+    /// <param name="status">券模板状态精确匹配。</param>
+    /// <param name="page">页码（从 1 开始）。</param>
+    /// <param name="pageSize">每页条数。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>分页结果，包含当前页券模板列表与总记录数。</returns>
     [Authorize(Roles = "Operator,Admin")]
     [HttpGet("api/admin/coupons")]
-    [ProducesResponseType(typeof(ApiResponse<List<CouponDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> QueryAsync([FromQuery] CouponTemplateStatus? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    [ProducesResponseType(typeof(ApiResponse<CouponListResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListAsync(
+        [FromQuery] string? name,
+        [FromQuery] CouponType? type,
+        [FromQuery] CouponTemplateStatus? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
     {
-        var coupons = await _couponAppService.QueryAsync(status, page, pageSize, ct);
-        return Ok(ApiResponse.Success(coupons));
+        var result = await _couponAppService.QueryAsync(name, type, status, page, pageSize, ct);
+        return Ok(ApiResponse.Success(result));
     }
 
     // ========== 买家端 ==========
