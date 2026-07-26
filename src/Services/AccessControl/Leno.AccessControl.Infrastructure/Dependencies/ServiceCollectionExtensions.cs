@@ -1,4 +1,5 @@
 using FluentValidation;
+using Leno.AccessControl.Application;
 using Leno.AccessControl.Application.Services;
 using Leno.AccessControl.Domain.Repositories;
 using Leno.AccessControl.Domain.Services;
@@ -51,6 +52,9 @@ public static class ServiceCollectionExtensions
         // 应用服务
         services.AddScoped<IPermissionAppService, PermissionAppService>();
         services.AddScoped<IUserRoleAppService, UserRoleAppService>();
+        // 角色 CRUD + 角色权限管理（AdminRolesController 7 端点使用）
+        services.AddScoped<IRoleAppService, RoleAppService>();
+        services.AddScoped<IRolePermissionAppService, RolePermissionAppService>();
 
         services.AddValidatorsFromAssembly(typeof(IPermissionAppService).Assembly);
 

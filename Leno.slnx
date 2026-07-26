@@ -78,6 +78,7 @@
     <Project Path="src/Services/Payment/Leno.Payment.Infrastructure/Leno.Payment.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/AccessControl/">
+    <Project Path="src/Services/AccessControl/Leno.AccessControl.Api.Tests/Leno.AccessControl.Api.Tests.csproj" />
     <Project Path="src/Services/AccessControl/Leno.AccessControl.Api/Leno.AccessControl.Api.csproj" />
     <Project Path="src/Services/AccessControl/Leno.AccessControl.Application/Leno.AccessControl.Application.csproj" />
     <Project Path="src/Services/AccessControl/Leno.AccessControl.Domain/Leno.AccessControl.Domain.csproj" />
