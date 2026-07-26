@@ -1,3 +1,4 @@
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.Payment.Application;
@@ -14,6 +15,8 @@ using Leno.Payment.Infrastructure.Jobs;
 using Leno.Payment.Infrastructure.Notify;
 using Leno.Payment.Infrastructure.Repositories;
 using Leno.Payment.Infrastructure.Services;
+using Leno.Payment.Infrastructure.Services.Grpc;
+using Leno.SharedContracts.Grpc.Order.V1;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -104,6 +107,16 @@ public static class ServiceCollectionExtensions
 
         // 防腐层实现
         services.AddScoped<IChannelStatusQueryService, ChannelStatusQueryService>();
+
+        // 订单支付上下文防腐层：注册 gRPC 客户端与 GrpcPaymentOrderAntiCorruptionService 实现。
+        // 默认从 AntiCorruption:GrpcEndpoints:Order 读取订单域 gRPC 端点；缺失时回退到本地开发地址 http://localhost:5154。
+        var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
+        var orderGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Order") ?? "http://localhost:5154";
+        services.AddGrpcClient<OrderInternalService.OrderInternalServiceClient>(options =>
+        {
+            options.Address = new Uri(orderGrpcEndpoint);
+        });
+        services.AddScoped<IPaymentOrderAntiCorruptionService, GrpcPaymentOrderAntiCorruptionService>();
 
         // 应用服务
         services.AddScoped<IPaymentAppService, PaymentAppService>();

@@ -3,6 +3,7 @@ using Leno.Payment.Application.DTOs;
 using Leno.Payment.Application.Services;
 using Leno.Payment.Domain.Aggregates;
 using Leno.Payment.Domain.Repositories;
+using Leno.Payment.Domain.Services;
 using Leno.Payment.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,8 @@ public class PaymentAppServiceTests
     private readonly Mock<IPaymentOrderRepository> _repoMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly Mock<IChannelStatusQueryService> _channelStatusMock = new();
+    private readonly Mock<IPaymentOrderAntiCorruptionService> _orderAntiCorruptionMock = new();
+    private readonly Mock<IPaymentChannelFactory> _channelFactoryMock = new();
     private readonly Mock<ILogger<PaymentAppService>> _loggerMock = new();
     private readonly PaymentAppService _sut;
 
@@ -24,7 +27,13 @@ public class PaymentAppServiceTests
 
     public PaymentAppServiceTests()
     {
-        _sut = new PaymentAppService(_repoMock.Object, _uowMock.Object, _channelStatusMock.Object, _loggerMock.Object);
+        _sut = new PaymentAppService(
+            _repoMock.Object,
+            _uowMock.Object,
+            _channelStatusMock.Object,
+            _orderAntiCorruptionMock.Object,
+            _channelFactoryMock.Object,
+            _loggerMock.Object);
     }
 
     [Fact]
