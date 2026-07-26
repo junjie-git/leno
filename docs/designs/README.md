@@ -1,6 +1,6 @@
 # Leno 电商平台 · 全站前端界面设计稿
 
-本目录收录 Leno 电商平台四端共 **133 个** 前端界面设计稿。每份设计稿均为自包含 HTML 单文件（内联全部 CSS 与 SVG 图标/图表），可直接用浏览器打开预览，不依赖任何外部资源。
+本目录收录 Leno 电商平台四端共 **153 个** 前端界面设计稿（含 133 个业务页面 + 20 个框架级错误/提示页面）。每份设计稿均为自包含 HTML 单文件（内联全部 CSS 与 SVG 图标/图表），可直接用浏览器打开预览，不依赖任何外部资源。
 
 ## 设计规范
 
@@ -18,15 +18,15 @@
 
 | 端 | 路径 | 模块数 | 页面数 |
 | --- | --- | --- | --- |
-| 买家端 APP | `buyer-app/` | 14 | 48 |
-| 运营管理后台 | `operations/` | 10 | 34 |
-| 商家管理后台 | `seller/` | 9 | 23 |
-| 系统管理后台 | `system-admin/` | 7 | 28 |
-| **合计** | | **40** | **133** |
+| 买家端 APP | `buyer-app/` | 15 | 53 |
+| 运营管理后台 | `operations/` | 11 | 39 |
+| 商家管理后台 | `seller/` | 10 | 28 |
+| 系统管理后台 | `system-admin/` | 8 | 33 |
+| **合计** | | **44** | **153** |
 
 ---
 
-## 一、买家端 APP（移动端，48 页）
+## 一、买家端 APP（移动端，53 页）
 
 ```
 buyer-app/
@@ -89,12 +89,18 @@ buyer-app/
 │   ├── history.html               浏览历史
 │   ├── security.html              账号安全
 │   └── settings.html               设置
-└── 14-public/                公共（2 页）
-    ├── announcements.html          公告
-    └── dictionaries.html          字典数据
+├── 14-public/                公共（2 页）
+│   ├── announcements.html          公告
+│   └── dictionaries.html          字典数据
+└── 15-framework/             框架级页面（5 页）
+    ├── not-found.html              404 页面未找到
+    ├── forbidden.html             403 无访问权限
+    ├── server-error.html          500 服务器错误
+    ├── maintenance.html           系统维护中
+    └── rate-limited.html          429 请求被限流
 ```
 
-## 二、运营管理后台（桌面端，34 页）
+## 二、运营管理后台（桌面端，39 页）
 
 ```
 operations/
@@ -140,11 +146,17 @@ operations/
 │   ├── profile.html                个人中心
 │   ├── notifications.html          通知中心
 │   └── todo-workbench.html         待办工作台
-└── 10-data-export/           数据导出（1 页）
-    └── export-center.html          导出中心
+├── 10-data-export/           数据导出（1 页）
+│   └── export-center.html          导出中心
+└── 11-framework/             框架级页面（5 页）
+    ├── not-found.html              404 页面未找到
+    ├── forbidden.html             403 无访问权限
+    ├── server-error.html          500 服务器错误
+    ├── maintenance.html           系统维护中
+    └── rate-limited.html          429 请求被限流
 ```
 
-## 三、商家管理后台（桌面端，23 页）
+## 三、商家管理后台（桌面端，28 页）
 
 ```
 seller/
@@ -178,11 +190,17 @@ seller/
 │   ├── login.html                  登录
 │   ├── profile.html                个人中心
 │   └── notifications.html          通知中心
-└── 09-export/               报表导出（1 页）
-    └── sales-export.html           销售报表导出
+├── 09-export/               报表导出（1 页）
+│   └── sales-export.html           销售报表导出
+└── 10-framework/             框架级页面（5 页）
+    ├── not-found.html              404 页面未找到
+    ├── forbidden.html             403 无访问权限
+    ├── server-error.html          500 服务器错误
+    ├── maintenance.html           系统维护中
+    └── rate-limited.html          429 请求被限流
 ```
 
-## 四、系统管理后台（桌面端，28 页）
+## 四、系统管理后台（桌面端，33 页）
 
 ```
 system-admin/
@@ -219,8 +237,14 @@ system-admin/
 │   ├── login-2fa.html              登录与双因子
 │   ├── profile.html                个人中心
 │   └── notifications.html          通知中心
-└── 07-monitoring/            系统监控（1 页）
-    └── prometheus-dashboard.html   Prometheus 监控大盘
+├── 07-monitoring/            系统监控（1 页）
+│   └── prometheus-dashboard.html   Prometheus 监控大盘
+└── 08-framework/             框架级页面（5 页）
+    ├── not-found.html              404 页面未找到
+    ├── forbidden.html             403 无访问权限
+    ├── server-error.html          500 服务器错误
+    ├── maintenance.html           系统维护中
+    └── rate-limited.html          429 请求被限流
 ```
 
 ## 预览方式
