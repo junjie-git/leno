@@ -31,6 +31,8 @@
 
 统一采用 W3C DTCG 格式，4 端共享。以下数值为硬性约束，所有页面提示词必须引用这些数值，不得使用其他数值。
 
+> 以下表格为人类可读视图，每个令牌的 W3C DTCG JSON 表示见各小节末尾的代码块。
+
 ### 2.1 色彩
 
 | 令牌 | 数值 | 用途 |
@@ -53,6 +55,86 @@
 | `color/neutral/9` | `#595959` | 次级文字 |
 | `color/neutral/10` | `#000000D9` | 主文字（88% 透明度黑） |
 
+**DTCG JSON 表示**：
+
+```json
+{
+  "$metadata": {
+    "format": "w3c-dtcg",
+    "version": "1.0"
+  },
+  "color": {
+    "primary": {
+      "$value": "#1677FF",
+      "$type": "color",
+      "$description": "主色，用于主按钮、链接、激活态、强调"
+    },
+    "success": {
+      "$value": "#52C41A",
+      "$type": "color",
+      "$description": "成功状态，如审核通过、支付成功、上架中"
+    },
+    "warning": {
+      "$value": "#FAAD14",
+      "$type": "color",
+      "$description": "警告状态，如待审核、临期提醒、库存预警"
+    },
+    "error": {
+      "$value": "#FF4D4F",
+      "$type": "color",
+      "$description": "危险状态，如驳回、封禁、删除、强制取消"
+    },
+    "info": {
+      "$value": "#1677FF",
+      "$type": "color",
+      "$description": "信息提示，与主色相同"
+    },
+    "disabled": {
+      "$value": "#00000040",
+      "$type": "color",
+      "$description": "禁用态文字/图标"
+    },
+    "neutral": {
+      "1": {
+        "$value": "#FFFFFF",
+        "$type": "color",
+        "$description": "背景（卡片、页面）"
+      },
+      "2": {
+        "$value": "#FAFAFA",
+        "$type": "color",
+        "$description": "次级背景（表格行、悬停）"
+      },
+      "3": {
+        "$value": "#F5F5F5",
+        "$type": "color",
+        "$description": "边框/分隔线浅色"
+      },
+      "5": {
+        "$value": "#D9D9D9",
+        "$type": "color",
+        "$description": "边框/分隔线标准"
+      },
+      "7": {
+        "$value": "#8C8C8C",
+        "$type": "color",
+        "$description": "辅助文字"
+      },
+      "9": {
+        "$value": "#595959",
+        "$type": "color",
+        "$description": "次级文字"
+      },
+      "10": {
+        "$value": "#000000D9",
+        "$type": "color",
+        "$description": "主文字（88% 透明度黑）"
+      }
+    }
+  }
+}
+```
+
 ### 2.2 圆角
 
 | 令牌 | 数值 | 用途 |
@@ -60,6 +142,34 @@
 | `radius/base` | `6px` | 按钮、输入框、标签 |
 | `radius/card` | `8px` | 卡片、模态框 |
 | `radius/lg` | `12px` | 大型容器、移动端卡片 |
+
+**DTCG JSON 表示**：
+
+```json
+{
+  "$metadata": {
+    "format": "w3c-dtcg",
+    "version": "1.0"
+  },
+  "radius": {
+    "base": {
+      "$value": "6px",
+      "$type": "dimension",
+      "$description": "按钮、输入框、标签"
+    },
+    "card": {
+      "$value": "8px",
+      "$type": "dimension",
+      "$description": "卡片、模态框"
+    },
+    "lg": {
+      "$value": "12px",
+      "$type": "dimension",
+      "$description": "大型容器、移动端卡片"
+    }
+  }
+}
+```
 
 ### 2.3 间距
 
@@ -74,6 +184,54 @@
 | `spacing/6` | `24px` | 区块间距、卡片间距 |
 | `spacing/8` | `32px` | 大区块间距、页面边距 |
 | `spacing/12` | `48px` | 主区块间距（仅桌面端） |
+
+**DTCG JSON 表示**：
+
+```json
+{
+  "$metadata": {
+    "format": "w3c-dtcg",
+    "version": "1.0"
+  },
+  "spacing": {
+    "1": {
+      "$value": "4px",
+      "$type": "dimension",
+      "$description": "图标与文字间距、紧凑内边距"
+    },
+    "2": {
+      "$value": "8px",
+      "$type": "dimension",
+      "$description": "表单项间距、按钮内边距"
+    },
+    "3": {
+      "$value": "12px",
+      "$type": "dimension",
+      "$description": "卡片内边距、列表项间距"
+    },
+    "4": {
+      "$value": "16px",
+      "$type": "dimension",
+      "$description": "模块间距、表单行间距"
+    },
+    "6": {
+      "$value": "24px",
+      "$type": "dimension",
+      "$description": "区块间距、卡片间距"
+    },
+    "8": {
+      "$value": "32px",
+      "$type": "dimension",
+      "$description": "大区块间距、页面边距"
+    },
+    "12": {
+      "$value": "48px",
+      "$type": "dimension",
+      "$description": "主区块间距（仅桌面端）"
+    }
+  }
+}
+```
 
 ### 2.4 字体
 
@@ -90,6 +248,174 @@
 | `font/weight/medium` | `500` | 标题、强调 |
 | `font/weight/semibold` | `600` | 数据数值、按钮 |
 | `font/line-height/base` | `1.5715` | 正文行高 |
+
+**DTCG JSON 表示**：
+
+```json
+{
+  "$metadata": {
+    "format": "w3c-dtcg",
+    "version": "1.0"
+  },
+  "font": {
+    "family": {
+      "$value": "\"PingFang SC\", \"Microsoft YaHei\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+      "$type": "fontFamily",
+      "$description": "全局字体栈"
+    },
+    "size": {
+      "sm": {
+        "$value": "12px",
+        "$type": "dimension",
+        "$description": "辅助文字、标签、表单提示"
+      },
+      "base": {
+        "$value": "14px",
+        "$type": "dimension",
+        "$description": "正文、表格、表单输入"
+      },
+      "lg": {
+        "$value": "16px",
+        "$type": "dimension",
+        "$description": "小标题、卡片标题"
+      },
+      "xl": {
+        "$value": "20px",
+        "$type": "dimension",
+        "$description": "区块标题、页面副标题"
+      },
+      "2xl": {
+        "$value": "24px",
+        "$type": "dimension",
+        "$description": "数据看板数值"
+      },
+      "3xl": {
+        "$value": "30px",
+        "$type": "dimension",
+        "$description": "首页大标题（仅用户 APP）"
+      }
+    },
+    "weight": {
+      "normal": {
+        "$value": 400,
+        "$type": "fontWeight",
+        "$description": "正文"
+      },
+      "medium": {
+        "$value": 500,
+        "$type": "fontWeight",
+        "$description": "标题、强调"
+      },
+      "semibold": {
+        "$value": 600,
+        "$type": "fontWeight",
+        "$description": "数据数值、按钮"
+      }
+    },
+    "line-height": {
+      "base": {
+        "$value": 1.5715,
+        "$type": "number",
+        "$description": "正文行高"
+      }
+    }
+  }
+}
+```
+
+### 2.5 阴影
+
+| 令牌 | 数值 | 用途 |
+|-|-|-|
+| `shadow/card` | `0 1px 2px 0 rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02), 0 2px 4px 0 rgba(0,0,0,0.02)` | 卡片阴影 |
+| `shadow/dropdown` | `0 6px 16px 0 rgba(0,0,0,0.08), 0 3px 6px -4px rgba(0,0,0,0.12), 0 9px 28px 8px rgba(0,0,0,0.05)` | 下拉菜单、弹出层 |
+| `shadow/modal` | `0 12px 32px 4px rgba(0,0,0,0.08), 0 8px 20px 8px rgba(0,0,0,0.06)` | 模态框、抽屉 |
+
+**DTCG JSON 表示**：
+
+```json
+{
+  "$metadata": {
+    "format": "w3c-dtcg",
+    "version": "1.0"
+  },
+  "shadow": {
+    "card": {
+      "$value": "0 1px 2px 0 rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02), 0 2px 4px 0 rgba(0,0,0,0.02)",
+      "$type": "shadow",
+      "$description": "卡片阴影"
+    },
+    "dropdown": {
+      "$value": "0 6px 16px 0 rgba(0,0,0,0.08), 0 3px 6px -4px rgba(0,0,0,0.12), 0 9px 28px 8px rgba(0,0,0,0.05)",
+      "$type": "shadow",
+      "$description": "下拉菜单、弹出层"
+    },
+    "modal": {
+      "$value": "0 12px 32px 4px rgba(0,0,0,0.08), 0 8px 20px 8px rgba(0,0,0,0.06)",
+      "$type": "shadow",
+      "$description": "模态框、抽屉"
+    }
+  }
+}
+```
+
+### 2.6 动效
+
+| 令牌 | 数值 | 用途 |
+|-|-|-|
+| `motion/duration/fast` | `100ms` | 悬停、激活反馈 |
+| `motion/duration/mid` | `200ms` | 折叠、展开、抽屉 |
+| `motion/duration/slow` | `300ms` | 模态框、大型过渡 |
+| `motion/easing/standard` | `cubic-bezier(0.2, 0, 0, 1)` | 标准缓动 |
+| `motion/easing/decelerated` | `cubic-bezier(0, 0, 0, 1)` | 减速进入 |
+| `motion/easing/accelerated` | `cubic-bezier(0.8, 0, 1, 1)` | 加速离开 |
+
+**DTCG JSON 表示**：
+
+```json
+{
+  "$metadata": {
+    "format": "w3c-dtcg",
+    "version": "1.0"
+  },
+  "motion": {
+    "duration": {
+      "fast": {
+        "$value": "100ms",
+        "$type": "duration",
+        "$description": "悬停、激活反馈"
+      },
+      "mid": {
+        "$value": "200ms",
+        "$type": "duration",
+        "$description": "折叠、展开、抽屉"
+      },
+      "slow": {
+        "$value": "300ms",
+        "$type": "duration",
+        "$description": "模态框、大型过渡"
+      }
+    },
+    "easing": {
+      "standard": {
+        "$value": [0.2, 0, 0, 1],
+        "$type": "cubicBezier",
+        "$description": "标准缓动"
+      },
+      "decelerated": {
+        "$value": [0, 0, 0, 1],
+        "$type": "cubicBezier",
+        "$description": "减速进入"
+      },
+      "accelerated": {
+        "$value": [0.8, 0, 1, 1],
+        "$type": "cubicBezier",
+        "$description": "加速离开"
+      }
+    }
+  }
+}
+```
 
 ---
 
@@ -278,3 +604,115 @@
 6. **实现状态标注**：每个页面提示词「页面定位」段必须标注 ✅/🚧/➕ 之一
 7. **术语统一**：遵循 `glossary.md`，不使用禁用同义词
 8. **共享组件引用**：跨页面共享的组件在 `components.md` 中定义，页面提示词引用而非重新定义
+
+---
+
+## 8. 图标规范
+
+### 8.1 图标库选型
+
+| 端 | 图标库 | 引入方式 |
+|-|-|-|
+| 三端后台（系统管理 / 运营管理 / 商家管理） | `@ant-design/icons-vue 7.x` | 按需引入组件，PascalCase 命名 |
+| 用户 APP | Vant 内置图标 + 少量 SVG | `<van-icon name="xxx" />`，自定义图标用 SVG 内联 |
+
+### 8.2 尺寸体系
+
+所有图标尺寸取自设计令牌字号体系，不得使用其他数值：
+
+| 尺寸 | 用途 |
+|-|-|
+| `12px`（`font/size/sm`） | 标签内联图标、表单提示图标 |
+| `14px`（`font/size/base`） | 表单控件内联图标、输入框前缀/后缀图标 |
+| `16px`（`font/size/lg`） | 按钮内图标、操作按钮图标 |
+| `20px`（`font/size/xl`） | 标题旁图标、卡片标题图标 |
+| `24px`（`font/size/2xl`） | 导航图标、菜单图标、Tabbar 图标 |
+| `32px`（`font/size/3xl`） | 空状态图标、引导页大图标（仅用户 APP） |
+
+### 8.3 命名约定
+
+| 端 | 命名风格 | 示例 |
+|-|-|-|
+| 三端后台 | PascalCase，统一以 `Outlined` 后缀（线性风格） | `UserOutlined`、`EditOutlined`、`DeleteOutlined`、`SearchOutlined` |
+| 用户 APP | kebab-case，遵循 Vant 图标库命名 | `cart-o`、`user-o`、`home-o`、`search`、`setting-o` |
+
+### 8.4 颜色规则
+
+- **默认态**：图标颜色继承父级文字颜色（`color: inherit` 或 `currentColor`），不硬编码图标颜色
+- **激活态**：使用 `color/primary`（`#1677FF`），适用于菜单选中、Tabbar 选中、按钮主操作
+- **禁用态**：使用 `color/disabled`（`#00000040`），与禁用文字颜色一致
+- **辅助态**：辅助图标使用 `color/neutral/7`（`#8C8C8C`），如提示信息图标、次要操作图标
+- **危险态**：删除、强制下线等危险操作图标使用 `color/error`（`#FF4D4F`）
+
+### 8.5 使用约束
+
+#### 8.5.1 三端后台（Ant Design Vue 图标）
+
+- **引入方式**：通过组件方式按需引入，禁止使用字体图标方式
+  ```vue
+  <script setup lang="ts">
+  import { UserOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+  </script>
+
+  <template>
+    <a-button type="primary">
+      <template #icon>
+        <EditOutlined />
+      </template>
+      编辑
+    </a-button>
+  </template>
+  ```
+- **尺寸控制**：通过 `style` 或父级 `font-size` 控制，默认 16px（按钮内）、14px（表单内）
+- **禁止**：不使用 `<a-icon type="user" />` 字体图标语法（Ant Design Vue 4.x 已废弃该用法）
+
+#### 8.5.2 用户 APP（Vant 图标）
+
+- **引入方式**：通过 `<van-icon>` 组件引用 Vant 内置图标
+  ```vue
+  <template>
+    <van-tabbar v-model="active">
+      <van-tabbar-item icon="home-o">首页</van-tabbar-item>
+      <van-tabbar-item icon="cart-o">购物车</van-tabbar-item>
+    </van-tabbar>
+  </template>
+  ```
+- **自定义图标**：使用 SVG 内联方式，不引入第三方图标库
+  ```vue
+  <template>
+    <van-icon :name="customIcon" />
+  </template>
+
+  <script setup lang="ts">
+  const customIcon = 'data:image/svg+xml;base64,...' // SVG 内联 base64 或直接 SVG 标签
+  </script>
+  ```
+- **尺寸控制**：通过 `size` prop 或父级 `font-size` 控制，Tabbar 默认 24px，NavBar 操作默认 20px
+
+### 8.6 跨端禁止规则
+
+- **禁止混用图标库**：
+  - 三端后台不得使用 Vant 图标（`van-icon`）
+  - 用户 APP 不得使用 `@ant-design/icons-vue` 图标
+- **禁止字体图标**：除 Vant 内置图标外，不引入 iconfont、font-awesome 等字体图标库
+- **禁止远程图标**：所有图标必须本地打包，不通过 CDN 或远程 URL 引用
+
+### 8.7 业务专用图标
+
+业务专用图标（如支付渠道 logo、品牌 logo、特殊业务符号）统一使用 SVG 内联方式：
+
+- **存放位置**：`src/assets/icons/` 目录，按业务模块分子目录
+  ```
+  src/assets/icons/
+  ├── payment/         # 支付渠道 logo
+  │   ├── alipay.svg
+  │   ├── wechat-pay.svg
+  │   └── unionpay.svg
+  ├── brand/           # 品牌 logo
+  └── status/          # 业务状态图标
+  ```
+- **引入方式**：
+  - 三端后台：使用 Vue 组件封装 SVG（推荐 `vite-plugin-svg-icons` 或手动封装 `SvgIcon.vue`）
+  - 用户 APP：通过 `van-icon` 的 `name` 属性传 SVG 路径，或直接 `<img src="...">` 引用
+- **命名约定**：kebab-case，如 `alipay.svg`、`wechat-pay.svg`
+- **色彩处理**：彩色 logo 保留原色；单色图标使用 `fill="currentColor"` 以继承父级颜色

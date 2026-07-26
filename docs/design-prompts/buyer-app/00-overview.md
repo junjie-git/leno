@@ -9,10 +9,10 @@
 ## 2. 信息架构与导航
 - **一级菜单**（底部 Tabbar，4 个入口）：首页、分类、购物车、我的。
 - **二级菜单**（按一级入口展开）：
-  - 首页：搜索框、轮播 Banner、秒杀入口、推荐流、分类快捷入口、公告条。
-  - 分类：左侧一级分类树 + 右侧二级分类商品列表。
-  - 购物车：匿名购物车（未登录）/ 登录购物车，按卖家分组，结算预览。
-  - 我的：订单聚合入口（待支付/待发货/待收货/退款售后）、优惠券、积分、会员、地址、收藏、历史、设置、通知。
+  - 首页：[搜索框](./03-catalog/search.md)、[轮播 Banner](./02-home/banner.md)、[秒杀入口](./02-home/seckill-entry.md)、[推荐流](./02-home/home-feed.md)、[分类快捷入口](./03-catalog/category-nav.md)、[公告条](./14-public/announcements.md)。
+  - 分类：[分类导航](./03-catalog/category-nav.md)（左侧一级分类树 + 右侧二级分类商品列表）。
+  - 购物车：[购物车](./05-cart/cart.md)（匿名未登录/登录态，按卖家分组）、[结算预览](./05-cart/checkout-preview.md)。
+  - 我的：[订单聚合入口](./06-order/order-list.md)（待支付/待发货/待收货/退款售后）、[优惠券](./08-promotion/my-coupons.md)、[积分](./11-points-membership/points-account.md)、[会员](./11-points-membership/member-level.md)、[地址](./13-profile/addresses.md)、[收藏](./13-profile/favorites.md)、[历史](./13-profile/history.md)、[设置](./13-profile/settings.md)、[通知](./12-notification/notifications.md)。
 - **菜单组织原则**：按用户购物任务路径组织（浏览→决策→交易→售后→复购），Tabbar 固定高频入口，次级功能收敛至「我的」。
 - **快捷入口**：首页搜索框、秒杀倒计时入口、购物车角标未读数、我的页通知铃铛未读数。
 
@@ -80,7 +80,7 @@
 
 ## 5. 设计风格基调
 - **整体气质**：简洁现代。强调内容优先、留白克制、操作明确，秒杀场景采用强对比色与倒计时制造紧迫感。
-- **与共享设计系统的关系**：完全遵循 shared/design-system.md。差异点仅在于：用户 APP 使用 Vant 4.x（`van-` 前缀）替代 Ant Design Vue；不使用图表组件；首页大标题字号 30px（`font/size/3xl`）仅本端使用；底部 Tabbar 适配 `safe-area-inset-bottom`。
+- **与共享设计系统的关系**：完全遵循 shared/design-system.md。差异点仅在于：用户 APP 使用 Vant 4.x（`van-` 前缀）替代桌面端组件库；不使用图表组件；首页大标题字号 30px（`font/size/3xl`）仅本端使用；底部 Tabbar 适配 `safe-area-inset-bottom`。
 
 ## 6. 模块清单
 - **模块表**：
@@ -103,3 +103,7 @@
 | 14-public 公共 | 2 | ✅×2 | P2 |
 
 - **优先级说明**：P0 为交易闭环必备（认证/浏览/购物车/订单/支付）；P1 为体验增强（优惠/评价/售后/积分会员/通知/个人中心）；P2 为补充（店铺详情/公告字典）。双轨期积分会员端点优先引用旧 PointsMembership BC，新拆分 BC 端点标注 🚧 待切换。
+
+## 7. 与后端 API 的对应关系
+
+API 来源：UserAuth BC（注册、登录、OAuth、忘记密码、双因素、地址、个人资料）+ Product BC 买家端（分类导航、搜索、商品详情、店铺详情）+ Cart BC（购物车、结算预览、结算）+ Order BC 买家端（下单、订单列表、订单详情、物流跟踪、秒杀订单）+ Payment BC（发起支付、支付结果）+ Promotion BC 买家端（领券、我的优惠券）+ ReviewAfterSales BC 买家端（评价提交、我的评价、商品评价、售后申请、我的售后、售后详情）+ PointsMembership BC（积分账户、积分流水、签到、任务中心、积分兑换、会员等级、付费会员套餐）+ Notification BC（通知列表、通知偏好）+ SystemAdmin BC（字典、公告）。详细端点见各页面提示词「数据与 API」段。

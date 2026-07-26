@@ -19,16 +19,16 @@
   9. 个人中心
   10. 数据导出
 - **二级菜单**：
-  - 数据看板：运营总览、支付统计、积分统计、通知送达率、售后统计、店铺排行
-  - 商品运营：商品审核、品牌管理、分类管理
-  - 促销运营：促销活动、优惠券管理、秒杀活动
-  - 卖家运营：入驻审核、店铺治理、卖家统计
-  - 订单运营：订单管理、售后处理、评价审核、物流公司管理
-  - 支付运营：支付记录、退款记录、支付渠道配置
-  - 通知运营：通知模板、通知记录、通知配置、通知限流
-  - 会员运营：会员等级、会员套餐、积分规则
-  - 个人中心：待办工作台、个人资料、通知中心、退出登录
-  - 数据导出：导出中心
+  - 数据看板：[运营总览](./01-dashboard/operations-overview.md)、[支付统计](./01-dashboard/payment-stats.md)、[积分统计](./01-dashboard/points-stats.md)、[通知送达率](./01-dashboard/notification-delivery.md)、[售后统计](./01-dashboard/after-sales-stats.md)、[店铺排行](./01-dashboard/shop-ranking.md)
+  - 商品运营：[商品审核](./02-product-ops/product-audit.md)、[品牌管理](./02-product-ops/brand-management.md)、[分类管理](./02-product-ops/category-management.md)
+  - 促销运营：[促销活动](./03-promotion-ops/promotions.md)、[优惠券管理](./03-promotion-ops/coupons.md)、[秒杀活动](./03-promotion-ops/seckill.md)
+  - 卖家运营：[入驻审核](./04-seller-ops/application-audit.md)、[店铺治理](./04-seller-ops/shop-governance.md)、[卖家统计](./04-seller-ops/seller-statistics.md)
+  - 订单运营：[订单管理](./05-order-ops/order-management.md)、[售后处理](./05-order-ops/after-sales.md)、[评价审核](./05-order-ops/review-audit.md)、[物流公司管理](./05-order-ops/logistics-companies.md)
+  - 支付运营：[支付记录](./06-payment-ops/payment-records.md)、[退款记录](./06-payment-ops/refund-records.md)、[支付渠道配置](./06-payment-ops/payment-channels.md)
+  - 通知运营：[通知模板](./07-notification-ops/templates.md)、[通知记录](./07-notification-ops/records.md)、[通知配置](./07-notification-ops/config.md)、[通知限流](./07-notification-ops/rate-limits.md)
+  - 会员运营：[会员等级](./08-membership-ops/member-levels.md)、[会员套餐](./08-membership-ops/membership-packages.md)、[积分规则](./08-membership-ops/points-rules.md)
+  - 个人中心：[待办工作台](./09-account/todo-workbench.md)、[个人资料](./09-account/profile.md)、[通知中心](./09-account/notifications.md)、[退出登录](./09-account/login.md)
+  - 数据导出：[导出中心](./10-data-export/export-center.md)
 - **菜单组织原则**：按业务域聚拢，数据看板置顶，个人中心与导出收尾。
 - **快捷入口**：Header 右上角提供待办工作台快捷入口（徽标显示待审核数）、通知铃铛（未读数）、用户头像下拉菜单。
 
@@ -78,3 +78,7 @@ const routes = [
 | 10-data-export | 1 | ➕×1 | P2 |
 
 - **优先级说明**：P0 为日常运营刚需（审核/治理/订单），P1 为配置与监控类，P2 为辅助与个人功能。合计 34 页面 + 1 总览 = 35 文件。
+
+## 7. 与后端 API 的对应关系
+
+API 来源：Product BC（商品审核、分类、品牌）+ Promotion BC（优惠券、促销、秒杀）+ SellerShop BC（商家入驻审核、店铺治理）+ Order BC（订单管理、售后、评价审核、物流公司）+ Payment BC（支付记录、退款记录、支付渠道）+ Notification BC（通知模板、记录、配置、限流）+ Membership BC（会员等级、付费会员套餐、积分规则）+ SystemAdmin BC（数据看板快照）。详细端点见各页面提示词「数据与 API」段。

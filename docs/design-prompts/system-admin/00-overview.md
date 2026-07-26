@@ -9,13 +9,13 @@
 ## 2. 信息架构与导航
 - **一级菜单**：仪表盘、用户与权限、系统治理、运行时运维、审计与对账、个人账号、系统监控。
 - **二级菜单**：
-  - 仪表盘 → 运营总览、支付统计、积分统计、通知送达率、售后统计、店铺排行、报表快照
-  - 用户与权限 → 用户管理、角色管理、OAuth 客户端、运营人员
-  - 系统治理 → 功能开关、系统配置、数据字典、公告管理
-  - 运行时运维 → 限流规则、索引重建、死信队列、定时任务、健康监控、告警管理
-  - 审计与对账 → 审计日志、对账管理、Outbox 监控
-  - 个人账号 → 登录与双因子、个人中心、通知中心
-  - 系统监控 → Prometheus 监控大盘
+  - 仪表盘 → [运营总览](./01-dashboard/operations-overview.md)、[支付统计](./01-dashboard/payment-stats.md)、[积分统计](./01-dashboard/points-stats.md)、[通知送达率](./01-dashboard/notification-delivery.md)、[售后统计](./01-dashboard/after-sales-stats.md)、[店铺排行](./01-dashboard/shop-ranking.md)、[报表快照](./01-dashboard/report-snapshots.md)
+  - 用户与权限 → [用户管理](./02-user-access/user-management.md)、[角色管理](./02-user-access/role-management.md)、[OAuth 客户端](./02-user-access/oauth-clients.md)、[运营人员](./02-user-access/operators.md)
+  - 系统治理 → [功能开关](./03-system-governance/feature-flags.md)、[系统配置](./03-system-governance/system-configs.md)、[数据字典](./03-system-governance/data-dictionaries.md)、[公告管理](./03-system-governance/announcements.md)
+  - 运行时运维 → [限流规则](./04-runtime-ops/rate-limit-rules.md)、[索引重建](./04-runtime-ops/index-rebuild.md)、[死信队列](./04-runtime-ops/dead-letter-queue.md)、[定时任务](./04-runtime-ops/scheduled-tasks.md)、[健康监控](./04-runtime-ops/health-monitoring.md)、[告警管理](./04-runtime-ops/alert-management.md)
+  - 审计与对账 → [审计日志](./05-audit/audit-logs.md)、[对账管理](./05-audit/reconciliation.md)、[Outbox 监控](./05-audit/outbox-monitor.md)
+  - 个人账号 → [登录与双因子](./06-account/login-2fa.md)、[个人中心](./06-account/profile.md)、[通知中心](./06-account/notifications.md)
+  - 系统监控 → [Prometheus 监控大盘](./07-monitoring/prometheus-dashboard.md)
 - **菜单组织原则**：按业务域聚合（仪表盘 / 用户 / 治理 / 运维 / 审计）+ 角色高频路径优先。Sider 折叠后仅显示图标。
 - **快捷入口**：Header 右上角铃铛通知、用户菜单（个人中心、修改密码、登出）、全局搜索（Cmd/Ctrl+K，支持菜单与端点跳转）。
 
