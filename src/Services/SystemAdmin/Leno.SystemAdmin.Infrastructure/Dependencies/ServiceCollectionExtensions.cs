@@ -134,6 +134,20 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditLogEntryAppService, AuditLogEntryAppService>();
         services.AddScoped<IRateLimitRuleAppService, RateLimitRuleAppService>();
 
+        // 告警管理与 Outbox 监控（BC11 P1）
+        services.Configure<AlertmanagerOptions>(
+            configuration.GetSection(AlertmanagerOptions.SectionName));
+        services.AddHttpClient<IAlertmanagerClient, HttpAlertmanagerClient>();
+
+        services.Configure<OutboxMonitorOptions>(
+            configuration.GetSection(OutboxMonitorOptions.SectionName));
+        services.AddScoped<IOutboxQueryService, OutboxQueryService>();
+        services.AddScoped<IOutboxArchiveRecordRepository, EfCoreOutboxArchiveRecordRepository>();
+
+        services.AddScoped<IAlertAppService, AlertAppService>();
+        services.AddScoped<IAlertSilenceAppService, AlertSilenceAppService>();
+        services.AddScoped<IOutboxMonitorAppService, OutboxMonitorAppService>();
+
         return services;
     }
 

@@ -55,4 +55,7 @@ public sealed class SystemAdminDbContext : BaseDbContext
 
     /// <summary>限流规则聚合根。</summary>
     public DbSet<RateLimitRule> RateLimitRules => Set<RateLimitRule>();
+
+    /// <summary>Outbox 归档历史聚合根。</summary>
+    public DbSet<OutboxArchiveRecord> OutboxArchiveRecords => Set<OutboxArchiveRecord>();
 }

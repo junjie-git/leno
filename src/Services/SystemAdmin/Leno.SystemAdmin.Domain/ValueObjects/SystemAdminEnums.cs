@@ -251,3 +251,52 @@ public enum AnnouncementTargetAudience
     /// <summary>仅运营人员。</summary>
     Operators = 3
 }
+
+/// <summary>
+/// 告警严重级别枚举，对齐 Alertmanager severity 标签。
+/// </summary>
+public enum AlertSeverity
+{
+    /// <summary>信息：低优先级告警，仅需关注。</summary>
+    Info = 0,
+
+    /// <summary>警告：中等优先级告警，需介入处理。</summary>
+    Warning = 1,
+
+    /// <summary>严重：高优先级告警，需立即处置。</summary>
+    Critical = 2
+}
+
+/// <summary>
+/// 告警状态枚举。
+/// 状态流转：Firing → Acknowledged → Resolved。
+/// </summary>
+public enum AlertStatus
+{
+    /// <summary>触发中：告警条件持续满足，正在通知。</summary>
+    Firing = 0,
+
+    /// <summary>已确认：人工确认收到，暂停重复通知。</summary>
+    Acknowledged = 1,
+
+    /// <summary>已恢复：告警条件不再满足。</summary>
+    Resolved = 2
+}
+
+/// <summary>
+/// Outbox 域状态枚举，按积压量分级。
+/// </summary>
+public enum OutboxContextStatus
+{
+    /// <summary>正常：无积压或积压在阈值内。</summary>
+    Normal = 0,
+
+    /// <summary>积压：积压量超过警告阈值。</summary>
+    Backlog = 1,
+
+    /// <summary>严重积压：积压量超过严重阈值，需立即处置。</summary>
+    SevereBacklog = 2,
+
+    /// <summary>已归档：陈旧积压事件已转入归档存储。</summary>
+    Archived = 3
+}
