@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>支付结果 - Leno 买家端</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{font-family:var(--ff-app);color:var(--n10);background:var(--n3);}
+body{max-width:375px;margin:0 auto;min-height:100vh;background:var(--n3);box-shadow:0 0 24px rgba(0,0,0,.12);position:relative;overflow-x:hidden;}
+img{display:block;max-width:100%;}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit;}
+
+/* 状态切换工具条 */
+.state-bar{position:sticky;top:0;z-index:50;display:flex;gap:6px;padding:8px 12px;background:var(--n1);border-bottom:1px solid var(--n3);overflow-x:auto;}
+.state-bar .label{font-size:var(--fs-sm);color:var(--n7);line-height:26px;white-space:nowrap;margin-right:4px;}
+.state-bar button{padding:4px 12px;font-size:var(--fs-sm);border-radius:var(--r-base);background:var(--n3);color:var(--n9);white-space:nowrap;transition:all .2s;}
+.state-bar button.active{background:var(--c-primary);color:#fff;}
+
+/* NavBar */
+.navbar{position:sticky;top:41px;z-index:40;display:flex;align-items:center;height:46px;padding:0 12px;background:var(--n1);border-bottom:1px solid var(--n3);}
+.navbar .back{width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--n10);}
+.navbar .title{flex:1;text-align:center;font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);margin:0 48px;}
+
+/* 内容区 */
+.content{padding-bottom:32px;}
+.state-panel{display:none;animation:fadeIn .3s ease;}
+.state-panel.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* 支付成功页头部 */
+.result-hero{position:relative;padding:40px 24px 32px;text-align:center;color:#fff;overflow:hidden;}
+.result-hero.success{background:linear-gradient(180deg,#52C41A 0%,#389E0D 100%);}
+.result-hero.fail{background:linear-gradient(180deg,#FF7875 0%,#FF4D4F 100%);}
+.result-hero::before{content:"";position:absolute;top:-80px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(255,255,255,.2) 0%,transparent 70%);pointer-events:none;}
+.result-hero::after{content:"";position:absolute;bottom:-50px;left:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(255,255,255,.15) 0%,transparent 70%);pointer-events:none;}
+
+.result-icon{position:relative;z-index:1;width:80px;height:80px;margin:0 auto 16px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;animation:bounceIn .5s cubic-bezier(.34,1.56,.64,1);}
+@keyframes bounceIn{0%{transform:scale(0);opacity:0;}60%{transform:scale(1.1);opacity:1;}100%{transform:scale(1);}}
+.result-icon svg{width:48px;height:48px;}
+
+.result-title{position:relative;z-index:1;font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:#fff;margin-bottom:8px;}
+.result-amount{position:relative;z-index:1;font-size:var(--fs-2xl);font-weight:var(--fw-semibold);color:#fff;line-height:1.2;}
+.result-amount em{font-style:normal;font-size:var(--fs-lg);}
+.result-amount-sub{position:relative;z-index:1;font-size:var(--fs-sm);color:rgba(255,255,255,.85);margin-top:6px;}
+
+/* 失败原因卡 */
+.fail-reason{margin:-20px 12px 12px;background:var(--n1);border-radius:var(--r-lg);padding:14px 12px;box-shadow:var(--sh-card);position:relative;z-index:2;display:flex;align-items:flex-start;gap:10px;}
+.fail-reason .icon{flex-shrink:0;color:var(--c-warning);margin-top:2px;}
+.fail-reason .info{flex:1;}
+.fail-reason .t{font-size:var(--fs-base);color:var(--n10);font-weight:var(--fw-medium);}
+.fail-reason .d{font-size:var(--fs-sm);color:var(--n9);margin-top:4px;line-height:1.5;}
+.fail-reason .err-code{display:inline-block;margin-top:6px;padding:2px 6px;background:var(--n3);border-radius:var(--r-base);font-size:11px;color:var(--n7);font-family:Menlo,Consolas,monospace;}
+
+/* 订单信息卡 */
+.info-card{margin:12px;background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);overflow:hidden;}
+.info-card .head{display:flex;align-items:center;gap:8px;padding:12px;border-bottom:1px solid var(--n3);}
+.info-card .head .shop-icon{flex-shrink:0;width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:var(--c-primary);}
+.info-card .head .name{flex:1;font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);}
+.info-card .head .status{font-size:var(--fs-sm);color:var(--c-warning);}
+.info-card .head .status.paid{color:var(--c-success);}
+
+/* 商品行 */
+.goods-item{display:flex;gap:10px;padding:10px 12px;}
+.goods-img{flex-shrink:0;width:64px;height:64px;border-radius:var(--r-base);overflow:hidden;background:var(--n3);}
+.goods-img img{width:100%;height:100%;object-fit:cover;}
+.goods-info{flex:1;min-width:0;}
+.goods-name{font-size:var(--fs-base);color:var(--n10);line-height:1.4;height:38px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.goods-sku{font-size:11px;color:var(--n7);margin-top:4px;}
+.goods-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:6px;}
+.goods-price{font-size:var(--fs-base);color:var(--n10);}
+.goods-qty{font-size:var(--fs-sm);color:var(--n7);}
+
+/* 订单详情列表 */
+.order-detail{padding:12px;}
+.detail-row{display:flex;align-items:flex-start;justify-content:space-between;padding:6px 0;gap:12px;}
+.detail-row .lbl{flex-shrink:0;font-size:var(--fs-sm);color:var(--n7);min-width:72px;}
+.detail-row .val{flex:1;font-size:var(--fs-sm);color:var(--n10);text-align:right;word-break:break-all;}
+.detail-row .val.mono{font-family:Menlo,Consolas,monospace;letter-spacing:.2px;}
+.detail-row .val.link{color:var(--c-primary);}
+.detail-row.copy .val{display:flex;align-items:center;justify-content:flex-end;gap:6px;}
+.copy-btn{font-size:11px;color:var(--c-primary);padding:2px 6px;background:#E6F4FF;border-radius:var(--r-base);flex-shrink:0;}
+
+/* 物流进度 */
+.logistics{margin:12px;background:var(--n1);border-radius:var(--r-lg);box-shadow:var(--sh-card);overflow:hidden;}
+.logistics-head{display:flex;align-items:center;gap:8px;padding:12px;border-bottom:1px solid var(--n3);}
+.logistics-head .icon{flex-shrink:0;color:var(--c-primary);}
+.logistics-head .t{flex:1;font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);}
+.logistics-head .more{font-size:var(--fs-sm);color:var(--n7);display:flex;align-items:center;gap:2px;}
+.logistics-body{padding:14px 12px 12px 24px;position:relative;}
+.logistics-body::before{content:"";position:absolute;left:30px;top:18px;bottom:30px;width:2px;background:var(--n3);}
+.logistics-step{position:relative;padding:0 0 14px 24px;}
+.logistics-step:last-child{padding-bottom:0;}
+.logistics-step::before{content:"";position:absolute;left:-6px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--n5);}
+.logistics-step.active::before{background:var(--c-primary);box-shadow:0 0 0 4px rgba(22,119,255,.15);}
+.logistics-step .t{font-size:var(--fs-sm);color:var(--n10);font-weight:var(--fw-medium);}
+.logistics-step .d{font-size:11px;color:var(--n7);margin-top:2px;line-height:1.5;}
+.logistics-step .time{font-size:11px;color:var(--n7);margin-top:2px;}
+
+/* 推荐位 */
+.rec-title{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 12px 12px;}
+.rec-title .line{width:24px;height:1px;background:var(--n5);}
+.rec-title .t{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);}
+
+.rec-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 16px;}
+.rec-card{background:var(--n1);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-card);}
+.rec-card .img{width:100%;aspect-ratio:1;object-fit:cover;background:var(--n3);}
+.rec-card .info{padding:8px;}
+.rec-card .name{font-size:var(--fs-base);color:var(--n10);line-height:1.4;height:38px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.rec-card .price-row{display:flex;align-items:baseline;gap:6px;margin-top:6px;}
+.rec-card .price{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--c-error);}
+.rec-card .price em{font-style:normal;font-size:var(--fs-sm);}
+
+/* 底部按钮组 */
+.action-bar{padding:16px 12px 24px;display:flex;gap:10px;}
+.action-btn{flex:1;height:44px;border-radius:22px;font-size:var(--fs-base);font-weight:var(--fw-medium);display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;}
+.action-btn:active{transform:scale(.97);}
+.action-btn.primary{background:linear-gradient(135deg,#1677FF 0%,#0E5BD8 100%);color:#fff;box-shadow:0 4px 12px rgba(22,119,255,.3);}
+.action-btn.outline{background:var(--n1);border:1px solid var(--n5);color:var(--n9);}
+.action-btn.outline.danger{border-color:var(--c-error);color:var(--c-error);}
+.action-btn.outline.primary{border-color:var(--c-primary);color:var(--c-primary);}
+.action-btn .icon{flex-shrink:0;}
+
+/* Toast */
+.toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);background:rgba(0,0,0,.75);color:#fff;padding:10px 20px;border-radius:var(--r-base);font-size:var(--fs-base);z-index:100;opacity:0;pointer-events:none;transition:all .25s;}
+.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+
+/* 装饰圆环动画 */
+.result-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;pointer-events:none;}
+.result-ring::before,.result-ring::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(255,255,255,.4);animation:ringExpand 2s ease-out infinite;}
+.result-ring::after{animation-delay:1s;}
+@keyframes ringExpand{0%{transform:scale(1);opacity:.8;}100%{transform:scale(1.8);opacity:0;}}
+</style>
+</head>
+<body>
+
+<!-- 状态切换工具条 -->
+<div class="state-bar">
+  <span class="label">状态预览</span>
+  <button class="active" data-state="success">支付成功</button>
+  <button data-state="fail">支付失败</button>
+  <button data-state="pending">处理中</button>
+</div>
+
+<!-- NavBar -->
+<header class="navbar">
+  <button class="back" aria-label="返回">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <h1 class="title">支付结果</h1>
+</header>
+
+<!-- 内容区 -->
+<main class="content">
+
+  <!-- 支付成功 -->
+  <section class="state-panel active" data-panel="success">
+    <div class="result-hero success">
+      <div class="result-icon">
+        <svg viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="22" fill="rgba(255,255,255,.15)"/>
+          <path d="M14 24l7 7 13-15" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="result-title">支付成功</div>
+      <div class="result-amount"><em>¥</em>1063.70</div>
+      <div class="result-amount-sub">支付方式：支付宝 · 已抵扣 500 积分</div>
+    </div>
+
+    <!-- 失效商品卡 - 订单信息 -->
+    <div class="info-card" style="margin-top:-20px;position:relative;z-index:2;">
+      <div class="head">
+        <span class="shop-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="name">南极人官方旗舰店</span>
+        <span class="status paid">已支付</span>
+      </div>
+      <div class="goods-item">
+        <div class="goods-img"><img src="https://picsum.photos/seed/nanji-tshirt-white/200/200" alt="南极人纯棉短袖T恤"></div>
+        <div class="goods-info">
+          <div class="goods-name">南极人纯棉短袖T恤男女款2026夏季新款宽松半袖</div>
+          <div class="goods-sku">白色 / XL</div>
+          <div class="goods-bottom">
+            <span class="goods-price">¥29.9</span>
+            <span class="goods-qty">×2</span>
+          </div>
+        </div>
+      </div>
+      <div class="goods-item">
+        <div class="goods-img"><img src="https://picsum.photos/seed/nanji-underwear-set/200/200" alt="南极人男士内裤"></div>
+        <div class="goods-info">
+          <div class="goods-name">南极人男士内裤莫代尔平角裤透气无痕4条装</div>
+          <div class="goods-sku">蓝色组合 / L</div>
+          <div class="goods-bottom">
+            <span class="goods-price">¥39.9</span>
+            <span class="goods-qty">×1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="head">
+        <span class="shop-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="name">小米官方旗舰店</span>
+        <span class="status paid">已支付</span>
+      </div>
+      <div class="goods-item">
+        <div class="goods-img"><img src="https://picsum.photos/seed/xiaomi-redmi-note13/200/200" alt="小米 Redmi Note 13"></div>
+        <div class="goods-info">
+          <div class="goods-name">小米 Redmi Note 13 5G智能手机 8+256G</div>
+          <div class="goods-sku">子夜黑 / 8GB+256GB</div>
+          <div class="goods-bottom">
+            <span class="goods-price">¥999</span>
+            <span class="goods-qty">×1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 订单详情 -->
+    <div class="info-card">
+      <div class="head">
+        <span class="shop-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="name">订单详情</span>
+      </div>
+      <div class="order-detail">
+        <div class="detail-row copy">
+          <span class="lbl">订单编号</span>
+          <span class="val mono">LN202607261234567890</span>
+          <button class="copy-btn" data-copy="LN202607261234567890">复制</button>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">支付方式</span>
+          <span class="val">支付宝</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">支付时间</span>
+          <span class="val">2026-07-26 14:32:18</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">支付单号</span>
+          <span class="val mono">2026072622001481920</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">收货人</span>
+          <span class="val">张三 138****1234</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">收货地址</span>
+          <span class="val">福建省福州市鼓楼区软件大道89号 Leno科技园3号楼1208室</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">商品金额</span>
+          <span class="val">¥1098.70</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">优惠抵扣</span>
+          <span class="val" style="color:var(--c-success);">-¥30.00</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">积分抵扣</span>
+          <span class="val" style="color:var(--c-success);">-¥5.00（500 积分）</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">运费</span>
+          <span class="val">¥0.00</span>
+        </div>
+        <div class="detail-row" style="border-top:1px solid var(--n3);margin-top:6px;padding-top:10px;">
+          <span class="lbl" style="color:var(--n10);font-weight:var(--fw-medium);">实付金额</span>
+          <span class="val" style="color:var(--c-error);font-size:var(--fs-lg);font-weight:var(--fw-semibold);">¥1063.70</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 物流进度 -->
+    <div class="logistics">
+      <div class="logistics-head">
+        <span class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="13" height="11" rx="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M15 9h3.5a2 2 0 0 1 1.7 1l2 3a2 2 0 0 1 .3 1v3a1 1 0 0 1-1 1H15" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="6" cy="19" r="1.8" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="19" r="1.8" stroke="currentColor" stroke-width="1.6"/></svg>
+        </span>
+        <span class="t">物流跟踪</span>
+        <span class="more">
+          查看详情
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
+      <div class="logistics-body">
+        <div class="logistics-step active">
+          <div class="t">订单已支付，等待商家发货</div>
+          <div class="d">南极人官方旗舰店、小米官方旗舰店 已收到订单</div>
+          <div class="time">2026-07-26 14:32</div>
+        </div>
+        <div class="logistics-step">
+          <div class="t">待商家发货</div>
+          <div class="d">预计 24 小时内发货</div>
+          <div class="time">预计 2026-07-27 14:32</div>
+        </div>
+        <div class="logistics-step">
+          <div class="t">等待收货</div>
+          <div class="d">物流单号生成后将自动更新</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 推荐位 -->
+    <div class="rec-title">
+      <span class="line"></span>
+      <span class="t">为你推荐</span>
+      <span class="line"></span>
+    </div>
+    <div class="rec-list">
+      <div class="rec-card">
+        <img class="img" src="https://picsum.photos/seed/iphone15-promax/300/300" alt="iPhone 15 Pro Max">
+        <div class="info">
+          <div class="name">Apple iPhone 15 Pro Max 5G智能手机原色钛金属</div>
+          <div class="price-row"><span class="price"><em>¥</em>9999</span></div>
+        </div>
+      </div>
+      <div class="rec-card">
+        <img class="img" src="https://picsum.photos/seed/airpods-pro2/300/300" alt="AirPods Pro 2">
+        <div class="info">
+          <div class="name">Apple AirPods Pro 2 主动降噪无线蓝牙耳机</div>
+          <div class="price-row"><span class="price"><em>¥</em>1899</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-bar">
+      <button class="action-btn outline">
+        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        返回首页
+      </button>
+      <button class="action-btn outline primary">
+        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        查看订单
+      </button>
+      <button class="action-btn primary">
+        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 3h2l2 12h11l2-8H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="20" r="1.5" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="20" r="1.5" stroke="currentColor" stroke-width="1.8"/></svg>
+        继续购物
+      </button>
+    </div>
+  </section>
+
+  <!-- 支付失败 -->
+  <section class="state-panel" data-panel="fail">
+    <div class="result-hero fail">
+      <div class="result-icon">
+        <svg viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="22" fill="rgba(255,255,255,.15)"/>
+          <path d="M24 14v12" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
+          <circle cx="24" cy="33" r="2.4" fill="#fff"/>
+        </svg>
+      </div>
+      <div class="result-title">支付失败</div>
+      <div class="result-amount"><em>¥</em>1063.70</div>
+      <div class="result-amount-sub">订单尚未支付，请重试</div>
+    </div>
+
+    <!-- 失败原因 -->
+    <div class="fail-reason" style="margin-top:-20px;">
+      <div class="icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l9 16H3L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4M12 17v.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="info">
+        <div class="t">支付渠道返回失败</div>
+        <div class="d">支付宝提示：用户取消支付，订单未完成支付。订单将保留 14:32:18，超时后将自动关闭。</div>
+        <span class="err-code">ERR_CODE: USER_CANCELED_PAYMENT</span>
+      </div>
+    </div>
+
+    <!-- 订单详情 -->
+    <div class="info-card">
+      <div class="head">
+        <span class="shop-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="name">订单详情</span>
+      </div>
+      <div class="order-detail">
+        <div class="detail-row copy">
+          <span class="lbl">订单编号</span>
+          <span class="val mono">LN202607261234567890</span>
+          <button class="copy-btn" data-copy="LN202607261234567890">复制</button>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">订单状态</span>
+          <span class="val" style="color:var(--c-warning);font-weight:var(--fw-medium);">待支付</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">下单时间</span>
+          <span class="val">2026-07-26 14:30:05</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">支付截止</span>
+          <span class="val" style="color:var(--c-error);">2026-07-26 15:00:05</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">支付方式</span>
+          <span class="val">支付宝</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">商品金额</span>
+          <span class="val">¥1098.70</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">优惠抵扣</span>
+          <span class="val" style="color:var(--c-success);">-¥30.00</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">积分抵扣</span>
+          <span class="val" style="color:var(--c-success);">-¥5.00（500 积分）</span>
+        </div>
+        <div class="detail-row" style="border-top:1px solid var(--n3);margin-top:6px;padding-top:10px;">
+          <span class="lbl" style="color:var(--n10);font-weight:var(--fw-medium);">待付金额</span>
+          <span class="val" style="color:var(--c-error);font-size:var(--fs-lg);font-weight:var(--fw-semibold);">¥1063.70</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 倒计时提示 -->
+    <div class="info-card" style="background:linear-gradient(90deg,#FFF7E6 0%,#FFF1F0 100%);">
+      <div class="order-detail" style="display:flex;align-items:center;gap:10px;padding:14px 12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;color:var(--c-warning);"><circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v4l3 2M9 3h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <div style="flex:1;">
+          <div style="font-size:var(--fs-sm);color:var(--n9);">订单将在 <b style="color:var(--c-error);" id="countdown">27:37</b> 后自动关闭</div>
+          <div style="font-size:11px;color:var(--n7);margin-top:2px;">关闭后优惠券与积分将原路退回</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-bar">
+      <button class="action-btn outline danger">
+        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        取消订单
+      </button>
+      <button class="action-btn primary" style="flex:2;">
+        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8M20 4v4h-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        重新支付
+      </button>
+    </div>
+  </section>
+
+  <!-- 处理中 -->
+  <section class="state-panel" data-panel="pending">
+    <div class="result-hero" style="background:linear-gradient(180deg,#1677FF 0%,#0E5BD8 100%);">
+      <div class="result-icon">
+        <svg viewBox="0 0 48 48" fill="none" style="animation:spin 1.2s linear infinite;">
+          <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,.3)" stroke-width="3.5" fill="none"/>
+          <path d="M24 4a20 20 0 0 1 20 20" stroke="#fff" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="result-title">支付处理中</div>
+      <div class="result-amount"><em>¥</em>1063.70</div>
+      <div class="result-amount-sub">正在确认支付结果，请稍候...</div>
+    </div>
+
+    <div class="fail-reason" style="margin-top:-20px;">
+      <div class="icon" style="color:var(--c-primary);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="info">
+        <div class="t">支付结果确认中</div>
+        <div class="d">支付渠道正在处理本次交易，预计 5-10 秒内返回结果，请勿重复点击或关闭页面。</div>
+        <span class="err-code">TRACE_ID: 20260726143218</span>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="head">
+        <span class="shop-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="name">订单详情</span>
+      </div>
+      <div class="order-detail">
+        <div class="detail-row copy">
+          <span class="lbl">订单编号</span>
+          <span class="val mono">LN202607261234567890</span>
+          <button class="copy-btn" data-copy="LN202607261234567890">复制</button>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">订单状态</span>
+          <span class="val" style="color:var(--c-primary);font-weight:var(--fw-medium);">处理中</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">支付方式</span>
+          <span class="val">支付宝</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">提交时间</span>
+          <span class="val">2026-07-26 14:32:18</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="action-btn outline">
+        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8M20 4v4h-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        刷新结果
+      </button>
+      <button class="action-btn outline primary">
+        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        返回首页
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  // 状态切换
+  var stateBtns = document.querySelectorAll('.state-bar button[data-state]');
+  var panels = document.querySelectorAll('.state-panel[data-panel]');
+  stateBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      stateBtns.forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      var st = btn.getAttribute('data-state');
+      panels.forEach(function(p){
+        p.classList.toggle('active', p.getAttribute('data-panel')===st);
+      });
+      if(st === 'fail'){ startCountdown(); } else { stopCountdown(); }
+    });
+  });
+
+  // 复制订单号
+  document.querySelectorAll('.copy-btn').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var text = btn.getAttribute('data-copy');
+      // 模拟复制
+      showToast('已复制订单编号');
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).catch(function(){});
+      }
+    });
+  });
+
+  // 操作按钮
+  document.querySelectorAll('.action-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var text = btn.textContent.trim();
+      if(text === '重新支付'){
+        showToast('正在重新发起支付...');
+      }else if(text === '取消订单'){
+        showToast('订单已取消');
+      }else if(text === '查看订单'){
+        showToast('跳转订单详情...');
+      }else if(text === '继续购物'){
+        showToast('返回首页...');
+      }else if(text === '返回首页'){
+        showToast('返回首页...');
+      }else if(text === '刷新结果'){
+        showToast('正在刷新支付结果...');
+      }
+    });
+  });
+
+  // Toast
+  var toastTimer;
+  function showToast(msg){
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 1500);
+  }
+
+  // 倒计时
+  var countdownTimer;
+  var remainSec = 27 * 60 + 37;
+  function startCountdown(){
+    stopCountdown();
+    updateCountdown();
+    countdownTimer = setInterval(function(){
+      remainSec--;
+      if(remainSec <= 0){
+        stopCountdown();
+        showToast('订单已超时关闭');
+        return;
+      }
+      updateCountdown();
+    }, 1000);
+  }
+  function stopCountdown(){
+    if(countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+  }
+  function updateCountdown(){
+    var el = document.getElementById('countdown');
+    if(!el) return;
+    var m = Math.floor(remainSec / 60);
+    var s = remainSec % 60;
+    el.textContent = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+  }
+})();
+</script>
+</body>
+</html>

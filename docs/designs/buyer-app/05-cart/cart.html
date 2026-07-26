@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>购物车 - Leno 买家端</title>
+<style>
+:root {
+  --c-primary:#1677FF; --c-success:#52C41A; --c-warning:#FAAD14; --c-error:#FF4D4F;
+  --n1:#FFFFFF; --n2:#FAFAFA; --n3:#F5F5F5; --n5:#D9D9D9; --n7:#8C8C8C; --n9:#595959; --n10:#000000D9;
+  --r-base:6px; --r-card:8px; --r-lg:12px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+  --fs-sm:12px; --fs-base:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px; --fs-3xl:30px;
+  --fw-normal:400; --fw-medium:500; --fw-semibold:600;
+  --ff-app:"PingFang SC","Microsoft YaHei",-apple-system,sans-serif;
+  --sh-card:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{font-family:var(--ff-app);color:var(--n10);background:var(--n3);}
+body{max-width:375px;margin:0 auto;min-height:100vh;background:var(--n3);box-shadow:0 0 24px rgba(0,0,0,.12);position:relative;overflow-x:hidden;}
+img{display:block;max-width:100%;}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit;}
+input{font-family:inherit;}
+
+/* 状态切换工具条 */
+.state-bar{position:sticky;top:0;z-index:50;display:flex;gap:6px;padding:8px 12px;background:var(--n1);border-bottom:1px solid var(--n3);overflow-x:auto;}
+.state-bar .label{font-size:var(--fs-sm);color:var(--n7);line-height:26px;white-space:nowrap;margin-right:4px;}
+.state-bar button{padding:4px 12px;font-size:var(--fs-sm);border-radius:var(--r-base);background:var(--n3);color:var(--n9);white-space:nowrap;transition:all .2s;}
+.state-bar button.active{background:var(--c-primary);color:#fff;}
+
+/* NavBar */
+.navbar{position:sticky;top:41px;z-index:40;display:flex;align-items:center;height:46px;padding:0 12px;background:var(--n1);border-bottom:1px solid var(--n3);}
+.navbar .back{width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--n10);}
+.navbar .title{flex:1;text-align:center;font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);margin:0 48px;}
+.navbar .action{width:48px;text-align:right;font-size:var(--fs-sm);color:var(--n9);}
+.navbar .action.active{color:var(--c-primary);font-weight:var(--fw-medium);}
+
+/* 内容区 */
+.content{padding:12px;padding-bottom:calc(50px + 56px + env(safe-area-inset-bottom));}
+.state-panel{display:none;animation:fadeIn .25s ease;}
+.state-panel.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+/* 优惠券提示条 */
+.coupon-tip{display:flex;align-items:center;gap:8px;padding:8px 12px;background:linear-gradient(90deg,#FFF7E6 0%,#FFF1F0 100%);border-radius:var(--r-lg);margin-bottom:12px;}
+.coupon-tip .icon{flex-shrink:0;color:var(--c-warning);}
+.coupon-tip .text{flex:1;font-size:var(--fs-sm);color:var(--n9);}
+.coupon-tip .text b{color:var(--c-error);font-weight:var(--fw-medium);}
+.coupon-tip .more{flex-shrink:0;font-size:var(--fs-sm);color:var(--c-primary);}
+
+/* 卖家分组卡片 */
+.seller-card{background:var(--n1);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-card);margin-bottom:12px;}
+.seller-head{display:flex;align-items:center;gap:8px;padding:12px;}
+.seller-head .checkbox{flex-shrink:0;}
+.seller-head .shop-icon{flex-shrink:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--c-primary);}
+.seller-head .shop-name{flex:1;font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);}
+.seller-head .enter{font-size:var(--fs-sm);color:var(--c-primary);display:flex;align-items:center;gap:2px;}
+.seller-head .coupon-link{font-size:var(--fs-sm);color:var(--c-error);padding:2px 6px;background:#FFF1F0;border-radius:var(--r-base);}
+
+/* 商品行 */
+.item-row{display:flex;gap:10px;padding:8px 12px 12px;border-top:1px solid var(--n3);}
+.item-row .checkbox{flex-shrink:0;padding-top:32px;}
+.item-img-wrap{flex-shrink:0;width:80px;height:80px;border-radius:var(--r-base);overflow:hidden;background:var(--n3);position:relative;}
+.item-img-wrap img{width:100%;height:100%;object-fit:cover;}
+.item-img-wrap .stock-warn{position:absolute;left:0;bottom:0;right:0;background:rgba(250,173,20,.92);color:#fff;font-size:10px;text-align:center;padding:1px 0;}
+.item-info{flex:1;min-width:0;display:flex;flex-direction:column;}
+.item-name{font-size:var(--fs-base);color:var(--n10);line-height:1.4;height:38px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.item-sku{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:2px 6px;background:var(--n3);border-radius:var(--r-base);font-size:11px;color:var(--n9);align-self:flex-start;max-width:100%;}
+.item-sku span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.item-tags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;}
+.item-tag{font-size:10px;padding:1px 5px;border-radius:var(--r-base);background:#FFF1F0;color:var(--c-error);}
+.item-tag.green{background:#F6FFED;color:var(--c-success);}
+.item-tag.blue{background:#E6F4FF;color:var(--c-primary);}
+.item-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
+.item-price{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--c-error);}
+.item-price em{font-style:normal;font-size:var(--fs-sm);}
+.item-price .origin{font-size:11px;color:var(--n7);text-decoration:line-through;font-weight:var(--fw-normal);margin-left:4px;}
+
+/* 数量步进器 */
+.stepper{display:flex;align-items:center;gap:0;border:1px solid var(--n5);border-radius:var(--r-base);overflow:hidden;height:28px;}
+.stepper button{width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--n9);background:var(--n2);transition:all .15s;}
+.stepper button:active{background:var(--n3);}
+.stepper button:disabled{color:var(--n5);background:var(--n3);}
+.stepper .num{width:40px;text-align:center;font-size:var(--fs-base);color:var(--n10);background:var(--n1);border:none;outline:none;}
+
+/* 失效商品 */
+.invalid-section{background:var(--n1);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-card);margin-bottom:12px;}
+.invalid-head{display:flex;align-items:center;justify-content:space-between;padding:12px;}
+.invalid-head .t{font-size:var(--fs-base);color:var(--n9);display:flex;align-items:center;gap:6px;}
+.invalid-head .clear{font-size:var(--fs-sm);color:var(--c-error);}
+.invalid-item{display:flex;gap:10px;padding:8px 12px 12px;border-top:1px solid var(--n3);opacity:.7;}
+.invalid-item .img-wrap{flex-shrink:0;width:80px;height:80px;border-radius:var(--r-base);overflow:hidden;background:var(--n3);position:relative;}
+.invalid-item .img-wrap img{width:100%;height:100%;object-fit:cover;filter:grayscale(.6);}
+.invalid-item .img-wrap .invalid-tag{position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);color:#fff;font-size:11px;}
+.invalid-item .info{flex:1;min-width:0;}
+.invalid-item .name{font-size:var(--fs-base);color:var(--n9);line-height:1.4;height:38px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.invalid-item .reason{font-size:11px;color:var(--n7);margin-top:4px;}
+.invalid-item .del-btn{align-self:flex-start;margin-top:auto;padding:4px 10px;border:1px solid var(--n5);border-radius:var(--r-base);font-size:var(--fs-sm);color:var(--n9);}
+
+/* 推荐位标题 */
+.rec-title{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 0 12px;}
+.rec-title .line{width:24px;height:1px;background:var(--n5);}
+.rec-title .t{font-size:var(--fs-base);font-weight:var(--fw-medium);color:var(--n10);}
+
+/* 推荐流瀑布流 */
+.rec-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-bottom:12px;}
+.rec-card{background:var(--n1);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-card);}
+.rec-card .img{width:100%;aspect-ratio:1;object-fit:cover;background:var(--n3);}
+.rec-card .info{padding:8px;}
+.rec-card .name{font-size:var(--fs-base);color:var(--n10);line-height:1.4;height:38px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.rec-card .price-row{display:flex;align-items:baseline;gap:6px;margin-top:6px;}
+.rec-card .price{font-size:var(--fs-lg);font-weight:var(--fw-semibold);color:var(--c-error);}
+.rec-card .price em{font-style:normal;font-size:var(--fs-sm);}
+
+/* Checkbox */
+.checkbox{width:20px;height:20px;border-radius:50%;border:2px solid var(--n5);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;cursor:pointer;}
+.checkbox.checked{background:var(--c-primary);border-color:var(--c-primary);}
+.checkbox.checked svg{display:block;}
+.checkbox svg{display:none;width:12px;height:12px;color:#fff;}
+
+/* 底部结算栏 */
+.settle-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:50px;width:100%;max-width:375px;height:56px;background:var(--n1);border-top:1px solid var(--n3);display:flex;align-items:center;padding:0 12px;gap:10px;z-index:55;box-shadow:0 -2px 12px rgba(0,0,0,.04);}
+.settle-bar .select-all{display:flex;align-items:center;gap:6px;font-size:var(--fs-base);color:var(--n10);}
+.settle-bar .sum-wrap{flex:1;text-align:right;}
+.settle-bar .sum-label{font-size:var(--fs-sm);color:var(--n9);}
+.settle-bar .sum-amount{font-size:var(--fs-xl);font-weight:var(--fw-semibold);color:var(--c-error);line-height:1.2;}
+.settle-bar .sum-amount em{font-style:normal;font-size:var(--fs-base);}
+.settle-bar .sum-detail{font-size:11px;color:var(--n7);}
+.settle-bar .sum-detail b{color:var(--c-success);font-weight:var(--fw-medium);}
+.settle-bar .settle-btn{height:40px;padding:0 24px;background:var(--c-error);color:#fff;border-radius:20px;font-size:var(--fs-base);font-weight:var(--fw-medium);display:flex;align-items:center;gap:4px;transition:all .15s;}
+.settle-bar .settle-btn:active{transform:scale(.96);}
+.settle-bar .settle-btn.disabled{background:var(--n5);}
+.settle-bar .del-btn{height:40px;padding:0 24px;background:var(--n1);border:1px solid var(--c-error);color:var(--c-error);border-radius:20px;font-size:var(--fs-base);font-weight:var(--fw-medium);}
+
+/* Tabbar */
+.tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:375px;height:50px;display:flex;background:var(--n1);border-top:1px solid var(--n3);z-index:60;padding-bottom:env(safe-area-inset-bottom);}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--n7);font-size:10px;position:relative;}
+.tab-item svg{width:24px;height:24px;}
+.tab-item.active{color:var(--c-primary);}
+.tab-item .badge{position:absolute;top:2px;right:50%;margin-right:-22px;min-width:16px;height:16px;padding:0 4px;background:var(--c-error);color:#fff;font-size:10px;line-height:16px;border-radius:8px;text-align:center;}
+
+/* 骨架屏 */
+.skeleton{background:var(--n3);border-radius:var(--r-base);position:relative;overflow:hidden;}
+.skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);transform:translateX(-100%);animation:shimmer 1.4s infinite;}
+@keyframes shimmer{100%{transform:translateX(100%);}}
+.sk-card{background:var(--n1);border-radius:var(--r-lg);padding:12px;margin-bottom:12px;}
+.sk-head{display:flex;gap:8px;align-items:center;margin-bottom:12px;}
+.sk-head .c{width:20px;height:20px;border-radius:50%;}
+.sk-head .n{width:120px;height:14px;}
+.sk-row{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--n3);}
+.sk-row .c{width:20px;height:20px;border-radius:50%;margin-top:32px;}
+.sk-row .img{width:80px;height:80px;border-radius:var(--r-base);}
+.sk-row .info{flex:1;}
+.sk-row .l1{width:80%;height:14px;margin-top:4px;}
+.sk-row .l2{width:50%;height:12px;margin-top:8px;}
+.sk-row .l3{width:30%;height:16px;margin-top:16px;}
+
+/* 空状态 */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 0 40px;}
+.empty-illust{width:140px;height:140px;}
+.empty-title{font-size:var(--fs-base);color:var(--n7);margin-top:16px;}
+.empty-cta{margin-top:16px;padding:8px 32px;background:var(--c-primary);color:#fff;border-radius:var(--r-base);font-size:var(--fs-base);font-weight:var(--fw-medium);}
+
+/* 错误态 */
+.error-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 0;}
+.error-illust{width:100px;height:100px;}
+.error-title{font-size:var(--fs-base);color:var(--n9);margin-top:16px;}
+.error-desc{font-size:var(--fs-sm);color:var(--n7);margin-top:6px;text-align:center;line-height:1.6;}
+.error-retry{margin-top:16px;padding:8px 24px;border:1px solid var(--c-primary);color:var(--c-primary);border-radius:var(--r-base);font-size:var(--fs-base);display:flex;align-items:center;gap:4px;}
+
+/* Toast */
+.toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);background:rgba(0,0,0,.75);color:#fff;padding:10px 20px;border-radius:var(--r-base);font-size:var(--fs-base);z-index:100;opacity:0;pointer-events:none;transition:all .25s;}
+.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+
+/* 确认对话框 */
+.confirm-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:90;display:none;align-items:center;justify-content:center;}
+.confirm-mask.show{display:flex;}
+.confirm-box{width:280px;background:var(--n1);border-radius:var(--r-lg);overflow:hidden;animation:popIn .25s cubic-bezier(.2,0,0,1);}
+@keyframes popIn{from{opacity:0;transform:scale(.9);}to{opacity:1;transform:scale(1);}}
+.confirm-box .ct{padding:24px 20px 16px;text-align:center;}
+.confirm-box .tt{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--n10);}
+.confirm-box .ms{font-size:var(--fs-base);color:var(--n9);margin-top:8px;line-height:1.5;}
+.confirm-box .btns{display:flex;border-top:1px solid var(--n3);}
+.confirm-box .btns button{flex:1;height:48px;font-size:var(--fs-base);}
+.confirm-box .btns .cancel{color:var(--n9);}
+.confirm-box .btns .ok{color:var(--c-error);font-weight:var(--fw-medium);border-left:1px solid var(--n3);}
+</style>
+</head>
+<body>
+
+<!-- 状态切换工具条 -->
+<div class="state-bar">
+  <span class="label">状态预览</span>
+  <button class="active" data-state="loaded">已加载</button>
+  <button data-state="skeleton">加载中</button>
+  <button data-state="empty">空购物车</button>
+  <button data-state="error">错误态</button>
+</div>
+
+<!-- NavBar -->
+<header class="navbar">
+  <button class="back" aria-label="返回">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <h1 class="title">购物车</h1>
+  <button class="action" id="manageBtn">管理</button>
+</header>
+
+<!-- 内容区 -->
+<main class="content">
+
+  <!-- 已加载状态 -->
+  <section class="state-panel active" data-panel="loaded">
+    <!-- 优惠券提示 -->
+    <div class="coupon-tip">
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8z" stroke="currentColor" stroke-width="1.5"/><path d="M9 6v12" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2"/></svg>
+      <span class="text">距离满 <b>¥99</b> 减 <b>¥20</b> 还差 <b>¥12.1</b></span>
+      <span class="more">去凑单 ›</span>
+    </div>
+
+    <!-- 卖家分组1: 南极人官方旗舰店 -->
+    <div class="seller-card">
+      <div class="seller-head">
+        <span class="checkbox checked" data-seller="nanji"><svg viewBox="0 0 24 24" fill="none"><path d="M6 12l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="shop-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="shop-name">南极人官方旗舰店</span>
+        <span class="coupon-link">3张券</span>
+        <span class="enter">进店 ›</span>
+      </div>
+
+      <!-- 商品1 -->
+      <div class="item-row">
+        <span class="checkbox checked" data-item="i1"><svg viewBox="0 0 24 24" fill="none"><path d="M6 12l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div class="item-img-wrap">
+          <img src="https://picsum.photos/seed/nanji-tshirt-white/200/200" alt="南极人纯棉短袖T恤">
+        </div>
+        <div class="item-info">
+          <div class="item-name">南极人纯棉短袖T恤男女款2026夏季新款宽松半袖</div>
+          <div class="item-sku">
+            <span>白色 / XL</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <div class="item-tags">
+            <span class="item-tag">满99减20</span>
+            <span class="item-tag green">7天无理由</span>
+          </div>
+          <div class="item-bottom">
+            <div class="item-price"><em>¥</em>29.9<span class="origin">¥59.9</span></div>
+            <div class="stepper" data-step="1">
+              <button type="button" aria-label="减少数量"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+              <input class="num" type="text" value="2" aria-label="商品数量">
+              <button type="button" aria-label="增加数量"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 商品2 -->
+      <div class="item-row">
+        <span class="checkbox checked" data-item="i2"><svg viewBox="0 0 24 24" fill="none"><path d="M6 12l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div class="item-img-wrap">
+          <img src="https://picsum.photos/seed/nanji-underwear-set/200/200" alt="南极人男士内裤">
+        </div>
+        <div class="item-info">
+          <div class="item-name">南极人男士内裤莫代尔平角裤透气无痕4条装</div>
+          <div class="item-sku">
+            <span>蓝色组合 / L</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <div class="item-tags">
+            <span class="item-tag">第二件半价</span>
+          </div>
+          <div class="item-bottom">
+            <div class="item-price"><em>¥</em>39.9<span class="origin">¥69.9</span></div>
+            <div class="stepper" data-step="1">
+              <button type="button" aria-label="减少数量"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+              <input class="num" type="text" value="1" aria-label="商品数量">
+              <button type="button" aria-label="增加数量"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 卖家分组2: 小米官方旗舰店 -->
+    <div class="seller-card">
+      <div class="seller-head">
+        <span class="checkbox" data-seller="mi"><svg viewBox="0 0 24 24" fill="none"><path d="M6 12l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="shop-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="shop-name">小米官方旗舰店</span>
+        <span class="coupon-link">5张券</span>
+        <span class="enter">进店 ›</span>
+      </div>
+
+      <!-- 商品3 -->
+      <div class="item-row">
+        <span class="checkbox" data-item="i3"><svg viewBox="0 0 24 24" fill="none"><path d="M6 12l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div class="item-img-wrap">
+          <img src="https://picsum.photos/seed/xiaomi-redmi-note13/200/200" alt="小米 Redmi Note 13">
+          <div class="stock-warn">仅剩 5 件</div>
+        </div>
+        <div class="item-info">
+          <div class="item-name">小米 Redmi Note 13 5G智能手机 8+256G</div>
+          <div class="item-sku">
+            <span>子夜黑 / 8GB+256GB</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <div class="item-tags">
+            <span class="item-tag blue">官方标配</span>
+            <span class="item-tag">赠耳机</span>
+          </div>
+          <div class="item-bottom">
+            <div class="item-price"><em>¥</em>999</div>
+            <div class="stepper" data-step="1">
+              <button type="button" aria-label="减少数量"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+              <input class="num" type="text" value="1" aria-label="商品数量">
+              <button type="button" aria-label="增加数量"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 商品4 -->
+      <div class="item-row">
+        <span class="checkbox" data-item="i4"><svg viewBox="0 0 24 24" fill="none"><path d="M6 12l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div class="item-img-wrap">
+          <img src="https://picsum.photos/seed/xiaomi-buds4pro/200/200" alt="小米 Buds 4 Pro">
+        </div>
+        <div class="item-info">
+          <div class="item-name">小米 Buds 4 Pro 真无线降噪蓝牙耳机</div>
+          <div class="item-sku">
+            <span>星空黑</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <div class="item-tags">
+            <span class="item-tag blue">包邮</span>
+          </div>
+          <div class="item-bottom">
+            <div class="item-price"><em>¥</em>699</div>
+            <div class="stepper" data-step="1">
+              <button type="button" aria-label="减少数量"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+              <input class="num" type="text" value="1" aria-label="商品数量">
+              <button type="button" aria-label="增加数量"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 失效商品区 -->
+    <div class="invalid-section">
+      <div class="invalid-head">
+        <span class="t">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>
+          失效商品 (1)
+        </span>
+        <span class="clear">清空失效</span>
+      </div>
+      <div class="invalid-item">
+        <div class="img-wrap">
+          <img src="https://picsum.photos/seed/xiaomi-band8/200/200" alt="小米手环8">
+          <div class="invalid-tag">已下架</div>
+        </div>
+        <div class="info">
+          <div class="name">小米手环8 运动健康监测智能手环</div>
+          <div class="reason">商品已下架，无法购买</div>
+        </div>
+        <button class="del-btn" data-del="invalid1">删除</button>
+      </div>
+    </div>
+
+    <!-- 推荐位 -->
+    <div class="rec-title">
+      <span class="line"></span>
+      <span class="t">为你推荐</span>
+      <span class="line"></span>
+    </div>
+    <div class="rec-list">
+      <div class="rec-card">
+        <img class="img" src="https://picsum.photos/seed/huawei-mate60/300/300" alt="华为 Mate 60">
+        <div class="info">
+          <div class="name">华为 Mate 60 Pro 卫星通话智能手机</div>
+          <div class="price-row"><span class="price"><em>¥</em>6499</span></div>
+        </div>
+      </div>
+      <div class="rec-card">
+        <img class="img" src="https://picsum.photos/seed/oppo-find-x6/300/300" alt="OPPO Find X6">
+        <div class="info">
+          <div class="name">OPPO Find X6 哈苏影像潜望长焦手机</div>
+          <div class="price-row"><span class="price"><em>¥</em>4499</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 骨架屏状态 -->
+  <section class="state-panel" data-panel="skeleton">
+    <div class="skeleton" style="height:32px;border-radius:var(--r-lg);margin-bottom:12px;"></div>
+    <div class="sk-card">
+      <div class="sk-head">
+        <div class="skeleton c"></div>
+        <div class="skeleton n"></div>
+      </div>
+      <div class="sk-row">
+        <div class="skeleton c"></div>
+        <div class="skeleton img"></div>
+        <div class="info">
+          <div class="skeleton l1"></div>
+          <div class="skeleton l2"></div>
+          <div class="skeleton l3"></div>
+        </div>
+      </div>
+      <div class="sk-row">
+        <div class="skeleton c"></div>
+        <div class="skeleton img"></div>
+        <div class="info">
+          <div class="skeleton l1"></div>
+          <div class="skeleton l2"></div>
+          <div class="skeleton l3"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sk-card">
+      <div class="sk-head">
+        <div class="skeleton c"></div>
+        <div class="skeleton n"></div>
+      </div>
+      <div class="sk-row">
+        <div class="skeleton c"></div>
+        <div class="skeleton img"></div>
+        <div class="info">
+          <div class="skeleton l1"></div>
+          <div class="skeleton l2"></div>
+          <div class="skeleton l3"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 空购物车状态 -->
+  <section class="state-panel" data-panel="empty">
+    <div class="empty-state">
+      <svg class="empty-illust" viewBox="0 0 140 140" fill="none">
+        <rect x="30" y="36" width="80" height="76" rx="8" fill="#FAFAFA" stroke="#E8E8E8" stroke-width="1.5"/>
+        <path d="M48 56h44M48 72h44M48 88h28" stroke="#D9D9D9" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="108" cy="44" r="22" fill="#FFF1F0" stroke="#FFCCC7" stroke-width="1.5"/>
+        <path d="M100 44h16M108 36v16" stroke="#FF4D4F" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="50" cy="118" r="6" fill="#F5F5F5" stroke="#D9D9D9" stroke-width="1.2"/>
+        <circle cx="90" cy="118" r="6" fill="#F5F5F5" stroke="#D9D9D9" stroke-width="1.2"/>
+      </svg>
+      <div class="empty-title">购物车空空如也</div>
+      <button class="empty-cta">去购物</button>
+    </div>
+
+    <div class="rec-title">
+      <span class="line"></span>
+      <span class="t">猜你喜欢</span>
+      <span class="line"></span>
+    </div>
+    <div class="rec-list">
+      <div class="rec-card">
+        <img class="img" src="https://picsum.photos/seed/huawei-mate60/300/300" alt="华为 Mate 60">
+        <div class="info">
+          <div class="name">华为 Mate 60 Pro 卫星通话智能手机</div>
+          <div class="price-row"><span class="price"><em>¥</em>6499</span></div>
+        </div>
+      </div>
+      <div class="rec-card">
+        <img class="img" src="https://picsum.photos/seed/oppo-find-x6/300/300" alt="OPPO Find X6">
+        <div class="info">
+          <div class="name">OPPO Find X6 哈苏影像潜望长焦手机</div>
+          <div class="price-row"><span class="price"><em>¥</em>4499</span></div>
+        </div>
+      </div>
+      <div class="rec-card">
+        <img class="img" src="https://picsum.photos/seed/vivo-x90/300/300" alt="vivo X90">
+        <div class="info">
+          <div class="name">vivo X90 蔡司一英寸主摄拍照手机</div>
+          <div class="price-row"><span class="price"><em>¥</em>3999</span></div>
+        </div>
+      </div>
+      <div class="rec-card">
+        <img class="img" src="https://picsum.photos/seed/honor-magic5/300/300" alt="荣耀 Magic5">
+        <div class="info">
+          <div class="name">荣耀 Magic5 Pro 鹰眼相机旗舰手机</div>
+          <div class="price-row"><span class="price"><em>¥</em>4699</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 错误态 -->
+  <section class="state-panel" data-panel="error">
+    <div class="error-state">
+      <svg class="error-illust" viewBox="0 0 100 100" fill="none">
+        <circle cx="50" cy="50" r="44" fill="#FFF1F0" stroke="#FFCCC7" stroke-width="1.5"/>
+        <circle cx="50" cy="50" r="32" fill="#fff"/>
+        <path d="M50 32v20" stroke="#FF4D4F" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="50" cy="64" r="2.5" fill="#FF4D4F"/>
+      </svg>
+      <div class="error-title">加载失败</div>
+      <div class="error-desc">网络异常，请下拉刷新或重试<br>错误码：CART_FETCH_TIMEOUT</div>
+      <button class="error-retry">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8M20 4v4h-4M20 12a8 8 0 0 1-13.7 5.7L4 16M4 20v-4h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        重新加载
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<!-- 底部结算栏 -->
+<div class="settle-bar" id="settleBar">
+  <div class="select-all">
+    <span class="checkbox" id="selectAll"><svg viewBox="0 0 24 24" fill="none"><path d="M6 12l4 4 8-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    全选
+  </div>
+  <div class="sum-wrap">
+    <div class="sum-label">合计</div>
+    <div class="sum-amount" id="sumAmount"><em>¥</em>99.7</div>
+    <div class="sum-detail">已优惠 <b>¥30.0</b></div>
+  </div>
+  <button class="settle-btn" id="settleBtn" aria-label="结算">结算<span id="settleCount">(2)</span></button>
+</div>
+
+<!-- Tabbar -->
+<nav class="tabbar">
+  <a class="tab-item" href="../02-home/home-feed.html">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 22V12h6v10" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    首页
+  </a>
+  <a class="tab-item" href="#">
+    <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="4" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="13" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="13" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/></svg>
+    分类
+  </a>
+  <a class="tab-item active" href="#">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M6 6h14l-2 9H8L6 6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M6 6L5 3H2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="20" r="1.6" fill="currentColor"/><circle cx="17" cy="20" r="1.6" fill="currentColor"/></svg>
+    <span class="badge">3</span>
+    购物车
+  </a>
+  <a class="tab-item" href="#">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M4 21a8 8 0 0 1 16 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    我的
+  </a>
+</nav>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- 确认对话框 -->
+<div class="confirm-mask" id="confirmMask">
+  <div class="confirm-box">
+    <div class="ct">
+      <div class="tt" id="confirmTitle">确认删除</div>
+      <div class="ms" id="confirmMsg">删除后将无法恢复，关联的 1 件商品将一并删除。</div>
+    </div>
+    <div class="btns">
+      <button class="cancel" id="confirmCancel">取消</button>
+      <button class="ok" id="confirmOk">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // 状态切换
+  var stateBtns = document.querySelectorAll('.state-bar button[data-state]');
+  var panels = document.querySelectorAll('.state-panel[data-panel]');
+  var settleBar = document.getElementById('settleBar');
+  stateBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      stateBtns.forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      var st = btn.getAttribute('data-state');
+      panels.forEach(function(p){
+        p.classList.toggle('active', p.getAttribute('data-panel')===st);
+      });
+      // 空购物车/错误态隐藏结算栏
+      settleBar.style.display = (st==='empty' || st==='error') ? 'none' : 'flex';
+      recalc();
+    });
+  });
+
+  // 商品数据
+  var items = {
+    i1:{price:29.9, qty:2, selected:true, valid:true},
+    i2:{price:39.9, qty:1, selected:true, valid:true},
+    i3:{price:999, qty:1, selected:false, valid:true},
+    i4:{price:699, qty:1, selected:false, valid:true}
+  };
+
+  // checkbox 切换
+  function toggleCheckbox(el){
+    el.classList.toggle('checked');
+    var key = el.getAttribute('data-item');
+    if(key && items[key]){
+      items[key].selected = el.classList.contains('checked');
+    }
+    // 同步店铺全选
+    syncSellerCheck();
+    syncSelectAll();
+    recalc();
+  }
+
+  document.querySelectorAll('.checkbox[data-item]').forEach(function(cb){
+    cb.addEventListener('click', function(){ toggleCheckbox(cb); });
+  });
+
+  // 店铺全选
+  document.querySelectorAll('.checkbox[data-seller]').forEach(function(cb){
+    cb.addEventListener('click', function(){
+      var isCheck = !cb.classList.contains('checked');
+      cb.classList.toggle('checked', isCheck);
+      // 找到同卡片内所有商品
+      var card = cb.closest('.seller-card');
+      card.querySelectorAll('.checkbox[data-item]').forEach(function(itemCb){
+        itemCb.classList.toggle('checked', isCheck);
+        var k = itemCb.getAttribute('data-item');
+        if(k && items[k]){ items[k].selected = isCheck; }
+      });
+      syncSelectAll();
+      recalc();
+    });
+  });
+
+  function syncSellerCheck(){
+    document.querySelectorAll('.seller-card').forEach(function(card){
+      var itemCbs = card.querySelectorAll('.checkbox[data-item]');
+      if(itemCbs.length === 0) return;
+      var allChecked = true;
+      itemCbs.forEach(function(c){ if(!c.classList.contains('checked')) allChecked = false; });
+      var sellerCb = card.querySelector('.checkbox[data-seller]');
+      if(sellerCb) sellerCb.classList.toggle('checked', allChecked);
+    });
+  }
+
+  // 全选
+  var selectAll = document.getElementById('selectAll');
+  selectAll.addEventListener('click', function(){
+    var isCheck = !selectAll.classList.contains('checked');
+    selectAll.classList.toggle('checked', isCheck);
+    document.querySelectorAll('.seller-card .checkbox[data-item]').forEach(function(cb){
+      cb.classList.toggle('checked', isCheck);
+      var k = cb.getAttribute('data-item');
+      if(k && items[k]){ items[k].selected = isCheck; }
+    });
+    document.querySelectorAll('.checkbox[data-seller]').forEach(function(cb){
+      cb.classList.toggle('checked', isCheck);
+    });
+    recalc();
+  });
+
+  function syncSelectAll(){
+    var itemCbs = document.querySelectorAll('.seller-card .checkbox[data-item]');
+    if(itemCbs.length === 0){ selectAll.classList.remove('checked'); return; }
+    var all = true;
+    itemCbs.forEach(function(c){ if(!c.classList.contains('checked')) all = false; });
+    selectAll.classList.toggle('checked', all);
+  }
+
+  // 步进器
+  document.querySelectorAll('.stepper').forEach(function(sp){
+    var btns = sp.querySelectorAll('button');
+    var input = sp.querySelector('.num');
+    var min = 1, max = 99;
+    btns[0].addEventListener('click', function(){
+      var v = parseInt(input.value, 10) || 1;
+      if(v > min){ v--; input.value = v; updateQty(sp, v); }
+      if(v <= min) btns[0].disabled = true;
+      else btns[0].disabled = false;
+    });
+    btns[1].addEventListener('click', function(){
+      var v = parseInt(input.value, 10) || 1;
+      if(v < max){ v++; input.value = v; updateQty(sp, v); }
+      if(v >= max) btns[1].disabled = true;
+    });
+    input.addEventListener('change', function(){
+      var v = parseInt(input.value, 10);
+      if(isNaN(v) || v < min) v = min;
+      if(v > max) v = max;
+      input.value = v;
+      updateQty(sp, v);
+    });
+  });
+
+  function updateQty(sp, qty){
+    var row = sp.closest('.item-row');
+    var cb = row.querySelector('.checkbox[data-item]');
+    if(cb){
+      var k = cb.getAttribute('data-item');
+      if(k && items[k]){ items[k].qty = qty; }
+    }
+    recalc();
+  }
+
+  // 重算合计
+  function recalc(){
+    var total = 0, count = 0, saved = 0;
+    Object.keys(items).forEach(function(k){
+      var it = items[k];
+      if(it.selected){
+        total += it.price * it.qty;
+        count += it.qty;
+        // 满减示意
+        if(it.price * it.qty >= 99) saved += 20;
+      }
+    });
+    // 实际优惠：满99减20，最多一笔
+    saved = total >= 99 ? 20 : 0;
+    var payable = total - saved;
+    document.getElementById('sumAmount').innerHTML = '<em>¥</em>' + payable.toFixed(1);
+    document.getElementById('settleCount').textContent = '(' + count + ')';
+    var btn = document.getElementById('settleBtn');
+    btn.classList.toggle('disabled', count === 0);
+    // 更新优惠明细
+    var detail = document.querySelector('.sum-detail');
+    detail.innerHTML = saved > 0 ? '已优惠 <b>¥' + saved.toFixed(1) + '</b>' : '暂无优惠';
+  }
+
+  // 管理态切换
+  var manageBtn = document.getElementById('manageBtn');
+  var isManage = false;
+  manageBtn.addEventListener('click', function(){
+    isManage = !isManage;
+    manageBtn.textContent = isManage ? '完成' : '管理';
+    manageBtn.classList.toggle('active', isManage);
+    var settleBtn = document.getElementById('settleBtn');
+    if(isManage){
+      settleBtn.innerHTML = '删除';
+      settleBtn.style.background = 'var(--n1)';
+      settleBtn.style.color = 'var(--c-error)';
+      settleBtn.style.border = '1px solid var(--c-error)';
+    }else{
+      settleBtn.innerHTML = '结算<span id="settleCount">(2)</span>';
+      settleBtn.style.background = '';
+      settleBtn.style.color = '';
+      settleBtn.style.border = '';
+      recalc();
+    }
+  });
+
+  // 结算/删除按钮
+  document.getElementById('settleBtn').addEventListener('click', function(){
+    if(isManage){
+      // 删除模式：弹出确认
+      var selCount = 0;
+      Object.keys(items).forEach(function(k){ if(items[k].selected) selCount += items[k].qty; });
+      if(selCount === 0){ showToast('请先选择要删除的商品'); return; }
+      showConfirm('确认删除', '删除后将无法恢复，关联的 ' + selCount + ' 件商品将一并删除。', function(){
+        // 执行删除
+        Object.keys(items).forEach(function(k){
+          if(items[k].selected){
+            var cb = document.querySelector('.checkbox[data-item="'+k+'"]');
+            if(cb){
+              var row = cb.closest('.item-row');
+              if(row) row.remove();
+            }
+            delete items[k];
+          }
+        });
+        // 检查店铺是否空
+        document.querySelectorAll('.seller-card').forEach(function(card){
+          if(card.querySelectorAll('.item-row').length === 0) card.remove();
+        });
+        recalc();
+        showToast('已删除');
+      });
+    }else{
+      var count = 0;
+      Object.keys(items).forEach(function(k){ if(items[k].selected) count += items[k].qty; });
+      if(count === 0){ showToast('请选择要结算的商品'); return; }
+      showToast('正在跳转结算预览...');
+    }
+  });
+
+  // 失效商品删除
+  document.querySelectorAll('[data-del]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var item = btn.closest('.invalid-item');
+      var section = btn.closest('.invalid-section');
+      showConfirm('确认删除', '删除后将无法恢复，该失效商品将从购物车移除。', function(){
+        if(item) item.remove();
+        if(section && section.querySelectorAll('.invalid-item').length === 0) section.remove();
+        showToast('已删除');
+      });
+    });
+  });
+
+  // 清空失效
+  var clearBtn = document.querySelector('.invalid-head .clear');
+  if(clearBtn){
+    clearBtn.addEventListener('click', function(){
+      var section = clearBtn.closest('.invalid-section');
+      showConfirm('清空失效商品', '将清空 ' + (section ? section.querySelectorAll('.invalid-item').length : 0) + ' 件失效商品，无法恢复。', function(){
+        if(section) section.remove();
+        showToast('已清空');
+      });
+    });
+  }
+
+  // Toast
+  var toastTimer;
+  function showToast(msg){
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 1500);
+  }
+
+  // 确认对话框
+  var confirmMask = document.getElementById('confirmMask');
+  var confirmOk = document.getElementById('confirmOk');
+  var confirmCancel = document.getElementById('confirmCancel');
+  function showConfirm(title, msg, onOk){
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMsg').textContent = msg;
+    confirmMask.classList.add('show');
+    confirmOk.onclick = function(){
+      confirmMask.classList.remove('show');
+      onOk && onOk();
+    };
+    confirmCancel.onclick = function(){
+      confirmMask.classList.remove('show');
+    };
+  }
+
+  // 初始化
+  recalc();
+})();
+</script>
+</body>
+</html>
