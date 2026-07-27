@@ -1,8 +1,21 @@
 // web/system-admin/src/modules/05-audit/routes.ts
-// 05-audit 模块路由项：3 个视图，meta 含 title/menuKey/icon/roles/permission/menuGroup
+// 05-audit 模块路由项：4 个视图，meta 含 title/menuKey/icon/roles/permission/menuGroup
 import type { RouteRecordRaw } from 'vue-router'
 
 export const auditRoutes: RouteRecordRaw[] = [
+  {
+    path: 'login-logs',
+    name: 'audit.login-logs',
+    component: () => import('./views/LoginLogs.vue'),
+    meta: {
+      title: '登录日志',
+      menuKey: 'audit.login-logs',
+      icon: 'LoginOutlined',
+      roles: ['Admin', 'Operator'],
+      permission: 'login-log:read',
+      menuGroup: '05-audit',
+    },
+  },
   {
     path: 'audit-logs',
     name: 'audit.audit-logs',
