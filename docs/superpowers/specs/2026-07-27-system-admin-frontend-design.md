@@ -292,7 +292,7 @@ const client = axios.create({
 ### 3.4 响应拦截器
 
 按顺序：
-1. **HTTP 层**：5xx → 抛 `ServerError`；401 → 清 token 并跳 `/login`；403 → 抛 `ForbiddenError`；404 → 抛 `NotFoundError`；429 → 抛 `RateLimitedError`
+1. **HTTP 层**：5xx → 抛 `ServerError`；401 → 触发 §4.7 的 token 刷新流程（先尝试 `POST /api/auth/refresh`，失败或非可刷新场景才清 token 并跳 `/login`）；403 → 抛 `ForbiddenError`；404 → 抛 `NotFoundError`；429 → 抛 `RateLimitedError`
 2. **业务层**：`code !== 0` → 抛 `BusinessError(code, message)`，由调用方或全局错误处理决定 toast 还是 inline
 3. **数据解包**：成功时返回 `response.data.data`，让调用方拿到的就是 `T`
 4. **traceId 透传**：失败时把 traceId 一起带出，便于 UI 展示「错误码 #xxx，traceId yyy」
@@ -684,7 +684,7 @@ const theme = {
 | 层级 | 工具 | 覆盖范围 | 覆盖率门槛 |
 |-|-|-|-|
 | 单元测试 | Vitest 2.x | `shared/utils/`、`shared/http/` 拦截器逻辑、`shared/auth/` store 状态机、各模块 `api/*.api.ts` URL/参数构造 | 行覆盖 ≥ 70% |
-| 组件测试 | Vitest + @vue/test-utils 2.x + jsdom | `shared/components/*` 11 个组件props/emit/slot 行为 | 行覆盖 ≥ 60% |
+| 组件测试 | Vitest + @vue/test-utils 2.x + jsdom | `shared/components/*` 12 个组件（StatusTag、IdempotencyButton、PermissionGuard、DataTable、EmptyState、ConfirmDialog、DateTimeRangePicker、ChartLine、ChartBar、ChartPie、JsonViewer、ErrorBoundary）props/emit/slot 行为 | 行覆盖 ≥ 60% |
 | 类型检查 | `vue-tsc --noEmit` | 全量 .vue 与 .ts | 0 error |
 | Lint | ESLint 9 + eslint-plugin-vue + @typescript-eslint | 全量代码 | 0 error，warn ≤ 阈值 |
 | E2E（可选） | Playwright 1.x | 登录 → 仪表盘 → 死信列表 → 详情 → 重投 关键路径 | 至少 1 个 happy path |
@@ -901,7 +901,7 @@ web-system-admin:
 ### 7.6 测试
 
 - [ ] 单元测试行覆盖 ≥ 70%（shared/utils、shared/http、shared/auth、各模块 api）
-- [ ] 组件测试行覆盖 ≥ 60%（11 个 shared/components）
+- [ ] 组件测试行覆盖 ≥ 60%（12 个 shared/components）
 - [ ] vue-tsc 0 error
 - [ ] ESLint 0 error
 - [ ] E2E 至少 1 个 happy path（登录 → 仪表盘 → 死信列表 → 详情）
