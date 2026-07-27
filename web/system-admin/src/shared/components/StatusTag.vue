@@ -10,8 +10,12 @@ import { Tag } from 'ant-design-vue'
  * - user: 管理员用户状态
  * - oauth: OAuth 客户端状态
  * - operator: 运营人员状态
+ * - loginResult: 登录结果
+ * - cacheType: 缓存类型
+ * - menuType: 菜单类型
+ * - onlineUser: 在线用户状态
  */
-type StatusTagType = 'deadLetter' | 'orderPayment' | 'shop' | 'user' | 'oauth' | 'operator'
+type StatusTagType = 'deadLetter' | 'orderPayment' | 'shop' | 'user' | 'oauth' | 'operator' | 'loginResult' | 'cacheType' | 'menuType' | 'onlineUser'
 
 /** Ant Design Vue Tag 颜色值 */
 type TagColor = 'success' | 'processing' | 'error' | 'warning' | 'default'
@@ -72,6 +76,26 @@ const STATUS_MAP: Record<StatusTagType, Record<string, StatusMeta>> = {
   operator: {
     Active: { label: '在职', color: 'success' },
     Inactive: { label: '已停用', color: 'default' },
+  },
+  loginResult: {
+    Success: { label: '成功', color: 'success' },
+    Failed: { label: '失败', color: 'error' },
+  },
+  cacheType: {
+    string: { label: 'string', color: 'processing' },
+    hash: { label: 'hash', color: 'warning' },
+    list: { label: 'list', color: 'default' },
+    set: { label: 'set', color: 'success' },
+    zset: { label: 'zset', color: 'error' },
+  },
+  menuType: {
+    Directory: { label: '目录', color: 'processing' },
+    Menu: { label: '菜单', color: 'success' },
+    Button: { label: '按钮', color: 'default' },
+  },
+  onlineUser: {
+    Normal: { label: '正常', color: 'success' },
+    Anomaly: { label: '异常', color: 'error' },
   },
 }
 
