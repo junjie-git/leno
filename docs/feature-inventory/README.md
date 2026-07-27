@@ -64,13 +64,13 @@
 
 | BC | 源码目录 | 涉及端 |
 |-|-|-|
-| BC1 用户与认证授权 | `src/Services/UserAuth/` + `src/Services/Identity/` | buyer-app + operations + system-admin |
+| BC1 用户与认证授权 | `src/Services/UserAuth/`（旧域，保留兜底）+ `src/Services/Identity/` + `src/Services/UserCenter/` + `src/Services/AccessControl/`（阶段1-2 已就绪） | buyer-app + operations + system-admin |
 | BC2 商品 | `src/Services/Product/` + `src/Services/Inventory/` | buyer-app + operations + seller |
 | BC3 购物车 | `src/Services/Cart/` | buyer-app |
 | BC4 订单与交易 | `src/Services/Order/` | buyer-app + operations + seller |
 | BC5 促销 | `src/Services/Promotion/` | buyer-app + operations |
-| BC6 评价与售后 | `src/Services/ReviewAfterSales/` + `src/Services/AfterSales/` | buyer-app + operations + seller |
-| BC7 积分与会员 | `src/Services/PointsMembership/` + `src/Services/Points/` + `src/Services/Membership/` | buyer-app + operations |
+| BC6 评价与售后 | `src/Services/ReviewAfterSales/`（旧域，保留兜底）+ `src/Services/Review/` + `src/Services/AfterSales/`（阶段1-2 已就绪） | buyer-app + operations + seller |
+| BC7 积分与会员 | `src/Services/PointsMembership/`（旧域，保留兜底）+ `src/Services/Points/` + `src/Services/Membership/`（阶段1-2 已就绪） | buyer-app + operations |
 | BC8 支付集成 | `src/Services/Payment/` | buyer-app + operations |
 | BC9 消息通知 | `src/Services/Notification/` | 4 端 |
 | BC10 卖家与店铺 | `src/Services/SellerShop/` | buyer-app + operations + seller |
@@ -91,8 +91,10 @@
 
 ## 5. 拆分过渡态说明
 
-| 主 BC | 旧 BC | 新 BC | 过渡策略 |
-|-|-|-|-|
-| BC1 用户与认证授权 | UserAuth | Identity | 双轨期优先引用 UserAuth，Identity 端点标 🚧 待切换 |
-| BC6 评价与售后 | ReviewAfterSales | AfterSales（独立） | 双轨期优先引用 ReviewAfterSales，AfterSales 端点标 🚧 待切换 |
-| BC7 积分与会员 | PointsMembership | Points + Membership | 双轨期优先引用 PointsMembership，新拆分端点标 🚧 待切换 |
+> **域拆分迁移阶段1-2 已完成（2026-07-26）**：下表所列新域已全部就绪并经网关双轨挂载，design-prompts 与 feature-list 中的「服务归属」已更新为新域。旧域代码保留作回滚兜底，待阶段3观察期结束后下线。详见 `docs/feature-inventory/domain-migration-status.md`。
+
+| 主 BC | 旧 BC | 新 BC | 阶段1-2 状态 | 过渡策略 |
+|-|-|-|-|-|
+| BC1 用户与认证授权 | UserAuth | Identity + UserCenter + AccessControl | ✅ 阶段1-2 完成 | 新域已就绪：Identity 28 端点、UserCenter 17 端点、AccessControl 7 端点；旧域 UserAuth 保留兜底，阶段3后下线 |
+| BC6 评价与售后 | ReviewAfterSales | Review + AfterSales | ✅ 阶段1-2 完成 | 新域已就绪：Review 11 端点+gRPC、AfterSales 14 端点；旧域 ReviewAfterSales 保留兜底，阶段3后下线 |
+| BC7 积分与会员 | PointsMembership | Points + Membership | ✅ 阶段1-2 完成 | 新域已就绪：Points 16 端点+gRPC、Membership 12 端点；旧域 PointsMembership 保留兜底，阶段3后下线 |

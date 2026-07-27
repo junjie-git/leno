@@ -12,7 +12,7 @@
 ## 2. 页面布局与信息架构
 - **整体布局**：顶部筛选 + 主表格 + 新建/编辑弹窗。
 - **关键区域**：
-  - 区域 A（筛选条）：目标 API 路径搜索 + 启用状态筛选 + 目标上下文多选（按 BC 分治：UserAuth/Product/Order/Payment 等）+ 「新增规则」按钮。
+  - 区域 A（筛选条）：目标 API 路径搜索 + 启用状态筛选 + 目标上下文多选（按域分治：Identity/AccessControl/UserCenter/Points/Membership/Review/AfterSales/Product/Order/Payment 等）+ 「新增规则」按钮。
   - 区域 B（主表格）：列含目标 API/目标上下文/阈值/窗口/算法/维度/状态/操作（编辑/启用/停用），分页 20。
   - 区域 C（弹窗表单）：`<a-modal width="560">` 含 targetApi、targetContext、limit、windowSeconds、algorithm（滑动窗口/令牌桶/固定窗口）、scope（IP/用户/全局/店铺）。
 - **响应式断点**：≥1200px 表格 8 列；992-1199px 隐藏「窗口」列。

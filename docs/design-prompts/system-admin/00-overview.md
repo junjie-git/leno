@@ -82,4 +82,22 @@
 | 07-monitoring 系统监控 | 1 | ➕×1 | P2 |
 
 - **优先级**：P0（已实现且日常巡检/治理必用）= dashboard / user-access / system-governance / runtime-ops 核心；P1（按需与个人侧）= audit / account；P2（外接 Prometheus）= monitoring。
-- **API 来源**：SystemAdmin BC 13 控制器 74 端点 + UserAuth BC Admin 三控制器（AdminUsers / AdminRoles / AdminOAuthClients）+ UsersMe 共享端点。所有引用见各页面提示词「数据模型与 API 对接」段。
+- **API 来源**：SystemAdmin BC 13 控制器 74 端点（含 Operators 运营人员管理）+ **Identity 域**（AdminUsers / AdminOAuthClients / UsersMe 共享端点；旧域 UserAuth 双轨兜底）+ **AccessControl 域**（AdminRoles 角色与权限管理；旧域 UserAuth 双轨兜底）+ Notification 域（通知中心内部协作）。所有引用见各页面提示词「数据模型与 API 对接」段。
+
+> **域拆分迁移双轨期说明（2026-07-26 起）**：阶段1-2 已完成，新域已就绪并经网关双轨挂载，端点路径不变，仅服务归属更新。旧域代码保留作回滚兜底，待阶段3观察期结束后下线。详见 `docs/feature-inventory/domain-migration-status.md`。
+
+## 7. 与后端 API 的对应关系
+
+### 7.1 域拆分映射表
+
+| 模块 | 旧域 | 新域 | 备注 |
+|-|-|-|-|
+| 02-user-access 用户管理 | UserAuth | **Identity** | `/api/admin/users/*` 由 Identity 域 `AdminUsersController` 接管 |
+| 02-user-access 角色与权限 | UserAuth | **AccessControl** | `/api/admin/roles/*`、`/api/admin/roles/{roleId}/permissions` 由 AccessControl 域 `AdminRolesController` 接管（7 端点） |
+| 02-user-access OAuth 客户端 | UserAuth | **Identity** | `/api/admin/oauth-clients/*` 由 Identity 域 `AdminOAuthClientsController` 接管 |
+| 02-user-access 运营人员 | SystemAdmin BC | SystemAdmin BC（未迁移） | `/api/admin/operators/*` 由 SystemAdmin BC `OperatorsController` 提供，不涉及域拆分 |
+| 06-account 登录与双因子 | UserAuth | **Identity** | `/api/auth/*` 由 Identity 域 `AuthController` 接管 |
+| 06-account 个人资料 | UserAuth | **Identity** | `/api/users/me`、密码、双因子由 Identity 域 `UsersController` 接管 |
+| 06-account 通知中心 | Notification 域 | Notification 域（未迁移） | `/api/notifications/*` 由 Notification 域提供，不涉及域拆分 |
+| 04-runtime-ops 健康监控 | 多 BC 聚合 | 多 BC 聚合（含新域） | `/api/admin/health*` 由 SystemAdmin BC 聚合，模块卡片含 Identity / AccessControl / UserCenter / Points / Membership / Review / AfterSales 新域 |
+| 04-runtime-ops 限流规则 | 多 BC 分治 | 多 BC 分治（含新域） | `/api/admin/rate-limit-rules/*` 由 SystemAdmin BC 提供，筛选上下文含新域 |

@@ -93,4 +93,22 @@
 
 ## 7. 与后端 API 的对应关系
 
-API 来源：SellerShop BC（入驻申请、店铺信息、资质）+ Product BC 卖家端（商品发布、SKU、价格、提交审核、下架）+ Order BC 卖家端（待发货、订单列表、物流跟踪）+ ReviewAfterSales BC 卖家端（售后列表、售后详情、评价回复）+ Notification BC（通知）。详细端点见各页面提示词「数据与 API」段。
+> **域拆分迁移双轨期说明（2026-07-26 起）**：阶段1-2 已完成，新域已就绪并经网关双轨挂载，端点路径不变，仅服务归属更新。旧域代码保留作回滚兜底，待阶段3观察期结束后下线。详见 `docs/feature-inventory/domain-migration-status.md`。
+
+API 来源：SellerShop BC（入驻申请、店铺信息、资质）+ Product BC 卖家端（商品发布、SKU、价格、提交审核、下架）+ Order BC 卖家端（待发货、订单列表、物流跟踪）+ **AfterSales 域**（卖家售后列表 `/api/seller/after-sales/*`、售后详情与审核操作；旧域 ReviewAfterSales 双轨兜底）+ **Review 域**（卖家评价列表 `/api/seller/reviews`、评价回复 `/api/reviews/{id}/reply`；旧域 ReviewAfterSales 双轨兜底）+ **Identity 域**（卖家登录 `/api/auth/*`、个人资料 `/api/users/me`、双因子；旧域 UserAuth 双轨兜底）+ Notification 域（通知中心内部协作）。详细端点见各页面提示词「数据与 API」段。
+
+### 7.1 域拆分映射表
+
+| 模块 | 旧域 | 新域 | 备注 |
+|-|-|-|-|
+| 06-after-sales 售后处理 | ReviewAfterSales | **AfterSales** | `/api/seller/after-sales/*` 由 AfterSales 域 `SellerAfterSalesController` 接管 |
+| 07-review 评价管理 | ReviewAfterSales | **Review** | `/api/seller/reviews`、`/api/reviews/{id}/reply` 由 Review 域 `SellerReviewsController` / `ReviewsController` 接管 |
+| 08-account 登录 | UserAuth | **Identity** | `/api/auth/*` 由 Identity 域 `AuthController` 接管 |
+| 08-account 个人资料 | UserAuth | **Identity** | `/api/users/me`、密码、双因子由 Identity 域 `UsersController` 接管 |
+| 08-account 通知中心 | Notification 域 | Notification 域（未迁移） | `/api/notifications/*` 由 Notification 域提供，不涉及域拆分 |
+| 01-onboarding 入驻与店铺 | SellerShop BC | SellerShop BC（未迁移） | `/api/seller/applications/*`、`/api/seller/shops/*` 由 SellerShop BC 提供，不涉及域拆分 |
+| 02-dashboard 工作台 | 多 BC 聚合 | 多 BC 聚合（含新域） | 卖家工作台聚合 SellerShop / Product / Order / AfterSales / Review 新域统计 |
+| 03-product-management 商品管理 | Product BC | Product BC（未迁移） | `/api/seller/products/*` 由 Product BC 提供，不涉及域拆分 |
+| 04-logistics 物流管理 | Order BC / SellerShop BC | Order BC / SellerShop BC（未迁移） | 物流公司与运费模板不涉及域拆分 |
+| 05-order-fulfillment 订单履约 | Order BC | Order BC（未迁移） | `/api/seller/orders/*` 由 Order BC 提供，不涉及域拆分 |
+| 09-export 报表导出 | Order BC / Product BC | Order BC / Product BC（未迁移） | 报表导出涉及 BC 不在域拆分范围 |

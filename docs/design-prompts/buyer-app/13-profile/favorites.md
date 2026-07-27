@@ -42,7 +42,8 @@
 ```
 
 ## 3. 数据模型与 API 对接
-- **主要 API**（➕ 补充，需后端新增收藏控制器 `FavoritesController`）：
+- **服务归属**：UserCenter 域（旧域 UserAuth 双轨兜底，端点路径不变；新域 `FavoritesController` 已就绪，原 ➕ 状态更新为 ✅）
+- **主要 API**（✅ 已实现，由 UserCenter 域 `FavoritesController` 提供）：
 
 | 方法 | 端点 | 用途 | 鉴权 |
 |-|-|-|-|

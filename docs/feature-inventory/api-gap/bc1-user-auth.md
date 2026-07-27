@@ -2,10 +2,17 @@
 
 > 本文件由 BC 级 subagent 严格遵循本模板产出。模板源：docs/feature-inventory/_shared/report-template.md
 
+> **域拆分迁移阶段1-2 已完成（2026-07-26）**：UserAuth 旧域已按职责拆分为三个新域并经网关双轨挂载：
+> - **Identity 域**（28 端点）：认证、OAuth、忘记密码、双因子、个人资料、密码修改、外部登录绑定（`AuthController` / `AccountController` / `UsersController` / `AdminUsersController` / `AdminOAuthClientsController` / `InternalUsersController`）
+> - **UserCenter 域**（17 端点）：收货地址、收藏、浏览历史、通知偏好 HTTP 端点（`AddressesController` / `FavoritesController` / `BrowseHistoryController` / `NotificationPreferencesController`）
+> - **AccessControl 域**（7 端点）：角色与权限管理（`AdminRolesController`）
+>
+> 旧域 UserAuth 代码保留作回滚兜底，待阶段3观察期结束后下线。design-prompts 与 feature-list 中的「服务归属」已更新为新域，端点路径不变。详见 `docs/feature-inventory/domain-migration-status.md`。
+
 ## 1. 概览
 - **BC 编号**：BC1
 - **中文名**：用户与认证授权域
-- **英文名**：UserAuth
+- **英文名**：UserAuth（旧域；新域为 Identity / UserCenter / AccessControl）
 - **涉及端**：buyer-app / operations / system-admin
 - **涉及页面数**：15 页（来自 feature-list）
   - buyer-app：01-auth 5 页（login/register/forgot-password/oauth-login/two-factor）+ 13-profile 4 页（profile/security/addresses/settings）+ 12-notification/preferences 1 页 + 13-profile 2 页（favorites/history，➕）

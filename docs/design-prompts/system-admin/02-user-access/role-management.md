@@ -33,6 +33,7 @@
 ```
 
 ## 3. 数据模型与 API 对接
+- **服务归属**：AccessControl 域（旧域 UserAuth 双轨兜底，端点路径不变；由 `AdminRolesController` 接管，含角色 CRUD 与权限分配共 7 端点）
 - **主要 API**：
 
 | 方法 | 端点 | 用途 | 鉴权 |

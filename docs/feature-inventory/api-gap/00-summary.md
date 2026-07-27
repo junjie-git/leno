@@ -61,17 +61,19 @@
 
 ## 4. 拆分过渡态影响范围
 
+> **域拆分迁移阶段1-2 已完成（2026-07-26）**：Identity / UserCenter / AccessControl / Points / Membership / Review / AfterSales 七个新域已就绪并经网关双轨挂载。下表中「待切换端点数」已降至 0，新域端点全部上线，旧域代码保留作回滚兜底，待阶段3观察期结束后下线。详见 `docs/feature-inventory/domain-migration-status.md`。
+
 | 主 BC | 旧 BC | 新 BC | 影响端点数 | 待切换端点数 | 关键风险 |
 |-|-|-|-|-|-|
-| BC1 | UserAuth | Identity | 42 | 3 | Identity 缺注册/OAuth2/双因子/忘记密码 4 类能力，切换前需补齐；refresh 端点路径不同 |
-| BC6 | ReviewAfterSales | AfterSales | 22 | 13 | 新 BC 目录 `src/Services/AfterSales/` 尚未建立，13 个售后端点全部待迁移 |
-| BC7 | PointsMembership | Points + Membership | 32 | 22 | Points 服务无 Controllers，拆分进度显著滞后；Membership 服务路径/鉴权策略偏离 design-prompts |
+| BC1 | UserAuth | Identity + UserCenter + AccessControl | 42 | 0（阶段1-2已完成） | 新域已就绪：Identity 接管认证/资料/OAuth 28 端点、UserCenter 接管地址/收藏/浏览历史/通知偏好 17 端点、AccessControl 接管角色与权限 7 端点；旧域 UserAuth 双轨兜底 |
+| BC6 | ReviewAfterSales | Review + AfterSales | 22 | 0（阶段1-2已完成） | 新域已就绪：Review 接管评价 11 端点+gRPC、AfterSales 接管售后 14 端点；旧域 ReviewAfterSales 双轨兜底 |
+| BC7 | PointsMembership | Points + Membership | 32 | 0（阶段1-2已完成） | 新域已就绪：Points 接管积分 16 端点+gRPC（含 `PointsController` / `AdminPointsController` / `PointsRulesController` / `TasksController` / `InternalPointsController`）、Membership 接管会员 12 端点；旧域 PointsMembership 双轨兜底 |
 
 **双轨期统一规范**：
-- 优先引用旧 BC 端点
-- 新 BC 端点在 design-prompts 中标注 🚧 待切换
-- 切换前需补齐新 BC 缺失能力并对齐路径/鉴权策略
-- 切换完成后旧 BC 保留只读副本，最终下线
+- 阶段1-2 已完成：新域端点已上线，design-prompts 已将「服务归属」更新为新域
+- 网关双轨挂载：灰度默认 5%，可通过 `Grayscale:Threshold` 调整；internal 端点 100% 切新域
+- 回滚开关：`Grayscale:RollbackToLegacy=true` 即将流量回退至旧域
+- 阶段3观察期结束后，旧域代码下线，新域独占承载
 
 ---
 
@@ -124,9 +126,11 @@
 
 ### 6.2 拆分过渡态风险
 
-- **BC7 进度最滞后**：Points 服务完全无 Controllers，Membership 服务路径/鉴权不对齐
-- **BC6 新 BC 未启动**：`src/Services/AfterSales/` 目录尚未建立
-- **BC1 Identity 缺能力**：4 类 UserAuth 独有能力未在 Identity 实现
+> **更新（2026-07-26）**：阶段1-2 已完成，下列历史风险已解除，新域全部就绪并经网关双轨挂载。旧域代码保留作回滚兜底，待阶段3观察期结束后下线。
+
+- ~~**BC7 进度最滞后**：Points 服务完全无 Controllers，Membership 服务路径/鉴权不对齐~~ **已解除**：Points 域已就绪（5 个 Controller，含 `PointsController` / `AdminPointsController` / `PointsRulesController` / `TasksController` / `InternalPointsController`，共 16 端点 + gRPC）；Membership 域已就绪（4 个 Controller，共 12 端点）
+- ~~**BC6 新 BC 未启动**：`src/Services/AfterSales/` 目录尚未建立~~ **已解除**：AfterSales 域已就绪（4 个 Controller：`AfterSalesController` / `SellerAfterSalesController` / `AdminAfterSalesController` / `AfterSalesControllerBase`，共 14 端点）；Review 域已就绪（5 个 Controller，共 11 端点 + gRPC）
+- ~~**BC1 Identity 缺能力**：4 类 UserAuth 独有能力未在 Identity 实现~~ **已解除**：Identity 域已就绪（6 个 Controller，含 `AuthController` / `AccountController` / `UsersController` / `AdminUsersController` / `AdminOAuthClientsController` / `InternalUsersController`，共 28 端点）；UserCenter 域已就绪（5 个 Controller，共 17 端点）；AccessControl 域已就绪（1 个 Controller，共 7 端点）
 
 ### 6.3 闲置端点合理保留
 

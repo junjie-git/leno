@@ -103,8 +103,25 @@
 | 13-profile 我的 | 6 | ✅×4 / ➕×2 | P1 |
 | 14-public 公共 | 2 | ✅×2 | P2 |
 
-- **优先级说明**：P0 为交易闭环必备（认证/浏览/购物车/订单/支付）；P1 为体验增强（优惠/评价/售后/积分会员/通知/个人中心）；P2 为补充（店铺详情/公告字典）。双轨期积分会员端点优先引用旧 PointsMembership BC，新拆分 BC 端点标注 🚧 待切换。
+- **优先级说明**：P0 为交易闭环必备（认证/浏览/购物车/订单/支付）；P1 为体验增强（优惠/评价/售后/积分会员/通知/个人中心）；P2 为补充（店铺详情/公告字典）。**域拆分迁移阶段1-2 已完成**：积分会员端点已迁移至 Points / Membership 新域，旧 PointsMembership 域代码保留作回滚兜底。
 
 ## 7. 与后端 API 的对应关系
 
-API 来源：UserAuth BC（注册、登录、OAuth、忘记密码、双因素、地址、个人资料）+ Product BC 买家端（分类导航、搜索、商品详情、店铺详情）+ Cart BC（购物车、结算预览、结算）+ Order BC 买家端（下单、订单列表、订单详情、物流跟踪、秒杀订单）+ Payment BC（发起支付、支付结果）+ Promotion BC 买家端（领券、我的优惠券）+ ReviewAfterSales BC 买家端（评价提交、我的评价、商品评价、售后申请、我的售后、售后详情）+ PointsMembership BC（积分账户、积分流水、签到、任务中心、积分兑换、会员等级、付费会员套餐）+ Notification BC（通知列表、通知偏好）+ SystemAdmin BC（字典、公告）。详细端点见各页面提示词「数据与 API」段。
+> **域拆分迁移双轨期说明（2026-07-26 起）**：阶段1-2 已完成，新域已就绪并经网关双轨挂载，端点路径不变，仅服务归属更新。旧域代码保留作回滚兜底，待阶段3观察期结束后下线。详见 `docs/feature-inventory/domain-migration-status.md`。
+
+API 来源：**Identity 域**（注册、登录、OAuth、忘记密码、双因素、个人资料、密码修改、外部登录绑定；旧域 UserAuth 双轨兜底）+ **UserCenter 域**（收货地址、收藏、浏览历史、通知偏好 HTTP 端点；旧域 UserAuth 双轨兜底）+ Product BC 买家端（分类导航、搜索、商品详情、店铺详情）+ Cart BC（购物车、结算预览、结算）+ Order BC 买家端（下单、订单列表、订单详情、物流跟踪、秒杀订单）+ Payment BC（发起支付、支付结果）+ Promotion BC 买家端（领券、我的优惠券）+ **Review 域**（评价提交、我的评价、商品评价；旧域 ReviewAfterSales 双轨兜底）+ **AfterSales 域**（售后申请、我的售后、售后详情；旧域 ReviewAfterSales 双轨兜底）+ **Points 域**（积分账户、积分流水、签到、任务中心、积分兑换；旧域 PointsMembership 双轨兜底）+ **Membership 域**（会员等级、付费会员套餐；旧域 PointsMembership 双轨兜底）+ Notification 域（通知列表内部协作）+ SystemAdmin BC（字典、公告）。详细端点见各页面提示词「数据与 API」段。
+
+### 7.1 域拆分映射表
+
+| 模块 | 旧域 | 新域 | 备注 |
+|-|-|-|-|
+| 01-auth 认证 | UserAuth | **Identity** | 28 端点已就绪，路径保持 `/api/auth/*` 与 `/api/account/*` |
+| 13-profile 个人资料 | UserAuth | **Identity** | `/api/users/me`、密码、双因子由 Identity 接管 |
+| 13-profile 收货地址 | UserAuth | **UserCenter** | `/api/users/me/addresses/*` 由 UserCenter 接管 |
+| 13-profile 收藏 | UserAuth | **UserCenter** | `/api/users/me/favorites/*` 由 UserCenter 接管 |
+| 13-profile 浏览历史 | UserAuth | **UserCenter** | `/api/users/me/browse-history/*` 由 UserCenter 接管 |
+| 12-notification 通知偏好 | UserAuth | **UserCenter**（HTTP）+ Notification 域（internal） | `/api/users/me/notification-preferences` 由 UserCenter 接管 |
+| 09-review 评价 | ReviewAfterSales | **Review** | `/api/reviews/*`、`/api/products/{spuId}/reviews` 由 Review 接管 |
+| 10-after-sales 售后 | ReviewAfterSales | **AfterSales** | `/api/after-sales/*` 由 AfterSales 接管 |
+| 11-points-membership 积分 | PointsMembership | **Points** | `/api/points/*`、`/api/admin/points/*`、`internal/v1/points/*` 由 Points 接管 |
+| 11-points-membership 会员 | PointsMembership | **Membership** | `/api/members/*`、`/api/membership-packages/*` 由 Membership 接管 |

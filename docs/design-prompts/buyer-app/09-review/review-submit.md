@@ -46,6 +46,7 @@
 ```
 
 ## 3. 数据模型与 API 对接
+- **服务归属**：Review 域（评价端点 `/api/reviews/*`、`/api/products/{spuId}/reviews`；旧域 ReviewAfterSales 双轨兜底，端点路径不变）；订单查询 `/api/orders/{orderId}` 跨域属 Order BC
 - **主要 API**：
 
 | 方法 | 端点 | 用途 | 鉴权 |

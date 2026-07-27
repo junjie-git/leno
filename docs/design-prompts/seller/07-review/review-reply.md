@@ -50,6 +50,7 @@
 ```
 
 ## 3. 数据模型与 API 对接
+- **服务归属**：Review 域（旧域 ReviewAfterSales 双轨兜底，端点路径不变；列表由 `SellerReviewsController` 接管，回复由 `ReviewsController` 接管）
 - **主要 API**：
 
 | 方法 | 端点 | 用途 | 鉴权 |

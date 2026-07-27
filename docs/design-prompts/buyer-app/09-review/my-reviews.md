@@ -40,12 +40,13 @@
 ```
 
 ## 3. 数据模型与 API 对接
+- **服务归属**：Review 域（旧域 ReviewAfterSales 双轨兜底，端点路径不变）
 - **主要 API**：
 
 | 方法 | 端点 | 用途 | 鉴权 | 实现状态 |
 |-|-|-|-|-|
 | GET | `/api/reviews/mine` | 查询我的评价列表（按状态过滤） | Buyer | ✅ |
-| POST | `/api/reviews/{reviewId}/append` | 追评 | Buyer | 🚧 规划中（源码 ReviewsController 未实现 append 端点，待补充） |
+| POST | `/api/reviews/{reviewId}/append` | 追评 | Buyer | ✅ 已实现（Review 域 `ReviewsController` 提供 append 端点） |
 
 - **请求参数**：`GET /api/reviews/mine?status={ReviewStatus}&page={page}&pageSize=20`；status 可空表示全部，枚举 `PendingReview/Approved/Rejected`；追评 body `{ content, images }`。
 - **响应字段**：`{ items, total, page, pageSize }`；item 含 `reviewId`、`productId`、`productName`、`skuId`、`skuName`、`mainImage`、`rating`、`content`、`images`、`status`、`createdAt`、`appendContent`、`appendAt`。

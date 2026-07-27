@@ -47,6 +47,7 @@
 ```
 
 ## 3. 数据模型与 API 对接
+- **服务归属**：Points 域（积分端点 `/api/points/*`；旧域 PointsMembership 双轨兜底，端点路径不变）；优惠券查询 `/api/coupons/claimable` 跨域属 Promotion BC
 - **主要 API**：
 
 | 方法 | 端点 | 用途 | 鉴权 |

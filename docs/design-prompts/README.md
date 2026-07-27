@@ -1,11 +1,34 @@
 # Leno 电商平台 UI 设计提示词
 
-**文档版本**：V1.0
+**文档版本**：V1.1
 **最后更新**：2026-07-26
 **适用工具**：Design with TRAE
 **关联文档**：
 - 设计文档：`docs/superpowers/specs/2026-07-26-multi-end-ui-design-prompts-design.md`
 - 实现计划：`docs/superpowers/plans/2026-07-26-multi-end-ui-design-prompts.md`
+- 域拆分迁移状态：`docs/feature-inventory/domain-migration-status.md`
+
+---
+
+## 0. 域拆分迁移双轨期说明（2026-07-26 起）
+
+阶段1-2 已完成：Identity / UserCenter / AccessControl / Points / Membership / Review / AfterSales 七个新域已就绪并经网关双轨挂载。本文档集内所有 API 端点路径保持不变，**服务归属按下表更新**，旧域（UserAuth / PointsMembership / ReviewAfterSales）代码保留作回滚兜底，待阶段3观察期结束后下线。
+
+| 旧域 | 新域 | 端点数 | 状态 |
+|-|-|-|-|
+| UserAuth（认证部分） | Identity | 28 | 阶段1完成 |
+| UserAuth（用户中心部分） | UserCenter | 17 | 阶段1完成 |
+| UserAuth（权限部分） | AccessControl | 7 | 阶段1完成 |
+| PointsMembership（积分部分） | Points | 16 + gRPC | 阶段1完成 |
+| PointsMembership（会员部分） | Membership | 12 | 阶段1完成 |
+| ReviewAfterSales（评价部分） | Review | 11 + gRPC | 阶段1完成 |
+| ReviewAfterSales（售后部分） | AfterSales | 14 | 阶段1完成 |
+
+**双轨期注意事项**：
+1. 网关灰度默认 5%，可通过 `Grayscale:Threshold` 调整；internal 端点 100% 切新域
+2. 回滚开关：`Grayscale:RollbackToLegacy=true` 即将流量回退至旧域
+3. 各页面提示词中「数据模型与 API 对接」段引用的端点路径不变，仅服务归属从旧域迁移至新域
+4. 详细迁移状态见 `docs/feature-inventory/domain-migration-status.md`
 
 ---
 

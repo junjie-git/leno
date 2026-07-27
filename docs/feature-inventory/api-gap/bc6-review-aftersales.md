@@ -2,10 +2,16 @@
 
 > 本文件由 BC 级 subagent 严格遵循本模板产出。模板源：docs/feature-inventory/_shared/report-template.md
 
+> **域拆分迁移阶段1-2 已完成（2026-07-26）**：ReviewAfterSales 旧域已按职责拆分为两个新域并经网关双轨挂载：
+> - **Review 域**（11 端点 + gRPC）：评价提交、我的评价、商品评价、评价回复、评价审核（`ReviewsController` / `ProductReviewsController` / `SellerReviewsController` / `AdminReviewsController` / `ReviewControllerBase`）
+> - **AfterSales 域**（14 端点）：售后申请、我的售后、售后详情、卖家审核与确认收货、运营审核（`AfterSalesController` / `SellerAfterSalesController` / `AdminAfterSalesController` / `AfterSalesControllerBase`）
+>
+> 旧域 ReviewAfterSales 代码保留作回滚兜底，待阶段3观察期结束后下线。design-prompts 与 feature-list 中的「服务归属」已更新为新域，端点路径不变。详见 `docs/feature-inventory/domain-migration-status.md`。
+
 ## 1. 概览
 - **BC 编号**：BC6
 - **中文名**：评价与售后域
-- **英文名**：ReviewAfterSales
+- **英文名**：ReviewAfterSales（旧域；新域为 Review / AfterSales）
 - **涉及端**：buyer-app / operations / seller
 - **涉及页面数**：10 页（buyer-app 09-review 3 页 + 10-after-sales 3 页；operations 05-order-ops 2 页；seller 06-after-sales 2 页 + 07-review 1 页）
 - **已实现 API 端点数**：22 个（ReviewsController 9 个 + AfterSalesController 13 个，全部位于 src/Services/ReviewAfterSales/）
@@ -120,25 +126,26 @@
 
 ## 5. 拆分过渡说明
 
-> BC6 处于拆分过渡期：旧 BC=ReviewAfterSales，新 BC=AfterSales 独立。当前新 BC 目录 `src/Services/AfterSales/` 尚未建立，所有端点仍由旧 BC `src/Services/ReviewAfterSales/` 承载。
+> BC6 拆分过渡期阶段1-2 已完成（2026-07-26）：旧 BC=ReviewAfterSales，新 BC=Review + AfterSales 独立。新 BC 目录 `src/Services/Review/` 与 `src/Services/AfterSales/` 已建立并经网关双轨挂载，旧 BC `src/Services/ReviewAfterSales/` 保留作回滚兜底，待阶段3观察期结束后下线。
 
 - **旧 BC 与新 BC 对照**：
 
-| 旧 BC（ReviewAfterSales）目录/控制器 | 新 BC（AfterSales）规划目录/控制器 | 当前状态 | 端点数 |
+| 旧 BC（ReviewAfterSales）目录/控制器 | 新 BC 目录/控制器 | 当前状态 | 端点数 |
 |-|-|-|-|
-| src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Controllers/ReviewsController.cs | 保留在 ReviewAfterSales（评价不迁移） | ✅ 旧 BC 承载 | 9 |
-| src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Controllers/AfterSalesController.cs | src/Services/AfterSales/Leno.AfterSales.Api/Controllers/AfterSalesController.cs（规划） | 🚧 旧 BC 承载、待迁移 | 13 |
-| src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Controllers/ReviewControllerBase.cs | 拆分为 ReviewControllerBase（留旧）+ AfterSalesControllerBase（新建） | 🚧 待拆分 | — |
-| src/Services/AfterSales/（新 BC 目录） | — | 🚧 未建立 | 0 |
+| src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Controllers/ReviewsController.cs | src/Services/Review/Leno.Review.Api/Controllers/ReviewsController.cs（含 ProductReviewsController / SellerReviewsController / AdminReviewsController） | ✅ 新域 Review 已就绪（11 端点 + gRPC） | 11 + gRPC |
+| src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Controllers/AfterSalesController.cs | src/Services/AfterSales/Leno.AfterSales.Api/Controllers/AfterSalesController.cs（含 SellerAfterSalesController / AdminAfterSalesController） | ✅ 新域 AfterSales 已就绪（14 端点） | 14 |
+| src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Controllers/ReviewControllerBase.cs | src/Services/Review/.../ReviewControllerBase.cs + src/Services/AfterSales/.../AfterSalesControllerBase.cs | ✅ 已拆分完成 | — |
+| src/Services/AfterSales/（新 BC 目录） | src/Services/AfterSales/Leno.AfterSales.Api/Controllers/ | ✅ 已建立 | 14 |
 
-- **双轨期端点引用规范**：
-  1. **评价类端点**（路径含 `/api/reviews`、`/api/products/{spuId}/reviews`、`/api/admin/reviews`、`/api/seller/reviews`）双轨期继续引用旧 BC `src/Services/ReviewAfterSales/`，不参与迁移。
-  2. **售后类端点**（路径含 `/api/after-sales`、`/api/seller/after-sales`、`/api/admin/after-sales`）双轨期仍引用旧 BC `AfterSalesController.cs`，但所有调用方需在文档与接口契约中标注「（AfterSales，待切换）」，便于后续切换识别。
-  3. 新 BC `src/Services/AfterSales/` 建立后，售后端点路由保持不变（路径前缀仍为 `/api/after-sales`、`/api/seller/after-sales`、`/api/admin/after-sales`），仅服务实现迁移；前端与运营/卖家后台无需调整调用路径。
-  4. 切换前需保证 `IAfterSalesAppService`、`AfterSales` 聚合根、`IAfterSalesRepository` 等领域资产完整迁移至新 BC，旧 BC 暂保留只读副本直至切换完成。
-  5. 集成事件 `RefundRequestedIntegrationEvent`、`RefundCompletedEvent`、`AfterSalesRequestedEvent` 等售后相关事件的发布方随新 BC 迁移，消费方（BC4/BC5/BC7/BC8/BC9）订阅契约不变。
+- **双轨期端点引用规范**（阶段1-2 完成后的状态）：
+  1. **评价类端点**（路径含 `/api/reviews`、`/api/products/{spuId}/reviews`、`/api/admin/reviews`、`/api/seller/reviews`）已由新域 Review 承载，旧 BC `ReviewsController.cs` 保留作回滚兜底；design-prompts 中「服务归属」已更新为 Review 域。
+  2. **售后类端点**（路径含 `/api/after-sales`、`/api/seller/after-sales`、`/api/admin/after-sales`）已由新域 AfterSales 承载，旧 BC `AfterSalesController.cs` 保留作回滚兜底；design-prompts 中「服务归属」已更新为 AfterSales 域。
+  3. 端点路由保持不变（路径前缀仍为 `/api/after-sales`、`/api/seller/after-sales`、`/api/admin/after-sales`），仅服务实现迁移；前端与运营/卖家后台无需调整调用路径。
+  4. `IAfterSalesAppService`、`AfterSales` 聚合根、`IAfterSalesRepository` 等领域资产已完整迁移至新域，旧 BC 保留只读副本直至阶段3观察期结束。
+  5. 集成事件 `RefundRequestedIntegrationEvent`、`RefundCompletedEvent`、`AfterSalesRequestedEvent` 等售后相关事件的发布方已随新域迁移，消费方（BC4/BC5/BC7/BC8/BC9）订阅契约不变。
+  6. 回滚开关：`Grayscale:RollbackToLegacy=true` 即将流量回退至旧域 ReviewAfterSales。
 
-- **待切换端点清单**（共 13 个，全部位于 AfterSalesController.cs，标 🚧 待切换）：
+- **新域端点清单**（共 25 个：Review 11 端点 + gRPC + AfterSales 14 端点；阶段1-2 已全部上线）：
 
 | HTTP 方法 | 路径 | Controller:行号 | 用途 | 切换后归属 |
 |-|-|-|-|-|

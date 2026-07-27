@@ -49,6 +49,7 @@
 ```
 
 ## 3. 数据模型与 API 对接
+- **服务归属**：UserCenter 域（HTTP 端点 `/api/users/me/notification-preferences`）+ Notification 域（内部协作）；旧域 UserAuth 双轨兜底，端点路径不变
 - **主要 API**：
 
 | 方法 | 端点 | 用途 | 鉴权 |

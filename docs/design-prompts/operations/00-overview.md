@@ -81,4 +81,18 @@ const routes = [
 
 ## 7. 与后端 API 的对应关系
 
-API 来源：Product BC（商品审核、分类、品牌）+ Promotion BC（优惠券、促销、秒杀）+ SellerShop BC（商家入驻审核、店铺治理）+ Order BC（订单管理、售后、评价审核、物流公司）+ Payment BC（支付记录、退款记录、支付渠道）+ Notification BC（通知模板、记录、配置、限流）+ Membership BC（会员等级、付费会员套餐、积分规则）+ SystemAdmin BC（数据看板快照）。详细端点见各页面提示词「数据与 API」段。
+> **域拆分迁移双轨期说明（2026-07-26 起）**：阶段1-2 已完成，新域已就绪并经网关双轨挂载，端点路径不变，仅服务归属更新。旧域代码保留作回滚兜底，待阶段3观察期结束后下线。详见 `docs/feature-inventory/domain-migration-status.md`。
+
+API 来源：Product BC（商品审核、分类、品牌）+ Promotion BC（优惠券、促销、秒杀）+ SellerShop BC（商家入驻审核、店铺治理）+ Order BC（订单管理、物流公司）+ **AfterSales 域**（售后处理 `/api/admin/after-sales/*`；旧域 ReviewAfterSales 双轨兜底）+ **Review 域**（评价审核 `/api/admin/reviews/*`；旧域 ReviewAfterSales 双轨兜底）+ Payment BC（支付记录、退款记录、支付渠道）+ Notification 域（通知模板、记录、配置、限流）+ **Membership 域**（会员等级 `/api/admin/members/levels/*`、付费会员套餐 `/api/admin/membership-packages/*`；旧域 PointsMembership 双轨兜底）+ **Points 域**（积分规则 `/api/admin/points/rules/*`、手动发放 `/api/admin/points/award`；旧域 PointsMembership 双轨兜底）+ SystemAdmin BC（数据看板快照）。详细端点见各页面提示词「数据与 API」段。
+
+### 7.1 域拆分映射表
+
+| 模块 | 旧域 | 新域 | 备注 |
+|-|-|-|-|
+| 05-order-ops 售后处理 | ReviewAfterSales | **AfterSales** | `/api/admin/after-sales/*` 由 AfterSales 接管 |
+| 05-order-ops 评价审核 | ReviewAfterSales | **Review** | `/api/admin/reviews/*` 由 Review 接管 |
+| 08-membership-ops 会员等级 | PointsMembership | **Membership** | `/api/admin/members/levels/*` 由 Membership 接管 |
+| 08-membership-ops 会员套餐 | PointsMembership | **Membership** | `/api/admin/membership-packages/*` 由 Membership 接管 |
+| 08-membership-ops 积分规则 | PointsMembership | **Points** | `/api/admin/points/rules/*` 由 Points 接管 |
+| 08-membership-ops 手动发放积分 | PointsMembership | **Points** | `/api/admin/points/award` 由 Points 接管 |
+| 09-account 登录/资料 | UserAuth | **Identity** | `/api/auth/*`、`/api/users/me` 由 Identity 接管 |

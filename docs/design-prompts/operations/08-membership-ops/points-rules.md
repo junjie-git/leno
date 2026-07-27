@@ -34,13 +34,14 @@
 ```
 
 ## 3. 数据模型与 API 对接
+- **服务归属**：Points 域（旧域 PointsMembership 双轨兜底，端点路径不变；新域 `PointsRulesController` 已就绪，原 🚧 状态更新为 ✅）
 - **主要 API**（已实现）：
 
 | 方法 | 端点 | 用途 | 鉴权 |
 |-|-|-|-|
 | POST | `/api/admin/points/award` | 运营手动发放积分 | Operator, Admin |
 
-- **规划补充端点**（🚧）：
+- **规则 CRUD 端点**（✅ 已实现，由 Points 域 `PointsRulesController` 提供）：
 
 | 方法 | 端点 | 用途 | 鉴权 |
 |-|-|-|-|

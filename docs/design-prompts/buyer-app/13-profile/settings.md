@@ -51,6 +51,7 @@
 ```
 
 ## 3. 数据模型与 API 对接
+- **服务归属**：Identity 域（`/api/auth/logout`）+ UserCenter 域（`/api/users/me/notification-preferences` HTTP 端点）；旧域 UserAuth 双轨兜底，端点路径不变；通知偏好内部协作由 Notification 域承接
 - **主要 API**：
 
 | 方法 | 端点 | 用途 | 鉴权 |

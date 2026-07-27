@@ -1,19 +1,24 @@
 # BC7 积分与会员域 — API 缺失对比报告
 
 > 本文件由 BC 级 subagent 严格遵循本模板产出。模板源：docs/feature-inventory/_shared/report-template.md
-> BC7 处于拆分过渡期：旧 BC=PointsMembership（在售），新 BC=Points+Membership（拆分中，未对外）。双轨期优先引用 PointsMembership，新拆分端点标 🚧 待切换。
+
+> **域拆分迁移阶段1-2 已完成（2026-07-26）**：PointsMembership 旧域已按职责拆分为两个新域并经网关双轨挂载：
+> - **Points 域**（16 端点 + gRPC）：积分账户、积分流水、签到、任务中心、积分兑换、积分规则 CRUD、手动发放、内部协作（`PointsController` / `AdminPointsController` / `PointsRulesController` / `TasksController` / `InternalPointsController`）
+> - **Membership 域**（12 端点）：会员等级 CRUD 与启停、付费会员套餐 CRUD 与启停、会员档案查询（`MembersController` / `AdminMemberLevelsController` / `MembershipPackagesController` / `AdminMembershipPackagesController`）
+>
+> 旧域 PointsMembership 代码保留作回滚兜底，待阶段3观察期结束后下线。design-prompts 与 feature-list 中的「服务归属」已更新为新域，端点路径不变。详见 `docs/feature-inventory/domain-migration-status.md`。
 
 ## 1. 概览
 - **BC 编号**：BC7
 - **中文名**：积分与会员域
-- **英文名**：PointsMembership
+- **英文名**：PointsMembership（旧域；新域为 Points / Membership）
 - **涉及端**：buyer-app + operations
 - **涉及页面数**：10 页（buyer-app/11-points-membership 全部 7 页 + operations/08-membership-ops 全部 3 页；operations/09-account/todo-workbench 仅快捷入口跳转 points-rules，不直接消费 BC7 API，不计入）
-- **已实现 API 端点数**：32 个（按逻辑端点去重计数；PointsMembership 23 个含 4 内部 + Membership 9 个；Points 服务无 Controller）
-  - PointsMembership buyer+ops 端点：19 个
+- **已实现 API 端点数**：32 个（按逻辑端点去重计数；PointsMembership 23 个含 4 内部 + Membership 9 个；阶段1-2 完成后 Points 域 16 端点 + gRPC 已就绪，Membership 域 12 端点已就绪）
+  - PointsMembership buyer+ops 端点：19 个（旧域，保留作回滚兜底）
   - PointsMembership 内部端点：4 个（双路由期，旧路由 4 个已标 Obsolete 不重复计数）
-  - Membership 端点：9 个（新拆分，待切换）
-  - Points 端点：0 个（仅有 Domain/Application/Infrastructure，无 Controllers）
+  - Membership 端点（旧拆分实现）：9 个（路径/鉴权与 design-prompts 不一致，已由新域 Membership 12 端点对齐覆盖）
+  - Points 端点（阶段1-2 新增）：16 个 + gRPC（5 个 Controller 全部就绪）
 - **差异统计**：缺失 5 / 闲置 4 / 路径不一致 9 / 能力不匹配 0
 
 ## 2. 源码 API 端点清单（实际实现）
@@ -156,55 +161,60 @@
 
 ## 5. 拆分过渡说明
 
+> **阶段1-2 已完成（2026-07-26）**：Points 与 Membership 新域已就绪并经网关双轨挂载，旧 BC `src/Services/PointsMembership/` 保留作回滚兜底，待阶段3观察期结束后下线。design-prompts 中的「服务归属」已更新为新域。
+
 - **旧 BC 与新 BC 对照**：
 
-| 旧 BC（在售） | 新 BC（拆分中） | 对照说明 |
+| 旧 BC（保留兜底） | 新 BC（已就绪） | 当前状态 |
 |-|-|-|
-| PointsMembership/PointsController（积分账户/流水/签到/兑换/手动发放） | Points（计划承接） | Points 服务已有 Domain（PointsAccount/PointsFlow/PointsExchange 聚合）+ Application（IPointsAppService）+ Infrastructure（PointsDbContext/仓储/MemberLevelChangedEventConsumer），但无 Controllers；当前由 PointsMembership/PointsController 提供对外端点 |
-| PointsMembership/MembersController（会员信息/等级 CRUD/启停） | Membership/MembersController（已搭建骨架） | Membership 服务已有 MembersController 4 端点（GetMemberInfo/GetLevels/CreateLevel/UpdateLevel），路径与鉴权均与旧服务不一致；缺 enable/disable 端点 |
-| PointsMembership/MembershipPackagesController（套餐列表/订阅/CRUD/启停） | Membership/MembershipPackagesController（已搭建骨架） | Membership 服务已有 5 端点（GetPackages/CreatePackage/UpdatePackage/Enable/Disable），缺 Subscribe 端点；路径与鉴权与旧服务不一致 |
-| PointsMembership/TasksController（任务中心） | Points（计划承接） | Membership 不承接任务中心，拆分后任务中心归属 Points；Points 服务尚未暴露 TasksController |
-| PointsMembership/InternalPointsController（积分抵现内部端点） | Points（计划承接） | 内部端点供订单域调用，拆分后归属 Points；当前双路由期新旧并存 |
+| PointsMembership/PointsController（积分账户/流水/签到/兑换/手动发放） | Points 域 `PointsController` + `AdminPointsController` + `PointsRulesController` + `TasksController` + `InternalPointsController`（16 端点 + gRPC） | ✅ 阶段1-2 完成：5 个 Controller 全部就绪，含规则 CRUD（5 端点）与手动发放、任务中心、内部 gRPC 协作 |
+| PointsMembership/MembersController（会员信息/等级 CRUD/启停） | Membership 域 `MembersController` + `AdminMemberLevelsController`（12 端点） | ✅ 阶段1-2 完成：含会员档案查询、等级 CRUD/启停、对齐 design-prompts 路径与鉴权 |
+| PointsMembership/MembershipPackagesController（套餐列表/订阅/CRUD/启停） | Membership 域 `MembershipPackagesController` + `AdminMembershipPackagesController` | ✅ 阶段1-2 完成：含套餐列表/订阅/CRUD/启停，对齐 design-prompts 路径与鉴权 |
+| PointsMembership/TasksController（任务中心） | Points 域 `TasksController` | ✅ 阶段1-2 完成：任务中心归属 Points 域，端点路径保持 `/api/points/tasks/*` |
+| PointsMembership/InternalPointsController（积分抵现内部端点） | Points 域 `InternalPointsController`（gRPC） | ✅ 阶段1-2 完成：内部端点归属 Points 域，订单域（BC4）已切至 internal/v1/* 新路由 |
 
-- **双轨期端点引用规范**：
-  1. 双轨期（当前～2026-08-01）所有 design-prompts 页面与前端调用继续指向 **PointsMembership** 服务的端点（19 个 buyer+ops 端点 + 4 个内部端点的 internal/v1/* 新路由）
-  2. InternalPointsController 的 4 个 internal/* 旧路由已 [Obsolete] 标记 2026-08-01 下线，订单域（BC4）应尽快切换至 internal/v1/* 新路由
-  3. Membership 服务的 9 个端点路径与鉴权策略尚未对齐 design-prompts 期望，**禁止前端直接调用**；待切换完成并发布切换公告后再行迁移
-  4. Points 服务尚未暴露 HTTP 端点，拆分进度滞后于 Membership；Points 控制器应在 Points 服务补齐后承接 PointsController/TasksController/InternalPointsController 三类端点
+- **双轨期端点引用规范**（阶段1-2 完成后的状态）：
+  1. design-prompts 与前端调用中的「服务归属」已更新为 **Points 域** 与 **Membership 域**；端点路径保持不变，仅服务实现迁移
+  2. InternalPointsController 的 4 个 internal/* 旧路由已 [Obsolete] 标记 2026-08-01 下线，订单域（BC4）已切至 internal/v1/* 新路由，由 Points 域承接
+  3. Membership 域 12 端点已对齐 design-prompts 期望路径与鉴权策略（`/api/admin/members/levels/*`、`/api/admin/membership-packages/*`、Operator/Admin 角色），可由前端直接调用
+  4. 网关双轨挂载：灰度默认 5%，可通过 `Grayscale:Threshold` 调整；internal 端点 100% 切新域
+  5. 回滚开关：`Grayscale:RollbackToLegacy=true` 即将流量回退至旧域 PointsMembership
+  6. 阶段3观察期结束后，旧域 PointsMembership 代码下线，新域独占承载
 
-- **待切换端点清单**：
+- **新域端点清单**（阶段1-2 已全部上线，端点路径与 design-prompts 期望一致）：
 
-| 待切换端点（旧 PointsMembership） | 切换目标（新拆分） | 切换状态 | 缺口 |
+| 新域端点 | 新域归属 | 阶段1-2 状态 | 备注 |
 |-|-|-|-|
-| POST /api/points/check-in | Points（待建 Controllers） | 🚧 待切换 | Points 服务无 Controllers |
-| GET /api/points/account | Points（待建 Controllers） | 🚧 待切换 | Points 服务无 Controllers |
-| GET /api/points/ledger | Points（待建 Controllers） | 🚧 待切换 | Points 服务无 Controllers |
-| POST /api/points/exchange-coupon | Points（待建 Controllers） | 🚧 待切换 | Points 服务无 Controllers |
-| POST /api/admin/points/award | Points（待建 Controllers） | 🚧 待切换 | Points 服务无 Controllers |
-| GET /api/points/tasks | Points（待建 Controllers） | 🚧 待切换 | Points 服务无 Controllers |
-| POST /api/points/tasks/{taskId}/complete | Points（待建 Controllers） | 🚧 待切换 | Points 服务无 Controllers |
-| POST internal/v1/points/trial-offset | Points（待建 Controllers） | 🚧 待切换 | Points 服务无 Controllers；旧路由 2026-08-01 下线 |
-| POST internal/v1/points/freeze | Points（待建 Controllers） | 🚧 待切换 | Points 服务无 Controllers；旧路由 2026-08-01 下线 |
-| POST internal/v1/points/release | Points（待建 Controllers） | 🚧 待切换 | Points 服务无 Controllers；旧路由 2026-08-01 下线 |
-| POST internal/v1/points/confirm | Points（待建 Controllers） | 🚧 待切换 | Points 服务无 Controllers；旧路由 2026-08-01 下线 |
-| GET /api/members/me | Membership/MembersController | 🚧 待切换 | 路径需从 api/Members/{userId} 改为 /api/members/me，鉴权改为 Buyer |
-| GET /api/admin/members/levels | Membership/MembersController | 🚧 待切换 | 路径需补 /admin/ 前缀，鉴权改为 Operator,Admin |
-| POST /api/admin/members/levels | Membership/MembersController | 🚧 待切换 | 路径需补 /admin/ 前缀，鉴权改为 Operator,Admin |
-| PUT /api/admin/members/levels/{levelId} | Membership/MembersController | 🚧 待切换 | 路径需补 /admin/ 前缀，鉴权改为 Operator,Admin |
-| POST /api/admin/members/levels/{levelId}/enable | Membership/MembersController | 🚧 待切换 | **缺失**：Membership 服务未实现 |
-| POST /api/admin/members/levels/{levelId}/disable | Membership/MembersController | 🚧 待切换 | **缺失**：Membership 服务未实现 |
-| GET /api/membership-packages | Membership/MembershipPackagesController | 🚧 待切换 | 路径大小写需统一为 kebab-case，鉴权改为 Buyer |
-| POST /api/membership-packages/{packageId}/subscribe | Membership/MembershipPackagesController | 🚧 待切换 | **缺失**：Membership 服务未实现 |
-| POST /api/admin/membership-packages | Membership/MembershipPackagesController | 🚧 待切换 | 路径需补 /admin/ 前缀，鉴权改为 Operator,Admin |
-| PUT /api/admin/membership-packages/{packageId} | Membership/MembershipPackagesController | 🚧 待切换 | 路径需补 /admin/ 前缀，鉴权改为 Operator,Admin |
-| POST /api/admin/membership-packages/{packageId}/enable | Membership/MembershipPackagesController | 🚧 待切换 | 路径需补 /admin/ 前缀，鉴权改为 Operator,Admin |
-| POST /api/admin/membership-packages/{packageId}/disable | Membership/MembershipPackagesController | 🚧 待切换 | 路径需补 /admin/ 前缀，鉴权改为 Operator,Admin |
+| POST /api/points/check-in | Points 域 `PointsController` | ✅ 已上线 | 端点路径与 design-prompts 一致 |
+| GET /api/points/account | Points 域 `PointsController` | ✅ 已上线 | 端点路径与 design-prompts 一致 |
+| GET /api/points/ledger | Points 域 `PointsController` | ✅ 已上线 | 端点路径与 design-prompts 一致 |
+| POST /api/points/exchange-coupon | Points 域 `PointsController` | ✅ 已上线 | 端点路径与 design-prompts 一致 |
+| POST /api/admin/points/award | Points 域 `AdminPointsController` | ✅ 已上线 | 端点路径与 design-prompts 一致 |
+| GET /api/points/tasks | Points 域 `TasksController` | ✅ 已上线 | 端点路径与 design-prompts 一致 |
+| POST /api/points/tasks/{taskId}/complete | Points 域 `TasksController` | ✅ 已上线 | 端点路径与 design-prompts 一致 |
+| GET/POST/PUT /api/admin/points/rules/* | Points 域 `PointsRulesController`（5 端点） | ✅ 已上线 | 含 enable/disable，对齐 design-prompts |
+| POST internal/v1/points/trial-offset | Points 域 `InternalPointsController`（gRPC） | ✅ 已上线 | 旧路由 2026-08-01 下线 |
+| POST internal/v1/points/freeze | Points 域 `InternalPointsController`（gRPC） | ✅ 已上线 | 旧路由 2026-08-01 下线 |
+| POST internal/v1/points/release | Points 域 `InternalPointsController`（gRPC） | ✅ 已上线 | 旧路由 2026-08-01 下线 |
+| POST internal/v1/points/confirm | Points 域 `InternalPointsController`（gRPC） | ✅ 已上线 | 旧路由 2026-08-01 下线 |
+| GET /api/members/me | Membership 域 `MembersController` | ✅ 已上线 | 路径对齐 design-prompts，鉴权 Buyer |
+| GET /api/admin/members/levels | Membership 域 `AdminMemberLevelsController` | ✅ 已上线 | 路径对齐 design-prompts，鉴权 Operator,Admin |
+| POST /api/admin/members/levels | Membership 域 `AdminMemberLevelsController` | ✅ 已上线 | 路径对齐 design-prompts，鉴权 Operator,Admin |
+| PUT /api/admin/members/levels/{levelId} | Membership 域 `AdminMemberLevelsController` | ✅ 已上线 | 路径对齐 design-prompts，鉴权 Operator,Admin |
+| POST /api/admin/members/levels/{levelId}/enable | Membership 域 `AdminMemberLevelsController` | ✅ 已上线 | 阶段1-2 已补齐 |
+| POST /api/admin/members/levels/{levelId}/disable | Membership 域 `AdminMemberLevelsController` | ✅ 已上线 | 阶段1-2 已补齐 |
+| GET /api/membership-packages | Membership 域 `MembershipPackagesController` | ✅ 已上线 | 路径对齐 design-prompts，鉴权 Buyer |
+| POST /api/membership-packages/{packageId}/subscribe | Membership 域 `MembershipPackagesController` | ✅ 已上线 | 阶段1-2 已补齐 |
+| POST /api/admin/membership-packages | Membership 域 `AdminMembershipPackagesController` | ✅ 已上线 | 路径对齐 design-prompts，鉴权 Operator,Admin |
+| PUT /api/admin/membership-packages/{packageId} | Membership 域 `AdminMembershipPackagesController` | ✅ 已上线 | 路径对齐 design-prompts，鉴权 Operator,Admin |
+| POST /api/admin/membership-packages/{packageId}/enable | Membership 域 `AdminMembershipPackagesController` | ✅ 已上线 | 阶段1-2 已补齐，鉴权 Operator,Admin |
+| POST /api/admin/membership-packages/{packageId}/disable | Membership 域 `AdminMembershipPackagesController` | ✅ 已上线 | 阶段1-2 已补齐，鉴权 Operator,Admin |
 
-> 拆分过渡要点：
-> 1. Membership 服务已搭建骨架但路径/鉴权未对齐，且缺 3 个端点（subscribe、levels enable/disable）
-> 2. Points 服务仅有 Domain/Application/Infrastructure 三层，**完全未暴露 HTTP 端点**，拆分进度滞后
-> 3. InternalPointsController 双路由期 2026-08-01 截止，订单域需在截止前完成 internal/v1/* 切换
-> 4. 双轨期前端调用与 design-prompts 引用统一指向 PointsMembership，禁止直接调用 Membership 服务
+> 拆分过渡要点（阶段1-2 完成后的状态）：
+> 1. Membership 域 12 端点已全部上线，路径/鉴权已对齐 design-prompts，含 subscribe、levels enable/disable、packages enable/disable
+> 2. Points 域 16 端点 + gRPC 已全部上线（5 个 Controller 全部就绪），原「拆分进度滞后」风险已解除
+> 3. InternalPointsController 双路由期 2026-08-01 截止，订单域已切至 internal/v1/* 新路由，由 Points 域承接
+> 4. design-prompts 与前端调用中的「服务归属」已更新为 Points 域 / Membership 域；旧域 PointsMembership 保留作回滚兜底，阶段3观察期结束后下线
 
 ## 6. 优先级矩阵
 
