@@ -80,6 +80,19 @@ export const runtimeOpsRoutes: RouteRecordRaw[] = [
       menuGroup: '04-runtime-ops',
     },
   },
+  {
+    path: 'cache-monitor',
+    name: 'runtime-ops.cache-monitor',
+    component: () => import('./views/CacheMonitor.vue'),
+    meta: {
+      title: '缓存监控',
+      menuKey: 'runtime-ops.cache-monitor',
+      icon: 'DatabaseOutlined',
+      roles: ['Admin'],
+      permission: 'cache:read',
+      menuGroup: '04-runtime-ops',
+    },
+  },
 ]
 
 export default runtimeOpsRoutes
