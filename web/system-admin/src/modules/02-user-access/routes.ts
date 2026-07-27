@@ -56,6 +56,32 @@ const userAccessRoutes: RouteRecordRaw[] = [
       menuGroup: '02-user-access',
     },
   },
+  {
+    path: 'user-access/menus',
+    name: 'user-access.menus',
+    component: () => import('./views/MenuManagement.vue'),
+    meta: {
+      title: '菜单管理',
+      menuKey: 'user-access.menus',
+      icon: 'MenuOutlined',
+      roles: ['Admin'],
+      permission: 'menu:write',
+      menuGroup: '02-user-access',
+    },
+  },
+  {
+    path: 'user-access/online-users',
+    name: 'user-access.online-users',
+    component: () => import('./views/OnlineUsers.vue'),
+    meta: {
+      title: '在线用户',
+      menuKey: 'user-access.online-users',
+      icon: 'TeamOutlined',
+      roles: ['Admin'],
+      permission: 'online-user:read',
+      menuGroup: '02-user-access',
+    },
+  },
 ]
 
 // 默认导出，供 app/router.ts 以 `import userAccess from '@/modules/02-user-access/routes'` 聚合
