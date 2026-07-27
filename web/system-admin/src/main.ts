@@ -7,6 +7,8 @@ import { pinia } from './app/pinia'
 import { router } from './app/router'
 import { logger } from './shared/utils/logger'
 import { BusinessError, ConcurrencyError, RateLimitedError } from '@/shared/http/errors'
+import { client } from '@/shared/http'
+import { setupMockAdapter } from '@/shared/http/mock'
 import '@/shared/tokens/design-tokens.css'
 
 const app = createApp(App)
@@ -14,6 +16,10 @@ const app = createApp(App)
 app.use(pinia)
 app.use(router)
 app.use(Antd)
+
+if (import.meta.env.VITE_USE_MOCK === 'true') {
+  setupMockAdapter(client)
+}
 
 /**
  * 全局错误处理（spec §3.10）

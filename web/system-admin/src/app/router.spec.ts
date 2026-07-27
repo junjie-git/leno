@@ -34,14 +34,14 @@ describe('app/router createAuthGuard', () => {
 
   it('匿名路由直接放行', async () => {
     const router = makeRouter()
-    router.beforeEach(createAuthGuard())
+    router.beforeEach(createAuthGuard(router))
     await router.push('/public')
     expect(router.currentRoute.value.path).toBe('/public')
   })
 
   it('未登录访问受保护路由跳 /login?redirect', async () => {
     const router = makeRouter()
-    router.beforeEach(createAuthGuard())
+    router.beforeEach(createAuthGuard(router))
     await router.push('/protected')
     expect(router.currentRoute.value.path).toBe('/login')
     expect(router.currentRoute.value.query.redirect).toBe('/protected')
@@ -53,8 +53,9 @@ describe('app/router createAuthGuard', () => {
     auth.expiresAt = Date.now() + 100_000
     auth.user = mkUser(['Admin'])
     auth.roles = ['Admin']
+    auth.dynamicMenuEnabled = false
     const router = makeRouter()
-    router.beforeEach(createAuthGuard())
+    router.beforeEach(createAuthGuard(router))
     await router.push('/protected')
     expect(router.currentRoute.value.path).toBe('/protected')
   })
@@ -68,8 +69,9 @@ describe('app/router createAuthGuard', () => {
     const auth = useAuthStore()
     auth.token = 'tok'
     auth.expiresAt = Date.now() + 100_000
+    auth.dynamicMenuEnabled = false
     const router = makeRouter()
-    router.beforeEach(createAuthGuard())
+    router.beforeEach(createAuthGuard(router))
     await router.push('/protected')
     expect(auth.user?.username).toBe('a')
     expect(router.currentRoute.value.path).toBe('/protected')
@@ -86,7 +88,7 @@ describe('app/router createAuthGuard', () => {
     auth.token = 'tok'
     auth.expiresAt = Date.now() + 100_000
     const router = makeRouter()
-    router.beforeEach(createAuthGuard())
+    router.beforeEach(createAuthGuard(router))
     await router.push('/protected')
     expect(auth.token).toBeNull()
     expect(router.currentRoute.value.path).toBe('/login')
@@ -100,7 +102,7 @@ describe('app/router createAuthGuard', () => {
     auth.user = mkUser(['Operator'])
     auth.roles = ['Operator']
     const router = makeRouter()
-    router.beforeEach(createAuthGuard())
+    router.beforeEach(createAuthGuard(router))
     await router.push('/admin-only')
     expect(router.currentRoute.value.path).toBe('/403')
   })
@@ -110,8 +112,9 @@ describe('app/router createAuthGuard', () => {
     auth.token = 'tok'
     auth.expiresAt = Date.now() + 100_000
     auth.user = mkUser(['Admin'])
+    auth.dynamicMenuEnabled = false
     const router = makeRouter()
-    router.beforeEach(createAuthGuard())
+    router.beforeEach(createAuthGuard(router))
     await router.push('/login')
     expect(router.currentRoute.value.path).toBe('/')
   })
