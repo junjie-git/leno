@@ -128,7 +128,7 @@ function onMenuClick({ key }: { key: string }) {
       @click="onMenuClick"
     >
       <template v-for="group in orderedGroups" :key="group.key">
-        <Menu.ItemGroup :key="group.key" :title="group.title">
+        <Menu.ItemGroup :title="group.title">
           <Menu.Item v-for="item in group.items" :key="item.key">
             <span>{{ item.title }}</span>
           </Menu.Item>
