@@ -44,6 +44,10 @@ export interface AuthState {
   expiresAt: number | null
   /** 2FA 待处理标志，仅账号密码登录决策下永远为 false */
   twoFactorPending: boolean
+  /** 是否启用动态菜单，默认 true */
+  dynamicMenuEnabled: boolean
+  /** 菜单加载流程是否完成 */
+  menusLoaded: boolean
 }
 
 /**
@@ -63,6 +67,8 @@ export const useAuthStore = defineStore('auth', {
     loginAt: null,
     expiresAt: null,
     twoFactorPending: false,
+    dynamicMenuEnabled: true,
+    menusLoaded: false,
   }),
   getters: {
     isAuthenticated: (s): boolean => !!s.token && (s.expiresAt ?? 0) > Date.now(),
@@ -115,6 +121,8 @@ export const useAuthStore = defineStore('auth', {
       this.loginAt = null
       this.expiresAt = null
       this.twoFactorPending = false
+      this.dynamicMenuEnabled = true
+      this.menusLoaded = false
     },
 
     /**
@@ -127,6 +135,6 @@ export const useAuthStore = defineStore('auth', {
   },
   persist: {
     storage: localStorage,
-    pick: ['token', 'user', 'roles', 'permissions', 'expiresAt'],
+    pick: ['token', 'user', 'roles', 'permissions', 'expiresAt', 'dynamicMenuEnabled', 'menusLoaded'],
   },
 })
