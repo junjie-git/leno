@@ -1,5 +1,11 @@
-import { client } from '@/shared/http'
-import type { LoginDto, LoginResultDto, UserProfileResultDto } from './types/auth.dto'
+import { client, withIdempotency } from '@/shared/http'
+import type {
+  LoginDto,
+  LoginResultDto,
+  UserProfileResultDto,
+  UpdateProfileDto,
+  ChangePasswordDto,
+} from './types/auth.dto'
 
 /**
  * 鉴权 API
@@ -34,5 +40,27 @@ export const authApi = {
    */
   getProfile(): Promise<UserProfileResultDto> {
     return client.get<UserProfileResultDto>('/users/me').then((r) => r.data)
+  },
+
+  /**
+   * 更新当前管理员个人资料（email / phone / nickname / avatar / remark）
+   *
+   * PUT /api/users/me，携带 Idempotency-Key 头防止重复提交。
+   */
+  updateProfile(body: UpdateProfileDto): Promise<UserProfileResultDto> {
+    return client
+      .put<UserProfileResultDto>('/users/me', body, withIdempotency())
+      .then((r) => r.data)
+  },
+
+  /**
+   * 修改当前管理员密码
+   *
+   * PUT /api/users/me/password，携带 Idempotency-Key 头防止重复提交。
+   */
+  changePassword(body: ChangePasswordDto): Promise<void> {
+    return client
+      .put<void>('/users/me/password', body, withIdempotency())
+      .then((r) => r.data)
   },
 }

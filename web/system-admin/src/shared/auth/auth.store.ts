@@ -9,6 +9,10 @@ export interface AdminUserDto {
   id: string
   username: string
   email: string
+  phone?: string
+  nickname?: string
+  avatar?: string
+  remark?: string
   status: string
   roles: string[]
 }

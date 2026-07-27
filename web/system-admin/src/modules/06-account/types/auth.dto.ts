@@ -18,3 +18,22 @@ export interface UserProfileResultDto {
   profile: AdminUserDto
   permissions: string[]
 }
+
+/**
+ * 更新个人资料请求体
+ */
+export interface UpdateProfileDto {
+  email?: string
+  phone?: string
+  nickname?: string
+  avatar?: string
+  remark?: string
+}
+
+/**
+ * 修改密码请求体
+ */
+export interface ChangePasswordDto {
+  currentPassword: string
+  newPassword: string
+}

@@ -19,6 +19,20 @@ export const loginRoute: RouteRecordRaw = {
 /**
  * 06-account 模块挂载在 BasicLayout 下的子路由
  *
- * Plan 1 范围内无 BasicLayout 子路由（profile/notifications 页面不在本 Plan）。
+ * 静态回退时 accountRoutes 不带前缀直接注入 BasicLayout children，
+ * 因此 path 需写全相对路径（account/profile），最终 URL 为 /account/profile。
  */
-export const accountRoutes: RouteRecordRaw[] = []
+export const accountRoutes: RouteRecordRaw[] = [
+  {
+    path: 'account/profile',
+    name: 'account.profile',
+    component: () => import('./views/Profile.vue'),
+    meta: {
+      title: '个人中心',
+      menuKey: 'account.profile',
+      icon: 'UserOutlined',
+      roles: ['Admin', 'Operator'],
+      menuGroup: '06-account',
+    },
+  },
+]
