@@ -6,10 +6,27 @@ import {
 } from 'vue-router'
 import { useAuthStore } from '@/shared/auth/auth.store'
 import { loginRoute, accountRoutes } from '@/modules/06-account/routes'
+import dashboardRoutes from '@/modules/01-dashboard/routes'
+import userAccessRoutes from '@/modules/02-user-access/routes'
+import systemGovernanceRoutes from '@/modules/03-system-governance/routes'
+import runtimeOpsRoutes from '@/modules/04-runtime-ops/routes'
+import auditRoutes from '@/modules/05-audit/routes'
+import monitoringRoutes from '@/modules/07-monitoring/routes'
 import BasicLayout from '@/shared/layout/BasicLayout.vue'
 import Forbidden from '@/shared/pages/Forbidden.vue'
 import NotFound from '@/shared/pages/NotFound.vue'
 import { logger } from '@/shared/utils/logger'
+
+/**
+ * 给模块路由批量加路径前缀
+ *
+ * 各模块 routes.ts 中路径为相对片段（如 'operations-overview'），
+ * 此函数拼接模块前缀后路径变为 'dashboard/operations-overview'，
+ * 挂载到 BasicLayout children 后完整 URL 为 '/dashboard/operations-overview'。
+ */
+function withPrefix(prefix: string, routes: RouteRecordRaw[]): RouteRecordRaw[] {
+  return routes.map((r) => ({ ...r, path: `${prefix}/${r.path}` }))
+}
 
 /**
  * 创建鉴权守卫（spec §4.3）
@@ -61,7 +78,7 @@ export function createAuthGuard(): NavigationGuard {
 }
 
 /**
- * 路由表（Plan 1 范围：06-account + 基础设施）
+ * 路由表（Plan 1-7：全部 7 个模块 + 基础设施）
  */
 const routes: RouteRecordRaw[] = [
   loginRoute,
@@ -83,6 +100,12 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: '', redirect: '/dashboard/operations-overview' },
       ...accountRoutes,
+      ...withPrefix('dashboard', dashboardRoutes),
+      ...userAccessRoutes,
+      ...withPrefix('system-governance', systemGovernanceRoutes),
+      ...withPrefix('runtime-ops', runtimeOpsRoutes),
+      ...withPrefix('audit', auditRoutes),
+      ...withPrefix('monitoring', monitoringRoutes),
     ],
   },
   {
