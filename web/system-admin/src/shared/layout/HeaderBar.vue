@@ -4,7 +4,6 @@ import { LayoutHeader, Breadcrumb, Badge, Dropdown, Input, Modal, Menu as AMenu 
 import { BellOutlined, SearchOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/auth'
-import { env } from '@/app/env'
 
 /**
  * 顶栏组件
@@ -49,11 +48,6 @@ function onLogout() {
 function onProfile() {
   void router.push('/account/profile')
 }
-
-const userMenuItems = [
-  { key: 'profile', label: '个人中心', icon: UserOutlined },
-  { key: 'logout', label: '登出', icon: LogoutOutlined },
-]
 
 function onUserMenuClick({ key }: { key: string }) {
   if (key === 'logout') onLogout()

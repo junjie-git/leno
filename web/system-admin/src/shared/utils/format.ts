@@ -43,10 +43,6 @@ export function formatMoney(
   if (!Number.isFinite(num)) return EMPTY_PLACEHOLDER
   const symbol = options.symbol ?? '¥'
   const decimals = options.decimals ?? 2
-  const formatted = num.toLocaleString('zh-CN', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  })
   return `${num < 0 ? '-' : ''}${symbol}${Math.abs(num).toLocaleString('zh-CN', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,

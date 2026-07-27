@@ -1,17 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { client, withIdempotency } from './client'
-import {
-  BusinessError,
-  UnauthorizedError,
-  ForbiddenError,
-  NotFoundError,
-  RateLimitedError,
-  ServerError,
-  ConcurrencyError,
-  NetworkError,
-} from './errors'
 
 // 用真实 axios 实例 + adapter mock，验证拦截器链
 function mockAdapter(response: Partial<AxiosResponse>): (config: InternalAxiosRequestConfig) => Promise<AxiosResponse> {
