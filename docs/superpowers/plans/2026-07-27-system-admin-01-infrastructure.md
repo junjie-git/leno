@@ -137,7 +137,7 @@ web/system-admin/
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
-    "@vue-echarts": "^7.0.3",
+    "vue-echarts": "^7.0.3",
     "ant-design-vue": "^4.2.6",
     "axios": "^1.7.9",
     "dayjs": "^1.11.13",
@@ -280,7 +280,7 @@ export default defineConfig({
         manualChunks: {
           vue: ['vue', 'vue-router', 'pinia'],
           antd: ['ant-design-vue', '@ant-design/icons-vue'],
-          echarts: ['echarts', '@vue-echarts'],
+          echarts: ['echarts', 'vue-echarts'],
         },
       },
     },
