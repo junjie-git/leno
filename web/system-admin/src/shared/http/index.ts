@@ -16,3 +16,5 @@ export {
   ServerError,
   ConcurrencyError,
 } from './errors'
+
+export { setupMockAdapter } from './mock'
