@@ -7,8 +7,11 @@ import { Tag } from 'ant-design-vue'
  * - deadLetter: 死信状态
  * - orderPayment: 订单支付状态
  * - shop: 店铺审核状态
+ * - user: 管理员用户状态
+ * - oauth: OAuth 客户端状态
+ * - operator: 运营人员状态
  */
-type StatusTagType = 'deadLetter' | 'orderPayment' | 'shop'
+type StatusTagType = 'deadLetter' | 'orderPayment' | 'shop' | 'user' | 'oauth' | 'operator'
 
 /** Ant Design Vue Tag 颜色值 */
 type TagColor = 'success' | 'processing' | 'error' | 'warning' | 'default'
@@ -55,6 +58,19 @@ const STATUS_MAP: Record<StatusTagType, Record<string, StatusMeta>> = {
     Rejected: { label: '已拒绝', color: 'error' },
     Banned: { label: '已封禁', color: 'error' },
     Active: { label: '已启用', color: 'success' },
+    Inactive: { label: '已停用', color: 'default' },
+  },
+  user: {
+    Active: { label: '正常', color: 'success' },
+    Suspended: { label: '已锁定', color: 'error' },
+    Locked: { label: '系统锁定', color: 'warning' },
+  },
+  oauth: {
+    Enabled: { label: '已启用', color: 'success' },
+    Disabled: { label: '已禁用', color: 'default' },
+  },
+  operator: {
+    Active: { label: '在职', color: 'success' },
     Inactive: { label: '已停用', color: 'default' },
   },
 }
