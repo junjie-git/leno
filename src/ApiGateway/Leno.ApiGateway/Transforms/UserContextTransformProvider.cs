@@ -21,6 +21,18 @@ public sealed class UserContextTransformProvider : ITransformProvider
     public const string XInternalCall = "X-Internal-Call";
 
     /// <summary>
+    /// 域拆分迁移阶段2：灰度决策请求头。由 <see cref="Middleware.GrayscaleRoutingMiddleware"/> 设置，
+    /// 仅用于 YARP 路由匹配（Header matcher），必须在转发到后端前移除，防止内部决策头泄露。
+    /// </summary>
+    private const string XGrayscaleDecision = "X-Grayscale-Decision";
+
+    /// <summary>
+    /// 测试角色头：灰度中间件在测试场景下用作 userId hash 输入。
+    /// 必须在转发到后端前移除，防止测试头泄露到生产后端。
+    /// </summary>
+    private const string XTestRole = "X-Test-Role";
+
+    /// <summary>
     /// Claim 类型与 Spec 4.1 JWT Claims 对齐：Sub=UserId, Role=角色, shop_id=店铺ID。
     /// </summary>
     private const string ClaimSub = "Sub";
@@ -34,6 +46,9 @@ public sealed class UserContextTransformProvider : ITransformProvider
         context.AddRequestTransform(rc =>
         {
             ApplyUserContextHeaders(rc.HttpContext, rc.ProxyRequest);
+            // 域拆分迁移阶段2：移除灰度决策头和测试头，防止内部头泄露到后端服务
+            rc.ProxyRequest.Headers.Remove(XGrayscaleDecision);
+            rc.ProxyRequest.Headers.Remove(XTestRole);
             return ValueTask.CompletedTask;
         });
 

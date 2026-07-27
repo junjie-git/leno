@@ -55,6 +55,10 @@ builder.Services.AddSingleton<JwtTokenGenerator>();
 // T26：白名单路由配置（从 Gateway:Whitelist 节绑定，未配置时使用 WhitelistOptions 默认值）
 builder.Services.Configure<WhitelistOptions>(builder.Configuration.GetSection(WhitelistOptions.SectionName));
 
+// 域拆分迁移阶段2：灰度路由配置（从 Grayscale 节绑定，IOptionsMonitor 支持运行时热更新）
+// 紧急回滚：修改 appsettings.json 的 Grayscale:RollbackToLegacy=true，TTL < 30 秒全量切回旧域
+builder.Services.Configure<GrayscaleOptions>(builder.Configuration.GetSection(GrayscaleOptions.SectionName));
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
 
@@ -124,9 +128,13 @@ app.MapLenoHealthChecksUI();
 //   7. FallbackResponseMiddleware — 503 降级
 //   8. UseResponseCompression — Phase 6：响应压缩
 //   9. CacheMiddleware — Phase 6：命中即短路，未命中透传到 YARP
-//  10. UseRateLimiter — 路由级限流
-//  11. UseRequestTimeouts — 路由级超时
-//  12. MapReverseProxy — YARP 反向代理
+//  10. GrayscaleRoutingMiddleware — 域拆分阶段2：按 userId hash 计算 X-Grayscale-Decision 头
+//      必须在 UseAuthentication 之后（读取 JWT Sub claim）和 YARP 路由匹配之前（Header matcher 依赖此头）
+//      放在 CacheMiddleware 之后：缓存命中时短路无需灰度判定；放在 UseRateLimiter 之前：
+//      UseRateLimiter 触发 ASP.NET Core 自动插入 UseRouting，此时 X-Grayscale-Decision 头已就位
+//  11. UseRateLimiter — 路由级限流（触发 UseRouting 端点选择，YARP 路由按 Header 匹配新域/旧域）
+//  12. UseRequestTimeouts — 路由级超时
+//  13. MapReverseProxy — YARP 反向代理
 app.UseObservability(builder.Configuration);
 app.UseCors();
 if (jwtEnabled)
@@ -145,6 +153,8 @@ if (jwtEnabled)
 app.UseMiddleware<FallbackResponseMiddleware>();
 app.UseResponseCompression();
 app.UseMiddleware<CacheMiddleware>();
+// 域拆分迁移阶段2：灰度路由决策中间件，在缓存之后、YARP 路由之前注入 X-Grayscale-Decision 头
+app.UseMiddleware<GrayscaleRoutingMiddleware>();
 app.UseRateLimiter();
 app.UseRequestTimeouts();
 
