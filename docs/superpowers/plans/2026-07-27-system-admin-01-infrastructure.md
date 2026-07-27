@@ -575,11 +575,10 @@ git commit -m "feat(system-admin): 初始化 Vue 3 + Vite 脚手架与 CI 接入
 ```ts
 import { config } from '@vue/test-utils'
 import { afterEach, vi } from 'vitest'
-import { cleanup } from '@testing-library/vue'
 
-// 每个测试后清理挂载的 DOM
+// 每个测试后清理挂载的 DOM（避免组件泄漏影响后续测试）
 afterEach(() => {
-  cleanup()
+  document.body.innerHTML = ''
 })
 
 // 全局 stub 配置：避免 ant-design-vue 全量注册带来的复杂度
@@ -1807,7 +1806,7 @@ export function isInRange(value: number, min: number, max: number): boolean {
   return value >= min && value <= max
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 /**
  * 判断是否为 UUID
  */
@@ -1929,16 +1928,16 @@ class Logger {
     const prefix = `[${level.toUpperCase()}]`
     switch (level) {
       case 'debug':
-        console.log(prefix, message, context ?? '')
+        console.log(`${prefix} ${message}`, context ?? '')
         break
       case 'info':
-        console.info(prefix, message, context ?? '')
+        console.info(`${prefix} ${message}`, context ?? '')
         break
       case 'warn':
-        console.warn(prefix, message, context ?? '')
+        console.warn(`${prefix} ${message}`, context ?? '')
         break
       case 'error':
-        console.error(prefix, message, context ?? '')
+        console.error(`${prefix} ${message}`, context ?? '')
         break
     }
   }
