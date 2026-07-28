@@ -36,6 +36,8 @@
     <EntityFrameworkCoreVersion>10.0.0</EntityFrameworkCoreVersion>
     <PactNetVersion>5.0.1</PactNetVersion>
     <StackExchangeRedisVersion>2.8.16</StackExchangeRedisVersion>
+    <UAParserVersion>3.1.47</UAParserVersion>
+    <MaxMindGeoIp2Version>4.0.1</MaxMindGeoIp2Version>
   </PropertyGroup>
 
   <!--
