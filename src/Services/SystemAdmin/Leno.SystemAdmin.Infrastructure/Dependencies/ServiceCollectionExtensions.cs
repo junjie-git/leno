@@ -176,6 +176,13 @@ public static class ServiceCollectionExtensions
         // P0 配置选项
         services.Configure<P0FeaturesOptions>(configuration.GetSection(P0FeaturesOptions.SectionName));
 
+        // P0 应用服务
+        services.AddScoped<IMenuAppService, MenuAppService>();
+        services.AddScoped<ILoginLogAppService, LoginLogAppService>();
+        services.AddScoped<IOnlineUserAppService, OnlineUserAppService>();
+        services.AddScoped<ICacheMonitorAppService, CacheMonitorAppService>();
+        services.AddScoped<IServerMonitorAppService, ServerMonitorAppService>();
+
         return services;
     }
 
