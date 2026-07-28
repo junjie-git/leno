@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Net;
 using System.Security.Claims;
 using Leno.Identity.Application.DTOs;
 using Leno.Identity.Domain.Aggregates;
@@ -6,7 +8,12 @@ using Leno.Identity.Domain.Exceptions;
 using Leno.Identity.Domain.Repositories;
 using Leno.Identity.Domain.Services;
 using Leno.Identity.Domain.ValueObjects;
+using Leno.Infrastructure.Abstractions.Sessions;
+using Leno.Infrastructure.Abstractions.UserAgent;
+using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
+using MassTransit;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.Identity.Application.Services;
@@ -17,7 +24,8 @@ namespace Leno.Identity.Application.Services;
 /// 编排流：
 /// <list type="bullet">
 /// <item><b>LoginAsync</b>：查找用户 → 校验账户状态 → 验证密码 → 重置失败计数 →
-/// 签发刷新令牌聚合 → 发布 <see cref="UserAuthenticatedEvent"/> → 提交工作单元 → 生成访问令牌。</item>
+/// 签发刷新令牌聚合 → 发布 <see cref="UserAuthenticatedEvent"/> → 提交工作单元 → 生成访问令牌 →
+/// 写入在线会话至 Redis（失败仅记日志，不阻塞登录）→ 发布 <see cref="UserLoggedInEvent"/>（成功/失败均发布）。</item>
 /// <item><b>RefreshAsync</b>：校验刷新令牌有效 → 轮换（旧令牌 Rotate，新令牌签发）→ 提交 → 生成新访问令牌。</item>
 /// <item><b>LogoutAsync</b>：吊销用户所有活跃刷新令牌 → 提交。</item>
 /// <item><b>HandleOAuthCallbackAsync</b>（3.7 OAuth/SSO 通用化）：按 provider slug 查找 OAuthClient 配置 →
@@ -30,6 +38,11 @@ namespace Leno.Identity.Application.Services;
 /// 角色填充不在本类直接处理，由 <see cref="JwtTokenService.GenerateAccessToken"/> 调用
 /// AccessControl BC <c>GetUserRoles</c> RPC 完成。
 /// </para>
+/// <para>
+/// P0 系统管理改动（spec §5.10）：登录成功后同步写 Redis 会话 + 异步发布 UserLoggedInEvent；
+/// 登录失败（密码错误/用户不存在）也发布 UserLoggedInEvent（Success=false）供安全审计。
+/// Redis 写入失败仅记日志不抛异常，登录仍成功（spec §8 风险矩阵）。
+/// </para>
 /// </summary>
 public sealed class AuthenticationAppService : IAuthenticationAppService
 {
@@ -38,6 +51,10 @@ public sealed class AuthenticationAppService : IAuthenticationAppService
     private const string AuthMethodOAuth = "OAuth";
     private const string RevokeReasonLogout = "Logout";
     private const string RevokeReasonRotated = "Rotated";
+
+    /// <summary>登录失败原因常量（与 UserLoggedInEvent.FailureReason 对齐）。</summary>
+    private const string FailureReasonInvalidCredentials = "用户名或密码错误";
+    private const string FailureReasonUserNotFound = "用户不存在";
 
     /// <summary>标准 OIDC claim 名称（用于从 ClaimsPrincipal 提取 OAuth 用户信息）。</summary>
     private const string ClaimSub = "sub";
@@ -54,6 +71,10 @@ public sealed class AuthenticationAppService : IAuthenticationAppService
     private readonly JwtTokenService _jwtTokenService;
     private readonly IOAuth2ProviderFactory _oauthProviderFactory;
     private readonly IBcryptToArgon2Migrator _passwordMigrator;
+    private readonly IUserSessionStore _userSessionStore;
+    private readonly IUserAgentParser _uaParser;
+    private readonly IPublishEndpoint _publishEndpoint;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<AuthenticationAppService> _logger;
 
     public AuthenticationAppService(
@@ -65,6 +86,10 @@ public sealed class AuthenticationAppService : IAuthenticationAppService
         JwtTokenService jwtTokenService,
         IOAuth2ProviderFactory oauthProviderFactory,
         IBcryptToArgon2Migrator passwordMigrator,
+        IUserSessionStore userSessionStore,
+        IUserAgentParser uaParser,
+        IPublishEndpoint publishEndpoint,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<AuthenticationAppService> logger)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
@@ -75,6 +100,10 @@ public sealed class AuthenticationAppService : IAuthenticationAppService
         _jwtTokenService = jwtTokenService ?? throw new ArgumentNullException(nameof(jwtTokenService));
         _oauthProviderFactory = oauthProviderFactory ?? throw new ArgumentNullException(nameof(oauthProviderFactory));
         _passwordMigrator = passwordMigrator ?? throw new ArgumentNullException(nameof(passwordMigrator));
+        _userSessionStore = userSessionStore ?? throw new ArgumentNullException(nameof(userSessionStore));
+        _uaParser = uaParser ?? throw new ArgumentNullException(nameof(uaParser));
+        _publishEndpoint = publishEndpoint ?? throw new ArgumentNullException(nameof(publishEndpoint));
+        _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -93,12 +122,27 @@ public sealed class AuthenticationAppService : IAuthenticationAppService
             throw new IdentityDomainException("密码不可为空", "AUTH_PASSWORD_EMPTY");
         }
 
+        var stopwatch = Stopwatch.StartNew();
         var identifier = dto.UsernameOrEmail.Trim();
+        var httpContext = _httpContextAccessor.HttpContext;
+        var ipAddress = ExtractClientIpAddress(httpContext);
+        var userAgent = ExtractUserAgent(httpContext);
+
         var user = await FindUserByIdentifierAsync(identifier, ct).ConfigureAwait(false);
         if (user is null)
         {
             // 不暴露"用户不存在"以防枚举攻击，统一返回凭证无效
             _logger.LogWarning("登录失败：用户标识未找到，Identifier={Identifier}", identifier);
+            await PublishLoginEventAsync(
+                eventId: Guid.NewGuid(),
+                username: identifier,
+                userId: null,
+                ipAddress: ipAddress,
+                userAgent: userAgent,
+                success: false,
+                failureReason: FailureReasonUserNotFound,
+                durationMs: (int)stopwatch.ElapsedMilliseconds,
+                ct: ct).ConfigureAwait(false);
             throw new IdentityDomainException("用户名或密码错误", "AUTH_INVALID_CREDENTIALS");
         }
 
@@ -106,6 +150,16 @@ public sealed class AuthenticationAppService : IAuthenticationAppService
         {
             _logger.LogWarning("登录被拒：账户不可登录，UserId={UserId}, Status={Status}",
                 user.Id, user.Status);
+            await PublishLoginEventAsync(
+                eventId: Guid.NewGuid(),
+                username: identifier,
+                userId: user.Id,
+                ipAddress: ipAddress,
+                userAgent: userAgent,
+                success: false,
+                failureReason: "账户已锁定或禁用",
+                durationMs: (int)stopwatch.ElapsedMilliseconds,
+                ct: ct).ConfigureAwait(false);
             throw new IdentityDomainException("账户已锁定或禁用，无法登录", "USER_LOCKED_OR_DISABLED");
         }
 
@@ -122,6 +176,16 @@ public sealed class AuthenticationAppService : IAuthenticationAppService
                 _logger.LogError(ex, "持久化登录失败计数时异常，UserId={UserId}", user.Id);
             }
 
+            await PublishLoginEventAsync(
+                eventId: Guid.NewGuid(),
+                username: identifier,
+                userId: user.Id,
+                ipAddress: ipAddress,
+                userAgent: userAgent,
+                success: false,
+                failureReason: FailureReasonInvalidCredentials,
+                durationMs: (int)stopwatch.ElapsedMilliseconds,
+                ct: ct).ConfigureAwait(false);
             throw new IdentityDomainException("用户名或密码错误", "AUTH_INVALID_CREDENTIALS");
         }
 
@@ -142,6 +206,21 @@ public sealed class AuthenticationAppService : IAuthenticationAppService
 
         // 生成访问令牌（此时聚合变更已提交，调用 gRPC 获取角色）
         var accessToken = await _jwtTokenService.GenerateAccessToken(user, ct).ConfigureAwait(false);
+
+        // P0 系统管理：登录成功后写入 Redis 在线会话（失败仅记日志，不阻塞登录）
+        await RecordOnlineSessionSafeAsync(user, accessToken, ipAddress, userAgent, ct).ConfigureAwait(false);
+
+        // P0 系统管理：发布 UserLoggedInEvent 供 SystemAdmin 消费写入 LoginLog
+        await PublishLoginEventAsync(
+            eventId: Guid.NewGuid(),
+            username: user.Username,
+            userId: user.Id,
+            ipAddress: ipAddress,
+            userAgent: userAgent,
+            success: true,
+            failureReason: null,
+            durationMs: (int)stopwatch.ElapsedMilliseconds,
+            ct: ct).ConfigureAwait(false);
 
         _logger.LogInformation("用户登录成功，UserId={UserId}, AuthMethod={AuthMethod}",
             user.Id, AuthMethodPassword);
@@ -349,6 +428,276 @@ public sealed class AuthenticationAppService : IAuthenticationAppService
             RefreshToken = refreshToken.Token,
             ExpiresAt = _jwtTokenService.AccessTokenExpiresAt
         };
+    }
+
+    /// <summary>
+    /// 写入在线会话至 Redis（容错：失败仅记日志，不阻塞登录流程）。
+    /// spec §8 风险矩阵：Redis 不可用时登录仍成功，仅在线用户列表缺失该会话。
+    /// </summary>
+    private async Task RecordOnlineSessionSafeAsync(
+        User user,
+        string accessToken,
+        string ipAddress,
+        string userAgent,
+        CancellationToken ct)
+    {
+        try
+        {
+            var sessionId = ExtractSessionIdFromToken(accessToken);
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                _logger.LogWarning("无法从访问令牌解析 sessionId，跳过在线会话写入，UserId={UserId}", user.Id);
+                return;
+            }
+
+            var browser = SafeParseBrowser(userAgent);
+            var os = SafeParseOs(userAgent);
+            var deviceFingerprint = SafeParseDeviceFingerprint(userAgent);
+
+            var session = new OnlineUserSession
+            {
+                SessionId = sessionId,
+                UserId = user.Id,
+                Username = user.Username,
+                Roles = ExtractRolesFromClaims(),
+                IpAddress = ipAddress,
+                GeoLocation = null,
+                Browser = browser,
+                Os = os,
+                TokenPreview = accessToken.Length >= 8 ? accessToken[..8] : accessToken,
+                DeviceFingerprint = deviceFingerprint,
+                RequestCount = 0,
+                LoginAt = DateTime.UtcNow,
+                LastActivityAt = DateTime.UtcNow,
+                IsAnomaly = false
+            };
+
+            await _userSessionStore.RecordAsync(session, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "写入在线会话至 Redis 失败，登录仍成功，UserId={UserId}, IpAddress={IpAddress}",
+                user.Id, ipAddress);
+        }
+    }
+
+    /// <summary>
+    /// 发布 UserLoggedInEvent（成功/失败均发布），供 SystemAdmin.LoginLogConsumer 消费写入 LoginLog。
+    /// </summary>
+    private async Task PublishLoginEventAsync(
+        Guid eventId,
+        string username,
+        Guid? userId,
+        string ipAddress,
+        string userAgent,
+        bool success,
+        string? failureReason,
+        int durationMs,
+        CancellationToken ct)
+    {
+        try
+        {
+            var evt = new UserLoggedInEvent
+            {
+                EventId = eventId,
+                OccurredAt = DateTime.UtcNow,
+                Username = username,
+                UserId = userId,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                RefererUrl = ExtractRefererUrl(),
+                TraceId = ExtractTraceId(),
+                DurationMs = durationMs,
+                Success = success,
+                FailureReason = failureReason
+            };
+            await _publishEndpoint.Publish(evt, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "发布 UserLoggedInEvent 失败，UserId={UserId}, Username={Username}, Success={Success}",
+                userId, username, success);
+        }
+    }
+
+    /// <summary>
+    /// 从 HttpContext 提取客户端真实 IP（优先 X-Forwarded-For 首段，回退 RemoteIpAddress）。
+    /// </summary>
+    private static string ExtractClientIpAddress(HttpContext? httpContext)
+    {
+        if (httpContext is null)
+        {
+            return string.Empty;
+        }
+
+        var forwarded = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(forwarded))
+        {
+            var firstIp = forwarded.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(firstIp))
+            {
+                return firstIp;
+            }
+        }
+
+        return httpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// 从 HttpContext 提取 User-Agent 字符串。
+    /// </summary>
+    private static string ExtractUserAgent(HttpContext? httpContext)
+    {
+        if (httpContext is null)
+        {
+            return string.Empty;
+        }
+
+        var ua = httpContext.Request.Headers.UserAgent.ToString();
+        return string.IsNullOrWhiteSpace(ua) ? string.Empty : ua;
+    }
+
+    /// <summary>
+    /// 从当前 HttpContext 提取 Referer URL（可空）。
+    /// </summary>
+    private string? ExtractRefererUrl()
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext is null)
+        {
+            return null;
+        }
+
+        var referer = httpContext.Request.Headers.Referer.ToString();
+        return string.IsNullOrWhiteSpace(referer) ? null : referer;
+    }
+
+    /// <summary>
+    /// 从当前活动链路提取 TraceId（可空）。
+    /// </summary>
+    private static string ExtractTraceId()
+    {
+        var activity = Activity.Current;
+        return activity?.TraceId.ToString() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// 从 JWT access token 解析 jti claim 作为 sessionId。
+    /// access token 格式为 header.payload.signature，payload 为 Base64URL 编码的 JSON。
+    /// </summary>
+    private static string ExtractSessionIdFromToken(string accessToken)
+    {
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return string.Empty;
+        }
+
+        var parts = accessToken.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2)
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            var payload = parts[1];
+            // Base64URL → Base64
+            payload = payload.Replace('-', '+').Replace('_', '/');
+            switch (payload.Length % 4)
+            {
+                case 2: payload += "=="; break;
+                case 3: payload += "="; break;
+            }
+
+            var bytes = Convert.FromBase64String(payload);
+            using var doc = System.Text.Json.JsonDocument.Parse(bytes);
+            if (doc.RootElement.TryGetProperty("jti", out var jtiElement)
+                && jtiElement.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                return jtiElement.GetString() ?? string.Empty;
+            }
+        }
+        catch
+        {
+            // 解析失败返回空字符串，调用方处理
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// 从当前 HttpContext 的 User claims 提取角色列表。
+    /// </summary>
+    private List<string> ExtractRolesFromClaims()
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext is null)
+        {
+            return [];
+        }
+
+        return httpContext.User.FindAll(ClaimTypes.Role)
+            .Select(c => c.Value)
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private string SafeParseBrowser(string userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            return _uaParser.ParseBrowser(userAgent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "解析浏览器失败，UserAgent={UserAgent}", userAgent);
+            return string.Empty;
+        }
+    }
+
+    private string SafeParseOs(string userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            return _uaParser.ParseOs(userAgent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "解析操作系统失败，UserAgent={UserAgent}", userAgent);
+            return string.Empty;
+        }
+    }
+
+    private string? SafeParseDeviceFingerprint(string userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent))
+        {
+            return null;
+        }
+
+        try
+        {
+            return _uaParser.ParseDeviceFingerprint(userAgent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "解析设备指纹失败，UserAgent={UserAgent}", userAgent);
+            return null;
+        }
     }
 
     /// <summary>

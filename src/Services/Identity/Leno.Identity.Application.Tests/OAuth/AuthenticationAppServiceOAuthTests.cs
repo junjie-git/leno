@@ -228,6 +228,12 @@ public class AuthenticationAppServiceOAuthTests
             .ReturnsAsync(true);
         var logger = new Mock<ILogger<AuthenticationAppService>>();
 
+        // P0 系统管理新增依赖（OAuth 回调流程不触发会话写入/事件发布，使用空 Mock 即可）
+        var sessionStore = new Mock<Leno.Infrastructure.Abstractions.Sessions.IUserSessionStore>();
+        var uaParser = new Mock<Leno.Infrastructure.Abstractions.UserAgent.IUserAgentParser>();
+        var publishEndpoint = new Mock<MassTransit.IPublishEndpoint>();
+        var httpContextAccessor = new Mock<Microsoft.AspNetCore.Http.IHttpContextAccessor>();
+
         oauthClientRepo
             .Setup(r => r.GetByProviderAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(oauthClient);
@@ -255,6 +261,10 @@ public class AuthenticationAppServiceOAuthTests
             jwtService,
             providerFactory.Object,
             passwordMigrator.Object,
+            sessionStore.Object,
+            uaParser.Object,
+            publishEndpoint.Object,
+            httpContextAccessor.Object,
             logger.Object);
 
         return (service, new ServiceMocks(userRepo, refreshTokenRepo, oauthClientRepo, unitOfWork));
