@@ -190,6 +190,7 @@ public static class ServiceCollectionExtensions
 
         configurator.AddConsumer<AuditLogConsumer>();
         configurator.AddConsumer<AfterSalesEventConsumer>();
+        configurator.AddConsumer<LoginLogConsumer>();
 
         return configurator;
     }
