@@ -58,4 +58,10 @@ public sealed class SystemAdminDbContext : BaseDbContext
 
     /// <summary>Outbox 归档历史聚合根。</summary>
     public DbSet<OutboxArchiveRecord> OutboxArchiveRecords => Set<OutboxArchiveRecord>();
+
+    /// <summary>菜单聚合根。</summary>
+    public DbSet<Menu> Menus => Set<Menu>();
+
+    /// <summary>登录日志聚合根。</summary>
+    public DbSet<LoginLog> LoginLogs => Set<LoginLog>();
 }
