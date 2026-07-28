@@ -10,6 +10,8 @@ using Leno.Identity.Infrastructure.OAuth;
 using Leno.Identity.Infrastructure.Repositories;
 using Leno.Identity.Infrastructure.Security;
 using Leno.Identity.Infrastructure.Services;
+using Leno.Infrastructure.Abstractions.Sessions;
+using Leno.Infrastructure.Abstractions.UserAgent;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.Infrastructure.Security;
@@ -200,6 +202,10 @@ public static class ServiceCollectionExtensions
 
         // 8. FluentValidation 校验器自动扫描
         services.AddValidatorsFromAssembly(typeof(IAuthenticationAppService).Assembly);
+
+        // 9. P0 系统管理：用户会话存储（Redis）+ UA 解析（共享实现，供 AuthAppService 登录时写会话）
+        services.AddSingleton<IUserSessionStore, Leno.Infrastructure.Sessions.RedisUserSessionStore>();
+        services.AddSingleton<IUserAgentParser, Leno.Infrastructure.UserAgent.UAParserUserAgentParser>();
 
         return services;
     }

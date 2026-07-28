@@ -2,7 +2,7 @@ using System.Text.Json;
 using Leno.Infrastructure.Abstractions.Sessions;
 using StackExchange.Redis;
 
-namespace Leno.SystemAdmin.Infrastructure.Services;
+namespace Leno.Infrastructure.Sessions;
 
 /// <summary>
 /// Redis 用户会话存储实现：Hash + Set + ZSet 三层结构。

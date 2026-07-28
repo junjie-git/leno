@@ -3,7 +3,7 @@ using System.Text;
 using Leno.Infrastructure.Abstractions.UserAgent;
 using UAParser;
 
-namespace Leno.SystemAdmin.Infrastructure.Services;
+namespace Leno.Infrastructure.UserAgent;
 
 /// <summary>
 /// UA Parser NuGet 包封装：解析浏览器、操作系统、设备指纹。

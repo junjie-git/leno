@@ -155,8 +155,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMenuRepository, EfCoreMenuRepository>();
         services.AddScoped<ILoginLogRepository, EfCoreLoginLogRepository>();
 
-        // Redis 抽象实现：复用主 Redis 连接
-        services.AddSingleton<IUserSessionStore, RedisUserSessionStore>();
+        // Redis 抽象实现：复用主 Redis 连接（共享实现位于 Leno.Infrastructure.Caching）
+        services.AddSingleton<IUserSessionStore, Leno.Infrastructure.Sessions.RedisUserSessionStore>();
         services.AddSingleton<IRedisCacheMonitor, RedisCacheMonitorService>();
 
         // 进程监控
@@ -164,8 +164,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMetricHistoryStore, MemoryMetricHistoryStore>();
         services.AddHostedService<ServerMetricSamplerBackgroundService>();
 
-        // UA 解析与地理定位
-        services.AddSingleton<IUserAgentParser, UAParserUserAgentParser>();
+        // UA 解析与地理定位（UA 解析共享实现位于 Leno.Infrastructure.Caching）
+        services.AddSingleton<IUserAgentParser, Leno.Infrastructure.UserAgent.UAParserUserAgentParser>();
         services.AddSingleton<IGeoLocationResolver>(sp =>
         {
             var configuration = sp.GetRequiredService<IConfiguration>();
