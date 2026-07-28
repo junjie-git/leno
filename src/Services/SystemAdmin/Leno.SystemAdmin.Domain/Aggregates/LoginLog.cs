@@ -33,6 +33,7 @@ public sealed class LoginLog : AggregateRoot
     public string? DeviceFingerprint { get; private set; }
     public string? RefererUrl { get; private set; }
     public string TraceId { get; private set; } = string.Empty;
+    public Guid EventId { get; private set; }
     public DateTime LoginAt { get; private set; }
 
     private LoginLog() { }
@@ -50,6 +51,7 @@ public sealed class LoginLog : AggregateRoot
         string traceId,
         int durationMs,
         DateTime loginAt,
+        Guid eventId = default,
         string? geoLocation = null,
         string? deviceFingerprint = null,
         string? refererUrl = null,
@@ -59,7 +61,7 @@ public sealed class LoginLog : AggregateRoot
         {
             throw new SystemAdminDomainException("成功登录不可填写 FailureReason", "LOGIN_SUCCESS_WITH_REASON");
         }
-        return Create(logId, username, userId, ipAddress, browser, os, userAgent, traceId,
+        return Create(logId, username, userId, ipAddress, browser, os, userAgent, traceId, eventId,
             durationMs, loginAt, LoginResult.Success, failureReason: null,
             geoLocation, deviceFingerprint, refererUrl);
     }
@@ -75,6 +77,7 @@ public sealed class LoginLog : AggregateRoot
         int durationMs,
         string failureReason,
         DateTime loginAt,
+        Guid eventId = default,
         string? geoLocation = null,
         string? deviceFingerprint = null,
         string? refererUrl = null)
@@ -83,7 +86,7 @@ public sealed class LoginLog : AggregateRoot
         {
             throw new SystemAdminDomainException("失败登录必须填写 FailureReason", "LOGIN_FAILED_REASON_REQUIRED");
         }
-        return Create(logId, username, userId: null, ipAddress, browser, os, userAgent, traceId,
+        return Create(logId, username, userId: null, ipAddress, browser, os, userAgent, traceId, eventId,
             durationMs, loginAt, LoginResult.Failed, failureReason,
             geoLocation, deviceFingerprint, refererUrl);
     }
@@ -97,6 +100,7 @@ public sealed class LoginLog : AggregateRoot
         string os,
         string userAgent,
         string traceId,
+        Guid eventId,
         int durationMs,
         DateTime loginAt,
         LoginResult result,
@@ -149,6 +153,7 @@ public sealed class LoginLog : AggregateRoot
             Os = os.Trim(),
             UserAgent = userAgent.Trim(),
             TraceId = traceId.Trim(),
+            EventId = eventId,
             DurationMs = durationMs,
             LoginAt = loginAt,
             Result = result,

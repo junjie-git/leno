@@ -10,4 +10,7 @@ public interface ILoginLogRepository
     Task<(List<LoginLog> Items, int Total)> QueryAsync(LoginLogQuery query, CancellationToken ct = default);
     Task AddAsync(LoginLog log, CancellationToken ct = default);
     IAsyncEnumerable<LoginLog> StreamAsync(LoginLogQuery query, int limit, CancellationToken ct = default);
+
+    /// <summary>按事件标识查找（幂等去重用）。</summary>
+    Task<LoginLog?> GetByEventIdAsync(Guid eventId, CancellationToken ct = default);
 }

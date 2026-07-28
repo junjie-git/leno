@@ -67,6 +67,10 @@ public sealed class EfCoreLoginLogRepository : ILoginLogRepository
         }
     }
 
+    /// <inheritdoc />
+    public Task<LoginLog?> GetByEventIdAsync(Guid eventId, CancellationToken ct = default)
+        => _db.LoginLogs.AsNoTracking().FirstOrDefaultAsync(l => l.EventId == eventId, ct);
+
     private static IQueryable<LoginLog> ApplyFilters(IQueryable<LoginLog> queryable, LoginLogQuery query)
     {
         if (!string.IsNullOrWhiteSpace(query.Username))

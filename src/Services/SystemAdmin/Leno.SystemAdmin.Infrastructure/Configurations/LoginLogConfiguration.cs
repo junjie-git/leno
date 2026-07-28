@@ -31,6 +31,7 @@ public sealed class LoginLogConfiguration : IEntityTypeConfiguration<LoginLog>
         builder.Property(l => l.DeviceFingerprint).HasColumnName("device_fingerprint").HasMaxLength(128);
         builder.Property(l => l.RefererUrl).HasColumnName("referer_url").HasMaxLength(512);
         builder.Property(l => l.TraceId).HasColumnName("trace_id").HasMaxLength(64).IsRequired();
+        builder.Property(l => l.EventId).HasColumnName("event_id");
         builder.Property(l => l.LoginAt).HasColumnName("login_at");
 
         builder.Property(l => l.CreatedAt).HasColumnName("created_at");
@@ -41,5 +42,6 @@ public sealed class LoginLogConfiguration : IEntityTypeConfiguration<LoginLog>
         builder.HasIndex(l => l.LoginAt).IsDescending().HasDatabaseName("ix_login_logs_login_at");
         builder.HasIndex(l => new { l.Username, l.LoginAt }).IsDescending().HasDatabaseName("ix_login_logs_username_login_at");
         builder.HasIndex(l => new { l.Result, l.LoginAt }).IsDescending().HasDatabaseName("ix_login_logs_result_login_at");
+        builder.HasIndex(l => l.EventId).IsUnique().HasDatabaseName("ix_login_logs_event_id");
     }
 }
