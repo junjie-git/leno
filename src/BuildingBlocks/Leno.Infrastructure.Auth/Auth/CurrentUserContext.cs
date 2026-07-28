@@ -15,6 +15,8 @@ public interface ICurrentUserContext
 
     Guid? ShopId { get; }
 
+    string? SessionId { get; }
+
     bool IsAuthenticated { get; }
 }
 
@@ -40,4 +42,6 @@ public sealed class CurrentUserContext : ICurrentUserContext
     public string? Role => JwtTokenGenerator.GetRole(User);
 
     public Guid? ShopId => JwtTokenGenerator.GetShopId(User);
+
+    public string? SessionId => JwtTokenGenerator.GetSessionId(User);
 }

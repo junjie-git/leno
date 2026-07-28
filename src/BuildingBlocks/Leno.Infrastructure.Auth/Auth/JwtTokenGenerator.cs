@@ -221,4 +221,8 @@ public sealed class JwtTokenGenerator
         var claim = principal?.FindFirst(ShopIdClaimType)?.Value;
         return claim is not null && Guid.TryParse(claim, out var id) ? id : null;
     }
+
+    /// <summary>从 ClaimsPrincipal 提取 SessionId（JWT jti claim）。</summary>
+    public static string? GetSessionId(ClaimsPrincipal? principal)
+        => principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
 }
