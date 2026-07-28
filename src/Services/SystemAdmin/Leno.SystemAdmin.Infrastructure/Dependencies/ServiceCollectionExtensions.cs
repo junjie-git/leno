@@ -1,4 +1,7 @@
 using Leno.SharedKernel.Abstractions;
+using Leno.Infrastructure.Abstractions.Geo;
+using Leno.Infrastructure.Abstractions.Sessions;
+using Leno.Infrastructure.Abstractions.UserAgent;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.SystemAdmin.Application;
@@ -147,6 +150,31 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAlertAppService, AlertAppService>();
         services.AddScoped<IAlertSilenceAppService, AlertSilenceAppService>();
         services.AddScoped<IOutboxMonitorAppService, OutboxMonitorAppService>();
+
+        // P0 功能：菜单、登录日志仓储
+        services.AddScoped<IMenuRepository, EfCoreMenuRepository>();
+        services.AddScoped<ILoginLogRepository, EfCoreLoginLogRepository>();
+
+        // Redis 抽象实现：复用主 Redis 连接
+        services.AddSingleton<IUserSessionStore, RedisUserSessionStore>();
+        services.AddSingleton<IRedisCacheMonitor, RedisCacheMonitorService>();
+
+        // 进程监控
+        services.AddSingleton<IDotNetProcessMonitor, DotNetProcessMonitorService>();
+        services.AddSingleton<IMetricHistoryStore, MemoryMetricHistoryStore>();
+        services.AddHostedService<ServerMetricSamplerBackgroundService>();
+
+        // UA 解析与地理定位
+        services.AddSingleton<IUserAgentParser, UAParserUserAgentParser>();
+        services.AddSingleton<IGeoLocationResolver>(sp =>
+        {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var mmdbPath = configuration["P0Features:GeoLocation:MaxMindDbPath"] ?? "/var/lib/leno/GeoLite2-City.mmdb";
+            return new MaxMindGeoLocationResolver(mmdbPath);
+        });
+
+        // P0 配置选项
+        services.Configure<P0FeaturesOptions>(configuration.GetSection(P0FeaturesOptions.SectionName));
 
         return services;
     }
