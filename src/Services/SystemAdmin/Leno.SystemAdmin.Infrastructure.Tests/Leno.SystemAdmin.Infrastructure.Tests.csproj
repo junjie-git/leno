@@ -18,6 +18,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EntityFrameworkCoreVersion)" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EntityFrameworkCoreVersion)" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="$(EntityFrameworkCoreVersion)" />
+    <PackageReference Include="Testcontainers.Redis" Version="$(TestContainersVersion)" />
+    <PackageReference Include="Testcontainers.MsSql" Version="$(TestContainersVersion)" />
+    <PackageReference Include="MassTransit.TestFramework" Version="$(MassTransitVersion)" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="coverlet.collector" Version="$(CoverletVersion)">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
