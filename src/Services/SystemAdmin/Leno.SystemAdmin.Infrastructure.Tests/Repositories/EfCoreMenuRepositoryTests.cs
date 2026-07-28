@@ -20,8 +20,40 @@ public sealed class EfCoreMenuRepositoryTests : IAsyncDisposable
             .UseSqlite(_connection)
             .Options;
         _db = new SystemAdminDbContext(options);
-        _db.Database.EnsureCreated();
+        CreateMenusTable();
         _repo = new EfCoreMenuRepository(_db);
+    }
+
+    /// <summary>
+    /// 手动创建 menus 表（SQLite 兼容）。
+    /// 不使用 EnsureCreated()，因为 SystemAdminDbContext 包含其他实体配置使用了 nvarchar(max)，
+    /// 该列类型在 SQLite 中会导致语法错误。Menu/LoginLog 配置仅使用 HasMaxLength，SQLite 兼容。
+    /// </summary>
+    private void CreateMenusTable()
+    {
+        _db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS menus (
+                id TEXT NOT NULL PRIMARY KEY,
+                parent_id TEXT,
+                name TEXT NOT NULL,
+                type INTEGER NOT NULL,
+                path TEXT,
+                component TEXT,
+                icon TEXT,
+                sort INTEGER NOT NULL DEFAULT 0,
+                permission TEXT,
+                roles TEXT,
+                visible INTEGER NOT NULL DEFAULT 1,
+                cache INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                created_by TEXT,
+                updated_by TEXT,
+                version BLOB
+            );
+            CREATE INDEX IF NOT EXISTS ix_menus_parent_id ON menus (parent_id);
+            CREATE INDEX IF NOT EXISTS ix_menus_type_visible ON menus (type, visible);
+            """);
     }
 
     [Fact]

@@ -21,8 +21,46 @@ public sealed class EfCoreLoginLogRepositoryTests : IAsyncDisposable
             .UseSqlite(_connection)
             .Options;
         _db = new SystemAdminDbContext(options);
-        _db.Database.EnsureCreated();
+        CreateLoginLogsTable();
         _repo = new EfCoreLoginLogRepository(_db);
+    }
+
+    /// <summary>
+    /// 手动创建 login_logs 表（SQLite 兼容）。
+    /// 不使用 EnsureCreated()，因为 SystemAdminDbContext 包含其他实体配置使用了 nvarchar(max)，
+    /// 该列类型在 SQLite 中会导致语法错误。LoginLog 配置仅使用 HasMaxLength，SQLite 兼容。
+    /// </summary>
+    private void CreateLoginLogsTable()
+    {
+        _db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS login_logs (
+                id TEXT NOT NULL PRIMARY KEY,
+                username TEXT NOT NULL,
+                user_id TEXT,
+                ip_address TEXT NOT NULL,
+                geo_location TEXT,
+                browser TEXT NOT NULL,
+                os TEXT NOT NULL,
+                result INTEGER NOT NULL,
+                failure_reason TEXT,
+                duration_ms INTEGER NOT NULL,
+                user_agent TEXT NOT NULL,
+                device_fingerprint TEXT,
+                referer_url TEXT,
+                trace_id TEXT NOT NULL,
+                event_id TEXT,
+                login_at TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                created_by TEXT,
+                updated_by TEXT,
+                version BLOB
+            );
+            CREATE INDEX IF NOT EXISTS ix_login_logs_login_at ON login_logs (login_at DESC);
+            CREATE INDEX IF NOT EXISTS ix_login_logs_username_login_at ON login_logs (username, login_at DESC);
+            CREATE INDEX IF NOT EXISTS ix_login_logs_result_login_at ON login_logs (result, login_at DESC);
+            CREATE INDEX IF NOT EXISTS ix_login_logs_event_id ON login_logs (event_id);
+            """);
     }
 
     [Fact]
