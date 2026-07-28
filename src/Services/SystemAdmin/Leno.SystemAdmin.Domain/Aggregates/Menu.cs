@@ -131,6 +131,27 @@ public sealed class Menu : AggregateRoot
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void ChangeComponent(string? newComponent)
+    {
+        ValidateTypeAndComponent(Type, newComponent);
+        Component = NormalizeNullable(newComponent);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ChangeIcon(string? newIcon)
+    {
+        ValidateIcon(newIcon);
+        Icon = NormalizeNullable(newIcon);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ChangePermission(string? newPermission)
+    {
+        ValidatePermission(newPermission);
+        Permission = NormalizeNullable(newPermission);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void ChangeSort(int newSort)
     {
         ValidateSort(newSort);
