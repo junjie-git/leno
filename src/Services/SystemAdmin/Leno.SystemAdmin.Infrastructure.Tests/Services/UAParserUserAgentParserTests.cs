@@ -1,4 +1,4 @@
-using Leno.SystemAdmin.Infrastructure.Services;
+using Leno.Infrastructure.UserAgent;
 
 namespace Leno.SystemAdmin.Infrastructure.Tests.Services;
 
