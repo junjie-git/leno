@@ -3,6 +3,7 @@
         <ProjectReference Include="..\Leno.SystemAdmin.Application\Leno.SystemAdmin.Application.csproj" />
         <ProjectReference Include="..\Leno.SystemAdmin.Infrastructure\Leno.SystemAdmin.Infrastructure.csproj" />
         <ProjectReference Include="..\..\..\BuildingBlocks\Leno.Infrastructure\Leno.Infrastructure.csproj" />
+        <ProjectReference Include="..\..\..\BuildingBlocks\Leno.Infrastructure.Abstractions\Leno.Infrastructure.Abstractions.csproj" />
         <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts\Leno.SharedContracts.csproj" />
     </ItemGroup>
     <ItemGroup>
