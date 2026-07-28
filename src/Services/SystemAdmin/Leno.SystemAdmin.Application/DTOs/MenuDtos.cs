@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Leno.SystemAdmin.Domain.Aggregates;
 
 namespace Leno.SystemAdmin.Application.DTOs;
@@ -56,6 +57,9 @@ public sealed class CreateMenuDto
 {
     public Guid? ParentId { get; set; }
 
+    /// <summary>菜单名称（1-32 字符，对应 Menu 聚合根 ValidateName 约束）。</summary>
+    [Required(ErrorMessage = "菜单名称不可为空")]
+    [StringLength(32, MinimumLength = 1, ErrorMessage = "菜单名称长度需在 1-32 字符之间")]
     public string Name { get; set; } = string.Empty;
 
     public MenuType Type { get; set; }

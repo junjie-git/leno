@@ -45,7 +45,8 @@ public sealed class MenusController : SystemAdminControllerBase
     {
         var operatorId = GetCurrentOperatorId();
         var menu = await _menuAppService.CreateAsync(body, operatorId, ct);
-        return CreatedAtAction(nameof(GetTreeAsync), new { }, ApiResponse.Success(menu));
+        // ASP.NET Core 默认去除方法名 Async 后缀作为 action 名，故使用 "GetTree" 而非 nameof(GetTreeAsync)
+        return CreatedAtAction("GetTree", new { }, ApiResponse.Success(menu));
     }
 
     /// <summary>更新菜单节点（部分更新）。</summary>
