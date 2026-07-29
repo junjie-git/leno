@@ -19,8 +19,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('./views/AfterSalesDetail.vue'),
     meta: {
       title: '售后详情',
+      menuKey: 'aftersales.detail',
       roles: ['Seller'],
       permission: 'aftersales:list',
+      menuGroup: '06-after-sales',
     },
   },
 ]
