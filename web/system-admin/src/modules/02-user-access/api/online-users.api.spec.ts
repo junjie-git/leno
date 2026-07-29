@@ -20,7 +20,7 @@ describe('online-users.api', () => {
   })
 
   it('get: 调 GET /admin/online-users/{id}', async () => {
-    const user = { id: 'ou-1', username: 'admin' }
+    const user = { sessionId: 'ou-1', username: 'admin' }
     vi.mocked(client.get).mockResolvedValueOnce({ data: user })
     const result = await onlineUsersApi.get('ou-1')
     expect(client.get).toHaveBeenCalledWith('/admin/online-users/ou-1')

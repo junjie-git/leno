@@ -108,12 +108,15 @@ public sealed class UpdateMenuDto
 }
 
 /// <summary>
-/// 菜单排序项 DTO，用于批量更新同级菜单 Sort 字段。
+/// 菜单排序项 DTO，用于批量更新菜单 Sort 字段并支持跨父拖拽移动。
 /// </summary>
 public sealed class MenuSortItemDto
 {
     /// <summary>菜单标识。</summary>
     public Guid Id { get; set; }
+
+    /// <summary>目标父菜单标识。null 表示移动到根级；与当前 parentId 不同时触发 MoveTo。</summary>
+    public Guid? ParentId { get; set; }
 
     /// <summary>新的排序值。</summary>
     public int Sort { get; set; }

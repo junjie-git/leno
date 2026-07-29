@@ -34,6 +34,6 @@ export interface UpdateProfileDto {
  * 修改密码请求体
  */
 export interface ChangePasswordDto {
-  currentPassword: string
+  oldPassword: string
   newPassword: string
 }

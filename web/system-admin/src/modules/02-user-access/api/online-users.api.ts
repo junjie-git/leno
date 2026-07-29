@@ -7,12 +7,12 @@ export const onlineUsersApi = {
     return client.get<PageResult<OnlineUserDto>>('/admin/online-users', { params }).then((r) => r.data)
   },
 
-  get(id: string): Promise<OnlineUserDto> {
-    return client.get<OnlineUserDto>(`/admin/online-users/${id}`).then((r) => r.data)
+  get(sessionId: string): Promise<OnlineUserDto> {
+    return client.get<OnlineUserDto>(`/admin/online-users/${sessionId}`).then((r) => r.data)
   },
 
-  kick(id: string): Promise<void> {
-    return client.delete<void>(`/admin/online-users/${id}`, withIdempotency()).then(() => undefined)
+  kick(sessionId: string): Promise<void> {
+    return client.delete<void>(`/admin/online-users/${sessionId}`, withIdempotency()).then(() => undefined)
   },
 
   stats(): Promise<OnlineUserStatsDto> {

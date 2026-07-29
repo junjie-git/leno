@@ -18,11 +18,11 @@ describe('server-monitor.api', () => {
     expect(result).toEqual(snap)
   })
 
-  it('history: 调 GET /admin/server-monitor/history?metric=cpu&range=5m', async () => {
-    const hist = { metric: 'cpu', points: [{ t: '2026-07-27T00:00:00Z', v: 30 }] }
+  it('history: 调 GET /admin/server-monitor/history?metric=cpu&rangeSeconds=300', async () => {
+    const hist = { metric: 'cpu', points: [{ timestamp: '2026-07-27T00:00:00Z', value: 30 }] }
     vi.mocked(client.get).mockResolvedValueOnce({ data: hist })
-    const result = await serverMonitorApi.history('cpu', '5m')
-    expect(client.get).toHaveBeenCalledWith('/admin/server-monitor/history', { params: { metric: 'cpu', range: '5m' } })
+    const result = await serverMonitorApi.history('cpu', 300)
+    expect(client.get).toHaveBeenCalledWith('/admin/server-monitor/history', { params: { metric: 'cpu', rangeSeconds: 300 } })
     expect(result).toEqual(hist)
   })
 })

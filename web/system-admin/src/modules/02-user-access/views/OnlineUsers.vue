@@ -90,7 +90,7 @@
         :data-source="tableData"
         :loading="loading"
         :pagination="pagination"
-        row-key="id"
+        row-key="sessionId"
         :scroll="{ x: 1400 }"
         @change="onTableChange"
       >
@@ -141,7 +141,7 @@
                   type="link"
                   size="small"
                   danger
-                  :loading="kickingId === record.id"
+                  :loading="kickingId === record.sessionId"
                   @click="onKick(record)"
                 >强制下线</a-button>
               </PermissionGuard>
@@ -390,7 +390,7 @@ async function onView(record: OnlineUserDto) {
   detailLoading.value = true
   detail.value = null
   try {
-    const result = await onlineUsersApi.get(record.id)
+    const result = await onlineUsersApi.get(record.sessionId)
     detail.value = result
   } catch {
     message.error('加载会话详情失败')
@@ -423,11 +423,11 @@ async function onConfirmKick() {
   kickConfirmOpen.value = false
   const target = pendingKick.value
   if (!target) return
-  kickingId.value = target.id
+  kickingId.value = target.sessionId
   try {
-    await onlineUsersApi.kick(target.id)
+    await onlineUsersApi.kick(target.sessionId)
     // 从当前列表中移除该行
-    tableData.value = tableData.value.filter((u) => u.id !== target.id)
+    tableData.value = tableData.value.filter((u) => u.sessionId !== target.sessionId)
     pagination.total = Math.max(0, pagination.total - 1)
     message.success(`已下线 ${target.username}`)
     // 同步刷新统计（在线总数减少）

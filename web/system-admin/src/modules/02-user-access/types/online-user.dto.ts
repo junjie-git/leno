@@ -1,5 +1,5 @@
 export interface OnlineUserDto {
-  id: string
+  sessionId: string
   userId: string
   username: string
   roles: string[]

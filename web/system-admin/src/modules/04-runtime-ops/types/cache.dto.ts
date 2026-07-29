@@ -34,8 +34,8 @@ export interface RedisKeyDto {
 }
 
 export interface RedisKeyDetailDto extends RedisKeyDto {
-  value: unknown
-  db: number
+  value: string
+  truncated: boolean
 }
 
 export interface CacheKeyQueryDto {

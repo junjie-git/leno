@@ -165,6 +165,13 @@ public sealed class MenuAppService : IMenuAppService
                 _logger.LogWarning("排序跳过不存在的菜单 Id={MenuId}", item.Id);
                 continue;
             }
+
+            // 跨父拖拽：parentId 变化时先调用 MoveTo（含环引用等领域校验）
+            if (item.ParentId != menu.ParentId)
+            {
+                menu.MoveTo(item.ParentId);
+            }
+
             menu.ChangeSort(item.Sort);
             await _menuRepository.UpdateAsync(menu, ct);
         }

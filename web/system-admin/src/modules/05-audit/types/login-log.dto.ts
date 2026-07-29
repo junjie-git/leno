@@ -3,6 +3,7 @@ export type LoginResult = 'Success' | 'Failed'
 export interface LoginLogDto {
   id: string
   username: string
+  userId: string | null
   ipAddress: string
   geoLocation: string
   browser: string

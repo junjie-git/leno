@@ -8,7 +8,7 @@
 /**
  * 后端统一响应信封
  *
- * - code: 0 表示成功；非 0 表示业务错误码
+ * - code: 200 表示成功（与后端 ApiResponse.Success 对齐）；非 200 表示业务错误码
  * - data: 业务负载，可能为 null（如删除操作）
  * - traceId: OpenTelemetry traceId，便于日志关联
  */

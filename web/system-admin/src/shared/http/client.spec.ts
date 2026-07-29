@@ -40,15 +40,15 @@ describe('shared/http/client', () => {
     expect(client.defaults.timeout).toBe(15_000)
   })
 
-  it('成功响应解包 ApiResponse.data', async () => {
+  it('成功响应解包 ApiResponse.data（code=200）', async () => {
     client.defaults.adapter = mockAdapter({
-      data: { code: 0, message: 'ok', data: { id: 1, name: 'alice' }, traceId: 't-1' },
+      data: { code: 200, message: 'ok', data: { id: 1, name: 'alice' }, traceId: 't-1' },
     }) as AxiosInstance['defaults']['adapter']
     const resp = await client.get('/admin/users/1')
     expect(resp.data).toEqual({ id: 1, name: 'alice' })
   })
 
-  it('code !== 0 抛 BusinessError', async () => {
+  it('code !== 200 抛 BusinessError', async () => {
     client.defaults.adapter = mockAdapter({
       data: { code: 40001, message: '账号已禁用', data: null, traceId: 't-2' },
     }) as AxiosInstance['defaults']['adapter']
@@ -137,7 +137,7 @@ describe('shared/http/client', () => {
     let captured: AxiosRequestConfig | undefined
     client.defaults.adapter = ((config: InternalAxiosRequestConfig) => {
       captured = config
-      return Promise.resolve({ data: { code: 0, message: 'ok', data: null }, status: 200, statusText: 'OK', headers: {}, config } as AxiosResponse)
+      return Promise.resolve({ data: { code: 200, message: 'ok', data: null }, status: 200, statusText: 'OK', headers: {}, config } as AxiosResponse)
     }) as AxiosInstance['defaults']['adapter']
     await client.get('/admin/users')
     expect((captured as AxiosRequestConfig).headers?.Authorization).toBe('Bearer tok-xyz')
@@ -147,7 +147,7 @@ describe('shared/http/client', () => {
     let captured: AxiosRequestConfig | undefined
     client.defaults.adapter = ((config: InternalAxiosRequestConfig) => {
       captured = config
-      return Promise.resolve({ data: { code: 0, message: 'ok', data: null }, status: 200, statusText: 'OK', headers: {}, config } as AxiosResponse)
+      return Promise.resolve({ data: { code: 200, message: 'ok', data: null }, status: 200, statusText: 'OK', headers: {}, config } as AxiosResponse)
     }) as AxiosInstance['defaults']['adapter']
     await client.get('/admin/users')
     const requestId = (captured as AxiosRequestConfig).headers?.['X-Request-Id']
@@ -159,7 +159,7 @@ describe('shared/http/client', () => {
     let captured: AxiosRequestConfig | undefined
     client.defaults.adapter = ((config: InternalAxiosRequestConfig) => {
       captured = config
-      return Promise.resolve({ data: { code: 0, message: 'ok', data: null }, status: 200, statusText: 'OK', headers: {}, config } as AxiosResponse)
+      return Promise.resolve({ data: { code: 200, message: 'ok', data: null }, status: 200, statusText: 'OK', headers: {}, config } as AxiosResponse)
     }) as AxiosInstance['defaults']['adapter']
     await client.post('/admin/dead-letters/1/retry', null, withIdempotency())
     expect((captured as AxiosRequestConfig).headers?.['Idempotency-Key']).toMatch(/^[0-9a-f-]{36}$/i)

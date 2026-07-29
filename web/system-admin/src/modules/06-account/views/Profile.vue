@@ -86,13 +86,13 @@ const passwordFormRef = ref<FormInstance>()
 const passwordSaving = ref(false)
 
 const passwordForm = reactive({
-  currentPassword: '',
+  oldPassword: '',
   newPassword: '',
   confirmPassword: '',
 })
 
 const passwordRules = {
-  currentPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
+  oldPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
   newPassword: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
     { min: 8, message: '密码长度不少于 8 位', trigger: 'blur' },
@@ -102,7 +102,7 @@ const passwordRules = {
         if (!/[A-Z]/.test(value)) return Promise.reject('需包含大写字母')
         if (!/[a-z]/.test(value)) return Promise.reject('需包含小写字母')
         if (!/[0-9]/.test(value)) return Promise.reject('需包含数字')
-        if (value === passwordForm.currentPassword) return Promise.reject('新密码不能与当前密码相同')
+        if (value === passwordForm.oldPassword) return Promise.reject('新密码不能与当前密码相同')
         return Promise.resolve()
       },
       trigger: 'blur',
@@ -137,7 +137,7 @@ async function onChangePassword(): Promise<void> {
   passwordSaving.value = true
   try {
     await authApi.changePassword({
-      currentPassword: passwordForm.currentPassword,
+      oldPassword: passwordForm.oldPassword,
       newPassword: passwordForm.newPassword,
     })
     passwordFormRef.value?.resetFields()
@@ -261,9 +261,9 @@ onBeforeUnmount(() => {
             layout="vertical"
             class="password-form"
           >
-            <a-form-item label="当前密码" name="currentPassword">
+            <a-form-item label="当前密码" name="oldPassword">
               <a-input-password
-                v-model:value="passwordForm.currentPassword"
+                v-model:value="passwordForm.oldPassword"
                 placeholder="请输入当前密码"
                 autocomplete="current-password"
               />
