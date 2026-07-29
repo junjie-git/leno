@@ -15,7 +15,7 @@ import type { MockSeed } from '../data/types'
 export function registerMenuHandlers(mock: MockAdapter): void {
   mock.onGet('/admin/menus/tree').reply(() => {
     const seed = loadSeedData()
-    return [200, { code: 0, message: 'OK', data: seed.menus }]
+    return [200, { code: 200, message: 'OK', data: seed.menus }]
   })
 
   mock.onPost('/admin/menus').reply((config) => {
@@ -31,7 +31,7 @@ export function registerMenuHandlers(mock: MockAdapter): void {
     }
     seed.menus.push(newMenu)
     saveSeedData(seed)
-    return [200, { code: 0, message: 'OK', data: newMenu }]
+    return [200, { code: 200, message: 'OK', data: newMenu }]
   })
 
   mock.onPut(/\/admin\/menus\/[^/]+$/).reply((config) => {
@@ -43,7 +43,7 @@ export function registerMenuHandlers(mock: MockAdapter): void {
       return [200, { code: 40400, message: `菜单 ${id} 不存在`, data: null }]
     }
     saveSeedData(seed)
-    return [200, { code: 0, message: 'OK', data: updated }]
+    return [200, { code: 200, message: 'OK', data: updated }]
   })
 
   mock.onDelete(/\/admin\/menus\/[^/]+$/).reply((config) => {
@@ -58,7 +58,7 @@ export function registerMenuHandlers(mock: MockAdapter): void {
       return [200, { code: 40400, message: `菜单 ${id} 不存在`, data: null }]
     }
     saveSeedData(seed)
-    return [200, { code: 0, message: 'OK', data: { success: true } }]
+    return [200, { code: 200, message: 'OK', data: { success: true } }]
   })
 
   mock.onPut('/admin/menus/sort').reply((config) => {
@@ -74,7 +74,7 @@ export function registerMenuHandlers(mock: MockAdapter): void {
     // 重新组装树（按 parentId 移动节点）
     rebuildMenuTree(seed)
     saveSeedData(seed)
-    return [200, { code: 0, message: 'OK', data: { success: true } }]
+    return [200, { code: 200, message: 'OK', data: { success: true } }]
   })
 }
 

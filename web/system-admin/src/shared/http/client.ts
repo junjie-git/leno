@@ -89,10 +89,10 @@ function extractMessage(data: unknown, fallback: string): string {
 client.interceptors.response.use(
   (response: AxiosResponse) => {
     const traceId = extractTraceId(response.data, response.headers)
-    // 业务层错误：HTTP 200 但 code !== 0
+    // 业务层错误：HTTP 200 但 code !== 200（后端 ApiResponse.Success 返回 code=200）
     if (response.data && typeof response.data === 'object' && 'code' in response.data) {
       const body = response.data as { code: number; message: string; data: unknown }
-      if (body.code !== 0) {
+      if (body.code !== 200) {
         throw new BusinessError(body.code, body.message || '业务错误', traceId)
       }
       // 解包：调用方拿到的就是 data 字段

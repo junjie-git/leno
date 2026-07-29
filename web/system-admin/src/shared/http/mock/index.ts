@@ -27,7 +27,7 @@ export function setupMockAdapter(client: AxiosInstance): void {
   mock.onPost('/admin/mock/reset').reply(() => {
     localStorage.removeItem('mock_seed_v1')
     ensureSeedData()
-    return [200, { code: 0, message: 'OK', data: { success: true } }]
+    return [200, { code: 200, message: 'OK', data: { success: true } }]
   })
 
   registerMenuHandlers(mock)

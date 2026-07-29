@@ -3,14 +3,14 @@ import type { ApiResponse, PageResult, PageQuery, TableColumn } from './index'
 
 describe('shared/types', () => {
   it('ApiResponse<T> 接受成功响应结构', () => {
-    const resp: ApiResponse<string> = { code: 0, message: 'ok', data: 'hello', traceId: 't-1' }
-    expect(resp.code).toBe(0)
+    const resp: ApiResponse<string> = { code: 200, message: 'ok', data: 'hello', traceId: 't-1' }
+    expect(resp.code).toBe(200)
     expect(resp.data).toBe('hello')
     expect(resp.traceId).toBe('t-1')
   })
 
   it('ApiResponse<T> 允许 data 为 null', () => {
-    const resp: ApiResponse<unknown> = { code: 0, message: 'deleted', data: null }
+    const resp: ApiResponse<unknown> = { code: 200, message: 'deleted', data: null }
     expect(resp.data).toBeNull()
   })
 

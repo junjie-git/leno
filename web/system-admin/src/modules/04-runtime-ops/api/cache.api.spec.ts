@@ -36,7 +36,7 @@ describe('cache.api', () => {
   })
 
   it('getKey: 调 GET /admin/cache/keys/{key}?db=0（key 需 URL 编码）', async () => {
-    const detail = { key: 'user:0001', type: 'string' as const, value: 'v', ttl: 3600, size: 1, db: 0 }
+    const detail = { key: 'user:0001', type: 'string' as const, value: '"hello"', truncated: false, ttl: 3600, size: 1 }
     vi.mocked(client.get).mockResolvedValueOnce({ data: detail })
     const result = await cacheApi.getKey('user:0001', 0)
     expect(client.get).toHaveBeenCalledWith('/admin/cache/keys/user%3A0001', { params: { db: 0 } })

@@ -4,12 +4,12 @@ import { loadSeedData, saveSeedData } from '../data/seed'
 export function registerCacheHandlers(mock: MockAdapter): void {
   mock.onGet('/admin/cache/info').reply(() => {
     const seed = loadSeedData()
-    return [200, { code: 0, message: 'OK', data: seed.redisInfo }]
+    return [200, { code: 200, message: 'OK', data: seed.redisInfo }]
   })
 
   mock.onGet('/admin/cache/keyspaces').reply(() => {
     const seed = loadSeedData()
-    return [200, { code: 0, message: 'OK', data: seed.keyspaces }]
+    return [200, { code: 200, message: 'OK', data: seed.keyspaces }]
   })
 
   mock.onGet('/admin/cache/keys').reply((config) => {
@@ -28,7 +28,7 @@ export function registerCacheHandlers(mock: MockAdapter): void {
     const pageSize = Number(params.pageSize) || 20
     const total = keys.length
     const items = keys.slice((page - 1) * pageSize, page * pageSize).map((k) => ({ key: k.key, type: k.type, size: k.size, ttl: k.ttl }))
-    return [200, { code: 0, message: 'OK', data: { items, total, page, pageSize } }]
+    return [200, { code: 200, message: 'OK', data: { items, total, page, pageSize } }]
   })
 
   mock.onGet(/\/admin\/cache\/keys\/.+$/).reply((config) => {
@@ -40,7 +40,7 @@ export function registerCacheHandlers(mock: MockAdapter): void {
     if (!k) {
       return [200, { code: 40400, message: `Key ${key} 不存在`, data: null }]
     }
-    return [200, { code: 0, message: 'OK', data: k }]
+    return [200, { code: 200, message: 'OK', data: k }]
   })
 
   mock.onDelete(/\/admin\/cache\/keys\/.+$/).reply((config) => {
@@ -54,6 +54,6 @@ export function registerCacheHandlers(mock: MockAdapter): void {
     }
     seed.redisKeys.splice(idx, 1)
     saveSeedData(seed)
-    return [200, { code: 0, message: 'OK', data: { success: true } }]
+    return [200, { code: 200, message: 'OK', data: { success: true } }]
   })
 }

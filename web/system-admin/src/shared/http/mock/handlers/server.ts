@@ -6,7 +6,7 @@ export function registerServerMonitorHandlers(mock: MockAdapter): void {
     const seed = loadSeedData()
     advanceServerHistory(seed)
     saveSeedData(seed)
-    return [200, { code: 0, message: 'OK', data: seed.serverSnapshot }]
+    return [200, { code: 200, message: 'OK', data: seed.serverSnapshot }]
   })
 
   mock.onGet('/admin/server-monitor/history').reply((config) => {
@@ -14,6 +14,6 @@ export function registerServerMonitorHandlers(mock: MockAdapter): void {
     const metric = config.params?.metric || 'cpu'
     const history = seed.serverHistory as any
     const points = history[metric === 'disk-io' ? 'diskIo' : metric] || []
-    return [200, { code: 0, message: 'OK', data: { metric, points } }]
+    return [200, { code: 200, message: 'OK', data: { metric, points } }]
   })
 }

@@ -149,12 +149,15 @@
         <template v-if="keyDetail">
           <a-descriptions :column="1" bordered size="small" style="margin-bottom: 16px">
             <a-descriptions-item label="Key">{{ keyDetail.key }}</a-descriptions-item>
-            <a-descriptions-item label="DB">db{{ keyDetail.db }}</a-descriptions-item>
+            <a-descriptions-item label="DB">db{{ keyQuery.db }}</a-descriptions-item>
             <a-descriptions-item label="类型">
               <a-tag :color="typeColor(keyDetail.type)">{{ keyDetail.type }}</a-tag>
             </a-descriptions-item>
             <a-descriptions-item label="Size">{{ keyDetail.size }}</a-descriptions-item>
             <a-descriptions-item label="TTL">{{ formatTtl(keyDetail.ttl) }}</a-descriptions-item>
+            <a-descriptions-item v-if="keyDetail.truncated" label="截断">
+              <a-tag color="orange">值已截断</a-tag>
+            </a-descriptions-item>
           </a-descriptions>
           <div class="detail-value-title">Value</div>
           <JsonViewer

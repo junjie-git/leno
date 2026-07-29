@@ -6,7 +6,7 @@ export const serverMonitorApi = {
     return client.get<ServerSnapshotDto>('/admin/server-monitor/snapshot').then((r) => r.data)
   },
 
-  history(metric: MetricName, range = '5m'): Promise<MetricHistoryDto> {
-    return client.get<MetricHistoryDto>('/admin/server-monitor/history', { params: { metric, range } }).then((r) => r.data)
+  history(metric: MetricName, rangeSeconds = 300): Promise<MetricHistoryDto> {
+    return client.get<MetricHistoryDto>('/admin/server-monitor/history', { params: { metric, rangeSeconds } }).then((r) => r.data)
   },
 }

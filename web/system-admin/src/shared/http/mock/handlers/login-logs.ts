@@ -19,7 +19,7 @@ export function registerLoginLogHandlers(mock: MockAdapter): void {
     if (!log) {
       return [200, { code: 40400, message: `日志 ${id} 不存在`, data: null }]
     }
-    return [200, { code: 0, message: 'OK', data: log }]
+    return [200, { code: 200, message: 'OK', data: log }]
   })
 
   mock.onGet('/admin/login-logs').reply((config) => {
@@ -30,7 +30,7 @@ export function registerLoginLogHandlers(mock: MockAdapter): void {
     const pageSize = Number(params.pageSize) || 20
     const total = logs.length
     const items = logs.slice((page - 1) * pageSize, page * pageSize)
-    return [200, { code: 0, message: 'OK', data: { items, total, page, pageSize } }]
+    return [200, { code: 200, message: 'OK', data: { items, total, page, pageSize } }]
   })
 }
 

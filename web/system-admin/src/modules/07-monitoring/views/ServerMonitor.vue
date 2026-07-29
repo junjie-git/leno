@@ -195,21 +195,21 @@ async function loadInitial(): Promise<void> {
     snapshot.value = s
 
     // CPU 历史
-    cpuXAxis.value = cpuHistory.points.map((p: MetricPointDto) => formatChartTime(p.t))
-    cpuData.value = cpuHistory.points.map((p: MetricPointDto) => Number(p.v.toFixed(2)))
+    cpuXAxis.value = cpuHistory.points.map((p: MetricPointDto) => formatChartTime(p.timestamp))
+    cpuData.value = cpuHistory.points.map((p: MetricPointDto) => Number(p.value.toFixed(2)))
 
     // 内存历史：v 为已用字节，cached 历史不可得置 0，free 用当前总量估算
     const memTotalBytes = s.memoryTotalBytes
-    memXAxis.value = memHistory.points.map((p: MetricPointDto) => formatChartTime(p.t))
-    memUsedData.value = memHistory.points.map((p: MetricPointDto) => Number((p.v / BYTES_PER_GB).toFixed(4)))
+    memXAxis.value = memHistory.points.map((p: MetricPointDto) => formatChartTime(p.timestamp))
+    memUsedData.value = memHistory.points.map((p: MetricPointDto) => Number((p.value / BYTES_PER_GB).toFixed(4)))
     memCachedData.value = memHistory.points.map(() => 0)
     memFreeData.value = memHistory.points.map((p: MetricPointDto) =>
-      memTotalBytes > 0 ? Number(((memTotalBytes - p.v) / BYTES_PER_GB).toFixed(4)) : 0,
+      memTotalBytes > 0 ? Number(((memTotalBytes - p.value) / BYTES_PER_GB).toFixed(4)) : 0,
     )
 
     // 磁盘 I/O 历史：v 为读取字节/秒，write 历史不可得置 0
-    diskXAxis.value = diskHistory.points.map((p: MetricPointDto) => formatChartTime(p.t))
-    diskReadData.value = diskHistory.points.map((p: MetricPointDto) => Number((p.v / BYTES_PER_MB).toFixed(4)))
+    diskXAxis.value = diskHistory.points.map((p: MetricPointDto) => formatChartTime(p.timestamp))
+    diskReadData.value = diskHistory.points.map((p: MetricPointDto) => Number((p.value / BYTES_PER_MB).toFixed(4)))
     diskWriteData.value = diskHistory.points.map(() => 0)
   } catch {
     message.error('初始化监控数据失败，请检查后端服务状态')

@@ -26,8 +26,8 @@ export interface ServerSnapshotDto {
 export type MetricName = 'cpu' | 'memory' | 'disk-io'
 
 export interface MetricPointDto {
-  t: string
-  v: number
+  timestamp: string
+  value: number
 }
 
 export interface MetricHistoryDto {
