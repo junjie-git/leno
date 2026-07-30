@@ -23,6 +23,7 @@ export function ensureSeedData(): void {
     freightTemplates: buildFreightTemplateSeed(),
     logisticsCompanies: buildLogisticsCompanySeed(),
     reviews: buildReviewSeed(),
+    exportTasks: [],
     nextId: 1000,
   }
   // 初始化 server 历史滚动窗口（300 点）

@@ -3,6 +3,8 @@
  *
  * 注：MenuDto / OnlineUserDto 等类型在后续 Task 中创建，
  * 本文件先以 `unknown[]` 占位，Task 13（联调）时统一替换为强类型。
+ * 批次 1 追加 shop / qualifications；批次 2 追加 freightTemplates / logisticsCompanies / reviews；
+ * 批次 3 追加 exportTasks。
  */
 export interface MockSeed {
   menus: unknown[]
@@ -18,5 +20,6 @@ export interface MockSeed {
   freightTemplates: unknown[]
   logisticsCompanies: unknown[]
   reviews: unknown[]
+  exportTasks: unknown[]
   nextId: number
 }
