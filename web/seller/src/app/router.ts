@@ -15,8 +15,10 @@ import NotFound from '@/shared/pages/NotFound.vue'
 import onboarding from '@/modules/01-onboarding/routes'
 import dashboard from '@/modules/02-dashboard/routes'
 import product from '@/modules/03-product-management/routes'
+import logistics from '@/modules/04-logistics/routes'
 import order from '@/modules/05-order-fulfillment/routes'
 import afterSales from '@/modules/06-after-sales/routes'
+import review from '@/modules/07-review/routes'
 import account from '@/modules/08-account/routes'
 
 const routes: RouteRecordRaw[] = [
@@ -47,8 +49,10 @@ const routes: RouteRecordRaw[] = [
       ...onboarding,
       ...dashboard,
       ...product,
+      ...logistics,
       ...order,
       ...afterSales,
+      ...review,
       ...account,
     ],
   },
