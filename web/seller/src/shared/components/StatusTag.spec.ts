@@ -181,6 +181,18 @@ describe('shared/components/StatusTag', () => {
     expect(wrapper.html()).toContain('禁用')
   })
 
+  // ===== review 评价状态映射 =====
+  it('review 类型 + Approved 状态渲染 success tag（已通过）', () => {
+    const wrapper = mount(StatusTag, { props: { type: 'review', status: 'Approved' } })
+    expect(wrapper.html()).toContain('已通过')
+    expect(wrapper.html()).toContain('ant-tag-success')
+  })
+
+  it('review 类型 + Hidden 状态渲染 default tag（已隐藏）', () => {
+    const wrapper = mount(StatusTag, { props: { type: 'review', status: 'Hidden' } })
+    expect(wrapper.html()).toContain('已隐藏')
+  })
+
   it('未知状态渲染 default 灰色 tag', () => {
     const wrapper = mount(StatusTag, { props: { type: 'deadLetter', status: 'UnknownStatus' } })
     expect(wrapper.html()).toContain('UnknownStatus')

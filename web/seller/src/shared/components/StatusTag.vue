@@ -38,6 +38,7 @@ type StatusTagType =
   | 'order'
   | 'aftersales'
   | 'freightTemplate'
+  | 'review'
 
 /** Ant Design Vue Tag 颜色值 */
 type TagColor = 'success' | 'processing' | 'error' | 'warning' | 'default'
@@ -152,6 +153,10 @@ const STATUS_MAP: Record<StatusTagType, Record<string, StatusMeta>> = {
   freightTemplate: {
     Enabled: { label: '启用', color: 'success' },
     Disabled: { label: '禁用', color: 'default' },
+  },
+  review: {
+    Approved: { label: '已通过', color: 'success' },
+    Hidden: { label: '已隐藏', color: 'default' },
   },
 }
 
