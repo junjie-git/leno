@@ -14,7 +14,7 @@ import {
   Spin,
   message,
 } from 'ant-design-vue'
-import { TruckOutlined, ReloadOutlined, EnvironmentOutlined } from '@ant-design/icons-vue'
+import { CarOutlined, ReloadOutlined, EnvironmentOutlined } from '@ant-design/icons-vue'
 import type { TableColumnsType, TablePaginationConfig, FormInstance } from 'ant-design-vue'
 import { orderApi } from '../api/order.api'
 import type { OrderListItemDto, OrderDetailDto, ShipOrderDto } from '../types/order.dto'
@@ -311,7 +311,7 @@ onMounted(() => {
               @click="openShipModal(record as OrderListItemDto)"
             >
               <template #icon>
-                <TruckOutlined />
+                <CarOutlined />
               </template>
               发货
             </Button>

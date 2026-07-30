@@ -6,6 +6,15 @@ settings:
 
 importers:
 
+  .:
+    devDependencies:
+      '@eslint/js':
+        specifier: ^9.39.5
+        version: 9.39.5
+      vue-eslint-parser:
+        specifier: ^9.4.3
+        version: 9.4.3(eslint@9.39.5)
+
   web/seller:
     dependencies:
       '@ant-design/icons-vue':

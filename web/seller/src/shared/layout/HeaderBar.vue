@@ -47,7 +47,7 @@ async function onLogout() {
       <MenuFoldOutlined v-else />
     </Button>
 
-    <Space class="shop-info" v-if="shop.shopName">
+    <Space v-if="shop.shopName" class="shop-info">
       <span class="shop-name">{{ shop.shopName }}</span>
       <StatusTag v-if="shop.shopStatus" type="shop" :status="shop.shopStatus" />
     </Space>

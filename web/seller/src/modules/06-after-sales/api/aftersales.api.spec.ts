@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { aftersalesApi } from './aftersales.api'
 import { client, withIdempotency } from '@/shared/http'

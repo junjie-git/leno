@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Badge } from 'ant-design-vue'
 
-const props = defineProps<{
+defineProps<{
   count: number
   label: string
 }>()

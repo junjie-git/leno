@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { dashboardApi } from './dashboard.api'
 import { client } from '@/shared/http'

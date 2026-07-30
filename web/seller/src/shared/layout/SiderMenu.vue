@@ -3,7 +3,7 @@ import { Menu } from 'ant-design-vue'
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
-  DashboardOutlined, ShopOutlined, TruckOutlined,
+  DashboardOutlined, ShopOutlined, CarOutlined,
   ProfileOutlined, CustomerServiceOutlined, CommentOutlined,
   SettingOutlined, ExportOutlined, UserOutlined,
 } from '@ant-design/icons-vue'
@@ -17,7 +17,7 @@ const route = useRoute()
 const auth = useAuthStore()
 
 const iconMap: Record<string, Component> = {
-  DashboardOutlined, ShopOutlined, TruckOutlined,
+  DashboardOutlined, ShopOutlined, CarOutlined,
   ProfileOutlined, CustomerServiceOutlined, CommentOutlined,
   SettingOutlined, ExportOutlined, UserOutlined,
 }
@@ -51,7 +51,7 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
-    key: '04-logistics', label: '物流管理', icon: 'TruckOutlined',
+    key: '04-logistics', label: '物流管理', icon: 'CarOutlined',
     children: [
       { key: 'freight-template.list', label: '运费模板', path: '/logistics/freight-templates', permission: 'freight-template:list' },
       { key: 'logistics-company.list', label: '物流公司', path: '/logistics/companies', permission: 'logistics-company:list' },
@@ -128,10 +128,10 @@ function onMenuClick({ key }: { key: string }) {
 </script>
 
 <template>
-  <div class="sider-logo" v-if="!collapsed">
+  <div v-if="!collapsed" class="sider-logo">
     <h1>Leno 卖家</h1>
   </div>
-  <div class="sider-logo-mini" v-else>
+  <div v-else class="sider-logo-mini">
     <span>L</span>
   </div>
   <Menu

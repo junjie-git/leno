@@ -5,6 +5,7 @@ import { Form, FormItem, Input, InputPassword, Button, Alert, Card } from 'ant-d
 import { UserOutlined, LockOutlined } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/shared/auth'
 import { useShopStore } from '@/shared/shop'
+import { UnauthorizedError, ForbiddenError, RateLimitedError } from '@/shared/http'
 
 const router = useRouter()
 const route = useRoute()
@@ -14,7 +15,12 @@ const shop = useShopStore()
 const loading = ref(false)
 const errorMsg = ref('')
 
-const form = reactive({
+interface LoginForm {
+  username: string
+  password: string
+}
+
+const form = reactive<LoginForm>({
   username: '',
   password: '',
 })
@@ -36,11 +42,12 @@ async function onSubmit() {
     } else {
       router.push(redirect)
     }
-  } catch (e: any) {
-    if (e?.status === 401) errorMsg.value = '账号或密码错误'
-    else if (e?.status === 403) errorMsg.value = '账号已禁用'
-    else if (e?.status === 429) errorMsg.value = '操作过于频繁，请稍后重试'
-    else errorMsg.value = e?.message || '登录失败'
+  } catch (e: unknown) {
+    if (e instanceof UnauthorizedError) errorMsg.value = '账号或密码错误'
+    else if (e instanceof ForbiddenError) errorMsg.value = '账号已禁用'
+    else if (e instanceof RateLimitedError) errorMsg.value = '操作过于频繁，请稍后重试'
+    else if (e instanceof Error) errorMsg.value = e.message || '登录失败'
+    else errorMsg.value = '登录失败'
   } finally {
     loading.value = false
   }

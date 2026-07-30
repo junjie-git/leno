@@ -12,8 +12,7 @@ import {
 } from 'ant-design-vue'
 import {
   ShoppingOutlined,
-  DollarOutlined,
-  TruckOutlined,
+  CarOutlined,
   CustomerServiceOutlined,
 } from '@ant-design/icons-vue'
 import VChart from 'vue-echarts'
@@ -218,7 +217,7 @@ onMounted(async () => {
       <Card class="overview-todo-panel" :bordered="true">
         <template #title>
           <span class="overview-todo-title">
-            <TruckOutlined class="overview-todo-icon" />
+            <CarOutlined class="overview-todo-icon" />
             待发货
           </span>
         </template>

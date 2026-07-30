@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { setActivePinia, createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useShopStore } from './shop.store'

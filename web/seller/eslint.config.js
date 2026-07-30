@@ -47,6 +47,7 @@ const browserGlobals = {
   clearInterval: 'readonly',
   AbortController: 'readonly',
   crypto: 'readonly',
+  FileReader: 'readonly',
 }
 
 export default [

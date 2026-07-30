@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { authApi } from './auth.api'
 import { client } from '@/shared/http'

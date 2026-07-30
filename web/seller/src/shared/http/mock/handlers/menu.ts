@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type MockAdapter from 'axios-mock-adapter'
 import { loadSeedData, saveSeedData, nextId } from '../data/seed'
 import type { MockSeed } from '../data/types'

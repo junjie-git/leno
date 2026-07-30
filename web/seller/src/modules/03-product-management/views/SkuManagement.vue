@@ -12,7 +12,6 @@ import {
   FormItem,
   Input,
   InputNumber,
-  Select,
   Tag,
   Modal,
   Skeleton,
