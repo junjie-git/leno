@@ -58,6 +58,17 @@ describe('shared/components/StatusTag', () => {
     expect(wrapper.html()).toContain('ant-tag-error')
   })
 
+  it('shop 类型 + Pending 状态渲染 warning tag（待审核）', () => {
+    const wrapper = mount(StatusTag, { props: { type: 'shop', status: 'Pending' } })
+    expect(wrapper.html()).toContain('待审核')
+    expect(wrapper.html()).toContain('ant-tag-warning')
+  })
+
+  it('shop 类型 + Closed 状态渲染 default tag（已关闭）', () => {
+    const wrapper = mount(StatusTag, { props: { type: 'shop', status: 'Closed' } })
+    expect(wrapper.html()).toContain('已关闭')
+  })
+
   // ===== product 商品状态映射 =====
   it('product 类型 + Draft 状态渲染 default tag（草稿）', () => {
     const wrapper = mount(StatusTag, { props: { type: 'product', status: 'Draft' } })

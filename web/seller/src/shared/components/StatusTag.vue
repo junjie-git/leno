@@ -65,7 +65,7 @@ interface StatusMeta {
  * - 已取消/默认/已关闭 → default
  *
  * 卖家业务部分：
- * - shop: 仅 Active 为正常(success)，Suspended/Rejected 为 error，PendingReview 为 warning
+ * - shop: Active 为正常(success)，Suspended/Rejected 为 error，PendingReview/Pending 为 warning，Closed 为 default
  * - product: 草稿/已下架为 default，待审核为 warning，已上架为 success，已驳回为 error
  * - order: 待发货为 warning，已发货/已送达为 processing，已完成为 success，已取消/已退款为 default
  * - aftersales: 待处理为 warning，已同意/退货中为 processing，已退款为 success，已拒绝为 error，已关闭为 default
@@ -87,9 +87,11 @@ const STATUS_MAP: Record<StatusTagType, Record<string, StatusMeta>> = {
   },
   shop: {
     PendingReview: { label: '审核中', color: 'warning' },
+    Pending: { label: '待审核', color: 'warning' },
     Active: { label: '正常', color: 'success' },
     Suspended: { label: '暂停', color: 'error' },
     Rejected: { label: '已驳回', color: 'error' },
+    Closed: { label: '已关闭', color: 'default' },
   },
   user: {
     Active: { label: '正常', color: 'success' },
