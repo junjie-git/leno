@@ -12,6 +12,7 @@ import Forbidden from '@/shared/pages/Forbidden.vue'
 import NotFound from '@/shared/pages/NotFound.vue'
 
 // 模块路由
+import onboarding from '@/modules/01-onboarding/routes'
 import dashboard from '@/modules/02-dashboard/routes'
 import product from '@/modules/03-product-management/routes'
 import order from '@/modules/05-order-fulfillment/routes'
@@ -43,6 +44,7 @@ const routes: RouteRecordRaw[] = [
     component: BasicLayout,
     children: [
       { path: '', redirect: '/dashboard/overview' },
+      ...onboarding,
       ...dashboard,
       ...product,
       ...order,
