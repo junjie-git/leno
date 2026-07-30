@@ -31,8 +31,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('./views/LogisticsTrace.vue'),
     meta: {
       title: '物流轨迹',
+      menuKey: 'order.trace',
       roles: ['Seller'],
       permission: 'order:trace:view',
+      menuGroup: '05-order-fulfillment',
     },
   },
 ]
