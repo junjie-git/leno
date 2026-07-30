@@ -6,6 +6,7 @@ import { registerOnlineUserHandlers } from './handlers/online-users'
 import { registerLoginLogHandlers } from './handlers/login-logs'
 import { registerCacheHandlers } from './handlers/cache'
 import { registerServerMonitorHandlers } from './handlers/server'
+import { registerShopHandlers } from './handlers/shop'
 
 /**
  * 装配 MockAdapter
@@ -35,10 +36,11 @@ export function setupMockAdapter(client: AxiosInstance): void {
   registerLoginLogHandlers(mock)
   registerCacheHandlers(mock)
   registerServerMonitorHandlers(mock)
+  registerShopHandlers(mock)
 
   // 未匹配的请求透传到真实后端
   mock.onAny().passThrough()
 
   // 启动日志
-  console.log('[Mock] 已启用 5 个 handler，共 19 个 endpoint')
+  console.log('[Mock] 已启用 6 个 handler，共 24 个 endpoint')
 }

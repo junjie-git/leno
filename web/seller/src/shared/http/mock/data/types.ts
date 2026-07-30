@@ -13,5 +13,7 @@ export interface MockSeed {
   keyspaces: unknown[]
   serverSnapshot: unknown
   serverHistory: { cpu: unknown[]; memory: unknown[]; diskIo: unknown[] }
+  shop: unknown
+  qualifications: unknown[]
   nextId: number
 }

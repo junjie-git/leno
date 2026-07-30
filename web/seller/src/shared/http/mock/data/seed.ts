@@ -18,6 +18,8 @@ export function ensureSeedData(): void {
     keyspaces: buildKeyspaceSeed(),
     serverSnapshot: buildServerSnapshotSeed(),
     serverHistory: { cpu: [], memory: [], diskIo: [] },
+    shop: buildShopSeed(),
+    qualifications: buildQualificationSeed(),
     nextId: 1000,
   }
   // 初始化 server 历史滚动窗口（300 点）
@@ -467,4 +469,67 @@ export function advanceServerHistory(seed: MockSeed): void {
   snap.diskReadBytesPerSec = Math.max(100_000, newDisk * 0.4)
   snap.diskWriteBytesPerSec = Math.max(100_000, newDisk * 0.6)
   snap.sampledAt = t
+}
+
+// ===== 店铺种子（双形态：兼容 P0 shop.store 与 P1 ShopInfoDto）=====
+
+function buildShopSeed(): unknown {
+  return {
+    // P1 ShopInfoDto 形态
+    id: 'shop-001',
+    name: '示例服饰旗舰店',
+    logo: '',
+    description: '专注高品质男女装，20年匠心工艺',
+    status: 'Active',
+    mainCategory: '服装',
+    customerService: {
+      phone: '13800138000',
+      email: 'service@example.com',
+      onlineAccount: 'wx_shop001',
+    },
+    version: 1,
+    createdAt: '2026-01-15T10:00:00Z',
+    updatedAt: '2026-07-01T12:00:00Z',
+    // P0 shop.store ShopDto 形态（兼容字段）
+    shopId: 'shop-001',
+    shopName: '示例服饰旗舰店',
+    qualificationsStatus: {
+      BusinessLicense: 'Approved',
+      IdCard: 'Approved',
+      BankAccount: 'Pending',
+    },
+  }
+}
+
+// ===== 资质种子（3 条）=====
+
+function buildQualificationSeed(): unknown[] {
+  return [
+    {
+      id: 'qual-001',
+      type: 'BusinessLicense',
+      fileName: '营业执照.pdf',
+      fileUrl: '',
+      status: 'Approved',
+      submittedAt: '2026-01-15T10:00:00Z',
+      auditedAt: '2026-01-16T09:00:00Z',
+    },
+    {
+      id: 'qual-002',
+      type: 'IdCard',
+      fileName: '身份证.jpg',
+      fileUrl: '',
+      status: 'Approved',
+      submittedAt: '2026-01-15T10:00:00Z',
+      auditedAt: '2026-01-16T09:00:00Z',
+    },
+    {
+      id: 'qual-003',
+      type: 'BankAccount',
+      fileName: '银行账户信息.pdf',
+      fileUrl: '',
+      status: 'Pending',
+      submittedAt: '2026-07-20T14:00:00Z',
+    },
+  ]
 }
