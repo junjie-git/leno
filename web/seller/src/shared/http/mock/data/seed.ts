@@ -1,4 +1,5 @@
 import type { MockSeed } from './types'
+import { generateIdempotencyKey } from '../../idempotency'
 
 const SEED_KEY = 'mock_seed_v1'
 
@@ -271,7 +272,7 @@ function buildLoginLogSeed(): unknown[] {
       userAgent: `Mozilla/5.0 (${oses[Math.floor(Math.random() * oses.length)]}) ${browsers[Math.floor(Math.random() * browsers.length)]}`,
       deviceFingerprint: `fp-${Math.random().toString(36).slice(2, 12)}`,
       refererUrl: 'https://admin.leno.com/login',
-      traceId: crypto.randomUUID().replace(/-/g, '').slice(0, 16),
+      traceId: generateIdempotencyKey().replace(/-/g, '').slice(0, 16),
       loginAt,
     })
   }
