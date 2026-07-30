@@ -19,9 +19,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('./views/ProductEdit.vue'),
     meta: {
       title: '新增商品',
+      menuKey: 'product.create',
       roles: ['Seller'],
       permission: 'product:create',
       requiresActiveShop: true,
+      menuGroup: '03-product-management',
     },
   },
   {
@@ -30,9 +32,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('./views/ProductEdit.vue'),
     meta: {
       title: '编辑商品',
+      menuKey: 'product.edit',
       roles: ['Seller'],
       permission: 'product:edit',
       requiresActiveShop: true,
+      menuGroup: '03-product-management',
     },
   },
   {
@@ -41,8 +45,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('./views/SkuManagement.vue'),
     meta: {
       title: 'SKU 管理',
+      menuKey: 'product.sku',
       roles: ['Seller'],
       permission: 'product:sku:manage',
+      menuGroup: '03-product-management',
     },
   },
   {
@@ -51,8 +57,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('./views/PriceHistory.vue'),
     meta: {
       title: '价格历史',
+      menuKey: 'product.price-history',
       roles: ['Seller'],
       permission: 'product:price-history:view',
+      menuGroup: '03-product-management',
     },
   },
 ]
