@@ -20,6 +20,9 @@ export function ensureSeedData(): void {
     serverHistory: { cpu: [], memory: [], diskIo: [] },
     shop: buildShopSeed(),
     qualifications: buildQualificationSeed(),
+    freightTemplates: buildFreightTemplateSeed(),
+    logisticsCompanies: buildLogisticsCompanySeed(),
+    reviews: buildReviewSeed(),
     nextId: 1000,
   }
   // 初始化 server 历史滚动窗口（300 点）
@@ -531,5 +534,75 @@ function buildQualificationSeed(): unknown[] {
       status: 'Pending',
       submittedAt: '2026-07-20T14:00:00Z',
     },
+  ]
+}
+
+// ===== 运费模板种子（2 个：固定运费 + 按重量）=====
+
+function buildFreightTemplateSeed(): unknown[] {
+  return [
+    {
+      id: 'ft-001',
+      name: '全国统一运费',
+      pricingType: 'Fixed',
+      fixedFee: 10,
+      freeShippingThreshold: undefined,
+      regionRules: [],
+      isEnabled: true,
+      version: 1,
+      createdAt: '2026-02-01T00:00:00Z',
+      updatedAt: '2026-02-01T00:00:00Z',
+    },
+    {
+      id: 'ft-002',
+      name: '按重量计费',
+      pricingType: 'ByWeight',
+      fixedFee: undefined,
+      freeShippingThreshold: 99,
+      regionRules: [
+        {
+          id: 'r-001',
+          regionCode: 'CN',
+          regionName: '全国',
+          firstUnit: 1,
+          firstPrice: 8,
+          nextUnit: 1,
+          nextPrice: 2,
+        },
+      ],
+      isEnabled: true,
+      version: 1,
+      createdAt: '2026-02-01T00:00:00Z',
+      updatedAt: '2026-02-01T00:00:00Z',
+    },
+  ]
+}
+
+// ===== 物流公司种子（5 个）=====
+
+function buildLogisticsCompanySeed(): unknown[] {
+  return [
+    { id: 'lc-001', name: '顺丰速运', code: 'SF', servicePhone: '95338', website: 'https://www.sf-express.com', supportsTracking: true, sortOrder: 1 },
+    { id: 'lc-002', name: '中通快递', code: 'ZTO', servicePhone: '95311', website: 'https://www.zto.com', supportsTracking: true, sortOrder: 2 },
+    { id: 'lc-003', name: '圆通速递', code: 'YTO', servicePhone: '95554', website: 'https://www.yto.net.cn', supportsTracking: true, sortOrder: 3 },
+    { id: 'lc-004', name: '韵达快递', code: 'YUNDA', servicePhone: '95546', website: 'https://www.yundaex.com', supportsTracking: true, sortOrder: 4 },
+    { id: 'lc-005', name: 'EMS', code: 'EMS', servicePhone: '11183', website: 'https://www.ems.com.cn', supportsTracking: true, sortOrder: 5 },
+  ]
+}
+
+// ===== 评价种子（10 条：5 已回复 + 5 未回复，评分 1-5 星分布）=====
+
+function buildReviewSeed(): unknown[] {
+  return [
+    { reviewId: 'rev-001', orderId: 'ord-101', orderLineId: 'ol-101', spuId: 'spu-001', skuId: 'sku-001', userId: 'u-001', userMaskedName: '13****5678', rating: 5, content: '质量非常好，面料舒适，做工精细，物流也很快！', images: [], status: 'Approved', sellerReplyContent: '感谢您的支持，欢迎再次光临！', sellerReplyBy: 'seller-001', sellerReplyAt: '2026-07-15T10:00:00Z', submittedAt: '2026-07-14T15:30:00Z', auditedAt: '2026-07-14T16:00:00Z', productName: '纯棉圆领T恤 白色 L', productImage: '', skuSpec: '白色 / L' },
+    { reviewId: 'rev-002', orderId: 'ord-102', orderLineId: 'ol-102', spuId: 'spu-002', skuId: 'sku-002', userId: 'u-002', userMaskedName: '18****1234', rating: 4, content: '整体不错，就是尺码偏小，建议买大一码。', images: ['img-001.jpg'], status: 'Approved', sellerReplyContent: '感谢反馈，我们会优化尺码表。', sellerReplyBy: 'seller-001', sellerReplyAt: '2026-07-16T09:00:00Z', submittedAt: '2026-07-15T20:00:00Z', auditedAt: '2026-07-15T21:00:00Z', productName: '修身衬衫 蓝色 M', productImage: '', skuSpec: '蓝色 / M' },
+    { reviewId: 'rev-003', orderId: 'ord-103', orderLineId: 'ol-103', spuId: 'spu-001', skuId: 'sku-003', userId: 'u-003', userMaskedName: '15****8888', rating: 5, content: '回购第三次了，一如既往的好！', images: [], status: 'Approved', sellerReplyContent: '感恩老客户，已为您发放优惠券！', sellerReplyBy: 'seller-001', sellerReplyAt: '2026-07-17T14:00:00Z', submittedAt: '2026-07-16T11:00:00Z', auditedAt: '2026-07-16T12:00:00Z', productName: '纯棉圆领T恤 黑色 XL', productImage: '', skuSpec: '黑色 / XL' },
+    { reviewId: 'rev-004', orderId: 'ord-104', orderLineId: 'ol-104', spuId: 'spu-003', skuId: 'sku-004', userId: 'u-004', userMaskedName: '19****6666', rating: 3, content: '一般般，性价比还行，但颜色和图片有点色差。', images: ['img-002.jpg', 'img-003.jpg'], status: 'Approved', sellerReplyContent: '抱歉给您带来不便，我们会改进拍摄。', sellerReplyBy: 'seller-001', sellerReplyAt: '2026-07-18T10:00:00Z', submittedAt: '2026-07-17T16:00:00Z', auditedAt: '2026-07-17T17:00:00Z', productName: '雪纺连衣裙 粉色 S', productImage: '', skuSpec: '粉色 / S' },
+    { reviewId: 'rev-005', orderId: 'ord-105', orderLineId: 'ol-105', spuId: 'spu-002', skuId: 'sku-005', userId: 'u-005', userMaskedName: '17****3333', rating: 4, content: '衬衫质量不错，包装也很好。', images: [], status: 'Approved', sellerReplyContent: '谢谢好评！', sellerReplyBy: 'seller-001', sellerReplyAt: '2026-07-19T08:00:00Z', submittedAt: '2026-07-18T09:00:00Z', auditedAt: '2026-07-18T10:00:00Z', productName: '修身衬衫 白色 L', productImage: '', skuSpec: '白色 / L' },
+    { reviewId: 'rev-006', orderId: 'ord-106', orderLineId: 'ol-106', spuId: 'spu-001', skuId: 'sku-001', userId: 'u-006', userMaskedName: '13****9999', rating: 2, content: '面料有点硬，洗了一次就起球了，不太满意。', images: ['img-004.jpg'], status: 'Approved', submittedAt: '2026-07-20T13:00:00Z', auditedAt: '2026-07-20T14:00:00Z', productName: '纯棉圆领T恤 白色 L', productImage: '', skuSpec: '白色 / L' },
+    { reviewId: 'rev-007', orderId: 'ord-107', orderLineId: 'ol-107', spuId: 'spu-003', skuId: 'sku-006', userId: 'u-007', userMaskedName: '18****7777', rating: 5, content: '裙子很漂亮，版型好，朋友都说好看！', images: [], status: 'Approved', submittedAt: '2026-07-21T10:00:00Z', auditedAt: '2026-07-21T11:00:00Z', productName: '雪纺连衣裙 蓝色 M', productImage: '', skuSpec: '蓝色 / M' },
+    { reviewId: 'rev-008', orderId: 'ord-108', orderLineId: 'ol-108', spuId: 'spu-002', skuId: 'sku-002', userId: 'u-008', userMaskedName: '15****2222', rating: 1, content: '扣子掉了两个，质量太差了，要求退款。', images: ['img-005.jpg', 'img-006.jpg', 'img-007.jpg'], status: 'Approved', submittedAt: '2026-07-22T17:00:00Z', auditedAt: '2026-07-22T18:00:00Z', productName: '修身衬衫 蓝色 M', productImage: '', skuSpec: '蓝色 / M' },
+    { reviewId: 'rev-009', orderId: 'ord-109', orderLineId: 'ol-109', spuId: 'spu-001', skuId: 'sku-003', userId: 'u-009', userMaskedName: '19****4444', rating: 4, content: '不错，穿着很舒服，就是快递有点慢。', images: [], status: 'Approved', submittedAt: '2026-07-23T08:00:00Z', auditedAt: '2026-07-23T09:00:00Z', productName: '纯棉圆领T恤 黑色 XL', productImage: '', skuSpec: '黑色 / XL' },
+    { reviewId: 'rev-010', orderId: 'ord-110', orderLineId: 'ol-110', spuId: 'spu-003', skuId: 'sku-004', userId: 'u-010', userMaskedName: '17****0000', rating: 3, content: '裙子颜色不错但偏短，身高170穿刚好。', images: [], status: 'Approved', submittedAt: '2026-07-24T12:00:00Z', auditedAt: '2026-07-24T13:00:00Z', productName: '雪纺连衣裙 粉色 S', productImage: '', skuSpec: '粉色 / S' },
   ]
 }

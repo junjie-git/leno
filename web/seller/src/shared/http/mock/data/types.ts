@@ -15,5 +15,8 @@ export interface MockSeed {
   serverHistory: { cpu: unknown[]; memory: unknown[]; diskIo: unknown[] }
   shop: unknown
   qualifications: unknown[]
+  freightTemplates: unknown[]
+  logisticsCompanies: unknown[]
+  reviews: unknown[]
   nextId: number
 }
