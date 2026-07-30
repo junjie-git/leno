@@ -20,6 +20,7 @@ import order from '@/modules/05-order-fulfillment/routes'
 import afterSales from '@/modules/06-after-sales/routes'
 import review from '@/modules/07-review/routes'
 import account from '@/modules/08-account/routes'
+import exportModule from '@/modules/09-export/routes'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -54,6 +55,7 @@ const routes: RouteRecordRaw[] = [
       ...afterSales,
       ...review,
       ...account,
+      ...exportModule,
     ],
   },
   {
