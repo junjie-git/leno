@@ -25,6 +25,7 @@ export function ensureSeedData(): void {
     logisticsCompanies: buildLogisticsCompanySeed(),
     reviews: buildReviewSeed(),
     exportTasks: [],
+    notifications: buildNotificationSeed(),
     nextId: 1000,
   }
   // 初始化 server 历史滚动窗口（300 点）
@@ -606,5 +607,74 @@ function buildReviewSeed(): unknown[] {
     { reviewId: 'rev-008', orderId: 'ord-108', orderLineId: 'ol-108', spuId: 'spu-002', skuId: 'sku-002', userId: 'u-008', userMaskedName: '15****2222', rating: 1, content: '扣子掉了两个，质量太差了，要求退款。', images: ['img-005.jpg', 'img-006.jpg', 'img-007.jpg'], status: 'Approved', submittedAt: '2026-07-22T17:00:00Z', auditedAt: '2026-07-22T18:00:00Z', productName: '修身衬衫 蓝色 M', productImage: '', skuSpec: '蓝色 / M' },
     { reviewId: 'rev-009', orderId: 'ord-109', orderLineId: 'ol-109', spuId: 'spu-001', skuId: 'sku-003', userId: 'u-009', userMaskedName: '19****4444', rating: 4, content: '不错，穿着很舒服，就是快递有点慢。', images: [], status: 'Approved', submittedAt: '2026-07-23T08:00:00Z', auditedAt: '2026-07-23T09:00:00Z', productName: '纯棉圆领T恤 黑色 XL', productImage: '', skuSpec: '黑色 / XL' },
     { reviewId: 'rev-010', orderId: 'ord-110', orderLineId: 'ol-110', spuId: 'spu-003', skuId: 'sku-004', userId: 'u-010', userMaskedName: '17****0000', rating: 3, content: '裙子颜色不错但偏短，身高170穿刚好。', images: [], status: 'Approved', submittedAt: '2026-07-24T12:00:00Z', auditedAt: '2026-07-24T13:00:00Z', productName: '雪纺连衣裙 粉色 S', productImage: '', skuSpec: '粉色 / S' },
+  ]
+}
+
+// ===== 通知种子（5 条：2 未读 + 3 已读）=====
+
+function buildNotificationSeed(): unknown[] {
+  const now = new Date()
+  const iso = (offsetMs: number) => new Date(now.getTime() - offsetMs).toISOString()
+  return [
+    {
+      recordId: 'n-001',
+      userId: 'u-seller-001',
+      templateCode: 'ORDER_PAID',
+      channel: 'InApp',
+      title: '新订单已支付',
+      content: '订单 NO20260731001 已支付，请尽快发货。',
+      status: 'Sent',
+      isRead: false,
+      sentAt: iso(3600_000),
+      createdAt: iso(3600_000),
+    },
+    {
+      recordId: 'n-002',
+      userId: 'u-seller-001',
+      templateCode: 'LOW_STOCK',
+      channel: 'InApp',
+      title: '库存预警',
+      content: 'SKU 编码 SKU-001 库存低于阈值，请及时补货。',
+      status: 'Sent',
+      isRead: false,
+      sentAt: iso(7200_000),
+      createdAt: iso(7200_000),
+    },
+    {
+      recordId: 'n-003',
+      userId: 'u-seller-001',
+      templateCode: 'REVIEW_SUBMITTED',
+      channel: 'InApp',
+      title: '收到新评价',
+      content: '买家对订单 NO20260730005 提交了评价，请及时回复。',
+      status: 'Sent',
+      isRead: true,
+      sentAt: iso(86400_000),
+      createdAt: iso(86400_000),
+    },
+    {
+      recordId: 'n-004',
+      userId: 'u-seller-001',
+      templateCode: 'QUALIFICATION_EXPIRE',
+      channel: 'InApp',
+      title: '资质即将到期',
+      content: '营业执照将于 30 天后到期，请及时更新。',
+      status: 'Sent',
+      isRead: true,
+      sentAt: iso(172800_000),
+      createdAt: iso(172800_000),
+    },
+    {
+      recordId: 'n-005',
+      userId: 'u-seller-001',
+      templateCode: 'SETTLEMENT',
+      channel: 'InApp',
+      title: '结算已完成',
+      content: '2026-07 月度结算已完成，金额 ¥12,800.00。',
+      status: 'Sent',
+      isRead: true,
+      sentAt: iso(259200_000),
+      createdAt: iso(259200_000),
+    },
   ]
 }
