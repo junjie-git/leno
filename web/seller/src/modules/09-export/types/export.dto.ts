@@ -1,7 +1,7 @@
 /**
  * 09-export 数据导出 DTO
  *
- * 与后端 ExportController 对接（BE-3 待后端实现）：
+ * 与后端 ExportController 对接：
  * - POST /api/seller/export/sales              创建导出任务（幂等）
  * - GET  /api/seller/export/tasks              查询导出任务列表
  * - GET  /api/seller/export/tasks/{id}/download 下载导出文件

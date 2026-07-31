@@ -55,10 +55,10 @@ describe('exportApi.createTask', () => {
     expect(mock.history.post[0].headers['Idempotency-Key']).toBeTruthy()
   })
 
-  it('后端返回 501 抛 ServerError（BE-3）', async () => {
+  it('后端返回 501 抛 ServerError', async () => {
     mock.onPost('/seller/export/sales').reply(501, {
-      code: 'BE-3',
-      message: 'BE-3 待后端实现：创建导出任务',
+      code: 'SERVER_ERROR',
+      message: '服务器内部错误',
     })
 
     await expect(exportApi.createTask(body)).rejects.toBeInstanceOf(ServerError)

@@ -39,12 +39,8 @@ import { formatDateTime } from '@/shared/utils/format'
  * 销售报表导出页
  *
  * 路由 /export/sales，权限 export:sales
- * 3 个 API 端点全部 BE-3 标记：
- * - 提交新建任务 → createTask → mock 501 → message.warning('后端接口未就绪（BE-3）')
- * - 下载已完成任务 → getDownloadUrl + http.get → mock 501 → message.warning
- * - 历史任务列表 → listTasks → mock 200 空列表 → EmptyState
- *
- * 轮询：有 Processing 状态任务时每 3 秒刷新列表（当前 mock 返回空列表，不触发）。
+ * 3 个 API 端点已就绪：创建任务、查询列表、下载文件。
+ * 轮询：有 Processing 状态任务时每 3 秒刷新列表。
  */
 
 const loading = ref(false)
@@ -165,12 +161,11 @@ async function onSubmit(): Promise<void> {
   submitting.value = true
   try {
     await exportApi.createTask(body)
-    // BE-3 就绪后：创建成功，刷新列表
     await loadTasks()
     message.success('导出任务已创建，请稍后在右侧列表查看进度')
   } catch (e) {
-    logger.warn('创建导出任务失败（BE-3）', e)
-    message.warning('后端接口未就绪（BE-3）')
+    logger.error('创建导出任务失败', e)
+    message.error('创建导出任务失败')
   } finally {
     submitting.value = false
   }
@@ -182,7 +177,6 @@ async function onDownload(task: ExportTaskDto): Promise<void> {
   const axiosPath = fullUrl.replace(/^\/api/, '')
   try {
     const res = await http.get<Blob>(axiosPath, { responseType: 'blob' })
-    // BE-3 就绪后：用 Blob 触发浏览器下载
     const blobUrl = URL.createObjectURL(res.data)
     const a = document.createElement('a')
     a.href = blobUrl
@@ -194,8 +188,8 @@ async function onDownload(task: ExportTaskDto): Promise<void> {
     document.body.removeChild(a)
     URL.revokeObjectURL(blobUrl)
   } catch (e) {
-    logger.warn('下载导出文件失败（BE-3）', e)
-    message.warning('后端接口未就绪（BE-3）')
+    logger.error('下载导出文件失败', e)
+    message.error('下载导出文件失败')
   }
 }
 
@@ -211,8 +205,8 @@ async function onRetry(task: ExportTaskDto): Promise<void> {
     await loadTasks()
     message.success('重试任务已创建')
   } catch (e) {
-    logger.warn('重试导出任务失败（BE-3）', e)
-    message.warning('后端接口未就绪（BE-3）')
+    logger.error('重试导出任务失败', e)
+    message.error('重试导出任务失败')
   } finally {
     submitting.value = false
   }
@@ -274,9 +268,6 @@ onUnmounted(() => {
               </IdempotencyButton>
             </FormItem>
           </Form>
-          <div class="sales-export-be3-tip">
-            后端导出接口未就绪（BE-3），提交后将提示"后端接口未就绪"。
-          </div>
         </Card>
       </Col>
 
@@ -387,16 +378,6 @@ onUnmounted(() => {
   font-size: 12px;
   color: #8c8c8c;
   margin-top: 4px;
-}
-.sales-export-be3-tip {
-  margin-top: 12px;
-  padding: 8px 12px;
-  background: #fffbe6;
-  border: 1px solid #ffe58f;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #ad6800;
-  line-height: 1.6;
 }
 .sales-export-processing-text {
   font-size: 12px;

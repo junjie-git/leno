@@ -9,7 +9,7 @@ import type {
 /**
  * 数据导出 API 客户端
  *
- * 与后端 ExportController 对接（BE-3 待后端实现）。响应拦截器已解包
+ * 与后端 ExportController 对接。响应拦截器已解包
  * ApiResponse.data，调用方拿到的就是业务负载：
  * - POST /api/seller/export/sales                创建导出任务（幂等）
  * - GET  /api/seller/export/tasks                查询导出任务列表
@@ -19,14 +19,14 @@ import type {
  * 不发起 HTTP 请求。调用方需自行用 http.get 或 window.open 触发下载。
  */
 export const exportApi = {
-  /** 创建导出任务（BE-3 待后端实现） */
+  /** 创建导出任务 */
   createTask(body: CreateExportTaskDto): Promise<ExportTaskDto> {
     return http
       .post<ExportTaskDto>('/seller/export/sales', body, withIdempotency())
       .then((r) => r.data)
   },
 
-  /** 查询导出任务列表（BE-3 待后端实现，mock 返回空列表占位） */
+  /** 查询导出任务列表 */
   listTasks(
     params: ExportTaskQueryParams,
   ): Promise<ExportTaskListResultDto> {
