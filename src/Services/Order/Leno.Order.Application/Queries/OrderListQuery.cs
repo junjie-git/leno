@@ -1,11 +1,13 @@
+using Leno.SharedKernel.ValueObjects;
+
 namespace Leno.Order.Application.Queries;
 
 /// <summary>
 /// 订单列表分页查询参数（CQRS 读侧 Query）。
 /// 由 <see cref="OrderListQueryHandler"/> 处理，经 <c>IOrderReadModelAccessor</c> 走 ES 读模型。
-/// 双发期 2 周内与 <c>OrderAppService.QueryAsync</c> 并存，2 周后 Controller 切换到本 Query。
+/// 继承 <see cref="PageRequest"/> 统一分页契约（Page 从 1 起，PageSize 默认 20、最大 100）。
 /// </summary>
-public sealed class OrderListQuery
+public sealed record OrderListQuery : PageRequest
 {
     /// <summary>买家标识过滤，可空表示不限。</summary>
     public Guid? UserId { get; init; }
@@ -25,9 +27,6 @@ public sealed class OrderListQuery
     /// <summary>创建结束时间（UTC）过滤，可空表示不限。</summary>
     public DateTime? EndDate { get; init; }
 
-    /// <summary>页码，从 0 起。</summary>
-    public int PageIndex { get; init; }
-
-    /// <summary>每页条数，默认 20。</summary>
-    public int PageSize { get; init; } = 20;
+    /// <summary>构造订单列表查询，分页参数走 PageRequest 基类（Page 从 1 起）。</summary>
+    public OrderListQuery(int page = 1, int pageSize = PageRequest.DefaultPageSize) : base(page, pageSize) { }
 }

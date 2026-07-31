@@ -1,14 +1,14 @@
 using Leno.Infrastructure.Abstractions.Cqrs;
+using Leno.SharedContracts.Responses;
 
 namespace Leno.Order.Application.Queries;
 
 /// <summary>
 /// 订单列表查询处理器。
 /// 经 <see cref="IOrderReadModelAccessor"/>（端口由 Infrastructure 层 <c>OrderReadModelAccessor</c> 实现）
-/// 查询 ES 读模型并返回 <see cref="OrderListResult"/>。
-/// 双发期 2 周内与 <c>OrderAppService.QueryAsync</c> 并存，2 周后 Controller 切换到本 QueryHandler。
+/// 查询 ES 读模型并返回 <see cref="PageResult{T}"/>（统一分页契约）。
 /// </summary>
-public sealed class OrderListQueryHandler : IQueryHandler<OrderListQuery, OrderListResult>
+public sealed class OrderListQueryHandler : IQueryHandler<OrderListQuery, PageResult<OrderSummaryDto>>
 {
     private readonly IOrderReadModelAccessor _readModelAccessor;
 
@@ -19,7 +19,7 @@ public sealed class OrderListQueryHandler : IQueryHandler<OrderListQuery, OrderL
     }
 
     /// <inheritdoc />
-    public Task<OrderListResult> HandleAsync(OrderListQuery query, CancellationToken ct = default)
+    public Task<PageResult<OrderSummaryDto>> HandleAsync(OrderListQuery query, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);
 

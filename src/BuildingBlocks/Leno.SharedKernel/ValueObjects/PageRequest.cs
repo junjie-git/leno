@@ -3,7 +3,7 @@ namespace Leno.SharedKernel.ValueObjects;
 /// <summary>
 /// 分页请求值对象。Page 从 1 开始，PageSize 默认 20、最大 100。
 /// </summary>
-public sealed record PageRequest
+public record PageRequest
 {
     public const int DefaultPageSize = 20;
     public const int MaxPageSize = 100;
