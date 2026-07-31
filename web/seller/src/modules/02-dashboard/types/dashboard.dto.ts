@@ -27,13 +27,11 @@ export interface SalesTrendItemDto {
   salesAmount: number
 }
 
-/**
- * 库存预警条目 DTO（后端缺失，mock 兜底）
- */
+/** 低库存商品 DTO（卖家域视角，对应后端 LowStockItemDto） */
 export interface LowStockItemDto {
+  skuId: string
   productId: string
   productName: string
-  skuId: string
   skuName: string
   stock: number
   threshold: number
