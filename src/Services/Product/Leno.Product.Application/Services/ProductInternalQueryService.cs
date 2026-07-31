@@ -133,6 +133,33 @@ public sealed class ProductInternalQueryService : IProductInternalQueryService
             skus);
     }
 
+    /// <inheritdoc />
+    public async Task<List<LowStockSkuDto>> GetLowStockByShopAsync(Guid shopId, int threshold, CancellationToken ct = default)
+    {
+        if (shopId == Guid.Empty)
+        {
+            return new List<LowStockSkuDto>();
+        }
+
+        var spus = await _spuRepository.GetByShopIdAsync(shopId, ct)
+            .ConfigureAwait(false);
+
+        return spus
+            .SelectMany(spu => spu.SKUs.Select(sku => new LowStockSkuDto
+            {
+                SkuId = sku.Id,
+                ProductId = spu.Id,
+                ProductName = spu.Title,
+                SkuName = BuildSkuName(sku),
+                Stock = sku.StockQty,
+                Threshold = threshold,
+                ShopId = shopId
+            }))
+            .Where(x => x.Stock < threshold)
+            .OrderBy(x => x.Stock)
+            .ToList();
+    }
+
     private static SkuInfoResultDto ToSkuInfoResultDto(SPU spu, SKU sku)
         => new()
         {
@@ -149,4 +176,19 @@ public sealed class ProductInternalQueryService : IProductInternalQueryService
             ShopId = spu.ShopId,
             UpdatedAt = spu.UpdatedAt
         };
+
+    /// <summary>
+    /// 拼接 SKU 规格名称：以 "/" 连接各规格属性的 Value（如 "红/XL"）。
+    /// 无规格属性时回退为 SkuCode，保证 SkuName 永不为 null。
+    /// </summary>
+    private static string BuildSkuName(SKU sku)
+    {
+        var attrs = sku.SpecAttributes?.Attributes;
+        if (attrs is { Count: > 0 })
+        {
+            return string.Join("/", attrs.Select(a => a.Value));
+        }
+
+        return sku.SkuCode ?? string.Empty;
+    }
 }

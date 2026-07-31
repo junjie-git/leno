@@ -24,4 +24,14 @@ public interface IProductInternalQueryService
     /// <param name="spuId">SPU 标识。</param>
     /// <param name="ct">取消令牌。</param>
     Task<SpuDetailResultDto?> GetSpuDetailAsync(Guid spuId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 按店铺标识查询低库存 SKU（StockQty &lt; threshold），返回按库存升序排列的列表。
+    /// 数据来自 SPU 聚合内 SKU 实体的 StockQty 字段。
+    /// </summary>
+    /// <param name="shopId">店铺标识。</param>
+    /// <param name="threshold">低库存阈值，StockQty 小于此值视为低库存。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>低库存 SKU 列表，无命中返回空列表。</returns>
+    Task<List<LowStockSkuDto>> GetLowStockByShopAsync(Guid shopId, int threshold, CancellationToken ct = default);
 }
