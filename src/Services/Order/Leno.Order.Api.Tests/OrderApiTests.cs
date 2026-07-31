@@ -25,7 +25,7 @@ public class OrderApiTests : IClassFixture<WebApplicationFactory<Program>>
     private readonly Mock<IOrderAppService> _orderAppServiceMock = new();
     private readonly Mock<ICurrentUserContext> _currentUserMock = new();
     private readonly Mock<IQueryHandler<OrderDetailQuery, OrderDetailResult?>> _orderDetailQueryHandlerMock = new();
-    private readonly Mock<IQueryHandler<OrderListQuery, OrderListResult>> _orderListQueryHandlerMock = new();
+    private readonly Mock<IQueryHandler<OrderListQuery, PageResult<OrderSummaryDto>>> _orderListQueryHandlerMock = new();
 
     private static readonly Guid UserId = Guid.NewGuid();
     private static readonly Guid OrderId = Guid.NewGuid();
@@ -118,13 +118,11 @@ public class OrderApiTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task ListMine_ShouldReturnPagedResult()
     {
         SetupBuyerAuth();
-        var result = new OrderListResult
-        {
-            Items = new List<OrderSummaryDto>(),
-            TotalCount = 0,
-            PageIndex = 1,
-            PageSize = 20
-        };
+        var result = new PageResult<OrderSummaryDto>(
+            new List<OrderSummaryDto>(),
+            0,
+            1,
+            20);
         _orderListQueryHandlerMock.Setup(h => h.HandleAsync(It.IsAny<OrderListQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(result);
 
@@ -186,13 +184,11 @@ public class OrderApiTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task AdminList_ShouldReturnPagedResult()
     {
         SetupAdminAuth();
-        var result = new OrderListResult
-        {
-            Items = new List<OrderSummaryDto>(),
-            TotalCount = 0,
-            PageIndex = 1,
-            PageSize = 20
-        };
+        var result = new PageResult<OrderSummaryDto>(
+            new List<OrderSummaryDto>(),
+            0,
+            1,
+            20);
         _orderListQueryHandlerMock.Setup(h => h.HandleAsync(It.IsAny<OrderListQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(result);
 

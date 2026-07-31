@@ -2,6 +2,7 @@ using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 using Leno.Infrastructure.ReadModel;
 using Leno.Order.Application.Queries;
+using Leno.SharedContracts.Responses;
 
 namespace Leno.Order.Infrastructure.ReadModels;
 
@@ -36,13 +37,13 @@ public sealed class OrderReadModelAccessor : IOrderReadModelAccessor
     }
 
     /// <inheritdoc />
-    public async Task<OrderListResult> ListAsync(OrderListQuery query, CancellationToken ct = default)
+    public async Task<PageResult<OrderSummaryDto>> ListAsync(OrderListQuery query, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        var safePageIndex = query.PageIndex < 0 ? 0 : query.PageIndex;
-        var safePageSize = query.PageSize is <= 0 or > 100 ? 20 : query.PageSize;
-        var from = safePageIndex * safePageSize;
+        // PageRequest 基类已归一化 Page/PageSize，直接用 Skip
+        var from = query.Skip;
+        var safePageSize = query.PageSize;
 
         var (items, total) = await _repository.SearchAsync(
             OrderIndexName,
@@ -52,14 +53,7 @@ public sealed class OrderReadModelAccessor : IOrderReadModelAccessor
             ct);
 
         var summaries = items.Select(ToSummaryDto).ToList();
-
-        return new OrderListResult
-        {
-            Items = summaries,
-            TotalCount = (int)total,
-            PageIndex = safePageIndex,
-            PageSize = safePageSize
-        };
+        return new PageResult<OrderSummaryDto>(summaries, (int)total, query.Page, safePageSize);
     }
 
     private static Query BuildQuery(OrderListQuery query)

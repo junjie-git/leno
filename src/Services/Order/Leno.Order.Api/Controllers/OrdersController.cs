@@ -22,13 +22,13 @@ public sealed class OrdersController : OrderControllerBase
 {
     private readonly IOrderAppService _orderAppService;
     private readonly IQueryHandler<OrderDetailQuery, OrderDetailResult?> _orderDetailQueryHandler;
-    private readonly IQueryHandler<OrderListQuery, OrderListResult> _orderListQueryHandler;
+    private readonly IQueryHandler<OrderListQuery, PageResult<OrderSummaryDto>> _orderListQueryHandler;
 
     public OrdersController(
         ICurrentUserContext currentUser,
         IOrderAppService orderAppService,
         IQueryHandler<OrderDetailQuery, OrderDetailResult?> orderDetailQueryHandler,
-        IQueryHandler<OrderListQuery, OrderListResult> orderListQueryHandler)
+        IQueryHandler<OrderListQuery, PageResult<OrderSummaryDto>> orderListQueryHandler)
         : base(currentUser)
     {
         ArgumentNullException.ThrowIfNull(orderAppService);
@@ -74,15 +74,13 @@ public sealed class OrdersController : OrderControllerBase
     /// <summary>分页查询当前用户的订单（按状态可选过滤）。走 CQRS 读侧 ES 读模型。</summary>
     [Authorize(Roles = "Buyer")]
     [HttpGet("api/orders")]
-    [ProducesResponseType(typeof(ApiResponse<OrderListResult>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> ListMineAsync([FromQuery] OrderStatus? status, [FromQuery] int page = 0, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    [ProducesResponseType(typeof(ApiResponse<PageResult<OrderSummaryDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListMineAsync([FromQuery] OrderStatus? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
-        var query = new OrderListQuery
+        var query = new OrderListQuery(page, pageSize)
         {
             UserId = GetCurrentUserId(),
-            Status = status?.ToString(),
-            PageIndex = page,
-            PageSize = pageSize
+            Status = status?.ToString()
         };
         var result = await _orderListQueryHandler.HandleAsync(query, ct);
         return Ok(ApiResponse.Success(result));
@@ -142,25 +140,23 @@ public sealed class OrdersController : OrderControllerBase
     /// </summary>
     [Authorize(Roles = "Seller")]
     [HttpGet("api/seller/orders")]
-    [ProducesResponseType(typeof(ApiResponse<OrderListResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<PageResult<OrderSummaryDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListSellerOrdersAsync(
         [FromQuery] OrderStatus? status,
         [FromQuery] string? orderNo,
         [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate,
-        [FromQuery] int page = 0,
+        [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
-        var query = new OrderListQuery
+        var query = new OrderListQuery(page, pageSize)
         {
             SellerId = GetCurrentUserId(),
             Status = status?.ToString(),
             OrderNo = orderNo,
             StartDate = startDate,
-            EndDate = endDate,
-            PageIndex = page,
-            PageSize = pageSize
+            EndDate = endDate
         };
         var result = await _orderListQueryHandler.HandleAsync(query, ct);
         return Ok(ApiResponse.Success(result));
@@ -171,7 +167,7 @@ public sealed class OrdersController : OrderControllerBase
     /// <summary>分页查询全部订单（按用户、卖家、订单号、状态、下单时间范围可选过滤）。走 CQRS 读侧 ES 读模型。</summary>
     [Authorize(Roles = "Operator,Admin")]
     [HttpGet("api/admin/orders")]
-    [ProducesResponseType(typeof(ApiResponse<OrderListResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<PageResult<OrderSummaryDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListAsync(
         [FromQuery] Guid? userId,
         [FromQuery] Guid? sellerId,
@@ -179,20 +175,18 @@ public sealed class OrdersController : OrderControllerBase
         [FromQuery] string? orderNo,
         [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate,
-        [FromQuery] int page = 0,
+        [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
-        var query = new OrderListQuery
+        var query = new OrderListQuery(page, pageSize)
         {
             UserId = userId,
             SellerId = sellerId,
             Status = status?.ToString(),
             OrderNo = orderNo,
             StartDate = startDate,
-            EndDate = endDate,
-            PageIndex = page,
-            PageSize = pageSize
+            EndDate = endDate
         };
         var result = await _orderListQueryHandler.HandleAsync(query, ct);
         return Ok(ApiResponse.Success(result));

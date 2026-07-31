@@ -1,4 +1,5 @@
 using Leno.Order.Application.Queries;
+using Leno.SharedContracts.Responses;
 using Moq;
 
 namespace Leno.Order.Application.Tests.Queries;
@@ -17,15 +18,13 @@ public class OrderListQueryHandlerTests
     public async Task HandleAsync_ShouldDelegateToReadModelAccessorAndReturnResult()
     {
         // Arrange
-        var query = new OrderListQuery
+        var query = new OrderListQuery(1, 20)
         {
             UserId = Guid.NewGuid(),
             SellerId = Guid.NewGuid(),
             Status = "Paid",
             StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-            EndDate = new DateTime(2026, 7, 19, 0, 0, 0, DateTimeKind.Utc),
-            PageIndex = 0,
-            PageSize = 20
+            EndDate = new DateTime(2026, 7, 19, 0, 0, 0, DateTimeKind.Utc)
         };
 
         var summary = new OrderSummaryDto
@@ -42,13 +41,11 @@ public class OrderListQueryHandlerTests
             ShippedAt = null
         };
 
-        var expectedResult = new OrderListResult
-        {
-            Items = new List<OrderSummaryDto> { summary },
-            TotalCount = 1,
-            PageIndex = 0,
-            PageSize = 20
-        };
+        var expectedResult = new PageResult<OrderSummaryDto>(
+            new List<OrderSummaryDto> { summary },
+            1,
+            1,
+            20);
 
         _accessorMock
             .Setup(a => a.ListAsync(query, It.IsAny<CancellationToken>()))
@@ -60,8 +57,8 @@ public class OrderListQueryHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.Items.Should().HaveCount(1);
-        result.TotalCount.Should().Be(1);
-        result.PageIndex.Should().Be(0);
+        result.Total.Should().Be(1);
+        result.Page.Should().Be(1);
         result.PageSize.Should().Be(20);
 
         var first = result.Items[0];
@@ -78,15 +75,13 @@ public class OrderListQueryHandlerTests
     public async Task HandleAsync_EmptyResult_ShouldReturnEmptyItems()
     {
         // Arrange
-        var query = new OrderListQuery { PageIndex = 5, PageSize = 10 };
+        var query = new OrderListQuery(6, 10);
 
-        var expectedResult = new OrderListResult
-        {
-            Items = new List<OrderSummaryDto>(),
-            TotalCount = 0,
-            PageIndex = 5,
-            PageSize = 10
-        };
+        var expectedResult = new PageResult<OrderSummaryDto>(
+            new List<OrderSummaryDto>(),
+            0,
+            6,
+            10);
 
         _accessorMock
             .Setup(a => a.ListAsync(query, It.IsAny<CancellationToken>()))
@@ -97,8 +92,8 @@ public class OrderListQueryHandlerTests
 
         // Assert
         result.Items.Should().BeEmpty();
-        result.TotalCount.Should().Be(0);
-        result.PageIndex.Should().Be(5);
+        result.Total.Should().Be(0);
+        result.Page.Should().Be(6);
         result.PageSize.Should().Be(10);
     }
 
@@ -115,21 +110,17 @@ public class OrderListQueryHandlerTests
     {
         // Arrange：构造带 OrderNo 的查询，捕获实际透传给 IOrderReadModelAccessor 的参数，
         // 验证 OrderNo 字段未被丢弃或改写。
-        var query = new OrderListQuery
+        var query = new OrderListQuery(1, 20)
         {
-            OrderNo = "ORD-2026-001",
-            PageIndex = 0,
-            PageSize = 20
+            OrderNo = "ORD-2026-001"
         };
 
         OrderListQuery? capturedQuery = null;
-        var expectedResult = new OrderListResult
-        {
-            Items = new List<OrderSummaryDto>(),
-            TotalCount = 0,
-            PageIndex = 0,
-            PageSize = 20
-        };
+        var expectedResult = new PageResult<OrderSummaryDto>(
+            new List<OrderSummaryDto>(),
+            0,
+            1,
+            20);
 
         _accessorMock
             .Setup(a => a.ListAsync(It.IsAny<OrderListQuery>(), It.IsAny<CancellationToken>()))
@@ -156,26 +147,22 @@ public class OrderListQueryHandlerTests
         var startDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var endDate = new DateTime(2026, 7, 26, 0, 0, 0, DateTimeKind.Utc);
 
-        var query = new OrderListQuery
+        var query = new OrderListQuery(3, 15)
         {
             UserId = userId,
             SellerId = sellerId,
             Status = "Paid",
             OrderNo = "ORD-2026-ABC",
             StartDate = startDate,
-            EndDate = endDate,
-            PageIndex = 2,
-            PageSize = 15
+            EndDate = endDate
         };
 
         OrderListQuery? capturedQuery = null;
-        var expectedResult = new OrderListResult
-        {
-            Items = new List<OrderSummaryDto>(),
-            TotalCount = 0,
-            PageIndex = 2,
-            PageSize = 15
-        };
+        var expectedResult = new PageResult<OrderSummaryDto>(
+            new List<OrderSummaryDto>(),
+            0,
+            3,
+            15);
 
         _accessorMock
             .Setup(a => a.ListAsync(It.IsAny<OrderListQuery>(), It.IsAny<CancellationToken>()))
@@ -193,7 +180,7 @@ public class OrderListQueryHandlerTests
         capturedQuery.OrderNo.Should().Be("ORD-2026-ABC");
         capturedQuery.StartDate.Should().Be(startDate);
         capturedQuery.EndDate.Should().Be(endDate);
-        capturedQuery.PageIndex.Should().Be(2);
+        capturedQuery.Page.Should().Be(3);
         capturedQuery.PageSize.Should().Be(15);
     }
 }

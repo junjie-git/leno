@@ -24,7 +24,7 @@ public class SellerOrdersApiTests
     private readonly Mock<IOrderAppService> _orderAppServiceMock = new();
     private readonly Mock<ICurrentUserContext> _currentUserMock = new();
     private readonly Mock<IQueryHandler<OrderDetailQuery, OrderDetailResult?>> _orderDetailQueryHandlerMock = new();
-    private readonly Mock<IQueryHandler<OrderListQuery, OrderListResult>> _orderListQueryHandlerMock = new();
+    private readonly Mock<IQueryHandler<OrderListQuery, PageResult<OrderSummaryDto>>> _orderListQueryHandlerMock = new();
 
     private static readonly Guid SellerAId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static readonly Guid SellerBId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
@@ -45,13 +45,13 @@ public class SellerOrdersApiTests
         _currentUserMock.SetupGet(c => c.Role).Returns("Seller");
     }
 
-    private static OrderListResult BuildOrderListResult(
+    private static PageResult<OrderSummaryDto> BuildPageResult(
         Guid sellerId,
         string orderNo,
         string status,
-        int pageIndex,
+        int page,
         int pageSize,
-        int totalCount)
+        int total)
     {
         var summary = new OrderSummaryDto
         {
@@ -71,13 +71,11 @@ public class SellerOrdersApiTests
                 : null
         };
 
-        return new OrderListResult
-        {
-            Items = new List<OrderSummaryDto> { summary },
-            TotalCount = totalCount,
-            PageIndex = pageIndex,
-            PageSize = pageSize
-        };
+        return new PageResult<OrderSummaryDto>(
+            new List<OrderSummaryDto> { summary },
+            total,
+            page,
+            pageSize);
     }
 
     #region 成功场景
@@ -87,13 +85,13 @@ public class SellerOrdersApiTests
     {
         // Arrange
         SetupSellerAuth(SellerAId);
-        var expectedResult = BuildOrderListResult(
+        var expectedResult = BuildPageResult(
             sellerId: SellerAId,
             orderNo: "ORD-SELLER-A-001",
             status: "Paid",
-            pageIndex: 0,
+            page: 1,
             pageSize: 20,
-            totalCount: 1);
+            total: 1);
 
         OrderListQuery? capturedQuery = null;
         _orderListQueryHandlerMock
@@ -105,18 +103,18 @@ public class SellerOrdersApiTests
 
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
-            status: null, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: null, endDate: null, page: 1, pageSize: 20);
 
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
         var okResult = (OkObjectResult)actionResult;
         okResult.StatusCode.Should().Be((int)HttpStatusCode.OK);
 
-        var apiResponse = okResult.Value.Should().BeOfType<ApiResponse<OrderListResult>>().Subject;
+        var apiResponse = okResult.Value.Should().BeOfType<ApiResponse<PageResult<OrderSummaryDto>>>().Subject;
         apiResponse.Data.Should().NotBeNull();
         apiResponse.Data!.Items.Should().HaveCount(1);
-        apiResponse.Data.TotalCount.Should().Be(1);
-        apiResponse.Data.PageIndex.Should().Be(0);
+        apiResponse.Data.Total.Should().Be(1);
+        apiResponse.Data.Page.Should().Be(1);
         apiResponse.Data.PageSize.Should().Be(20);
 
         capturedQuery.Should().NotBeNull();
@@ -129,17 +127,17 @@ public class SellerOrdersApiTests
     #region 分页
 
     [Fact]
-    public async Task ListSellerOrders_WithPaging_ShouldPassPageIndexAndPageSizeToHandler()
+    public async Task ListSellerOrders_WithPaging_ShouldPassPageAndPageSizeToHandler()
     {
         // Arrange
         SetupSellerAuth(SellerAId);
-        var expectedResult = BuildOrderListResult(
+        var expectedResult = BuildPageResult(
             sellerId: SellerAId,
             orderNo: "ORD-PAGE-001",
             status: "Paid",
-            pageIndex: 2,
+            page: 2,
             pageSize: 50,
-            totalCount: 120);
+            total: 120);
 
         OrderListQuery? capturedQuery = null;
         _orderListQueryHandlerMock
@@ -156,13 +154,13 @@ public class SellerOrdersApiTests
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
         var okResult = (OkObjectResult)actionResult;
-        var apiResponse = (ApiResponse<OrderListResult>)okResult.Value!;
-        apiResponse.Data!.PageIndex.Should().Be(2);
+        var apiResponse = (ApiResponse<PageResult<OrderSummaryDto>>)okResult.Value!;
+        apiResponse.Data!.Page.Should().Be(2);
         apiResponse.Data.PageSize.Should().Be(50);
-        apiResponse.Data.TotalCount.Should().Be(120);
+        apiResponse.Data.Total.Should().Be(120);
 
         capturedQuery.Should().NotBeNull();
-        capturedQuery!.PageIndex.Should().Be(2);
+        capturedQuery!.Page.Should().Be(2);
         capturedQuery.PageSize.Should().Be(50);
         capturedQuery.SellerId.Should().Be(SellerAId);
     }
@@ -172,13 +170,13 @@ public class SellerOrdersApiTests
     {
         // Arrange
         SetupSellerAuth(SellerAId);
-        var expectedResult = BuildOrderListResult(
+        var expectedResult = BuildPageResult(
             sellerId: SellerAId,
             orderNo: "ORD-DEF-001",
             status: "PendingPayment",
-            pageIndex: 0,
+            page: 1,
             pageSize: 20,
-            totalCount: 0);
+            total: 0);
 
         OrderListQuery? capturedQuery = null;
         _orderListQueryHandlerMock
@@ -190,12 +188,12 @@ public class SellerOrdersApiTests
 
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
-            status: null, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: null, endDate: null, page: 1, pageSize: 20);
 
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
         capturedQuery.Should().NotBeNull();
-        capturedQuery!.PageIndex.Should().Be(0, "默认页码为 0");
+        capturedQuery!.Page.Should().Be(1, "默认页码为 1");
         capturedQuery.PageSize.Should().Be(20, "默认每页 20 条");
     }
 
@@ -208,13 +206,13 @@ public class SellerOrdersApiTests
     {
         // Arrange — 待发货订单页使用 status=Paid 查询
         SetupSellerAuth(SellerAId);
-        var expectedResult = BuildOrderListResult(
+        var expectedResult = BuildPageResult(
             sellerId: SellerAId,
             orderNo: "ORD-PAID-001",
             status: "Paid",
-            pageIndex: 0,
+            page: 1,
             pageSize: 20,
-            totalCount: 5);
+            total: 5);
 
         OrderListQuery? capturedQuery = null;
         _orderListQueryHandlerMock
@@ -226,7 +224,7 @@ public class SellerOrdersApiTests
 
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
-            status: OrderStatus.Paid, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: OrderStatus.Paid, orderNo: null, startDate: null, endDate: null, page: 1, pageSize: 20);
 
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
@@ -240,13 +238,13 @@ public class SellerOrdersApiTests
     {
         // Arrange
         SetupSellerAuth(SellerAId);
-        var expectedResult = BuildOrderListResult(
+        var expectedResult = BuildPageResult(
             sellerId: SellerAId,
             orderNo: "ORD-SHIPPED-001",
             status: "Shipped",
-            pageIndex: 0,
+            page: 1,
             pageSize: 20,
-            totalCount: 3);
+            total: 3);
 
         OrderListQuery? capturedQuery = null;
         _orderListQueryHandlerMock
@@ -258,7 +256,7 @@ public class SellerOrdersApiTests
 
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
-            status: OrderStatus.Shipped, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: OrderStatus.Shipped, orderNo: null, startDate: null, endDate: null, page: 1, pageSize: 20);
 
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
@@ -273,13 +271,13 @@ public class SellerOrdersApiTests
         SetupSellerAuth(SellerAId);
         var startDate = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc);
         var endDate = new DateTime(2026, 7, 26, 23, 59, 59, DateTimeKind.Utc);
-        var expectedResult = BuildOrderListResult(
+        var expectedResult = BuildPageResult(
             sellerId: SellerAId,
             orderNo: "ORD-DATE-001",
             status: "Paid",
-            pageIndex: 0,
+            page: 1,
             pageSize: 20,
-            totalCount: 8);
+            total: 8);
 
         OrderListQuery? capturedQuery = null;
         _orderListQueryHandlerMock
@@ -291,7 +289,7 @@ public class SellerOrdersApiTests
 
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
-            status: null, orderNo: null, startDate: startDate, endDate: endDate, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: startDate, endDate: endDate, page: 1, pageSize: 20);
 
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
@@ -307,13 +305,13 @@ public class SellerOrdersApiTests
         SetupSellerAuth(SellerAId);
         var startDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc);
         var endDate = new DateTime(2026, 7, 31, 23, 59, 59, DateTimeKind.Utc);
-        var expectedResult = BuildOrderListResult(
+        var expectedResult = BuildPageResult(
             sellerId: SellerAId,
             orderNo: "ORD-ALL-001",
             status: "Completed",
-            pageIndex: 1,
+            page: 1,
             pageSize: 10,
-            totalCount: 25);
+            total: 25);
 
         OrderListQuery? capturedQuery = null;
         _orderListQueryHandlerMock
@@ -339,7 +337,7 @@ public class SellerOrdersApiTests
         capturedQuery.Status.Should().Be("Completed");
         capturedQuery.StartDate.Should().Be(startDate);
         capturedQuery.EndDate.Should().Be(endDate);
-        capturedQuery.PageIndex.Should().Be(1);
+        capturedQuery.Page.Should().Be(1);
         capturedQuery.PageSize.Should().Be(10);
     }
 
@@ -348,13 +346,13 @@ public class SellerOrdersApiTests
     {
         // Arrange
         SetupSellerAuth(SellerAId);
-        var expectedResult = BuildOrderListResult(
+        var expectedResult = BuildPageResult(
             sellerId: SellerAId,
             orderNo: "ORD-ALL-STATUS-001",
             status: "PendingPayment",
-            pageIndex: 0,
+            page: 1,
             pageSize: 20,
-            totalCount: 10);
+            total: 10);
 
         OrderListQuery? capturedQuery = null;
         _orderListQueryHandlerMock
@@ -366,7 +364,7 @@ public class SellerOrdersApiTests
 
         // Act
         var actionResult = await sut.ListSellerOrdersAsync(
-            status: null, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: null, endDate: null, page: 1, pageSize: 20);
 
         // Assert
         actionResult.Should().BeOfType<OkObjectResult>();
@@ -419,7 +417,7 @@ public class SellerOrdersApiTests
 
         // Act
         var act = () => sut.ListSellerOrdersAsync(
-            status: null, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: null, endDate: null, page: 1, pageSize: 20);
 
         // Assert — GetCurrentUserId() 在未认证时抛出 UnauthorizedAccessException（映射 401）
         await act.Should().ThrowAsync<UnauthorizedAccessException>();
@@ -438,13 +436,13 @@ public class SellerOrdersApiTests
     {
         // Arrange — 卖家 A 登录
         SetupSellerAuth(SellerAId);
-        var expectedResult = BuildOrderListResult(
+        var expectedResult = BuildPageResult(
             sellerId: SellerAId,
             orderNo: "ORD-A-001",
             status: "Paid",
-            pageIndex: 0,
+            page: 1,
             pageSize: 20,
-            totalCount: 1);
+            total: 1);
 
         OrderListQuery? capturedQuery = null;
         _orderListQueryHandlerMock
@@ -456,7 +454,7 @@ public class SellerOrdersApiTests
 
         // Act
         await sut.ListSellerOrdersAsync(
-            status: null, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: null, endDate: null, page: 1, pageSize: 20);
 
         // Assert — 卖家 A 的查询 SellerId 必须是 A，不是 B
         capturedQuery.Should().NotBeNull();
@@ -471,13 +469,13 @@ public class SellerOrdersApiTests
     {
         // Arrange — 卖家 B 登录
         SetupSellerAuth(SellerBId);
-        var expectedResult = BuildOrderListResult(
+        var expectedResult = BuildPageResult(
             sellerId: SellerBId,
             orderNo: "ORD-B-001",
             status: "Shipped",
-            pageIndex: 0,
+            page: 1,
             pageSize: 20,
-            totalCount: 1);
+            total: 1);
 
         OrderListQuery? capturedQuery = null;
         _orderListQueryHandlerMock
@@ -489,7 +487,7 @@ public class SellerOrdersApiTests
 
         // Act
         await sut.ListSellerOrdersAsync(
-            status: null, orderNo: null, startDate: null, endDate: null, page: 0, pageSize: 20);
+            status: null, orderNo: null, startDate: null, endDate: null, page: 1, pageSize: 20);
 
         // Assert — 卖家 B 的查询 SellerId 必须是 B，不是 A
         capturedQuery.Should().NotBeNull();
@@ -504,13 +502,13 @@ public class SellerOrdersApiTests
     {
         // Arrange — 卖家 A 登录，确认 SellerId 只来自 JWT（GetCurrentUserId），不受任何其他输入影响
         SetupSellerAuth(SellerAId);
-        var expectedResult = BuildOrderListResult(
+        var expectedResult = BuildPageResult(
             sellerId: SellerAId,
             orderNo: "ORD-A-001",
             status: "Paid",
-            pageIndex: 0,
+            page: 1,
             pageSize: 20,
-            totalCount: 1);
+            total: 1);
 
         OrderListQuery? capturedQuery = null;
         _orderListQueryHandlerMock
