@@ -104,15 +104,51 @@ public sealed class GrpcProductAntiCorruptionClient
     }
 
     /// <inheritdoc />
-    public Task<(List<string> Headers, List<IReadOnlyDictionary<string, object?>> Rows)> GetProductSalesAsync(
+    public async Task<(List<string> Headers, List<IReadOnlyDictionary<string, object?>> Rows)> GetProductSalesAsync(
         Guid shopId, DateTime startDate, DateTime endDate, CancellationToken ct = default)
     {
-        // fail-soft 契约：未取得数据时返回空表头与空行，导出文件为空文件；商品域 gRPC 查询由 Task 13 接入。
-        _logger.LogWarning(
-            "GetProductSalesAsync 返回空结果（fail-soft）ShopId={ShopId} Range={Start:O}~{End:O}",
-            shopId, startDate, endDate);
-        return Task.FromResult<(List<string> Headers, List<IReadOnlyDictionary<string, object?>> Rows)>(
-            (new List<string>(), new List<IReadOnlyDictionary<string, object?>>()));
+        try
+        {
+            return await ExecuteAsync("get_product_sales", async token =>
+            {
+                var request = new ExportDataRequest
+                {
+                    ShopIdStr = shopId.ToString(),
+                    StartDate = startDate.ToString("O"),
+                    EndDate = endDate.ToString("O")
+                };
+                var metadata = BuildMetadata();
+                var response = await _client.GetProductSalesForExportAsync(request, metadata, cancellationToken: token)
+                    .ConfigureAwait(false);
+                return MapExportResponse(response);
+            }, ct).ConfigureAwait(false);
+        }
+        catch (AntiCorruptionException ex)
+        {
+            // fail-soft：跨域调用失败时返回空表头与空行，导出文件为空文件，不阻塞导出流程
+            AntiCorruptionMetrics.RecordFailure(ServiceName, "get_product_sales", "fail-soft");
+            _logger.LogWarning(ex, "商品域 GetProductSales 调用失败，fail-soft 返回空结果 ShopId={ShopId}", shopId);
+            return (new List<string>(), new List<IReadOnlyDictionary<string, object?>>());
+        }
+    }
+
+    /// <summary>
+    /// 将 gRPC <see cref="ExportDataResponse"/> 映射为应用层 (Headers, Rows) 元组。
+    /// 行值统一以 string 形式承载（proto map&lt;string,string&gt;），由 ExportFileGenerator 进一步格式化。
+    /// </summary>
+    private static (List<string> Headers, List<IReadOnlyDictionary<string, object?>> Rows) MapExportResponse(ExportDataResponse response)
+    {
+        var headers = response.Headers.ToList();
+        var rows = response.Rows.Select(row =>
+        {
+            var dict = new Dictionary<string, object?>(row.Values.Count);
+            foreach (var kv in row.Values)
+            {
+                dict[kv.Key] = kv.Value;
+            }
+            return (IReadOnlyDictionary<string, object?>)dict;
+        }).ToList();
+        return (headers, rows);
     }
 
     private Metadata BuildMetadata()

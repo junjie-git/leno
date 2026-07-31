@@ -65,6 +65,10 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
     static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Product.V1.GetLowStockByShopRequest> __Marshaller_leno_product_v1_GetLowStockByShopRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Product.V1.GetLowStockByShopRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Product.V1.GetLowStockByShopResponse> __Marshaller_leno_product_v1_GetLowStockByShopResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Product.V1.GetLowStockByShopResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Product.V1.ExportDataRequest> __Marshaller_leno_product_v1_ExportDataRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Product.V1.ExportDataRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Product.V1.ExportDataResponse> __Marshaller_leno_product_v1_ExportDataResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Product.V1.ExportDataResponse.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::Leno.SharedContracts.Grpc.Product.V1.GetSkuInfoRequest, global::Leno.SharedContracts.Grpc.Product.V1.SkuInfo> __Method_GetSkuInfo = new grpc::Method<global::Leno.SharedContracts.Grpc.Product.V1.GetSkuInfoRequest, global::Leno.SharedContracts.Grpc.Product.V1.SkuInfo>(
@@ -106,6 +110,14 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
         __Marshaller_leno_product_v1_GetLowStockByShopRequest,
         __Marshaller_leno_product_v1_GetLowStockByShopResponse);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::Leno.SharedContracts.Grpc.Product.V1.ExportDataRequest, global::Leno.SharedContracts.Grpc.Product.V1.ExportDataResponse> __Method_GetProductSalesForExport = new grpc::Method<global::Leno.SharedContracts.Grpc.Product.V1.ExportDataRequest, global::Leno.SharedContracts.Grpc.Product.V1.ExportDataResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "GetProductSalesForExport",
+        __Marshaller_leno_product_v1_ExportDataRequest,
+        __Marshaller_leno_product_v1_ExportDataResponse);
+
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
     {
@@ -142,6 +154,18 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::Leno.SharedContracts.Grpc.Product.V1.GetLowStockByShopResponse> GetLowStockByShop(global::Leno.SharedContracts.Grpc.Product.V1.GetLowStockByShopRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// BE-3 数据导出：商品销量查询（按店铺 + 时间范围）
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::Leno.SharedContracts.Grpc.Product.V1.ExportDataResponse> GetProductSalesForExport(global::Leno.SharedContracts.Grpc.Product.V1.ExportDataRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -275,6 +299,54 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_GetLowStockByShop, null, options, request);
       }
+      /// <summary>
+      /// BE-3 数据导出：商品销量查询（按店铺 + 时间范围）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::Leno.SharedContracts.Grpc.Product.V1.ExportDataResponse GetProductSalesForExport(global::Leno.SharedContracts.Grpc.Product.V1.ExportDataRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetProductSalesForExport(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// BE-3 数据导出：商品销量查询（按店铺 + 时间范围）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::Leno.SharedContracts.Grpc.Product.V1.ExportDataResponse GetProductSalesForExport(global::Leno.SharedContracts.Grpc.Product.V1.ExportDataRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_GetProductSalesForExport, null, options, request);
+      }
+      /// <summary>
+      /// BE-3 数据导出：商品销量查询（按店铺 + 时间范围）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::Leno.SharedContracts.Grpc.Product.V1.ExportDataResponse> GetProductSalesForExportAsync(global::Leno.SharedContracts.Grpc.Product.V1.ExportDataRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetProductSalesForExportAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// BE-3 数据导出：商品销量查询（按店铺 + 时间范围）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::Leno.SharedContracts.Grpc.Product.V1.ExportDataResponse> GetProductSalesForExportAsync(global::Leno.SharedContracts.Grpc.Product.V1.ExportDataRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_GetProductSalesForExport, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override ProductInternalServiceClient NewInstance(ClientBaseConfiguration configuration)
@@ -293,7 +365,8 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
           .AddMethod(__Method_BatchGetSkuInfo, serviceImpl.BatchGetSkuInfo)
           .AddMethod(__Method_GetSkuStock, serviceImpl.GetSkuStock)
           .AddMethod(__Method_GetProductDetail, serviceImpl.GetProductDetail)
-          .AddMethod(__Method_GetLowStockByShop, serviceImpl.GetLowStockByShop).Build();
+          .AddMethod(__Method_GetLowStockByShop, serviceImpl.GetLowStockByShop)
+          .AddMethod(__Method_GetProductSalesForExport, serviceImpl.GetProductSalesForExport).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -308,6 +381,7 @@ namespace Leno.SharedContracts.Grpc.Product.V1 {
       serviceBinder.AddMethod(__Method_GetSkuStock, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Product.V1.GetSkuStockRequest, global::Leno.SharedContracts.Grpc.Product.V1.SkuStock>(serviceImpl.GetSkuStock));
       serviceBinder.AddMethod(__Method_GetProductDetail, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Product.V1.GetProductDetailRequest, global::Leno.SharedContracts.Grpc.Product.V1.ProductDetail>(serviceImpl.GetProductDetail));
       serviceBinder.AddMethod(__Method_GetLowStockByShop, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Product.V1.GetLowStockByShopRequest, global::Leno.SharedContracts.Grpc.Product.V1.GetLowStockByShopResponse>(serviceImpl.GetLowStockByShop));
+      serviceBinder.AddMethod(__Method_GetProductSalesForExport, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Product.V1.ExportDataRequest, global::Leno.SharedContracts.Grpc.Product.V1.ExportDataResponse>(serviceImpl.GetProductSalesForExport));
     }
 
   }

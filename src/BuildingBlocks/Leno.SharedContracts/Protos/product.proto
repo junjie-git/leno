@@ -8,6 +8,8 @@ service ProductInternalService {
   rpc GetSkuStock(GetSkuStockRequest) returns (SkuStock);
   rpc GetProductDetail(GetProductDetailRequest) returns (ProductDetail);
   rpc GetLowStockByShop(GetLowStockByShopRequest) returns (GetLowStockByShopResponse);
+  // BE-3 数据导出：商品销量查询（按店铺 + 时间范围）
+  rpc GetProductSalesForExport(ExportDataRequest) returns (ExportDataResponse);
 }
 
 message GetSkuInfoRequest {
@@ -76,4 +78,22 @@ message LowStockSkuItem {
 }
 message GetLowStockByShopResponse {
   repeated LowStockSkuItem items = 1;
+}
+
+// BE-3 数据导出请求（按店铺 + ISO 8601 时间范围）
+message ExportDataRequest {
+  string shop_id_str = 1;
+  string start_date = 2;
+  string end_date = 3;
+}
+
+// BE-3 数据导出行（map<string, string> 兼容任意列）
+message ExportDataRow {
+  map<string, string> values = 1;
+}
+
+// BE-3 数据导出响应（表头 + 数据行）
+message ExportDataResponse {
+  repeated string headers = 1;
+  repeated ExportDataRow rows = 2;
 }

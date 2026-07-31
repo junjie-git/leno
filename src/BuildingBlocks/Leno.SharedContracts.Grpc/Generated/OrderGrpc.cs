@@ -61,6 +61,10 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest> __Marshaller_leno_order_v1_GetOrderSellerIdRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse> __Marshaller_leno_order_v1_GetOrderSellerIdResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest> __Marshaller_leno_order_v1_ExportDataRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse> __Marshaller_leno_order_v1_ExportDataResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderStatusRequest, global::Leno.SharedContracts.Grpc.Order.V1.OrderStatus> __Method_GetOrderStatus = new grpc::Method<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderStatusRequest, global::Leno.SharedContracts.Grpc.Order.V1.OrderStatus>(
@@ -94,6 +98,22 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
         __Marshaller_leno_order_v1_GetOrderSellerIdRequest,
         __Marshaller_leno_order_v1_GetOrderSellerIdResponse);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest, global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse> __Method_GetSalesSummaryForExport = new grpc::Method<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest, global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "GetSalesSummaryForExport",
+        __Marshaller_leno_order_v1_ExportDataRequest,
+        __Marshaller_leno_order_v1_ExportDataResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest, global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse> __Method_GetOrderDetailForExport = new grpc::Method<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest, global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "GetOrderDetailForExport",
+        __Marshaller_leno_order_v1_ExportDataRequest,
+        __Marshaller_leno_order_v1_ExportDataResponse);
+
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
     {
@@ -124,6 +144,24 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse> GetOrderSellerId(global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// BE-3 数据导出：销售汇总与订单明细查询（按店铺 + 时间范围）
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse> GetSalesSummaryForExport(global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse> GetOrderDetailForExport(global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -237,6 +275,74 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_GetOrderSellerId, null, options, request);
       }
+      /// <summary>
+      /// BE-3 数据导出：销售汇总与订单明细查询（按店铺 + 时间范围）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse GetSalesSummaryForExport(global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetSalesSummaryForExport(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// BE-3 数据导出：销售汇总与订单明细查询（按店铺 + 时间范围）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse GetSalesSummaryForExport(global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_GetSalesSummaryForExport, null, options, request);
+      }
+      /// <summary>
+      /// BE-3 数据导出：销售汇总与订单明细查询（按店铺 + 时间范围）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse> GetSalesSummaryForExportAsync(global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetSalesSummaryForExportAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// BE-3 数据导出：销售汇总与订单明细查询（按店铺 + 时间范围）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse> GetSalesSummaryForExportAsync(global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_GetSalesSummaryForExport, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse GetOrderDetailForExport(global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetOrderDetailForExport(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse GetOrderDetailForExport(global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_GetOrderDetailForExport, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse> GetOrderDetailForExportAsync(global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetOrderDetailForExportAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse> GetOrderDetailForExportAsync(global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_GetOrderDetailForExport, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override OrderInternalServiceClient NewInstance(ClientBaseConfiguration configuration)
@@ -254,7 +360,9 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
           .AddMethod(__Method_GetOrderStatus, serviceImpl.GetOrderStatus)
           .AddMethod(__Method_GetOrderDetail, serviceImpl.GetOrderDetail)
           .AddMethod(__Method_GetSellerOrders, serviceImpl.GetSellerOrders)
-          .AddMethod(__Method_GetOrderSellerId, serviceImpl.GetOrderSellerId).Build();
+          .AddMethod(__Method_GetOrderSellerId, serviceImpl.GetOrderSellerId)
+          .AddMethod(__Method_GetSalesSummaryForExport, serviceImpl.GetSalesSummaryForExport)
+          .AddMethod(__Method_GetOrderDetailForExport, serviceImpl.GetOrderDetailForExport).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -268,6 +376,8 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
       serviceBinder.AddMethod(__Method_GetOrderDetail, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderDetailRequest, global::Leno.SharedContracts.Grpc.Order.V1.OrderDetail>(serviceImpl.GetOrderDetail));
       serviceBinder.AddMethod(__Method_GetSellerOrders, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Order.V1.GetSellerOrdersRequest, global::Leno.SharedContracts.Grpc.Order.V1.SellerOrders>(serviceImpl.GetSellerOrders));
       serviceBinder.AddMethod(__Method_GetOrderSellerId, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest, global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse>(serviceImpl.GetOrderSellerId));
+      serviceBinder.AddMethod(__Method_GetSalesSummaryForExport, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest, global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse>(serviceImpl.GetSalesSummaryForExport));
+      serviceBinder.AddMethod(__Method_GetOrderDetailForExport, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest, global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse>(serviceImpl.GetOrderDetailForExport));
     }
 
   }

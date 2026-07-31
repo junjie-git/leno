@@ -13,6 +13,7 @@ using Leno.SellerShop.Infrastructure.BackgroundServices;
 using Leno.SellerShop.Infrastructure.Configuration;
 using Leno.SellerShop.Infrastructure.Consumers;
 using Leno.SellerShop.Infrastructure.EventBus;
+using Leno.SellerShop.Infrastructure.Export;
 using Leno.SellerShop.Infrastructure.ReadModels;
 using Leno.SellerShop.Infrastructure.Repositories;
 using Leno.SellerShop.Infrastructure.Services;
@@ -113,6 +114,12 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(QualificationReminderOptions.SectionName));
 
         services.AddHostedService<QualificationExpiryReminder>();
+
+        // BE-3 数据导出：导出任务仓储、应用服务、文件生成器与后台作业
+        services.AddScoped<IExportTaskRepository, ExportTaskRepository>();
+        services.AddScoped<IExportAppService, ExportAppService>();
+        services.AddSingleton<ExportFileGenerator>();
+        services.AddHostedService<ExportBackgroundService>();
 
         return services;
     }

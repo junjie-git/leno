@@ -7,6 +7,9 @@ service OrderInternalService {
   rpc GetOrderDetail(GetOrderDetailRequest) returns (OrderDetail);
   rpc GetSellerOrders(GetSellerOrdersRequest) returns (SellerOrders);
   rpc GetOrderSellerId(GetOrderSellerIdRequest) returns (GetOrderSellerIdResponse);
+  // BE-3 数据导出：销售汇总与订单明细查询（按店铺 + 时间范围）
+  rpc GetSalesSummaryForExport(ExportDataRequest) returns (ExportDataResponse);
+  rpc GetOrderDetailForExport(ExportDataRequest) returns (ExportDataResponse);
 }
 
 message GetOrderStatusRequest { string order_id = 1; }
@@ -67,4 +70,22 @@ message GetOrderSellerIdRequest {
 message GetOrderSellerIdResponse {
   int64 seller_id = 1 [deprecated = true];
   string seller_id_str = 2;
+}
+
+// BE-3 数据导出请求（按店铺 + ISO 8601 时间范围）
+message ExportDataRequest {
+  string shop_id_str = 1;
+  string start_date = 2;
+  string end_date = 3;
+}
+
+// BE-3 数据导出行（map<string, string> 兼容任意列）
+message ExportDataRow {
+  map<string, string> values = 1;
+}
+
+// BE-3 数据导出响应（表头 + 数据行）
+message ExportDataResponse {
+  repeated string headers = 1;
+  repeated ExportDataRow rows = 2;
 }
