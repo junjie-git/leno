@@ -67,6 +67,30 @@ public sealed class GrpcOrderAntiCorruptionClient
         }
     }
 
+    /// <inheritdoc />
+    public Task<(List<string> Headers, List<IReadOnlyDictionary<string, object?>> Rows)> GetSalesSummaryAsync(
+        Guid shopId, DateTime startDate, DateTime endDate, CancellationToken ct = default)
+    {
+        // fail-soft 契约：未取得数据时返回空表头与空行，导出文件为空文件；订单域 gRPC 查询由 Task 13 接入。
+        _logger.LogWarning(
+            "GetSalesSummaryAsync 返回空结果（fail-soft）ShopId={ShopId} Range={Start:O}~{End:O}",
+            shopId, startDate, endDate);
+        return Task.FromResult<(List<string> Headers, List<IReadOnlyDictionary<string, object?>> Rows)>(
+            (new List<string>(), new List<IReadOnlyDictionary<string, object?>>()));
+    }
+
+    /// <inheritdoc />
+    public Task<(List<string> Headers, List<IReadOnlyDictionary<string, object?>> Rows)> GetOrderDetailForExportAsync(
+        Guid shopId, DateTime startDate, DateTime endDate, CancellationToken ct = default)
+    {
+        // fail-soft 契约：未取得数据时返回空表头与空行，导出文件为空文件；订单域 gRPC 查询由 Task 13 接入。
+        _logger.LogWarning(
+            "GetOrderDetailForExportAsync 返回空结果（fail-soft）ShopId={ShopId} Range={Start:O}~{End:O}",
+            shopId, startDate, endDate);
+        return Task.FromResult<(List<string> Headers, List<IReadOnlyDictionary<string, object?>> Rows)>(
+            (new List<string>(), new List<IReadOnlyDictionary<string, object?>>()));
+    }
+
     private Metadata BuildMetadata()
     {
         var metadata = new Metadata();

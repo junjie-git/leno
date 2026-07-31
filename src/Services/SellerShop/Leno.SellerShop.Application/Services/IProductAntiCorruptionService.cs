@@ -25,4 +25,17 @@ public interface IProductAntiCorruptionService
     /// <param name="ct">取消令牌。</param>
     /// <returns>低库存 SKU 列表；ACL 调用失败时返回空列表（fail-soft，避免工作台白屏）。</returns>
     Task<List<LowStockItemDto>> GetLowStockSkusAsync(Guid shopId, int threshold, CancellationToken ct = default);
+
+    /// <summary>
+    /// 按店铺与日期范围查询商品销量数据（用于数据导出 ProductSales 报表）。
+    /// 经 gRPC 调商品域聚合商品销量指标，返回表头与行数据以供文件生成器渲染。
+    /// 实现位于 Task 13（GrpcProductAntiCorruptionClient）。
+    /// </summary>
+    /// <param name="shopId">店铺标识。</param>
+    /// <param name="startDate">起始日期（UTC）。</param>
+    /// <param name="endDate">结束日期（UTC）。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>表头列表与行数据列表；ACL 调用失败时返回空列表（fail-soft）。</returns>
+    Task<(List<string> Headers, List<IReadOnlyDictionary<string, object?>> Rows)> GetProductSalesAsync(
+        Guid shopId, DateTime startDate, DateTime endDate, CancellationToken ct = default);
 }
