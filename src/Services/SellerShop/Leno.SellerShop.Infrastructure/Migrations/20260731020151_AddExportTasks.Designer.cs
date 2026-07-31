@@ -4,6 +4,7 @@ using Leno.SellerShop.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Leno.SellerShop.Infrastructure.Migrations
 {
     [DbContext(typeof(SellerShopDbContext))]
-    partial class SellerShopDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260731020151_AddExportTasks")]
+    partial class AddExportTasks
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -502,7 +505,7 @@ namespace Leno.SellerShop.Infrastructure.Migrations
 
                             b1.HasKey("ShopMetricsId");
 
-                            b1.ToTable("shop_metrics", (string)null);
+                            b1.ToTable("shop_metrics");
 
                             b1.WithOwner()
                                 .HasForeignKey("ShopMetricsId");
@@ -526,7 +529,7 @@ namespace Leno.SellerShop.Infrastructure.Migrations
 
                             b1.HasKey("ShopMetricsId");
 
-                            b1.ToTable("shop_metrics", (string)null);
+                            b1.ToTable("shop_metrics");
 
                             b1.WithOwner()
                                 .HasForeignKey("ShopMetricsId");

@@ -15,7 +15,7 @@ public sealed class LocalFileStorageService : IFileStorageService
     private readonly ILogger<LocalFileStorageService> _logger;
 
     private static readonly HashSet<string> AllowedCategories =
-        new(StringComparer.OrdinalIgnoreCase) { "avatar", "product", "review", "aftersales", "credential", "misc" };
+        new(StringComparer.OrdinalIgnoreCase) { "avatar", "product", "review", "aftersales", "credential", "export", "misc" };
 
     public LocalFileStorageService(IOptions<LocalStorageOptions> options, ILogger<LocalFileStorageService> logger)
     {
