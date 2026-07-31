@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,45 +10,107 @@ import {
   ListItem,
   ListItemMeta,
   Button,
-  Alert,
   Tag,
   Space,
+  Skeleton,
   message,
 } from 'ant-design-vue'
 import { BellOutlined, CheckOutlined } from '@ant-design/icons-vue'
+import { h } from 'vue'
 import { EmptyState } from '@/shared/components'
+import { notificationApi } from '../api/notification.api'
+import type { NotificationRecordDto } from '../types/notification.dto'
+import { logger } from '@/shared/utils/logger'
+import { formatDateTime } from '@/shared/utils/format'
 
 /**
  * 消息通知页
  *
- * 路由 /account/notifications（P0 已注册），权限 notification:list
- * 后端通知端点待确认（BE-4），本页采用"仅 UI + BE-4 标记"策略：
- * 完整 UI 但不调用 API，展示空列表与 BE-4 提示。
+ * 路由 /account/notifications，权限 notification:list
+ * 后端 4 端点已就绪（BE-4 清理），接入真实 API：
+ * - 列表 GET /notifications?isRead=&page=&pageSize=
+ * - 未读计数 GET /notifications/unread-count
+ * - 批量标记已读 POST /notifications/read
+ * - 全部标记已读 POST /notifications/read-all
  */
 
-interface NotificationItem {
-  id: string
-  title: string
-  content: string
-  read: boolean
-  createdAt: string
-}
+type TabKey = 'all' | 'unread' | 'read'
 
-const activeTab = ref<'all' | 'unread' | 'read'>('all')
-const notifications = ref<NotificationItem[]>([])
+const activeTab = ref<TabKey>('all')
+const loading = ref(true)
+const submitting = ref(false)
+const notifications = ref<NotificationRecordDto[]>([])
+const unreadCount = ref(0)
 
-const filtered = computed(() => {
-  if (activeTab.value === 'unread') return notifications.value.filter((n) => !n.read)
-  if (activeTab.value === 'read') return notifications.value.filter((n) => n.read)
+const filtered = computed<NotificationRecordDto[]>(() => {
+  if (activeTab.value === 'unread') return notifications.value.filter((n) => !n.isRead)
+  if (activeTab.value === 'read') return notifications.value.filter((n) => n.isRead)
   return notifications.value
 })
 
-const unreadCount = computed(() => notifications.value.filter((n) => !n.read).length)
-
-function onMarkAllRead(): void {
-  // BE-4：后端未就绪，仅提示
-  message.warning('后端通知接口未就绪（BE-4），暂无法标记已读')
+function isReadParam(tab: TabKey): boolean | undefined {
+  if (tab === 'unread') return false
+  if (tab === 'read') return true
+  return undefined
 }
+
+async function loadList(): Promise<void> {
+  loading.value = true
+  try {
+    const res = await notificationApi.list({
+      isRead: isReadParam(activeTab.value),
+      page: 1,
+      pageSize: 50,
+    })
+    notifications.value = res.items
+    unreadCount.value = res.unreadCount
+  } catch (e) {
+    logger.error('加载通知列表失败', e)
+    message.error('加载通知列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadUnreadCount(): Promise<void> {
+  try {
+    unreadCount.value = await notificationApi.getUnreadCount()
+  } catch (e) {
+    logger.warn('获取未读计数失败', e)
+  }
+}
+
+async function onMarkAllRead(): Promise<void> {
+  submitting.value = true
+  try {
+    await notificationApi.markAllAsRead()
+    message.success('已全部标记为已读')
+    await loadList()
+    await loadUnreadCount()
+  } catch (e) {
+    logger.error('标记全部已读失败', e)
+    message.error('标记全部已读失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function onMarkOneRead(item: NotificationRecordDto): Promise<void> {
+  if (item.isRead) return
+  try {
+    await notificationApi.markAsRead([item.recordId])
+    item.isRead = true
+    unreadCount.value = Math.max(0, unreadCount.value - 1)
+  } catch (e) {
+    logger.error('标记已读失败', e)
+    message.error('标记已读失败')
+  }
+}
+
+onMounted(() => {
+  void loadList()
+  void loadUnreadCount()
+})
 </script>
 
 <template>
@@ -57,14 +119,6 @@ function onMarkAllRead(): void {
       <BreadcrumbItem>个人账号</BreadcrumbItem>
       <BreadcrumbItem>消息通知</BreadcrumbItem>
     </Breadcrumb>
-
-    <Alert
-      type="warning"
-      show-icon
-      message="后端通知接口未就绪（BE-4）"
-      description="通知端点待后端确认，当前展示空列表占位。后端就绪后将自动接入真实数据。"
-      class="account-notifications-alert"
-    />
 
     <Card class="account-notifications-card" :bordered="true">
       <template #title>
@@ -75,21 +129,25 @@ function onMarkAllRead(): void {
         </Space>
       </template>
       <template #extra>
-        <Button :icon="h(CheckOutlined)" size="small" @click="onMarkAllRead">
+        <Button
+          :icon="h(CheckOutlined)"
+          size="small"
+          :loading="submitting"
+          :disabled="unreadCount === 0"
+          @click="onMarkAllRead"
+        >
           全部标记已读
         </Button>
       </template>
 
-      <Tabs v-model:active-key="activeTab">
+      <Tabs v-model:active-key="activeTab" @change="loadList">
         <TabPane key="all" tab="全部" />
         <TabPane key="unread" tab="未读" />
         <TabPane key="read" tab="已读" />
       </Tabs>
 
-      <EmptyState
-        v-if="filtered.length === 0"
-        description="暂无通知"
-      />
+      <Skeleton v-if="loading" active :paragraph="{ rows: 4 }" />
+      <EmptyState v-else-if="filtered.length === 0" description="暂无通知" />
       <List v-else :data-source="filtered" item-layout="horizontal">
         <template #renderItem="{ item }">
           <ListItem>
@@ -97,11 +155,26 @@ function onMarkAllRead(): void {
               <template #title>
                 <Space>
                   <span>{{ item.title }}</span>
-                  <Tag v-if="!item.read" color="red">未读</Tag>
+                  <Tag v-if="!item.isRead" color="red">未读</Tag>
                 </Space>
               </template>
-              <template #description>{{ item.content }}</template>
+              <template #description>
+                <div class="account-notifications-desc">
+                  <span>{{ item.content }}</span>
+                  <span class="account-notifications-time">{{ formatDateTime(item.createdAt) }}</span>
+                </div>
+              </template>
             </ListItemMeta>
+            <template #actions>
+              <Button
+                v-if="!item.isRead"
+                type="link"
+                size="small"
+                @click="onMarkOneRead(item as NotificationRecordDto)"
+              >
+                标记已读
+              </Button>
+            </template>
           </ListItem>
         </template>
       </List>
@@ -118,14 +191,20 @@ function onMarkAllRead(): void {
 .account-notifications-breadcrumb {
   font-size: 14px;
 }
-.account-notifications-alert {
-  border-radius: 8px;
-}
 .account-notifications-card {
   border-radius: 8px;
 }
 .account-notifications-title {
   font-size: 15px;
   font-weight: 500;
+}
+.account-notifications-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.account-notifications-time {
+  font-size: 12px;
+  color: #8c8c8c;
 }
 </style>
