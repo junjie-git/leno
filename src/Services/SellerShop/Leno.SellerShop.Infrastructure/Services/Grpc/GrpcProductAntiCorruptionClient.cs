@@ -1,5 +1,6 @@
 using Grpc.Core;
 using Leno.Infrastructure.AntiCorruption;
+using Leno.SellerShop.Application;
 using Leno.SellerShop.Application.Services;
 using Leno.SharedContracts.Grpc.Product.V1;
 using Microsoft.Extensions.DependencyInjection;
@@ -64,6 +65,41 @@ public sealed class GrpcProductAntiCorruptionClient
             AntiCorruptionMetrics.RecordFailure(ServiceName, "get_spu_seller", "fail-closed");
             _logger.LogWarning(ex, "商品域 GetSpuSellerId 调用失败，fail-closed 返回 null SpuId={SpuId}", spuId);
             return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<List<LowStockItemDto>> GetLowStockSkusAsync(Guid shopId, int threshold, CancellationToken ct = default)
+    {
+        try
+        {
+            return await ExecuteAsync("get_low_stock", async token =>
+            {
+                var request = new GetLowStockByShopRequest
+                {
+                    ShopIdStr = shopId.ToString(),
+                    Threshold = threshold
+                };
+                var metadata = BuildMetadata();
+                var response = await _client.GetLowStockByShopAsync(request, metadata, cancellationToken: token)
+                    .ConfigureAwait(false);
+                return response.Items.Select(x => new LowStockItemDto
+                {
+                    SkuId = Guid.TryParse(x.SkuIdStr, out var sid) ? sid : Guid.Empty,
+                    ProductId = Guid.TryParse(x.ProductIdStr, out var pid) ? pid : Guid.Empty,
+                    ProductName = x.ProductName,
+                    SkuName = x.SkuName,
+                    Stock = x.Stock,
+                    Threshold = x.Threshold
+                }).ToList();
+            }, ct).ConfigureAwait(false);
+        }
+        catch (AntiCorruptionException ex)
+        {
+            // fail-soft：跨域调用失败时返回空列表，工作台显示"暂无低库存商品"
+            AntiCorruptionMetrics.RecordFailure(ServiceName, "get_low_stock", "fail-soft");
+            _logger.LogWarning(ex, "商品域 GetLowStockByShop 调用失败，fail-soft 返回空列表 ShopId={ShopId}", shopId);
+            return new List<LowStockItemDto>();
         }
     }
 

@@ -162,6 +162,31 @@ public sealed class ProductGrpcService : ProductInternalService.ProductInternalS
         return detail;
     }
 
+    public override async Task<GetLowStockByShopResponse> GetLowStockByShop(
+        GetLowStockByShopRequest request, ServerCallContext context)
+    {
+        if (!Guid.TryParse(request.ShopIdStr, out var shopId))
+        {
+            return new GetLowStockByShopResponse();
+        }
+
+        var items = await _queryService.GetLowStockByShopAsync(shopId, request.Threshold, context.CancellationToken)
+            .ConfigureAwait(false);
+
+        var response = new GetLowStockByShopResponse();
+        response.Items.AddRange(items.Select(x => new LowStockSkuItem
+        {
+            SkuIdStr = x.SkuId.ToString(),
+            ProductIdStr = x.ProductId.ToString(),
+            ProductName = x.ProductName ?? string.Empty,
+            SkuName = x.SkuName ?? string.Empty,
+            Stock = x.Stock,
+            Threshold = x.Threshold,
+            ShopIdStr = x.ShopId.ToString()
+        }));
+        return response;
+    }
+
     private static SkuInfo MapToProto(SkuInfoResultDto dto) => new()
     {
         // 既有 int64 字段（向后兼容，标记 deprecated）

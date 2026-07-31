@@ -180,4 +180,16 @@ public sealed class SellerDashboardController : SellerShopControllerBase
         var metrics = await _dashboardAppService.GetShopMetricsAsync(shop.Id, from, to, ct);
         return Ok(ApiResponse.Success(metrics));
     }
+
+    /// <summary>查询当前卖家店铺的低库存 SKU 列表（经 ACL 调商品域）。</summary>
+    [HttpGet("dashboard/low-stock")]
+    [ProducesResponseType(typeof(ApiResponse<List<LowStockItemDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLowStockAlertAsync(
+        [FromQuery] int threshold = 10,
+        CancellationToken ct = default)
+    {
+        var sellerId = GetCurrentUserId();
+        var items = await _dashboardAppService.GetLowStockAlertAsync(sellerId, threshold, ct);
+        return Ok(ApiResponse.Success(items));
+    }
 }

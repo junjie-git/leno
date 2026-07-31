@@ -22,4 +22,13 @@ public interface ISellerDashboardAppService
     /// <summary>查询指定店铺与日期范围的运营指标明细。</summary>
     Task<IReadOnlyList<ShopMetricsDto>> GetShopMetricsAsync(
         Guid shopId, DateOnly fromDate, DateOnly toDate, CancellationToken ct = default);
+
+    /// <summary>
+    /// 查询当前卖家店铺的低库存 SKU 列表（经 ACL 调商品域）。
+    /// </summary>
+    /// <param name="sellerId">卖家标识（取自 JWT）。</param>
+    /// <param name="threshold">低库存阈值。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>低库存 SKU 列表。</returns>
+    Task<List<LowStockItemDto>> GetLowStockAlertAsync(Guid sellerId, int threshold, CancellationToken ct = default);
 }

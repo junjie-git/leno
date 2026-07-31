@@ -16,6 +16,7 @@ public class SellerDashboardAppServiceTests
     private readonly Mock<IShopRepository> _shopRepoMock = new();
     private readonly Mock<IShopMetricsRepository> _metricsRepoMock = new();
     private readonly Mock<IShopDashboardRepository> _dashboardRepoMock = new();
+    private readonly Mock<IProductAntiCorruptionService> _productAntiCorruptionMock = new();
     private readonly SellerDashboardAppService _sut;
 
     private static readonly Guid SellerId = Guid.NewGuid();
@@ -26,7 +27,8 @@ public class SellerDashboardAppServiceTests
         _sut = new SellerDashboardAppService(
             _shopRepoMock.Object,
             _metricsRepoMock.Object,
-            _dashboardRepoMock.Object);
+            _dashboardRepoMock.Object,
+            _productAntiCorruptionMock.Object);
     }
 
     [Fact]

@@ -13,15 +13,18 @@ public sealed class SellerDashboardAppService : ISellerDashboardAppService
     private readonly IShopRepository _shopRepository;
     private readonly IShopMetricsRepository _metricsRepository;
     private readonly IShopDashboardRepository _dashboardRepository;
+    private readonly IProductAntiCorruptionService _productAntiCorruptionService;
 
     public SellerDashboardAppService(
         IShopRepository shopRepository,
         IShopMetricsRepository metricsRepository,
-        IShopDashboardRepository dashboardRepository)
+        IShopDashboardRepository dashboardRepository,
+        IProductAntiCorruptionService productAntiCorruptionService)
     {
         _shopRepository = shopRepository;
         _metricsRepository = metricsRepository;
         _dashboardRepository = dashboardRepository;
+        _productAntiCorruptionService = productAntiCorruptionService;
     }
 
     /// <inheritdoc />
@@ -115,5 +118,22 @@ public sealed class SellerDashboardAppService : ISellerDashboardAppService
         {
             throw new SellerShopDomainException("起始日期不可晚于结束日期", "METRICS_INVALID_RANGE");
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<List<LowStockItemDto>> GetLowStockAlertAsync(Guid sellerId, int threshold, CancellationToken ct = default)
+    {
+        if (sellerId == Guid.Empty)
+        {
+            throw new SellerShopDomainException("卖家账号标识不可为空", "SELLER_USER_EMPTY");
+        }
+
+        var shop = await _shopRepository.GetBySellerIdAsync(sellerId, ct);
+        if (shop is null)
+        {
+            throw new SellerShopDomainException("店铺不存在", "SHOP_NOT_FOUND");
+        }
+
+        return await _productAntiCorruptionService.GetLowStockSkusAsync(shop.Id, threshold, ct);
     }
 }

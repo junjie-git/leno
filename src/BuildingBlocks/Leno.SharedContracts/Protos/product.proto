@@ -7,6 +7,7 @@ service ProductInternalService {
   rpc BatchGetSkuInfo(BatchGetSkuInfoRequest) returns (BatchGetSkuInfoResponse);
   rpc GetSkuStock(GetSkuStockRequest) returns (SkuStock);
   rpc GetProductDetail(GetProductDetailRequest) returns (ProductDetail);
+  rpc GetLowStockByShop(GetLowStockByShopRequest) returns (GetLowStockByShopResponse);
 }
 
 message GetSkuInfoRequest {
@@ -59,4 +60,20 @@ message ProductDetail {
   repeated SkuInfo skus = 5;
   string spu_id_str = 6;
   string seller_id_str = 7;
+}
+message GetLowStockByShopRequest {
+  string shop_id_str = 1;
+  int32 threshold = 2;
+}
+message LowStockSkuItem {
+  string sku_id_str = 1;
+  string product_id_str = 2;
+  string product_name = 3;
+  string sku_name = 4;
+  int32 stock = 5;
+  int32 threshold = 6;
+  string shop_id_str = 7;
+}
+message GetLowStockByShopResponse {
+  repeated LowStockSkuItem items = 1;
 }

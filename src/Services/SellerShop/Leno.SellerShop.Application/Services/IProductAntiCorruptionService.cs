@@ -15,4 +15,14 @@ public interface IProductAntiCorruptionService
     /// <param name="ct">取消令牌。</param>
     /// <returns>SPU 归属卖家标识；SPU 不存在或防腐层调用失败时返回 null（fail-closed，由调用方判 false）。</returns>
     Task<Guid?> GetSpuSellerIdAsync(Guid spuId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 查询指定店铺的低库存 SKU 列表（StockQty &lt; threshold）。
+    /// 经 gRPC 调商品域 ProductInternalService.GetLowStockByShop。
+    /// </summary>
+    /// <param name="shopId">店铺标识。</param>
+    /// <param name="threshold">低库存阈值。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <returns>低库存 SKU 列表；ACL 调用失败时返回空列表（fail-soft，避免工作台白屏）。</returns>
+    Task<List<LowStockItemDto>> GetLowStockSkusAsync(Guid shopId, int threshold, CancellationToken ct = default);
 }
