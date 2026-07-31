@@ -24,35 +24,35 @@ describe('orderApi', () => {
     vi.mocked(client.get).mockResolvedValue({
       items: [],
       total: 0,
-      page: 0,
+      page: 1,
       pageSize: 20,
     } as any)
     await orderApi.list({
       status: 'PendingShipment',
       orderNo: 'NO001',
-      page: 0,
+      page: 1,
       pageSize: 20,
     })
     expect(client.get).toHaveBeenCalledWith('/seller/orders', {
       params: expect.objectContaining({
         status: 'PendingShipment',
         orderNo: 'NO001',
-        page: 0,
+        page: 1,
         pageSize: 20,
       }),
     })
   })
 
-  it('list 默认 page=0（BE-1 待统一为 1）', async () => {
+  it('list 默认 page=1', async () => {
     vi.mocked(client.get).mockResolvedValue({
       items: [],
       total: 0,
-      page: 0,
+      page: 1,
       pageSize: 20,
     } as any)
-    await orderApi.list({ pageSize: 20 }) // 不传 page，使用默认 0
+    await orderApi.list({ pageSize: 20 }) // 不传 page，使用默认 1
     expect(client.get).toHaveBeenCalledWith('/seller/orders', {
-      params: expect.objectContaining({ page: 0, pageSize: 20 }),
+      params: expect.objectContaining({ page: 1, pageSize: 20 }),
     })
   })
 
@@ -69,16 +69,16 @@ describe('orderApi', () => {
     })
   })
 
-  it('list 不传 page 时默认 0', async () => {
+  it('list 不传 page 时默认 1', async () => {
     vi.mocked(client.get).mockResolvedValue({
       items: [],
       total: 0,
-      page: 0,
+      page: 1,
       pageSize: 20,
     } as any)
     await orderApi.list({ status: 'Shipped' })
     expect(client.get).toHaveBeenCalledWith('/seller/orders', {
-      params: expect.objectContaining({ page: 0, pageSize: 20 }),
+      params: expect.objectContaining({ page: 1, pageSize: 20 }),
     })
   })
 

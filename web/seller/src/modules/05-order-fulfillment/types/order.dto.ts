@@ -91,14 +91,12 @@ export interface LogisticsTraceDto {
 /**
  * 列表查询参数
  */
-// TODO(backend): BE-1 待 Order BC 统一 page 从 1 起（当前从 0 起，与 SellerShop/Review 不一致）
-//   后端统一后，将下方 page 默认值从 0 改为 1，并移除此 TODO 与调用处的同步标注。
 export interface ListOrdersParams {
   status?: OrderStatus
   orderNo?: string
   buyerName?: string
   startDate?: string
   endDate?: string
-  page?: number    // 后端当前从 0 起（首页传 0），BE-1 待统一为 1
+  page?: number    // 后端从 1 起
   pageSize?: number
 }

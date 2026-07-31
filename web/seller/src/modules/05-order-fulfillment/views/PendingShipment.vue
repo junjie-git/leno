@@ -28,14 +28,11 @@ import { logger } from '@/shared/utils/logger'
  *
  * 列出 status=PendingShipment 的订单，支持订单号 / 买家姓名 / 付款日期范围筛选，
  * 点击「发货」打开弹窗，录入物流公司与单号后调用发货接口（携带乐观锁 version）。
- *
- * 分页：BE-1 待 Order BC 统一 page 从 1 起（当前从 0 起）。
  */
 
 const dataSource = ref<OrderListItemDto[]>([])
 const loading = ref(false)
-// BE-1: 后端 Order 列表 page 从 0 起，首页传 0
-const page = ref(0)
+const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 
@@ -46,8 +43,7 @@ const filters = reactive({
 })
 
 const pagination = computed<TablePaginationConfig>(() => ({
-  // a-table 的 current 为 1 起，BE-1 后端 page 为 0 起，做 +1 适配展示
-  current: page.value + 1,
+  current: page.value,
   pageSize: pageSize.value,
   total: total.value,
   showSizeChanger: true,
@@ -71,7 +67,6 @@ function buildParams() {
     buyerName: filters.buyerName.trim() || undefined,
     startDate: filters.dateRange?.[0],
     endDate: filters.dateRange?.[1],
-    // BE-1: 后端 Order 列表 page 从 0 起
     page: page.value,
     pageSize: pageSize.value,
   }
@@ -96,15 +91,13 @@ async function loadList(): Promise<void> {
 }
 
 function onTableChange(pag: TablePaginationConfig): void {
-  // a-table current 为 1 起，BE-1 后端 page 为 0 起，做 -1 适配
-  page.value = (pag.current ?? 1) - 1
+  page.value = pag.current ?? 1
   pageSize.value = pag.pageSize ?? 20
   void loadList()
 }
 
 function onSearch(): void {
-  // BE-1: 后端 Order 列表 page 从 0 起，搜索时回到首页 0
-  page.value = 0
+  page.value = 1
   void loadList()
 }
 
@@ -112,7 +105,7 @@ function onReset(): void {
   filters.orderNo = ''
   filters.buyerName = ''
   filters.dateRange = undefined
-  page.value = 0
+  page.value = 1
   void loadList()
 }
 
