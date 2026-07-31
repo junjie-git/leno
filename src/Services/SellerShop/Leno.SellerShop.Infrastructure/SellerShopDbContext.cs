@@ -30,4 +30,7 @@ public sealed class SellerShopDbContext : BaseDbContext
 
     /// <summary>店铺资质实体。</summary>
     public DbSet<ShopQualification> ShopQualifications => Set<ShopQualification>();
+
+    /// <summary>导出任务聚合根。</summary>
+    public DbSet<ExportTask> ExportTasks => Set<ExportTask>();
 }
