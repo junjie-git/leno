@@ -16,27 +16,27 @@
   - [x] SubTask 2.3: 移植 `shared/layout`（BasicLayout/HeaderBar/SiderMenu/FooterBar，菜单分组表按运营 10 个一级菜单配置）与 `shared/pages` 5 个框架页（403/404/500/维护/限流）
   - [x] SubTask 2.4: 创建 `app/`（env.ts 含 parseBoolean、pinia.ts named export、provider.vue）与 `main.ts`（三态错误分流 + DEV && VITE_USE_MOCK 动态 import mock）、`App.vue`、`App.spec.ts`
   - [x] SubTask 2.5: 创建 `app/router.ts`：静态路由（/login、框架页、BasicLayout children 预留模块聚合点、404 兜底）+ createAuthGuard（登录态/角色/权限三层校验）
-- [ ] Task 3: 实现 09-account 模块（打通登录闭环）
+- [x] Task 3: 实现 09-account 模块（打通登录闭环）
   - [x] SubTask 3.1: 登录页 Login.vue（双栏布局、错误类型分流提示、RateLimited 倒计时禁用、redirect 回跳），api 对接 `/api/auth/login`
-  - [ ] SubTask 3.2: 个人资料 Profile.vue（`/api/users/me` 系列：资料/改密/双因子开关）+ 通知中心 Notifications.vue（`/api/notifications` 系列：分页/未读数/批量已读）
-  - [ ] SubTask 3.3: 待办工作台 TodoWorkbench.vue（并行请求 5 端点聚合：products/all、shops、after-sales、reviews、notifications/records，各取 Total + Top 10，5 分钟自动刷新）+ routes/index + api spec 单测
-- [ ] Task 4: 实现 01-dashboard 数据看板模块（6 页）
-  - [ ] SubTask 4.1: 运营总览（4 指标卡 + GMV/订单量双轴趋势 + 来源分布环形图，时间筛选默认近 7 天，路由 query 持久化）
-  - [ ] SubTask 4.2: 支付统计（成功率仪表盘 <95% 标红、渠道分布柱状图、失败原因 Top5、渠道明细表 + 失败明细抽屉）
-  - [ ] SubTask 4.3: 积分统计（发放/消耗/净增 3 卡片、双系列趋势、来源分布；净增为负标红）
-  - [ ] SubTask 4.4: 通知送达率（4 渠道卡片仪表盘、多渠道趋势、失败原因环形图；并行请求 dashboard + notifications/statistics 两端点）
-  - [ ] SubTask 4.5: 售后统计（4 指标卡、双轴趋势、类型分布；售后率 >10% 标红、时长 >3 天标黄）+ 店铺排行（TopN 选择 10/20/50 前端切片、柱状图 + 明细表、行点击跳店铺治理）
-  - [ ] SubTask 4.6: dashboard.api.ts + dashboard.dto.ts + routes.ts + index.ts + api spec 单测
-- [ ] Task 5: 实现 02-product-ops 商品运营模块（3 页）
-  - [ ] SubTask 5.1: 商品审核（筛选条 keyword/seller/status/category、批量通过/驳回、详情抽屉含主图+SKU+审核历史、驳回必填原因、SKU 库存调整 delta 模式）
-  - [ ] SubTask 5.2: 品牌管理（表格 + 新增/编辑模态框：名称唯一必填、Logo 上传、排序、启停用；停用被引用返回 409 提示）
-  - [ ] SubTask 5.3: 分类管理（左树右详情、最多 3 级、同级名称唯一、停用含子分类 409 提示、搜索高亮并展开父链）
-  - [ ] SubTask 5.4: product.api/brand.api/category.api + dto + routes + index + api spec 单测
-- [ ] Task 6: 实现 03-promotion-ops 促销运营模块（3 页）
-  - [ ] SubTask 6.1: 促销活动（满减/满折/满赠三类型、阶梯规则编辑器、适用范围选择、Pending→Active↔Paused→Closed 状态机按钮、关闭 danger 强制确认）
-  - [ ] SubTask 6.2: 优惠券管理（三种券类型、发放数量 ≤ 剩余库存校验、面额 ≤ 门槛校验、已发放仅可停用）
-  - [ ] SubTask 6.3: 秒杀活动（多 SKU 配置抽屉 800px：秒杀价/库存/限购、激活初始化 Redis 库存提示、关闭回写 DB 强制确认）
-  - [ ] SubTask 6.4: promotion.api/coupon.api/seckill.api + dto + routes + index + api spec 单测
+  - [x] SubTask 3.2: 个人资料 Profile.vue（`/api/users/me` 系列：资料/改密/双因子开关）+ 通知中心 Notifications.vue（`/api/notifications` 系列：分页/未读数/批量已读）
+  - [x] SubTask 3.3: 待办工作台 TodoWorkbench.vue（并行请求 5 端点聚合：products/all、shops、after-sales、reviews、notifications/records，各取 Total + Top 10，5 分钟自动刷新）+ routes/index + api spec 单测
+- [x] Task 4: 实现 01-dashboard 数据看板模块（6 页）
+  - [x] SubTask 4.1: 运营总览（4 指标卡 + GMV/订单量双轴趋势 + 来源分布环形图，时间筛选默认近 7 天，路由 query 持久化）
+  - [x] SubTask 4.2: 支付统计（成功率仪表盘 <95% 标红、渠道分布柱状图、失败原因 Top5、渠道明细表 + 失败明细抽屉）
+  - [x] SubTask 4.3: 积分统计（发放/消耗/净增 3 卡片、双系列趋势、来源分布；净增为负标红）
+  - [x] SubTask 4.4: 通知送达率（4 渠道卡片仪表盘、多渠道趋势、失败原因环形图；并行请求 dashboard + notifications/statistics 两端点）
+  - [x] SubTask 4.5: 售后统计（4 指标卡、双轴趋势、类型分布；售后率 >10% 标红、时长 >3 天标黄）+ 店铺排行（TopN 选择 10/20/50 前端切片、柱状图 + 明细表、行点击跳店铺治理）
+  - [x] SubTask 4.6: dashboard.api.ts + dashboard.dto.ts + routes.ts + index.ts + api spec 单测
+- [x] Task 5: 实现 02-product-ops 商品运营模块（3 页）
+  - [x] SubTask 5.1: 商品审核（筛选条 keyword/seller/status/category、批量通过/驳回、详情抽屉含主图+SKU+审核历史、驳回必填原因、SKU 库存调整 delta 模式）
+  - [x] SubTask 5.2: 品牌管理（表格 + 新增/编辑模态框：名称唯一必填、Logo 上传、排序、启停用；停用被引用返回 409 提示）
+  - [x] SubTask 5.3: 分类管理（左树右详情、最多 3 级、同级名称唯一、停用含子分类 409 提示、搜索高亮并展开父链）
+  - [x] SubTask 5.4: product.api/brand.api/category.api + dto + routes + index + api spec 单测
+- [x] Task 6: 实现 03-promotion-ops 促销运营模块（3 页）
+  - [x] SubTask 6.1: 促销活动（满减/满折/满赠三类型、阶梯规则编辑器、适用范围选择、Pending→Active↔Paused→Closed 状态机按钮、关闭 danger 强制确认）
+  - [x] SubTask 6.2: 优惠券管理（三种券类型、发放数量 ≤ 剩余库存校验、面额 ≤ 门槛校验、已发放仅可停用）
+  - [x] SubTask 6.3: 秒杀活动（多 SKU 配置抽屉 800px：秒杀价/库存/限购、激活初始化 Redis 库存提示、关闭回写 DB 强制确认）
+  - [x] SubTask 6.4: promotion.api/coupon.api/seckill.api + dto + routes + index + api spec 单测（补充 seckill update PUT 端点支撑编辑流）
 - [ ] Task 7: 实现 04-seller-ops 卖家运营模块（3 页）
   - [ ] SubTask 7.1: 入驻审核（申请表格 + 审核抽屉：店铺信息+资质列表+文件预览、资质单独审核、全部资质通过前店铺通过按钮置灰、批量审核、驳回必填原因）
   - [ ] SubTask 7.2: 店铺治理（状态统计概览、治理抽屉：经营指标+资质复审+状态变更；Active↔Suspended→Closed 状态机、关闭需先暂停、暂停/关闭需原因）
