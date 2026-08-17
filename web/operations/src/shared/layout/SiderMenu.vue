@@ -82,7 +82,8 @@ const groupedMenus = computed<Record<string, MenuItem[]>>(() => {
       key: meta.menuKey,
       title: meta.title,
       icon: meta.icon,
-      path: `/${child.path}`,
+      // 兼容相对路径（'product-ops/x'）与绝对路径（'/promotion-ops/x'）两种定义
+      path: child.path.startsWith('/') ? child.path : `/${child.path}`,
       roles: meta.roles,
     })
   }

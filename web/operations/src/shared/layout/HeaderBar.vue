@@ -70,7 +70,8 @@ function collectMenuItems(): SearchableMenuItem[] {
   for (const child of children) {
     const meta = child.meta ?? {}
     if (typeof meta.title === 'string' && typeof child.path === 'string') {
-      items.push({ title: meta.title, path: `/${child.path}` })
+      // 兼容相对路径（'product-ops/x'）与绝对路径（'/promotion-ops/x'）两种定义
+      items.push({ title: meta.title, path: child.path.startsWith('/') ? child.path : `/${child.path}` })
     }
   }
   return items

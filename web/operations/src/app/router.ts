@@ -13,13 +13,24 @@ import ServerError from '@/shared/pages/ServerError.vue'
 import Maintenance from '@/shared/pages/Maintenance.vue'
 import RateLimited from '@/shared/pages/RateLimited.vue'
 import { logger } from '@/shared/utils/logger'
+import dashboardRoutes from '@/modules/01-dashboard/routes'
+import productOpsRoutes from '@/modules/02-product-ops/routes'
+import promotionOpsRoutes from '@/modules/03-promotion-ops/routes'
+import sellerOpsRoutes from '@/modules/04-seller-ops/routes'
+import orderOpsRoutes from '@/modules/05-order-ops/routes'
+import paymentOpsRoutes from '@/modules/06-payment-ops/routes'
+import notificationOpsRoutes from '@/modules/07-notification-ops/routes'
+import membershipOpsRoutes from '@/modules/08-membership-ops/routes'
+import accountRoutes from '@/modules/09-account/routes'
+import dataExportRoutes from '@/modules/10-data-export/routes'
 
 /**
- * 静态路由（seller 风格静态聚合，无动态菜单）
+ * 静态路由（seller 风格静态聚合，无动态菜单）—— 路由聚合已完成
  *
  * 包含 /login、5 个框架页（403/404/500/维护/限流）、BasicLayout 容器与 catch-all。
- * BasicLayout children 为模块路由聚合点：Task 4 ~ Task 12 的各模块 routes.ts
- * 在此依次展开（当前先注册默认 redirect，模块就绪后聚合）。
+ * BasicLayout children 已聚合 01-dashboard ~ 10-data-export 全部 10 个业务模块
+ * 的 routes.ts（按模块编号顺序展开），侧栏菜单（SiderMenu）按 meta.menuGroup
+ * 自动分组渲染，无需动态菜单。
  */
 const staticRoutes: RouteRecordRaw[] = [
   {
@@ -63,8 +74,18 @@ const staticRoutes: RouteRecordRaw[] = [
     name: 'basic',
     component: BasicLayout,
     children: [
-      // 模块路由聚合点：01-dashboard ~ 10-data-export 各模块 routes.ts 在此展开
+      // 默认首页重定向在前，随后按 01 → 10 顺序展开各业务模块路由
       { path: '', redirect: '/dashboard/overview' },
+      ...dashboardRoutes,
+      ...productOpsRoutes,
+      ...promotionOpsRoutes,
+      ...sellerOpsRoutes,
+      ...orderOpsRoutes,
+      ...paymentOpsRoutes,
+      ...notificationOpsRoutes,
+      ...membershipOpsRoutes,
+      ...accountRoutes,
+      ...dataExportRoutes,
     ],
   },
   {
