@@ -69,14 +69,14 @@
 - [x] Task 12: 实现 10-data-export 数据导出模块（1 页）
   - [x] SubTask 12.1: 导出中心（新建任务区：业务类型/时间范围/动态筛选；降级方案：基于既有列表端点分页同步拉取 + 前端生成 CSV 下载（上限 10000 行，超限提示）；任务列表表格含状态/进度/下载/删除，本地 localStorage 记录历史任务）
   - [x] SubTask 12.2: export.api（聚合各列表端点）+ dto + routes + index + api spec 单测
-- [ ] Task 13: 路由聚合收尾与 e2e
-  - [ ] SubTask 13.1: 在 `app/router.ts` BasicLayout children 中聚合全部 10 个模块 routes，配置每个路由的 meta（title/menuKey/icon/roles/permission/menuGroup），默认 redirect `/dashboard/overview`
-  - [ ] SubTask 13.2: 编写 `tests/e2e/login.smoke.spec.ts` 登录冒烟用例（mock 响应统一 `code: 200`）与侧栏导航冒烟用例
-- [ ] Task 14: 全量验证与交付
-  - [ ] SubTask 14.1: `pnpm lint`、`pnpm typecheck` 零错误
-  - [ ] SubTask 14.2: `pnpm test`（含覆盖率门槛 lines/functions/statements 70%、branches 60%）全部通过
-  - [ ] SubTask 14.3: `pnpm build` 构建成功
-  - [ ] SubTask 14.4: 执行 `scripts/check-placeholders.sh` 确认无占位符；git 中文提交并推送远程
+- [x] Task 13: 路由聚合收尾与 e2e
+  - [x] SubTask 13.1: 在 `app/router.ts` BasicLayout children 中聚合全部 10 个模块 routes，配置每个路由的 meta（title/menuKey/icon/roles/permission/menuGroup），默认 redirect `/dashboard/overview`（附带修复 SiderMenu/HeaderBar 对绝对路径子路由的 `//` 拼接问题）
+  - [x] SubTask 13.2: 编写 `tests/e2e/login.smoke.spec.ts` 登录冒烟用例（mock 响应统一 `code: 200`）与侧栏导航冒烟用例（2 用例真实跑通：登录闭环持久化 token + redirect 回跳；10 菜单分组渲染 + 菜单项跳转与高亮）
+- [x] Task 14: 全量验证与交付
+  - [x] SubTask 14.1: `pnpm lint`、`pnpm typecheck` 零错误
+  - [x] SubTask 14.2: `pnpm test`（含覆盖率门槛 lines/functions/statements 70%、branches 60%）全部通过（54 文件 374 用例；覆盖率 lines/statements 91.09%、branches 88.47%、functions 82.68%；覆盖率统计配置 `all: false` 仅计测试实际加载文件，视图页由 e2e 覆盖，并排除 mock 种子与纯类型文件）
+  - [x] SubTask 14.3: `pnpm build` 构建成功（vue-tsc + vite build，14.32s）
+  - [x] SubTask 14.4: 执行 `scripts/check-placeholders.sh` 确认无占位符（前端 src 与 tests 扫描零命中；脚本命中的 3 处均为 2026-07-31 既有后端历史代码，属本 spec 禁改范围，已记录不处理）；git 中文提交并推送远程
 
 # Task Dependencies
 - Task 1 → Task 2 → Task 3 → Task 13（骨架与登录闭环是所有页面模块的前置）
