@@ -54,21 +54,21 @@
   - [ ] SubTask 9.3: 支付渠道配置（左渠道列表右配置面板、敏感字段脱敏显示编辑留空不改、测试连接按钮、停用二次确认影响说明）
   - [ ] SubTask 9.4: 渠道对账（统计概览、手动触发对账（异步幂等）、差异筛选表格、详情抽屉渠道侧 vs 系统侧对比、流水号点击复制）
   - [ ] SubTask 9.5: payment.api/refund.api/channel.api/reconciliation.api + dto + routes + index + api spec 单测
-- [ ] Task 10: 实现 07-notification-ops 通知运营模块（5 页）
-  - [ ] SubTask 10.1: 通知模板（筛选+表格、模态框编辑：编码唯一、短信 70 字限制、变量插值列表、实时预览面板调用 preview 端点）
-  - [ ] SubTask 10.2: 通知记录（多维度筛选、状态计数+送达率概览、详情抽屉：渲染正文+渠道返回+时间线、死信单个/批量重发、重试 >3 标红）
-  - [ ] SubTask 10.3: 通知配置（左渠道列表右配置面板、脱敏编辑、测试发送对话框展示返回结果）
-  - [ ] SubTask 10.4: 通知限流（用户级/全局级阈值编辑：用户级 ≤ 全局级、每小时 ≤ 每日、正整数校验、当前用量进度条三色、关闭限流高危确认）
-  - [ ] SubTask 10.5: 死信管理（统计概览、批量重发/丢弃（丢弃原因 ≥10 字符、单次 ≤100 条、部分失败展示清单保留选中态）、详情抽屉含重试历史）
-  - [ ] SubTask 10.6: template.api/record.api/config.api/rateLimit.api/deadLetter.api + dto + routes + index + api spec 单测
-- [ ] Task 11: 实现 08-membership-ops 会员运营模块（3 页）
-  - [ ] SubTask 11.1: 会员等级（表格 + 模态框：编号自动递增不可改、成长值门槛递增校验、折扣率递减校验、启停用）
-  - [ ] SubTask 11.2: 会员套餐（表格 + 模态框：关联等级须已启用、权益多选（专属客服/生日礼/折扣/积分加速/免费退换）、启停用）
-  - [ ] SubTask 11.3: 积分规则（双选项卡：规则表格 CRUD（编码唯一、积分值 -1000~1000、每日上限 1-100）+ 手动发放表单（ConfirmDialog 不可撤销确认））
-  - [ ] SubTask 11.4: memberLevel.api/membershipPackage.api/pointsRule.api + dto + routes + index + api spec 单测
-- [ ] Task 12: 实现 10-data-export 数据导出模块（1 页）
-  - [ ] SubTask 12.1: 导出中心（新建任务区：业务类型/时间范围/动态筛选；降级方案：基于既有列表端点分页同步拉取 + 前端生成 CSV 下载（上限 10000 行，超限提示）；任务列表表格含状态/进度/下载/删除，本地 localStorage 记录历史任务）
-  - [ ] SubTask 12.2: export.api（聚合各列表端点）+ dto + routes + index + api spec 单测
+- [x] Task 10: 实现 07-notification-ops 通知运营模块（5 页）
+  - [x] SubTask 10.1: 通知模板（筛选+表格、模态框编辑：编码唯一、短信 70 字限制、变量插值列表、实时预览面板调用 preview 端点）
+  - [x] SubTask 10.2: 通知记录（多维度筛选、状态计数+送达率概览、详情抽屉：渲染正文+渠道返回+时间线、死信单个/批量重发、重试 >3 标红）
+  - [x] SubTask 10.3: 通知配置（左渠道列表右配置面板、脱敏编辑、测试发送对话框展示返回结果）
+  - [x] SubTask 10.4: 通知限流（用户级/全局级阈值编辑：用户级 ≤ 全局级、每小时 ≤ 每日、正整数校验、当前用量进度条三色、关闭限流高危确认）
+  - [x] SubTask 10.5: 死信管理（统计概览、批量重发/丢弃（丢弃原因 ≥10 字符、单次 ≤100 条、部分失败展示清单保留选中态）、详情抽屉含重试历史）
+  - [x] SubTask 10.6: template.api/record.api/config.api/rateLimit.api/deadLetter.api + dto + routes + index + api spec 单测
+- [x] Task 11: 实现 08-membership-ops 会员运营模块（3 页）
+  - [x] SubTask 11.1: 会员等级（表格 + 模态框：编号自动递增不可改、成长值门槛递增校验、折扣率递减校验、启停用）
+  - [x] SubTask 11.2: 会员套餐（表格 + 模态框：关联等级须已启用、权益多选（专属客服/生日礼/折扣/积分加速/免费退换）、启停用）
+  - [x] SubTask 11.3: 积分规则（双选项卡：规则表格 CRUD（编码唯一、积分值 -1000~1000、每日上限 1-100）+ 手动发放表单（ConfirmDialog 不可撤销确认））
+  - [x] SubTask 11.4: memberLevel.api/membershipPackage.api/pointsRule.api + dto + routes + index + api spec 单测
+- [x] Task 12: 实现 10-data-export 数据导出模块（1 页）
+  - [x] SubTask 12.1: 导出中心（新建任务区：业务类型/时间范围/动态筛选；降级方案：基于既有列表端点分页同步拉取 + 前端生成 CSV 下载（上限 10000 行，超限提示）；任务列表表格含状态/进度/下载/删除，本地 localStorage 记录历史任务）
+  - [x] SubTask 12.2: export.api（聚合各列表端点）+ dto + routes + index + api spec 单测
 - [ ] Task 13: 路由聚合收尾与 e2e
   - [ ] SubTask 13.1: 在 `app/router.ts` BasicLayout children 中聚合全部 10 个模块 routes，配置每个路由的 meta（title/menuKey/icon/roles/permission/menuGroup），默认 redirect `/dashboard/overview`
   - [ ] SubTask 13.2: 编写 `tests/e2e/login.smoke.spec.ts` 登录冒烟用例（mock 响应统一 `code: 200`）与侧栏导航冒烟用例
