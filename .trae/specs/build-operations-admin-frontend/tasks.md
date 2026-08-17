@@ -37,23 +37,23 @@
   - [x] SubTask 6.2: 优惠券管理（三种券类型、发放数量 ≤ 剩余库存校验、面额 ≤ 门槛校验、已发放仅可停用）
   - [x] SubTask 6.3: 秒杀活动（多 SKU 配置抽屉 800px：秒杀价/库存/限购、激活初始化 Redis 库存提示、关闭回写 DB 强制确认）
   - [x] SubTask 6.4: promotion.api/coupon.api/seckill.api + dto + routes + index + api spec 单测（补充 seckill update PUT 端点支撑编辑流）
-- [ ] Task 7: 实现 04-seller-ops 卖家运营模块（3 页）
-  - [ ] SubTask 7.1: 入驻审核（申请表格 + 审核抽屉：店铺信息+资质列表+文件预览、资质单独审核、全部资质通过前店铺通过按钮置灰、批量审核、驳回必填原因）
-  - [ ] SubTask 7.2: 店铺治理（状态统计概览、治理抽屉：经营指标+资质复审+状态变更；Active↔Suspended→Closed 状态机、关闭需先暂停、暂停/关闭需原因）
-  - [ ] SubTask 7.3: 卖家统计（复用 shop-ranking + shops 前端二次聚合：4 卡片、Top10 柱状图、类目分布、评分 <4.0 行高亮「待治理」）
-  - [ ] SubTask 7.4: shop.api/sellerStats.api + dto + routes + index + api spec 单测
-- [ ] Task 8: 实现 05-order-ops 订单运营模块（4 页）
-  - [ ] SubTask 8.1: 订单管理（多条件筛选、状态计数概览、详情抽屉：订单行/地址/支付/物流轨迹/状态历史、强制取消仅 Admin + danger 确认 + 已支付触发退款提示）
-  - [ ] SubTask 8.2: 售后处理（筛选+统计概览、详情抽屉：协商时间线+凭证图片、通过时可调金额 ≤ 申请额、驳回必填原因、通过触发退款提示）
-  - [ ] SubTask 8.3: 评价审核（批量通过/隐藏、详情抽屉全文+图片+卖家回复、隐藏原因四分类、隐藏可逆可重新通过）
-  - [ ] SubTask 8.4: 物流公司管理（表格 + 模态框：名称必填、代码唯一、Logo 上传、排序升序展示、启停用）
-  - [ ] SubTask 8.5: order.api/afterSales.api/review.api/logistics.api + dto + routes + index + api spec 单测
-- [ ] Task 9: 实现 06-payment-ops 支付运营模块（4 页）
-  - [ ] SubTask 9.1: 支付记录（多条件筛选、状态计数+成功率概览、详情抽屉：渠道参数+回调记录+状态时间线、异常支付行标红、已退款关联售后跳转）
-  - [ ] SubTask 9.2: 退款记录（筛选+成功率概览、详情抽屉：关联售后+渠道回写+时间线、失败行标红重试入口）
-  - [ ] SubTask 9.3: 支付渠道配置（左渠道列表右配置面板、敏感字段脱敏显示编辑留空不改、测试连接按钮、停用二次确认影响说明）
-  - [ ] SubTask 9.4: 渠道对账（统计概览、手动触发对账（异步幂等）、差异筛选表格、详情抽屉渠道侧 vs 系统侧对比、流水号点击复制）
-  - [ ] SubTask 9.5: payment.api/refund.api/channel.api/reconciliation.api + dto + routes + index + api spec 单测
+- [x] Task 7: 实现 04-seller-ops 卖家运营模块（3 页）
+  - [x] SubTask 7.1: 入驻审核（申请表格 + 审核抽屉：店铺信息+资质列表+文件预览、资质单独审核、全部资质通过前店铺通过按钮置灰、批量审核、驳回必填原因）
+  - [x] SubTask 7.2: 店铺治理（状态统计概览、治理抽屉：经营指标+资质复审+状态变更；Active↔Suspended→Closed 状态机、关闭需先暂停、暂停/关闭需原因）
+  - [x] SubTask 7.3: 卖家统计（复用 shop-ranking + shops 前端二次聚合：4 卡片、Top10 柱状图、类目分布、评分 <4.0 行高亮「待治理」）
+  - [x] SubTask 7.4: shop.api/sellerStats.api + dto + routes + index + api spec 单测
+- [x] Task 8: 实现 05-order-ops 订单运营模块（4 页）
+  - [x] SubTask 8.1: 订单管理（多条件筛选、状态计数概览、详情抽屉：订单行/地址/支付/物流轨迹/状态历史、强制取消仅 Admin + danger 确认 + 已支付触发退款提示）
+  - [x] SubTask 8.2: 售后处理（筛选+统计概览、详情抽屉：协商时间线+凭证图片、通过时可调金额 ≤ 申请额、驳回必填原因、通过触发退款提示）
+  - [x] SubTask 8.3: 评价审核（批量通过/隐藏、详情抽屉全文+图片+卖家回复、隐藏原因四分类、隐藏可逆可重新通过）
+  - [x] SubTask 8.4: 物流公司管理（表格 + 模态框：名称必填、代码唯一、Logo 上传、排序升序展示、启停用）
+  - [x] SubTask 8.5: order.api/afterSales.api/review.api/logistics.api + dto + routes + index + api spec 单测
+- [x] Task 9: 实现 06-payment-ops 支付运营模块（4 页）
+  - [x] SubTask 9.1: 支付记录（多条件筛选、状态计数+成功率概览、详情抽屉：渠道参数+回调记录+状态时间线、异常支付行标红、已退款关联售后跳转）
+  - [x] SubTask 9.2: 退款记录（筛选+成功率概览、详情抽屉：关联售后+渠道回写+时间线、失败行标红重试入口）
+  - [x] SubTask 9.3: 支付渠道配置（左渠道列表右配置面板、敏感字段脱敏显示编辑留空不改、测试连接按钮、停用二次确认影响说明）
+  - [x] SubTask 9.4: 渠道对账（统计概览、手动触发对账（异步幂等）、差异筛选表格、详情抽屉渠道侧 vs 系统侧对比、流水号点击复制）
+  - [x] SubTask 9.5: payment.api/refund.api/channel.api/reconciliation.api + dto + routes + index + api spec 单测
 - [x] Task 10: 实现 07-notification-ops 通知运营模块（5 页）
   - [x] SubTask 10.1: 通知模板（筛选+表格、模态框编辑：编码唯一、短信 70 字限制、变量插值列表、实时预览面板调用 preview 端点）
   - [x] SubTask 10.2: 通知记录（多维度筛选、状态计数+送达率概览、详情抽屉：渲染正文+渠道返回+时间线、死信单个/批量重发、重试 >3 标红）
