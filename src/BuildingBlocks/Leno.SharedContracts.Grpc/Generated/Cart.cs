@@ -24,22 +24,26 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     static CartReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChFQcm90b3MvY2FydC5wcm90bxIMbGVuby5jYXJ0LnYxIikKFkdldENhcnRT",
-            "bmFwc2hvdFJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCSJbCgxDYXJ0U25hcHNo",
-            "b3QSDwoHY2FydF9pZBgBIAEoCRIlCgVpdGVtcxgCIAMoCzIWLmxlbm8uY2Fy",
-            "dC52MS5DYXJ0SXRlbRITCgt0b3RhbF9jZW50cxgDIAEoAyJeCghDYXJ0SXRl",
-            "bRISCgZza3VfaWQYASABKANCAhgBEhAKCHF1YW50aXR5GAIgASgFEhgKEHVu",
-            "aXRfcHJpY2VfY2VudHMYAyABKAMSEgoKc2t1X2lkX3N0chgEIAEoCSJTChlH",
-            "ZXRDaGVja291dFByZXZpZXdSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkSJQoF",
-            "aXRlbXMYAiADKAsyFi5sZW5vLmNhcnQudjEuQ2FydEl0ZW0ibgoPQ2hlY2tv",
-            "dXRQcmV2aWV3EhYKDnN1YnRvdGFsX2NlbnRzGAEgASgDEhYKDmRpc2NvdW50",
-            "X2NlbnRzGAIgASgDEhYKDnNoaXBwaW5nX2NlbnRzGAMgASgDEhMKC3RvdGFs",
-            "X2NlbnRzGAQgASgDMsgBChNDYXJ0SW50ZXJuYWxTZXJ2aWNlElMKD0dldENh",
-            "cnRTbmFwc2hvdBIkLmxlbm8uY2FydC52MS5HZXRDYXJ0U25hcHNob3RSZXF1",
-            "ZXN0GhoubGVuby5jYXJ0LnYxLkNhcnRTbmFwc2hvdBJcChJHZXRDaGVja291",
-            "dFByZXZpZXcSJy5sZW5vLmNhcnQudjEuR2V0Q2hlY2tvdXRQcmV2aWV3UmVx",
-            "dWVzdBodLmxlbm8uY2FydC52MS5DaGVja291dFByZXZpZXdCJKoCIUxlbm8u",
-            "U2hhcmVkQ29udHJhY3RzLkdycGMuQ2FydC5WMWIGcHJvdG8z"));
+            "ChFQcm90b3MvY2FydC5wcm90bxIMbGVuby5jYXJ0LnYxIjEKFkdldENhcnRT",
+            "bmFwc2hvdFJlcXVlc3QSFwoHdXNlcl9pZBgBIAEoCVIGdXNlcklkInYKDENh",
+            "cnRTbmFwc2hvdBIXCgdjYXJ0X2lkGAEgASgJUgZjYXJ0SWQSLAoFaXRlbXMY",
+            "AiADKAsyFi5sZW5vLmNhcnQudjEuQ2FydEl0ZW1SBWl0ZW1zEh8KC3RvdGFs",
+            "X2NlbnRzGAMgASgDUgp0b3RhbENlbnRzIokBCghDYXJ0SXRlbRIZCgZza3Vf",
+            "aWQYASABKANCAhgBUgVza3VJZBIaCghxdWFudGl0eRgCIAEoBVIIcXVhbnRp",
+            "dHkSKAoQdW5pdF9wcmljZV9jZW50cxgDIAEoA1IOdW5pdFByaWNlQ2VudHMS",
+            "HAoKc2t1X2lkX3N0chgEIAEoCVIIc2t1SWRTdHIiYgoZR2V0Q2hlY2tvdXRQ",
+            "cmV2aWV3UmVxdWVzdBIXCgd1c2VyX2lkGAEgASgJUgZ1c2VySWQSLAoFaXRl",
+            "bXMYAiADKAsyFi5sZW5vLmNhcnQudjEuQ2FydEl0ZW1SBWl0ZW1zIqcBCg9D",
+            "aGVja291dFByZXZpZXcSJQoOc3VidG90YWxfY2VudHMYASABKANSDXN1YnRv",
+            "dGFsQ2VudHMSJQoOZGlzY291bnRfY2VudHMYAiABKANSDWRpc2NvdW50Q2Vu",
+            "dHMSJQoOc2hpcHBpbmdfY2VudHMYAyABKANSDXNoaXBwaW5nQ2VudHMSHwoL",
+            "dG90YWxfY2VudHMYBCABKANSCnRvdGFsQ2VudHMyyAEKE0NhcnRJbnRlcm5h",
+            "bFNlcnZpY2USUwoPR2V0Q2FydFNuYXBzaG90EiQubGVuby5jYXJ0LnYxLkdl",
+            "dENhcnRTbmFwc2hvdFJlcXVlc3QaGi5sZW5vLmNhcnQudjEuQ2FydFNuYXBz",
+            "aG90ElwKEkdldENoZWNrb3V0UHJldmlldxInLmxlbm8uY2FydC52MS5HZXRD",
+            "aGVja291dFByZXZpZXdSZXF1ZXN0Gh0ubGVuby5jYXJ0LnYxLkNoZWNrb3V0",
+            "UHJldmlld0IkqgIhTGVuby5TaGFyZWRDb250cmFjdHMuR3JwYy5DYXJ0LlYx",
+            "YgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -210,7 +214,11 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -229,7 +237,11 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -447,7 +459,11 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -474,7 +490,11 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -744,7 +764,11 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -775,7 +799,11 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -976,7 +1004,11 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -999,7 +1031,11 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1261,7 +1297,11 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1292,7 +1332,11 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
