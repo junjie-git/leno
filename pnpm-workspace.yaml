@@ -2,3 +2,4 @@ packages:
   - web/system-admin
   - web/seller
   - web/operations
+  - web/buyer-app
