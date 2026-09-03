@@ -2,11 +2,10 @@ using Leno.SystemAdmin.Application.DTOs;
 using Leno.SystemAdmin.Application.Services;
 using Leno.SystemAdmin.Domain.Aggregates;
 using Leno.SystemAdmin.Domain.Repositories;
-using Leno.SystemAdmin.Infrastructure.Cache;
+using Leno.SystemAdmin.Application.Abstractions;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using StackExchange.Redis;
 
 namespace Leno.SystemAdmin.Application.Tests.Services;
 
@@ -19,16 +18,14 @@ public sealed class SystemConfigAppServiceOutboxTests
 {
     private readonly Mock<ISystemConfigRepository> _repoMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
-    private readonly Mock<SystemConfigCache> _cacheMock;
+    private readonly Mock<ISystemConfigCache> _cacheMock;
     private readonly SystemConfigAppService _service;
 
     public SystemConfigAppServiceOutboxTests()
     {
         _unitOfWorkMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-        _cacheMock = new Mock<SystemConfigCache>(
-            Mock.Of<IConnectionMultiplexer>(),
-            NullLogger<SystemConfigCache>.Instance);
+        _cacheMock = new Mock<ISystemConfigCache>();
         _cacheMock.Setup(c => c.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _service = new SystemConfigAppService(

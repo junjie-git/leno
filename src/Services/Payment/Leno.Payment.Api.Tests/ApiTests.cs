@@ -37,9 +37,13 @@ public class PaymentApiTests : IClassFixture<WebApplicationFactory<Program>>
         _client = factory.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Environment", "Testing");
+            TestWebHostHelper.UseSensitiveConfigPlaceholders(builder);
 
             builder.ConfigureServices(services =>
             {
+                // 测试环境无 Redis：替换分布式锁使 MigrateWithLockAsync 跳过迁移
+                TestWebHostHelper.ReplaceDistributedLockWithNullProvider(services);
+
                 services.AddSingleton(_paymentAppServiceMock.Object);
                 services.AddSingleton(_refundAppServiceMock.Object);
                 services.AddSingleton(_internalQueryServiceMock.Object);

@@ -45,6 +45,9 @@
     <PackageReference Include="AspNetCore.HealthChecks.UI" Version="8.0.0" />
     <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.0" />
     <PackageReference Include="AspNetCore.HealthChecks.UI.InMemory.Storage" Version="8.0.0" />
+    <!-- UI.InMemory.Storage 8.0.0 传递引入 EF Core InMemory 8.0.0，与本解决方案 EF Core 10.x 二进制不兼容
+         （MissingMethodException: AbstractionsStrings.ArgumentIsEmpty），显式提升至 10.x 统一版本 -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EntityFrameworkCoreVersion)" />
     <PackageReference Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.2" />
     <PackageReference Include="AspNetCore.HealthChecks.RabbitMQ" Version="8.0.2" />
     <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="8.0.1" />

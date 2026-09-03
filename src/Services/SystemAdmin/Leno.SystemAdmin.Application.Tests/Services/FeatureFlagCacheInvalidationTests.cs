@@ -4,11 +4,10 @@ using Leno.SystemAdmin.Domain.Aggregates;
 using Leno.SystemAdmin.Domain.Repositories;
 using Leno.SystemAdmin.Domain.Services;
 using Leno.SystemAdmin.Domain.ValueObjects;
-using Leno.SystemAdmin.Infrastructure.Cache;
+using Leno.SystemAdmin.Application.Abstractions;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using StackExchange.Redis;
 
 namespace Leno.SystemAdmin.Application.Tests.Services;
 
@@ -20,14 +19,12 @@ public sealed class FeatureFlagCacheInvalidationTests
     private readonly Mock<IFeatureFlagRepository> _repoMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly Mock<IFeatureFlagEvaluator> _evaluatorMock = new();
-    private readonly Mock<FeatureFlagCache> _cacheMock;
+    private readonly Mock<IFeatureFlagCache> _cacheMock;
     private readonly FeatureFlagAppService _service;
 
     public FeatureFlagCacheInvalidationTests()
     {
-        _cacheMock = new Mock<FeatureFlagCache>(
-            Mock.Of<IConnectionMultiplexer>(),
-            NullLogger<FeatureFlagCache>.Instance);
+        _cacheMock = new Mock<IFeatureFlagCache>();
         _unitOfWorkMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _service = new FeatureFlagAppService(

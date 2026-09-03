@@ -110,7 +110,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPermissionRepository, EfCorePermissionRepository>();
 
         services.AddScoped<AuditLogInterceptor>();
-        services.AddScoped<AuditLogMiddleware>();
+        // AuditLogMiddleware 不做 DI 注册：中间件由 Program.cs 的 UseMiddleware 约定激活，
+        // 若注册为 Scoped 会在 Development 环境 ValidateOnBuild 时因 RequestDelegate 无法解析而启动失败
 
         // OAuth2 第三方登录
         services.AddHttpClient<GoogleOAuth2Client>();

@@ -2,10 +2,12 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using Leno.Infrastructure.Abstractions.Cqrs;
 using Leno.Infrastructure.Auth;
 using Leno.SharedContracts.Responses;
 using Leno.SellerShop.Application;
 using Leno.SellerShop.Application.DTOs;
+using Leno.SellerShop.Application.Queries;
 using Leno.SellerShop.Domain.ValueObjects;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
@@ -23,6 +25,8 @@ public class SellerShopApiTests : IClassFixture<WebApplicationFactory<Program>>
     private readonly Mock<IShopAppService> _shopAppServiceMock = new();
     private readonly Mock<ISellerDashboardAppService> _dashboardAppServiceMock = new();
     private readonly Mock<ICurrentUserContext> _currentUserMock = new();
+    // SellerDashboardController 还依赖 ES 读模型查询处理器，测试中一并 Mock
+    private readonly Mock<IQueryHandler<ShopDashboardQuery, ShopDashboardResult?>> _dashboardQueryHandlerMock = new();
 
     private static readonly Guid UserId = Guid.NewGuid();
     private static readonly Guid ShopId = Guid.NewGuid();
@@ -32,15 +36,19 @@ public class SellerShopApiTests : IClassFixture<WebApplicationFactory<Program>>
         _client = factory.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Environment", "Testing");
+            TestWebHostHelper.UseSensitiveConfigPlaceholders(builder);
 
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton(_shopAppServiceMock.Object);
                 services.AddSingleton(_dashboardAppServiceMock.Object);
                 services.AddSingleton(_currentUserMock.Object);
+                services.AddSingleton(_dashboardQueryHandlerMock.Object);
 
                 RemoveMassTransitServices(services);
                 RemoveElasticsearchServices(services);
+                // 测试环境无 Redis：替换分布式锁使 MigrateWithLockAsync 跳过迁移
+                TestWebHostHelper.ReplaceDistributedLockWithNullProvider(services);
 
                 services.AddAuthentication(defaultScheme: "Test")
                     .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", _ => { });

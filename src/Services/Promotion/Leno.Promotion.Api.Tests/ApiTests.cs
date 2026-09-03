@@ -36,9 +36,13 @@ public class PromotionApiTests : IClassFixture<WebApplicationFactory<Program>>
         _client = factory.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Environment", "Testing");
+            TestWebHostHelper.UseSensitiveConfigPlaceholders(builder);
 
             builder.ConfigureServices(services =>
             {
+                // 测试环境无 Redis：替换分布式锁使 MigrateWithLockAsync 跳过迁移
+                TestWebHostHelper.ReplaceDistributedLockWithNullProvider(services);
+
                 services.AddSingleton(_promotionAppServiceMock.Object);
                 services.AddSingleton(_couponAppServiceMock.Object);
                 services.AddSingleton(_seckillAppServiceMock.Object);

@@ -1,10 +1,9 @@
 using Leno.SystemAdmin.Application.Services;
 using Leno.SystemAdmin.Domain.Repositories;
-using Leno.SystemAdmin.Infrastructure.Cache;
+using Leno.SystemAdmin.Application.Abstractions;
 using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using StackExchange.Redis;
 using Xunit;
 
 namespace Leno.SystemAdmin.Application.Tests.Services;
@@ -17,14 +16,12 @@ public sealed class SystemConfigGroupsDistinctTests
 {
     private readonly Mock<ISystemConfigRepository> _repoMock = new();
     private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
-    private readonly Mock<SystemConfigCache> _cacheMock;
+    private readonly Mock<ISystemConfigCache> _cacheMock;
     private readonly SystemConfigAppService _service;
 
     public SystemConfigGroupsDistinctTests()
     {
-        _cacheMock = new Mock<SystemConfigCache>(
-            Mock.Of<IConnectionMultiplexer>(),
-            NullLogger<SystemConfigCache>.Instance);
+        _cacheMock = new Mock<ISystemConfigCache>();
         _service = new SystemConfigAppService(
             _repoMock.Object,
             _unitOfWorkMock.Object,

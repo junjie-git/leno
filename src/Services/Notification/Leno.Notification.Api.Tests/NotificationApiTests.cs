@@ -33,6 +33,7 @@ public class NotificationApiTests : IClassFixture<WebApplicationFactory<Program>
         _client = factory.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Environment", "Testing");
+            TestWebHostHelper.UseSensitiveConfigPlaceholders(builder);
 
             builder.ConfigureServices(services =>
             {
@@ -42,7 +43,10 @@ public class NotificationApiTests : IClassFixture<WebApplicationFactory<Program>
 
                 RemoveMassTransitServices(services);
                 RemoveElasticsearchServices(services);
-                ReplaceRedisWithMock(services);
+                // 测试环境无 Redis：替换分布式锁使 MigrateWithLockAsync 跳过迁移，
+                // 并替换 IConnectionMultiplexer 避免请求链路触发真实 Redis 连接
+                TestWebHostHelper.ReplaceDistributedLockWithNullProvider(services);
+                TestWebHostHelper.ReplaceRedisWithMock(services);
 
                 services.AddAuthentication(defaultScheme: "Test")
                     .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", _ => { });

@@ -124,7 +124,10 @@ public class IdentityApiTests : IClassFixture<WebApplicationFactory<Program>>
             // Task A4 新增：Admin/Internal 控制器依赖
             typeof(IOAuthClientAppService),
             typeof(IUserAdminAppService),
-            typeof(IUserInternalAppService)
+            typeof(IUserInternalAppService),
+            // AuthenticationAppService 依赖 MassTransit.IPublishEndpoint，
+            // 移除 MassTransit 后 ValidateOnBuild 无法构造，需一并移除真实注册
+            typeof(IAuthenticationAppService)
         };
 
         var descriptors = services

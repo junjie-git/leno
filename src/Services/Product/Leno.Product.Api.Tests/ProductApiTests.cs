@@ -37,6 +37,7 @@ public class ProductApiTests : IClassFixture<WebApplicationFactory<Program>>
         _client = factory.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Environment", "Testing");
+            TestWebHostHelper.UseSensitiveConfigPlaceholders(builder);
 
             builder.ConfigureServices(services =>
             {
@@ -48,6 +49,9 @@ public class ProductApiTests : IClassFixture<WebApplicationFactory<Program>>
 
                 // Remove all MassTransit-related services
                 RemoveMassTransitServices(services);
+
+                // 测试环境无 Redis：替换分布式锁使 MigrateWithLockAsync 跳过迁移
+                TestWebHostHelper.ReplaceDistributedLockWithNullProvider(services);
 
                 // Replace auth with test scheme
                 services.AddAuthentication(defaultScheme: "Test")

@@ -85,8 +85,8 @@ public sealed class DeadLetterBatchSaveEntitiesTests
     {
         var msg1 = CreateMessage();
         var msg2 = CreateMessage();
-        // 让 msg2 已经是 Retried 状态触发聚合不变量异常
-        msg2.Retry("previous-op");
+        // 让 msg2 已被丢弃，触发聚合不变量异常（已丢弃的死信不可重投）
+        msg2.Discard("previous-op", "已人工处理");
 
         var ids = new List<Guid> { msg1.Id, msg2.Id };
         _repoMock.Setup(r => r.GetByIdAsync(msg1.Id, It.IsAny<CancellationToken>())).ReturnsAsync(msg1);

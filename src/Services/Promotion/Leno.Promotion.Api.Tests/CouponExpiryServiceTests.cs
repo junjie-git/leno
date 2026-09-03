@@ -65,8 +65,17 @@ public class CouponExpiryServiceTests
         var lockedCoupon = UserCoupon.Receive(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Manual", DateTime.UtcNow.AddDays(30));
         lockedCoupon.Lock(Guid.NewGuid());
 
+        // 真实仓储契约为 WHERE Status IN (Unused, Locked)，已 Expire 的券不会再次返回；
+        // mock 仅第一批返回，后续批次返回空列表以模拟状态过滤淘汰
+        var callCount = 0;
         _userCouponRepoMock.Setup(r => r.GetExpiredUnusedCouponsAsync(0, 500, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<UserCoupon> { unusedCoupon, lockedCoupon });
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                return callCount == 1
+                    ? new List<UserCoupon> { unusedCoupon, lockedCoupon }
+                    : new List<UserCoupon>();
+            });
         _unitOfWorkMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         await InvokeProcessExpiredCouponsAsync();
