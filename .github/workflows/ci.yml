@@ -357,13 +357,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+        version: 9
       - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-          cache-dependency-path: web/system-admin/pnpm-lock.yaml
+        node-version: 20
+        cache: pnpm
+        cache-dependency-path: web/system-admin/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
@@ -373,3 +371,27 @@ jobs:
         with:
           name: web-dist
           path: web/system-admin/dist
+
+  web-buyer-app:
+    name: 买家端前端 (web/buyer-app)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web/buyer-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        version: 9
+      - uses: actions/setup-node@v4
+        node-version: 20
+        cache: pnpm
+        cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test -- --coverage --reporter=dot
+      - run: pnpm build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buyer-app-dist
+          path: web/buyer-app/dist

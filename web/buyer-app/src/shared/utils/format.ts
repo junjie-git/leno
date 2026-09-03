@@ -3,7 +3,7 @@
  */
 
 /**
- * 金额格式化：分 → 元（保留两位小数，去掉末尾多余的 0 时保留至少 1 位小数）
+ * 金额格式化：分 → 元（去掉末尾多余的 0，至少保留 1 位小数时才保留）
  *
  * 后端金额统一为「分」（整数），前端展示统一为元。
  * 例：formatPrice(1990) → "19.9"；formatPrice(100000) → "1000"；formatPrice(1999) → "19.99"
@@ -11,7 +11,8 @@
 export function formatPrice(cents: number): string {
   if (!Number.isFinite(cents)) return '0'
   const yuan = cents / 100
-  return yuan.toFixed(2).replace(/\.?0+$/, (m) => (m.startsWith('.') ? '' : m === '.00' ? '' : m))
+  // 先去掉小数末尾多余的 0，再去掉孤立的小数点（"19.90"→"19.9"、"1000.00"→"1000"）
+  return yuan.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
 }
 
 /**

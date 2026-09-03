@@ -39,6 +39,7 @@ const browserGlobals = {
   MouseEvent: 'readonly',
   KeyboardEvent: 'readonly',
   TouchEvent: 'readonly',
+  ClipboardEvent: 'readonly',
   Date: 'readonly',
   Math: 'readonly',
   JSON: 'readonly',
