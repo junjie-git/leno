@@ -2,9 +2,9 @@ name: Leno Platform CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, dev]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, dev]
 
 jobs:
   build-solution:
@@ -357,11 +357,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        version: 9
+        with:
+          version: 9
       - uses: actions/setup-node@v4
-        node-version: 20
-        cache: pnpm
-        cache-dependency-path: web/system-admin/pnpm-lock.yaml
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
@@ -381,11 +383,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        version: 9
+        with:
+          version: 9
       - uses: actions/setup-node@v4
-        node-version: 20
-        cache: pnpm
-        cache-dependency-path: pnpm-lock.yaml
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
