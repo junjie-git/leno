@@ -421,9 +421,11 @@ helm install leno deploy/helm/leno -n leno -f deploy/helm/leno/values-staging.ya
 
 ---
 
-## 6. 待用户决策项
+## 6. 决策项（已确认 2026-09-07）
 
-| # | 决策项 | 选项 | 默认建议 |
+> **状态：用户已确认"按默认建议"，以下 D1-D7 全部生效，本方案定稿（v1.2）。**
+
+| # | 决策项 | 选项 | **已确认结论** |
 |---|---|---|---|
 | D1 | SQL Server 自建生产形态 | a) 独立 VM 主备 2 台 + Standard（HA 子形态：a1 = 19 个 Basic AG + cluster type NONE，脚本化手动切换〔默认〕/ a2 = Enterprise 单 AG + Pacemaker 3 副本自动切换 / a3 = FCI 共享存储实例级切换）/ b) 单 VM + 定时备份还原演练 / c) K8s StatefulSet 容器化 | **a1**（§1.1：与 K8s 解耦 + 同步提交 RPO≈0 + 无 Pacemaker 仲裁问题，切换靠脚本与演练）；需要自动切换或上大档时升 a2；预算只够 1 台 VM 时以 b 起步并将演练升级为月度；**c 生产不可选**，仅限 staging |
 | D2 | SQL Server 装独立 VM 还是进 K8s | 独立 VM（集群外）/ K8s StatefulSet | **独立 VM**（生产）。理由：交易库可用性与 K8s 节点维护/存储抖动解耦，mssql on K8s 无成熟生产级 HA 方案（§1.1 选项 c）；K8s 内 mssql 仅用于 staging（Developer 版） |
