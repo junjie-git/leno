@@ -46,16 +46,18 @@ $ErrorActionPreference = "Stop"
 if (-not $Namespace) { $Namespace = "default" }
 
 # BC 名 → 连接串 Secret key（与代码 GetConnectionString("{Bc}Db") 一致，
-# 见 deploy/docs/consul-kv-coverage-audit.md §3.1）
+# 见 deploy/docs/consul-kv-coverage-audit.md §3.1。注意 reviewaftersales 的键为
+# ReviewAfterSalesDb，不能按大小写规则机械推导）
 if (-not $BcList) {
-    $BcList = "accesscontrol,aftersales,cart,identity,inventory,membership,notification,order,payment,points,pointsmembership,product,promotion,review,reviewaftersales,sellershop,systemadmin,userauth,usercenter"
+    $BcList = "accesscontrol:AccessControlDb,aftersales:AfterSalesDb,cart:CartDb,identity:IdentityDb,inventory:InventoryDb,membership:MembershipDb,notification:NotificationDb,order:OrderDb,payment:PaymentDb,points:PointsDb,pointsmembership:PointsMembershipDb,product:ProductDb,promotion:PromotionDb,review:ReviewDb,reviewaftersales:ReviewAfterSalesDb,sellershop:SellerShopDb,systemadmin:SystemAdminDb,userauth:UserAuthDb,usercenter:UserCenterDb"
 }
 
 # env 变量名 = LENO_DB_{大写BC名}（与 kv-seed.json 一致）
 $bcKeys = @{}
-foreach ($bc in ($BcList -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })) {
+foreach ($pair in ($BcList -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })) {
+    $bc, $csKey = $pair -split ':', 2
     $envName = "LENO_DB_" + $bc.ToUpper()
-    $bcKeys[$envName] = $bc + "Db"     # accesscontrol -> AccessControlDb
+    $bcKeys[$envName] = $csKey
 }
 
 function Get-RequiredEnv {
