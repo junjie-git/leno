@@ -208,9 +208,61 @@ jobs:
       - name: Validate docker-compose config
         run: docker-compose config > /dev/null
 
+  # ===========================================================================
+  # 阶段 3：迁移 SQL 同步检查（P0 遗留技术债）
+  #
+  # 生产迁移 Job 从 chart files 目录（deploy/helm/leno/files/migrations/）读取 SQL，
+  # 与 scripts/migrations/ 是两份拷贝。若两者不同步，CI 验证的是新 SQL、
+  # 生产执行的却是旧 SQL。本 job 强制两个目录内容一致，不一致即 fail 并列出差异。
+  # 作为 migration-check 的前置 job 执行。
+  # ===========================================================================
+  migration-files-sync:
+    name: 迁移 SQL 同步检查 (scripts vs chart files)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check scripts/migrations 与 chart files/migrations 同步
+        run: |
+          set -euo pipefail
+          SRC="scripts/migrations"
+          DST="deploy/helm/leno/files/migrations"
+          echo "源目录: $SRC"
+          echo "目标目录: $DST"
+
+          fail=0
+
+          # 1) 双向存在性检查：任何一侧多出/缺失文件都视为不同步
+          for f in "$SRC"/*.sql; do
+            base=$(basename "$f")
+            if [ ! -f "$DST/$base" ]; then
+              echo "::error file=$f::chart files 目录缺失同步文件: deploy/helm/leno/files/migrations/$base"
+              fail=1
+            fi
+          done
+          for f in "$DST"/*.sql; do
+            base=$(basename "$f")
+            if [ ! -f "$SRC/$base" ]; then
+              echo "::error file=$f::scripts/migrations 目录缺失对应文件: scripts/migrations/$base"
+              fail=1
+            fi
+          done
+
+          # 2) 内容差异检查（-r 覆盖子目录/双向差异）
+          if ! diff -r "$SRC" "$DST"; then
+            echo "::error::迁移 SQL 两个目录内容不一致，差异文件清单见上方 diff 输出"
+            fail=1
+          fi
+
+          if [ "$fail" -ne 0 ]; then
+            echo "同步方式：将 scripts/migrations/*.sql 拷贝到 deploy/helm/leno/files/migrations/（或运行 scripts/generate-migration-scripts.ps1 后同步）"
+            exit 1
+          fi
+          echo "两个目录完全一致 ✓"
+
   migration-check:
     name: EF Core Migrations 同步检查
     runs-on: ubuntu-latest
+    needs: migration-files-sync
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET
