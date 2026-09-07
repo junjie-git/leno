@@ -35,24 +35,81 @@ spec:
               protocol: TCP
             {{- end }}
           env:
+            {{/*
+              一、引导配置（P0-B）：Consul KV 配置源自身的依赖，必须先于 KV 可用。
+              注意：代码读取键为 Consul:Url（ConfigCenterExtensions / ConsulServiceRegistrationExtensions），
+              旧模板注入的 Consul__Address 无任何读取点，已修正。
+            */}}
             - name: ASPNETCORE_ENVIRONMENT
               value: {{ $.Values.global.environment | default "Production" }}
             - name: Service__Name
               value: {{ $name | quote }}
             - name: OpenTelemetry__OtlpEndpoint
               value: {{ $.Values.global.jaeger.otlpEndpoint | quote }}
-            - name: Consul__Address
-              value: {{ $.Values.global.consul.address | quote }}
-            - name: ConnectionStrings__Default
+            - name: Consul__Url
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.externalDependencies.consul.addressSecret }}
+                  key: url
+            {{/*
+              二、业务配置 env 兜底（P0-B）：生产主通道为 Consul KV（leno/config/**，经
+              AddLenoConsulConfig 追加在配置链尾，KV 优先级高于 env）；此处 env 兜底保证
+              KV 未种子化/不可达时服务仍可启动。键名与代码读取键严格一致（下划线双层级），
+              敏感值来源 Secret（key 与代码读取键一致，见 deploy/docs/consul-kv-coverage-audit.md）。
+            */}}
+            {{- with $service.connectionStringKey }}
+            - name: ConnectionStrings__{{ . }}
               valueFrom:
                 secretKeyRef:
                   name: {{ $.Values.externalDependencies.sqlserver.connectionstringSecret }}
-                  key: {{ $name }}
-            - name: Security__Jwt__SecretKey
+                  key: {{ . }}
+            {{- end }}
+            - name: Redis__Configuration
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.externalDependencies.redis.connectionstringSecret }}
+                  key: configuration
+            - name: RabbitMQ__Host
+              value: {{ $.Values.global.rabbitmq.host | quote }}
+            - name: RabbitMQ__Port
+              value: {{ $.Values.global.rabbitmq.port | quote }}
+            - name: RabbitMQ__Username
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.externalDependencies.rabbitmq.connectionstringSecret }}
+                  key: username
+            - name: RabbitMQ__Password
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.externalDependencies.rabbitmq.connectionstringSecret }}
+                  key: password
+            - name: Elasticsearch__Uri
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.externalDependencies.elasticsearch.connectionstringSecret }}
+                  key: uri
+            {{/*
+              三、鉴权引导（P0-B）：代码读取键为 Jwt:SecretKey / InternalAuth:ApiKey；
+              旧模板注入的 Security__Jwt__SecretKey 无任何读取点，已修正。
+            */}}
+            - name: Jwt__SecretKey
               valueFrom:
                 secretKeyRef:
                   name: leno-security-jwt
                   key: secret-key
+            - name: InternalAuth__ApiKey
+              valueFrom:
+                secretKeyRef:
+                  name: leno-security-jwt
+                  key: internal-api-key
+            {{/*
+              四、服务间地址兜底（P0-B）：渲染为 K8s Service DNS；生产可用 Consul KV
+              leno/config/ServiceUrls__* 覆盖。
+            */}}
+            {{- range $urlKey, $urlTarget := $.Values.global.serviceUrls }}
+            - name: ServiceUrls__{{ $urlKey }}
+              value: {{ printf "http://%s-%s:%v" $.Release.Name $urlTarget.service $urlTarget.port | quote }}
+            {{- end }}
           readinessProbe:
             {{- toYaml $service.readinessProbe | nindent 12 }}
           livenessProbe:

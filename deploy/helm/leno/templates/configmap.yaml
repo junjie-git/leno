@@ -14,5 +14,5 @@ data:
   consul.address: {{ .Values.global.consul.address | quote }}
   jaeger.otlpEndpoint: {{ .Values.global.jaeger.otlpEndpoint | quote }}
   prometheus.scrape: "true"
-  prometheus.port: {{ .Values.services.api-gateway.service.port | quote }}
+  prometheus.port: {{ (index .Values.services "api-gateway").service.port | quote }}
   prometheus.path: "/metrics"

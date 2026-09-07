@@ -10,6 +10,15 @@ global:
   rabbitmq:
     host: "rabbitmq"
     port: 5672
+  # 服务间地址兜底（生产主通道为 Consul KV leno/config/ServiceUrls__*，此处为 env 兜底）
+  # 值在 deployment.yaml 中渲染为 http://{release}-{service}:{port}（K8s Service DNS）
+  serviceUrls:
+    ProductApi: { service: "product", port: 5152 }
+    PromotionApi: { service: "promotion", port: 5155 }
+    PointsMembershipApi: { service: "pointsmembership", port: 5157 }
+    OrderApi: { service: "order", port: 5154 }
+    PaymentApi: { service: "payment", port: 5158 }
+    UserAuthApi: { service: "userauth", port: 5151 }
   redis:
     host: "redis"
     port: 6379
@@ -75,6 +84,8 @@ services:
 
   # ===== userauth BC =====
   userauth:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("UserAuthDb") 严格一致）
+    connectionStringKey: UserAuthDb
     enabled: true
     image: { repository: leno/userauth-api, tag: "1.0.0", pullPolicy: IfNotPresent }
     replicaCount: 2
@@ -90,6 +101,8 @@ services:
 
   # ===== product BC =====
   product:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("ProductDb") 严格一致）
+    connectionStringKey: ProductDb
     enabled: true
     image: { repository: leno/product-api, tag: "1.0.0", pullPolicy: IfNotPresent }
     replicaCount: 2
@@ -105,6 +118,8 @@ services:
 
   # ===== cart BC =====
   cart:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("CartDb") 严格一致）
+    connectionStringKey: CartDb
     enabled: true
     image: { repository: leno/cart-api, tag: "1.0.0", pullPolicy: IfNotPresent }
     replicaCount: 2
@@ -120,6 +135,8 @@ services:
 
   # ===== order BC =====
   order:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("OrderDb") 严格一致）
+    connectionStringKey: OrderDb
     enabled: true
     image: { repository: leno/order-api, tag: "1.0.0", pullPolicy: IfNotPresent }
     replicaCount: 2
@@ -135,6 +152,8 @@ services:
 
   # ===== promotion BC =====
   promotion:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("PromotionDb") 严格一致）
+    connectionStringKey: PromotionDb
     enabled: true
     image: { repository: leno/promotion-api, tag: "1.0.0", pullPolicy: IfNotPresent }
     replicaCount: 2
@@ -150,6 +169,8 @@ services:
 
   # ===== reviewaftersales BC =====
   reviewaftersales:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("ReviewAfterSalesDb") 严格一致）
+    connectionStringKey: ReviewAfterSalesDb
     enabled: true
     image: { repository: leno/reviewaftersales-api, tag: "1.0.0", pullPolicy: IfNotPresent }
     replicaCount: 2
@@ -165,6 +186,8 @@ services:
 
   # ===== pointsmembership BC =====
   pointsmembership:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("PointsMembershipDb") 严格一致）
+    connectionStringKey: PointsMembershipDb
     enabled: true
     image: { repository: leno/pointsmembership-api, tag: "1.0.0", pullPolicy: IfNotPresent }
     replicaCount: 2
@@ -180,6 +203,8 @@ services:
 
   # ===== payment BC =====
   payment:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("PaymentDb") 严格一致）
+    connectionStringKey: PaymentDb
     enabled: true
     image: { repository: leno/payment-api, tag: "1.0.0", pullPolicy: IfNotPresent }
     replicaCount: 2
@@ -195,6 +220,8 @@ services:
 
   # ===== notification BC =====
   notification:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("NotificationDb") 严格一致）
+    connectionStringKey: NotificationDb
     enabled: true
     image: { repository: leno/notification-api, tag: "1.0.0", pullPolicy: IfNotPresent }
     replicaCount: 2
@@ -210,6 +237,8 @@ services:
 
   # ===== sellershop BC =====
   sellershop:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("SellerShopDb") 严格一致）
+    connectionStringKey: SellerShopDb
     enabled: true
     image: { repository: leno/sellershop-api, tag: "1.0.0", pullPolicy: IfNotPresent }
     replicaCount: 2
@@ -225,6 +254,8 @@ services:
 
   # ===== systemadmin BC =====
   systemadmin:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("SystemAdminDb") 严格一致）
+    connectionStringKey: SystemAdminDb
     enabled: true
     image: { repository: leno/systemadmin-api, tag: "1.0.0", pullPolicy: IfNotPresent }
     replicaCount: 2
