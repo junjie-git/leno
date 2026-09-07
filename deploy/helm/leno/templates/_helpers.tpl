@@ -35,15 +35,24 @@ app.kubernetes.io/instance: {{ .context.Release.Name }}
 {{- end -}}
 
 {{/*
-镜像全限定地址：${registry}/${repository}:${tag}
+镜像全限定地址：<registry/>[<namespace/>]<repository>:<tag>
+- registry：global.imageRegistry（默认空 = 本地镜像名，如 docker-compose 场景）
+- namespace：global.imageNamespace（如 GHCR owner，默认空）
+- tag 解析优先级：services.<name>.image.tag > global.imageTag > "latest"
+  （CD 通过 --set global.imageTag=<tag> 统一注入；服务级可覆盖）
 */}}
 {{- define "leno.image" -}}
-{{- $registry := .context.Values.global.imageRegistry -}}
-{{- if $registry -}}
-{{- printf "%s/%s:%s" $registry .service.image.repository .service.image.tag -}}
-{{- else -}}
-{{- printf "%s:%s" .service.image.repository .service.image.tag -}}
+{{- $image := .service.image.repository -}}
+{{- $namespace := .context.Values.global.imageNamespace | default "" -}}
+{{- $registry := .context.Values.global.imageRegistry | default "" -}}
+{{- $tag := .service.image.tag | default .context.Values.global.imageTag | default "latest" -}}
+{{- if $namespace -}}
+{{- $image = printf "%s/%s" $namespace $image -}}
 {{- end -}}
+{{- if $registry -}}
+{{- $image = printf "%s/%s" $registry $image -}}
+{{- end -}}
+{{- printf "%s:%s" $image $tag -}}
 {{- end -}}
 
 {{/*
