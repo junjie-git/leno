@@ -231,8 +231,10 @@ helm install redis bitnami/redis -n leno \
   --set auth.enabled=true --set auth.password="${LENO_REDIS_PASSWORD}" \
   --set master.resources.requests.cpu=100m \
   --set replica.replicaCount=1        # prod: 2
-# 连接串（写入 Consul KV Redis__Configuration，StackExchange.Redis Sentinel 配置串格式）：
-#   sentinel=redis-sentinel.leno.svc:26379,service_name=redis-master,password=${LENO_REDIS_PASSWORD}
+# 连接串（写入 Consul KV Redis__Configuration，StackExchange.Redis Sentinel 配置串格式——sentinel 端点直接作为 host 列出，serviceName 触发哨兵发现）：
+#   redis-sentinel.leno.svc:26379,serviceName=mymaster,password=${LENO_REDIS_PASSWORD}
+# 注意：Bitnami redis chart 的 sentinel.masterSet 默认为 mymaster；若自定义 masterSet（如 redis-master），
+# 需在 helm install 时追加 --set sentinel.masterSet=redis-master，并让 serviceName 与之一致，否则发现不到主节点。
 
 # ---------- 3. RabbitMQ ----------
 helm install rabbitmq bitnami/rabbitmq -n leno \
@@ -354,7 +356,7 @@ helm install leno deploy/helm/leno -n leno -f deploy/helm/leno/values-staging.ya
 | 各 BC 服务 | RabbitMQ | 5672 | vhost `/` + leno 账号 |
 | 各 BC 服务 | Elasticsearch | 9200 | ES 基本认证 |
 | 各 BC 服务 | Consul（KV 读 + 自注册） | 8500 | kv-read token + agent token |
-| ESO | Consul | 8500 | kv-read token |
+| ESO | Vault（目标态） / Consul（仅过渡态，见 §3 步骤 6/D5） | 8200 / 8500 | Vault serviceAccount 或 kv-read token（过渡态） |
 | 运维 CI / 管理端 | Consul UI、RabbitMQ Management(15672)、Kibana（如加） | 8500 / 15672 | Ingress + 独立认证，不暴露公网 |
 
 网络策略：默认 NetworkPolicy 全 deny，按上表白名单放行；基础设施组件（SQL Server/Redis/RabbitMQ/ES/Consul server）不建任何 Ingress，仅集群内可达。
