@@ -1,0 +1,152 @@
+# =============================================================================
+# Leno staging：SQL Server 2022 Developer 单节点（K8s StatefulSet）
+#
+# 决策依据：基础设施方案 D6（2026-09-07 确认）——staging SQL Server 用 K8s 单节点
+# （mssql 2022 Developer 版）；生产为独立 VM 主备（方案 §1.1，D1/D2），本文件
+# 不适用于 prod。
+#
+# 使用方式：
+#   kubectl apply -f deploy/staging/mssql-staging.yaml
+#
+# SA 密码：不写在本文件（约定：仓库内禁止真实凭据），部署前先创建 Secret：
+#   kubectl -n leno create secret generic leno-staging-mssql \
+#     --from-literal=password="${MSSQL_SA_PASSWORD}" --dry-run=client -o yaml | kubectl apply -f -
+#
+# 存储说明：本地自建集群通常无动态供给 StorageClass，storageClassName 以占位符
+# 注释给出，落地前按集群实际存储类填写（或提前手工建 PV，PV 名称与本 PVC 匹配）。
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 1. Headless Service（StatefulSet 依赖，提供稳定 Pod DNS）
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: sqlserver-hl
+  namespace: leno
+  labels:
+    app: sqlserver
+spec:
+  clusterIP: None
+  selector:
+    app: sqlserver
+  ports:
+    - name: sql
+      port: 1433
+      targetPort: 1433
+---
+# -----------------------------------------------------------------------------
+# 2. ClusterIP Service（业务侧访问入口：sqlserver.leno.svc:1433，
+#    与方案 §3 / kv-seed.json 连接串 host 约定一致）
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: sqlserver
+  namespace: leno
+  labels:
+    app: sqlserver
+spec:
+  type: ClusterIP
+  selector:
+    app: sqlserver
+  ports:
+    - name: sql
+      port: 1433
+      targetPort: 1433
+---
+# -----------------------------------------------------------------------------
+# 3. StatefulSet（单副本；数据落 PVC，Pod 重建不丢库）
+# -----------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sqlserver
+  namespace: leno
+  labels:
+    app: sqlserver
+spec:
+  serviceName: sqlserver-hl
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sqlserver
+  template:
+    metadata:
+      labels:
+        app: sqlserver
+    spec:
+      containers:
+        - name: mssql
+          image: mcr.microsoft.com/mssql/server:2022-latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            # staging 用 Developer 版（免费，仅限非生产）；生产必须付费授权，
+            # 见方案 §1.1（SQL Server 2022 Standard + 19 个 Basic AG）
+            - name: MSSQL_PID
+              value: "Developer"
+            # SA 密码从 Secret 引用（绝不写死在 YAML）
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: leno-staging-mssql
+                  key: password
+            # 减少内存抖动（staging 规格参考方案 §2 硬件三档"小"档）
+            - name: MSSQL_MEMORY_LIMIT_MB
+              value: "2048"
+          ports:
+            - name: sql
+              containerPort: 1433
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/opt/mssql
+          startupProbe:
+            # 首次启动需初始化数据目录，放宽到 5 分钟
+            tcpSocket:
+              port: 1433
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            # 用 sqlcmd 执行 SELECT 1，比 tcp 探活更可信（工具镜像内置于 mssql 官方镜像）
+            exec:
+              command:
+                - /opt/mssql-tools18/bin/sqlcmd
+                - -S
+                - localhost
+                - -U
+                - sa
+                - -P
+                - $(MSSQL_SA_PASSWORD)
+                - -C
+                - -No
+                - -Q
+                - "SELECT 1"
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 1433
+            periodSeconds: 20
+            failureThreshold: 6
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
+        # 本地 PV 场景：按集群实际存储类填写；若为手工预建 PV（无 StorageClass），
+        # 删除本行即可让 PVC 绑定任意匹配容量的 Available PV。
+        # storageClassName: local-ssd

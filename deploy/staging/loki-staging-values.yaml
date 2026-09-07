@@ -1,0 +1,95 @@
+# =============================================================================
+# Leno staging：日志栈最小化 values（Grafana + Loki + Promtail，K8s 内自建）
+#
+# 决策依据：基础设施方案 D7（2026-09-07 确认）——日志自建 Loki，明确不接云日志
+# 服务、不复用业务 ES（方案 §1.5）。
+#
+# Chart 选型：grafana/loki-stack（单 chart 一键拉起 Loki + Promtail + Grafana），
+# 结构简单、与本项目其他 Bitnami/官方 chart 运维方式一致，适合 staging 最小可用。
+# ⚠ prod 需重新评估：loki-stack 是单体单副本形态，prod 建议切换 grafana/loki
+#   （简单可扩展模式）+ 独立 Grafana chart + 告警/Retention 专项设计。
+#
+# 使用方式：
+#   helm repo add grafana https://grafana.github.io/helm-charts
+#   helm repo update
+#   helm install loki grafana/loki-stack -n leno -f deploy/staging/loki-staging-values.yaml
+#
+# Grafana 管理员凭据：引用 Secret leno-staging-grafana-admin（由 Runbook 步骤
+# 用 kubectl create secret 创建，本文件不写真实凭据）。
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Loki（单副本 + 10Gi PVC，保留期 7 天 = 168h）
+# -----------------------------------------------------------------------------
+loki:
+  enabled: true
+  isDefault: true
+  persistence:
+    enabled: true
+    size: 10Gi
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  # 保留期 7 天（staging 规模）；注意：
+  # - limits_config.retention_period 需 >= compactor 的保留删除间隔
+  # - prod 必须重新核算保留期与存储容量（loki-stack 单副本不适合 prod 规模）
+  config:
+    limits_config:
+      retention_period: 168h
+    compactor:
+      working_directory: /data/loki/boltdb-shipper-compactor
+      shared_store: filesystem
+      retention_enabled: true
+      retention_delete_delay: 2h
+      retention_delete_worker_count: 150
+
+# -----------------------------------------------------------------------------
+# Promtail（DaemonSet，采集各节点容器日志 → Loki）
+# -----------------------------------------------------------------------------
+promtail:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# -----------------------------------------------------------------------------
+# Grafana（数据源 loki-stack chart 自动注入；凭据走 existingSecret）
+# -----------------------------------------------------------------------------
+grafana:
+  enabled: true
+  admin:
+    existingSecret: "leno-staging-grafana-admin"
+    userKey: admin-user
+    passwordKey: admin-password
+  service:
+    type: ClusterIP
+    port: 80
+  # staging 最小规格；UI 经 kubectl port-forward 访问，不建 Ingress
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# -----------------------------------------------------------------------------
+# 关闭本场景不需要的组件（loki-stack 默认已关闭，显式声明避免子 chart 升级漂移）
+# -----------------------------------------------------------------------------
+fluent-bit:
+  enabled: false
+logrotate:
+  enabled: false
+filebeat:
+  enabled: false
+test:
+  enabled: false
