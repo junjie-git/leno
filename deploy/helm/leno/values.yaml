@@ -300,6 +300,13 @@ externalDependencies:
   consul:
     enabled: true
     addressSecret: "leno-consul-address"
+    # Consul ACL token（可选，deployment.yaml 按 name 非空注入 Consul__Token env）。
+    # name 留空 = 不注入（dev 本地 compose 的 Consul dev 模式无 ACL）；
+    # staging/prod 约定 name: leno-consul-token（key: acl-token），Secret 由
+    # deploy/staging/README.md 步骤 4.2 创建（过渡态）；目标态由 ESO+Vault 接管。
+    tokenSecret:
+      name: ""
+      key: "acl-token"
 
 # 敏感配置通过 K8s Secret 引用（External Secrets Operator 对接 Vault/Consul）
 externalSecrets:

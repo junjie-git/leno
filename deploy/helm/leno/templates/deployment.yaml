@@ -52,6 +52,20 @@ spec:
                   name: {{ $.Values.externalDependencies.consul.addressSecret }}
                   key: url
             {{/*
+              Consul ACL token（可选）：ACL default deny 集群下业务读 KV/自注册需 token。
+              代码读取键为 Consul:Token（ConfigCenterExtensions.cs / ConsulServiceRegistrationExtensions.cs /
+              ApiGateway ServiceCollectionExtensions.cs 三处），K8s env 键 Consul__Token。
+              tokenSecret.name 为空时不注入（dev 本地 compose 的 Consul dev 模式无 ACL）；
+              staging/prod 由 values 启用（Secret 由 Runbook 步骤 4.2 创建，过渡态）。
+            */}}
+            {{- with $.Values.externalDependencies.consul.tokenSecret.name }}
+            - name: Consul__Token
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: {{ $.Values.externalDependencies.consul.tokenSecret.key | default "acl-token" }}
+            {{- end }}
+            {{/*
               二、业务配置 env 兜底（P0-B）：生产主通道为 Consul KV（leno/config/**，经
               AddLenoConsulConfig 追加在配置链尾，KV 优先级高于 env）；此处 env 兜底保证
               KV 未种子化/不可达时服务仍可启动。键名与代码读取键严格一致（下划线双层级），

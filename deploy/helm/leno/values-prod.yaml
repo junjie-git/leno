@@ -7,6 +7,15 @@ global:
 externalSecrets:
   enabled: true
 
+# Consul ACL token 注入（deployment.yaml 渲染 Consul__Token env；生产集群开启 ACL，必须注入）。
+# Secret leno-consul-token 的 token 应为专用 kv-read + 服务注册策略 token（最小权限），
+# 目标态由 ESO+Vault 分发；staging 的创建方式见 deploy/staging/README.md 步骤 4.2。
+externalDependencies:
+  consul:
+    tokenSecret:
+      name: leno-consul-token
+      key: acl-token
+
 services:
   api-gateway:
     replicaCount: 3

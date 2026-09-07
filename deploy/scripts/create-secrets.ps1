@@ -138,4 +138,7 @@ New-Secret -Name "leno-consul-address" -KeyValues @{
 
 Write-Host ""
 Write-Host "全部 Secret 创建/更新完成。"
-Write-Host "提示：leno-security-jwt 由 helm chart（externalSecrets.enabled=false 时按 values 渲染）或 ESO 创建。"
+Write-Host "提示：leno-security-jwt 本脚本不创建——staging 过渡态（externalSecrets.enabled=true）下"
+Write-Host "chart 不渲染该 Secret，须按 deploy/staging/README.md 步骤 4.2 手工创建（连同"
+Write-Host "leno-consul-token）；本地 dev（externalSecrets.enabled=false）由 helm chart 按 values 渲染；"
+Write-Host "目标态由 ESO+Vault 接管。"

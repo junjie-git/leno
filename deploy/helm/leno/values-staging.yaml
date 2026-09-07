@@ -7,6 +7,16 @@ global:
 externalSecrets:
   enabled: true
 
+# Consul ACL token 注入（deployment.yaml 渲染 Consul__Token env）。
+# staging 集群开启 ACL（consul-staging-values.yaml），业务读 KV/自注册需 token；
+# Secret leno-consul-token 由 Runbook 步骤 4.2 从 bootstrap token 创建（过渡态简化，
+# prod 应建专用 kv-read + 服务注册策略 token）。缺失时 Pod 起不来（secretKeyRef 硬依赖）。
+externalDependencies:
+  consul:
+    tokenSecret:
+      name: leno-consul-token
+      key: acl-token
+
 services:
   api-gateway:
     replicaCount: 2

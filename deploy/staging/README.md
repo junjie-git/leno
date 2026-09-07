@@ -1,7 +1,7 @@
 # Leno staging 端到端部署 Runbook
 
 > 依据：`deploy/docs/production-infrastructure-plan.md` §3（v1.2 定稿）与 §6 已确认决策 D1-D7（2026-09-07，全部按默认建议生效）。
-> 范围：staging（K8s 最小可用）首轮部署演练。**不修改任何 src/ 源码与 helm chart 模板**；发现的差距统一记在文末"遗留事项"。
+> 范围：staging（K8s 最小可用）首轮部署演练。**不修改任何 src/ 源码**；chart 模板仅一处经评审的增量（`Consul__Token` env 注入，见遗留事项 3）；发现的差距统一记在文末"遗留事项"。
 > 安全约定：任何步骤不得写入真实密码/密钥到仓库；敏感值一律通过环境变量注入（`${ENV_VAR}`）。
 
 ---
@@ -26,12 +26,12 @@
 | Secret 五件套创建 | `create-secrets.ps1`（幂等，`--dry-run=client` + `apply`） |
 | Consul KV 种子化 | `seed-consul-kv.ps1`（`${ENV_VAR}` 占位符解析，敏感值不落盘） |
 | 迁移 SQL | helm chart 内置 pre-install/pre-upgrade Job（`sqlcmd` 执行幂等 SQL） |
-| 集群/节点准备、helm install 基础设施、建库建账号、ACL token 创建、`leno-security-jwt`/`leno-staging-mssql`/`leno-staging-grafana-admin` 三个手工 Secret | **目标机器手工执行**（本 Runbook 给出命令） |
+| 集群/节点准备、helm install 基础设施、建库建账号、ACL token 创建、`leno-security-jwt`/`leno-consul-token`/`leno-staging-mssql`/`leno-staging-grafana-admin` 四个手工 Secret | **目标机器手工执行**（本 Runbook 给出命令） |
 
 ## 0.1 过渡态 Secret 来源（D5，如实说明）
 
 - `values-staging.yaml` 中 `externalSecrets.enabled: true`。经核对 chart 模板，该开关**当前的实际行为**只是：`templates/secret.yaml` 不渲染 `leno-security-jwt` 占位 Secret；chart **没有**任何渲染 `ExternalSecret` CRD 的模板，`externalSecrets.backend: consul` 在 ESO 官方 provider 中也不存在（方案 §3 步骤 6 已说明）。
-- 因此 staging 首轮（过渡态 c）：**全部 Secret 由 `create-secrets.ps1` + 三个手工 Secret 提供**，ESO/Vault 仅安装不接管（步骤 3 可跳过）。联调稳定后切换目标态 a（ESO + Vault），届时敏感项迁入 Vault。
+- 因此 staging 首轮（过渡态 c）：**全部 Secret 由 `create-secrets.ps1` + 四个手工 Secret 提供**，ESO/Vault 仅安装不接管（步骤 3 可跳过）。联调稳定后切换目标态 a（ESO + Vault），届时敏感项迁入 Vault。
 - 注意：`deployment.yaml` 无条件引用 `leno-security-jwt`，过渡态必须按步骤 4.2 手工创建，否则 Pod 起不来。
 
 ## 0.2 前置条件
@@ -82,7 +82,7 @@ helm install consul hashicorp/consul -n leno -f deploy/helm/consul-staging-value
 # 1) 3 个 server Pod Running（anti-affinity 要求节点 ≥ 3，Pending 说明节点不够）
 kubectl -n leno get pods -l "app=consul,component=server"
 # 2) 成员齐全（3 server + 每 node 一个 client agent）
-kubectl -n leno exec consul-server-0 -- consul members
+kubectl -n leno exec consul-consul-server-0 -- consul members
 # 3) PVC 已绑定
 kubectl -n leno get pvc
 ```
@@ -95,11 +95,11 @@ kubectl -n leno get secret consul-consul-bootstrap-acl-token -o jsonpath='{.data
 export BT=$(kubectl -n leno get secret consul-consul-bootstrap-acl-token -o jsonpath='{.data.token}' | base64 -d)
 
 # kv-write token（seed-consul-kv.ps1 用；策略 = 方案 §1.4 分权表）
-kubectl -n leno exec -i consul-server-0 -- sh -c \
+kubectl -n leno exec -i consul-consul-server-0 -- sh -c \
   "CONSUL_HTTP_TOKEN=$BT consul acl policy create -name leno-kv-write -rules -" <<'RULES'
 key_prefix "leno/" { policy = "write" }
 RULES
-export LENO_CONSUL_TOKEN=$(kubectl -n leno exec consul-server-0 -- sh -c \
+export LENO_CONSUL_TOKEN=$(kubectl -n leno exec consul-consul-server-0 -- sh -c \
   "CONSUL_HTTP_TOKEN=$BT consul acl token create -policy-name leno-kv-write -format json" \
   | python3 -c "import sys,json;print(json.load(sys.stdin)['SecretID'])")
 kubectl -n leno create secret generic leno-consul-kv-write-token \
@@ -159,13 +159,22 @@ pwsh deploy/scripts/create-secrets.ps1 -Namespace leno
 
 **验证**：`kubectl -n leno get secret leno-db-connectionstrings leno-mq-rabbitmq leno-redis-connection leno-es-connection leno-consul-address` 全部存在，抽查 `kubectl -n leno get secret leno-db-connectionstrings -o jsonpath='{.data.OrderDb}' | base64 -d`。
 
-### 4.2 三个手工 Secret（脚本未覆盖，按 0.1 节说明必须手工建）
+### 4.2 四个手工 Secret（脚本未覆盖，按 0.1 节说明必须手工建）
 
 ```bash
 # leno-security-jwt：deployment.yaml 无条件引用（externalSecrets.enabled=true 时 chart 不渲染它）
 kubectl -n leno create secret generic leno-security-jwt \
   --from-literal=secret-key="${JWT_SECRET_KEY}" \
   --from-literal=internal-api-key="${INTERNAL_AUTH_API_KEY}" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# leno-consul-token：Consul ACL token 注入（values-staging.yaml 已启用，
+# deployment.yaml 据此渲染 Consul__Token env；ACL default deny 下业务读 KV/自注册必需，
+# 缺失时 Pod CreateContainerConfigError）。staging 简化用 bootstrap token：
+#   prod 必须改为专用 token（kv-read + node/service 注册写权限，见步骤 1 的分权表），
+#   目标态由 ESO+Vault 分发。
+kubectl -n leno create secret generic leno-consul-token \
+  --from-literal=acl-token="${BT}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # leno-staging-mssql：若步骤 2 已建则跳过
@@ -181,7 +190,7 @@ kubectl -n leno create secret generic leno-staging-grafana-admin \
 Consul 服务为 ClusterIP（不建 Ingress，方案 §5.1），运维机经 port-forward 访问：
 
 ```bash
-kubectl -n leno port-forward svc/consul-server 8500:8500 &
+kubectl -n leno port-forward svc/consul-consul-server 8500:8500 &
 # 干跑核对（不写库）
 pwsh deploy/scripts/seed-consul-kv.ps1 -DryRun \
   -ConsulAddress "http://localhost:8500" -ConsulToken "${LENO_CONSUL_TOKEN}"
@@ -193,7 +202,7 @@ pwsh deploy/scripts/seed-consul-kv.ps1 \
 **验证**：`curl -H "X-Consul-Token: ${LENO_CONSUL_TOKEN}" http://localhost:8500/v1/kv/leno/config/ServiceUrls__ProductApi?raw`；灰度开关 `.../leno/anticorruption/use-grpc/order?raw` 应为 `false`。
 
 > ⚠ **ServiceUrls 必须覆盖**：`kv-seed.json` 中 `ServiceUrls__*` 的 default 是 dev 的 compose 服务名（`http://leno-product-api` 等）；staging 的 release 名为 `leno`，实际服务 DNS 为 `http://leno-product:5152` 等（chart 渲染规则 `{release}-{service}:{port}`，见 `values.yaml` serviceUrls）。且 **KV 优先级高于 env 兜底**，写错即全错。写 KV 前先 `export`：
-> `LENO_SERVICEURL_PRODUCTAPI=http://leno-product:5152`、`LENO_SERVICEURL_PROMOTIONAPI=http://leno-promotion:5155`、`LENO_SERVICEURL_POINTSMEMBERSHIPAPI=http://leno-pointsmembership:5157`、`LENO_SERVICEURL_ORDERAPI=http://leno-order:5154`、`LENO_SERVICEURL_PAYMENTAPI=http://leno-payment:5158`、`LENO_SERVICEURL_USERAUTHAPI=http://leno-user-auth:5151`、`LENO_SERVICEURL_ACCESSCONTROLAPI=http://leno-access-control-api`（accesscontrol 无独立部署，保留 KV default 或与网关路由核实）。
+> `LENO_SERVICEURL_PRODUCTAPI=http://leno-product:5152`、`LENO_SERVICEURL_PROMOTIONAPI=http://leno-promotion:5155`、`LENO_SERVICEURL_POINTSMEMBERSHIPAPI=http://leno-pointsmembership:5157`、`LENO_SERVICEURL_ORDERAPI=http://leno-order:5154`、`LENO_SERVICEURL_PAYMENTAPI=http://leno-payment:5158`、`LENO_SERVICEURL_USERAUTHAPI=http://leno-userauth:5151`、`LENO_SERVICEURL_ACCESSCONTROLAPI=http://leno-access-control-api`（accesscontrol 无独立部署，保留 KV default 或与网关路由核实；其余 6 个均已按 values.yaml `serviceUrls` 的 service key 核对：product/promotion/pointsmembership/order/payment/userauth）。
 
 ## 步骤 5：业务部署（Helm chart）
 
@@ -214,10 +223,10 @@ kubectl -n leno get deployment leno-api-gateway -o wide
 kubectl -n leno port-forward svc/leno-api-gateway 8080:8080 &
 curl -s http://localhost:8080/health/ready && curl -s http://localhost:8080/health/live
 # Consul 服务自注册核验
-kubectl -n leno exec consul-server-0 -- consul catalog services
+kubectl -n leno exec consul-consul-server-0 -- consul catalog services
 ```
 
-**排错速查**：Pod `CreateContainerConfigError` → 查 0.1/4.2（Secret 缺失）；`CrashLoopBackOff` 且日志 403 → Consul KV 读被 ACL 拒（见遗留事项 ③）；migration Job 失败 → 查连接串 Secret 与建库步骤。
+**排错速查**：Pod `CreateContainerConfigError` → 查 0.1/4.2（Secret 缺失，尤其 `leno-consul-token`）；`CrashLoopBackOff` 且日志 403 → Consul KV 读被 ACL 拒 → 核对 `leno-consul-token` Secret 里的 token 是否有效（步骤 1 取的 bootstrap token）且 `Consul__Token` env 已注入（`kubectl -n leno get deploy leno-order -o yaml | grep -A2 Consul__Token`）；migration Job 失败 → 查连接串 Secret 与建库步骤。
 
 ## 步骤 6：Loki 日志栈（D7）
 
@@ -249,7 +258,7 @@ helm install loki grafana/loki-stack -n leno -f deploy/staging/loki-staging-valu
 
 1. **`leno-security-jwt` 无过渡态自动化**：`create-secrets.ps1` 不创建它，而 `externalSecrets.enabled=true` 时 chart 也不渲染 → 步骤 4.2 手工建。建议后续给 `create-secrets.ps1` 增加 JWT/InternalAuth 两个键（复用 `JWT_SECRET_KEY`/`INTERNAL_AUTH_API_KEY`）。
 2. **`externalSecrets.enabled: true` 名不符实**（D5 过渡态已知）：chart 无 ExternalSecret 模板、`backend: consul` 的 provider 不存在。切换目标态时需改 values（`backend: vault`）并补 ESO SecretStore/ExternalSecret 清单。
-3. **业务服务未注入 Consul ACL token**：代码支持 `Consul:Token` 配置键（`ConfigCenterExtensions` / `ConsulServiceRegistrationExtensions` 均读取），但 `deployment.yaml` 无对应 env 注入 → ACL 开启后服务读 KV/自注册可能 403。二选一：给 chart 增加从 Secret 注入 `Consul__Token`；或 staging 首轮临时降级 ACL（去掉 `global.acls.manageSystemACLs`）。
+3. **业务服务 Consul ACL token 注入（已处置）**：原差距为代码支持 `Consul:Token` 配置键但 chart 未注入。已修复：`deployment.yaml` 新增 `Consul__Token` env（从 `externalDependencies.consul.tokenSecret` 引用，values-staging/prod 启用 `leno-consul-token` Secret，values-dev 不注入）。后续改进项：prod 换用专用最小权限 token（kv-read + 服务注册），目标态经 ESO+Vault 分发。
 4. **`leno_app` 数据库账号密码**当前直接复用 `MSSQL_SA_PASSWORD`（staging 从简）；prod 独立密码并按最小权限收敛。
 5. **CD namespace 不一致**：`cd.yml` 用 `leno-staging`，本 Runbook/方案 §3 用 `leno`，首次 CD 演练前对齐。
 6. **Loki chart 形态**：loki-stack 单副本适合 staging；prod 按方案 D7 重新评估（grafana/loki SSE 模式 + 独立 Grafana + 保留期专项设计）。
