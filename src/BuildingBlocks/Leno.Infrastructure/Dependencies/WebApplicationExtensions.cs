@@ -59,6 +59,11 @@ public static class WebApplicationExtensions
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentException.ThrowIfNullOrWhiteSpace(serviceName);
 
+        // 0. 启动 fail-fast 配置校验（P0-C）：必须最先注册，保证先于 MassTransit/Consul 监听等
+        //    托管服务启动；非 Development 环境下关键配置（本 BC ConnectionStrings:{Bc}Db、
+        //    Redis:Configuration、RabbitMQ:Host）缺失或仍为 localhost 默认值时拒绝启动。
+        services.AddLenoStartupConfigurationValidation(configuration, serviceName);
+
         // 1. 共享内核基础设施：JWT 生成器、当前用户上下文、事件总线、Redis、ES、健康检查
         services.AddLenoInfrastructure(configuration, configureConsumers);
 
