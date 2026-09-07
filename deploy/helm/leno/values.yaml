@@ -301,6 +301,15 @@ externalSecrets:
   backend: consul  # 或 vault
   refreshInterval: 1h
 
+# JWT / 内部鉴权密钥（P0-F）：仅在 externalSecrets.enabled=false 时使用，
+# 缺失时 secret.yaml 渲染直接失败（不再渲染占位符）。
+# 生产/Staging 建议开启 externalSecrets 由 ESO 注入。
+security:
+  jwt:
+    secretKey: ""        # 至少 32 字节随机串（HS256 要求 256 位）
+  internalAuth:
+    apiKey: ""           # 内部服务间鉴权密钥（代码读取键 InternalAuth:ApiKey），至少 32 字节
+
 # Prometheus 抓取配置（service monitor 占位，实际通过 Prometheus Community chart 注入）
 prometheus:
   enabled: false

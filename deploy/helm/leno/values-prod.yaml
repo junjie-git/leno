@@ -2,6 +2,11 @@
 global:
   environment: Production
 
+# 预发/生产：Secret 由 External Secrets Operator 对接 Vault/Consul 创建，
+# chart 不渲染任何 Secret（secret.yaml 占位符已移除）
+externalSecrets:
+  enabled: true
+
 services:
   api-gateway:
     replicaCount: 3

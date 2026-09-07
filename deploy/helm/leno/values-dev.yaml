@@ -2,6 +2,14 @@
 global:
   environment: Development
 
+# dev-only 明文密钥：仅供本地开发集群，禁止用于 staging/prod
+# （externalSecrets.enabled=false 时 secret.yaml 必需）
+security:
+  jwt:
+    secretKey: "dev-only-jwt-secret-key-0123456789abcdef0123456789abcdef"
+  internalAuth:
+    apiKey: "dev-only-internal-api-key-0123456789abcdef"
+
 services:
   api-gateway:
     replicaCount: 1
