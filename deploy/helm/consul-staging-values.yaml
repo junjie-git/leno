@@ -1,0 +1,84 @@
+# =============================================================================
+# Leno staging：Consul（HashiCorp 官方 consul-k8s chart）values 片段
+#
+# 依据：deploy/docs/production-infrastructure-plan.md §3 步骤 1（v1.2 定稿），
+#       决策已确认（2026-09-07）：staging 也按 server 3 节点 + 持久化 + ACL 起步
+#       （KV 是配置主通道，单点会拖垮整套 staging 验证，见方案 §2 环境矩阵）。
+#
+# 使用方式（与方案 §3 命令保持一致）：
+#   helm repo add hashicorp https://helm.releases.hashicorp.com
+#   helm repo update
+#   helm install consul hashicorp/consul -n leno -f deploy/helm/consul-staging-values.yaml
+#
+# 注：
+# - podAntiAffinity 是嵌套 YAML 结构，helm --set 无法表达，必须以本 values 文件
+#   方式提供（QA 此前已指出 `--set server.affinity=anti-affinity` 不合法）。
+# - server.affinity 在 chart 模板中按块字符串注入，因此此处用 `|` 字面量块；
+#   标签 app=consul / component=server 与 chart 生成的 server Pod 标签匹配，
+#   用 requiredDuringSchedulingIgnoredDuringExecution 强制 3 副本打散到不同节点。
+#   （节点数 < 3 时 Pod 会 Pending，请先确认 worker >= 3，见 Runbook 前置条件。）
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Server（Raft 3 节点 + PVC 持久化）
+# -----------------------------------------------------------------------------
+server:
+  replicas: 3
+  # 数据目录持久化：chart 同时支持 server.storage（旧字段）与 server.persistence，
+  # 两者都声明，避免 chart 版本差异导致落到 emptyDir。
+  storage: 10Gi
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  # 强制 3 个 server Pod 打散到不同节点（方案 §2 prod 同款，staging 一并启用）
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app: consul
+            component: server
+        topologyKey: kubernetes.io/hostname
+
+# -----------------------------------------------------------------------------
+# ACL（方案 §1.4：KV 配置主通道 + 服务注册均需 token，最小化分权）
+# 说明：
+# - chart 自动 bootstrap ACL 并把 bootstrap token 存入 Secret
+#   <release>-consul-bootstrap-acl-token（release=consul 时即
+#   consul-consul-bootstrap-acl-token），运维负责取出并妥善保管（不落任何仓库）。
+# - kv-write/kv-read/service-read token 的创建步骤见
+#   deploy/staging/README.md 步骤 1 验证小节。
+# - 已知差距（见 Runbook 遗留事项）：业务代码支持 Consul:Token 配置键，但
+#   leno chart deployment.yaml 尚未注入该 env；staging 首轮如遇 KV 403，
+#   按遗留事项补注入或临时降级 ACL 后再演练。
+# -----------------------------------------------------------------------------
+global:
+  acls:
+    manageSystemACLs: true
+
+# -----------------------------------------------------------------------------
+# UI（运维排障用，不建 Ingress，仅集群内 port-forward 访问）
+# -----------------------------------------------------------------------------
+ui:
+  enabled: true
+
+# -----------------------------------------------------------------------------
+# Client agent：DaemonSet 形态部署到每个节点，业务服务经本机 8500 自注册
+# （与 src 中 AgentServiceRegistration 代码路径一致，方案 §1.4 选型理由 1）
+# -----------------------------------------------------------------------------
+client:
+  enabled: true
+
+# -----------------------------------------------------------------------------
+# 关闭 mesh 注入：Leno 服务间通信为 YARP/gRPC+HTTP，不使用 Consul service mesh
+# （无 sidecar 需求，staging 保持最小资源占用）
+# -----------------------------------------------------------------------------
+connectInject:
+  enabled: false
