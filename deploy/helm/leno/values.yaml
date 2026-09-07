@@ -269,6 +269,13 @@ services:
     readinessProbe: { httpGet: { path: /health/ready, port: 5161 }, initialDelaySeconds: 15, periodSeconds: 10 }
     livenessProbe: { httpGet: { path: /health/live, port: 5161 }, initialDelaySeconds: 30, periodSeconds: 30 }
 
+# 数据库迁移（P0-E）：执行 files/migrations/ 下的幂等 SQL（sqlcmd）
+# SQL 由 scripts/generate-migration-scripts.ps1 产出并同步到 chart files 目录（CI 中保持同步）
+migrations:
+  enabled: true
+  sqlcmdImage: "mcr.microsoft.com/mssql-tools18:latest"
+  scriptsDir: "files/migrations"
+
 # 外部依赖（SQL Server/Redis/RabbitMQ/ES/Consul/Jaeger/Prometheus/Grafana/Alertmanager）
 # 本 chart 不部署基础设施，假设已存在或通过 Bitnami/Prometheus Community chart 部署
 externalDependencies:

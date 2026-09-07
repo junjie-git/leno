@@ -1,5 +1,19 @@
+{{/*
+数据库迁移 Job（P0-E）：执行 scripts/generate-migration-scripts.ps1 产出的幂等 SQL。
+
+为何弃用 dotnet ef：原实现使用 aspnet 运行时镜像（无 SDK）执行
+`dotnet ef database update --no-build`，运行时镜像内没有 dotnet-ef 与 SDK，
+Job 必然失败。EF 幂等迁移 SQL 已由 scripts/generate-migration-scripts.ps1
+预先生成（IF NOT EXISTS / __EFMigrationsHistory 守卫，可重复执行），本 Job
+改为 sqlcmd 按文件名顺序逐个执行本 BC 的 SQL（{bc}-*.sql）。
+
+连接信息从 leno-db-connectionstrings Secret 读取（key={Bc}Db，与代码读取键
+严格一致），在容器内解析 Server/User Id/Password/Database 后调用 sqlcmd。
+保留 helm.sh/hook: pre-install,pre-upgrade 权重 -5 时序（ConfigMap 为 -10，
+先于 Job 创建）。
+*/}}
 {{- range $name, $service := .Values.services }}
-{{- if and $service.enabled $service.migration $service.migration.enabled $service.migration.runOnInit }}
+{{- if and $.Values.migrations.enabled $service.enabled $service.migration $service.migration.enabled $service.migration.runOnInit }}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -25,27 +39,55 @@ spec:
       {{- end }}
       containers:
         - name: migration
-          image: {{ include "leno.image" (dict "service" $service "context" $) }}
-          imagePullPolicy: {{ $service.image.pullPolicy | default "IfNotPresent" }}
-          command: ["dotnet", "ef", "database", "update", "--no-build"]
+          image: {{ $.Values.migrations.sqlcmdImage | quote }}
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              SQLCMD="/opt/mssql-tools18/bin/sqlcmd"
+              if [ ! -x "$SQLCMD" ]; then SQLCMD="$(command -v sqlcmd)"; fi
+              if [ -z "$SQLCMD" ]; then echo "sqlcmd 不存在" >&2; exit 1; fi
+
+              # 从连接串解析 Server/User/Password/Database（单值来源，避免重复配置漂移）
+              get_cs() { printf '%s' "$CONNECTION_STRING" | tr ';' '\n' | grep -i "^$1=" | head -n1 | cut -d= -f2-; }
+              SERVER="$(get_cs Server)"
+              USER_ID="$(get_cs "User Id")"; [ -n "$USER_ID" ] || USER_ID="$(get_cs User)"
+              PASSWORD="$(get_cs Password)"
+              DATABASE="$(get_cs Database)"
+              if [ -z "$SERVER" ] || [ -z "$DATABASE" ]; then
+                echo "连接串缺少 Server/Database，无法执行迁移" >&2
+                exit 1
+              fi
+
+              echo "开始执行 {{ $name }} BC 幂等迁移 SQL（Database=$DATABASE）..."
+              shopt -s nullglob
+              for f in /migrations/{{ $name }}-*.sql; do
+                echo ">>> 执行 $f"
+                "$SQLCMD" -S "$SERVER" -U "$USER_ID" -P "$PASSWORD" -d "$DATABASE" \
+                  -C -b -f 65001 -i "$f"
+              done
+              if [ -z "$(ls /migrations/{{ $name }}-*.sql 2>/dev/null)" ]; then
+                echo "未找到 {{ $name }}-*.sql 迁移脚本，请检查 ConfigMap 挂载" >&2
+                exit 1
+              fi
+              echo "{{ $name }} BC 迁移完成。"
+          volumeMounts:
+            - name: migration-scripts
+              mountPath: /migrations
+              readOnly: true
           env:
-            - name: ASPNETCORE_ENVIRONMENT
-              value: {{ $.Values.global.environment | default "Production" }}
-            - name: Service__Name
-              value: {{ $name | quote }}
-            - name: OpenTelemetry__OtlpEndpoint
-              value: {{ $.Values.global.jaeger.otlpEndpoint | quote }}
-            - name: Consul__Address
-              value: {{ $.Values.global.consul.address | quote }}
-            - name: ConnectionStrings__Default
+            - name: CONNECTION_STRING
               valueFrom:
                 secretKeyRef:
                   name: {{ $.Values.externalDependencies.sqlserver.connectionstringSecret }}
-                  key: {{ $name }}
-            - name: Security__Jwt__SecretKey
-              valueFrom:
-                secretKeyRef:
-                  name: leno-security-jwt
-                  key: secret-key
+                  key: {{ required (printf "services.%s.connectionStringKey 未设置（迁移 Job 需要知道本 BC 的连接串 Secret key）" $name) $service.connectionStringKey }}
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+      volumes:
+        - name: migration-scripts
+          configMap:
+            name: {{ include "leno.fullname" $ }}-migration-scripts
 {{- end }}
 {{- end }}

@@ -1,0 +1,26 @@
+{{/*
+迁移 SQL 脚本 ConfigMap（P0-E）。
+SQL 由 scripts/generate-migration-scripts.ps1 产出（幂等），同步到 chart 的
+files/migrations/ 目录（CI 中应加入同步步骤：copy scripts/migrations/*.sql →
+deploy/helm/leno/files/migrations/）。为何弃用 dotnet ef：原 Job 使用 aspnet
+运行时镜像（无 SDK）执行 `dotnet ef database update --no-build`，必然失败；
+且运行时镜像内不应包含迁移工具链。改为 ConfigMap 挂载 SQL + sqlcmd 执行。
+*/}}
+{{- if .Values.migrations.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "leno.fullname" . }}-migration-scripts
+  labels:
+    {{- include "leno.labels" (dict "name" "migration-scripts" "context" .) | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+data:
+  {{- range $path, $_ := .Files.Glob (printf "%s/*.sql" .Values.migrations.scriptsDir) }}
+  {{ base $path }}: |-
+{{ $.Files.Get $path | indent 4 }}
+  {{- end }}
+{{- end }}
