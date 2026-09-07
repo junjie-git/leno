@@ -1,0 +1,202 @@
+# =============================================================================
+# Leno Platform CD（阶段 3 骨架）
+#
+# 手动触发的 Helm 部署流水线：确认镜像存在 → helm upgrade --install（--atomic）
+# → kubectl rollout status 就绪检查。
+#
+# -----------------------------------------------------------------------------
+# 上线前必须配置的 GitHub Secrets / Environments 清单
+# -----------------------------------------------------------------------------
+# 1. GitHub Environments：在仓库 Settings → Environments 创建 `staging` 与 `prod`
+#    两个环境，并将本 workflow 的 environment 输入与之对应。
+# 2. 环境级 Secrets（分别配置在对应 Environment 中，禁止写入仓库级或代码）：
+#    - KUBECONFIG_STAGING：staging 集群 kubeconfig 文件的 **base64 编码**
+#      （生成方式：base64 -w0 kubeconfig-staging.yaml）
+#    - KUBECONFIG_PROD：prod 集群 kubeconfig 文件的 **base64 编码**
+#      建议使用最小权限 ServiceAccount（仅目标 namespace 的 deploy 权限），
+#      并设置证书短期有效期。
+# 3. prod 环境防护：在 GitHub Environments 中为 `prod` 配置
+#    **Required reviewers**（必需审批人），部署前需人工批准。
+# 4. 镜像拉取：若 GHCR 镜像仓库为 private，需在目标集群创建 imagePullSecret
+#    并在 values 的 global.imagePullSecrets 中引用（chart 已支持该字段）。
+# 5. GITHUB_TOKEN 为 workflow 内置凭据（permissions 已声明 packages:read），
+#    用于 manifest 检查，无需额外配置。
+# -----------------------------------------------------------------------------
+# 骨架说明：当前无真实集群，本文件重点是结构正确、参数完整、危险操作有防护；
+# 首次真实部署前请按上述清单补齐 secrets 并演练 staging。
+# =============================================================================
+
+name: Leno Platform CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '部署目标环境（staging | prod）'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - prod
+      image_tag:
+        description: '镜像 tag（CI 推送的 tag：sha 短 tag 如 sha-abc1234，或分支名 tag 如 main）'
+        required: true
+        type: string
+
+# CD 只读代码与镜像，不写 packages
+permissions:
+  contents: read
+  packages: read
+
+env:
+  REGISTRY: ghcr.io
+  # CI（ci.yml docker-build job）推送的镜像名：ghcr.io/<owner>/leno-<service>
+  # 与 helm values 的 global.imageRegistry / global.imageNamespace / global.imageTag 对应
+  HELM_CHART_DIR: deploy/helm/leno
+  HELM_TIMEOUT: 10m
+  # 12 个服务（11 BC + API 网关），与 helm values services key 一一对应
+  SERVICES: 'api-gateway userauth product cart order promotion reviewaftersales pointsmembership payment notification sellershop systemadmin'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1：部署前置检查 —— 确认 12 个服务镜像在 GHCR 上真实存在，
+  # 避免 helm upgrade --atomic 因镜像拉取失败回滚浪费时间（--atomic 回滚不等于零影响）。
+  # ---------------------------------------------------------------------------
+  verify-image:
+    name: 确认镜像存在 (GHCR)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check all service images exist
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          set -euo pipefail
+          # GHCR 镜像名必须全小写，repository_owner 可能含大写
+          NAMESPACE="${GITHUB_REPOSITORY_OWNER,,}"
+          fail=0
+          for svc in $SERVICES; do
+            image="${REGISTRY}/${NAMESPACE}/leno-${svc}:${IMAGE_TAG}"
+            if docker manifest inspect "$image" > /dev/null 2>&1; then
+              echo "✓ $image"
+            else
+              echo "::error::镜像不存在或无权访问: $image"
+              fail=1
+            fi
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "请确认 CI（ci.yml docker-build）已成功推送该 commit 的镜像，且 image_tag 输入正确"
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Job 2：Helm 部署 + 滚动就绪检查
+  #
+  # - environment: ${{ inputs.environment }} 绑定 GitHub Environments：
+  #   staging / prod 的环境级 secrets 隔离；prod 建议开启 required reviewers。
+  # - helm --atomic：升级失败（含就绪探针超时）自动回滚到上一版本。
+  # - 镜像注入：--set global.imageRegistry/Namespace/Tag，环境 values 不固化版本。
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Helm 部署 (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    needs: verify-image
+    # GitHub Environments：staging/prod 各自的环境 secrets 与（prod）审批门禁在此生效
+    environment: ${{ inputs.environment }}
+    env:
+      TARGET_ENV: ${{ inputs.environment }}
+      IMAGE_TAG: ${{ inputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.16.4'
+
+      - name: Configure kubectl (环境级 KUBECONFIG secret)
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.kube
+          case "$TARGET_ENV" in
+            staging)
+              if [ -z "${KUBECONFIG_STAGING:-}" ]; then
+                echo "::error::Environment secret KUBECONFIG_STAGING 未配置（base64 编码的 kubeconfig）"
+                exit 1
+              fi
+              echo "$KUBECONFIG_STAGING" | base64 -d > ~/.kube/config
+              ;;
+            prod)
+              if [ -z "${KUBECONFIG_PROD:-}" ]; then
+                echo "::error::Environment secret KUBECONFIG_PROD 未配置（base64 编码的 kubeconfig）"
+                exit 1
+              fi
+              echo "$KUBECONFIG_PROD" | base64 -d > ~/.kube/config
+              ;;
+            *)
+              echo "::error::非法环境: $TARGET_ENV（仅允许 staging|prod）"
+              exit 1
+              ;;
+          esac
+          chmod 600 ~/.kube/config
+          kubectl cluster-info
+        env:
+          KUBECONFIG_STAGING: ${{ secrets.KUBECONFIG_STAGING }}
+          KUBECONFIG_PROD: ${{ secrets.KUBECONFIG_PROD }}
+
+      - name: Helm upgrade --install
+        run: |
+          set -euo pipefail
+          NAMESPACE="${GITHUB_REPOSITORY_OWNER,,}"
+          RELEASE="leno-${TARGET_ENV}"
+          NS="leno-${TARGET_ENV}"
+          helm upgrade --install "$RELEASE" "$HELM_CHART_DIR" \
+            --namespace "$NS" \
+            --create-namespace \
+            --values "$HELM_CHART_DIR/values-${TARGET_ENV}.yaml" \
+            --set global.imageRegistry="$REGISTRY" \
+            --set global.imageNamespace="$NAMESPACE" \
+            --set global.imageTag="$IMAGE_TAG" \
+            --atomic \
+            --timeout "$HELM_TIMEOUT"
+
+      - name: Rollout status 就绪检查
+        run: |
+          set -euo pipefail
+          NS="leno-${TARGET_ENV}"
+          RELEASE="leno-${TARGET_ENV}"
+          fail=0
+          for svc in $SERVICES; do
+            deploy="${RELEASE}-${svc}"
+            if kubectl -n "$NS" get deployment "$deploy" > /dev/null 2>&1; then
+              if kubectl -n "$NS" rollout status "deployment/$deploy" --timeout=300s; then
+                echo "✓ $deploy 就绪"
+              else
+                echo "::error::$deploy 滚动更新未在超时内就绪"
+                fail=1
+              fi
+            else
+              echo "::warning::deployment 不存在（可能被 values 禁用）: $deploy"
+            fi
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::存在未就绪的 deployment，请检查集群事件与 Pod 日志"
+            kubectl -n "$NS" get pods -o wide || true
+            exit 1
+          fi
+
+      - name: 部署摘要
+        if: always()
+        run: |
+          echo "环境: $TARGET_ENV"
+          echo "镜像 tag: $IMAGE_TAG"
+          echo "registry: $REGISTRY"
