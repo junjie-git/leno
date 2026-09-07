@@ -5,6 +5,19 @@ on:
     branches: [main, develop, dev]
   pull_request:
     branches: [main, develop, dev]
+  workflow_dispatch:
+
+# 镜像推送 GHCR 需要 packages:write；其余 job 仅需 contents:read
+permissions:
+  contents: read
+  packages: write
+
+# 镜像仓库参数化（阶段 3）：REGISTRY + IMAGE_PREFIX 统一在顶部定义，便于切换 registry。
+# IMAGE_PREFIX 仅含 <owner>/，服务名由 matrix 拼接：ghcr.io/<owner>/leno-<service>
+# （docker/metadata-action 会自动将镜像名转为小写，满足 GHCR 命名要求）
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/
 
 jobs:
   build-solution:
@@ -113,6 +126,12 @@ jobs:
       - name: Build ${{ matrix.project.name }}
         run: dotnet build ${{ matrix.project.path }} --configuration Release
 
+  # ===========================================================================
+  # 阶段 3：docker build + push（GHCR）
+  # - PR：只构建不推送（验证 Dockerfile 可构建）
+  # - push 到 main/develop/dev 或手动触发：推送到 ghcr.io/<owner>/leno-<service>
+  #   tag 策略：git sha（短）+ 分支名；main 分支额外打 latest
+  # ===========================================================================
   docker-build:
     runs-on: ubuntu-latest
     needs: build-services
@@ -146,8 +165,40 @@ jobs:
             dockerfile: 'src/ApiGateway/Leno.ApiGateway/Dockerfile'
     steps:
       - uses: actions/checkout@v4
-      - name: Docker build ${{ matrix.service.name }}
-        run: docker build -f ${{ matrix.service.dockerfile }} -t leno-${{ matrix.service.name }}:ci .
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 生成镜像 tag：sha(短) + 分支名 + (main) latest；同时将镜像名统一转小写
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}leno-${{ matrix.service.name }}
+          tags: |
+            type=sha,format=short
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      # push 条件：push 事件（触发分支已限定 main/develop/dev）或手动触发；PR 只构建不推送
+      - name: Login to GHCR
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push ${{ matrix.service.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.service.dockerfile }}
+          push: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   validate-compose:
     runs-on: ubuntu-latest
