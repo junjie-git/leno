@@ -1,6 +1,6 @@
 # Leno 生产基础设施方案
 
-> 版本：v1.1（按"全本地自建、不采用任何云服务"硬性约束修订；v1.0 经 QA 两轮回归 GO）
+> 版本：v1.2（按"全本地自建、不采用任何云服务"硬性约束修订；QA 回归修正 Basic AG 单库限制错误——19 库 = 19 个 Basic AG + cluster type NONE）
 > 约束：无云 RDS、无云托管中间件、无云日志、无云备份——所有基础设施组件（含 SQL Server、备份介质、日志栈）全部本地自建（on-premise）。
 > 范围：Leno 电商平台生产/预发基础设施选型、部署清单、备份恢复与网络安全方案。
 > 本文档只做方案落档，不修改任何源码与 Helm 模板；引用现有 values 的路径均已注明。
@@ -44,29 +44,35 @@
 
 云托管 RDS / Azure SQL 已被"全本地自建"硬性约束排除，不再列为选项。候选均为自建形态：
 
-| 维度 | A. 独立 VM 部署（集群外，主备 2 台 + Basic AG） | B. K8s 容器化（StatefulSet + 本地 PV） | C. 单 VM + 定时备份还原演练 |
+| 维度 | a. 独立 VM 主备 2 台（集群外）+ 自建 HA | b. 单 VM + 定时备份还原演练 | c. K8s 容器化（StatefulSet + 本地 PV） |
 |------|------|------|------|
-| 高可用 | 主备同步复制，主机故障可切换（Basic AG 为库级转移，备用库**不可读**）；RTO 分钟级 | 单 Pod 单 PV，无成熟生产级 HA 方案（mssql on K8s 官方仅提供单实例部署 + 2022 起的 AG on K8s 预览级支持，社区无成熟 Operator） | 无自动切换，RPO = 备份粒度，RTO = 还原时长（小时级） |
-| 数据可靠性 | 同步提交，RPO ≈ 0 | 依赖 PV 存储稳定性，本地盘/单副本 PV 故障即数据风险 | 依赖备份完整性与演练频度 |
-| 运维复杂度 | 中：2 台 VM + AG 配置一次成型，日常运维 = 补丁 + 备份监控，团队无专职 DBA 也可维持 | **高**：StatefulSet 有状态服务 + PV 生命周期 + SQL Server 自身 HA 三重复杂度叠加，且与 K8s 节点维护/升级强耦合 | 低 |
-| 与 K8s 集群关系 | 完全解耦：数据库故障与 K8s 节点维护互不影响（交易库最需要的隔离性） | 强耦合：节点缩容/存储类变更/集群重建都波及交易库 | 完全解耦 |
-| 20 库 IO 表现 | 独享 VM 本地 NVMe/SSD，IO 可控可扩 | 与业务 Pod 共享节点磁盘与存储类 QoS，**IO 抖动直接拖垮交易库** | 单机 IO 瓶颈明显 |
-| 适用判定 | **生产可用** | **仅限 staging/联调**，生产不可选 | 预算只够 1 台 VM 时的起步形态，交易高峰期风险自担 |
+| 高可用 | 主备同步复制，RPO ≈ 0；HA 子形态三选一（见推荐）：**a1）Standard + 19 个 Basic AG + cluster type NONE**（脚本化手动切换）/ a2）Enterprise 单 AG + Pacemaker 自动切换 / a3）FCI 共享存储实例级切换 | 无自动切换，RPO = 备份粒度，RTO = 还原时长（小时级） | 单 Pod 单 PV，无成熟生产级 HA 方案（mssql on K8s 官方仅提供单实例部署 + 2022 起的 AG on K8s 预览级支持，社区无成熟 Operator） |
+| 数据可靠性 | 同步提交，RPO ≈ 0 | 依赖备份完整性与演练频度 | 依赖 PV 存储稳定性，本地盘/单副本 PV 故障即数据风险 |
+| 运维复杂度 | a1：中（19 个 AG 对象但全脚本化，无 Pacemaker 集群）；a2：中高（Pacemaker 3 副本集群）；a3：高（共享存储 + 集群） | 低 | **高**：StatefulSet 有状态服务 + PV 生命周期 + SQL Server 自身 HA 三重复杂度叠加，且与 K8s 节点维护/升级强耦合 |
+| 与 K8s 集群关系 | 完全解耦：数据库故障与 K8s 节点维护互不影响（交易库最需要的隔离性） | 完全解耦 | 强耦合：节点缩容/存储类变更/集群重建都波及交易库 |
+| 20 库 IO 表现 | 独享 VM 本地 NVMe/SSD，IO 可控可扩 | 单机 IO 瓶颈明显 | 与业务 Pod 共享节点磁盘与存储类 QoS，**IO 抖动直接拖垮交易库** |
+| 适用判定 | **生产可用**（推荐 a1，演进 a2） | 预算只够 1 台 VM 时的起步形态，交易高峰期风险自担 | **仅限 staging/联调**，生产不可选 |
 
-**推荐：A（独立 Linux VM × 2 + SQL Server 2022 Standard + Basic AG）**。理由：
-1. **生产交易库必须与 K8s 集群解耦**：§0 已确认 SQL Server 是唯一强一致状态源，19 库共用实例；将其塞进 K8s（选项 B）会让存储抖动、节点维护与交易库可用性互相拖累，且 mssql on K8s 的高可用生态不成熟，生产事故代价远超省下的 1 台 VM；
-2. Basic AG（Standard 版自带）同步提交已满足"RPO ≈ 0 + 分钟级切换"的起步目标；后续流量上来再评估 Enterprise 多副本可读 AG；
-3. 两台 VM 也天然构成备份的机房内异地副本（互为第二存储位置，见 §4 的 3-2-1 本地实现）。
+**推荐：a1（独立 Linux VM × 2 + SQL Server 2022 Standard + 19 个 Basic AG，cluster type NONE）**。
 
-> 预算只允许 1 台 VM 时退而选 **C**，但必须把"季度还原演练"升级为"月度"，并在业务低峰窗口执行补丁；**生产明确不选 B**，B 仅作为 staging 形态（沿用 §3 步骤 5 的 K8s 单节点 mssql，Developer 版）。
+**先纠正一个关键事实（v1.1 首版的错误）**：Basic AG **每个 AG 仅支持 1 个可用性数据库**（微软 Learn《Basic Always On availability groups for a single database》；Standard 版只提供 Basic AG），但**同一实例允许挂载多个 Basic AG** → "1 个 AG 承载 19 库"在 Standard 下不成立，正确形态是 **19 库 = 19 个 Basic AG**。理由：
+1. **生产交易库必须与 K8s 集群解耦**：§0 已确认 SQL Server 是唯一强一致状态源，19 库共用实例；将其塞进 K8s（选项 c）会让存储抖动、节点维护与交易库可用性互相拖累，且 mssql on K8s 的高可用生态不成熟，生产事故代价远超省下的 1 台 VM；
+2. **19 个 AG 的增量成本比直觉小**：database mirroring endpoint 是**实例级共享**的（1 个端点服务所有 AG，不随 AG 数翻倍）；真正的增量是 19 个 AG 对象的创建/监控/切换，全部脚本化——创建用循环、监控统一走 `sys.dm_hadr_*`、切换脚本循环执行 `ALTER AVAILABILITY GROUP ... FAILOVER`。由于 19 库同实例同生共死，切换语义就是"整实例一起切"，效果与 FCI 的实例级切换等价；
+3. **cluster type NONE 解决 Linux 仲裁问题**：不部署 Pacemaker，就不存在 2 节点 quorum/fencing 问题，也无需第三仲裁节点或云 witness（云不可用）。代价是故障转移为**手动/脚本触发**（RTO = 脚本分钟级 + Consul KV 改连接串 host，无需 listener）；同步提交保证 RPO ≈ 0；
+4. **为什么不默认 a2（Enterprise 单 AG）**：Enterprise Per Core 许可约为 Standard 的 4 倍；且其核心收益"自动切换"在 Linux 上依赖 Pacemaker，为满足仲裁需 3 副本（微软建议 ≥3）或 2 副本 + configuration-only 副本（2017+，第三台低配 VM 仅存配置元数据、不存用户库）——起步规模为自动切换多付 3 倍许可 + 集群运维不划算，a2 作为大档演进选项；
+5. **为什么不推荐 a3（FCI）**：FCI 实例级 HA、无单库限制、单虚拟网络名，看似最简，但 Linux FCI 必须依赖**共享存储**（iSCSI/NFS/SAN）+ Pacemaker——共享存储本身成为新的 SPOF 或新增专用硬件（SAN），对无存储团队的 Leno 是负资产；仅当机房已有可靠共享存储时优先评估；
+6. 两台 VM 互为备份的机房内第二存储位置（§4 的 3-2-1 本地实现）。
+
+> 许可提示：主备两台均需 Per Core 许可（无 Software Assurance 时被动副本也需授权；有 SA 可援引故障转移许可权利降低成本，采购前与渠道确认）。
+> 预算只允许 1 台 VM 时退而选 **b**，但必须把"季度还原演练"升级为"月度"，并在业务低峰窗口执行补丁；**生产明确不选 c**，c 仅作为 staging 形态（沿用 §3 步骤 5 的 K8s 单节点 mssql，Developer 版）。
 
 **许可与计费（自建后成本主体从月费变为一次性授权 + 硬件）**：
 
 | 版本 | 价格模型 | 关键限制 | 结论 |
 |---|---|---|---|
 | Express | 免费 | 单库 10GB 上限、内存 1.4GB、**许可条款不允许生产使用**（v1.0 已有结论） | 生产不可用 |
-| Standard | **Per Core**（按物理核心计，每 VM 最低 4 core 起）或 Server + CAL | 缓冲池上限 128GB/实例；Basic AG 仅 2 副本、备用库不可读、库级转移 | **生产推荐**；Leno 是面向公网匿名流量的 C 端电商，**Server + CAL 需按访问用户/设备数购买 CAL，对 C 端高并发场景不可行，实际只能选 Per Core** |
-| Enterprise | 仅 Per Core（约为 Standard 的 4 倍单价） | 无内存上限、多副本可读 AG、在线重建索引 | 流量上大档（§2.1）或需要 3 副本 AG 时再评估 |
+| Standard | **Per Core**（按物理核心计，每 VM 最低 4 core 起）或 Server + CAL | 缓冲池上限 128GB/实例；仅 Basic AG：2 副本、备用库不可读、**每个 AG 仅 1 个可用性数据库**（19 库 = 19 个 Basic AG，同实例可挂多个） | **生产推荐**；Leno 是面向公网匿名流量的 C 端电商，**Server + CAL 需按访问用户/设备数购买 CAL，对 C 端高并发场景不可行，实际只能选 Per Core** |
+| Enterprise | 仅 Per Core（约为 Standard 的 4 倍单价） | 无内存上限；单 AG 可承载任意多库（19 库 = 1 个 AG）、3+ 副本可读辅助副本、Pacemaker 自动切换、在线重建索引 | 大档（§2.1）或需要单 AG/自动切换时再评估（§1.1 子形态 a2） |
 
 提示：Per Core 按 VM 分配的物理核心数计费，控制 VM 核数即控制授权成本；正式采购前以微软官方报价/渠道报价为准。
 
@@ -191,7 +197,7 @@
 
 | 组件 | dev（现状，docker-compose） | staging（K8s 最小可用） | prod（K8s 高可用） |
 |---|---|---|---|
-| SQL Server | 单实例 2019 Express | K8s 单节点 mssql（Developer 版，50Gi PVC）或独立 VM | 独立 VM 主备 2 台（集群外，SQL Server 2022 Standard，Basic AG），见 §1.1 |
+| SQL Server | 单实例 2019 Express | K8s 单节点 mssql（Developer 版，50Gi PVC）或独立 VM | 独立 VM 主备 2 台（集群外，SQL Server 2022 Standard，19 个 Basic AG，cluster type NONE），见 §1.1 |
 | Redis | 单节点无密码 | Sentinel：1 主 1 从 + 3 哨兵，各 0.25C256Mi | Sentinel：1 主 2 从 + 3 哨兵，主 1C2Gi / 从同规格 |
 | RabbitMQ | 单节点 3.12 | 单节点 + PVC（Bitnami `replicaCount=1`） | 3 节点集群 + quorum 队列，各 0.5C1Gi |
 | Consul | `agent -dev` | server 3 节点 + ACL + 10Gi PVC（**staging 也必须 3 节点**：KV 是配置主通道，单点会拖垮整套 staging 验证） | server 3 节点 + ACL + 20Gi PVC + DaemonSet agent，anti-affinity 打散节点 |
@@ -204,7 +210,7 @@
 |---|---|---|
 | 小（staging） | 全组件最小可用 | K8s worker × 3（4C8G/100G SSD）；SQL Server 独立 VM × 1（4C16G）或 K8s 单节点过渡；备份机 × 1（2C4G + 2T） |
 | 中（prod 起步） | 日订单 < 50 万 | K8s worker × 3（8C16G/200G SSD）；SQL Server VM 主备 × 2（8C32G + 500Gi 数据盘/250Gi 日志盘，NVMe）；备份机/NAS × 1（4C16G + 8T） |
-| 大（prod 扩容） | 日订单 > 50 万 | K8s worker × 4-6（16C32G）；SQL Server VM 主备 × 2（16C64G，评估 Enterprise 多副本可读 AG）；ES 独立数据节点；备份机扩容至 16T+ 并考虑第二备份机 |
+| 大（prod 扩容） | 日订单 > 50 万 | K8s worker × 4-6（16C32G）；SQL Server VM 主备 × 2（16C64G，评估升级 Enterprise 单 AG 自动切换，§1.1 子形态 a2）；ES 独立数据节点；备份机扩容至 16T+ 并考虑第二备份机 |
 
 ### 2.1 本地自建硬件清单建议（最小 prod 拓扑）
 
@@ -358,7 +364,7 @@ helm install leno deploy/helm/leno -n leno -f deploy/helm/leno/values-staging.ya
 
 | 组件 | 工具 | 频率 | 保留期 | 恢复演练要求 |
 |---|---|---|---|---|
-| SQL Server | Ola Hallengren 脚本（全量 + 差异/日志），备份写入 NAS/备份机（SMB/NFS 或备份机拉取） | 全量日 1 次 + 日志每 15 分钟 | 全量 30 天，日志 7 天 | 季度 1 次单库 PITR 恢复演练（staging 演练，核对 19 库清单完整性）；若 D1 选形态 C（无 AG），演练升级为月度整机还原 |
+| SQL Server | Ola Hallengren 脚本（全量 + 差异/日志），备份写入 NAS/备份机（SMB/NFS 或备份机拉取） | 全量日 1 次 + 日志每 15 分钟 | 全量 30 天，日志 7 天 | 季度 1 次单库 PITR 恢复演练（staging 演练，核对 19 库清单完整性）+ 半年 1 次整实例切换演练（19 个 AG 循环 failover 脚本，见 §1.1）；若 D1 选形态 b（无 AG），切换演练升级为月度整机还原 |
 | Consul KV | CronJob：`consul snapshot save`，快照推送备份机；KV 敏感项另有 `create-secrets.ps1` 可重放 | 快照日 1 次（30 分钟粒度可提升） | 30 天 | 半年 1 次：全新集群 `consul snapshot restore` + seed 脚本重放，验证服务启动 |
 | Redis | 依赖可重建定位：不强制备份；RDB 日 1 次推送备份机作调试快照（认证 token 丢失=用户重登，库存计数由 DB 审计源对账重算） | RDB 日 1 | 3 天 | 演练"清空 Redis 后系统可自愈"（重登、缓存回源、幂等重建、**库存计数 DB 对账重算**） |
 | RabbitMQ | 拓扑定义导出（`rabbitmqctl export_definitions`）入 Git；消息依赖持久化 + quorum 副本，不备份消息体 | 定义导出：每次拓扑变更 | Git 永久 | 半年 1 次：空集群按导出定义重建 + 业务自检 |
@@ -368,7 +374,7 @@ helm install leno deploy/helm/leno -n leno -f deploy/helm/leno/values-staging.ya
 
 | 组件 | RPO 目标 | RTO 目标 | 说明 |
 |---|---|---|---|
-| SQL Server（prod，D1 形态 A：主备 VM + Basic AG） | ≤ 15 分钟（日志备份粒度；AG 同步提交下实际 RPO ≈ 0） | ≤ 60 分钟（AG 自动/半自动切换 + 应用连接串切 listener；无 AG 的形态 C 为 ≤ 4 小时整机还原） | 交易库是唯一强一致状态源；自建无云平台自动切换，RTO 较托管形态放宽，靠演练保障 |
+| SQL Server（prod，D1 形态 a：主备 VM + 19 个 Basic AG） | ≤ 15 分钟（日志备份粒度；同步提交下实际 RPO ≈ 0） | ≤ 60 分钟（脚本化手动切换：循环 failover 19 个 AG + Consul KV 切连接串 host；子形态 a2（Enterprise + Pacemaker）可自动切换；无 AG 的形态 b 为 ≤ 4 小时整机还原） | 交易库是唯一强一致状态源；自建无云平台自动切换，RTO 较托管形态放宽，靠切换演练保障 |
 | Consul | ≤ 24 小时（snapshot 日备） | ≤ 15 分钟 | 丢失段可由 seed 脚本 + 变更记录补齐；server 3 节点下整集群丢失为极端场景 |
 | Redis | 接受全量丢失（RPO = ∞） | ≤ 1 分钟（Sentinel 切换） | 全部数据可自愈/重建；库存计数依赖 DB 审计源对账重算兜底（生产必配对账 Job） |
 | RabbitMQ | 0（quorum + durable + 持久化消息） | ≤ 15 分钟（3 副本下节点级故障 ≈ 0） | 消息不丢为硬目标 |
@@ -419,8 +425,8 @@ helm install leno deploy/helm/leno -n leno -f deploy/helm/leno/values-staging.ya
 
 | # | 决策项 | 选项 | 默认建议 |
 |---|---|---|---|
-| D1 | SQL Server 自建生产形态 | a) 独立 VM 主备 2 台 + SQL Server 2022 Standard（Basic AG）/ b) 单 VM + 定时备份还原演练 / c) K8s StatefulSet 容器化 | **a**（§1.1：与 K8s 解耦 + RPO≈0）；预算只够 1 台 VM 时以 b 起步并将还原演练升级为月度；**c 生产不可选**，仅限 staging |
-| D2 | SQL Server 装独立 VM 还是进 K8s | 独立 VM（集群外）/ K8s StatefulSet | **独立 VM**（生产）。理由：交易库可用性与 K8s 节点维护/存储抖动解耦，mssql on K8s 无成熟生产级 HA 方案（§1.1 选项 B）；K8s 内 mssql 仅用于 staging（Developer 版） |
+| D1 | SQL Server 自建生产形态 | a) 独立 VM 主备 2 台 + Standard（HA 子形态：a1 = 19 个 Basic AG + cluster type NONE，脚本化手动切换〔默认〕/ a2 = Enterprise 单 AG + Pacemaker 3 副本自动切换 / a3 = FCI 共享存储实例级切换）/ b) 单 VM + 定时备份还原演练 / c) K8s StatefulSet 容器化 | **a1**（§1.1：与 K8s 解耦 + 同步提交 RPO≈0 + 无 Pacemaker 仲裁问题，切换靠脚本与演练）；需要自动切换或上大档时升 a2；预算只够 1 台 VM 时以 b 起步并将演练升级为月度；**c 生产不可选**，仅限 staging |
+| D2 | SQL Server 装独立 VM 还是进 K8s | 独立 VM（集群外）/ K8s StatefulSet | **独立 VM**（生产）。理由：交易库可用性与 K8s 节点维护/存储抖动解耦，mssql on K8s 无成熟生产级 HA 方案（§1.1 选项 c）；K8s 内 mssql 仅用于 staging（Developer 版） |
 | D3 | 硬件预算档位 | 小/中/大（§2 硬件规格三档，按 VM vCPU/内存/磁盘分档） | **中档**起步：k8s-w × 3（8C16G）+ SQL VM 主备 × 2（8C32G/NVMe）+ 备份机 × 1（4C16G/8T），见 §2.1 硬件清单 |
 | D4 | RabbitMQ 版本与队列类型 | 3.13 + 后续切 quorum / 直接 4.x | **3.13 起步**，应用侧 quorum 配置列入优化项（一行端点配置）；自建 3 节点集群，不涉云 |
 | D5 | 敏感凭据分发通道（ESO 现状冲突） | a) ESO + Vault 作密钥源、KV 只放非敏感配置 / b) ESO webhook 自研 Consul provider / c) 放弃 ESO，create-secrets.ps1/自研脚本承担 Consul→K8s Secret 分发 | **目标态 a**（ESO 官方无 Consul provider，b 的自研维护成本高；values.yaml `externalSecrets.backend` 需由 consul 改为 vault，属一次 values 变更；Vault 同样全自建、K8s 内部署，不接云 KMS）；**staging 首轮过渡态 c**（create-secrets.ps1 即当前实际权威通道），联调稳定后切 a 并将 kv-seed.json 中敏感项迁移至 Vault |
