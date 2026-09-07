@@ -1,0 +1,58 @@
+{
+  "$comment": "Leno Consul KV 种子清单（P0-D）。键名 = 配置键（: → __），实际写入 Consul 时自动加前缀 leno/config/。value 支持 ${ENV_VAR} 占位符，由 seed-consul-kv.ps1 从环境变量解析；敏感值一律引用环境变量，本文件禁止出现真实密码。default 为占位符对应环境变量缺失时的非敏感默认值（仅非敏感项允许）。KV 键优先级高于 env 兜底（Winton Consul 源位于配置链尾），键映射规则见 deploy/docs/consul-kv-coverage-audit.md。",
+  "prefix": "leno/config/",
+  "items": [
+    { "key": "ConnectionStrings__AccessControlDb", "value": "${LENO_DB_ACCESSCONTROL}" },
+    { "key": "ConnectionStrings__AfterSalesDb", "value": "${LENO_DB_AFTERSALES}" },
+    { "key": "ConnectionStrings__CartDb", "value": "${LENO_DB_CART}" },
+    { "key": "ConnectionStrings__IdentityDb", "value": "${LENO_DB_IDENTITY}" },
+    { "key": "ConnectionStrings__InventoryDb", "value": "${LENO_DB_INVENTORY}" },
+    { "key": "ConnectionStrings__MembershipDb", "value": "${LENO_DB_MEMBERSHIP}" },
+    { "key": "ConnectionStrings__NotificationDb", "value": "${LENO_DB_NOTIFICATION}" },
+    { "key": "ConnectionStrings__OrderDb", "value": "${LENO_DB_ORDER}" },
+    { "key": "ConnectionStrings__PaymentDb", "value": "${LENO_DB_PAYMENT}" },
+    { "key": "ConnectionStrings__PointsDb", "value": "${LENO_DB_POINTS}" },
+    { "key": "ConnectionStrings__PointsMembershipDb", "value": "${LENO_DB_POINTSMEMBERSHIP}" },
+    { "key": "ConnectionStrings__ProductDb", "value": "${LENO_DB_PRODUCT}" },
+    { "key": "ConnectionStrings__PromotionDb", "value": "${LENO_DB_PROMOTION}" },
+    { "key": "ConnectionStrings__ReviewDb", "value": "${LENO_DB_REVIEW}" },
+    { "key": "ConnectionStrings__ReviewAfterSalesDb", "value": "${LENO_DB_REVIEWAFTERSALES}" },
+    { "key": "ConnectionStrings__SellerShopDb", "value": "${LENO_DB_SELLERSHOP}" },
+    { "key": "ConnectionStrings__SystemAdminDb", "value": "${LENO_DB_SYSTEMADMIN}" },
+    { "key": "ConnectionStrings__UserAuthDb", "value": "${LENO_DB_USERAUTH}" },
+    { "key": "ConnectionStrings__UserCenterDb", "value": "${LENO_DB_USERCENTER}" },
+
+    { "key": "Redis__Configuration", "value": "${LENO_REDIS_CONFIGURATION}" },
+
+    { "key": "RabbitMQ__Host", "value": "${LENO_RABBITMQ_HOST}", "default": "rabbitmq" },
+    { "key": "RabbitMQ__Port", "value": "${LENO_RABBITMQ_PORT}", "default": "5672" },
+    { "key": "RabbitMQ__Username", "value": "${LENO_RABBITMQ_USERNAME}", "default": "leno" },
+    { "key": "RabbitMQ__Password", "value": "${LENO_RABBITMQ_PASSWORD}" },
+    { "key": "RabbitMQ__VirtualHost", "value": "${LENO_RABBITMQ_VIRTUALHOST}", "default": "/" },
+
+    { "key": "Elasticsearch__Uri", "value": "${LENO_ES_URI}" },
+
+    { "key": "Jwt__SecretKey", "value": "${JWT_SECRET_KEY}" },
+    { "key": "InternalAuth__ApiKey", "value": "${INTERNAL_AUTH_API_KEY}" },
+    { "key": "Security__InternalApiKey__Shared", "value": "${LENO_INTERNAL_API_KEY_SHARED}" },
+
+    { "key": "ServiceUrls__ProductApi", "value": "${LENO_SERVICEURL_PRODUCTAPI}", "default": "http://leno-product-api" },
+    { "key": "ServiceUrls__PromotionApi", "value": "${LENO_SERVICEURL_PROMOTIONAPI}", "default": "http://leno-promotion-api" },
+    { "key": "ServiceUrls__PointsMembershipApi", "value": "${LENO_SERVICEURL_POINTSMEMBERSHIPAPI}", "default": "http://leno-pointsmembership-api" },
+    { "key": "ServiceUrls__OrderApi", "value": "${LENO_SERVICEURL_ORDERAPI}", "default": "http://leno-order-api" },
+    { "key": "ServiceUrls__PaymentApi", "value": "${LENO_SERVICEURL_PAYMENTAPI}", "default": "http://leno-payment-api" },
+    { "key": "ServiceUrls__AccessControlApi", "value": "${LENO_SERVICEURL_ACCESSCONTROLAPI}", "default": "http://leno-access-control-api" },
+    { "key": "ServiceUrls__UserAuthApi", "value": "${LENO_SERVICEURL_USERAUTHAPI}", "default": "http://leno-user-auth-api" }
+  ],
+  "antiCorruption": {
+    "$comment": "灰度开关 KV（ConsulConfigWatcher 监听 leno/anticorruption/use-grpc/{bc}，不经过 leno/config 前缀），按 BC 独立键写入，默认 HTTP 轨（false）",
+    "prefix": "leno/anticorruption/use-grpc/",
+    "keys": [
+      "accesscontrol", "aftersales", "cart", "identity", "inventory", "membership",
+      "notification", "order", "payment", "points", "pointsmembership", "product",
+      "promotion", "review", "reviewaftersales", "sellershop", "systemadmin",
+      "userauth", "usercenter"
+    ],
+    "value": "false"
+  }
+}
