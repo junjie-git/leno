@@ -340,8 +340,8 @@ public class SkuSnapshotRefreshQueueTests
         // 不入队任何 SKU，直接停止
         await StopGracefullyAsync(sut);
 
-        // 无异常即视为通过
-        Assert.True(true);
+        // 无异常即视为通过：StopAsync 正常返回，后台任务应已结束且无未处理异常
+        sut.ExecuteTask.IsCompleted.Should().BeTrue();
     }
 
     /// <summary>

@@ -164,7 +164,7 @@ public sealed class SpuReviewHiddenSummaryConsumer : IntegrationEventConsumerBas
 /// <item>reject（驳回）/ hide（隐藏）：评分从摘要移除，TotalScore -= Rating、ReviewCount -= 1。</item>
 /// </list>
 /// </para>
-/// 修复审计 #10：原实现仅有 TODO 占位，审核驳回后商品评分读模型仍包含被驳回评价。
+/// 修复审计 #10：原实现仅有空占位，审核驳回后商品评分读模型仍包含被驳回评价。
 /// 现与评价域对齐 schema（SpuId + Rating），实现增量更新消费者。
 /// 幂等：通过 EventId + Redis SET NX 去重；ES 索引以商品标识为 _id，重复索引为覆盖更新。
 /// </summary>

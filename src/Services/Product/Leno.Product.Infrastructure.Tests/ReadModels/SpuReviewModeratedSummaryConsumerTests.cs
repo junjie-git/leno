@@ -11,7 +11,7 @@ namespace Leno.Product.Infrastructure.Tests.ReadModels;
 /// <summary>
 /// P1-T10 单元测试：验证 <see cref="SpuReviewModeratedSummaryConsumer"/> 根据
 /// 审核动作（approve/reject/hide/appeal）正确增量更新评分摘要。
-/// 修复审计 #10：原实现仅有 TODO 占位，审核驳回后商品评分读模型仍包含被驳回评价。
+/// 修复审计 #10：原实现仅有空占位，审核驳回后商品评分读模型仍包含被驳回评价。
 /// </summary>
 public class SpuReviewModeratedSummaryConsumerTests
 {
