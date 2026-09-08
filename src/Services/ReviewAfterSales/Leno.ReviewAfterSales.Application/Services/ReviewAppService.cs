@@ -190,7 +190,8 @@ public sealed class ReviewAppService : IReviewAppService
         // 2. 调用商品域 ACL 批量获取 SpuId → 商品名称映射
         // 3. 在内存中按 productName 模糊匹配过滤 SpuId 列表
         // 4. 将过滤后的 SpuId 列表传入仓储查询；若无匹配 SpuId，直接返回空结果避免全表扫描
-        IReadOnlyList<Guid>? filteredSpuIds = null;
+        // CA1859：仅在本方法内构造/遍历，直接用具体类型 List<Guid> 避免接口分发开销
+        List<Guid>? filteredSpuIds = null;
         if (!string.IsNullOrWhiteSpace(productName))
         {
             var sellerSpuIds = await _reviewRepository.GetDistinctSpuIdsBySellerAsync(sellerId, ct);

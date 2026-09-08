@@ -24,6 +24,7 @@ public sealed class OrderPaymentProcessOptions
     /// 100 表示全部走 Process Manager 跟踪路径，0 表示全部走旧路径。
     /// 与 <see cref="UsePaymentProcessManager"/> 配合：全局开关为 true 时按本字段灰度。
     /// 保证同一订单切流稳定（不会时而跟踪时而不跟踪）。
+    /// 注：int 默认值即 0，按 CA1805 不做冗余显式初始化。
     /// </summary>
-    public int RolloutPercent { get; init; } = 0;
+    public int RolloutPercent { get; init; }
 }

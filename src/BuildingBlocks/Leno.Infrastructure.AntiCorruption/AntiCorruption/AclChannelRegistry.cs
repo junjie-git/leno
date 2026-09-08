@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.Infrastructure.AntiCorruption;
@@ -94,7 +95,11 @@ public sealed class AclChannelRegistry
     }
 
     /// <summary>尝试获取指定通道名关联的熔断器状态机。</summary>
-    public bool TryGetCircuitBreaker(string channelName, out CircuitBreakerState? breaker)
+    /// <remarks>
+    /// 返回 true 时 <paramref name="breaker"/> 保证非 null（NotNullWhen 契约），
+    /// 调用方可直接解引用而无需二次判空（CS8602）。
+    /// </remarks>
+    public bool TryGetCircuitBreaker(string channelName, [NotNullWhen(true)] out CircuitBreakerState? breaker)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(channelName);
         return _breakerStates.TryGetValue(channelName, out breaker);

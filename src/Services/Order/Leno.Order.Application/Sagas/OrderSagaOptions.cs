@@ -18,6 +18,7 @@ public sealed class OrderSagaOptions
     /// Saga 切流百分比（0-100），用于按 OrderId 哈希灰度切流。
     /// 100 表示全部走 Saga 路径，0 表示全部走旧路径。
     /// 与 <see cref="UseSagaStateMachine"/> 配合：<see cref="UseSagaStateMachine"/>=true 且本字段=100 时全量切流。
+    /// 注：int 默认值即 0，按 CA1805 不做冗余显式初始化。
     /// </summary>
-    public int RolloutPercent { get; init; } = 0;
+    public int RolloutPercent { get; init; }
 }

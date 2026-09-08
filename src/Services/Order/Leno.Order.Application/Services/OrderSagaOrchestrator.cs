@@ -24,8 +24,9 @@ namespace Leno.Order.Application.Services;
 /// 3.2：双轨期 feature flag <see cref="OrderSagaOptions.UseSagaStateMachine"/> 切流。
 /// flag=true 时发布 <see cref="OrderSagaStarted"/> 启动 Saga 状态机（shadow 模式：旧进程内编排仍执行以保证返回值兼容）。
 /// flag=false 时仅走旧进程内编排路径。
+/// 实现 <see cref="IDisposable"/>：持有 <see cref="SemaphoreSlim"/>（CA1001），由 DI 容器在作用域结束时释放。
 /// </summary>
-public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
+public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator, IDisposable
 {
     /// <summary>生产环境默认并行度上限，防止 Redis 连接耗尽。</summary>
     public const int ProductionMaxDegreeOfParallelism = 5;
@@ -440,6 +441,12 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator
         {
             throw new SagaCompensationFailedException(failures);
         }
+    }
+
+    /// <summary>释放限流信号量（CA1001：可释放字段所属类型必须实现 IDisposable）。</summary>
+    public void Dispose()
+    {
+        _semaphore.Dispose();
     }
 
     private sealed class CompletedGroup

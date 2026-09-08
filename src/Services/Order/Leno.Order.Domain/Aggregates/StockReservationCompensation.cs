@@ -96,7 +96,7 @@ public sealed class StockReservationCompensation : AggregateRoot
             maxRetries = DefaultMaxRetries;
         }
 
-        if (!Enum.IsDefined(typeof(CompensationOperationType), operationType))
+        if (!Enum.IsDefined(operationType))
         {
             throw new OrderDomainException("补偿操作类型无效", "STOCK_COMPENSATION_OP_TYPE_INVALID");
         }

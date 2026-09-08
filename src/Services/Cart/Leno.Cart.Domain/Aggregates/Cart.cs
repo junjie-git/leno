@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Leno.Cart.Domain.Events;
 using Leno.Cart.Domain.Exceptions;
@@ -395,8 +396,8 @@ public sealed class Cart : AggregateRoot
     /// </summary>
     /// <param name="skuId">商品 SKU 标识。</param>
     /// <param name="item">匹配到的购物车项；未找到为 null。</param>
-    /// <returns>是否找到匹配项。</returns>
-    private bool TryGetItem(Guid skuId, out CartItem? item)
+    /// <returns>是否找到匹配项；返回 true 时 <paramref name="item"/> 保证非 null（NotNullWhen 契约，消除调用方 CS8602）。</returns>
+    private bool TryGetItem(Guid skuId, [NotNullWhen(true)] out CartItem? item)
     {
         foreach (var i in _items)
         {
