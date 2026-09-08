@@ -1,10 +1,19 @@
 import type MockAdapter from 'axios-mock-adapter'
 import { loadSeedData } from '../data/seed'
+import type { LoginLogDto } from '@/modules/05-audit/types/login-log.dto'
+
+/** 登录日志列表过滤参数（与 LoginLogQueryDto 的过滤字段对齐，分页字段由 handler 单独处理） */
+interface LoginLogFilterParams {
+  username?: string
+  result?: string
+  loginAtFrom?: string
+  loginAtTo?: string
+}
 
 export function registerLoginLogHandlers(mock: MockAdapter): void {
   mock.onGet('/admin/login-logs/export').reply((config) => {
     const seed = loadSeedData()
-    const logs = filterAndSortLogs(seed.loginLogs as any[], config.params || {})
+    const logs = filterAndSortLogs(seed.loginLogs as LoginLogDto[], config.params || {})
     const csv = ['id,loginAt,username,ipAddress,geoLocation,browser,os,result,failureReason,durationMs,traceId']
     for (const l of logs) {
       csv.push([l.id, l.loginAt, l.username, l.ipAddress, l.geoLocation, l.browser, l.os, l.result, l.failureReason ?? '', l.durationMs, l.traceId].join(','))
@@ -15,7 +24,7 @@ export function registerLoginLogHandlers(mock: MockAdapter): void {
   mock.onGet(/\/admin\/login-logs\/[^/]+$/).reply((config) => {
     const id = config.url!.split('/').pop()!
     const seed = loadSeedData()
-    const log = (seed.loginLogs as any[]).find((l) => l.id === id)
+    const log = (seed.loginLogs as LoginLogDto[]).find((l) => l.id === id)
     if (!log) {
       return [200, { code: 40400, message: `日志 ${id} 不存在`, data: null }]
     }
@@ -25,7 +34,7 @@ export function registerLoginLogHandlers(mock: MockAdapter): void {
   mock.onGet('/admin/login-logs').reply((config) => {
     const seed = loadSeedData()
     const params = config.params || {}
-    const logs = filterAndSortLogs(seed.loginLogs as any[], params)
+    const logs = filterAndSortLogs(seed.loginLogs as LoginLogDto[], params)
     const page = Number(params.page) || 1
     const pageSize = Number(params.pageSize) || 20
     const total = logs.length
@@ -34,7 +43,7 @@ export function registerLoginLogHandlers(mock: MockAdapter): void {
   })
 }
 
-function filterAndSortLogs(logs: any[], params: any): any[] {
+function filterAndSortLogs(logs: LoginLogDto[], params: LoginLogFilterParams): LoginLogDto[] {
   let result = [...logs]
   if (params.username) {
     result = result.filter((l) => l.username.includes(params.username))

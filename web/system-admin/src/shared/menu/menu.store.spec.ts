@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useMenuStore } from './menu.store'
 import * as menuApiModule from '@/modules/02-user-access/api/menu.api'
+import type { MenuDto } from '@/modules/02-user-access/types/menu.dto'
 
 vi.mock('@/modules/02-user-access/api/menu.api', () => ({
   menuApi: {
@@ -28,7 +29,7 @@ describe('menu.store', () => {
 
   it('fetchMenus: 调用 api.getTree 并填充 state', async () => {
     const mockTree = [{ id: 'm-01', name: '仪表盘' }]
-    vi.mocked(menuApiModule.menuApi.getTree).mockResolvedValueOnce(mockTree as any)
+    vi.mocked(menuApiModule.menuApi.getTree).mockResolvedValueOnce(mockTree as MenuDto[])
     const store = useMenuStore()
     await store.fetchMenus()
     expect(menuApiModule.menuApi.getTree).toHaveBeenCalled()
@@ -37,8 +38,8 @@ describe('menu.store', () => {
   })
 
   it('createMenu: 调用 api.create 后重新 fetchMenus', async () => {
-    vi.mocked(menuApiModule.menuApi.create).mockResolvedValueOnce({ id: 'm-new' } as any)
-    vi.mocked(menuApiModule.menuApi.getTree).mockResolvedValueOnce([{ id: 'm-new' }] as any)
+    vi.mocked(menuApiModule.menuApi.create).mockResolvedValueOnce({ id: 'm-new' } as MenuDto)
+    vi.mocked(menuApiModule.menuApi.getTree).mockResolvedValueOnce([{ id: 'm-new' }] as MenuDto[])
     const store = useMenuStore()
     const body = { name: '新菜单', type: 'Menu' as const, path: '/x', component: null, icon: null, sort: 1, permission: null, roles: ['Admin'], visible: true, cache: false, parentId: null }
     const result = await store.createMenu(body)
@@ -49,7 +50,7 @@ describe('menu.store', () => {
 
   it('deleteMenu: 调用 api.remove 后重新 fetchMenus', async () => {
     vi.mocked(menuApiModule.menuApi.remove).mockResolvedValueOnce(undefined)
-    vi.mocked(menuApiModule.menuApi.getTree).mockResolvedValueOnce([] as any)
+    vi.mocked(menuApiModule.menuApi.getTree).mockResolvedValueOnce([] as MenuDto[])
     const store = useMenuStore()
     await store.deleteMenu('m-01')
     expect(menuApiModule.menuApi.remove).toHaveBeenCalledWith('m-01')
@@ -58,7 +59,7 @@ describe('menu.store', () => {
 
   it('reset: 清空 state', () => {
     const store = useMenuStore()
-    store.menus = [{ id: 'x' }] as any
+    store.menus = [{ id: 'x' }] as MenuDto[]
     store.loaded = true
     store.reset()
     expect(store.menus).toEqual([])

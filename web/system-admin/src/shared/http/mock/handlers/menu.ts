@@ -1,6 +1,7 @@
 import type MockAdapter from 'axios-mock-adapter'
 import { loadSeedData, saveSeedData, nextId } from '../data/seed'
 import type { MockSeed } from '../data/types'
+import type { MenuDto } from '@/modules/02-user-access/types/menu.dto'
 
 /**
  * 菜单 handler 注册
@@ -20,7 +21,7 @@ export function registerMenuHandlers(mock: MockAdapter): void {
 
   mock.onPost('/admin/menus').reply((config) => {
     const seed = loadSeedData()
-    const body = JSON.parse(config.data || '{}')
+    const body: Partial<MenuDto> = JSON.parse(config.data || '{}')
     if (!body.name || !body.type) {
       return [200, { code: 40001, message: '菜单名称与类型必填', data: null }]
     }
@@ -37,8 +38,8 @@ export function registerMenuHandlers(mock: MockAdapter): void {
   mock.onPut(/\/admin\/menus\/[^/]+$/).reply((config) => {
     const id = config.url!.split('/').pop()!
     const seed = loadSeedData()
-    const body = JSON.parse(config.data || '{}')
-    const updated = updateMenuById(seed.menus as any[], id, body)
+    const body: Partial<MenuDto> = JSON.parse(config.data || '{}')
+    const updated = updateMenuById(seed.menus as MenuDto[], id, body)
     if (!updated) {
       return [200, { code: 40400, message: `菜单 ${id} 不存在`, data: null }]
     }
@@ -50,10 +51,10 @@ export function registerMenuHandlers(mock: MockAdapter): void {
     const id = config.url!.split('/').pop()!
     const seed = loadSeedData()
     // 检查是否有子菜单
-    if (hasChildren(seed.menus as any[], id)) {
+    if (hasChildren(seed.menus as MenuDto[], id)) {
       return [200, { code: 40001, message: '存在子菜单，请先删除子菜单', data: null }]
     }
-    const removed = removeMenuById(seed.menus as any[], id)
+    const removed = removeMenuById(seed.menus as MenuDto[], id)
     if (!removed) {
       return [200, { code: 40400, message: `菜单 ${id} 不存在`, data: null }]
     }
@@ -65,7 +66,7 @@ export function registerMenuHandlers(mock: MockAdapter): void {
     const seed = loadSeedData()
     const updates = JSON.parse(config.data || '[]') as Array<{ id: string; parentId: string | null; sort: number }>
     for (const u of updates) {
-      const menu = findMenuById(seed.menus as any[], u.id)
+      const menu = findMenuById(seed.menus as MenuDto[], u.id)
       if (menu) {
         menu.sort = u.sort
         menu.parentId = u.parentId
@@ -78,7 +79,7 @@ export function registerMenuHandlers(mock: MockAdapter): void {
   })
 }
 
-function findMenuById(menus: any[], id: string): any | null {
+function findMenuById(menus: MenuDto[], id: string): MenuDto | null {
   for (const m of menus) {
     if (m.id === id) return m
     if (m.children) {
@@ -89,19 +90,19 @@ function findMenuById(menus: any[], id: string): any | null {
   return null
 }
 
-function updateMenuById(menus: any[], id: string, patch: any): any | null {
+function updateMenuById(menus: MenuDto[], id: string, patch: Partial<MenuDto>): MenuDto | null {
   const menu = findMenuById(menus, id)
   if (!menu) return null
   Object.assign(menu, patch)
   return menu
 }
 
-function hasChildren(menus: any[], id: string): boolean {
+function hasChildren(menus: MenuDto[], id: string): boolean {
   const menu = findMenuById(menus, id)
   return !!(menu?.children && menu.children.length > 0)
 }
 
-function removeMenuById(menus: any[], id: string): boolean {
+function removeMenuById(menus: MenuDto[], id: string): boolean {
   for (let i = 0; i < menus.length; i++) {
     if (menus[i].id === id) {
       menus.splice(i, 1)
@@ -116,11 +117,11 @@ function removeMenuById(menus: any[], id: string): boolean {
 
 function rebuildMenuTree(seed: MockSeed): void {
   // 简化实现：仅按 sort 排序每个父级的 children
-  const sortChildren = (menus: any[]) => {
+  const sortChildren = (menus: MenuDto[]) => {
     menus.sort((a, b) => a.sort - b.sort)
     for (const m of menus) {
       if (m.children) sortChildren(m.children)
     }
   }
-  sortChildren(seed.menus as any[])
+  sortChildren(seed.menus as MenuDto[])
 }

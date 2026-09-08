@@ -12,7 +12,8 @@ export function registerServerMonitorHandlers(mock: MockAdapter): void {
   mock.onGet('/admin/server-monitor/history').reply((config) => {
     const seed = loadSeedData()
     const metric = config.params?.metric || 'cpu'
-    const history = seed.serverHistory as any
+    // serverHistory 为强类型聚合（cpu/memory/diskIo），disk-io 参数名映射到 diskIo 键
+    const history = seed.serverHistory
     const points = history[metric === 'disk-io' ? 'diskIo' : metric] || []
     return [200, { code: 200, message: 'OK', data: { metric, points } }]
   })

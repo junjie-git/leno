@@ -26,9 +26,11 @@ export interface MenuTreeResultDto {
   items: MenuDto[]
 }
 
-export interface CreateMenuDto extends Omit<MenuDto, 'id' | 'children'> {}
+// 空接口（extends 后无新增成员）等价于其父类型，会被 eslint no-empty-interface 拦截，
+// 改用类型别名表达"Omit / Partial 映射"语义。
+export type CreateMenuDto = Omit<MenuDto, 'id' | 'children'>
 
-export interface UpdateMenuDto extends Partial<Omit<MenuDto, 'id' | 'children'>> {}
+export type UpdateMenuDto = Partial<Omit<MenuDto, 'id' | 'children'>>
 
 export interface MenuSortItemDto {
   id: string

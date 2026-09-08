@@ -1,6 +1,15 @@
 import type MockAdapter from 'axios-mock-adapter'
 import { loadSeedData, saveSeedData } from '../data/seed'
 
+/** Mock 种子中的 Redis Key 结构（含所属 db 序号，比 RedisKeyDto 多一个 db 字段） */
+interface RedisKeySeed {
+  db: number
+  key: string
+  type: string
+  size: number
+  ttl: number
+}
+
 export function registerCacheHandlers(mock: MockAdapter): void {
   mock.onGet('/admin/cache/info').reply(() => {
     const seed = loadSeedData()
@@ -16,7 +25,7 @@ export function registerCacheHandlers(mock: MockAdapter): void {
     const seed = loadSeedData()
     const params = config.params || {}
     const db = Number(params.db) || 0
-    let keys = (seed.redisKeys as any[]).filter((k) => k.db === db)
+    let keys = (seed.redisKeys as RedisKeySeed[]).filter((k) => k.db === db)
     if (params.pattern && params.pattern !== '*') {
       const regex = new RegExp('^' + params.pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$')
       keys = keys.filter((k) => regex.test(k.key))
@@ -36,7 +45,7 @@ export function registerCacheHandlers(mock: MockAdapter): void {
     const key = decodeURIComponent(url.replace('/admin/cache/keys/', ''))
     const db = Number(config.params?.db) || 0
     const seed = loadSeedData()
-    const k = (seed.redisKeys as any[]).find((x) => x.key === key && x.db === db)
+    const k = (seed.redisKeys as RedisKeySeed[]).find((x) => x.key === key && x.db === db)
     if (!k) {
       return [200, { code: 40400, message: `Key ${key} 不存在`, data: null }]
     }
@@ -48,7 +57,7 @@ export function registerCacheHandlers(mock: MockAdapter): void {
     const key = decodeURIComponent(url.replace('/admin/cache/keys/', ''))
     const db = Number(config.params?.db) || 0
     const seed = loadSeedData()
-    const idx = (seed.redisKeys as any[]).findIndex((x) => x.key === key && x.db === db)
+    const idx = (seed.redisKeys as RedisKeySeed[]).findIndex((x) => x.key === key && x.db === db)
     if (idx < 0) {
       return [200, { code: 40400, message: `Key ${key} 不存在`, data: null }]
     }

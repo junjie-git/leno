@@ -23,7 +23,7 @@ export function buildDynamicRoutes(menus: MenuDto[]): RouteRecordRaw[] {
       routes.push({
         path: menu.path.replace(/^\//, ''),
         name: menu.path.replace(/\//g, '.').slice(1),
-        component: loader as () => Promise<unknown> as any,
+        component: loader,
         meta: {
           title: menu.name,
           menuKey: menu.path.replace(/\//g, '.').slice(1),

@@ -37,6 +37,7 @@ const browserGlobals = {
   Event: 'readonly',
   MouseEvent: 'readonly',
   KeyboardEvent: 'readonly',
+  DragEvent: 'readonly',
   Date: 'readonly',
   Math: 'readonly',
   JSON: 'readonly',
