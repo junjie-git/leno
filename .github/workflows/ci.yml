@@ -206,7 +206,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate docker-compose config
-        run: docker-compose config > /dev/null
+        # ubuntu-latest runner 已移除 docker-compose v1 独立命令（exit 127），
+        # 统一使用 Docker Compose v2 插件语法 `docker compose`
+        run: docker compose config > /dev/null
 
   # ===========================================================================
   # 阶段 3：迁移 SQL 同步检查（P0 遗留技术债）
@@ -276,8 +278,19 @@ jobs:
       - name: Build
         run: dotnet build Leno.slnx --no-restore --configuration Release -p:TreatWarningsAsErrors=false
       - name: Check migrations sync (模型变更必须配套 migration)
+        env:
+          # 设计期工厂（DesignTimeDbContextFactoryBase）从该变量读取连接串。
+          # has-pending-model-changes 只比较模型与迁移快照、不会真正连接数据库，
+          # 因此注入占位连接串即可（未设置时工厂会 fail-fast 抛异常）。
+          LENO_DESIGNTIME_CONNECTION_STRING: 'Server=localhost,1433;Database=LenoDesignTime;User Id=sa;Password=DesignTimeOnly_NotARealPassword!;TrustServerCertificate=True'
         run: pwsh scripts/check-migrations.ps1
       - name: Generate idempotent migration SQL scripts
+        env:
+          # 同上：migrations script 生成 SQL 亦为设计期行为，不连接数据库。
+          # 注：dotnet-ef 工具版本应与 EF runtime 版本对齐（tools 10.0.0 vs runtime 10.0.9
+          # 会在日志中提示版本偏旧），后续升级 EF 时把下方 --version 与
+          # Directory.Build.props 的 EntityFrameworkCoreVersion 同步更新即可。
+          LENO_DESIGNTIME_CONNECTION_STRING: 'Server=localhost,1433;Database=LenoDesignTime;User Id=sa;Password=DesignTimeOnly_NotARealPassword!;TrustServerCertificate=True'
         run: pwsh scripts/generate-migration-scripts.ps1
       - name: Upload migration SQL scripts
         uses: actions/upload-artifact@v4
