@@ -336,8 +336,15 @@ public class SkuSnapshotRefreshQueueTests
         await sut.StartAsync(CancellationToken.None);
         sut.EnqueueRefreshBatch(new[] { SkuId1, SkuId2 });
         await WaitAsync(fetchCompletion.Task, TimeSpan.FromSeconds(3));
-        // 等待批量处理完成
-        await Task.Delay(300);
+        // 固定 Task.Delay(300) 在慢 CI 上不够（快照→Save 链路未完成即被 Stop 取消打断，
+        // run #10 实证 NRE）。改为与其他用例一致的确定性轮询；
+        // AsNoTracking 绕过主线程 context 的 identity resolution，从 InMemory 存储物化最新值。
+        await WaitUntilAsync(async () =>
+            (await context.Carts.AsNoTracking().Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == CartId1))
+                ?.Items.Any(i => i.SkuId == SkuId1 && i.SkuSnapshot != null) == true
+            && (await context.Carts.AsNoTracking().Include(c => c.Items).FirstOrDefaultAsync(c => c.Id == CartId2))
+                ?.Items.Any(i => i.SkuId == SkuId2 && i.SkuSnapshot != null) == true,
+            TimeSpan.FromSeconds(5));
         await StopGracefullyAsync(sut);
 
         // Assert

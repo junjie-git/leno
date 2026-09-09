@@ -195,22 +195,30 @@ public sealed class CouponAppService : ICouponAppService
     /// 判断 <see cref="DbUpdateException"/> 是否为唯一约束/唯一索引冲突（SQL Server 错误码 2601/2627），
     /// 兼容 PostgreSQL/MySQL 的错误消息关键字。仅此类冲突被视为"并发领取已存在"业务异常，
     /// 其他 DbUpdateException（连接失败、其他约束冲突）原样上抛由调用方处理。
+    /// 注意：InMemory/SQLite 等提供程序不包装 inner 异常，唯一冲突文本直接出现在外层消息中，
+    /// 因此同时检查 ex.Message 与 InnerException.Message。
     /// </summary>
     private static bool IsUniqueConstraintViolation(DbUpdateException ex)
     {
-        var inner = ex.InnerException;
-        if (inner is null)
+        foreach (var message in new[] { ex.Message, ex.InnerException?.Message })
         {
-            return false;
+            if (string.IsNullOrEmpty(message))
+            {
+                continue;
+            }
+
+            if (message.Contains("2601", StringComparison.Ordinal)
+                || message.Contains("2627", StringComparison.Ordinal)
+                || message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("unique constraint", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
         }
 
-        var message = inner.Message ?? string.Empty;
-        return message.Contains("2601", StringComparison.Ordinal)
-            || message.Contains("2627", StringComparison.Ordinal)
-            || message.Contains("UNIQUE KEY", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("unique constraint", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase);
+        return false;
     }
 
     /// <inheritdoc />

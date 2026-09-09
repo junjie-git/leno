@@ -354,7 +354,8 @@ public class SeckillActivityTests
 
         var act = () => activity.RestoreStock(10);
 
-        act.Should().Throw<PromotionDomainException>().WithMessage("*已关闭*");
+        // 实际产品消息：SeckillActivity.RestoreStock 抛 "当前状态 Closed 不可回退库存，仅 Active/Ended 可回退"
+        act.Should().Throw<PromotionDomainException>().WithMessage("*不可回退*");
     }
 
     [Fact]

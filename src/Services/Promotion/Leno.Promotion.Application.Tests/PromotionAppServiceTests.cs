@@ -299,11 +299,22 @@ public class SeckillAppServiceTests
         var activity = CreateActivity();
         _repoMock.Setup(r => r.GetByIdAsync(ActivityId, It.IsAny<CancellationToken>())).ReturnsAsync(activity);
 
+        // 产品实现：await using var tx = await _unitOfWork.BeginTransactionAsync(ct);
+        // Moq 宽松模式下 Task<IUnitOfWorkTransaction> 默认返回 null，导致 tx.CommitAsync NRE，
+        // 必须显式打桩事务（run #10 实证）
+        var txMock = new Mock<IUnitOfWorkTransaction>();
+        txMock.Setup(t => t.CommitAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        txMock.Setup(t => t.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        _uowMock.Setup(u => u.BeginTransactionAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(txMock.Object);
+
         await _sut.CloseActivityWithStockWriteBackAsync(ActivityId);
 
         activity.Status.Should().Be(SeckillStatus.Closed);
         _stockServiceMock.Verify(s => s.WriteBackToDbAsync(ActivityId, It.IsAny<CancellationToken>()), Times.Once);
-        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        // 注意：产品实现不直接调用 SaveEntitiesAsync（WriteBackToDbAsync 真实实现内部才调用，
+        // 而此处 stockService 为 Mock），事务提交以 txMock.CommitAsync 验证
+        txMock.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

@@ -16,8 +16,11 @@ namespace Leno.Order.Infrastructure.Tests;
 /// - 成功调用不递增失败计数器。
 /// 测试使用 <see cref="MeterListener"/> 捕获计数器增量，避免依赖 Prometheus exporter。
 /// </summary>
+[Collection(AntiCorruptionMetricsCollection.Name)]
 public class AntiCorruptionMetricsTests
 {
+    // 静态 Meter 是进程级共享资源，其他类的 ACL 调用与本项目例并发运行时
+    // 会导致 captured 串扰（run #10 实证），DisableParallelization 排他运行是根因修复。
     private static readonly Guid UserId = Guid.NewGuid();
     private static readonly Guid OrderId = Guid.NewGuid();
 
@@ -108,7 +111,8 @@ public class AntiCorruptionMetricsTests
 
         await service.FreezeAsync(UserId, OrderId, 100, CancellationToken.None);
 
-        captured.Should().BeEmpty();
+        // 按维度过滤：只断言本服务无失败计数（防御其他并行来源的条目干扰）
+        captured.Where(x => x.Service == "points").Should().BeEmpty();
     }
 
     [Fact]
@@ -122,7 +126,8 @@ public class AntiCorruptionMetricsTests
         var result = await service.CalculateDiscountAsync(UserId, new List<(Guid, decimal)> { (Guid.NewGuid(), 100m) }, CancellationToken.None);
 
         result.Should().Be(5m);
-        captured.Should().BeEmpty();
+        // 按维度过滤：只断言本服务无失败计数（防御其他并行来源的条目干扰）
+        captured.Where(x => x.Service == "promotion").Should().BeEmpty();
     }
 
     // ---- Helpers ----
