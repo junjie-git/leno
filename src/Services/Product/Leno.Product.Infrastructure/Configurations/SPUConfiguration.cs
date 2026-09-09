@@ -63,6 +63,11 @@ public sealed class SPUConfiguration : IEntityTypeConfiguration<SPU>
             .WithOne()
             .HasForeignKey(sku => sku.SpuId)
             .OnDelete(DeleteBehavior.Cascade);
+        // SKUs 属性为 IReadOnlyCollection（_skus.AsReadOnly()），EF 物化 Include 时
+        // 无法向只读包装器 Add（抛 "Collection is read-only"）；改用字段访问直填 _skus。
+        builder.Navigation(s => s.SKUs)
+            .HasField("_skus")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(s => s.ShopId).HasDatabaseName("ix_spus_shop_id");
         builder.HasIndex(s => s.Status).HasDatabaseName("ix_spus_status");

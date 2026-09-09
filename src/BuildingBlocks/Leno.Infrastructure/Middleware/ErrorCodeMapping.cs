@@ -13,8 +13,10 @@ public static class ErrorCodeMapping
     /// 显式注册表，使用 <see cref="MemoryCache"/> 替代 <c>ConcurrentDictionary</c>，
     /// 通过 <see cref="MemoryCacheOptions.SizeLimit"/> 限制最大条目数（10,000），
     /// 防止长期运行后动态注册导致的无限增长。
-    /// 启动期注册使用 <see cref="CacheItemPriority.NeverRemove"/> 优先级，
-    /// 保证不被自动驱逐；显式 <see cref="Reset"/> 仍可清空全部条目（用于测试隔离）。
+    /// 注意：不可使用 <see cref="CacheItemPriority.NeverRemove"/>——MemoryCache 的
+    /// Compact/Trim 永不驱逐 NeverRemove 条目，会导致 <see cref="Reset"/> 失效
+    ///（run #9 两个 ErrorCodeMapping 测试失败与跨测试类污染的根因）；
+    /// 显式注册即使被内存压力驱逐，GetStatusCode 也会回退到后缀规则，语义安全。
     /// </summary>
     private static readonly MemoryCache _explicit = new(new MemoryCacheOptions
     {
@@ -45,7 +47,8 @@ public static class ErrorCodeMapping
         _explicit.Set(errorCode, statusCode, new MemoryCacheEntryOptions
         {
             Size = 1,
-            Priority = CacheItemPriority.NeverRemove
+            // 不设 NeverRemove：Compact/Trim 永不驱逐该优先级的条目，
+            // 否则 Reset()（Compact(1.0)）无法清空注册表（见类注释）。
         });
     }
 

@@ -47,13 +47,19 @@ public sealed class CartItemConfiguration : IEntityTypeConfiguration<CartItem>
         builder.ToTable("cart_items");
         builder.HasKey(i => i.Id);
 
-        builder.Property(i => i.Id).HasColumnName("id");
         builder.Property(i => i.CartId).HasColumnName("cart_id");
         builder.Property(i => i.SkuId).HasColumnName("sku_id");
         builder.Property(i => i.SellerId).HasColumnName("seller_id");
         builder.Property(i => i.Quantity).HasColumnName("quantity");
         builder.Property(i => i.IsSelected).HasColumnName("is_selected");
         builder.Property(i => i.SourceCartItemId).HasColumnName("source_cart_item_id");
+
+        // 主键由聚合根在领域层生成（Cart.AddItem 中 new CartItem(Guid.NewGuid(), ...)），
+        // 不由数据库/store 生成。若保留约定的 ValueGeneratedOnAdd，当已跟踪的 Cart 聚合
+        // 通过导航新增 CartItem 时，EF 的图附加会因"store 生成键但键值已设置"将新实体
+        // 标记为 Modified 而非 Added，SaveChanges 执行 UPDATE 命中 0 行并抛出
+        // DbUpdateConcurrencyException（InMemory 与 SQL Server 行为一致）。
+        builder.Property(i => i.Id).HasColumnName("id").ValueGeneratedNever();
 
         builder.Property(i => i.CreatedAt).HasColumnName("created_at");
         builder.Property(i => i.UpdatedAt).HasColumnName("updated_at");

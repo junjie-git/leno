@@ -69,7 +69,6 @@ namespace Leno.Cart.Infrastructure.Migrations
             modelBuilder.Entity("Leno.Cart.Domain.Aggregates.CartItem", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
 

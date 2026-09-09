@@ -42,6 +42,7 @@ public sealed class ObjectStorageService : IFileStorageService
     public ObjectStorageService(IOptions<ObjectStorageOptions> options, ILogger<ObjectStorageService> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
         _options = options.Value ?? throw new InvalidOperationException("ObjectStorageOptions 未配置");
         _logger = logger;
 

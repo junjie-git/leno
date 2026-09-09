@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Leno.Product.Domain.ValueObjects;
 
 /// <summary>
@@ -23,6 +25,9 @@ public sealed record AuditInfo
 
     private AuditInfo() { }
 
+    // [JsonConstructor]：_auditHistory 以 JSON 列存储（SPUConfiguration.HasConversion），
+    // System.Text.Json 反序列化需要在两个私有 ctor 之间消歧，否则抛 NotSupportedException。
+    [JsonConstructor]
     private AuditInfo(string operatorId, string operatorName, string result, string? reason, DateTime auditedAt)
     {
         OperatorId = operatorId;

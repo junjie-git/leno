@@ -97,12 +97,24 @@ public sealed class JwtBlacklistService : IJwtBlacklistService, IHostedService, 
     /// </summary>
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _subscriber = _redis.GetSubscriber();
-        _subscriber.SubscribeAsync(
-            RedisChannel.Literal(InvalidationChannel),
-            (channel, message) => HandleInvalidationMessage(channel, message));
+        try
+        {
+            _subscriber = _redis.GetSubscriber();
+            _subscriber.SubscribeAsync(
+                RedisChannel.Literal(InvalidationChannel),
+                (channel, message) => HandleInvalidationMessage(channel, message));
 
-        _logger.LogInformation("JWT 黑名单 Pub/Sub 订阅已启动 Channel={Channel}", InvalidationChannel);
+            _logger.LogInformation("JWT 黑名单 Pub/Sub 订阅已启动 Channel={Channel}", InvalidationChannel);
+        }
+        catch (Exception ex)
+        {
+            // 降级容错：AddGatewayRedis 以 AbortOnConnectFail=false 注册（Redis 不可用时网关
+            // 仍须能启动），但 SE.Redis 未连接时 GetSubscriber/SubscribeAsync 可能抛异常，
+            // 若不捕获会导致整个网关 Host 启动失败（CI/无 Redis 环境所有请求 500）。
+            // 降级后黑名单仅依赖本地 MemoryCache 层，Redis 恢复后重启实例即可恢复订阅。
+            _logger.LogWarning(ex, "JWT 黑名单 Pub/Sub 订阅启动失败，已降级为本地缓存模式 Channel={Channel}", InvalidationChannel);
+        }
+
         return Task.CompletedTask;
     }
 

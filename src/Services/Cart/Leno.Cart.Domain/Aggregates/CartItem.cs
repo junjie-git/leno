@@ -154,7 +154,12 @@ public sealed class CartItem : Entity
         var newPrice = snapshot.Price;
         var priceChanged = SkuSnapshot is not null && oldPrice != newPrice;
 
-        SkuSnapshot = snapshot;
+        // SkuSnapshot 是 EF Core owned entity（引用类型）。调用方（如 SkuSnapshotRefreshQueue
+        // 批量刷新）常把同一个快照实例传给多个购物车项；若直接持有引用，
+        // 同一 owned 实例被多个 owner 引用会引发 EF identity 冲突，导致除最后一个 owner 外
+        // 的快照静默丢失（InMemory）或 SaveChanges 抛异常（SQL Server）。
+        // record 的 with{} 产生值相等的新实例，保证每个购物车项持有独立快照对象。
+        SkuSnapshot = snapshot with { };
         // 同步刷新展示字段，保持与快照一致
         DisplayTitle = snapshot.SkuName;
         DisplayImageUrl = snapshot.MainImageUrl ?? string.Empty;
