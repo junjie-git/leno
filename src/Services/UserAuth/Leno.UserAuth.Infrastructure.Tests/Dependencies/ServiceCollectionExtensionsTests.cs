@@ -19,6 +19,9 @@ public sealed class ServiceCollectionExtensionsTests
     /// <summary>测试用 256 位 AES 密钥（32 字节全零的 Base64 编码），仅用于 DI 注册测试，无安全语义。</summary>
     private const string TestAesKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
+    /// <summary>测试用 JWT 签名密钥（32 字节，满足 JwtTokenGenerator 对 HS256 最低 256 位的校验），无安全语义。</summary>
+    private const string TestJwtSecret = "0123456789abcdef0123456789abcdef";
+
     [Fact]
     public void AddUserAuthInfrastructure_Should_Register_RedisRefreshTokenStore_By_Default()
     {
@@ -70,6 +73,9 @@ public sealed class ServiceCollectionExtensionsTests
 
         var multiplexerMock = new Mock<IConnectionMultiplexer>();
         services.AddSingleton(multiplexerMock.Object);
+        // JwtTokenGenerator 构造函数会校验 JwtOptions.SecretKey ≥ 32 字节（HS256），
+        // 手动注册前须先配置满足长度要求的密钥。
+        services.AddOptions<JwtOptions>().Configure(o => o.SecretKey = TestJwtSecret);
         services.AddSingleton<JwtTokenGenerator>();
         services.AddLogging();
 
@@ -102,6 +108,9 @@ public sealed class ServiceCollectionExtensionsTests
 
         var multiplexerMock = new Mock<IConnectionMultiplexer>();
         services.AddSingleton(multiplexerMock.Object);
+        // JwtTokenGenerator 构造函数会校验 JwtOptions.SecretKey ≥ 32 字节（HS256），
+        // 手动注册前须先配置满足长度要求的密钥。
+        services.AddOptions<JwtOptions>().Configure(o => o.SecretKey = TestJwtSecret);
         services.AddSingleton<JwtTokenGenerator>();
         services.AddLogging();
 
@@ -130,6 +139,9 @@ public sealed class ServiceCollectionExtensionsTests
 
         var multiplexerMock = new Mock<IConnectionMultiplexer>();
         services.AddSingleton(multiplexerMock.Object);
+        // JwtTokenGenerator 构造函数会校验 JwtOptions.SecretKey ≥ 32 字节（HS256），
+        // 手动注册前须先配置满足长度要求的密钥。
+        services.AddOptions<JwtOptions>().Configure(o => o.SecretKey = TestJwtSecret);
         services.AddSingleton<JwtTokenGenerator>();
         services.AddLogging();
 

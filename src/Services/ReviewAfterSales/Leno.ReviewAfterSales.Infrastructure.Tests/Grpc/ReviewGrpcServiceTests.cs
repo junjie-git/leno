@@ -99,8 +99,9 @@ public class ReviewGrpcServiceTests
 
         var svc = new ReviewGrpcService(queryMock.Object, NullLogger<ReviewGrpcService>.Instance);
 
+        // int64 SpuId 已废弃（不可逆），必须传 SpuIdStr（Guid 字符串）
         var result = await svc.GetProductRating(
-            new GetProductRatingRequest { SpuId = 42L },
+            new GetProductRatingRequest { SpuIdStr = spuId.ToString() },
             new TestServerCallContext());
 
         result.AverageRating.Should().Be(4.5);
@@ -139,32 +140,21 @@ public class ReviewGrpcServiceTests
     }
 
     [Fact]
-    public async Task GetProductRating_LegacyClient_OnlyInt64_StillWorks()
+    public async Task GetProductRating_LegacyClient_OnlyInt64_ThrowsInvalidArgument()
     {
-        // 旧客户端：仅传 SpuId（int64），不传 SpuIdStr
-        // ReviewGrpcService 既有 int64→Guid 转换方式：new Guid((int)spuId, 0, 0, 0, ...)（确定性可断言）
-        var queryMock = new Mock<IReviewInternalQueryService>();
-        var spuId = new Guid(42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-        queryMock.Setup(q => q.GetProductRatingAsync(spuId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ProductRatingDto
-            {
-                SpuId = spuId,
-                AverageRating = 4.5,
-                TotalCount = 10,
-                PositiveCount = 8
-            });
-
+        // 旧客户端：仅传 SpuId（int64），不传 SpuIdStr。
+        // 契约变更：int64→Guid 的 GetHashCode 映射不可逆，服务端已强制废弃该字段，
+        // 仅传 int64 时应返回 InvalidArgument 提示客户端升级。
+        var queryMock = new Mock<IReviewInternalQueryService>(MockBehavior.Strict);
         var svc = new ReviewGrpcService(queryMock.Object, NullLogger<ReviewGrpcService>.Instance);
 
-        var result = await svc.GetProductRating(
+        var act = async () => await svc.GetProductRating(
             new GetProductRatingRequest { SpuId = 42L },
             new TestServerCallContext());
 
-        // 验证旧客户端仅传 int64 仍可正确解析（确定性转换：int64 42 → new Guid(42, 0, ...)）
-        result.AverageRating.Should().Be(4.5);
-        result.SpuIdStr.Should().Be(spuId.ToString());
-        queryMock.Verify(q => q.GetProductRatingAsync(spuId, It.IsAny<CancellationToken>()), Times.Once);
+        (await act.Should().ThrowAsync<RpcException>())
+            .Which.Status.StatusCode.Should().Be(StatusCode.InvalidArgument);
+        queryMock.Verify(q => q.GetProductRatingAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -185,13 +175,14 @@ public class ReviewGrpcServiceTests
     public async Task GetProductRating_NotFound_ThrowsRpcException()
     {
         var queryMock = new Mock<IReviewInternalQueryService>();
-        queryMock.Setup(q => q.GetProductRatingAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        var spuId = Guid.NewGuid();
+        queryMock.Setup(q => q.GetProductRatingAsync(spuId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ProductRatingDto?)null);
 
         var svc = new ReviewGrpcService(queryMock.Object, NullLogger<ReviewGrpcService>.Instance);
 
         var act = async () => await svc.GetProductRating(
-            new GetProductRatingRequest { SpuId = 42L },
+            new GetProductRatingRequest { SpuIdStr = spuId.ToString() },
             new TestServerCallContext());
 
         (await act.Should().ThrowAsync<RpcException>()).Which.Status.StatusCode.Should().Be(StatusCode.NotFound);

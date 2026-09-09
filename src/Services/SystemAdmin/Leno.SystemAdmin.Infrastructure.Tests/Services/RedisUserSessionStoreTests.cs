@@ -1,4 +1,5 @@
 using Leno.Infrastructure.Abstractions.Sessions;
+using Xunit;
 using Leno.Infrastructure.Sessions;
 using StackExchange.Redis;
 using Testcontainers.Redis;
@@ -11,6 +12,7 @@ namespace Leno.SystemAdmin.Infrastructure.Tests.Services;
 /// TTL 24h、查询过滤、统计、删除清理。
 /// 需要 Docker 环境运行 Testcontainers Redis 容器。
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class RedisUserSessionStoreTests : IAsyncLifetime
 {
     private RedisContainer _container = null!;

@@ -379,11 +379,12 @@ public class UserTests
     [Fact]
     public void CreateFromExternal_EmptyName_ShouldUseEmailPrefix()
     {
-        var info = new ExternalLoginInfo("google", "google-123", "test@gmail.com", " ", null);
+        // 注：邮箱前缀不能使用保留字（如 "test"），保留字会被追加随机后缀
+        var info = new ExternalLoginInfo("google", "google-123", "tester@gmail.com", " ", null);
 
         var user = User.CreateFromExternal(Guid.NewGuid(), info);
 
-        user.Nickname.Should().Be("test");
+        user.Nickname.Should().Be("tester");
     }
 
     #endregion

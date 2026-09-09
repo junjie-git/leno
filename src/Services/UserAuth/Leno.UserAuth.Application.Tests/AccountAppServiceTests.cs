@@ -35,10 +35,11 @@ public class AccountAppServiceTests
 
     private static User CreateUser(Guid userId)
     {
+        // 用户名须满足域校验 3-32 字符（早期 "u1" 会被 ValidateUsername 拒绝）
         return User.Create(
             userId,
-            "u1",
-            "u1@example.com",
+            "user1",
+            "user1@example.com",
             "+8613800138000",
             "hashed:Password123",
             "U1");

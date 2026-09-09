@@ -237,9 +237,10 @@ public sealed class ShopDashboardReadModelBuilderTests
     }
 
     [Fact]
-    public async Task BuildAsync_Should_Set_SchemaVersion_To_Two()
+    public async Task BuildAsync_Should_Set_SchemaVersion_To_Three()
     {
-        // Arrange — SchemaVersion 升级为 2，标识读模型包含 ConfirmedOrders/CancelledOrders/评论统计
+        // Arrange — SchemaVersion 升级为 3（43f36b45：ShopDashboardData 增加
+        // RefundedAmount 字段与 OnOrderRefunded 方法，读模型暴露 NetSales 净收入）
         var shopId = Guid.NewGuid();
         var shop = Shop.Create(shopId, Guid.NewGuid(), "测试店铺", "13800138000");
         var dashboard = ShopDashboardData.Create(shopId);
@@ -262,6 +263,6 @@ public sealed class ShopDashboardReadModelBuilderTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(2, result.SchemaVersion);
+        Assert.Equal(3, result.SchemaVersion);
     }
 }

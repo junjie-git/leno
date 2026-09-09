@@ -1,4 +1,5 @@
 using Leno.Infrastructure.Persistence;
+using Xunit;
 using Leno.Order.Infrastructure;
 using Leno.Testing.Fixtures;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Leno.Order.Infrastructure.Tests.Migrations;
 
+[Trait("Category", "Integration")]
 public class OrderMigrationIntegrationTests : DatabaseMigrationTestBase<OrderDbContext>
 {
     public OrderMigrationIntegrationTests(ContainerFixture fixture) : base(fixture)

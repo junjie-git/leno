@@ -169,10 +169,12 @@ public sealed class DlqCleanupJobTests
         var httpClient = new HttpClient(handler);
 
         await DlqCleanupJob.PurgeDlqQueueAsync(
-            httpClient, "http://rabbitmq:15672", "%2F", "order-service.dlq",
+            httpClient, "http://rabbitmq:15672", "/", "order-service.dlq",
             NullLogger<DlqCleanupJob>.Instance, CancellationToken.None);
 
         Assert.NotNull(handler.LastRequestUrl);
+        // vhost "/" 由 PurgeDlqQueueAsync 内部 EscapeDataString 转义为 %2F
+        //（传入预转义的 "%2F" 会被二次转义成 %252F，故此处必须传原始值）
         Assert.Equal("http://rabbitmq:15672/api/queues/%2F/order-service.dlq/contents", handler.LastRequestUrl);
         Assert.Equal(HttpMethod.Delete, handler.LastRequestMethod);
     }

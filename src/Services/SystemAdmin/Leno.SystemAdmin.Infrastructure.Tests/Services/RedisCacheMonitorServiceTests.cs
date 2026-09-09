@@ -1,4 +1,5 @@
 using Leno.SystemAdmin.Domain.Services;
+using Xunit;
 using Leno.SystemAdmin.Infrastructure.Services;
 using StackExchange.Redis;
 using Testcontainers.Redis;
@@ -10,6 +11,7 @@ namespace Leno.SystemAdmin.Infrastructure.Tests.Services;
 /// 验证 INFO 解析、Keyspace 枚举、SCAN 模式/类型过滤、Key 详情读取、Key 删除。
 /// 需要 Docker 环境运行 Testcontainers Redis 容器。
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class RedisCacheMonitorServiceTests : IAsyncLifetime
 {
     private RedisContainer _container = null!;

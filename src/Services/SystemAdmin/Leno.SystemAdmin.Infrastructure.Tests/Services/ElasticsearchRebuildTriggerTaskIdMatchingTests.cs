@@ -96,8 +96,11 @@ public sealed class ElasticsearchRebuildTriggerTaskIdMatchingTests
         var esTaskId = "matchNode:42";
         var esResponse = $"{{\"task\":\"{esTaskId}\"}}";
 
-        // StartAsync 会先创建索引（PUT），再提交 reindex（POST），返回 task 节点
+        // StartAsync 实际请求序列：GET {source}/_mapping（拉取映射）→
+        // PUT {dest}（创建目标索引）→ POST _reindex（提交任务，返回 task 节点）。
+        // StubHttpMessageHandlerMultiStep 按调用顺序出队、不校验方法，须与实现序列一致。
         var handler = new StubHttpMessageHandlerMultiStep(
+            ("GET", "{}", HttpStatusCode.OK),
             ("PUT", "{}", HttpStatusCode.OK),
             ("POST", esResponse, HttpStatusCode.OK));
 

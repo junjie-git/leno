@@ -29,12 +29,15 @@ public class GrpcOrderStatusProviderTests
         var clientMock = new Mock<OrderInternalService.OrderInternalServiceClient>();
         var orderId = Guid.NewGuid();
         var userId = Guid.NewGuid();
+        var sellerId = Guid.NewGuid();
         var itemSkuId = Guid.NewGuid();
         var response = new OrderStatus
         {
             OrderId = orderId.ToString(),
             Status = "3",  // Completed
             UserId = userId.ToString(),
+            // 合并审计 3.5 强化：MapToInfo 校验 SellerId 必须为合法非空 Guid
+            SellerId = sellerId.ToString(),
             CompletedAt = DateTimeOffset.UtcNow.AddDays(-5).ToUnixTimeSeconds(),
             CreatedAt = DateTimeOffset.UtcNow.AddDays(-30).ToUnixTimeSeconds()
         };
@@ -79,11 +82,16 @@ public class GrpcOrderStatusProviderTests
         // 新服务端仅填充 string 字段，int64 字段为默认值 0
         var clientMock = new Mock<OrderInternalService.OrderInternalServiceClient>();
         var orderId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var sellerId = Guid.NewGuid();
         var itemSkuId = Guid.NewGuid();
         var response = new OrderStatus
         {
             OrderId = orderId.ToString(),
-            Status = "2"
+            Status = "2",
+            // 合并审计 3.5 强化：UserId/SellerId 亦为必填校验字段（string 形式）
+            UserId = userId.ToString(),
+            SellerId = sellerId.ToString()
         };
         response.Items.Add(new Leno.SharedContracts.Grpc.Order.V1.OrderItem
         {

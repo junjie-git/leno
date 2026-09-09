@@ -1,8 +1,10 @@
+using FluentAssertions;
 using Leno.SharedKernel.Abstractions;
 using Leno.UserAuth.Application.Abstractions;
 using Leno.UserAuth.Application.DTOs;
 using Leno.UserAuth.Application.Services;
 using Leno.UserAuth.Domain.Aggregates;
+using Leno.UserAuth.Domain.Exceptions;
 using Leno.UserAuth.Domain.Repositories;
 using Moq;
 
@@ -72,17 +74,18 @@ public class OAuthClientAppServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_New_Client_Should_Call_SaveEntitiesAsync_Not_SaveChangesAsync()
+    public async Task UpdateAsync_Missing_Client_Should_Throw_And_Not_Save()
     {
-        // Arrange
+        // P1-6 契约变更（2694804f）：PUT 严格幂等——客户端不存在时抛
+        // OAUTH_CLIENT_NOT_FOUND，不再自动创建（原为 upsert 语义）。
         _repositoryMock.Setup(r => r.GetByProviderAsync("google", It.IsAny<CancellationToken>()))
             .ReturnsAsync((OAuthClient?)null);
 
-        // Act
-        await _sut.UpdateAsync("google", CreateUpdateDto(), _operatorId, CancellationToken.None);
+        var act = async () => await _sut.UpdateAsync("google", CreateUpdateDto(), _operatorId, CancellationToken.None);
 
-        // Assert
-        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        (await act.Should().ThrowAsync<UserAuthDomainException>())
+            .Which.Message.Should().Contain("未配置");
+        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 

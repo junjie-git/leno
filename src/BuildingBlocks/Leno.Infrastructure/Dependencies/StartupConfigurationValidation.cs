@@ -15,10 +15,12 @@ namespace Leno.Infrastructure.Dependencies;
 /// <c>Redis:Configuration</c>、<c>RabbitMQ:Host</c>，且缺失时静默回退 localhost 默认值
 /// （Redis → <c>localhost:6379</c>，RabbitMQ → <c>localhost/guest</c>）。生产环境若 Helm 注入
 /// 键名错误或 Consul KV 未种子化，服务会"正常启动"却连不上依赖。本校验在宿主启动阶段
-/// （非 Development 环境）对关键配置做 fail-fast，缺失或仍为本地默认值时抛出明确异常拒绝启动。
+/// （非 Development/Testing 环境）对关键配置做 fail-fast，缺失或仍为本地默认值时抛出明确异常拒绝启动。
 /// </para>
 /// <para>
 /// Development 环境完全跳过校验，不破坏本地开发体验（本地 appsettings.json 默认 localhost）。
+/// Testing 环境（单元/集成测试宿主，Api.Tests 以真实 Host + 本地默认配置启动）同样跳过，
+/// 测试域的依赖配置由测试装置自行管理。Production/Staging 校验不受影响。
 /// </para>
 /// </summary>
 public static class LenoStartupConfigurationValidator
@@ -175,11 +177,13 @@ public sealed class StartupConfigurationValidationService : IHostedService
     /// <inheritdoc />
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        // Development 保持现状：本地默认 localhost 配置合法，不破坏开发体验
-        if (_environment.IsDevelopment())
+        // Development / Testing 保持现状：本地默认 localhost 配置合法，不破坏开发与测试体验。
+        // Testing（单元/集成测试宿主）跳过校验：Api.Tests 使用本地默认配置起真实宿主，
+        // 若不跳过会被 fail-fast 误杀（run #8 中 73 个 Api 测试因此失败）。
+        if (_environment.IsDevelopment() || _environment.IsEnvironment("Testing"))
         {
             _logger.LogDebug(
-                "Development 环境跳过启动配置校验 ServiceName={ServiceName}", _serviceName);
+                "{Env} 环境跳过启动配置校验 ServiceName={ServiceName}", _environment.EnvironmentName, _serviceName);
             return Task.CompletedTask;
         }
 
