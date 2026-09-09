@@ -337,9 +337,20 @@ jobs:
 
           # -b：任一 SQL 错误使 sqlcmd 非零退出（默认模式只打印错误不失败，
           # 导致 run #9 迁移脚本错误被吞、step 假绿）
+          #
+          # 每个服务的迁移必须在各自独立的数据库上执行（生产拓扑即每服务一库）。
+          # 此前所有脚本堆进同一空库顺序执行：各服务的 BaseDbContext 共享 outbox_messages
+          # 发件箱表，第二个服务（identity-accesscontrol）CREATE TABLE 即撞 Msg 2714
+          # "There is already an object named 'outbox_messages'"（run #10 实证）。
+          # 按文件名首个 '-' 前的服务前缀分库（cart-initial/cart-sku-snapshot-backfill
+          # 自然同属 cart 库，backfill 依赖 initial 的表结构）；每个脚本自带
+          # __EFMigrationsHistory 幂等防护，在独立空库上语义与生产一致。
           for f in scripts/migrations/*.sql; do
-            echo "Executing $f"
-            sqlcmd -S localhost,1433 -U sa -P "$SA_PASSWORD" -C -b -i "$f"
+            svc="$(basename "$f" | cut -d- -f1)"
+            echo "Executing $f (database: $svc)"
+            sqlcmd -S localhost,1433 -U sa -P "$SA_PASSWORD" -C -b \
+              -Q "IF DB_ID(N'$svc') IS NULL CREATE DATABASE [$svc]"
+            sqlcmd -S localhost,1433 -U sa -P "$SA_PASSWORD" -C -b -d "$svc" -i "$f"
           done
 
   proto-lint-breaking:
