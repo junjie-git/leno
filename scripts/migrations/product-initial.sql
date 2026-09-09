@@ -239,7 +239,221 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20260717174853_InitialCreate', N'10.0.9');
+    VALUES (N'20260717174853_InitialCreate', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260718124540_AddPriceHistoryAggregate'
+)
+BEGIN
+    DECLARE @var nvarchar(max);
+    SELECT @var = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[spus]') AND [c].[name] = N'average_score');
+    IF @var IS NOT NULL EXEC(N'ALTER TABLE [spus] DROP CONSTRAINT ' + @var + ';');
+    ALTER TABLE [spus] DROP COLUMN [average_score];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260718124540_AddPriceHistoryAggregate'
+)
+BEGIN
+    DECLARE @var1 nvarchar(max);
+    SELECT @var1 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[spus]') AND [c].[name] = N'price_change_history');
+    IF @var1 IS NOT NULL EXEC(N'ALTER TABLE [spus] DROP CONSTRAINT ' + @var1 + ';');
+    ALTER TABLE [spus] DROP COLUMN [price_change_history];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260718124540_AddPriceHistoryAggregate'
+)
+BEGIN
+    DECLARE @var2 nvarchar(max);
+    SELECT @var2 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[spus]') AND [c].[name] = N'review_count');
+    IF @var2 IS NOT NULL EXEC(N'ALTER TABLE [spus] DROP CONSTRAINT ' + @var2 + ';');
+    ALTER TABLE [spus] DROP COLUMN [review_count];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260718124540_AddPriceHistoryAggregate'
+)
+BEGIN
+    DECLARE @var3 nvarchar(max);
+    SELECT @var3 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[spus]') AND [c].[name] = N'stock_operation_history');
+    IF @var3 IS NOT NULL EXEC(N'ALTER TABLE [spus] DROP CONSTRAINT ' + @var3 + ';');
+    ALTER TABLE [spus] DROP COLUMN [stock_operation_history];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260718124540_AddPriceHistoryAggregate'
+)
+BEGIN
+    CREATE TABLE [price_histories] (
+        [id] uniqueidentifier NOT NULL,
+        [spu_id] uniqueidentifier NOT NULL,
+        [sku_id] uniqueidentifier NOT NULL,
+        [old_price] decimal(18,2) NOT NULL,
+        [new_price] decimal(18,2) NOT NULL,
+        [currency] nvarchar(3) NOT NULL,
+        [reason] nvarchar(200) NULL,
+        [changed_at] datetime2 NOT NULL,
+        [version] rowversion NULL,
+        [created_at] datetime2 NOT NULL,
+        [updated_at] datetime2 NOT NULL,
+        [created_by] nvarchar(64) NULL,
+        [updated_by] nvarchar(64) NULL,
+        CONSTRAINT [PK_price_histories] PRIMARY KEY ([id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260718124540_AddPriceHistoryAggregate'
+)
+BEGIN
+    CREATE INDEX [ix_price_histories_sku_id] ON [price_histories] ([sku_id]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260718124540_AddPriceHistoryAggregate'
+)
+BEGIN
+    CREATE INDEX [ix_price_histories_spu_changed_at] ON [price_histories] ([spu_id], [changed_at]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260718124540_AddPriceHistoryAggregate'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260718124540_AddPriceHistoryAggregate', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000001_AddUniqueIndexesAndStockBaselineProductId'
+)
+BEGIN
+    DROP INDEX [ix_skus_sku_code] ON [skus];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000001_AddUniqueIndexesAndStockBaselineProductId'
+)
+BEGIN
+    CREATE UNIQUE INDEX [ix_skus_sku_code] ON [skus] ([sku_code]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000001_AddUniqueIndexesAndStockBaselineProductId'
+)
+BEGIN
+    CREATE UNIQUE INDEX [ix_spus_shop_id_title] ON [spus] ([shop_id], [title]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000001_AddUniqueIndexesAndStockBaselineProductId'
+)
+BEGIN
+    ALTER TABLE [stock_baselines] ADD [product_id] uniqueidentifier NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000001_AddUniqueIndexesAndStockBaselineProductId'
+)
+BEGIN
+    CREATE INDEX [ix_stock_baselines_product_id] ON [stock_baselines] ([product_id]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000001_AddUniqueIndexesAndStockBaselineProductId'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260722000001_AddUniqueIndexesAndStockBaselineProductId', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040127_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [price_histories] ADD [changed_by] nvarchar(64) NOT NULL DEFAULT N'';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040127_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [aggregate_root_id] uniqueidentifier NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040127_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [schema_version] int NOT NULL DEFAULT 1;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040127_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [shard_key] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040127_SyncModel20260909'
+)
+BEGIN
+    CREATE INDEX [ix_outbox_shard_status] ON [outbox_messages] ([shard_key], [status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040127_SyncModel20260909'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260909040127_SyncModel20260909', N'10.0.0');
 END;
 
 COMMIT;

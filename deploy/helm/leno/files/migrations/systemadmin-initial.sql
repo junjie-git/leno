@@ -601,7 +601,339 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20260717175558_InitialCreate', N'10.0.9');
+    VALUES (N'20260717175558_InitialCreate', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000006_AddOperationLogEventIdAndIndexRebuildTaskEsTaskId'
+)
+BEGIN
+    ALTER TABLE [operation_logs] ADD [event_id] uniqueidentifier NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000006_AddOperationLogEventIdAndIndexRebuildTaskEsTaskId'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [ix_operation_logs_event_id] ON [operation_logs] ([event_id]) WHERE [event_id] IS NOT NULL');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000006_AddOperationLogEventIdAndIndexRebuildTaskEsTaskId'
+)
+BEGIN
+    ALTER TABLE [index_rebuild_tasks] ADD [es_task_id] nvarchar(256) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000006_AddOperationLogEventIdAndIndexRebuildTaskEsTaskId'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260722000006_AddOperationLogEventIdAndIndexRebuildTaskEsTaskId', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000007_CreateOutboxArchiveTable'
+)
+BEGIN
+    SELECT * INTO outbox_messages_archive FROM outbox_messages WHERE 1 = 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000007_CreateOutboxArchiveTable'
+)
+BEGIN
+    CREATE CLUSTERED INDEX ix_outbox_archive_id
+                  ON outbox_messages_archive (id)
+                  WITH (ONLINE = ON, FILLFACTOR = 90);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000007_CreateOutboxArchiveTable'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260723000007_CreateOutboxArchiveTable', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260727100000_AddP0SystemAdminFeatures'
+)
+BEGIN
+    CREATE TABLE [menus] (
+        [id] uniqueidentifier NOT NULL,
+        [parent_id] uniqueidentifier NULL,
+        [name] nvarchar(32) NOT NULL,
+        [type] tinyint NOT NULL,
+        [path] nvarchar(256) NULL,
+        [component] nvarchar(256) NULL,
+        [icon] nvarchar(64) NULL,
+        [sort] int NOT NULL DEFAULT 0,
+        [permission] nvarchar(64) NULL,
+        [roles] nvarchar(256) NOT NULL,
+        [visible] bit NOT NULL DEFAULT CAST(1 AS bit),
+        [cache] bit NOT NULL DEFAULT CAST(0 AS bit),
+        [created_at] datetime2 NOT NULL,
+        [updated_at] datetime2 NOT NULL,
+        [created_by] nvarchar(64) NULL,
+        [updated_by] nvarchar(64) NULL,
+        CONSTRAINT [PK_menus] PRIMARY KEY ([id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260727100000_AddP0SystemAdminFeatures'
+)
+BEGIN
+    CREATE TABLE [login_logs] (
+        [id] uniqueidentifier NOT NULL,
+        [username] nvarchar(64) NOT NULL,
+        [user_id] uniqueidentifier NULL,
+        [ip_address] nvarchar(64) NOT NULL,
+        [geo_location] nvarchar(128) NULL,
+        [browser] nvarchar(64) NOT NULL,
+        [os] nvarchar(64) NOT NULL,
+        [result] tinyint NOT NULL,
+        [failure_reason] nvarchar(64) NULL,
+        [duration_ms] int NOT NULL,
+        [user_agent] nvarchar(512) NOT NULL,
+        [device_fingerprint] nvarchar(128) NULL,
+        [referer_url] nvarchar(512) NULL,
+        [trace_id] nvarchar(64) NOT NULL,
+        [event_id] uniqueidentifier NOT NULL,
+        [login_at] datetime2 NOT NULL,
+        [created_at] datetime2 NOT NULL,
+        [updated_at] datetime2 NOT NULL,
+        [created_by] nvarchar(64) NULL,
+        [updated_by] nvarchar(64) NULL,
+        CONSTRAINT [PK_login_logs] PRIMARY KEY ([id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260727100000_AddP0SystemAdminFeatures'
+)
+BEGIN
+    CREATE INDEX [ix_menus_parent_id] ON [menus] ([parent_id]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260727100000_AddP0SystemAdminFeatures'
+)
+BEGIN
+    CREATE INDEX [ix_menus_type_visible] ON [menus] ([type], [visible]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260727100000_AddP0SystemAdminFeatures'
+)
+BEGIN
+    CREATE INDEX [ix_login_logs_login_at] ON [login_logs] ([login_at]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260727100000_AddP0SystemAdminFeatures'
+)
+BEGIN
+    CREATE INDEX [ix_login_logs_username_login_at] ON [login_logs] ([username], [login_at]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260727100000_AddP0SystemAdminFeatures'
+)
+BEGIN
+    CREATE INDEX [ix_login_logs_result_login_at] ON [login_logs] ([result], [login_at]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260727100000_AddP0SystemAdminFeatures'
+)
+BEGIN
+    CREATE UNIQUE INDEX [ix_login_logs_event_id] ON [login_logs] ([event_id]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260727100000_AddP0SystemAdminFeatures'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260727100000_AddP0SystemAdminFeatures', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    DROP INDEX [ix_dead_letter_messages_original_message_id] ON [dead_letter_messages];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    DECLARE @var nvarchar(max);
+    SELECT @var = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[rate_limit_rules]') AND [c].[name] = N'version');
+    IF @var IS NOT NULL EXEC(N'ALTER TABLE [rate_limit_rules] DROP CONSTRAINT ' + @var + ';');
+    EXEC(N'UPDATE [rate_limit_rules] SET [version] = 0x WHERE [version] IS NULL');
+    ALTER TABLE [rate_limit_rules] ALTER COLUMN [version] rowversion NOT NULL;
+    ALTER TABLE [rate_limit_rules] ADD DEFAULT 0x FOR [version];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [aggregate_root_id] uniqueidentifier NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [schema_version] int NOT NULL DEFAULT 1;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [shard_key] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [menus] ADD [version] rowversion NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [login_logs] ADD [version] rowversion NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [audit_logs] ADD [tenant_id] uniqueidentifier NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    CREATE TABLE [outbox_archive_records] (
+        [id] uniqueidentifier NOT NULL,
+        [context] nvarchar(128) NOT NULL,
+        [archived_count] int NOT NULL,
+        [archived_before] datetime2 NOT NULL,
+        [archived_at] datetime2 NOT NULL,
+        [archived_by] nvarchar(64) NOT NULL,
+        [reason] nvarchar(1000) NOT NULL,
+        [version] rowversion NULL,
+        [created_at] datetime2 NOT NULL,
+        [updated_at] datetime2 NOT NULL,
+        [created_by] nvarchar(64) NULL,
+        [updated_by] nvarchar(64) NULL,
+        CONSTRAINT [PK_outbox_archive_records] PRIMARY KEY ([id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    CREATE INDEX [ix_outbox_shard_status] ON [outbox_messages] ([shard_key], [status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    CREATE UNIQUE INDEX [ix_dead_letter_messages_original_message_id] ON [dead_letter_messages] ([original_message_id]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    CREATE INDEX [ix_audit_logs_tenant_id] ON [audit_logs] ([tenant_id]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    CREATE INDEX [ix_outbox_archive_records_archived_at] ON [outbox_archive_records] ([archived_at]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    CREATE INDEX [ix_outbox_archive_records_context] ON [outbox_archive_records] ([context]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260909040437_SyncModel20260909', N'10.0.0');
 END;
 
 COMMIT;

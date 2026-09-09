@@ -343,7 +343,6 @@ namespace Leno.Order.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasQueryFilter((Expression<Func<Leno.Order.Domain.Aggregates.Order, bool>>)(e => !e.IsDeleted));
 
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("ix_orders_is_deleted");

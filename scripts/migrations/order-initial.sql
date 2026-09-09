@@ -308,7 +308,298 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20260717174606_InitialCreate', N'10.0.9');
+    VALUES (N'20260717174606_InitialCreate', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000002_AddOrderRowVersionAndSoftDelete'
+)
+BEGIN
+    ALTER TABLE [orders] ADD [row_version] rowversion NOT NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000002_AddOrderRowVersionAndSoftDelete'
+)
+BEGIN
+    ALTER TABLE [orders] ADD [is_deleted] bit NOT NULL DEFAULT CAST(0 AS bit);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000002_AddOrderRowVersionAndSoftDelete'
+)
+BEGIN
+    ALTER TABLE [orders] ADD [deleted_at] datetime2 NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000002_AddOrderRowVersionAndSoftDelete'
+)
+BEGIN
+    CREATE INDEX [ix_orders_is_deleted] ON [orders] ([is_deleted]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000002_AddOrderRowVersionAndSoftDelete'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260722000002_AddOrderRowVersionAndSoftDelete', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723100000_DropOrderVersionShadowColumn'
+)
+BEGIN
+    DECLARE @var nvarchar(max);
+    SELECT @var = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[orders]') AND [c].[name] = N'version');
+    IF @var IS NOT NULL EXEC(N'ALTER TABLE [orders] DROP CONSTRAINT ' + @var + ';');
+    ALTER TABLE [orders] DROP COLUMN [version];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723100000_DropOrderVersionShadowColumn'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260723100000_DropOrderVersionShadowColumn', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723110000_AddStockCompensationOperationType'
+)
+BEGIN
+    ALTER TABLE [stock_reservation_compensations] ADD [operation_type] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723110000_AddStockCompensationOperationType'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260723110000_AddStockCompensationOperationType', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723164721_AddOrderSagaStates'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [schema_version] int NOT NULL DEFAULT 1;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723164721_AddOrderSagaStates'
+)
+BEGIN
+    DECLARE @var1 nvarchar(max);
+    SELECT @var1 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[orders]') AND [c].[name] = N'row_version');
+    IF @var1 IS NOT NULL EXEC(N'ALTER TABLE [orders] DROP CONSTRAINT ' + @var1 + ';');
+    EXEC(N'UPDATE [orders] SET [row_version] = 0x WHERE [row_version] IS NULL');
+    ALTER TABLE [orders] ALTER COLUMN [row_version] rowversion NOT NULL;
+    ALTER TABLE [orders] ADD DEFAULT 0x FOR [row_version];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723164721_AddOrderSagaStates'
+)
+BEGIN
+    CREATE TABLE [order_saga_states] (
+        [correlation_id] uniqueidentifier NOT NULL,
+        [current_state] nvarchar(32) NOT NULL,
+        [order_id] uniqueidentifier NOT NULL,
+        [user_id] uniqueidentifier NOT NULL,
+        [total_amount] decimal(18,2) NOT NULL,
+        [currency] nvarchar(8) NOT NULL,
+        [items_json] nvarchar(max) NOT NULL,
+        [stock_reservation_ids_json] nvarchar(max) NULL,
+        [points_frozen_amount] decimal(18,2) NOT NULL,
+        [payment_id] uniqueidentifier NULL,
+        [created_at] datetime2 NOT NULL,
+        [updated_at] datetime2 NOT NULL,
+        [row_version] rowversion NOT NULL,
+        CONSTRAINT [PK_order_saga_states] PRIMARY KEY ([correlation_id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723164721_AddOrderSagaStates'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [ix_stock_compensations_order_sku_pending] ON [stock_reservation_compensations] ([order_id], [sku_id]) WHERE [status] = 0');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723164721_AddOrderSagaStates'
+)
+BEGIN
+    CREATE INDEX [ix_order_saga_states_current_state] ON [order_saga_states] ([current_state]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723164721_AddOrderSagaStates'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260723164721_AddOrderSagaStates', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723182253_AddOrderPaymentProcesses'
+)
+BEGIN
+    CREATE TABLE [order_payment_processes] (
+        [process_id] uniqueidentifier NOT NULL,
+        [order_id] uniqueidentifier NOT NULL,
+        [payment_id] uniqueidentifier NOT NULL,
+        [current_state] nvarchar(32) NOT NULL,
+        [stock_confirmed] bit NOT NULL,
+        [points_confirmed] bit NOT NULL,
+        [order_marked_paid] bit NOT NULL,
+        [created_at] datetime2 NOT NULL,
+        [updated_at] datetime2 NOT NULL,
+        [row_version] rowversion NOT NULL,
+        CONSTRAINT [PK_order_payment_processes] PRIMARY KEY ([process_id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723182253_AddOrderPaymentProcesses'
+)
+BEGIN
+    CREATE INDEX [ix_order_payment_processes_current_state] ON [order_payment_processes] ([current_state]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723182253_AddOrderPaymentProcesses'
+)
+BEGIN
+    CREATE UNIQUE INDEX [ix_order_payment_processes_order_id] ON [order_payment_processes] ([order_id]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723182253_AddOrderPaymentProcesses'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260723182253_AddOrderPaymentProcesses', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723190000_AddReadModelSnapshots'
+)
+BEGIN
+    CREATE TABLE [read_model_snapshots] (
+        [aggregate_id] nvarchar(128) NOT NULL,
+        [aggregate_type] nvarchar(128) NOT NULL,
+        [version] bigint NOT NULL,
+        [state_json] nvarchar(max) NOT NULL,
+        [taken_at] datetime2 NOT NULL,
+        CONSTRAINT [PK_read_model_snapshots] PRIMARY KEY ([aggregate_id], [version])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723190000_AddReadModelSnapshots'
+)
+BEGIN
+    CREATE INDEX [ix_read_model_snapshots_aggregate_type] ON [read_model_snapshots] ([aggregate_type]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723190000_AddReadModelSnapshots'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260723190000_AddReadModelSnapshots', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040215_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [aggregate_root_id] uniqueidentifier NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040215_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [shard_key] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040215_SyncModel20260909'
+)
+BEGIN
+    CREATE INDEX [ix_outbox_shard_status] ON [outbox_messages] ([shard_key], [status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040215_SyncModel20260909'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260909040215_SyncModel20260909', N'10.0.0');
 END;
 
 COMMIT;

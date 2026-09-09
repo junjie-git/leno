@@ -17,7 +17,7 @@ namespace Leno.PointsMembership.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -28,6 +28,10 @@ namespace Leno.PointsMembership.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
+
+                    b.Property<Guid>("AggregateRootId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("aggregate_root_id");
 
                     b.Property<string>("Error")
                         .HasColumnType("nvarchar(max)")
@@ -54,6 +58,18 @@ namespace Leno.PointsMembership.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasColumnName("retry_count");
 
+                    b.Property<int>("SchemaVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1)
+                        .HasColumnName("schema_version");
+
+                    b.Property<int>("ShardKey")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("shard_key");
+
                     b.Property<int>("Status")
                         .HasColumnType("int")
                         .HasColumnName("status");
@@ -68,6 +84,9 @@ namespace Leno.PointsMembership.Infrastructure.Migrations
 
                     b.HasIndex("Status")
                         .HasDatabaseName("ix_outbox_messages_status");
+
+                    b.HasIndex("ShardKey", "Status")
+                        .HasDatabaseName("ix_outbox_shard_status");
 
                     b.ToTable("outbox_messages", (string)null);
                 });
@@ -524,6 +543,9 @@ namespace Leno.PointsMembership.Infrastructure.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("occurred_at");
 
+                    b.Property<Guid?>("PointsAccountId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Reason")
                         .IsRequired()
                         .HasMaxLength(256)
@@ -559,10 +581,83 @@ namespace Leno.PointsMembership.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PointsAccountId");
+
                     b.HasIndex("AccountId", "OccurredAt")
                         .HasDatabaseName("ix_points_ledgers_account_id_occurred_at");
 
                     b.ToTable("points_ledgers", (string)null);
+                });
+
+            modelBuilder.Entity("Leno.PointsMembership.Domain.Aggregates.PointsRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<int>("ActionType")
+                        .HasColumnType("int")
+                        .HasColumnName("action_type");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("DailyLimit")
+                        .HasColumnType("int")
+                        .HasColumnName("daily_limit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("int")
+                        .HasColumnName("points");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_points_rules_code");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_points_rules_status");
+
+                    b.ToTable("points_rules", (string)null);
                 });
 
             modelBuilder.Entity("Leno.PointsMembership.Domain.Aggregates.TaskDefinition", b =>
@@ -675,6 +770,12 @@ namespace Leno.PointsMembership.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("package_id");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("row_version");
+
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("datetime2")
                         .HasColumnName("start_time");
@@ -695,12 +796,6 @@ namespace Leno.PointsMembership.Infrastructure.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("user_id");
-
-                    b.Property<byte[]>("Version")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion")
-                        .HasColumnName("version");
 
                     b.HasKey("Id");
 
@@ -834,11 +929,18 @@ namespace Leno.PointsMembership.Infrastructure.Migrations
                         .HasForeignKey("AccountId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Leno.PointsMembership.Domain.Aggregates.PointsAccount", null)
+                        .WithMany("Ledgers")
+                        .HasForeignKey("PointsAccountId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("Leno.PointsMembership.Domain.Aggregates.PointsAccount", b =>
                 {
                     b.Navigation("FrozenEntries");
+
+                    b.Navigation("Ledgers");
                 });
 #pragma warning restore 612, 618
         }

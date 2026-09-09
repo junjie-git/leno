@@ -245,7 +245,169 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20260717175039_InitialCreate', N'10.0.9');
+    VALUES (N'20260717175039_InitialCreate', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000004_AddRowVersionAndFixReconciliationDiffs'
+)
+BEGIN
+    DECLARE @var nvarchar(max);
+    SELECT @var = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[payment_orders]') AND [c].[name] = N'version');
+    IF @var IS NOT NULL EXEC(N'ALTER TABLE [payment_orders] DROP CONSTRAINT ' + @var + ';');
+    ALTER TABLE [payment_orders] DROP COLUMN [version];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000004_AddRowVersionAndFixReconciliationDiffs'
+)
+BEGIN
+    ALTER TABLE [payment_orders] ADD [row_version] rowversion NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000004_AddRowVersionAndFixReconciliationDiffs'
+)
+BEGIN
+    DECLARE @var1 nvarchar(max);
+    SELECT @var1 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[refund_orders]') AND [c].[name] = N'version');
+    IF @var1 IS NOT NULL EXEC(N'ALTER TABLE [refund_orders] DROP CONSTRAINT ' + @var1 + ';');
+    ALTER TABLE [refund_orders] DROP COLUMN [version];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000004_AddRowVersionAndFixReconciliationDiffs'
+)
+BEGIN
+    ALTER TABLE [refund_orders] ADD [row_version] rowversion NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000004_AddRowVersionAndFixReconciliationDiffs'
+)
+BEGIN
+    EXEC sp_rename N'[ReconciliationDiffs]', N'reconciliation_diffs', 'OBJECT';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000004_AddRowVersionAndFixReconciliationDiffs'
+)
+BEGIN
+    DROP INDEX [IX_reconciliation_diffs_BillDate_Channel] ON [reconciliation_diffs];
+    DECLARE @var2 nvarchar(max);
+    SELECT @var2 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[reconciliation_diffs]') AND [c].[name] = N'Channel');
+    IF @var2 IS NOT NULL EXEC(N'ALTER TABLE [reconciliation_diffs] DROP CONSTRAINT ' + @var2 + ';');
+    ALTER TABLE [reconciliation_diffs] ALTER COLUMN [Channel] int NOT NULL;
+    CREATE INDEX [IX_reconciliation_diffs_BillDate_Channel] ON [reconciliation_diffs] ([BillDate], [Channel]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000004_AddRowVersionAndFixReconciliationDiffs'
+)
+BEGIN
+    DECLARE @var3 nvarchar(max);
+    SELECT @var3 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[reconciliation_diffs]') AND [c].[name] = N'DiffType');
+    IF @var3 IS NOT NULL EXEC(N'ALTER TABLE [reconciliation_diffs] DROP CONSTRAINT ' + @var3 + ';');
+    ALTER TABLE [reconciliation_diffs] ALTER COLUMN [DiffType] int NOT NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000004_AddRowVersionAndFixReconciliationDiffs'
+)
+BEGIN
+    DECLARE @var4 nvarchar(max);
+    SELECT @var4 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[reconciliation_diffs]') AND [c].[name] = N'Status');
+    IF @var4 IS NOT NULL EXEC(N'ALTER TABLE [reconciliation_diffs] DROP CONSTRAINT ' + @var4 + ';');
+    ALTER TABLE [reconciliation_diffs] ALTER COLUMN [Status] int NOT NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000004_AddRowVersionAndFixReconciliationDiffs'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260722000004_AddRowVersionAndFixReconciliationDiffs', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040255_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [payment_orders] ADD [trade_type] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040255_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [aggregate_root_id] uniqueidentifier NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040255_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [schema_version] int NOT NULL DEFAULT 1;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040255_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [shard_key] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040255_SyncModel20260909'
+)
+BEGIN
+    CREATE INDEX [ix_outbox_shard_status] ON [outbox_messages] ([shard_key], [status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040255_SyncModel20260909'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260909040255_SyncModel20260909', N'10.0.0');
 END;
 
 COMMIT;

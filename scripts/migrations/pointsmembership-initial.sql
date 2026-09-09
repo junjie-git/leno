@@ -399,7 +399,122 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20260717175251_InitialCreate', N'10.0.9');
+    VALUES (N'20260717175251_InitialCreate', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040312_SyncModel20260909'
+)
+BEGIN
+    EXEC sp_rename N'[user_memberships].[version]', N'row_version', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040312_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [points_ledgers] ADD [PointsAccountId] uniqueidentifier NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040312_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [aggregate_root_id] uniqueidentifier NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040312_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [schema_version] int NOT NULL DEFAULT 1;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040312_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [shard_key] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040312_SyncModel20260909'
+)
+BEGIN
+    CREATE TABLE [points_rules] (
+        [id] uniqueidentifier NOT NULL,
+        [code] nvarchar(64) NOT NULL,
+        [name] nvarchar(128) NOT NULL,
+        [action_type] int NOT NULL,
+        [points] int NOT NULL,
+        [daily_limit] int NOT NULL,
+        [status] int NOT NULL,
+        [version] rowversion NULL,
+        [created_at] datetime2 NOT NULL,
+        [updated_at] datetime2 NOT NULL,
+        [created_by] nvarchar(64) NULL,
+        [updated_by] nvarchar(64) NULL,
+        CONSTRAINT [PK_points_rules] PRIMARY KEY ([id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040312_SyncModel20260909'
+)
+BEGIN
+    CREATE INDEX [IX_points_ledgers_PointsAccountId] ON [points_ledgers] ([PointsAccountId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040312_SyncModel20260909'
+)
+BEGIN
+    CREATE INDEX [ix_outbox_shard_status] ON [outbox_messages] ([shard_key], [status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040312_SyncModel20260909'
+)
+BEGIN
+    CREATE UNIQUE INDEX [ix_points_rules_code] ON [points_rules] ([code]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040312_SyncModel20260909'
+)
+BEGIN
+    CREATE INDEX [ix_points_rules_status] ON [points_rules] ([status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040312_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [points_ledgers] ADD CONSTRAINT [FK_points_ledgers_points_accounts_PointsAccountId] FOREIGN KEY ([PointsAccountId]) REFERENCES [points_accounts] ([id]) ON DELETE CASCADE;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040312_SyncModel20260909'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260909040312_SyncModel20260909', N'10.0.0');
 END;
 
 COMMIT;

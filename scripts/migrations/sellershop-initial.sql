@@ -251,7 +251,193 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20260717175445_InitialCreate', N'10.0.9');
+    VALUES (N'20260717175445_InitialCreate', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260731020151_AddExportTasks'
+)
+BEGIN
+    CREATE TABLE [export_tasks] (
+        [id] uniqueidentifier NOT NULL,
+        [shop_id] uniqueidentifier NOT NULL,
+        [seller_id] uniqueidentifier NOT NULL,
+        [report_type] nvarchar(64) NOT NULL,
+        [start_date] datetime2 NOT NULL,
+        [end_date] datetime2 NOT NULL,
+        [format] nvarchar(16) NOT NULL,
+        [status] nvarchar(16) NOT NULL,
+        [record_count] int NULL,
+        [file_size] bigint NULL,
+        [file_path] nvarchar(512) NULL,
+        [error_message] nvarchar(1024) NULL,
+        [completed_at] datetime2 NULL,
+        [version] rowversion NULL,
+        [created_at] datetime2 NOT NULL,
+        [updated_at] datetime2 NOT NULL,
+        [created_by] nvarchar(64) NULL,
+        [updated_by] nvarchar(64) NULL,
+        CONSTRAINT [PK_export_tasks] PRIMARY KEY ([id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260731020151_AddExportTasks'
+)
+BEGIN
+    CREATE INDEX [ix_export_tasks_shop_id_status] ON [export_tasks] ([shop_id], [status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260731020151_AddExportTasks'
+)
+BEGIN
+    CREATE INDEX [ix_export_tasks_status_created_at] ON [export_tasks] ([status], [created_at]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260731020151_AddExportTasks'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260731020151_AddExportTasks', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    EXEC sp_rename N'[shop_dashboard_data].[UpdatedBy]', N'updated_by', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    EXEC sp_rename N'[shop_dashboard_data].[UpdatedAt]', N'updated_at', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    EXEC sp_rename N'[shop_dashboard_data].[CreatedBy]', N'created_by', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    EXEC sp_rename N'[shop_dashboard_data].[CreatedAt]', N'created_at', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    DECLARE @var nvarchar(max);
+    SELECT @var = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[shop_dashboard_data]') AND [c].[name] = N'updated_by');
+    IF @var IS NOT NULL EXEC(N'ALTER TABLE [shop_dashboard_data] DROP CONSTRAINT ' + @var + ';');
+    ALTER TABLE [shop_dashboard_data] ALTER COLUMN [updated_by] nvarchar(64) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    DECLARE @var1 nvarchar(max);
+    SELECT @var1 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[shop_dashboard_data]') AND [c].[name] = N'created_by');
+    IF @var1 IS NOT NULL EXEC(N'ALTER TABLE [shop_dashboard_data] DROP CONSTRAINT ' + @var1 + ';');
+    ALTER TABLE [shop_dashboard_data] ALTER COLUMN [created_by] nvarchar(64) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [shop_dashboard_data] ADD [cancelled_orders] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [shop_dashboard_data] ADD [confirmed_orders] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [shop_dashboard_data] ADD [refunded_amount] decimal(18,2) NOT NULL DEFAULT 0.0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [aggregate_root_id] uniqueidentifier NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [schema_version] int NOT NULL DEFAULT 1;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [shard_key] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    CREATE INDEX [ix_outbox_shard_status] ON [outbox_messages] ([shard_key], [status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040350_SyncModel20260909'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260909040350_SyncModel20260909', N'10.0.0');
 END;
 
 COMMIT;

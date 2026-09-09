@@ -17,7 +17,7 @@ namespace Leno.UserAuth.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -28,6 +28,10 @@ namespace Leno.UserAuth.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
+
+                    b.Property<Guid>("AggregateRootId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("aggregate_root_id");
 
                     b.Property<string>("Error")
                         .HasColumnType("nvarchar(max)")
@@ -54,6 +58,18 @@ namespace Leno.UserAuth.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasColumnName("retry_count");
 
+                    b.Property<int>("SchemaVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1)
+                        .HasColumnName("schema_version");
+
+                    b.Property<int>("ShardKey")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("shard_key");
+
                     b.Property<int>("Status")
                         .HasColumnType("int")
                         .HasColumnName("status");
@@ -68,6 +84,9 @@ namespace Leno.UserAuth.Infrastructure.Migrations
 
                     b.HasIndex("Status")
                         .HasDatabaseName("ix_outbox_messages_status");
+
+                    b.HasIndex("ShardKey", "Status")
+                        .HasDatabaseName("ix_outbox_shard_status");
 
                     b.ToTable("outbox_messages", (string)null);
                 });
@@ -162,7 +181,9 @@ namespace Leno.UserAuth.Infrastructure.Migrations
                         .HasDatabaseName("ix_addresses_user_id");
 
                     b.HasIndex("UserId", "IsDefault")
-                        .HasDatabaseName("ix_addresses_user_default");
+                        .IsUnique()
+                        .HasDatabaseName("ix_addresses_user_default")
+                        .HasFilter("[is_default] = 1");
 
                     b.ToTable("addresses", (string)null);
                 });
@@ -255,6 +276,175 @@ namespace Leno.UserAuth.Infrastructure.Migrations
                         .HasDatabaseName("ix_audit_logs_operator_id");
 
                     b.ToTable("audit_logs", (string)null);
+                });
+
+            modelBuilder.Entity("Leno.UserAuth.Domain.Aggregates.BrowseHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid?>("SkuId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("sku_id");
+
+                    b.Property<Guid>("SpuId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("spu_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("version");
+
+                    b.Property<DateTime>("ViewedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("viewed_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_browse_histories_user_id");
+
+                    b.HasIndex("UserId", "SpuId", "ViewedAt")
+                        .HasDatabaseName("ix_browse_histories_user_spu_viewed_at");
+
+                    b.ToTable("browse_histories", (string)null);
+                });
+
+            modelBuilder.Entity("Leno.UserAuth.Domain.Aggregates.Favorite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime>("FavoritedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("favorited_at");
+
+                    b.Property<Guid>("SpuId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("spu_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_favorites_user_id");
+
+                    b.HasIndex("UserId", "SpuId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_favorites_user_spu");
+
+                    b.ToTable("favorites", (string)null);
+                });
+
+            modelBuilder.Entity("Leno.UserAuth.Domain.Aggregates.NotificationPreferences", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("DndEnabled")
+                        .HasColumnType("bit")
+                        .HasColumnName("dnd_enabled");
+
+                    b.Property<TimeSpan?>("DndEnd")
+                        .HasColumnType("time")
+                        .HasColumnName("dnd_end");
+
+                    b.Property<TimeSpan?>("DndStart")
+                        .HasColumnType("time")
+                        .HasColumnName("dnd_start");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("user_id");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notification_preferences_user_id");
+
+                    b.ToTable("notification_preferences", (string)null);
                 });
 
             modelBuilder.Entity("Leno.UserAuth.Domain.Aggregates.OAuthClient", b =>
@@ -430,14 +620,21 @@ namespace Leno.UserAuth.Infrastructure.Migrations
                         .HasColumnName("nickname");
 
                     b.Property<string>("PasswordHash")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
                         .HasColumnName("password_hash");
 
                     b.Property<string>("PhoneNumber")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("phone_number");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("row_version");
 
                     b.Property<int>("Status")
                         .HasColumnType("int")
@@ -467,29 +664,58 @@ namespace Leno.UserAuth.Infrastructure.Migrations
                         .HasColumnType("nvarchar(32)")
                         .HasColumnName("username");
 
-                    b.Property<byte[]>("Version")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion")
-                        .HasColumnName("version");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
                         .IsUnique()
                         .HasDatabaseName("ix_users_email")
-                        .HasFilter("\"email\" IS NOT NULL");
+                        .HasFilter("[email] IS NOT NULL");
 
                     b.HasIndex("PhoneNumber")
                         .IsUnique()
                         .HasDatabaseName("ix_users_phone_number")
-                        .HasFilter("\"phone_number\" IS NOT NULL");
+                        .HasFilter("[phone_number] IS NOT NULL");
 
                     b.HasIndex("Username")
                         .IsUnique()
                         .HasDatabaseName("ix_users_username");
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("Leno.UserAuth.Domain.Aggregates.NotificationPreferences", b =>
+                {
+                    b.OwnsMany("Leno.UserAuth.Domain.Aggregates.NotificationPreferenceItem", "Items", b1 =>
+                        {
+                            b1.Property<Guid>("NotificationPreferencesId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("notification_preferences_id");
+
+                            b1.Property<int>("EventType")
+                                .HasColumnType("int")
+                                .HasColumnName("event_type");
+
+                            b1.Property<bool>("EmailEnabled")
+                                .HasColumnType("bit")
+                                .HasColumnName("email_enabled");
+
+                            b1.Property<bool>("InAppEnabled")
+                                .HasColumnType("bit")
+                                .HasColumnName("in_app_enabled");
+
+                            b1.Property<bool>("SmsEnabled")
+                                .HasColumnType("bit")
+                                .HasColumnName("sms_enabled");
+
+                            b1.HasKey("NotificationPreferencesId", "EventType");
+
+                            b1.ToTable("notification_preference_items", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("NotificationPreferencesId");
+                        });
+
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Leno.UserAuth.Domain.Aggregates.User", b =>

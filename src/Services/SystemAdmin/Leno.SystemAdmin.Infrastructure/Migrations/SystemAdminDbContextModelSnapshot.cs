@@ -17,7 +17,7 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -28,6 +28,10 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
+
+                    b.Property<Guid>("AggregateRootId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("aggregate_root_id");
 
                     b.Property<string>("Error")
                         .HasColumnType("nvarchar(max)")
@@ -54,6 +58,18 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasColumnName("retry_count");
 
+                    b.Property<int>("SchemaVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1)
+                        .HasColumnName("schema_version");
+
+                    b.Property<int>("ShardKey")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("shard_key");
+
                     b.Property<int>("Status")
                         .HasColumnType("int")
                         .HasColumnName("status");
@@ -68,6 +84,9 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
 
                     b.HasIndex("Status")
                         .HasDatabaseName("ix_outbox_messages_status");
+
+                    b.HasIndex("ShardKey", "Status")
+                        .HasDatabaseName("ix_outbox_shard_status");
 
                     b.ToTable("outbox_messages", (string)null);
                 });
@@ -128,6 +147,10 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasColumnName("response_status");
 
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TraceId")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)")
@@ -158,6 +181,9 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
 
                     b.HasIndex("ResourceType")
                         .HasDatabaseName("ix_audit_logs_resource_type");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_audit_logs_tenant_id");
 
                     b.ToTable("audit_logs", (string)null);
                 });
@@ -475,6 +501,7 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OriginalMessageId")
+                        .IsUnique()
                         .HasDatabaseName("ix_dead_letter_messages_original_message_id");
 
                     b.HasIndex("SourceContext")
@@ -812,6 +839,12 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
                         .HasColumnType("nvarchar(64)")
                         .HasColumnName("username");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("version");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EventId")
@@ -842,8 +875,8 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
 
                     b.Property<bool>("Cache")
                         .ValueGeneratedOnAdd()
-                        .HasDefaultValue(false)
                         .HasColumnType("bit")
+                        .HasDefaultValue(false)
                         .HasColumnName("cache");
 
                     b.Property<string>("Component")
@@ -893,8 +926,8 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
 
                     b.Property<int>("Sort")
                         .ValueGeneratedOnAdd()
-                        .HasDefaultValue(0)
                         .HasColumnType("int")
+                        .HasDefaultValue(0)
                         .HasColumnName("sort");
 
                     b.Property<byte>("Type")
@@ -910,10 +943,16 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
                         .HasColumnType("nvarchar(64)")
                         .HasColumnName("updated_by");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("version");
+
                     b.Property<bool>("Visible")
                         .ValueGeneratedOnAdd()
-                        .HasDefaultValue(true)
                         .HasColumnType("bit")
+                        .HasDefaultValue(true)
                         .HasColumnName("visible");
 
                     b.HasKey("Id");
@@ -1006,8 +1045,8 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
 
                     b.HasIndex("EventId")
                         .IsUnique()
-                        .HasFilter("[event_id] IS NOT NULL")
-                        .HasDatabaseName("ix_operation_logs_event_id");
+                        .HasDatabaseName("ix_operation_logs_event_id")
+                        .HasFilter("[event_id] IS NOT NULL");
 
                     b.HasIndex("OccurredAt")
                         .HasDatabaseName("ix_operation_logs_occurred_at");
@@ -1085,6 +1124,78 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
                     b.ToTable("operators", (string)null);
                 });
 
+            modelBuilder.Entity("Leno.SystemAdmin.Domain.Aggregates.OutboxArchiveRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("ArchivedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("archived_at");
+
+                    b.Property<DateTime>("ArchivedBefore")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("archived_before");
+
+                    b.Property<string>("ArchivedBy")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("archived_by");
+
+                    b.Property<int>("ArchivedCount")
+                        .HasColumnType("int")
+                        .HasColumnName("archived_count");
+
+                    b.Property<string>("Context")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("context");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArchivedAt")
+                        .HasDatabaseName("ix_outbox_archive_records_archived_at");
+
+                    b.HasIndex("Context")
+                        .HasDatabaseName("ix_outbox_archive_records_context");
+
+                    b.ToTable("outbox_archive_records", (string)null);
+                });
+
             modelBuilder.Entity("Leno.SystemAdmin.Domain.Aggregates.RateLimitRule", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1139,6 +1250,7 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
 
                     b.Property<byte[]>("Version")
                         .IsConcurrencyToken()
+                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion")
                         .HasColumnName("version");

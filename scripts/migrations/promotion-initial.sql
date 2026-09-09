@@ -248,7 +248,195 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20260717175003_InitialCreate', N'10.0.9');
+    VALUES (N'20260717175003_InitialCreate', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000000_AddUserCouponExchangeId'
+)
+BEGIN
+    ALTER TABLE [user_coupons] ADD [exchange_id] uniqueidentifier NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000000_AddUserCouponExchangeId'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [ux_user_coupons_exchange_id] ON [user_coupons] ([exchange_id]) WHERE [exchange_id] IS NOT NULL');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000000_AddUserCouponExchangeId'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260722000000_AddUserCouponExchangeId', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000000_AddPromotionRuleDefinitions'
+)
+BEGIN
+    CREATE TABLE [promotion_rule_definitions] (
+        [id] uniqueidentifier NOT NULL,
+        [rule_type] nvarchar(64) NOT NULL,
+        [display_name] nvarchar(128) NOT NULL,
+        [priority] int NOT NULL,
+        [stacking] int NOT NULL,
+        [definition_json] nvarchar(max) NOT NULL,
+        [enabled] bit NOT NULL,
+        [definition_version] nvarchar(32) NOT NULL,
+        [remark] nvarchar(512) NULL,
+        [version] rowversion NULL,
+        [created_at] datetime2 NOT NULL,
+        [updated_at] datetime2 NOT NULL,
+        [created_by] nvarchar(64) NULL,
+        [updated_by] nvarchar(64) NULL,
+        CONSTRAINT [PK_promotion_rule_definitions] PRIMARY KEY ([id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000000_AddPromotionRuleDefinitions'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [ux_promotion_rule_definitions_rule_type_enabled] ON [promotion_rule_definitions] ([rule_type], [enabled]) WHERE [enabled] = 1');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000000_AddPromotionRuleDefinitions'
+)
+BEGIN
+    CREATE INDEX [ix_promotion_rule_definitions_priority] ON [promotion_rule_definitions] ([priority]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000000_AddPromotionRuleDefinitions'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260723000000_AddPromotionRuleDefinitions', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260726135700_AddSeckillActivityName'
+)
+BEGIN
+    ALTER TABLE [SeckillPreOccupationRecords] DROP CONSTRAINT [PK_SeckillPreOccupationRecords];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260726135700_AddSeckillActivityName'
+)
+BEGIN
+    EXEC sp_rename N'[SeckillPreOccupationRecords]', N'seckill_pre_occupation_records', 'OBJECT';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260726135700_AddSeckillActivityName'
+)
+BEGIN
+    EXEC sp_rename N'[seckill_pre_occupation_records].[IX_SeckillPreOccupationRecords_OrderId]', N'IX_seckill_pre_occupation_records_OrderId', 'INDEX';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260726135700_AddSeckillActivityName'
+)
+BEGIN
+    EXEC sp_rename N'[seckill_pre_occupation_records].[IX_SeckillPreOccupationRecords_IsFulfilled_IsRolledBack_PreOccupiedAt]', N'IX_seckill_pre_occupation_records_IsFulfilled_IsRolledBack_PreOccupiedAt', 'INDEX';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260726135700_AddSeckillActivityName'
+)
+BEGIN
+    ALTER TABLE [seckill_activities] ADD [name] nvarchar(128) NOT NULL DEFAULT N'';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260726135700_AddSeckillActivityName'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [aggregate_root_id] uniqueidentifier NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260726135700_AddSeckillActivityName'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [schema_version] int NOT NULL DEFAULT 1;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260726135700_AddSeckillActivityName'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [shard_key] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260726135700_AddSeckillActivityName'
+)
+BEGIN
+    ALTER TABLE [seckill_pre_occupation_records] ADD CONSTRAINT [PK_seckill_pre_occupation_records] PRIMARY KEY ([Id]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260726135700_AddSeckillActivityName'
+)
+BEGIN
+    CREATE INDEX [ix_outbox_shard_status] ON [outbox_messages] ([shard_key], [status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260726135700_AddSeckillActivityName'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260726135700_AddSeckillActivityName', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040236_SyncModel20260909'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260909040236_SyncModel20260909', N'10.0.0');
 END;
 
 COMMIT;

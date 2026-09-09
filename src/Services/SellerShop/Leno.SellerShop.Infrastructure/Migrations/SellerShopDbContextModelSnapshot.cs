@@ -17,7 +17,7 @@ namespace Leno.SellerShop.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -28,6 +28,10 @@ namespace Leno.SellerShop.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
+
+                    b.Property<Guid>("AggregateRootId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("aggregate_root_id");
 
                     b.Property<string>("Error")
                         .HasColumnType("nvarchar(max)")
@@ -54,6 +58,18 @@ namespace Leno.SellerShop.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasColumnName("retry_count");
 
+                    b.Property<int>("SchemaVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1)
+                        .HasColumnName("schema_version");
+
+                    b.Property<int>("ShardKey")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("shard_key");
+
                     b.Property<int>("Status")
                         .HasColumnType("int")
                         .HasColumnName("status");
@@ -69,7 +85,108 @@ namespace Leno.SellerShop.Infrastructure.Migrations
                     b.HasIndex("Status")
                         .HasDatabaseName("ix_outbox_messages_status");
 
+                    b.HasIndex("ShardKey", "Status")
+                        .HasDatabaseName("ix_outbox_shard_status");
+
                     b.ToTable("outbox_messages", (string)null);
+                });
+
+            modelBuilder.Entity("Leno.SellerShop.Domain.Aggregates.ExportTask", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("end_date");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)")
+                        .HasColumnName("error_message");
+
+                    b.Property<string>("FilePath")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)")
+                        .HasColumnName("file_path");
+
+                    b.Property<long?>("FileSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_size");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)")
+                        .HasColumnName("format");
+
+                    b.Property<int?>("RecordCount")
+                        .HasColumnType("int")
+                        .HasColumnName("record_count");
+
+                    b.Property<string>("ReportType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("report_type");
+
+                    b.Property<Guid>("SellerId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("seller_id");
+
+                    b.Property<Guid>("ShopId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("shop_id");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("start_date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShopId", "Status")
+                        .HasDatabaseName("ix_export_tasks_shop_id_status");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("ix_export_tasks_status_created_at");
+
+                    b.ToTable("export_tasks", (string)null);
                 });
 
             modelBuilder.Entity("Leno.SellerShop.Domain.Aggregates.SellerProfile", b =>
@@ -261,15 +378,26 @@ namespace Leno.SellerShop.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
 
+                    b.Property<int>("CancelledOrders")
+                        .HasColumnType("int")
+                        .HasColumnName("cancelled_orders");
+
                     b.Property<int>("CompletedOrders")
                         .HasColumnType("int")
                         .HasColumnName("completed_orders");
 
+                    b.Property<int>("ConfirmedOrders")
+                        .HasColumnType("int")
+                        .HasColumnName("confirmed_orders");
+
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("created_by");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -285,6 +413,11 @@ namespace Leno.SellerShop.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasColumnName("pending_orders");
 
+                    b.Property<decimal>("RefundedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("refunded_amount");
+
                     b.Property<Guid>("ShopId")
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("shop_id");
@@ -299,10 +432,13 @@ namespace Leno.SellerShop.Infrastructure.Migrations
                         .HasColumnName("total_revenue");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
 
                     b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnName("updated_by");
 
                     b.Property<byte[]>("Version")
                         .IsConcurrencyToken()
@@ -502,7 +638,7 @@ namespace Leno.SellerShop.Infrastructure.Migrations
 
                             b1.HasKey("ShopMetricsId");
 
-                            b1.ToTable("shop_metrics", (string)null);
+                            b1.ToTable("shop_metrics");
 
                             b1.WithOwner()
                                 .HasForeignKey("ShopMetricsId");
@@ -526,7 +662,7 @@ namespace Leno.SellerShop.Infrastructure.Migrations
 
                             b1.HasKey("ShopMetricsId");
 
-                            b1.ToTable("shop_metrics", (string)null);
+                            b1.ToTable("shop_metrics");
 
                             b1.WithOwner()
                                 .HasForeignKey("ShopMetricsId");
@@ -551,104 +687,6 @@ namespace Leno.SellerShop.Infrastructure.Migrations
             modelBuilder.Entity("Leno.SellerShop.Domain.Aggregates.Shop", b =>
                 {
                     b.Navigation("Qualifications");
-                });
-
-            modelBuilder.Entity("Leno.SellerShop.Domain.Aggregates.ExportTask", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("completed_at");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)")
-                        .HasColumnName("created_by");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("end_date");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)")
-                        .HasColumnName("error_message");
-
-                    b.Property<string>("FilePath")
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)")
-                        .HasColumnName("file_path");
-
-                    b.Property<long?>("FileSize")
-                        .HasColumnType("bigint")
-                        .HasColumnName("file_size");
-
-                    b.Property<string>("Format")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)")
-                        .HasColumnName("format");
-
-                    b.Property<int?>("RecordCount")
-                        .HasColumnType("int")
-                        .HasColumnName("record_count");
-
-                    b.Property<string>("ReportType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)")
-                        .HasColumnName("report_type");
-
-                    b.Property<Guid>("SellerId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("seller_id");
-
-                    b.Property<Guid>("ShopId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("shop_id");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("start_date");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)")
-                        .HasColumnName("status");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("updated_at");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)")
-                        .HasColumnName("updated_by");
-
-                    b.Property<byte[]>("Version")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion")
-                        .HasColumnName("version");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ShopId", "Status")
-                        .HasDatabaseName("ix_export_tasks_shop_id_status");
-
-                    b.HasIndex("Status", "CreatedAt")
-                        .HasDatabaseName("ix_export_tasks_status_created_at");
-
-                    b.ToTable("export_tasks", (string)null);
                 });
 #pragma warning restore 612, 618
         }

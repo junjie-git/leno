@@ -17,7 +17,7 @@ namespace Leno.ReviewAfterSales.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -28,6 +28,10 @@ namespace Leno.ReviewAfterSales.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
+
+                    b.Property<Guid>("AggregateRootId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("aggregate_root_id");
 
                     b.Property<string>("Error")
                         .HasColumnType("nvarchar(max)")
@@ -60,6 +64,12 @@ namespace Leno.ReviewAfterSales.Infrastructure.Migrations
                         .HasDefaultValue(1)
                         .HasColumnName("schema_version");
 
+                    b.Property<int>("ShardKey")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("shard_key");
+
                     b.Property<int>("Status")
                         .HasColumnType("int")
                         .HasColumnName("status");
@@ -74,6 +84,9 @@ namespace Leno.ReviewAfterSales.Infrastructure.Migrations
 
                     b.HasIndex("Status")
                         .HasDatabaseName("ix_outbox_messages_status");
+
+                    b.HasIndex("ShardKey", "Status")
+                        .HasDatabaseName("ix_outbox_shard_status");
 
                     b.ToTable("outbox_messages", (string)null);
                 });
@@ -253,6 +266,15 @@ namespace Leno.ReviewAfterSales.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
 
+                    b.Property<string>("AppendContent")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("append_content");
+
+                    b.Property<DateTime?>("AppendedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("appended_at");
+
                     b.Property<DateTime?>("AuditedAt")
                         .HasColumnType("datetime2")
                         .HasColumnName("audited_at");
@@ -352,6 +374,11 @@ namespace Leno.ReviewAfterSales.Infrastructure.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion")
                         .HasColumnName("version");
+
+                    b.Property<string>("_appendImages")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("append_images");
 
                     b.Property<string>("_images")
                         .IsRequired()

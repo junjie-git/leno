@@ -287,9 +287,9 @@ jobs:
       - name: Generate idempotent migration SQL scripts
         env:
           # 同上：migrations script 生成 SQL 亦为设计期行为，不连接数据库。
-          # 注：dotnet-ef 工具版本应与 EF runtime 版本对齐（tools 10.0.0 vs runtime 10.0.9
-          # 会在日志中提示版本偏旧），后续升级 EF 时把下方 --version 与
-          # Directory.Build.props 的 EntityFrameworkCoreVersion 同步更新即可。
+          # 注：dotnet-ef 工具版本已与 EF runtime 对齐（均为 10.0.0，见上方版本回显步骤）。
+          # 后续升级 EF 时把下方 --version 与 Directory.Build.props 的
+          # EntityFrameworkCoreVersion 同步更新即可。
           LENO_DESIGNTIME_CONNECTION_STRING: 'Server=localhost,1433;Database=LenoDesignTime;User Id=sa;Password=DesignTimeOnly_NotARealPassword!;TrustServerCertificate=True'
         run: pwsh scripts/generate-migration-scripts.ps1
       - name: Upload migration SQL scripts

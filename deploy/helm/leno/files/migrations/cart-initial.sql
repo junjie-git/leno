@@ -118,7 +118,151 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20260717174927_InitialCreate', N'10.0.9');
+    VALUES (N'20260717174927_InitialCreate', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000001_AddCartItemSkuSnapshot'
+)
+BEGIN
+    ALTER TABLE [cart_items] ADD [sku_snapshot_sku_id] uniqueidentifier NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000001_AddCartItemSkuSnapshot'
+)
+BEGIN
+    ALTER TABLE [cart_items] ADD [sku_snapshot_sku_name] nvarchar(256) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000001_AddCartItemSkuSnapshot'
+)
+BEGIN
+    ALTER TABLE [cart_items] ADD [sku_snapshot_price] decimal(18,2) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000001_AddCartItemSkuSnapshot'
+)
+BEGIN
+    ALTER TABLE [cart_items] ADD [sku_snapshot_currency] nvarchar(8) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000001_AddCartItemSkuSnapshot'
+)
+BEGIN
+    ALTER TABLE [cart_items] ADD [sku_snapshot_main_image_url] nvarchar(1024) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000001_AddCartItemSkuSnapshot'
+)
+BEGIN
+    ALTER TABLE [cart_items] ADD [sku_snapshot_spec_text] nvarchar(512) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000001_AddCartItemSkuSnapshot'
+)
+BEGIN
+    ALTER TABLE [cart_items] ADD [sku_snapshot_available] bit NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000001_AddCartItemSkuSnapshot'
+)
+BEGIN
+    ALTER TABLE [cart_items] ADD [sku_snapshot_version] int NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000001_AddCartItemSkuSnapshot'
+)
+BEGIN
+    ALTER TABLE [cart_items] ADD [sku_snapshot_at] datetime2 NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260723000001_AddCartItemSkuSnapshot'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260723000001_AddCartItemSkuSnapshot', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040151_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [aggregate_root_id] uniqueidentifier NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040151_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [schema_version] int NOT NULL DEFAULT 1;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040151_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [outbox_messages] ADD [shard_key] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040151_SyncModel20260909'
+)
+BEGIN
+    CREATE TABLE [cart_merge_records] (
+        [anonymous_id] nvarchar(128) NOT NULL,
+        [user_id] uniqueidentifier NOT NULL,
+        [merged_at] datetime2 NOT NULL,
+        [merged_count] int NOT NULL,
+        CONSTRAINT [PK_cart_merge_records] PRIMARY KEY ([anonymous_id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040151_SyncModel20260909'
+)
+BEGIN
+    CREATE INDEX [ix_outbox_shard_status] ON [outbox_messages] ([shard_key], [status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040151_SyncModel20260909'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260909040151_SyncModel20260909', N'10.0.0');
 END;
 
 COMMIT;

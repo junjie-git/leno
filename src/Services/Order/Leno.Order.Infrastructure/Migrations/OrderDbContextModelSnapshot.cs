@@ -17,7 +17,7 @@ namespace Leno.Order.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -28,6 +28,10 @@ namespace Leno.Order.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
+
+                    b.Property<Guid>("AggregateRootId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("aggregate_root_id");
 
                     b.Property<string>("Error")
                         .HasColumnType("nvarchar(max)")
@@ -60,6 +64,12 @@ namespace Leno.Order.Infrastructure.Migrations
                         .HasDefaultValue(1)
                         .HasColumnName("schema_version");
 
+                    b.Property<int>("ShardKey")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("shard_key");
+
                     b.Property<int>("Status")
                         .HasColumnType("int")
                         .HasColumnName("status");
@@ -75,25 +85,28 @@ namespace Leno.Order.Infrastructure.Migrations
                     b.HasIndex("Status")
                         .HasDatabaseName("ix_outbox_messages_status");
 
+                    b.HasIndex("ShardKey", "Status")
+                        .HasDatabaseName("ix_outbox_shard_status");
+
                     b.ToTable("outbox_messages", (string)null);
                 });
 
             modelBuilder.Entity("Leno.Infrastructure.ReadModel.ReadModelSnapshot", b =>
                 {
                     b.Property<string>("AggregateId")
-                        .HasColumnType("nvarchar(128)")
                         .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)")
                         .HasColumnName("aggregate_id");
-
-                    b.Property<string>("AggregateType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(128)")
-                        .HasMaxLength(128)
-                        .HasColumnName("aggregate_type");
 
                     b.Property<long>("Version")
                         .HasColumnType("bigint")
                         .HasColumnName("version");
+
+                    b.Property<string>("AggregateType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("aggregate_type");
 
                     b.Property<string>("StateJson")
                         .IsRequired()
@@ -713,55 +726,6 @@ namespace Leno.Order.Infrastructure.Migrations
 
             modelBuilder.Entity("Leno.Order.Domain.Aggregates.Order", b =>
                 {
-                    b.OwnsOne("Leno.Order.Domain.ValueObjects.AddressSnapshot", "AddressSnapshot", b1 =>
-                        {
-                            b1.Property<Guid>("OrderId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<string>("City")
-                                .IsRequired()
-                                .HasMaxLength(64)
-                                .HasColumnType("nvarchar(64)")
-                                .HasColumnName("city");
-
-                            b1.Property<string>("Detail")
-                                .IsRequired()
-                                .HasMaxLength(256)
-                                .HasColumnType("nvarchar(256)")
-                                .HasColumnName("address_detail");
-
-                            b1.Property<string>("District")
-                                .IsRequired()
-                                .HasMaxLength(64)
-                                .HasColumnType("nvarchar(64)")
-                                .HasColumnName("district");
-
-                            b1.Property<string>("Province")
-                                .IsRequired()
-                                .HasMaxLength(64)
-                                .HasColumnType("nvarchar(64)")
-                                .HasColumnName("province");
-
-                            b1.Property<string>("RecipientName")
-                                .IsRequired()
-                                .HasMaxLength(64)
-                                .HasColumnType("nvarchar(64)")
-                                .HasColumnName("recipient_name");
-
-                            b1.Property<string>("RecipientPhone")
-                                .IsRequired()
-                                .HasMaxLength(32)
-                                .HasColumnType("nvarchar(32)")
-                                .HasColumnName("recipient_phone");
-
-                            b1.HasKey("OrderId");
-
-                            b1.ToTable("orders", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("OrderId");
-                        });
-
                     b.OwnsMany("Leno.Order.Domain.Aggregates.OrderItem", "Items", b1 =>
                         {
                             b1.Property<Guid>("Id")
@@ -859,7 +823,7 @@ namespace Leno.Order.Infrastructure.Migrations
 
                                     b2.HasKey("OrderItemId");
 
-                                    b2.ToTable("order_items", (string)null);
+                                    b2.ToTable("order_items");
 
                                     b2.WithOwner()
                                         .HasForeignKey("OrderItemId");
@@ -867,6 +831,55 @@ namespace Leno.Order.Infrastructure.Migrations
 
                             b1.Navigation("ProductSnapshot")
                                 .IsRequired();
+                        });
+
+                    b.OwnsOne("Leno.Order.Domain.ValueObjects.AddressSnapshot", "AddressSnapshot", b1 =>
+                        {
+                            b1.Property<Guid>("OrderId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("City")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("nvarchar(64)")
+                                .HasColumnName("city");
+
+                            b1.Property<string>("Detail")
+                                .IsRequired()
+                                .HasMaxLength(256)
+                                .HasColumnType("nvarchar(256)")
+                                .HasColumnName("address_detail");
+
+                            b1.Property<string>("District")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("nvarchar(64)")
+                                .HasColumnName("district");
+
+                            b1.Property<string>("Province")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("nvarchar(64)")
+                                .HasColumnName("province");
+
+                            b1.Property<string>("RecipientName")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("nvarchar(64)")
+                                .HasColumnName("recipient_name");
+
+                            b1.Property<string>("RecipientPhone")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("nvarchar(32)")
+                                .HasColumnName("recipient_phone");
+
+                            b1.HasKey("OrderId");
+
+                            b1.ToTable("orders");
+
+                            b1.WithOwner()
+                                .HasForeignKey("OrderId");
                         });
 
                     b.Navigation("AddressSnapshot")
