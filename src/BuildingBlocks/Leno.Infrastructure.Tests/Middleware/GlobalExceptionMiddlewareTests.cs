@@ -14,6 +14,7 @@ using Xunit;
 
 namespace Leno.Infrastructure.Tests.Middleware;
 
+[Collection("ErrorCodeMapping")]
 public class GlobalExceptionMiddlewareTests
 {
     private sealed class TestDomainException : DomainException

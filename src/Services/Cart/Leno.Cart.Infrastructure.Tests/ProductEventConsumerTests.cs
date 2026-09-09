@@ -1,5 +1,6 @@
 using System.Reflection;
 using Leno.Cart.Application.Abstractions;
+using Leno.Cart.Application.DTOs;
 using Leno.Cart.Domain.Repositories;
 using Leno.Cart.Domain.Services;
 using Leno.Cart.Infrastructure;
@@ -120,6 +121,13 @@ public class ProductEventConsumerTests
         var mockSnapshotAc = new Mock<IProductSnapshotAntiCorruption>();
         var mockLogger = new Mock<ILogger<ProductUpdatedEventConsumer>>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
+
+        // P1-3：ProductUpdatedEventConsumer 无论 SkuIds 是否为空都会执行一次 ACL 批量调用，
+        // Moq 对 Task<IReadOnlyList<T>> 未打桩时返回 null，导致消费者 ToDictionary(null) 抛
+        // ArgumentNullException——必须打桩返回空列表以匹配"空索引路径"的测试意图。
+        mockSnapshotAc
+            .Setup(a => a.GetSkuSnapshotsAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<SkuSnapshotDto>());
 
         var consumer = new ProductUpdatedEventConsumer(
             mockCartRepo.Object, mockUnitOfWork.Object, mockIndexService.Object,

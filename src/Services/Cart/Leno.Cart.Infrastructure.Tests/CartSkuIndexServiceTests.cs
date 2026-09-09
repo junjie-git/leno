@@ -35,9 +35,13 @@ public class CartSkuIndexServiceTests
                 It.Is<RedisValue>(v => (string)v == cartId.ToString()),
                 It.IsAny<CommandFlags>()),
             Times.Once);
+        // 注意：产品侧调用 KeyExpireAsync(key, ttl) 扩展方法，实际转发到
+        // 4 参数重载 KeyExpireAsync(key, expiry, ExpireWhen.Always, flags)——
+        // Moq 拦截的是实际调用的 4 参数方法，3 参数重载永远不会被调用。
         _dbMock.Verify(
             d => d.KeyExpireAsync(It.Is<RedisKey>(k => (string)k == $"cart:sku:{skuId}"),
                 It.Is<TimeSpan?>(t => t.HasValue && Math.Abs((t.Value - TimeSpan.FromDays(30)).TotalDays) < 1),
+                It.IsAny<ExpireWhen>(),
                 It.IsAny<CommandFlags>()),
             Times.Once);
     }
@@ -62,8 +66,10 @@ public class CartSkuIndexServiceTests
         _dbMock
             .Setup(d => d.SetAddAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<CommandFlags>()))
             .ReturnsAsync(true);
+        // 打桩 4 参数重载（产品侧 KeyExpireAsync(key, ttl) 扩展方法的实际落点），
+        // 否则 mock 上 3 参数重载的 setup 不会命中，KeyExpire 不会抛异常。
         _dbMock
-            .Setup(d => d.KeyExpireAsync(It.IsAny<RedisKey>(), It.IsAny<TimeSpan?>(), It.IsAny<CommandFlags>()))
+            .Setup(d => d.KeyExpireAsync(It.IsAny<RedisKey>(), It.IsAny<TimeSpan?>(), It.IsAny<ExpireWhen>(), It.IsAny<CommandFlags>()))
             .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.SocketFailure, "redis down"));
         var sut = new CartSkuIndexService(_redisMock.Object, NullLogger<CartSkuIndexService>.Instance);
 

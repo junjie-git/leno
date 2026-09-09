@@ -177,28 +177,36 @@ public class IntegrationEventConsumerAtomicityTests
         mock.SetupGet(x => x.CancellationToken).Returns(CancellationToken.None);
         return mock.Object;
     }
+}
 
-    private sealed class TestIntegrationEvent : IIntegrationEvent
+/// <summary>
+/// 测试用集成事件。必须是 public（而非 private 嵌套类）：
+/// Moq/Castle DynamicProxy 无法为泛型参数包含私有类型的 <see cref="ConsumeContext{T}"/> 生成代理，
+/// 否则抛出 "Can not create proxy for type ConsumeContext`1[...+TestIntegrationEvent]"。
+/// </summary>
+public sealed class TestIntegrationEvent : IIntegrationEvent
+{
+    public Guid EventId { get; set; }
+    public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
+    public string IdempotencyKey { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// 测试用消费者：记录 HandleAsync 是否被调用（通过 <see cref="Action"/> 回调）。
+/// </summary>
+internal sealed class TestIntegrationEventConsumer : IntegrationEventConsumerBase<TestIntegrationEvent>
+{
+    private readonly Action _onHandle;
+
+    public TestIntegrationEventConsumer(IIdempotencyStore store, Action onHandle)
+        : base(NullLogger.Instance, store)
     {
-        public Guid EventId { get; set; }
-        public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
-        public string IdempotencyKey { get; set; } = string.Empty;
+        _onHandle = onHandle;
     }
 
-    private sealed class TestIntegrationEventConsumer : IntegrationEventConsumerBase<TestIntegrationEvent>
+    protected override Task HandleAsync(TestIntegrationEvent integrationEvent, CancellationToken ct)
     {
-        private readonly Action _onHandle;
-
-        public TestIntegrationEventConsumer(IIdempotencyStore store, Action onHandle)
-            : base(NullLogger.Instance, store)
-        {
-            _onHandle = onHandle;
-        }
-
-        protected override Task HandleAsync(TestIntegrationEvent integrationEvent, CancellationToken ct)
-        {
-            _onHandle();
-            return Task.CompletedTask;
-        }
+        _onHandle();
+        return Task.CompletedTask;
     }
 }

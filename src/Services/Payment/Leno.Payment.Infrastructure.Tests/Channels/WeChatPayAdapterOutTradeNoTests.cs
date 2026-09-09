@@ -19,7 +19,9 @@ public class WeChatPayAdapterOutTradeNoTests
 {
     private const string OutTradeNo = "PAY20260722000001";
     private const string ChannelTradeNo = "4200000000202607220000000001";
-    private const string ApiV3Key = "test_v3_key_32chars_long_1234567890";
+    // AES-GCM 要求密钥恰为 16/24/32 字节；原 35 字节字符串导致 AesGcm ctor 抛
+    // CryptographicException "Specified key is not a valid size for this algorithm"。
+    private const string ApiV3Key = "0123456789abcdef0123456789abcdef";
 
     private static WeChatPayAdapter CreateAdapter(ChannelConfig config)
     {
@@ -76,7 +78,9 @@ public class WeChatPayAdapterOutTradeNoTests
             + "\"success_time\":\"2026-07-22T10:00:00+08:00\","
             + "\"amount\":{\"total\":10000,\"payer\":{\"total\":10000}}}";
 
-        var nonce = "nonce12345";
+        // AES-GCM 要求 nonce 恰为 12 字节（微信 V3 回调同样使用 12 字节 nonce）；
+        // 原 "nonce12345" 仅 10 字节，测试自身的 EncryptResource 在 AesGcm.Encrypt 即抛 ArgumentException。
+        var nonce = "nonce1234567";
         var associatedData = "";
         var ciphertext = EncryptResource(decryptedData, ApiV3Key, nonce, associatedData);
 

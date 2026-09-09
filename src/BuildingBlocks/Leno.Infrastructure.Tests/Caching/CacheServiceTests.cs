@@ -48,9 +48,15 @@ public class RedisBloomFilterTests
     [Fact]
     public async Task MightContainAsync_AllBitsSet_ShouldReturnTrue()
     {
+        // 产品实现（任务 2.2.1）已改为单次 EVAL Lua 批量 GETBIT（见 RedisBloomFilter），
+        // 不再调用 StringGetBitAsync，故 mock ScriptEvaluateAsync 的 GETBIT 脚本。
         _databaseMock
-            .Setup(d => d.StringGetBitAsync(It.IsAny<RedisKey>(), It.IsAny<long>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(true);
+            .Setup(d => d.ScriptEvaluateAsync(
+                It.Is<string>(s => s.Contains("GETBIT")),
+                It.IsAny<RedisKey[]>(),
+                It.IsAny<RedisValue[]>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(RedisResult.Create(1));
 
         var result = await _sut.MightContainAsync("test-key");
 
@@ -60,14 +66,14 @@ public class RedisBloomFilterTests
     [Fact]
     public async Task MightContainAsync_SomeBitNotSet_ShouldReturnFalse()
     {
-        var callCount = 0;
+        // Lua 脚本语义：任一 bit 为 0 返回 0（一定不存在）
         _databaseMock
-            .Setup(d => d.StringGetBitAsync(It.IsAny<RedisKey>(), It.IsAny<long>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(() =>
-            {
-                callCount++;
-                return callCount != 3; // 第3个调用返回 false
-            });
+            .Setup(d => d.ScriptEvaluateAsync(
+                It.Is<string>(s => s.Contains("GETBIT")),
+                It.IsAny<RedisKey[]>(),
+                It.IsAny<RedisValue[]>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(RedisResult.Create(0));
 
         var result = await _sut.MightContainAsync("test-key");
 
@@ -85,16 +91,9 @@ public class RedisBloomFilterTests
     [Fact]
     public async Task AddAndCheck_ShouldReturnTrue_ForSameKey()
     {
-        // 使用真实的位设置/获取逻辑测试
+        // 使用测试内 bitmap 模拟 Lua SETBIT/GETBIT 脚本语义（产品已切换为单次 EVAL）
         var bitsSet = new HashSet<long>();
-        _databaseMock
-            .Setup(d => d.StringSetBitAsync(It.IsAny<RedisKey>(), It.IsAny<long>(), true, It.IsAny<CommandFlags>()))
-            .Callback<RedisKey, long, bool, CommandFlags>((_, pos, _, _) => bitsSet.Add(pos))
-            .ReturnsAsync(true);
-
-        _databaseMock
-            .Setup(d => d.StringGetBitAsync(It.IsAny<RedisKey>(), It.IsAny<long>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync((RedisKey _, long pos, CommandFlags _) => bitsSet.Contains(pos));
+        SetupLuaBitmapSimulation(bitsSet);
 
         await _sut.AddAsync("consistent-key");
         var result = await _sut.MightContainAsync("consistent-key");
@@ -106,14 +105,7 @@ public class RedisBloomFilterTests
     public async Task DifferentKey_ShouldNotBeContained_WhenNotAdded()
     {
         var bitsSet = new HashSet<long>();
-        _databaseMock
-            .Setup(d => d.StringSetBitAsync(It.IsAny<RedisKey>(), It.IsAny<long>(), true, It.IsAny<CommandFlags>()))
-            .Callback<RedisKey, long, bool, CommandFlags>((_, pos, _, _) => bitsSet.Add(pos))
-            .ReturnsAsync(true);
-
-        _databaseMock
-            .Setup(d => d.StringGetBitAsync(It.IsAny<RedisKey>(), It.IsAny<long>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync((RedisKey _, long pos, CommandFlags _) => bitsSet.Contains(pos));
+        SetupLuaBitmapSimulation(bitsSet);
 
         await _sut.AddAsync("key-a");
         var result = await _sut.MightContainAsync("key-b");
@@ -121,6 +113,38 @@ public class RedisBloomFilterTests
         // 对于未添加的 key，在真实布隆过滤器中可能返回 false（大概率）
         // 这里我们只验证不抛异常
         result.Should().BeFalse();
+    }
+
+    /// <summary>
+    /// 在 mock IDatabase 上模拟 RedisBloomFilter 的两条 Lua 脚本语义：
+    /// SETBIT 脚本把 ARGV 中的位偏移记入 <paramref name="bitsSet"/>；
+    /// GETBIT 脚本仅当 ARGV 中所有偏移均已设置时返回 1，否则返回 0。
+    /// </summary>
+    private void SetupLuaBitmapSimulation(HashSet<long> bitsSet)
+    {
+        _databaseMock
+            .Setup(d => d.ScriptEvaluateAsync(
+                It.Is<string>(s => s.Contains("SETBIT")),
+                It.IsAny<RedisKey[]>(),
+                It.IsAny<RedisValue[]>(),
+                It.IsAny<CommandFlags>()))
+            .Callback<string, RedisKey[], RedisValue[], CommandFlags>((_, _, args, _) =>
+            {
+                foreach (var arg in args)
+                {
+                    bitsSet.Add((long)arg);
+                }
+            })
+            .ReturnsAsync(RedisResult.Create(1));
+
+        _databaseMock
+            .Setup(d => d.ScriptEvaluateAsync(
+                It.Is<string>(s => s.Contains("GETBIT")),
+                It.IsAny<RedisKey[]>(),
+                It.IsAny<RedisValue[]>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync((string _, RedisKey[] _, RedisValue[] args, CommandFlags _) =>
+                RedisResult.Create(args.All(a => bitsSet.Contains((long)a)) ? 1 : 0));
     }
 }
 

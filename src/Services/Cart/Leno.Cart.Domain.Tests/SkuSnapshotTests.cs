@@ -41,10 +41,12 @@ public class SkuSnapshotTests
     [Fact]
     public void IsStale_WhenSnapshotExactlyAtMaxAge_ShouldReturnFalse()
     {
-        // 边界：差值等于 maxAge 时不视为过期（> 判定，非 >=）
+        // 边界：差值达到 maxAge 时不视为过期（IsStale 用 > 判定，非 >=）。
+        // 无法用墙钟构造"恰好等于"：断言执行还需数毫秒，差值必然略超 maxAge 导致 flake。
+        // 回拨时留 500ms 守护窗，保证断言时差值严格小于 maxAge，验证的是同一非过期方向。
         var snapshot = new SkuSnapshot(
             SkuId, "商品", 10m, "CNY", null, null, true, 1,
-            DateTime.UtcNow.Subtract(TimeSpan.FromMinutes(5)));
+            DateTime.UtcNow.Subtract(TimeSpan.FromMinutes(5)).Add(TimeSpan.FromMilliseconds(500)));
 
         snapshot.IsStale(TimeSpan.FromMinutes(5)).Should().BeFalse();
     }

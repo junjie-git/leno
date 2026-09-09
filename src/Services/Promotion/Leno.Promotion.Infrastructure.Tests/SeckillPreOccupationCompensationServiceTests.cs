@@ -52,6 +52,9 @@ public class SeckillPreOccupationCompensationServiceTests
         var activity = SeckillActivity.Create(ActivityId, "测试秒杀活动", Guid.NewGuid(), SkuId, 99m, 199m, 100, 1,
             DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(2));
         activity.Activate();
+        // 预占记录产生时已扣减 1 件库存；若不模拟扣减，回退时 AvailableStock+1 > TotalStock
+        // 触发领域守卫 PromotionDomainException，CompensateAsync 捕获后跳过，MarkRolledBack 不执行。
+        activity.DeductStock(Guid.NewGuid(), 1);
         var record = CreateRecord();
         _recordRepoMock.Setup(r => r.GetUnfulfilledAsync(It.IsAny<DateTime>(), 0, It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<SeckillPreOccupationRecord> { record });

@@ -50,12 +50,13 @@ public class ReconciliationDiffConfigurationTests
         var entityType = BuildEntityType();
 
         // 断言：Channel 枚举使用 int 转换（与 PaymentOrderConfiguration / RefundOrderConfiguration 一致）。
-        // HasConversion<int>() 的可观察效果：GetValueConverter() 非空且 ProviderClrType 为 int。
+        // EF Core 6+ 的 HasConversion<int>() 短形式仅记录 ProviderClrType 注解（int），
+        // 显式 ValueConverter 实例要到类型映射动画阶段才生成，
+        // 因此 GetValueConverter() 返回 null——按官方可观察效果断言 ProviderClrType == int。
         var channelProperty = entityType.FindProperty(nameof(ReconciliationDiff.Channel));
         Assert.NotNull(channelProperty);
         Assert.Equal(typeof(PaymentChannel), channelProperty!.ClrType);
-        Assert.NotNull(channelProperty.GetValueConverter());
-        Assert.Equal(typeof(int), channelProperty.GetValueConverter()!.ProviderClrType);
+        Assert.Equal(typeof(int), GetEffectiveProviderClrType(channelProperty));
     }
 
     [Fact]
@@ -68,8 +69,7 @@ public class ReconciliationDiffConfigurationTests
         var diffTypeProperty = entityType.FindProperty(nameof(ReconciliationDiff.DiffType));
         Assert.NotNull(diffTypeProperty);
         Assert.Equal(typeof(ReconciliationDiffType), diffTypeProperty!.ClrType);
-        Assert.NotNull(diffTypeProperty.GetValueConverter());
-        Assert.Equal(typeof(int), diffTypeProperty.GetValueConverter()!.ProviderClrType);
+        Assert.Equal(typeof(int), GetEffectiveProviderClrType(diffTypeProperty));
     }
 
     [Fact]
@@ -82,7 +82,16 @@ public class ReconciliationDiffConfigurationTests
         var statusProperty = entityType.FindProperty(nameof(ReconciliationDiff.Status));
         Assert.NotNull(statusProperty);
         Assert.Equal(typeof(ReconciliationDiffStatus), statusProperty!.ClrType);
-        Assert.NotNull(statusProperty.GetValueConverter());
-        Assert.Equal(typeof(int), statusProperty.GetValueConverter()!.ProviderClrType);
+        Assert.Equal(typeof(int), GetEffectiveProviderClrType(statusProperty));
+    }
+
+    /// <summary>
+    /// 获取属性的生效数据库提供方类型：
+    /// 优先读取显式 ValueConverter 的 ProviderClrType，回退到 HasConversion&lt;T&gt;() 短形式
+    /// 记录的 ProviderClrType 注解（EF Core 6+ 短形式不产生显式 converter 实例）。
+    /// </summary>
+    private static Type? GetEffectiveProviderClrType(IMutableProperty property)
+    {
+        return property.GetValueConverter()?.ProviderClrType ?? property.GetProviderClrType();
     }
 }

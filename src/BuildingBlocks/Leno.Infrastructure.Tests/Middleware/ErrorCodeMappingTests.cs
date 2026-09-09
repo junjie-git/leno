@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Leno.Infrastructure.Tests.Middleware;
 
+[Collection("ErrorCodeMapping")]
 public class ErrorCodeMappingTests
 {
     [Theory]

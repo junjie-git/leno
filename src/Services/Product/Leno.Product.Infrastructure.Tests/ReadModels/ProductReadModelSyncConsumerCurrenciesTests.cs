@@ -220,7 +220,9 @@ public class ProductReadModelSyncConsumerCurrenciesTests
         {
             var sku = SKU.Create(Guid.NewGuid(), spu.Id, code,
                 Money.Create(price, currency), 100,
-                SkuSpec.Create(new[] { SpecAttribute.Create("Color", "Red") }));
+                // 每个 SKU 的规格组合必须互不相同（SPU.AddSku 现强制规格唯一，
+            // 重复会抛 ProductDomainException "SKU 规格组合已存在"）
+            SkuSpec.Create(new[] { SpecAttribute.Create("Color", "Red-" + code) }));
             spu.AddSku(sku);
         }
 

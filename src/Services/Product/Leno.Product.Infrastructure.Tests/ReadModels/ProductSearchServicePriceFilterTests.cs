@@ -1,3 +1,4 @@
+using System.Reflection;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 using Leno.Infrastructure.ReadModel;
@@ -195,19 +196,11 @@ public class ProductSearchServicePriceFilterTests
             return null;
         }
 
-        var prop = source.GetType().GetProperty(propertyName);
-        if (prop is null)
-        {
-            return null;
-        }
-
-        try
-        {
-            return prop.GetValue(source) as T;
-        }
-        catch
-        {
-            return null;
-        }
+        // Elastic 8.17 客户端 union 类型（Query 等）将变体实例存于内部 Variant 属性，
+        // 不再有公共的 Bool/NumberRange 等命名属性；propertyName 仅保留调用兼容。
+        var variant = source.GetType()
+            .GetProperty("Variant", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(source);
+        return (variant ?? source) as T;
     }
 }

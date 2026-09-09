@@ -68,6 +68,7 @@ public class AfterSalesApiTests : IClassFixture<WebApplicationFactory<Program>>
                 RemoveMassTransitServices(services);
                 RemoveElasticsearchServices(services);
                 RemoveRedisServices(services);
+                RemoveConsulServices(services);
 
                 services.AddAuthentication(defaultScheme: "Test")
                     .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", _ => { });
@@ -181,6 +182,29 @@ public class AfterSalesApiTests : IClassFixture<WebApplicationFactory<Program>>
         services.AddSingleton(lockProviderMock.Object);
     }
 
+    /// <summary>
+    /// 移除 Consul 服务注册托管服务与客户端。
+    /// CI 环境无 Consul（localhost:8500 拒绝连接），宿主关闭时 StopAsync 的
+    /// ServiceDeregister 失败会以 OperationCanceledException 形态逃逸（catch
+    /// 过滤器显式排除了它），导致 WebApplicationFactory 清理失败、整个测试类
+    /// 被标记失败（run #9 AfterSales 21 个测试失败的根因）。
+    /// 注意：除 IConsulClient/注册托管服务外，还必须移除依赖 IConsulClient 的
+    /// ConsulConfigWatcher/ConsulConfigPublisher 托管服务——否则它们作为
+    /// IHostedService 在宿主构建校验阶段无法解析 IConsulClient，Host 直接构建失败。
+    /// </summary>
+    private static void RemoveConsulServices(IServiceCollection services)
+    {
+        var consulDescriptors = services
+            .Where(s =>
+                s.ImplementationType?.FullName?.Contains("ConsulServiceRegistration") == true
+                || s.ImplementationType?.FullName?.Contains("ConsulConfigWatcher") == true
+                || s.ImplementationType?.FullName?.Contains("ConsulConfigPublisher") == true
+                || s.ServiceType.FullName?.Contains("Consul") == true
+                || s.ImplementationInstance?.GetType().FullName?.Contains("Consul") == true)
+            .ToList();
+        foreach (var d in consulDescriptors) services.Remove(d);
+    }
+
     /// <summary>切换当前用户角色，重新创建 HttpClient。</summary>
     private void SwitchRole(string role)
     {
@@ -202,6 +226,7 @@ public class AfterSalesApiTests : IClassFixture<WebApplicationFactory<Program>>
                 RemoveMassTransitServices(services);
                 RemoveElasticsearchServices(services);
                 RemoveRedisServices(services);
+                RemoveConsulServices(services);
                 services.AddAuthentication(defaultScheme: "Test")
                     .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", _ => { });
             });

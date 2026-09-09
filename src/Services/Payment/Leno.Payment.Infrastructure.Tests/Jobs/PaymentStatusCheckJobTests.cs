@@ -52,13 +52,15 @@ public class PaymentStatusCheckJobTests
     private static PaymentStatusCheckJob CreateJob(
         Mock<IPaymentOrderRepository> repoMock,
         Mock<IUnitOfWork> uowMock,
-        Mock<IPaymentChannelFactory> factoryMock)
+        Mock<IPaymentChannelFactory> factoryMock,
+        Microsoft.Extensions.Options.IOptions<Leno.Payment.Infrastructure.Config.PaymentJobOptions>? options = null)
     {
         return new PaymentStatusCheckJob(
             repoMock.Object,
             uowMock.Object,
             factoryMock.Object,
-            NullLogger<PaymentStatusCheckJob>.Instance);
+            NullLogger<PaymentStatusCheckJob>.Instance,
+            options);
     }
 
     [Fact]
@@ -212,12 +214,22 @@ public class PaymentStatusCheckJobTests
         var factoryMock = new Mock<IPaymentChannelFactory>();
         factoryMock.Setup(f => f.GetAdapter(It.IsAny<PaymentChannel>())).Returns(adapterMock.Object);
 
-        var sut = CreateJob(repoMock, uowMock, factoryMock);
+        // BatchSize=2：第 1 页返回 2 条（== BatchSize，满页 → 继续翻页），
+        // 第 2 页返回 1 条（< BatchSize，短页 → 退出）。若用默认 BatchSize=100，
+        // 第 1 页即触发短页退出，batch2 永远不会被拉取，断言必然失败。
+        var sut = CreateJob(
+            repoMock, uowMock, factoryMock,
+            Microsoft.Extensions.Options.Options.Create(
+                new Leno.Payment.Infrastructure.Config.PaymentJobOptions
+                {
+                    ThresholdMinutes = 5,
+                    BatchSize = 2
+                }));
 
         // 行动
         await sut.ExecuteAsync(CancellationToken.None);
 
-        // 断言：所有过期支付单均被关单
+        // 断言：所有过期支付单（含第 2 页）均被关单
         Assert.All(expiredBatch1.Concat(expiredBatch2), o => Assert.Equal(PaymentStatus.Closed, o.Status));
         repoMock.Verify(
             r => r.UpdateAsync(It.IsAny<PaymentOrder>(), It.IsAny<CancellationToken>()),

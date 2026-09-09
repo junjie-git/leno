@@ -49,6 +49,13 @@ public class TrafficGovernanceIntegrationTests : IClassFixture<WebApplicationFac
         _redisMock.SetupGet(m => m.IsConnected).Returns(true);
         _redisMock.Setup(m => m.GetDatabase(It.IsAny<int>(), It.IsAny<object>())).Returns(_redisDbMock.Object);
 
+        // Pub/Sub 订阅 mock：GetSubscriber 默认返回 null，会让 JwtBlacklistService.StartAsync NRE
+        var subscriberMock = new Mock<ISubscriber>();
+        subscriberMock
+            .Setup(s => s.SubscribeAsync(It.IsAny<RedisChannel>(), It.IsAny<Action<RedisChannel, RedisValue>>(), It.IsAny<CommandFlags>()))
+            .Returns(Task.CompletedTask);
+        _redisMock.Setup(m => m.GetSubscriber(It.IsAny<object>())).Returns(subscriberMock.Object);
+
         _client = factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureAppConfiguration((_, config) =>
@@ -66,7 +73,12 @@ public class TrafficGovernanceIntegrationTests : IClassFixture<WebApplicationFac
                     ["RateLimit:User:PermitLimit"] = "100",
                     ["RateLimit:User:Window"] = "00:01:00",
                     // Phase 7 F2：本测试聚焦限流/降级/超时，禁用 JWT 验签避免 401
-                    ["Jwt:Enabled"] = "false"
+                    ["Jwt:Enabled"] = "false",
+                    // appsettings.json 的 "${JWT_SECRET_KEY}" 占位符仅 17 字节，
+                    // JwtTokenGenerator ctor 的 HS256 校验会抛异常（Jwt:Enabled=false 时
+                    // JwtBearerOptions 首次访问仍会解析 JwtTokenGenerator）导致全路由 500。
+                    // 测试提供满足 32 字节要求的密钥。
+                    ["Jwt:SecretKey"] = "unit-test-only-secret-key-0123456789abcdef-0123456789abcdef"
                 });
             });
 

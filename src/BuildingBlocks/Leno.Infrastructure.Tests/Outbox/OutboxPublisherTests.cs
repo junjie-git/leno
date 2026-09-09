@@ -2,6 +2,7 @@ using Leno.Infrastructure.Abstractions;
 using Leno.Infrastructure.Outbox;
 using Leno.SharedContracts.Events;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -21,8 +22,24 @@ public class OutboxPublisherTests
     /// </summary>
     private sealed class TestOutboxDbContext : DbContext
     {
-        public TestOutboxDbContext(DbContextOptions<TestOutboxDbContext> options) : base(options)
+        private readonly SqliteConnection? _connection;
+
+        public TestOutboxDbContext(DbContextOptions<TestOutboxDbContext> options, SqliteConnection? connection = null) : base(options)
         {
+            _connection = connection;
+        }
+
+        public override ValueTask DisposeAsync()
+        {
+            var disposeTask = base.DisposeAsync();
+            _connection?.Dispose();
+            return disposeTask;
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+            _connection?.Dispose();
         }
 
         public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -38,10 +55,15 @@ public class OutboxPublisherTests
 
     private static async Task<TestOutboxDbContext> CreateContextAsync(string dbName)
     {
+        // 切换 InMemory -> SQLite（关系型）：产品的 Processed 标记使用 ExecuteUpdateAsync
+        //（仅关系型提供者支持），InMemory 下该调用抛异常被 catch 吞掉，导致状态停在 Publishing。
+        // 命名共享内存库 + 由 context DisposeAsync 托管连接生命周期。
+        var connection = new SqliteConnection($"DataSource={dbName};Mode=Memory;Cache=Shared");
+        await connection.OpenAsync();
         var options = new DbContextOptionsBuilder<TestOutboxDbContext>()
-            .UseInMemoryDatabase(dbName)
+            .UseSqlite(connection)
             .Options;
-        var context = new TestOutboxDbContext(options);
+        var context = new TestOutboxDbContext(options, connection);
         await context.Database.EnsureCreatedAsync();
         return context;
     }
@@ -57,6 +79,9 @@ public class OutboxPublisherTests
 
         var logger = sp.GetRequiredService<ILogger<OutboxPublisher<TestOutboxDbContext>>>();
         var publisher = new OutboxPublisher<TestOutboxDbContext>(sp, eventBusMock.Object, logger);
+        // 测试中 context 为共享单例，并行处理同一 context 会触发 EF 并发异常；
+        // 串行化批次处理以获得确定性断言（并行语义由每消息独立 scope 保证）。
+        publisher.MaxDegreeOfParallelism = 1;
         return (publisher, sp);
     }
 
@@ -282,20 +307,26 @@ public class OutboxPublisherTests
 
     /// <summary>
     /// T22.1：多消息并行处理——所有消息应最终标记为 Processed，每条消息各发布一次。
-    /// 使用 AddDbContext（Scoped）使每条消息获得独立 DbContext 实例，避免并发访问冲突。
+    /// 切换 InMemory -> SQLite（关系型）：Processed 标记使用 ExecuteUpdateAsync，
+    /// InMemory 提供者不支持该调用（异常被产品 catch 吞掉，状态停在 Publishing）。
+    /// 每条消息经独立 scope 解析独立 DbContext + 独立连接（同一命名共享内存库），
+    /// 因此保留并行处理语义；keeper 连接负责维持共享内存库生命周期。
     /// </summary>
     [Fact]
     public async Task ProcessBatch_MultipleMessages_ShouldProcessInParallelAndAllSucceed()
     {
         // Arrange
         var dbName = $"outbox-parallel-{Guid.NewGuid()}";
-        var options = new DbContextOptionsBuilder<TestOutboxDbContext>()
-            .UseInMemoryDatabase(dbName)
-            .Options;
+        await using var keeperConnection = new SqliteConnection($"DataSource={dbName};Mode=Memory;Cache=Shared");
+        await keeperConnection.OpenAsync();
 
         // Setup：创建 5 条 pending 消息
-        await using (var setupContext = new TestOutboxDbContext(options))
+        var setupOptions = new DbContextOptionsBuilder<TestOutboxDbContext>()
+            .UseSqlite(new SqliteConnection($"DataSource={dbName};Mode=Memory;Cache=Shared"))
+            .Options;
+        await using (var setupContext = new TestOutboxDbContext(setupOptions))
         {
+            await setupContext.Database.EnsureCreatedAsync();
             for (int i = 0; i < 5; i++)
             {
                 setupContext.OutboxMessages.Add(CreatePendingMessage());
@@ -303,9 +334,10 @@ public class OutboxPublisherTests
             await setupContext.SaveChangesAsync();
         }
 
-        // 使用 AddDbContext（Scoped）确保每条消息在并行处理时获得独立 DbContext
+        // 每条消息在并行处理时获得独立 DbContext + 独立连接
         var services = new ServiceCollection();
-        services.AddDbContext<TestOutboxDbContext>(opts => opts.UseInMemoryDatabase(dbName));
+        services.AddDbContext<TestOutboxDbContext>(opts =>
+            opts.UseSqlite(new SqliteConnection($"DataSource={dbName};Mode=Memory;Cache=Shared")));
         services.AddLogging();
         var sp = services.BuildServiceProvider();
 
@@ -321,7 +353,10 @@ public class OutboxPublisherTests
         await publisher.ProcessBatchForTestAsync(CancellationToken.None);
 
         // Assert：5 条消息全部 Processed
-        await using var assertContext = new TestOutboxDbContext(options);
+        var assertOptions = new DbContextOptionsBuilder<TestOutboxDbContext>()
+            .UseSqlite(new SqliteConnection($"DataSource={dbName};Mode=Memory;Cache=Shared"))
+            .Options;
+        await using var assertContext = new TestOutboxDbContext(assertOptions);
         var allMessages = await assertContext.OutboxMessages.ToListAsync();
         allMessages.Should().HaveCount(5);
         allMessages.Should().AllSatisfy(m =>
@@ -339,32 +374,35 @@ public class OutboxPublisherTests
     }
 
     /// <summary>
-    /// T22.1：并行处理中部分消息发布失败不影响其它消息——失败消息回退 Pending，成功消息标记 Processed。
-    /// 使用 Interlocked 计数器让第 3 次 publish 调用失败，验证单条失败不影响其它消息。
+    /// T22.1：并行处理中部分消息发布失败不影响其它消息——失败消息回退 Pending，
+    /// 成功消息标记 Processed。使用 Interlocked 计数器让第 3 次 publish 调用失败，
+    /// 验证单条失败不影响其它消息。与上一测试相同，改用 SQLite
+    /// （每 scope 独立连接 + 命名共享内存库，保留并行语义）。
     /// </summary>
     [Fact]
     public async Task ProcessBatch_PartialFailure_ShouldNotAffectOtherMessages()
     {
         // Arrange
         var dbName = $"outbox-partial-{Guid.NewGuid()}";
-        var options = new DbContextOptionsBuilder<TestOutboxDbContext>()
-            .UseInMemoryDatabase(dbName)
+        await using var keeperConnection = new SqliteConnection($"DataSource={dbName};Mode=Memory;Cache=Shared");
+        await keeperConnection.OpenAsync();
+
+        var setupOptions = new DbContextOptionsBuilder<TestOutboxDbContext>()
+            .UseSqlite(new SqliteConnection($"DataSource={dbName};Mode=Memory;Cache=Shared"))
             .Options;
-
-        var messages = new List<OutboxMessage>();
-        for (int i = 0; i < 4; i++)
+        await using (var setupContext = new TestOutboxDbContext(setupOptions))
         {
-            messages.Add(CreatePendingMessage());
-        }
-
-        await using (var setupContext = new TestOutboxDbContext(options))
-        {
-            setupContext.OutboxMessages.AddRange(messages);
+            await setupContext.Database.EnsureCreatedAsync();
+            for (int i = 0; i < 4; i++)
+            {
+                setupContext.OutboxMessages.Add(CreatePendingMessage());
+            }
             await setupContext.SaveChangesAsync();
         }
 
         var services = new ServiceCollection();
-        services.AddDbContext<TestOutboxDbContext>(opts => opts.UseInMemoryDatabase(dbName));
+        services.AddDbContext<TestOutboxDbContext>(opts =>
+            opts.UseSqlite(new SqliteConnection($"DataSource={dbName};Mode=Memory;Cache=Shared")));
         services.AddLogging();
         var sp = services.BuildServiceProvider();
 
@@ -390,7 +428,10 @@ public class OutboxPublisherTests
         await publisher.ProcessBatchForTestAsync(CancellationToken.None);
 
         // Assert：3 条 Processed，1 条 Pending（RetryCount=1），无消息丢失
-        await using var assertContext = new TestOutboxDbContext(options);
+        var assertOptions = new DbContextOptionsBuilder<TestOutboxDbContext>()
+            .UseSqlite(new SqliteConnection($"DataSource={dbName};Mode=Memory;Cache=Shared"))
+            .Options;
+        await using var assertContext = new TestOutboxDbContext(assertOptions);
         var allMessages = await assertContext.OutboxMessages.ToListAsync();
         allMessages.Should().HaveCount(4);
 

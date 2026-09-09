@@ -9,6 +9,7 @@ namespace Leno.Infrastructure.Tests.Middleware;
 /// T33：Contains 子串匹配 → EndsWith 精确后缀匹配 + token 匹配中间标记。
 /// T34：静态 ConcurrentDictionary 无清理 → MemoryCache + SizeLimit 限制增长。
 /// </summary>
+[Collection("ErrorCodeMapping")]
 public class ErrorCodeMappingPrecisionTests
 {
     [Theory]

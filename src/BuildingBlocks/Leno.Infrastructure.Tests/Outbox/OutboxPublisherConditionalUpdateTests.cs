@@ -2,6 +2,7 @@ using Leno.Infrastructure.Abstractions;
 using Leno.Infrastructure.Outbox;
 using Leno.SharedContracts.Events;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -26,11 +27,27 @@ public class OutboxPublisherConditionalUpdateTests
 {
     private sealed class TestConditionalDbContext : DbContext
     {
-        public TestConditionalDbContext(DbContextOptions<TestConditionalDbContext> options) : base(options)
+        private readonly SqliteConnection? _connection;
+
+        public TestConditionalDbContext(DbContextOptions<TestConditionalDbContext> options, SqliteConnection? connection = null) : base(options)
         {
+            _connection = connection;
         }
 
         public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
+        public override ValueTask DisposeAsync()
+        {
+            var disposeTask = base.DisposeAsync();
+            _connection?.Dispose();
+            return disposeTask;
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+            _connection?.Dispose();
+        }
     }
 
     private sealed class TestConditionalEvent : IntegrationEventBase
@@ -40,10 +57,14 @@ public class OutboxPublisherConditionalUpdateTests
 
     private static async Task<TestConditionalDbContext> CreateContextAsync(string dbName)
     {
+        // 切换 InMemory -> SQLite（关系型）：被测逻辑 ExecuteUpdateAsync 仅关系型提供者支持，
+        // InMemory 下抛异常被产品 catch 吞掉，导致条件更新/清理断言必然失败。
+        var connection = new SqliteConnection($"DataSource={dbName};Mode=Memory;Cache=Shared");
+        await connection.OpenAsync();
         var options = new DbContextOptionsBuilder<TestConditionalDbContext>()
-            .UseInMemoryDatabase(dbName)
+            .UseSqlite(connection)
             .Options;
-        var context = new TestConditionalDbContext(options);
+        var context = new TestConditionalDbContext(options, connection);
         await context.Database.EnsureCreatedAsync();
         return context;
     }
@@ -59,6 +80,9 @@ public class OutboxPublisherConditionalUpdateTests
 
         var logger = sp.GetRequiredService<ILogger<OutboxPublisher<TestConditionalDbContext>>>();
         var publisher = new OutboxPublisher<TestConditionalDbContext>(sp, eventBusMock.Object, logger);
+        // 测试中 context 为共享单例，并行处理同一 context 会触发 EF 并发异常；
+        // 串行化批次处理以获得确定性断言（并行语义由每消息独立 scope 保证）。
+        publisher.MaxDegreeOfParallelism = 1;
         return (publisher, sp);
     }
 

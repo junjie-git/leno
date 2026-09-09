@@ -1,3 +1,4 @@
+using System.Reflection;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 using Leno.Infrastructure.ReadModel;
@@ -223,9 +224,56 @@ public class ProductSearchServiceSortTests
     {
         var descriptor = new SearchRequestDescriptor<ProductReadModel>();
         configure(descriptor);
-        // SearchRequestDescriptor<T> 继承自 SearchRequest，Sort 属性类型为 IList<SortOptions>?
-        var sortProperty = typeof(SearchRequest).GetProperty("Sort");
-        return sortProperty?.GetValue(descriptor) as System.Collections.IList;
+
+        // Elastic 8.17：SearchRequestDescriptor<T> 不继承 SearchRequest，Sort 存于内部属性。
+        // 按 Sort 重载覆盖三种内部存储：SortValue（ICollection 重载）、
+        // SortDescriptorAction(s)（Action 重载）、SortDescriptor（描述符重载）。
+        var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+
+        if (descriptor.GetType().GetProperty("SortValue", flags)?.GetValue(descriptor) is System.Collections.IList direct)
+        {
+            return direct;
+        }
+
+        var options = new List<object?>();
+
+        var soType = typeof(SortOptionsDescriptor<ProductReadModel>);
+        var actions = new List<Delegate?>();
+        if (descriptor.GetType().GetProperty("SortDescriptorAction", flags)?.GetValue(descriptor) is Delegate single)
+        {
+            actions.Add(single);
+        }
+        if (descriptor.GetType().GetProperty("SortDescriptorActions", flags)?.GetValue(descriptor) is Delegate[] many)
+        {
+            actions.AddRange(many);
+        }
+
+        if (actions.Count > 0)
+        {
+            foreach (var action in actions)
+            {
+                var so = Activator.CreateInstance(soType)!;
+                action!.DynamicInvoke(so);
+                // Sort(Action<FieldSortDescriptor>) 重载下，字段排序存于内部 Descriptor 属性
+                //（FieldSortDescriptor<T>，其 OrderValue 即排序方向），Variant 保持为 null
+                var sortDescriptor = soType.GetProperty("Descriptor", flags)?.GetValue(so)
+                    ?? soType.GetProperty("Variant", flags)?.GetValue(so);
+                if (sortDescriptor is not null)
+                {
+                    options.Add(sortDescriptor);
+                }
+            }
+        }
+        else if (descriptor.GetType().GetProperty("SortDescriptor", flags)?.GetValue(descriptor) is { } soDescriptor)
+        {
+            var variant = soDescriptor.GetType().GetProperty("Variant", flags)?.GetValue(soDescriptor);
+            if (variant is not null)
+            {
+                options.Add(variant);
+            }
+        }
+
+        return options.Count > 0 ? options : null;
     }
 
     /// <summary>
@@ -234,8 +282,16 @@ public class ProductSearchServiceSortTests
     /// </summary>
     private static object? GetSortOrderValue(object sortOption)
     {
-        var prop = sortOption.GetType().GetProperty("Order");
-        return prop?.GetValue(sortOption);
+        var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+        var variant = sortOption.GetType()
+            .GetProperty("Variant", flags)
+            ?.GetValue(sortOption);
+        var target = variant ?? sortOption;
+        // FieldSortDescriptor<T> 用内部属性 OrderValue 存排序方向；
+        // SortOptions/FieldSort 变体则用公共 Order 属性
+        var prop = target.GetType().GetProperty("OrderValue", flags)
+            ?? target.GetType().GetProperty("Order");
+        return prop?.GetValue(target);
     }
 
     /// <summary>

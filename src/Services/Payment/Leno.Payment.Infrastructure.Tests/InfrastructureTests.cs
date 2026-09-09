@@ -1865,6 +1865,9 @@ public class AlipayNotifyHandlerTests
                 AppId = "2021000000000001",
                 MchId = "2088000000000001",
                 ApiKey = publicKey,
+                // PublicKey：支付宝公钥（PEM），AlipayAdapter.VerifyNotifyAsync 用其验签；
+                // 缺失时 VerifySign 收到空公钥恒失败 → 回调返回 "fail"
+                PublicKey = publicKey,
                 NotifyUrl = "https://example.com/notify/alipay",
                 RefundNotifyUrl = "https://example.com/notify/alipay/refund"
             });

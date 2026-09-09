@@ -34,7 +34,12 @@ public class GatewayRoutingIntegrationTests : IClassFixture<WebApplicationFactor
                     // Phase 6 集成后 CacheMiddleware 会访问 Redis，测试环境禁用缓存避免 500
                     ["Gateway:Cache:Enabled"] = "false",
                     // Phase 7 F2：本测试聚焦路由转发，禁用 JWT 验签避免 401
-                    ["Jwt:Enabled"] = "false"
+                    ["Jwt:Enabled"] = "false",
+                    // appsettings.json 的 "${JWT_SECRET_KEY}" 占位符仅 17 字节，
+                    // JwtTokenGenerator ctor 的 HS256 校验会抛异常（Jwt:Enabled=false 时
+                    // JwtBearerOptions 首次访问仍会解析 JwtTokenGenerator）导致全路由 500。
+                    // 测试提供满足 32 字节要求的密钥。
+                    ["Jwt:SecretKey"] = "unit-test-only-secret-key-0123456789abcdef-0123456789abcdef"
                 });
             });
 

@@ -77,6 +77,7 @@ public class NotifyHandlerRedisFailoverTests
                 AppId = "2021000000000001",
                 MchId = "2088000000000001",
                 ApiKey = publicKey,
+                PublicKey = publicKey,
                 NotifyUrl = "https://example.com/notify/alipay",
                 RefundNotifyUrl = "https://example.com/notify/alipay/refund"
             });
