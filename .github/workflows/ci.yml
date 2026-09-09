@@ -302,16 +302,45 @@ jobs:
         env:
           SA_PASSWORD: Leno@Test123!
         run: |
+          # mssql/server:2019-latest 镜像已不再内置 /opt/mssql-tools18/bin/sqlcmd（exit 127），
+          # 改为下载 go-sqlcmd v1.10.0 独立二进制（sha256 校验防篡改，--retry 防下载抖动）。
+          curl -fSL --retry 5 --retry-delay 2 --retry-all-errors \
+            -o /tmp/sqlcmd-linux-amd64.tar.bz2 \
+            "https://github.com/microsoft/go-sqlcmd/releases/download/v1.10.0/sqlcmd-linux-amd64.tar.bz2"
+          echo "92516d98c63d99b0994de5b61350c91f6915f9b76f139a59039fbcb225c2e987  /tmp/sqlcmd-linux-amd64.tar.bz2" | sha256sum -c -
+          tar -xjf /tmp/sqlcmd-linux-amd64.tar.bz2 -C /usr/local/bin sqlcmd
+          sqlcmd --version
+
           docker run -d --name sqlserver-test \
             -e ACCEPT_EULA=Y \
             -e MSSQL_SA_PASSWORD=$SA_PASSWORD \
             -p 1433:1433 \
             mcr.microsoft.com/mssql/server:2019-latest
-          sleep 60
-          for f in scripts/migrations/*.sql; do
-            /opt/mssql-tools18/bin/sqlcmd -S localhost,1433 -U sa -P $SA_PASSWORD -C -i "$f"
+          # 无论如何清理容器，避免 runner 残留
+          trap 'docker rm -f sqlserver-test' EXIT
+
+          # 就绪探测：固定 sleep 60 不可靠（慢 runner 上会假失败），
+          # 改为 SELECT 1 重试（30 次 x 5s），全部失败则显式报错退出
+          ready=0
+          for i in $(seq 1 30); do
+            if sqlcmd -S localhost,1433 -U sa -P "$SA_PASSWORD" -C -Q "SELECT 1" > /dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 5
           done
-          docker rm -f sqlserver-test
+          if [ "$ready" -ne 1 ]; then
+            echo "::error::SQL Server 容器在 150s 内未就绪"
+            docker logs sqlserver-test | tail -50
+            exit 1
+          fi
+
+          # -b：任一 SQL 错误使 sqlcmd 非零退出（默认模式只打印错误不失败，
+          # 导致 run #9 迁移脚本错误被吞、step 假绿）
+          for f in scripts/migrations/*.sql; do
+            echo "Executing $f"
+            sqlcmd -S localhost,1433 -U sa -P "$SA_PASSWORD" -C -b -i "$f"
+          done
 
   proto-lint-breaking:
     name: Proto Lint & Breaking (buf)
@@ -320,7 +349,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: bufbuild/buf-setup-action@v1
+      # bufbuild/buf-setup-action@v1 内部匿名调用 GitHub API 获取最新版本，
+      # CI runner 高频触发时撞 60 req/h 匿名限流导致偶发失败（run #9 根因）。
+      # 改为直链固定版本 + sha256 校验，确定性且不依赖 GitHub API 配额。
+      - name: Setup Buf CLI (pinned v1.72.0, direct download)
+        run: |
+          BUF_VERSION=v1.72.0
+          curl -fSL --retry 5 --retry-delay 2 --retry-all-errors \
+            -o /usr/local/bin/buf \
+            "https://github.com/bufbuild/buf/releases/download/${BUF_VERSION}/buf-Linux-x86_64"
+          echo "8720830e26a733da55bb89bcd3cb44849c0965fc0c44fb5d691cccdc64dca5af  /usr/local/bin/buf" | sha256sum -c -
+          chmod +x /usr/local/bin/buf
+          buf --version
       - name: buf lint
         working-directory: src/BuildingBlocks/Leno.SharedContracts
         run: buf lint
@@ -342,8 +382,15 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Setup Buf CLI
-        uses: bufbuild/buf-setup-action@v1
+      - name: Setup Buf CLI (pinned v1.72.0, direct download)
+        run: |
+          BUF_VERSION=v1.72.0
+          curl -fSL --retry 5 --retry-delay 2 --retry-all-errors \
+            -o /usr/local/bin/buf \
+            "https://github.com/bufbuild/buf/releases/download/${BUF_VERSION}/buf-Linux-x86_64"
+          echo "8720830e26a733da55bb89bcd3cb44849c0965fc0c44fb5d691cccdc64dca5af  /usr/local/bin/buf" | sha256sum -c -
+          chmod +x /usr/local/bin/buf
+          buf --version
 
       - name: Generate C# code
         working-directory: src/BuildingBlocks/Leno.SharedContracts
