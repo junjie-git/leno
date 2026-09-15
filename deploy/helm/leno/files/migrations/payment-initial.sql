@@ -309,6 +309,22 @@ IF NOT EXISTS (
     WHERE [MigrationId] = N'20260722000004_AddRowVersionAndFixReconciliationDiffs'
 )
 BEGIN
+    EXEC sp_rename N'[reconciliation_diffs].[IX_ReconciliationDiffs_BillDate]', N'IX_reconciliation_diffs_BillDate', 'INDEX';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000004_AddRowVersionAndFixReconciliationDiffs'
+)
+BEGIN
+    EXEC sp_rename N'[reconciliation_diffs].[IX_ReconciliationDiffs_BillDate_Channel]', N'IX_reconciliation_diffs_BillDate_Channel', 'INDEX';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260722000004_AddRowVersionAndFixReconciliationDiffs'
+)
+BEGIN
     DROP INDEX [IX_reconciliation_diffs_BillDate_Channel] ON [reconciliation_diffs];
     DECLARE @var2 nvarchar(max);
     SELECT @var2 = QUOTENAME([d].[name])

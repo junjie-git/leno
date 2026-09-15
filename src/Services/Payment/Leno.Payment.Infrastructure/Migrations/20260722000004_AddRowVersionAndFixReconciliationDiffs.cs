@@ -45,6 +45,20 @@ namespace Leno.Payment.Infrastructure.Migrations
                 name: "ReconciliationDiffs",
                 newName: "reconciliation_diffs");
 
+            // 1c-2. 对齐索引名与快照（run #14 实证 Msg 3701）：sp_rename 改表名不会重命名表上的
+            //     索引（DB 中仍为 InitialCreate 的旧名 IX_ReconciliationDiffs_*），而迁移后快照
+            //     中索引按默认命名规则记录为新名 IX_reconciliation_diffs_*，导致后续 AlterColumn
+            //     (Channel nvarchar→int) 触发的索引重建用新名 DROP 不存在的索引。此处显式改名对齐。
+            migrationBuilder.RenameIndex(
+                name: "IX_ReconciliationDiffs_BillDate",
+                newName: "IX_reconciliation_diffs_BillDate",
+                table: "reconciliation_diffs");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_ReconciliationDiffs_BillDate_Channel",
+                newName: "IX_reconciliation_diffs_BillDate_Channel",
+                table: "reconciliation_diffs");
+
             // 1d. Channel / DiffType / Status 由 nvarchar 改为 int，与 HasConversion<int>() 配置对齐。
             //     注意：此时表名已改为 reconciliation_diffs，AlterColumn 引用新表名。
             migrationBuilder.AlterColumn<int>(
@@ -100,6 +114,17 @@ namespace Leno.Payment.Infrastructure.Migrations
                 nullable: false,
                 oldClrType: typeof(int),
                 oldType: "int");
+
+            // 对应 Up 中 1c-2 的索引改名，回滚时在表名还原前反向 rename（此时表名仍为新名）。
+            migrationBuilder.RenameIndex(
+                name: "IX_reconciliation_diffs_BillDate",
+                newName: "IX_ReconciliationDiffs_BillDate",
+                table: "reconciliation_diffs");
+
+            migrationBuilder.RenameIndex(
+                name: "IX_reconciliation_diffs_BillDate_Channel",
+                newName: "IX_ReconciliationDiffs_BillDate_Channel",
+                table: "reconciliation_diffs");
 
             // 恢复表名为 PascalCase 的 ReconciliationDiffs。
             migrationBuilder.RenameTable(
