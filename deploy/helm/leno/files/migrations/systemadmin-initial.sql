@@ -812,9 +812,15 @@ BEGIN
     INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
     WHERE ([d].[parent_object_id] = OBJECT_ID(N'[rate_limit_rules]') AND [c].[name] = N'version');
     IF @var IS NOT NULL EXEC(N'ALTER TABLE [rate_limit_rules] DROP CONSTRAINT ' + @var + ';');
-    EXEC(N'UPDATE [rate_limit_rules] SET [version] = 0x WHERE [version] IS NULL');
-    ALTER TABLE [rate_limit_rules] ALTER COLUMN [version] rowversion NOT NULL;
-    ALTER TABLE [rate_limit_rules] ADD DEFAULT 0x FOR [version];
+    ALTER TABLE [rate_limit_rules] DROP COLUMN [version];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260909040437_SyncModel20260909'
+)
+BEGIN
+    ALTER TABLE [rate_limit_rules] ADD [version] rowversion NOT NULL;
 END;
 
 IF NOT EXISTS (

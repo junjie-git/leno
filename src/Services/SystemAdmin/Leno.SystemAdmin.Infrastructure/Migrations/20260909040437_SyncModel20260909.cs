@@ -15,17 +15,21 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
                 name: "ix_dead_letter_messages_original_message_id",
                 table: "dead_letter_messages");
 
-            migrationBuilder.AlterColumn<byte[]>(
+            // 历史缺陷修复（全仓扫描，模式同 order 迁移 Msg 4927）：SQL Server 禁止对
+            // rowversion/timestamp 列执行 ALTER COLUMN（含 NULL 性转换），原
+            // AlterColumn(version, nullable true→false) 在空库按序执行必报 Msg 4927。
+            // 改为 DROP + ADD 重建：rowversion 值由数据库自动生成，重建后首行插入即填充，
+            // 乐观并发令牌语义不受影响。
+            migrationBuilder.DropColumn(
+                name: "version",
+                table: "rate_limit_rules");
+
+            migrationBuilder.AddColumn<byte[]>(
                 name: "version",
                 table: "rate_limit_rules",
                 type: "rowversion",
                 rowVersion: true,
-                nullable: false,
-                defaultValue: new byte[0],
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true,
-                oldNullable: true);
+                nullable: false);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "aggregate_root_id",
@@ -159,15 +163,17 @@ namespace Leno.SystemAdmin.Infrastructure.Migrations
                 name: "tenant_id",
                 table: "audit_logs");
 
-            migrationBuilder.AlterColumn<byte[]>(
+            // 对应 Up 中 version 列的重建，回滚同样以 DROP + ADD 实现
+            migrationBuilder.DropColumn(
+                name: "version",
+                table: "rate_limit_rules");
+
+            migrationBuilder.AddColumn<byte[]>(
                 name: "version",
                 table: "rate_limit_rules",
                 type: "rowversion",
                 rowVersion: true,
-                nullable: true,
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true);
+                nullable: true);
 
             migrationBuilder.CreateIndex(
                 name: "ix_dead_letter_messages_original_message_id",

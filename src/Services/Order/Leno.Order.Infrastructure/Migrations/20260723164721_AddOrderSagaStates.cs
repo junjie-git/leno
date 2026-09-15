@@ -18,17 +18,13 @@ namespace Leno.Order.Infrastructure.Migrations
                 nullable: false,
                 defaultValue: 1);
 
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "row_version",
-                table: "orders",
-                type: "rowversion",
-                rowVersion: true,
-                nullable: false,
-                defaultValue: new byte[0],
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true,
-                oldNullable: true);
+            // 历史缺陷修复（run #13 实证 Msg 4927 "Cannot alter column 'row_version'
+            // to be data type timestamp"）：此处原有的 AlterColumn(orders.row_version,
+            // nullable true→false) 是无语义的冗余操作——row_version 列在
+            // AddOrderRowVersionAndSoftDelete(20260722000002) 中即以 nullable: false 添加，
+            // 无需变更；且 SQL Server 禁止对 rowversion/timestamp 列执行 ALTER COLUMN
+            //（单表 rowversion 列的类型与 NULL 性由类型固有决定，转换需重建列），
+            // 空库按序执行迁移/生成脚本必然失败，故移除该操作。
 
             migrationBuilder.CreateTable(
                 name: "order_saga_states",
@@ -80,15 +76,8 @@ namespace Leno.Order.Infrastructure.Migrations
                 name: "schema_version",
                 table: "outbox_messages");
 
-            migrationBuilder.AlterColumn<byte[]>(
-                name: "row_version",
-                table: "orders",
-                type: "rowversion",
-                rowVersion: true,
-                nullable: true,
-                oldClrType: typeof(byte[]),
-                oldType: "rowversion",
-                oldRowVersion: true);
+            // 对应 Up 中移除的 AlterColumn(orders.row_version) 一并移除：rowversion 列
+            // 不可 ALTER COLUMN（Msg 4927），且该回滚无实际语义。
         }
     }
 }

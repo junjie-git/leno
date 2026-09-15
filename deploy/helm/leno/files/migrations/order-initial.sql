@@ -421,22 +421,6 @@ IF NOT EXISTS (
     WHERE [MigrationId] = N'20260723164721_AddOrderSagaStates'
 )
 BEGIN
-    DECLARE @var1 nvarchar(max);
-    SELECT @var1 = QUOTENAME([d].[name])
-    FROM [sys].[default_constraints] [d]
-    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
-    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[orders]') AND [c].[name] = N'row_version');
-    IF @var1 IS NOT NULL EXEC(N'ALTER TABLE [orders] DROP CONSTRAINT ' + @var1 + ';');
-    EXEC(N'UPDATE [orders] SET [row_version] = 0x WHERE [row_version] IS NULL');
-    ALTER TABLE [orders] ALTER COLUMN [row_version] rowversion NOT NULL;
-    ALTER TABLE [orders] ADD DEFAULT 0x FOR [row_version];
-END;
-
-IF NOT EXISTS (
-    SELECT * FROM [__EFMigrationsHistory]
-    WHERE [MigrationId] = N'20260723164721_AddOrderSagaStates'
-)
-BEGIN
     CREATE TABLE [order_saga_states] (
         [correlation_id] uniqueidentifier NOT NULL,
         [current_state] nvarchar(32) NOT NULL,
