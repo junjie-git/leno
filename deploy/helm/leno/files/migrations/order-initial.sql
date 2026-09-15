@@ -317,7 +317,7 @@ GO
 BEGIN TRANSACTION;
 IF NOT EXISTS (
     SELECT * FROM [__EFMigrationsHistory]
-    WHERE [MigrationId] = N'20260723100000_DropOrderVersionShadowColumn'
+    WHERE [MigrationId] = N'20260721999999_DropOrderVersionShadowColumn'
 )
 BEGIN
     DECLARE @var nvarchar(max);
@@ -331,11 +331,11 @@ END;
 
 IF NOT EXISTS (
     SELECT * FROM [__EFMigrationsHistory]
-    WHERE [MigrationId] = N'20260723100000_DropOrderVersionShadowColumn'
+    WHERE [MigrationId] = N'20260721999999_DropOrderVersionShadowColumn'
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20260723100000_DropOrderVersionShadowColumn', N'10.0.0');
+    VALUES (N'20260721999999_DropOrderVersionShadowColumn', N'10.0.0');
 END;
 
 COMMIT;

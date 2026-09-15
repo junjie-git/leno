@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Leno.Order.Infrastructure.Migrations
 {
     [DbContext(typeof(OrderDbContext))]
-    [Migration("20260723100000_DropOrderVersionShadowColumn")]
+    [Migration("20260721999999_DropOrderVersionShadowColumn")]
     partial class DropOrderVersionShadowColumn
     {
         /// <inheritdoc />
