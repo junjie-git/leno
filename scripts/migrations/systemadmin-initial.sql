@@ -660,7 +660,7 @@ IF NOT EXISTS (
 BEGIN
     CREATE CLUSTERED INDEX ix_outbox_archive_id
                   ON outbox_messages_archive (id)
-                  WITH (ONLINE = ON, FILLFACTOR = 90);
+                  WITH (FILLFACTOR = 90);
 END;
 
 IF NOT EXISTS (

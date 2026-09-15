@@ -28,11 +28,15 @@ public partial class CreateOutboxArchiveTable : Migration
             @"SELECT * INTO outbox_messages_archive FROM outbox_messages WHERE 1 = 0;");
 
         // 2. 在归档表 id 列创建聚簇索引，加速按 ID 范围查询（归档批次查询/审计回溯）
-        //    使用 SQL Server 在线创建索引（WITH (ONLINE = ON)）避免锁表，FILLFACTOR = 90 降低页分裂
+        //    不能使用 WITH (ONLINE = ON)：归档表由 SELECT * INTO 复制自 outbox_messages，
+        //    payload 列为 NVARCHAR(MAX)（LOB），SQL Server 禁止对含 LOB 列的表在同一事务内
+        //    先执行 DML 再做在线索引操作（Msg 10635），且 ONLINE 依赖 Enterprise 版；
+        //    本表为同事务新建的空表，外部会话不可见，离线构建瞬时完成、无锁表风险。
+        //    FILLFACTOR = 90 降低页分裂
         migrationBuilder.Sql(
             @"CREATE CLUSTERED INDEX ix_outbox_archive_id
               ON outbox_messages_archive (id)
-              WITH (ONLINE = ON, FILLFACTOR = 90);");
+              WITH (FILLFACTOR = 90);");
     }
 
     /// <inheritdoc />
