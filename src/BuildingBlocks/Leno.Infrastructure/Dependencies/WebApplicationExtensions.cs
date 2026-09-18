@@ -5,6 +5,7 @@ using Leno.Infrastructure.Configuration;
 using Leno.Infrastructure.HealthChecks;
 using Leno.Infrastructure.Logging;
 using Leno.Infrastructure.Middleware;
+using Leno.Infrastructure.Outbox;
 using MassTransit;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -28,7 +29,7 @@ public static class WebApplicationExtensions
 {
     /// <summary>
     /// 一站式注册 Leno BC 的全部服务：共享内核基础设施 + 内部 API Key 鉴权 +
-    /// BC 专属基础设施回调 + 健康检查（含 DbContext 探活）+ MVC Controllers + OpenAPI +
+    /// BC 专属基础设施回调 + Outbox 分片发布器 + 健康检查（含 DbContext 探活）+ MVC Controllers + OpenAPI +
     /// JwtBearer/GatewayHeader 双模式鉴权 + 授权。
     /// </summary>
     /// <typeparam name="TDbContext">BC 的 EF Core DbContext 类型，用于健康检查探活。</typeparam>
@@ -108,6 +109,14 @@ public static class WebApplicationExtensions
 
         // 3. BC 专属基础设施回调（DbContext、工作单元、仓储、应用服务等）
         configureInfrastructure?.Invoke(services);
+
+        // 3.1 Outbox 分片发布器（4.4）：统一以 TDbContext 为发件箱载体注册后台发布器。
+        //     在组合根集中注册，保证每个 BC 的 outbox_messages 都有宿主进程搬运 ——
+        //     否则域事件虽已在 SaveChangesWithOutboxAsync 中同事务落库，却永远停留在 Pending，
+        //     跨 BC 异步链路会静默失效。
+        //     默认 ShardCount=1 / ShardId=0（单实例）；多实例部署通过 Outbox:Sharding 配置节
+        //     或环境变量 OUTBOX__SHARDING__SHARD_ID / OUTBOX__SHARDING__SHARD_COUNT 覆盖。
+        services.AddShardedOutboxPublisher<TDbContext>(configuration);
 
         // 4. 健康检查：self + Redis + ES + SqlServer + RabbitMQ + DbContext 探活
         services.AddLenoHealthChecks<TDbContext>(configuration);

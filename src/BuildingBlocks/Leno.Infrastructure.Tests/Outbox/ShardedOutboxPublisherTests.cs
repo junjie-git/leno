@@ -58,11 +58,10 @@ public class ShardedOutboxPublisherTests
     {
         public LinqBackedShardedOutboxPublisher(
             IServiceProvider serviceProvider,
-            IEventBus eventBus,
             IOptions<OutboxShardingOptions> options,
             ILogger<ShardedOutboxPublisher<TestOutboxDbContext>> logger,
             IOutboxEventTypeResolver? typeResolver = null)
-            : base(serviceProvider, eventBus, options, logger, typeResolver)
+            : base(serviceProvider, options, logger, typeResolver)
         {
         }
 
@@ -137,12 +136,15 @@ public class ShardedOutboxPublisherTests
 
         var services = new ServiceCollection();
         services.AddSingleton(context);
+        // IEventBus 注册为 scoped，由发布器在每条消息的独立作用域内解析（避免 captive dependency），
+        // 因此这里注册进容器而不是直接传入构造函数。
+        services.AddScoped<IEventBus>(_ => eventBusMock.Object);
         services.AddLogging();
         var sp = services.BuildServiceProvider();
 
         var logger = sp.GetRequiredService<ILogger<ShardedOutboxPublisher<TestOutboxDbContext>>>();
         var publisher = new LinqBackedShardedOutboxPublisher(
-            sp, eventBusMock.Object, optionsWrapper, logger);
+            sp, optionsWrapper, logger);
         return (publisher, sp);
     }
 
@@ -538,7 +540,6 @@ public class ShardedOutboxPublisherTests
         var services = new ServiceCollection();
         services.AddLogging();
         var sp = services.BuildServiceProvider();
-        var eventBusMock = new Mock<IEventBus>();
         var logger = sp.GetRequiredService<ILogger<ShardedOutboxPublisher<TestOutboxDbContext>>>();
         var options = Options.Create(new OutboxShardingOptions
         {
@@ -548,7 +549,7 @@ public class ShardedOutboxPublisherTests
 
         // Act
         var act = () => new ShardedOutboxPublisher<TestOutboxDbContext>(
-            sp, eventBusMock.Object, options, logger);
+            sp, options, logger);
 
         // Assert
         act.Should().Throw<InvalidOperationException>();
@@ -564,7 +565,6 @@ public class ShardedOutboxPublisherTests
         var services = new ServiceCollection();
         services.AddLogging();
         var sp = services.BuildServiceProvider();
-        var eventBusMock = new Mock<IEventBus>();
         var logger = sp.GetRequiredService<ILogger<ShardedOutboxPublisher<TestOutboxDbContext>>>();
         var options = Options.Create(new OutboxShardingOptions
         {
@@ -575,7 +575,7 @@ public class ShardedOutboxPublisherTests
 
         // Act
         var act = () => new ShardedOutboxPublisher<TestOutboxDbContext>(
-            sp, eventBusMock.Object, options, logger);
+            sp, options, logger);
 
         // Assert
         act.Should().Throw<InvalidOperationException>();

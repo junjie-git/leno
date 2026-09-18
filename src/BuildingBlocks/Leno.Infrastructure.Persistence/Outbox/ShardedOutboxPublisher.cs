@@ -36,7 +36,6 @@ public class ShardedOutboxPublisher<TDbContext> : BackgroundService
     where TDbContext : DbContext
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly IEventBus _eventBus;
     private readonly ILogger<ShardedOutboxPublisher<TDbContext>> _logger;
     private readonly IOutboxEventTypeResolver _typeResolver;
     private readonly OutboxShardingOptions _options;
@@ -46,20 +45,30 @@ public class ShardedOutboxPublisher<TDbContext> : BackgroundService
     /// <summary>OutboxMessage 表名（与 <see cref="OutboxMessageConfiguration"/> 中 ToTable 一致）。</summary>
     private const string OutboxTableName = "outbox_messages";
 
+    /// <summary>
+    /// 初始化 <see cref="ShardedOutboxPublisher{TDbContext}"/>。
+    /// <para>
+    /// 本类型以 singleton 托管服务（<c>AddHostedService</c>）方式注册，因此<strong>不</strong>在构造函数注入
+    /// <see cref="IEventBus"/> —— 其生命周期为 scoped，注入 singleton 构成 captive dependency，
+    /// 在 <c>ValidateScopes</c> 开启（Development 环境默认）时会导致宿主编译期/启动期直接失败
+    /// （"Cannot consume scoped service from singleton"）。
+    /// </para>
+    /// <para>
+    /// <see cref="IEventBus"/> 改为在每条消息的独立作用域内解析（见 <see cref="PublishSingleByIdAsync"/>），
+    /// 与 <typeparamref name="TDbContext"/> 保持同一作用域语义。
+    /// </para>
+    /// </summary>
     public ShardedOutboxPublisher(
         IServiceProvider serviceProvider,
-        IEventBus eventBus,
         IOptions<OutboxShardingOptions> options,
         ILogger<ShardedOutboxPublisher<TDbContext>> logger,
         IOutboxEventTypeResolver? typeResolver = null)
     {
         ArgumentNullException.ThrowIfNull(serviceProvider);
-        ArgumentNullException.ThrowIfNull(eventBus);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
 
         _serviceProvider = serviceProvider;
-        _eventBus = eventBus;
         _logger = logger;
         _typeResolver = typeResolver ?? DefaultOutboxEventTypeResolver.Instance;
         _options = options.Value;
@@ -258,6 +267,9 @@ ORDER BY occurred_at";
     {
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TDbContext>();
+        // IEventBus 注册为 scoped，必须与本条消息的 DbContext 在同一作用域解析，
+        // 不能在 singleton 构造函数注入（captive dependency）。
+        var eventBus = scope.ServiceProvider.GetRequiredService<IEventBus>();
 
         var message = await context.Set<OutboxMessage>()
             .FirstOrDefaultAsync(m => m.Id == messageId, stoppingToken);
@@ -279,13 +291,21 @@ ORDER BY occurred_at";
             return;
         }
 
-        await PublishSingleAsync(context, message, stoppingToken);
+        await PublishSingleAsync(context, eventBus, message, stoppingToken);
     }
 
     /// <summary>
     /// 单条消息的两阶段发布：Publishing 提交 → 发布 MQ → Processed 条件更新。
     /// </summary>
-    private async Task PublishSingleAsync(TDbContext context, OutboxMessage message, CancellationToken stoppingToken)
+    /// <param name="context">当前消息作用域内的 DbContext。</param>
+    /// <param name="eventBus">与 <paramref name="context"/> 同一作用域解析出的 <see cref="IEventBus"/>。</param>
+    /// <param name="message">待发布消息。</param>
+    /// <param name="stoppingToken">取消令牌。</param>
+    private async Task PublishSingleAsync(
+        TDbContext context,
+        IEventBus eventBus,
+        OutboxMessage message,
+        CancellationToken stoppingToken)
     {
         Type? eventType;
         IIntegrationEvent? integrationEvent;
@@ -343,7 +363,7 @@ ORDER BY occurred_at";
             {
                 ["schema-version"] = message.SchemaVersion.ToString()
             };
-            await _eventBus.PublishAsync(integrationEvent, headers, stoppingToken);
+            await eventBus.PublishAsync(integrationEvent, headers, stoppingToken);
         }
         catch (Exception ex)
         {
