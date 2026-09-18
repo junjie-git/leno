@@ -1,6 +1,8 @@
 # Leno 电商平台使用说明
 
-> **版本**：v1.0 | **更新日期**：2026-07-14 | **目标框架**：.NET 10.0.301
+> **版本**：v1.1 | **更新日期**：2026-09-18 | **目标框架**：.NET 10.0.301
+>
+> v1.1 变更：CI/CD 章节重写（GHCR 推送/迁移校验/CD 流水线）、迁移规范对齐 CI 强制检查、RabbitMQ 拓扑更正为 fanout、Consul 自注册状态更新、网关补 Inventory 集群、构建属性更正、新增部署物料索引。
 
 Leno 是一个基于 DDD（领域驱动设计）+ CQRS（命令查询职责分离）+ 事件驱动架构的微服务电商平台，覆盖 11 个限界上下文（用户认证、商品、购物车、订单、促销、支付、评价售后、积分会员、消息通知、卖家店铺、系统管理）。本文档面向开发者、测试与运维人员，介绍如何构建、运行、测试、调试与部署本项目。
 
@@ -57,7 +59,7 @@ dotnet --version   # 应输出 10.0.301 或兼容版本
 ```
 /workspace
 ├── Leno.slnx                    # 解决方案（XML 格式，.NET 10 新格式）
-├── Directory.Build.props        # 统一构建属性（net10.0、TreatWarningsAsErrors=true）
+├── Directory.Build.props        # 统一构建属性（net10.0、Nullable、EnforceCodeStyleInBuild）
 ├── docker-compose.yml           # 全套环境编排
 ├── mise.toml                    # .NET SDK 版本锁定
 ├── .editorconfig                # 代码风格
@@ -176,7 +178,7 @@ dotnet build Leno.slnx --configuration Release
 dotnet build src/ApiGateway/Leno.ApiGateway/Leno.ApiGateway.csproj
 ```
 
-> **注意**：`Directory.Build.props` 中 `TreatWarningsAsErrors=true`，任何分析器警告都会导致编译失败，请保持代码规范。
+> **注意**：`Directory.Build.props` 中 `TreatWarningsAsErrors=false`（分析器警告不阻断编译），但 CI 会运行占位实现检查与测试覆盖率门禁；提交前建议本地跑一遍 §4.5 的检查脚本。
 
 ### 4.2 仅启动基础设施（用于本地 IDE 调试）
 
@@ -224,6 +226,13 @@ dotnet ef database update \
 
 迁移规范：仅追加式变更（Add Column）；破坏性变更（Drop/Rename）需分多版本灰度。
 
+**CI 强制约束（2026-09 起）**：
+1. **模型变更必须配套 migration**——CI 的 `check-migrations` 步骤对全部 BC 运行 `dotnet ef migrations has-pending-model-changes`，有漂移即失败（多租户 tenant_id 改造曾因此补齐 10 个 BC 的迁移）；
+2. **幂等 SQL 必须同步**——`scripts/migrations/` 与 `deploy/helm/leno/files/migrations/` 两份拷贝由 CI `migration-files-sync` 步骤强制一致（生产迁移 Job 从 chart files 读 SQL）；
+3. **禁止非法列操作**——SQL Server 禁止对 rowversion 列 ALTER COLUMN、单表仅允许一个 rowversion 列、含 LOB 列的表同事务内不可 ONLINE 建索引（历史踩坑：Msg 2738/4927/10635），修改迁移时注意。
+
+生产/staging 迁移不使用 `dotnet ef database update`，而是由 Helm pre-install/pre-upgrade Job 以 `sqlcmd` 按服务分库执行幂等 SQL（见 `deploy/staging/README.md`）。
+
 ### 4.5 占位实现检查
 
 提交前建议运行占位实现检查脚本，确保未提交未实现的业务逻辑：
@@ -232,7 +241,7 @@ dotnet ef database update \
 ./scripts/check-placeholders.sh
 ```
 
-脚本会扫描 `src/` 下所有 `.cs` 文件，检测 `NotImplementedException`、SmokeTest 占位、非测试代码中的 `return default!`/`return null!`，发现则 `exit 1`。
+脚本会扫描 `src/` 下所有 `.cs` 文件，检测 `NotImplementedException`、SmokeTest 占位、非测试代码中的 `return default!`/`return null!`、**空断言 `Assert.True(true)`** 以及**注释中的 "TODO" 字样**（后两类曾导致 CI build-solution 失败），发现则 `exit 1`。
 
 ---
 
@@ -262,21 +271,25 @@ API 网关基于 **YARP 2.2.0**（Yet Another Reverse Proxy），是整个平台
 
 ### 5.3 路由与集群
 
-`appsettings.json` 中 `ReverseProxy.Routes` 定义了 **44 条路由**，分发到 **11 个集群**：
+`appsettings.json` 中 `ReverseProxy.Routes` 定义的路由分发到 **18 个集群**（2026-09 起，含灰度拆分集群 identity/user-center/access-control/membership/review/after-sales 及新增的 inventory）：
 
-| 集群 | 路由数 | 主要资源前缀 | Consul 服务名 |
-|---|---|---|---|
-| user-auth | 3 | `/api/auth`、`/api/users`、`/api/admin/users` | `leno-user-auth-api` |
-| product | 4 | `/api/products`、`/api/categories`、`/api/brands`、`/api/admin/products` | `leno-product-api` |
-| cart | 1 | `/api/cart` | `leno-cart-api` |
-| order | 5 | `/api/orders`、`/api/seller/orders`、`/api/freight-templates`、`/api/logistics-companies` | `leno-order-api` |
-| promotion | 6 | `/api/promotions`、`/api/coupons`、`/api/seckill` | `leno-promotion-api` |
-| payment | 3 | `/api/payments`、`/api/admin/payments` | `leno-payment-api` |
-| points | 5 | `/api/points`、`/api/members`、`/api/membership-packages` | `leno-points-api` |
-| review-aftersales | 4 | `/api/reviews`、`/api/after-sales` | `leno-review-aftersales-api` |
-| seller-shop | 3 | `/api/shops`、`/api/seller` | `leno-seller-shop-api` |
-| notification | 3 | `/api/notifications`、`/api/notification-templates`、`/api/notification-preferences` | `leno-notification-api` |
-| system-admin | 7 | `/api/operators`、`/api/system-configs`、`/api/feature-flags`、`/api/announcements`、`/api/data-dictionaries`、`/api/scheduled-tasks`、`/api/audit-logs` | `leno-system-admin-api` |
+| 集群 | 主要资源前缀 | Consul 服务名（Docker Compose） |
+|---|---|---|
+| user-auth | `/api/auth`、`/api/users`、`/api/admin/users` | `leno-user-auth-api` |
+| product | `/api/products`、`/api/categories`、`/api/brands`、`/api/admin/products` | `leno-product-api` |
+| cart | `/api/cart` | `leno-cart-api` |
+| order | `/api/orders`、`/api/seller/orders`、`/api/freight-templates`、`/api/logistics-companies` | `leno-order-api` |
+| promotion | `/api/promotions`、`/api/coupons`、`/api/seckill` | `leno-promotion-api` |
+| payment | `/api/payments`、`/api/admin/payments` | `leno-payment-api` |
+| points | `/api/points`、`/api/members`、`/api/membership-packages` | `leno-points-api` |
+| review-aftersales | `/api/reviews`、`/api/after-sales` | `leno-review-aftersales-api` |
+| seller-shop | `/api/shops`、`/api/seller` | `leno-seller-shop-api` |
+| notification | `/api/notifications`、`/api/notification-templates`、`/api/notification-preferences` | `leno-notification-api` |
+| system-admin | `/api/operators`、`/api/system-configs`、`/api/feature-flags`、`/api/announcements`、`/api/data-dictionaries`、`/api/scheduled-tasks`、`/api/audit-logs` | `leno-system-admin-api` |
+| inventory | 库存查询/扣减（P0-G 补齐，此前遗漏） | `leno-inventory-api` |
+| identity / user-center / access-control / membership / review / after-sales | 灰度拆分集群（`X-Grayscale-Decision` 头路由，见 appsettings 灰度节） | `leno-identity-api` 等 |
+
+> **命名环境差异**：上表服务名为 Docker Compose 容器名；K8s/Helm 环境下 Service DNS 为 `{release}-{service key}:{port}`（如 `leno-product:5152`，见 `deploy/helm/leno/values.yaml` 的 `serviceUrls`），两者勿混用——Consul KV 的 `ServiceUrls__*` 必须按目标环境覆盖（KV 优先级高于 env）。
 
 每个集群配置一致：
 - `LoadBalancingPolicy`: PowerOfTwoChoices
@@ -415,15 +428,15 @@ Redis 启用时使用 `RedisSlidingWindowRateLimiter`（分布式滑动窗口）
 
 网关通过 `ConsulDestinationResolver` 替换 YARP 默认解析器，每个请求动态查询 Consul 健康实例。集群目的地地址为占位符，靠 `Metadata.ConsulServiceName` 解析为真实实例。
 
-> **注意**：当前版本中各业务微服务尚未接入 Consul 自注册（`AddConsulServiceRegistration` 扩展已实现但未启用），网关依赖 Consul 中的服务注册条目。如需启用，在各服务 `Program.cs` 中追加 `builder.Services.AddConsulServiceRegistration(...)` 并配置 `Consul` 节。
+**各业务微服务已接入 Consul 自注册**（`AddConsulServiceRegistration`，全部 19 个服务工程均已调用；K8s 环境依赖 `Consul__Token` env 注入，ACL default deny 下缺失该 token 会导致注册/KV 读 403——见 `deploy/helm/leno/templates/deployment.yaml` 的 `tokenSecret`）。
 
 ### RabbitMQ 拓扑
 
-- Topic Exchange: `ecommerce.events`
-- 业务队列: `q.{consumer}.{event}`
-- 死信 Exchange: `ecommerce.events.dlx`
-- 死信队列: `q.dlq.{consumer}`
-- 延迟队列: DLX + TTL 实现（订单超时取消等）
+- 交换机类型：**fanout**（MassTransit 默认；全仓无 `SetExchangeType` 定制。注意 `RabbitMqEventBus.cs` 头部注释写的 "Topic" 是失实的，以实现为准）
+- 业务队列：`q.{consumer}.{event}`
+- 死信 Exchange/队列：MassTransit 默认死信机制（`q.dlq.{consumer}` 等）
+- 延迟队列：延迟消息/重试机制实现（订单超时取消等）
+- 生产演进方向：RabbitMQ 3.13 + Quorum 队列（见 `deploy/docs/production-infrastructure-plan.md` §1.3）
 
 ---
 
@@ -477,8 +490,9 @@ Consul/Jaeger 在集成测试中以 Moq mock 替代。网关集成测试使用 `
 
 ### 8.5 当前测试状态
 
-- API 网关测试：**134 个通过**（含 Phase 1-6 单元测试 + 集成测试）
-- 各微服务测试：分布在各自 `*.Tests` 项目
+- API 网关测试：**276 个通过**（单元 + 集成，2026-09 CI 实测）
+- 各微服务测试：分布在各自 `*.Tests` 项目（Leno.Infrastructure.Tests 591+ 个，其中约 24 个环境依赖类失败属既有问题，与 CI 门禁无冲突）
+- 覆盖率门禁：web/system-admin 前端 vitest 全局阈值 12/56/75/12（2026-09 按实际基线校准，补页面单测后应逐步上调）
 
 ---
 
@@ -523,22 +537,48 @@ Consul/Jaeger 在集成测试中以 Moq mock 替代。网关集成测试使用 `
 
 ## 10. CI/CD
 
-`.github/workflows/ci.yml` 定义了 5 个 job，触发条件为 push/PR 到 `main` 或 `develop`：
+### 10.1 CI（`.github/workflows/ci.yml`）
+
+触发：push / PR 到 `main`、`develop`、`dev`，支持 `workflow_dispatch`；共 **35 个 job**：
 
 ```
-build-solution (restore + Release build + 单元测试 + 覆盖率报告)
+build-solution（restore + Release build + 全量单测 + 覆盖率报告 + 覆盖率阈值检查）
+build-services（matrix：12 个项目并行 Release build）
+docker-build（matrix：12 个 Dockerfile buildx 构建并推送 GHCR）
        ↓
-integration-tests (仅运行 Category=Integration)
-build-services (matrix: 12 个项目并行 Release build)
+migration-files-sync（scripts/migrations 与 chart files/migrations 双向同步检查）
        ↓
-docker-build (matrix: 12 个 Dockerfile 并行 docker build)
+migration-check（11 BC has-pending-model-changes + 幂等 SQL 生成 + Staging 空库分库执行验证）
        ↓
-validate-compose (docker-compose config 校验)
+proto-lint-breaking / generate-grpc-contracts（buf）
+Pact 契约测试（Consumer/Provider）
+validate-compose（docker compose config 校验）
+web/buyer-app + web/system-admin（前端 lint + typecheck + test + build）
+集成测试（Testcontainers，Category=Integration）
 ```
 
-- 单元测试：`--filter "Category!=Integration"`，收集 XPlat Code Coverage，生成 HTML 报告上传为 artifact
-- 集成测试：`--filter "Category=Integration"`，依赖 build-solution 完成
-- 覆盖率报告：使用 `dotnet-reportgenerator-globaltool`
+要点：
+- **镜像推送**：push 到 main/develop/dev 或手动触发时推送 `ghcr.io/<owner>/leno-<service>:<tag>`（tag = git sha 短哈希 + 分支名，main 额外打 latest）；PR 只构建不推送。需 `packages: write` 权限
+- **迁移校验链**：SQL 同步检查 → has-pending-model-changes（注入设计期占位连接串）→ 幂等 SQL 生成 → Staging 空库**按服务前缀分库**执行验证（mssql 2019 容器 + go-sqlcmd v1.10.0 + `-b` 严格模式）
+- CI 历史（2026-07 至 09）曾多次红灯，2026-09-15 起 run #17 起 35 个 job 全绿
+
+### 10.2 CD（`.github/workflows/cd.yml`）
+
+手动 `workflow_dispatch`（environment = staging|prod，image_tag）：
+1. `docker manifest inspect` 逐一校验 12 个镜像存在于 GHCR
+2. KUBECONFIG 从 GitHub 环境级 Secret 读取（staging/prod 分别绑定 Environment，prod 建议开启 required reviewers）
+3. `helm upgrade --install --atomic --timeout 10m -f values-<env>.yaml --set global.imageTag=<tag>`
+4. 逐服务 `kubectl rollout status` 检查，失败自动回滚
+
+### 10.3 部署物料
+
+| 物料 | 路径 |
+|---|---|
+| 生产基础设施方案（v1.2 定稿，全本地自建） | `deploy/docs/production-infrastructure-plan.md` |
+| Consul KV 配置覆盖面审计 | `deploy/docs/consul-kv-coverage-audit.md` |
+| staging 端到端部署 Runbook | `deploy/staging/README.md` |
+| Helm chart（values-dev/staging/prod） | `deploy/helm/leno/` |
+| Secret/KV 脚本 | `deploy/scripts/create-secrets.ps1`、`seed-consul-kv.ps1` |
 
 ---
 
@@ -568,7 +608,7 @@ Api → Application → Domain ← Infrastructure
 
 ### 11.3 构建属性
 
-- `TreatWarningsAsErrors=true` — 警告即错误
+- `TreatWarningsAsErrors=false` — 分析器警告不阻断编译（2026-09 核实；但 CA 违规仍会在 PR 审查与 CI 日志中暴露，新代码应主动修复）
 - `AnalysisLevel=latest` / `AnalysisMode=Recommended`
 - `EnforceCodeStyleInBuild=true`
 - `Nullable=enable` / `ImplicitUsings=enable`
@@ -594,16 +634,15 @@ chore(ci): 调整 .NET SDK 版本
 **原因**：后端微服务未注册到 Consul，网关找不到健康实例。
 
 **解决**：
-1. 确认所有微服务容器健康：`docker compose ps`
+1. 确认所有微服务容器健康：`docker compose ps`（各服务已通过 `AddConsulServiceRegistration` 自注册，健康检查通过即应出现在 `http://localhost:8500` 的服务列表）
 2. 查看某服务日志：`docker compose logs product-api`
-3. 当前版本微服务尚未自动注册 Consul，可临时直连后端服务端口（如 `http://localhost:5152/api/products/...`）验证
-4. 启用 Consul 自注册：在各服务 `Program.cs` 追加 `builder.Services.AddConsulServiceRegistration(...)` 并配置 `Consul` 节
+3. 临时直连后端服务端口（如 `http://localhost:5152/api/products/...`）验证是网关问题还是服务问题
 
-### Q2: 编译失败提示 CAxxxx 警告
+### Q2: 编译出现 CAxxxx 警告
 
-**原因**：`TreatWarningsAsErrors=true`，分析器警告会导致编译失败。
+**现状**：`TreatWarningsAsErrors=false`，警告不阻断编译，但 CI 会运行占位实现检查与覆盖率门禁；新代码仍应主动修复分析器警告。
 
-**解决**：
+**常见处理**：
 - CA1310：字符串比较使用 `StringComparison.Ordinal`
 - CA1859：使用具体类型而非接口返回
 - CA1861：避免在参数中使用 `new[]` 数组字面量（加 `#pragma warning disable CA1861`）
@@ -665,6 +704,9 @@ config.AddInMemoryCollection(new Dictionary<string, string?>
 | API 网关分阶段实施计划 | `docs/superpowers/plans/2026-07-14-api-gateway-phase{1-6}-*.md` |
 | 任务进度跟踪 | `docs/tasks/progress.md` |
 | Setup Guide（设置指南） | `docs/todo/setup-guide.md` |
+| **生产基础设施方案（v1.2）** | `deploy/docs/production-infrastructure-plan.md` |
+| **Consul KV 配置覆盖面审计** | `deploy/docs/consul-kv-coverage-audit.md` |
+| **staging 部署 Runbook** | `deploy/staging/README.md` |
 
 ---
 
