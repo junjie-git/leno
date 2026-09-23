@@ -243,6 +243,24 @@ jobs:
         run: ./scripts/validate-service-ports.ps1
 
   # ===========================================================================
+  # 合规检查（G2-文档，2026-09-24；硬约束 #12 = ADR-0010）
+  #   1) 配置键三方一致性：防 A6 类"删键未同步清单/种子"的漂移
+  #   2) 云依赖白名单：运行时基础设施全自建；唯一登记例外 = Azure Key Vault
+  #      （白名单增删必须同步 docs/decisions/0010-*.md）
+  # 注：validate-config-keys.ps1 此前未接入 CI（仅本地手工执行），本次一并接入。
+  # ===========================================================================
+  compliance-checks:
+    name: 合规检查 (配置键 / 云依赖白名单)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 配置键一致性校验
+        shell: pwsh
+        run: ./scripts/validate-config-keys.ps1
+      - name: 云依赖白名单校验
+        run: bash scripts/check-cloud-dependencies.sh
+
+  # ===========================================================================
   # 阶段 3：迁移 SQL 同步检查（P0 遗留技术债）
   #
   # 生产迁移 Job 从 chart files 目录（deploy/helm/leno/files/migrations/）读取 SQL，

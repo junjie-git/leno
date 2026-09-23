@@ -243,6 +243,20 @@ dotnet ef database update \
 
 脚本会扫描 `src/` 下所有 `.cs` 文件，检测 `NotImplementedException`、SmokeTest 占位、非测试代码中的 `return default!`/`return null!`、**空断言 `Assert.True(true)`** 以及**注释中的 "TODO" 字样**（后两类曾导致 CI build-solution 失败），发现则 `exit 1`。
 
+### 4.6 云依赖体检
+
+硬约束 #12（`docs/decisions/0010-cloud-dependency-constraint-and-akv-exception.md`）：运行时基础设施全自建，
+云厂商 SDK 默认禁止，唯一已登记例外是 **Azure Key Vault**（密钥托管，可选且默认关闭）。
+
+```bash
+bash scripts/check-cloud-dependencies.sh
+```
+
+脚本扫描 `src/**/*.csproj` 的 `PackageReference`，命中云厂商前缀（`Azure.` / `Microsoft.Azure.` / `Amazon.` /
+`AWSSDK.` / `Google.Cloud.` / `Google.Apis.` / `AlibabaCloud.` / `aliyun` / `TencentCloud` / `HuaweiCloud.`）
+且不在白名单（只含 `Azure.Identity`、`Azure.Security.KeyVault.Keys`）即 `exit 1`。
+**新增云依赖必须先登记 ADR-0010 例外，再同步脚本白名单**（反之亦然）。
+
 ---
 
 ## 5. API 网关
@@ -539,7 +553,7 @@ Consul/Jaeger 在集成测试中以 Moq mock 替代。网关集成测试使用 `
 
 ### 10.1 CI（`.github/workflows/ci.yml`）
 
-触发：push / PR 到 `main`、`develop`、`dev`，支持 `workflow_dispatch`；共 **35 个 job**：
+触发：push / PR 到 `main`、`develop`、`dev`，支持 `workflow_dispatch`；共 **36 个 job**：
 
 ```
 build-solution（restore + Release build + 全量单测 + 覆盖率报告 + 覆盖率阈值检查）
@@ -553,6 +567,7 @@ migration-check（11 BC has-pending-model-changes + 幂等 SQL 生成 + Staging 
 proto-lint-breaking / generate-grpc-contracts（buf）
 Pact 契约测试（Consumer/Provider）
 validate-compose（docker compose config 校验）
+compliance-checks（配置键三方一致性 + 云依赖白名单；硬约束 #12 / ADR-0010）
 web/buyer-app + web/system-admin（前端 lint + typecheck + test + build）
 集成测试（Testcontainers，Category=Integration）
 ```

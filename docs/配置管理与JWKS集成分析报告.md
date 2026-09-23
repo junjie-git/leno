@@ -139,7 +139,7 @@
 | **P1** | JWKS 多钥发布（当前+上一把，`kid` 匹配）+ 四步轮换 runbook；消费方调 `AutomaticRefreshInterval`/`RefreshInterval`；`kid` 未命中即时 `RequestRefresh()` | ✅ 已完成（见执行记录） |
 | **P1** | CI 一致性校验：`SensitiveConfigKeys` ↔ kv-seed ↔ appsettings 键三方比对（复用端口校验脚本的模式） | ✅ 已完成 |
 | P2 | JWKS 端点输出缓存（max-age=300）；`RequireHttpsMetadata` 生产环境门禁 | ✅ 已完成 |
-| P2 | kv-seed 补 `JwtSigning__RsaPrivateKeyPem/PublicPem`（env 引用）或明确 AKV-only 并完成 G2 例外登记 | ⬜（决策项：建议 AKV-only + G2 登记，PEM env 仅本地/CI） |
+| P2 | kv-seed 补 `JwtSigning__RsaPrivateKeyPem/PublicPem`（env 引用）或明确 AKV-only 并完成 G2 例外登记 | ✅ 已完成（2026-09-24）：**定案为 AKV-only** —— 生产经 Azure Key Vault（`UseAzureKeyVault=true` + `KeyVaultUri`），PEM 环境变量仅用于本地/CI 的 `EnvironmentKms` 回退，**不进 kv-seed**（kv-seed 是配置分发物，不应承载密钥材料）；G2 例外登记见 **ADR-0010**（云依赖约束与 AKV 例外，含范围/审计/回退） |
 | P2 | KV `GrpcEndpoints` 键名改名（UserAuth→Identity、PointsMembership→Points），启用 gRPC 轨前执行 | ✅ 核实无文件残留（KV 侧启用时按新键名写入） |
 
 

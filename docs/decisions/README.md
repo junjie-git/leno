@@ -39,3 +39,4 @@
 | [ADR-0007](0007-guid-string-migration-strategy.md) | Guid→string 迁移策略 | 已接受 | 2026-07-19 |
 | [ADR-0008](0008-monetary-rounding-away-from-zero.md) | 金融金额舍入策略统一为 AwayFromZero | 已接受 | 2026-07-22 |
 | [ADR-0009](0009-stockreservation-dbset-retention.md) | 保留 DbSet\<StockReservation\> 作为库存聚合审计/对账源 | 已接受 | 2026-07-22 |
+| [ADR-0010](0010-cloud-dependency-constraint-and-akv-exception.md) | 云依赖约束与 Azure Key Vault 例外登记 | 已接受 | 2026-09-24 |

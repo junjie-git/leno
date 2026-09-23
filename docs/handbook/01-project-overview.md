@@ -592,9 +592,9 @@ Review 流程：
 
 设计意图：禁止"先占位后补"的开发习惯污染代码库，所有合并的代码必须是可用实现。
 
-### 1.5.5 11 条硬约束概览
+### 1.5.5 12 条硬约束概览
 
-Leno 项目约定 11 条硬性约束，违反则 CI 失败或 review 拒绝：
+Leno 项目约定 12 条硬性约束，违反则 CI 失败或 review 拒绝：
 
 1. **项目实施遵循依赖链**：`F1 → F2 → F3 → F4 → M1 → M2 → M3 → M4 → M5 → M6`。F1-F4 为 Fast Track（快速通道），M1-M6 为 Slow Track（深度优化），后者依赖前者完成。
 
@@ -618,6 +618,8 @@ Leno 项目约定 11 条硬性约束，违反则 CI 失败或 review 拒绝：
 
 11. **所有 Guid 字段在 .proto 中以 string 类型传输**：Protobuf 无原生 Guid 类型，统一使用 `string` 表示，由两端做 `Guid.Parse` / `.ToString()` 转换（详见 ADR 0007）。
 
+12. **运行时基础设施全自建，云依赖须登记**：数据/消息/缓存/搜索/服务发现/网关（SQL Server、Redis、RabbitMQ、Elasticsearch、Consul、YARP）一律自托管，不引入云托管中间件；云厂商 SDK **默认禁止**，唯一已登记例外是 **Azure Key Vault**（密钥托管，可选且默认关闭，保留自建 Vault 迁移路径）。由 `scripts/check-cloud-dependencies.sh` 白名单 + CI `compliance-checks` 强制，白名单变更必须同步 ADR 0010（详见 ADR 0010）。
+
 > 注：ADR（Architecture Decision Record，架构决策记录）位于 `docs/decisions/`，每条硬约束对应一个 ADR 文档，详细记录决策背景、备选方案、取舍理由。
 
 ---
@@ -628,7 +630,7 @@ Leno 项目约定 11 条硬性约束，违反则 CI 失败或 review 拒绝：
 - 技术栈：.NET 10 + SQL Server + Redis + RabbitMQ + Elasticsearch + YARP + Consul + OpenTelemetry + Helm
 - 仓库分 src/BuildingBlocks（共享代码）+ src/Services（11 BC）+ docs + deploy + grafana + scripts
 - 解决方案用 .NET 10 新版 .slnx 格式 + Directory.Build.props 统一属性 + CPM 中央包管理
-- 开发模式：Subagent-Driven + Conventional Commits + PR 模板 + check-placeholders.sh + 11 条硬约束
+- 开发模式：Subagent-Driven + Conventional Commits + PR 模板 + check-placeholders.sh + 12 条硬约束
 
 ## 常见问题
 
