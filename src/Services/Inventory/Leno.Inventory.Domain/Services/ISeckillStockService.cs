@@ -6,8 +6,10 @@ namespace Leno.Inventory.Domain.Services;
 /// 秒杀下单时由应用层先调用 <see cref="TryDeductAsync"/>，成功后再异步创建订单。
 /// </summary>
 /// <remarks>
-/// 本接口由 Promotion BC 秒杀库存逻辑迁入 Inventory BC；当前 Promotion BC 旧实现保留，
-/// 秒杀库存迁移为遗留项，待 Promotion 规则引擎任务完成后单独迁移调用方。
+/// 秒杀结算收口后的现状（2026-09-24 复核）：本接口与实现**当前无调用方** —— 秒杀配额仍由 Promotion BC 的
+/// <c>RedisSeckillStockService</c> 承担（准入控制）；而库存权威（SQL 台账）的写入已落在 Order 的秒杀建单
+/// （<c>SeckillOrderCreationService</c> → <c>IInventoryGateway.ReserveBatchAsync</c>）。
+/// 即：本接口是"秒杀配额迁入 Inventory"这一未完成迁移的残留实现，是否保留/删除待单独决策。
 /// </remarks>
 public interface ISeckillStockService
 {

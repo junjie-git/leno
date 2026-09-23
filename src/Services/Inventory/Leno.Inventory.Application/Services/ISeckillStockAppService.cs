@@ -6,9 +6,10 @@ namespace Leno.Inventory.Application.Services;
 /// 秒杀库存应用服务接口，封装高频秒杀场景下的库存预扣/回退/查询用例。
 /// </summary>
 /// <remarks>
-/// Promotion BC 秒杀库存迁移为遗留项，待 Promotion 规则引擎任务完成后单独迁移。
-/// 当前 Inventory BC 已完整实现 <see cref="ISeckillStockAppService"/> 与底层
-/// <c>RedisSeckillStockService</c>，但 Promotion BC 旧实现保留不动、调用方未切换。
+/// 秒杀结算收口后的现状（2026-09-24 复核）：本接口与实现**当前无调用方**（Promotion 仍用自己的 Redis 配额实现）。
+/// 秒杀结算已收口在别处：库存权威（SQL 台账）由 Order 的秒杀建单写入
+/// （<c>SeckillOrderCreationService</c> → <c>IInventoryGateway.ReserveBatchAsync</c>）。
+/// 故本接口属"秒杀配额迁入 Inventory"这一未完成迁移的残留实现，保留/删除待单独决策。
 /// </remarks>
 public interface ISeckillStockAppService
 {

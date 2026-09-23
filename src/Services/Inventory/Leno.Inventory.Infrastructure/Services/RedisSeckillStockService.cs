@@ -6,8 +6,8 @@ namespace Leno.Inventory.Infrastructure.Services;
 
 /// <summary>
 /// 秒杀库存 Redis 预扣服务实现，基于 Hash 结构支持多 SKU，Lua 脚本保证原子性。
-/// 迁移自 Promotion BC（新代码，基于计划 §4.1.1 结构），Promotion BC 旧实现保留不动，
-/// 秒杀库存调用方迁移为遗留项，待 Promotion 规则引擎任务完成后单独迁移。
+/// 迁移自 Promotion BC（新代码，基于计划 §4.1.1 结构）；**当前无调用方** —— 秒杀配额仍由 Promotion BC
+/// 自己的 Redis 实现承担，本类属未完成迁移的残留实现（2026-09-24 复核）。
 /// Redis Key 设计：
 /// - seckill:{activityId}:stock — Hash，field = skuId，value = 剩余库存（随预扣递减、回退递增）
 /// - seckill:{activityId}:total  — Hash，field = skuId，value = 初始/总库存基线（回退上限保护，初始化时与 stock 相同）
@@ -20,7 +20,7 @@ namespace Leno.Inventory.Infrastructure.Services;
 ///    <c>seckill:{activityId}:total</c> Hash，<see cref="RestoreAsync"/> 时从该 Hash 读取上限。
 /// 2. 旧实现包含 <c>WriteBackToDbAsync</c>（活动结束回写 DB），该方法依赖 Promotion BC 的
 ///    SeckillActivity 聚合，Inventory BC 不持有该聚合，故本接口不包含此方法。
-///    活动结束时的 Redis→DB 回写仍由 Promotion BC 旧实现负责（遗留项），待调用方迁移后统一处理。
+///    活动结束时的 Redis→DB 回写仍由 Promotion BC 自己负责。
 /// </remarks>
 public sealed class RedisSeckillStockService : ISeckillStockService
 {

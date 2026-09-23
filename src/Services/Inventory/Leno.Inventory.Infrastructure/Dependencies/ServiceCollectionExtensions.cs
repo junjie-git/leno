@@ -55,7 +55,8 @@ public static class ServiceCollectionExtensions
 
         // 应用服务（预占/确认/释放/归还四用例，同事务更新台账与基线）
         services.AddScoped<IInventoryAppService, InventoryAppService>();
-        // 秒杀库存应用服务（Promotion BC 秒杀库存迁移为遗留项，待 Promotion 规则引擎任务完成后单独迁移调用方）
+        // 秒杀库存应用服务（**当前无调用方**：秒杀配额仍由 Promotion 自己的 Redis 实现承担；
+        // 库存台账由 Order 秒杀建单写入 —— 保留/删除待单独决策，2026-09-24 复核）
         services.AddScoped<ISeckillStockAppService, SeckillStockAppService>();
 
         // 秒杀库存 Redis 原子层（Redis 在本 BC 仅存的职责：秒杀配额，SQL 为结算点）

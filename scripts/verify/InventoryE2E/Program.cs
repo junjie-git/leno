@@ -199,7 +199,7 @@ return 0;
 static async Task<(int Count, int ReservedQty)> QueryReservationAsync(SqlConnection sql, Guid orderId)
 {
     await using var cmd = sql.CreateCommand();
-    cmd.CommandText = "SELECT COUNT(*), ISNULL(SUM(reserved_qty), 0) FROM stock_reservations WHERE order_id = @o";
+    cmd.CommandText = "SELECT COUNT(*), ISNULL(SUM(quantity), 0) FROM stock_reservations WHERE order_id = @o";
     cmd.Parameters.Add("@o", SqlDbType.UniqueIdentifier).Value = orderId;
     await using var reader = await cmd.ExecuteReaderAsync();
     if (!await reader.ReadAsync())

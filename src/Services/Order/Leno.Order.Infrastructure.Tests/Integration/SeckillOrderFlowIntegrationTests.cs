@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Leno.Infrastructure.Abstractions;
+using Leno.Order.Application.Abstractions;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
@@ -56,6 +57,16 @@ public class SeckillOrderFlowIntegrationTests : CrossBcIntegrationTestBase<Order
 
         // IEventBus Mock：成功路径不发布失败回执，仅满足 SeckillOrderCreationService 构造函数注入
         services.AddScoped(_ => Mock.Of<IEventBus>());
+
+        // 库存台账 Mock：秒杀建单前预占成功（秒杀结算收口后为必经步骤）
+        var inventoryGwMock = new Mock<IInventoryGateway>();
+        inventoryGwMock.Setup(g => g.ReserveBatchAsync(
+                It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        services.AddScoped(_ => inventoryGwMock.Object);
+
+        // 支付超时调度 Mock（成功路径会调度 queue:order-timeout）
+        services.AddScoped(_ => Mock.Of<IMessageScheduler>());
 
         services.AddScoped<SeckillOrderCreationService>();
         services.AddScoped<SeckillOrderCreatedEventConsumer>();
