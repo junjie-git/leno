@@ -70,12 +70,9 @@ public sealed class CartGrpcService : CartInternalService.CartInternalServiceBas
         };
         foreach (var item in dto.Items)
         {
-            // 双写：既有 int64 字段（稳定算法，向后兼容）+ 新增 string 字段（GuidProtoConverter）
             proto.Items.Add(new CartItem
             {
-                // 修复审计 #5：使用稳定算法替代 GetHashCode()（32 位碰撞率高），确保相同 Guid 始终映射到相同 int64
-                SkuId = BitConverter.ToInt64(item.SkuId.ToByteArray(), 0),
-                // Guid→string 迁移：使用 GuidProtoConverter 统一转换
+                // C3（2026-09-24）：int64 字段已从契约删除，仅 string 形态（GuidProtoConverter）
                 SkuIdStr = GuidProtoConverter.ToString(item.SkuId),
                 Quantity = item.Quantity,
                 UnitPriceCents = item.UnitPriceCents

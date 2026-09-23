@@ -27,25 +27,10 @@ public sealed class ReviewGrpcService : ReviewInternalService.ReviewInternalServ
     public override async Task<ProductRating> GetProductRating(
         GetProductRatingRequest request, ServerCallContext context)
     {
-        // Guid→string 迁移：必须使用 SpuIdStr（Guid 字符串）定位商品。
-        // 旧 int64 字段已 deprecated 且 GetHashCode 不可逆，不再支持回退，强制客户端升级。
-        Guid spuId;
-        if (!string.IsNullOrEmpty(request.SpuIdStr))
+        // C3（2026-09-24）：int64 兼容字段已从契约删除，spu_id_str 为唯一标识形态
+        if (!Guid.TryParse(request.SpuIdStr, out var spuId))
         {
-            if (!Guid.TryParse(request.SpuIdStr, out spuId))
-            {
-                throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid spu_id_str: {request.SpuIdStr}"));
-            }
-        }
-        else if (request.SpuId != 0)
-        {
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
-                "SpuId int64 field is deprecated and non-reversible, please use SpuIdStr (Guid string) instead"));
-        }
-        else
-        {
-            throw new RpcException(new Status(StatusCode.InvalidArgument,
-                "Either SpuIdStr must be provided (SpuId int64 is deprecated)"));
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid or missing spu_id_str: {request.SpuIdStr}"));
         }
 
         var dto = await _queryService.GetProductRatingAsync(spuId, context.CancellationToken)
@@ -82,13 +67,9 @@ public sealed class ReviewGrpcService : ReviewInternalService.ReviewInternalServ
 
     private static ProductRating MapToProto(ProductRatingDto dto) => new()
     {
-        // 既有 int64 字段已 deprecated：强制返回 0，Guid.GetHashCode 不可逆且跨进程不一致，
-        // 新客户端必须读 SpuIdStr（Guid 字符串）。
-        SpuId = 0,
         AverageRating = dto.AverageRating,
         TotalCount = dto.TotalCount,
         PositiveCount = dto.PositiveCount,
-        // Guid→string 迁移：权威字段，新客户端优先读
         SpuIdStr = dto.SpuId.ToString()
     };
 
@@ -100,8 +81,6 @@ public sealed class ReviewGrpcService : ReviewInternalService.ReviewInternalServ
             proto.Reviews.Add(new ReviewSummary
             {
                 ReviewId = r.ReviewId.ToString(),
-                // 既有 int64 字段已 deprecated：强制返回 0，避免 GetHashCode 失真
-                SpuId = 0,
                 SpuIdStr = r.SpuId.ToString(),
                 Rating = r.Rating,
                 Content = r.Content,

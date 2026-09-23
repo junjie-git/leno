@@ -33,19 +33,16 @@ public class GrpcProductAntiCorruptionClientTests
         var sellerId = Guid.NewGuid();
         var skuInfoProto = new SkuInfo
         {
-            SkuId = 123,
-            SpuId = 456,
             Title = "Test SKU",
             PriceCents = 9999,
             Stock = 100,
             Salable = true,
-            SellerId = 789,
             Status = "active",
             Currency = "CNY",
             MainImage = "http://img",
             ShopId = Guid.NewGuid().ToString(),
             UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            // M4 Guid→string 迁移：服务端填充 string 字段
+            // C3（2026-09-24）：int64 字段已从契约删除，string 字段为唯一标识形态
             SkuIdStr = skuId.ToString(),
             SpuIdStr = spuId.ToString(),
             SellerIdStr = sellerId.ToString()
@@ -88,9 +85,6 @@ public class GrpcProductAntiCorruptionClientTests
         var sellerId = Guid.NewGuid();
         var skuInfoProto = new SkuInfo
         {
-            SkuId = 0,           // 新服务端不填充 int64
-            SpuId = 0,
-            SellerId = 0,
             Title = "New Server SKU",
             PriceCents = 5000,
             Stock = 50,
@@ -173,16 +167,14 @@ public class GrpcProductAntiCorruptionClientTests
     }
 
     [Fact]
-    public async Task GetSkuInfo_Request_ShouldUseStableInt64_NotGetHashCode()
+    public async Task GetSkuInfo_Request_ShouldCarryStringSkuIdStrOnly()
     {
-        // 验证请求 int64 字段使用稳定算法（BitConverter.ToInt64），而非 GetHashCode（32 位碰撞率高）
+        // C3（2026-09-24）：int64 兼容字段已从契约删除，请求仅携带 sku_id_str（GuidProtoConverter，D 格式）
         var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
         var skuId = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef");
-        var expectedInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
 
         var skuInfoProto = new SkuInfo
         {
-            SkuId = expectedInt64,
             SkuIdStr = GuidProtoConverter.ToString(skuId),
             Title = "Stable",
             PriceCents = 100,
@@ -211,10 +203,6 @@ public class GrpcProductAntiCorruptionClientTests
         await client.GetSkuInfoAsync(skuId);
 
         capturedRequest.Should().NotBeNull();
-        capturedRequest!.SkuId.Should().Be(expectedInt64);
-        // 确保不再使用 GetHashCode（32 位碰撞率高）
-        capturedRequest.SkuId.Should().NotBe((long)skuId.GetHashCode());
-        // 验证 string 字段使用 GuidProtoConverter.ToString（D 格式）
-        capturedRequest.SkuIdStr.Should().Be(GuidProtoConverter.ToString(skuId));
+        capturedRequest!.SkuIdStr.Should().Be(GuidProtoConverter.ToString(skuId));
     }
 }

@@ -55,29 +55,19 @@ public sealed class GrpcCartPriceService
                 return (IReadOnlyList<SkuPriceSnapshotDomain>)Array.Empty<SkuPriceSnapshotDomain>();
             }
 
-            // M4 Guid→string 迁移：请求同时填充 int64（稳定算法，向后兼容）+ string（GuidProtoConverter）
+            // C3（2026-09-24）：int64 兼容字段已从契约删除，sku_ids_str 为唯一标识形态
             var request = new BatchGetSkuInfoRequest();
-            request.SkuIds.AddRange(ids.Select(id => BitConverter.ToInt64(id.ToByteArray(), 0)));
             request.SkuIdsStr.AddRange(ids.Select(id => GuidProtoConverter.ToString(id)));
 
             var metadata = BuildMetadata();
             var response = await _client.BatchGetSkuInfoAsync(request, metadata, cancellationToken: token);
 
-            // 响应映射：优先用 SkuIdStr 建立 Guid 映射，回退到 int64 稳定算法映射（向后兼容旧服务端）
+            // 响应映射：以 SkuIdStr 建立 Guid 映射（int64 字段已删除，无回退路径）
             var skuMapByStr = ids.ToDictionary(id => GuidProtoConverter.ToString(id), id => id);
-            var skuMapByHash = ids.ToDictionary(id => BitConverter.ToInt64(id.ToByteArray(), 0), id => id);
             var result = new List<SkuPriceSnapshotDomain>(response.Skus.Count);
             foreach (var proto in response.Skus)
             {
-                Guid guid;
-                if (!string.IsNullOrEmpty(proto.SkuIdStr))
-                {
-                    if (!skuMapByStr.TryGetValue(proto.SkuIdStr, out guid))
-                    {
-                        continue;
-                    }
-                }
-                else if (!skuMapByHash.TryGetValue(proto.SkuId, out guid))
+                if (!skuMapByStr.TryGetValue(proto.SkuIdStr, out var guid))
                 {
                     continue;
                 }

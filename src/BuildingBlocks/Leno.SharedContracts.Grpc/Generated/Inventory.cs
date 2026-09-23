@@ -24,42 +24,42 @@ namespace Leno.SharedContracts.Grpc.Inventory.V1 {
     static InventoryReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChZQcm90b3MvaW52ZW50b3J5LnByb3RvEhFsZW5vLmludmVudG9yeS52MSJi",
+            "ChZQcm90b3MvaW52ZW50b3J5LnByb3RvEhFsZW5vLmludmVudG9yeS52MSJW",
             "ChBSZXNlcnZlU3RvY2tJdGVtEhUKBnNrdV9pZBgBIAEoCVIFc2t1SWQSGgoI",
-            "cXVhbnRpdHkYAiABKAVSCHF1YW50aXR5EhsKCXNlbGxlcl9pZBgDIAEoA1II",
-            "c2VsbGVySWQilAEKE1Jlc2VydmVTdG9ja1JlcXVlc3QSGQoIb3JkZXJfaWQY",
-            "ASABKAlSB29yZGVySWQSJwoPaWRlbXBvdGVuY3lfa2V5GAIgASgJUg5pZGVt",
-            "cG90ZW5jeUtleRI5CgVpdGVtcxgDIAMoCzIjLmxlbm8uaW52ZW50b3J5LnYx",
-            "LlJlc2VydmVTdG9ja0l0ZW1SBWl0ZW1zIn4KFFJlc2VydmVTdG9ja1Jlc3Bv",
-            "bnNlEhgKB3N1Y2Nlc3MYASABKAhSB3N1Y2Nlc3MSJQoOZmFpbHVyZV9yZWFz",
-            "b24YAiABKAlSDWZhaWx1cmVSZWFzb24SJQoOcmVzZXJ2YXRpb25faWQYAyAB",
-            "KAlSDXJlc2VydmF0aW9uSWQiWQoTQ29uZmlybVN0b2NrUmVxdWVzdBIZCghv",
-            "cmRlcl9pZBgBIAEoCVIHb3JkZXJJZBInCg9pZGVtcG90ZW5jeV9rZXkYAiAB",
-            "KAlSDmlkZW1wb3RlbmN5S2V5IlcKFENvbmZpcm1TdG9ja1Jlc3BvbnNlEhgK",
-            "B3N1Y2Nlc3MYASABKAhSB3N1Y2Nlc3MSJQoOZmFpbHVyZV9yZWFzb24YAiAB",
-            "KAlSDWZhaWx1cmVSZWFzb24igAEKE1JlbGVhc2VTdG9ja1JlcXVlc3QSGQoI",
-            "b3JkZXJfaWQYASABKAlSB29yZGVySWQSJwoPaWRlbXBvdGVuY3lfa2V5GAIg",
-            "ASgJUg5pZGVtcG90ZW5jeUtleRIlCg5vcGVyYXRpb25fdHlwZRgDIAEoBVIN",
-            "b3BlcmF0aW9uVHlwZSJXChRSZWxlYXNlU3RvY2tSZXNwb25zZRIYCgdzdWNj",
-            "ZXNzGAEgASgIUgdzdWNjZXNzEiUKDmZhaWx1cmVfcmVhc29uGAIgASgJUg1m",
-            "YWlsdXJlUmVhc29uIjEKGEdldEF2YWlsYWJsZVN0b2NrUmVxdWVzdBIVCgZz",
-            "a3VfaWQYASABKAlSBXNrdUlkIj0KFkF2YWlsYWJsZVN0b2NrUmVzcG9uc2US",
-            "IwoNYXZhaWxhYmxlX3F0eRgBIAEoBVIMYXZhaWxhYmxlUXR5MqoDChhJbnZl",
-            "bnRvcnlJbnRlcm5hbFNlcnZpY2USXwoMUmVzZXJ2ZVN0b2NrEiYubGVuby5p",
-            "bnZlbnRvcnkudjEuUmVzZXJ2ZVN0b2NrUmVxdWVzdBonLmxlbm8uaW52ZW50",
-            "b3J5LnYxLlJlc2VydmVTdG9ja1Jlc3BvbnNlEl8KDENvbmZpcm1TdG9jaxIm",
-            "Lmxlbm8uaW52ZW50b3J5LnYxLkNvbmZpcm1TdG9ja1JlcXVlc3QaJy5sZW5v",
-            "LmludmVudG9yeS52MS5Db25maXJtU3RvY2tSZXNwb25zZRJfCgxSZWxlYXNl",
-            "U3RvY2sSJi5sZW5vLmludmVudG9yeS52MS5SZWxlYXNlU3RvY2tSZXF1ZXN0",
-            "GicubGVuby5pbnZlbnRvcnkudjEuUmVsZWFzZVN0b2NrUmVzcG9uc2USawoR",
-            "R2V0QXZhaWxhYmxlU3RvY2sSKy5sZW5vLmludmVudG9yeS52MS5HZXRBdmFp",
-            "bGFibGVTdG9ja1JlcXVlc3QaKS5sZW5vLmludmVudG9yeS52MS5BdmFpbGFi",
-            "bGVTdG9ja1Jlc3BvbnNlQimqAiZMZW5vLlNoYXJlZENvbnRyYWN0cy5HcnBj",
-            "LkludmVudG9yeS5WMWIGcHJvdG8z"));
+            "cXVhbnRpdHkYAiABKAVSCHF1YW50aXR5SgQIAxAEUglzZWxsZXJfaWQilAEK",
+            "E1Jlc2VydmVTdG9ja1JlcXVlc3QSGQoIb3JkZXJfaWQYASABKAlSB29yZGVy",
+            "SWQSJwoPaWRlbXBvdGVuY3lfa2V5GAIgASgJUg5pZGVtcG90ZW5jeUtleRI5",
+            "CgVpdGVtcxgDIAMoCzIjLmxlbm8uaW52ZW50b3J5LnYxLlJlc2VydmVTdG9j",
+            "a0l0ZW1SBWl0ZW1zIn4KFFJlc2VydmVTdG9ja1Jlc3BvbnNlEhgKB3N1Y2Nl",
+            "c3MYASABKAhSB3N1Y2Nlc3MSJQoOZmFpbHVyZV9yZWFzb24YAiABKAlSDWZh",
+            "aWx1cmVSZWFzb24SJQoOcmVzZXJ2YXRpb25faWQYAyABKAlSDXJlc2VydmF0",
+            "aW9uSWQiWQoTQ29uZmlybVN0b2NrUmVxdWVzdBIZCghvcmRlcl9pZBgBIAEo",
+            "CVIHb3JkZXJJZBInCg9pZGVtcG90ZW5jeV9rZXkYAiABKAlSDmlkZW1wb3Rl",
+            "bmN5S2V5IlcKFENvbmZpcm1TdG9ja1Jlc3BvbnNlEhgKB3N1Y2Nlc3MYASAB",
+            "KAhSB3N1Y2Nlc3MSJQoOZmFpbHVyZV9yZWFzb24YAiABKAlSDWZhaWx1cmVS",
+            "ZWFzb24igAEKE1JlbGVhc2VTdG9ja1JlcXVlc3QSGQoIb3JkZXJfaWQYASAB",
+            "KAlSB29yZGVySWQSJwoPaWRlbXBvdGVuY3lfa2V5GAIgASgJUg5pZGVtcG90",
+            "ZW5jeUtleRIlCg5vcGVyYXRpb25fdHlwZRgDIAEoBVINb3BlcmF0aW9uVHlw",
+            "ZSJXChRSZWxlYXNlU3RvY2tSZXNwb25zZRIYCgdzdWNjZXNzGAEgASgIUgdz",
+            "dWNjZXNzEiUKDmZhaWx1cmVfcmVhc29uGAIgASgJUg1mYWlsdXJlUmVhc29u",
+            "IjEKGEdldEF2YWlsYWJsZVN0b2NrUmVxdWVzdBIVCgZza3VfaWQYASABKAlS",
+            "BXNrdUlkIj0KFkF2YWlsYWJsZVN0b2NrUmVzcG9uc2USIwoNYXZhaWxhYmxl",
+            "X3F0eRgBIAEoBVIMYXZhaWxhYmxlUXR5MqoDChhJbnZlbnRvcnlJbnRlcm5h",
+            "bFNlcnZpY2USXwoMUmVzZXJ2ZVN0b2NrEiYubGVuby5pbnZlbnRvcnkudjEu",
+            "UmVzZXJ2ZVN0b2NrUmVxdWVzdBonLmxlbm8uaW52ZW50b3J5LnYxLlJlc2Vy",
+            "dmVTdG9ja1Jlc3BvbnNlEl8KDENvbmZpcm1TdG9jaxImLmxlbm8uaW52ZW50",
+            "b3J5LnYxLkNvbmZpcm1TdG9ja1JlcXVlc3QaJy5sZW5vLmludmVudG9yeS52",
+            "MS5Db25maXJtU3RvY2tSZXNwb25zZRJfCgxSZWxlYXNlU3RvY2sSJi5sZW5v",
+            "LmludmVudG9yeS52MS5SZWxlYXNlU3RvY2tSZXF1ZXN0GicubGVuby5pbnZl",
+            "bnRvcnkudjEuUmVsZWFzZVN0b2NrUmVzcG9uc2USawoRR2V0QXZhaWxhYmxl",
+            "U3RvY2sSKy5sZW5vLmludmVudG9yeS52MS5HZXRBdmFpbGFibGVTdG9ja1Jl",
+            "cXVlc3QaKS5sZW5vLmludmVudG9yeS52MS5BdmFpbGFibGVTdG9ja1Jlc3Bv",
+            "bnNlQimqAiZMZW5vLlNoYXJlZENvbnRyYWN0cy5HcnBjLkludmVudG9yeS5W",
+            "MWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Inventory.V1.ReserveStockItem), global::Leno.SharedContracts.Grpc.Inventory.V1.ReserveStockItem.Parser, new[]{ "SkuId", "Quantity", "SellerId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Inventory.V1.ReserveStockItem), global::Leno.SharedContracts.Grpc.Inventory.V1.ReserveStockItem.Parser, new[]{ "SkuId", "Quantity" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Inventory.V1.ReserveStockRequest), global::Leno.SharedContracts.Grpc.Inventory.V1.ReserveStockRequest.Parser, new[]{ "OrderId", "IdempotencyKey", "Items" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Inventory.V1.ReserveStockResponse), global::Leno.SharedContracts.Grpc.Inventory.V1.ReserveStockResponse.Parser, new[]{ "Success", "FailureReason", "ReservationId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Inventory.V1.ConfirmStockRequest), global::Leno.SharedContracts.Grpc.Inventory.V1.ConfirmStockRequest.Parser, new[]{ "OrderId", "IdempotencyKey" }, null, null, null, null),
@@ -111,7 +111,6 @@ namespace Leno.SharedContracts.Grpc.Inventory.V1 {
     public ReserveStockItem(ReserveStockItem other) : this() {
       skuId_ = other.skuId_;
       quantity_ = other.quantity_;
-      sellerId_ = other.sellerId_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -145,18 +144,6 @@ namespace Leno.SharedContracts.Grpc.Inventory.V1 {
       }
     }
 
-    /// <summary>Field number for the "seller_id" field.</summary>
-    public const int SellerIdFieldNumber = 3;
-    private long sellerId_;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public long SellerId {
-      get { return sellerId_; }
-      set {
-        sellerId_ = value;
-      }
-    }
-
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -174,7 +161,6 @@ namespace Leno.SharedContracts.Grpc.Inventory.V1 {
       }
       if (SkuId != other.SkuId) return false;
       if (Quantity != other.Quantity) return false;
-      if (SellerId != other.SellerId) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -184,7 +170,6 @@ namespace Leno.SharedContracts.Grpc.Inventory.V1 {
       int hash = 1;
       if (SkuId.Length != 0) hash ^= SkuId.GetHashCode();
       if (Quantity != 0) hash ^= Quantity.GetHashCode();
-      if (SellerId != 0L) hash ^= SellerId.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -211,10 +196,6 @@ namespace Leno.SharedContracts.Grpc.Inventory.V1 {
         output.WriteRawTag(16);
         output.WriteInt32(Quantity);
       }
-      if (SellerId != 0L) {
-        output.WriteRawTag(24);
-        output.WriteInt64(SellerId);
-      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -233,10 +214,6 @@ namespace Leno.SharedContracts.Grpc.Inventory.V1 {
         output.WriteRawTag(16);
         output.WriteInt32(Quantity);
       }
-      if (SellerId != 0L) {
-        output.WriteRawTag(24);
-        output.WriteInt64(SellerId);
-      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -252,9 +229,6 @@ namespace Leno.SharedContracts.Grpc.Inventory.V1 {
       }
       if (Quantity != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(Quantity);
-      }
-      if (SellerId != 0L) {
-        size += 1 + pb::CodedOutputStream.ComputeInt64Size(SellerId);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -273,9 +247,6 @@ namespace Leno.SharedContracts.Grpc.Inventory.V1 {
       }
       if (other.Quantity != 0) {
         Quantity = other.Quantity;
-      }
-      if (other.SellerId != 0L) {
-        SellerId = other.SellerId;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -304,10 +275,6 @@ namespace Leno.SharedContracts.Grpc.Inventory.V1 {
             Quantity = input.ReadInt32();
             break;
           }
-          case 24: {
-            SellerId = input.ReadInt64();
-            break;
-          }
         }
       }
     #endif
@@ -333,10 +300,6 @@ namespace Leno.SharedContracts.Grpc.Inventory.V1 {
           }
           case 16: {
             Quantity = input.ReadInt32();
-            break;
-          }
-          case 24: {
-            SellerId = input.ReadInt64();
             break;
           }
         }

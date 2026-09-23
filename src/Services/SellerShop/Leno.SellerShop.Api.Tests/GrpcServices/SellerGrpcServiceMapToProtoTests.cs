@@ -38,14 +38,12 @@ public sealed class SellerGrpcServiceMapToProtoTests
         Assert.Equal(sellerId.ToString(), result.SellerId);
         Assert.Equal("测试卖家", result.Name);
         Assert.Equal("Approved", result.Status);
-        // int64 shop_id 不再使用 GetHashCode，应为 0（deprecated 字段）
-        Assert.Equal(0L, result.ShopId);
     }
 
     [Fact]
-    public void MapToProto_SellerInfo_Should_Not_Use_HashCode_For_ShopId()
+    public void MapToProto_SellerInfo_Should_Map_Distinct_ShopIds_To_Distinct_Strings()
     {
-        // Arrange — 两个不同 Guid 不应映射到同一 long 值（GetHashCode 会冲突）
+        // Arrange — 两个不同 Guid 应映射到不同的 string 标识
         var shopId1 = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
         var shopId2 = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
         var dto1 = new SellerInfoDto { SellerId = Guid.NewGuid(), Name = "卖家1", Status = "Active", ShopId = shopId1 };
@@ -63,9 +61,6 @@ public sealed class SellerGrpcServiceMapToProtoTests
         Assert.NotEqual(result1.ShopIdStr, result2.ShopIdStr);
         Assert.Equal(shopId1.ToString(), result1.ShopIdStr);
         Assert.Equal(shopId2.ToString(), result2.ShopIdStr);
-        // 两个 SellerInfo 的 int64 shop_id 均为 0（不再用 GetHashCode）
-        Assert.Equal(0L, result1.ShopId);
-        Assert.Equal(0L, result2.ShopId);
     }
 
     [Fact]
@@ -95,14 +90,12 @@ public sealed class SellerGrpcServiceMapToProtoTests
         Assert.Equal(sellerId.ToString(), result.SellerId);
         Assert.Equal("测试店铺", result.Name);
         Assert.Equal("Active", result.Status);
-        // int64 shop_id 不再使用 GetHashCode
-        Assert.Equal(0L, result.ShopId);
     }
 
     [Fact]
-    public void MapToProto_ShopInfo_Should_Not_Use_HashCode_For_ShopId()
+    public void MapToProto_ShopInfo_Should_Map_Distinct_ShopIds_To_Distinct_Strings()
     {
-        // Arrange — 两个不同 Guid 不应映射到同一 long 值
+        // Arrange — 两个不同 Guid 应映射到不同的 string 标识
         var shopId1 = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
         var shopId2 = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
         var dto1 = new ShopInfoDto { ShopId = shopId1, Name = "店铺1", Status = "Active", SellerId = Guid.NewGuid() };
@@ -120,7 +113,5 @@ public sealed class SellerGrpcServiceMapToProtoTests
         Assert.NotEqual(result1.ShopIdStr, result2.ShopIdStr);
         Assert.Equal(shopId1.ToString(), result1.ShopIdStr);
         Assert.Equal(shopId2.ToString(), result2.ShopIdStr);
-        Assert.Equal(0L, result1.ShopId);
-        Assert.Equal(0L, result2.ShopId);
     }
 }

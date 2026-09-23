@@ -24,42 +24,42 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     static ReviewReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "ChNQcm90b3MvcmV2aWV3LnByb3RvEg5sZW5vLnJldmlldy52MSJSChdHZXRQ",
-            "cm9kdWN0UmF0aW5nUmVxdWVzdBIZCgZzcHVfaWQYASABKANCAhgBUgVzcHVJ",
-            "ZBIcCgpzcHVfaWRfc3RyGAIgASgJUghzcHVJZFN0ciK3AQoNUHJvZHVjdFJh",
-            "dGluZxIZCgZzcHVfaWQYASABKANCAhgBUgVzcHVJZBIlCg5hdmVyYWdlX3Jh",
-            "dGluZxgCIAEoAVINYXZlcmFnZVJhdGluZxIfCgt0b3RhbF9jb3VudBgDIAEo",
-            "BVIKdG90YWxDb3VudBIlCg5wb3NpdGl2ZV9jb3VudBgEIAEoBVINcG9zaXRp",
-            "dmVDb3VudBIcCgpzcHVfaWRfc3RyGAUgASgJUghzcHVJZFN0ciIzChZHZXRP",
-            "cmRlclJldmlld3NSZXF1ZXN0EhkKCG9yZGVyX2lkGAEgASgJUgdvcmRlcklk",
-            "IkcKDE9yZGVyUmV2aWV3cxI3CgdyZXZpZXdzGAEgAygLMh0ubGVuby5yZXZp",
-            "ZXcudjEuUmV2aWV3U3VtbWFyeVIHcmV2aWV3cyK2AQoNUmV2aWV3U3VtbWFy",
-            "eRIbCglyZXZpZXdfaWQYASABKAlSCHJldmlld0lkEhkKBnNwdV9pZBgCIAEo",
-            "A0ICGAFSBXNwdUlkEhYKBnJhdGluZxgDIAEoBVIGcmF0aW5nEhgKB2NvbnRl",
-            "bnQYBCABKAlSB2NvbnRlbnQSHQoKY3JlYXRlZF9hdBgFIAEoCVIJY3JlYXRl",
-            "ZEF0EhwKCnNwdV9pZF9zdHIYBiABKAlSCHNwdUlkU3RyIjkKHkdldFNob3BS",
-            "ZXZpZXdTdGF0aXN0aWNzUmVxdWVzdBIXCgdzaG9wX2lkGAEgASgJUgZzaG9w",
-            "SWQi0QEKFFNob3BSZXZpZXdTdGF0aXN0aWNzEhcKB3Nob3BfaWQYASABKAlS",
-            "BnNob3BJZBIjCg10b3RhbF9yZXZpZXdzGAIgASgFUgx0b3RhbFJldmlld3MS",
-            "JQoOYXZlcmFnZV9yYXRpbmcYAyABKAFSDWF2ZXJhZ2VSYXRpbmcSKgoRZml2",
-            "ZV9zdGFyX3Jldmlld3MYBCABKAVSD2ZpdmVTdGFyUmV2aWV3cxIoChBvbmVf",
-            "c3Rhcl9yZXZpZXdzGAUgASgFUg5vbmVTdGFyUmV2aWV3czK9AgoVUmV2aWV3",
-            "SW50ZXJuYWxTZXJ2aWNlEloKEEdldFByb2R1Y3RSYXRpbmcSJy5sZW5vLnJl",
-            "dmlldy52MS5HZXRQcm9kdWN0UmF0aW5nUmVxdWVzdBodLmxlbm8ucmV2aWV3",
-            "LnYxLlByb2R1Y3RSYXRpbmcSVwoPR2V0T3JkZXJSZXZpZXdzEiYubGVuby5y",
-            "ZXZpZXcudjEuR2V0T3JkZXJSZXZpZXdzUmVxdWVzdBocLmxlbm8ucmV2aWV3",
-            "LnYxLk9yZGVyUmV2aWV3cxJvChdHZXRTaG9wUmV2aWV3U3RhdGlzdGljcxIu",
-            "Lmxlbm8ucmV2aWV3LnYxLkdldFNob3BSZXZpZXdTdGF0aXN0aWNzUmVxdWVz",
-            "dBokLmxlbm8ucmV2aWV3LnYxLlNob3BSZXZpZXdTdGF0aXN0aWNzQiaqAiNM",
-            "ZW5vLlNoYXJlZENvbnRyYWN0cy5HcnBjLlJldmlldy5WMWIGcHJvdG8z"));
+            "ChNQcm90b3MvcmV2aWV3LnByb3RvEg5sZW5vLnJldmlldy52MSJFChdHZXRQ",
+            "cm9kdWN0UmF0aW5nUmVxdWVzdBIcCgpzcHVfaWRfc3RyGAIgASgJUghzcHVJ",
+            "ZFN0ckoECAEQAlIGc3B1X2lkIqoBCg1Qcm9kdWN0UmF0aW5nEiUKDmF2ZXJh",
+            "Z2VfcmF0aW5nGAIgASgBUg1hdmVyYWdlUmF0aW5nEh8KC3RvdGFsX2NvdW50",
+            "GAMgASgFUgp0b3RhbENvdW50EiUKDnBvc2l0aXZlX2NvdW50GAQgASgFUg1w",
+            "b3NpdGl2ZUNvdW50EhwKCnNwdV9pZF9zdHIYBSABKAlSCHNwdUlkU3RySgQI",
+            "ARACUgZzcHVfaWQiMwoWR2V0T3JkZXJSZXZpZXdzUmVxdWVzdBIZCghvcmRl",
+            "cl9pZBgBIAEoCVIHb3JkZXJJZCJHCgxPcmRlclJldmlld3MSNwoHcmV2aWV3",
+            "cxgBIAMoCzIdLmxlbm8ucmV2aWV3LnYxLlJldmlld1N1bW1hcnlSB3Jldmll",
+            "d3MiqQEKDVJldmlld1N1bW1hcnkSGwoJcmV2aWV3X2lkGAEgASgJUghyZXZp",
+            "ZXdJZBIWCgZyYXRpbmcYAyABKAVSBnJhdGluZxIYCgdjb250ZW50GAQgASgJ",
+            "Ugdjb250ZW50Eh0KCmNyZWF0ZWRfYXQYBSABKAlSCWNyZWF0ZWRBdBIcCgpz",
+            "cHVfaWRfc3RyGAYgASgJUghzcHVJZFN0ckoECAIQA1IGc3B1X2lkIjkKHkdl",
+            "dFNob3BSZXZpZXdTdGF0aXN0aWNzUmVxdWVzdBIXCgdzaG9wX2lkGAEgASgJ",
+            "UgZzaG9wSWQi0QEKFFNob3BSZXZpZXdTdGF0aXN0aWNzEhcKB3Nob3BfaWQY",
+            "ASABKAlSBnNob3BJZBIjCg10b3RhbF9yZXZpZXdzGAIgASgFUgx0b3RhbFJl",
+            "dmlld3MSJQoOYXZlcmFnZV9yYXRpbmcYAyABKAFSDWF2ZXJhZ2VSYXRpbmcS",
+            "KgoRZml2ZV9zdGFyX3Jldmlld3MYBCABKAVSD2ZpdmVTdGFyUmV2aWV3cxIo",
+            "ChBvbmVfc3Rhcl9yZXZpZXdzGAUgASgFUg5vbmVTdGFyUmV2aWV3czK9AgoV",
+            "UmV2aWV3SW50ZXJuYWxTZXJ2aWNlEloKEEdldFByb2R1Y3RSYXRpbmcSJy5s",
+            "ZW5vLnJldmlldy52MS5HZXRQcm9kdWN0UmF0aW5nUmVxdWVzdBodLmxlbm8u",
+            "cmV2aWV3LnYxLlByb2R1Y3RSYXRpbmcSVwoPR2V0T3JkZXJSZXZpZXdzEiYu",
+            "bGVuby5yZXZpZXcudjEuR2V0T3JkZXJSZXZpZXdzUmVxdWVzdBocLmxlbm8u",
+            "cmV2aWV3LnYxLk9yZGVyUmV2aWV3cxJvChdHZXRTaG9wUmV2aWV3U3RhdGlz",
+            "dGljcxIuLmxlbm8ucmV2aWV3LnYxLkdldFNob3BSZXZpZXdTdGF0aXN0aWNz",
+            "UmVxdWVzdBokLmxlbm8ucmV2aWV3LnYxLlNob3BSZXZpZXdTdGF0aXN0aWNz",
+            "QiaqAiNMZW5vLlNoYXJlZENvbnRyYWN0cy5HcnBjLlJldmlldy5WMWIGcHJv",
+            "dG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.GetProductRatingRequest), global::Leno.SharedContracts.Grpc.Review.V1.GetProductRatingRequest.Parser, new[]{ "SpuId", "SpuIdStr" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.ProductRating), global::Leno.SharedContracts.Grpc.Review.V1.ProductRating.Parser, new[]{ "SpuId", "AverageRating", "TotalCount", "PositiveCount", "SpuIdStr" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.GetProductRatingRequest), global::Leno.SharedContracts.Grpc.Review.V1.GetProductRatingRequest.Parser, new[]{ "SpuIdStr" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.ProductRating), global::Leno.SharedContracts.Grpc.Review.V1.ProductRating.Parser, new[]{ "AverageRating", "TotalCount", "PositiveCount", "SpuIdStr" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.GetOrderReviewsRequest), global::Leno.SharedContracts.Grpc.Review.V1.GetOrderReviewsRequest.Parser, new[]{ "OrderId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.OrderReviews), global::Leno.SharedContracts.Grpc.Review.V1.OrderReviews.Parser, new[]{ "Reviews" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.ReviewSummary), global::Leno.SharedContracts.Grpc.Review.V1.ReviewSummary.Parser, new[]{ "ReviewId", "SpuId", "Rating", "Content", "CreatedAt", "SpuIdStr" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.ReviewSummary), global::Leno.SharedContracts.Grpc.Review.V1.ReviewSummary.Parser, new[]{ "ReviewId", "Rating", "Content", "CreatedAt", "SpuIdStr" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.GetShopReviewStatisticsRequest), global::Leno.SharedContracts.Grpc.Review.V1.GetShopReviewStatisticsRequest.Parser, new[]{ "ShopId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Review.V1.ShopReviewStatistics), global::Leno.SharedContracts.Grpc.Review.V1.ShopReviewStatistics.Parser, new[]{ "ShopId", "TotalReviews", "AverageRating", "FiveStarReviews", "OneStarReviews" }, null, null, null, null)
           }));
@@ -103,7 +103,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetProductRatingRequest(GetProductRatingRequest other) : this() {
-      spuId_ = other.spuId_;
       spuIdStr_ = other.spuIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
@@ -112,19 +111,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetProductRatingRequest Clone() {
       return new GetProductRatingRequest(this);
-    }
-
-    /// <summary>Field number for the "spu_id" field.</summary>
-    public const int SpuIdFieldNumber = 1;
-    private long spuId_;
-    [global::System.ObsoleteAttribute]
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public long SpuId {
-      get { return spuId_; }
-      set {
-        spuId_ = value;
-      }
     }
 
     /// <summary>Field number for the "spu_id_str" field.</summary>
@@ -154,7 +140,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (SpuId != other.SpuId) return false;
       if (SpuIdStr != other.SpuIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -163,7 +148,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (SpuId != 0L) hash ^= SpuId.GetHashCode();
       if (SpuIdStr.Length != 0) hash ^= SpuIdStr.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -183,10 +167,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (SpuId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(SpuId);
-      }
       if (SpuIdStr.Length != 0) {
         output.WriteRawTag(18);
         output.WriteString(SpuIdStr);
@@ -201,10 +181,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (SpuId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(SpuId);
-      }
       if (SpuIdStr.Length != 0) {
         output.WriteRawTag(18);
         output.WriteString(SpuIdStr);
@@ -219,9 +195,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (SpuId != 0L) {
-        size += 1 + pb::CodedOutputStream.ComputeInt64Size(SpuId);
-      }
       if (SpuIdStr.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(SpuIdStr);
       }
@@ -236,9 +209,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     public void MergeFrom(GetProductRatingRequest other) {
       if (other == null) {
         return;
-      }
-      if (other.SpuId != 0L) {
-        SpuId = other.SpuId;
       }
       if (other.SpuIdStr.Length != 0) {
         SpuIdStr = other.SpuIdStr;
@@ -262,10 +232,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 8: {
-            SpuId = input.ReadInt64();
-            break;
-          }
           case 18: {
             SpuIdStr = input.ReadString();
             break;
@@ -289,10 +255,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 8: {
-            SpuId = input.ReadInt64();
-            break;
-          }
           case 18: {
             SpuIdStr = input.ReadString();
             break;
@@ -339,7 +301,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ProductRating(ProductRating other) : this() {
-      spuId_ = other.spuId_;
       averageRating_ = other.averageRating_;
       totalCount_ = other.totalCount_;
       positiveCount_ = other.positiveCount_;
@@ -351,19 +312,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ProductRating Clone() {
       return new ProductRating(this);
-    }
-
-    /// <summary>Field number for the "spu_id" field.</summary>
-    public const int SpuIdFieldNumber = 1;
-    private long spuId_;
-    [global::System.ObsoleteAttribute]
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public long SpuId {
-      get { return spuId_; }
-      set {
-        spuId_ = value;
-      }
     }
 
     /// <summary>Field number for the "average_rating" field.</summary>
@@ -406,7 +354,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     public const int SpuIdStrFieldNumber = 5;
     private string spuIdStr_ = "";
     /// <summary>
-    /// Guid→string 迁移新增 string ID 字段
+    /// Guid→string 迁移权威字段（int64 双字段已删除，C3 2026-09-24）
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -432,7 +380,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (SpuId != other.SpuId) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.Equals(AverageRating, other.AverageRating)) return false;
       if (TotalCount != other.TotalCount) return false;
       if (PositiveCount != other.PositiveCount) return false;
@@ -444,7 +391,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (SpuId != 0L) hash ^= SpuId.GetHashCode();
       if (AverageRating != 0D) hash ^= pbc::ProtobufEqualityComparers.BitwiseDoubleEqualityComparer.GetHashCode(AverageRating);
       if (TotalCount != 0) hash ^= TotalCount.GetHashCode();
       if (PositiveCount != 0) hash ^= PositiveCount.GetHashCode();
@@ -467,10 +413,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (SpuId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(SpuId);
-      }
       if (AverageRating != 0D) {
         output.WriteRawTag(17);
         output.WriteDouble(AverageRating);
@@ -497,10 +439,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (SpuId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(SpuId);
-      }
       if (AverageRating != 0D) {
         output.WriteRawTag(17);
         output.WriteDouble(AverageRating);
@@ -527,9 +465,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (SpuId != 0L) {
-        size += 1 + pb::CodedOutputStream.ComputeInt64Size(SpuId);
-      }
       if (AverageRating != 0D) {
         size += 1 + 8;
       }
@@ -553,9 +488,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     public void MergeFrom(ProductRating other) {
       if (other == null) {
         return;
-      }
-      if (other.SpuId != 0L) {
-        SpuId = other.SpuId;
       }
       if (other.AverageRating != 0D) {
         AverageRating = other.AverageRating;
@@ -588,10 +520,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 8: {
-            SpuId = input.ReadInt64();
-            break;
-          }
           case 17: {
             AverageRating = input.ReadDouble();
             break;
@@ -627,10 +555,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 8: {
-            SpuId = input.ReadInt64();
-            break;
-          }
           case 17: {
             AverageRating = input.ReadDouble();
             break;
@@ -1075,7 +999,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public ReviewSummary(ReviewSummary other) : this() {
       reviewId_ = other.reviewId_;
-      spuId_ = other.spuId_;
       rating_ = other.rating_;
       content_ = other.content_;
       createdAt_ = other.createdAt_;
@@ -1098,19 +1021,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       get { return reviewId_; }
       set {
         reviewId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
-      }
-    }
-
-    /// <summary>Field number for the "spu_id" field.</summary>
-    public const int SpuIdFieldNumber = 2;
-    private long spuId_;
-    [global::System.ObsoleteAttribute]
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public long SpuId {
-      get { return spuId_; }
-      set {
-        spuId_ = value;
       }
     }
 
@@ -1154,7 +1064,7 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     public const int SpuIdStrFieldNumber = 6;
     private string spuIdStr_ = "";
     /// <summary>
-    /// Guid→string 迁移新增 string ID 字段
+    /// Guid→string 迁移权威字段
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -1181,7 +1091,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
         return true;
       }
       if (ReviewId != other.ReviewId) return false;
-      if (SpuId != other.SpuId) return false;
       if (Rating != other.Rating) return false;
       if (Content != other.Content) return false;
       if (CreatedAt != other.CreatedAt) return false;
@@ -1194,7 +1103,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
     public override int GetHashCode() {
       int hash = 1;
       if (ReviewId.Length != 0) hash ^= ReviewId.GetHashCode();
-      if (SpuId != 0L) hash ^= SpuId.GetHashCode();
       if (Rating != 0) hash ^= Rating.GetHashCode();
       if (Content.Length != 0) hash ^= Content.GetHashCode();
       if (CreatedAt.Length != 0) hash ^= CreatedAt.GetHashCode();
@@ -1220,10 +1128,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       if (ReviewId.Length != 0) {
         output.WriteRawTag(10);
         output.WriteString(ReviewId);
-      }
-      if (SpuId != 0L) {
-        output.WriteRawTag(16);
-        output.WriteInt64(SpuId);
       }
       if (Rating != 0) {
         output.WriteRawTag(24);
@@ -1255,10 +1159,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
         output.WriteRawTag(10);
         output.WriteString(ReviewId);
       }
-      if (SpuId != 0L) {
-        output.WriteRawTag(16);
-        output.WriteInt64(SpuId);
-      }
       if (Rating != 0) {
         output.WriteRawTag(24);
         output.WriteInt32(Rating);
@@ -1288,9 +1188,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       if (ReviewId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(ReviewId);
       }
-      if (SpuId != 0L) {
-        size += 1 + pb::CodedOutputStream.ComputeInt64Size(SpuId);
-      }
       if (Rating != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(Rating);
       }
@@ -1317,9 +1214,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
       }
       if (other.ReviewId.Length != 0) {
         ReviewId = other.ReviewId;
-      }
-      if (other.SpuId != 0L) {
-        SpuId = other.SpuId;
       }
       if (other.Rating != 0) {
         Rating = other.Rating;
@@ -1354,10 +1248,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
             break;
           case 10: {
             ReviewId = input.ReadString();
-            break;
-          }
-          case 16: {
-            SpuId = input.ReadInt64();
             break;
           }
           case 24: {
@@ -1397,10 +1287,6 @@ namespace Leno.SharedContracts.Grpc.Review.V1 {
             break;
           case 10: {
             ReviewId = input.ReadString();
-            break;
-          }
-          case 16: {
-            SpuId = input.ReadInt64();
             break;
           }
           case 24: {

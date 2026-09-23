@@ -18,5 +18,13 @@ lint:
 breaking:
   use:
     - FILE
+    # C3（2026-09-24）：FILE 类别不含 FIELD_NO_DELETE_UNLESS_*，需显式启用。
+    # 二者与下面 except 掉的 FIELD_NO_DELETE 组合后表达项目实际约定：
+    #   字段可以删除，但必须把编号与字段名 reserved（ADR-0005 §4"编号不复用"由此真正落地）。
+    - FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED
+    - FIELD_NO_DELETE_UNLESS_NAME_RESERVED
   except:
     - EXTENSION_NO_DELETE
+    # 无条件禁止删除与 ADR-0007"迁移完成后可删除 deprecated int64 字段"的收口设计冲突；
+    # 改用上面两条精确规则替代（实测：reserved 的删除放行、未 reserved 的删除仍被拦截）。
+    - FIELD_NO_DELETE

@@ -102,12 +102,12 @@ public class GrpcProductSnapshotBatchTests
         second.UnitPrice.Should().Be(50m);
         second.IsOnSale.Should().BeFalse();
 
-        // 验证请求同时填充 int64（向后兼容）+ string
+        // C3（2026-09-24）：int64 字段已从契约删除，请求仅填充 sku_ids_str
         clientMock.Verify(c => c.BatchGetSkuInfoAsync(
             It.Is<BatchGetSkuInfoRequest>(r =>
                 r.SkuIdsStr.Contains(skuId1.ToString()) &&
                 r.SkuIdsStr.Contains(skuId2.ToString()) &&
-                r.SkuIds.Count == 2),
+                r.SkuIdsStr.Count == 2),
             It.IsAny<Metadata>(),
             It.IsAny<DateTime?>(),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -154,19 +154,18 @@ public class GrpcProductSnapshotBatchTests
     }
 
     [Fact]
-    public async Task GetSkuSnapshotsAsync_StrFieldEmpty_FallbackToInt64StableMapping()
+    public async Task GetSkuSnapshotsAsync_StrFieldEmpty_ShouldSkipUnmatchedSku()
     {
+        // C3（2026-09-24）：int64 字段已从契约删除，无 int64 回退路径；
+        // 服务端未回填 sku_id_str 时该条目无法映射到请求的 Guid，按未命中跳过。
         var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
         var skuId = Guid.NewGuid();
 
-        // 旧服务端不返回 SkuIdStr，仅返回 int64（稳定算法：BitConverter.ToInt64(guid.ToByteArray(), 0)）
-        var stableInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
         var response = new BatchGetSkuInfoResponse();
         response.Skus.Add(new SkuInfo
         {
-            SkuId = stableInt64,
-            Title = "Legacy",
-            MainImage = "http://legacy",
+            Title = "NoStrId",
+            MainImage = "http://nostr",
             PriceCents = 999,
             Salable = true
         });
@@ -189,9 +188,7 @@ public class GrpcProductSnapshotBatchTests
 
         var result = await client.GetSkuSnapshotsAsync(new List<Guid> { skuId });
 
-        result.Should().HaveCount(1);
-        result.Single().SkuId.Should().Be(skuId);
-        result.Single().Title.Should().Be("Legacy");
+        result.Should().BeEmpty();
     }
 
     [Fact]

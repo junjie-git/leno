@@ -407,10 +407,25 @@ jobs:
       - name: buf lint
         working-directory: src/BuildingBlocks/Leno.SharedContracts
         run: buf lint
-      - name: buf breaking (against main)
+      - name: buf breaking (against PR base)
         working-directory: src/BuildingBlocks/Leno.SharedContracts
-        run: buf breaking --against "https://github.com/${{ github.repository }}.git#branch=main,subdir=src/BuildingBlocks/Leno.SharedContracts"
         if: github.event_name == 'pull_request'
+        run: |
+          BASE_BRANCH="${{ github.base_ref }}"
+          # 基线用本地 .git 引用（免一次全仓 clone）；actions/checkout 已 fetch-depth: 0，
+          # 这里再显式取一次基线分支，保证 origin/<base> 可解析。
+          git fetch --no-tags origin "$BASE_BRANCH"
+          # 基线分支可能尚无 proto 契约（如 main 上 Protos/ 目录整体尚未合并）——
+          # 此时不存在可对比的基线，显式跳过并输出 notice，而不是让 buf 报
+          # "Module had no .proto files" 变成一个恒红的假失败。
+          if ! git cat-file -e "origin/${BASE_BRANCH}:src/BuildingBlocks/Leno.SharedContracts/Protos/product.proto" 2>/dev/null; then
+            echo "::notice::基线分支 '$BASE_BRANCH' 尚无 src/BuildingBlocks/Leno.SharedContracts/Protos/ 契约，无对比基线，跳过 buf breaking；首个 proto 契约合并入基线后本检查自动生效"
+            exit 0
+          fi
+          # 注：--against 的 .git 路径按当前目录解析，必须用仓库根绝对路径（本步骤的
+          # working-directory 是子目录，写 ".git" 会被当成 ../BuildingBlocks/.../.git 而失败）。
+          REPO_ROOT="$(git rev-parse --show-toplevel)"
+          buf breaking --against "${REPO_ROOT}/.git#branch=origin/${BASE_BRANCH},subdir=src/BuildingBlocks/Leno.SharedContracts"
 
   generate-grpc-contracts:
     name: Verify gRPC C# Contracts (buf generate)

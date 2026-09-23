@@ -249,7 +249,10 @@ M4.2 引入 `/v1/` 前缀时采用双路由期策略，确保平滑迁移：
 
 - **未来 v2**：引入 v2 时保留 v1 服务（双发期 ≥ 4 周），客户端按批次迁移。
 - **URI 版本策略**：版本号体现在 URI 路径中（`/internal/v1/` vs `/internal/v2/`），不使用 Header 版本或 Query 参数版本，便于网关路由与监控统计。
-- **向后兼容**：v2 上线后 v1 必须保持向后兼容，禁止删除字段或修改字段类型。删除字段需先在 v1 标记 `deprecated`，v2 移除。
+- **向后兼容**：v2 上线后 v1 必须保持向后兼容，禁止修改字段类型。删除字段需先在 v1 标记 `deprecated`，
+  且迁移确认完成后删除时必须将编号与字段名 `reserved`（由 `buf breaking` 的
+  `FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED` / `FIELD_NO_DELETE_UNLESS_NAME_RESERVED` 强制）；
+  详见 ADR-0005 修订（2026-09-24）。
 
 ### 4.4 SchemaVersion 持久化
 
@@ -518,8 +521,8 @@ points.proto        review.proto          user.proto
 - `option csharp_namespace`：`Leno.SharedContracts.Grpc.{BC}.V1`。
 - 服务命名：`{BC}InternalService`（如 `ProductInternalService`，**非** Plan 期描述的 `XxxInternalQueryService`）。
 - 字段命名：`snake_case`，C# 自动生成 `PascalCase` 属性。
-- 字段扩展只能新增 `optional` 字段或新字段号，禁止修改或删除（保证 wire 兼容，buf breaking 校验）。
-- POC 阶段 Guid 字段使用 `int64` 简化（通过 `GetHashCode()` 映射），生产化阶段需迁移为 `string`，迁移时通过新增 `string` 字段保持向后兼容。
+- 字段扩展优先新增字段（新字段号）；允许删除废弃字段，但必须同时 `reserved <编号>;` 与 `reserved "<字段名>";`。
+- Guid 标识字段统一为 `string`；POC 阶段的 `int64` 简化字段已于 C3（2026-09-24）删除并 `reserved`（见 ADR-0007 收口记录）。
 
 ### 9.5 DI 注册模式
 

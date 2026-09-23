@@ -28,28 +28,27 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
             "bmFwc2hvdFJlcXVlc3QSFwoHdXNlcl9pZBgBIAEoCVIGdXNlcklkInYKDENh",
             "cnRTbmFwc2hvdBIXCgdjYXJ0X2lkGAEgASgJUgZjYXJ0SWQSLAoFaXRlbXMY",
             "AiADKAsyFi5sZW5vLmNhcnQudjEuQ2FydEl0ZW1SBWl0ZW1zEh8KC3RvdGFs",
-            "X2NlbnRzGAMgASgDUgp0b3RhbENlbnRzIokBCghDYXJ0SXRlbRIZCgZza3Vf",
-            "aWQYASABKANCAhgBUgVza3VJZBIaCghxdWFudGl0eRgCIAEoBVIIcXVhbnRp",
-            "dHkSKAoQdW5pdF9wcmljZV9jZW50cxgDIAEoA1IOdW5pdFByaWNlQ2VudHMS",
-            "HAoKc2t1X2lkX3N0chgEIAEoCVIIc2t1SWRTdHIiYgoZR2V0Q2hlY2tvdXRQ",
-            "cmV2aWV3UmVxdWVzdBIXCgd1c2VyX2lkGAEgASgJUgZ1c2VySWQSLAoFaXRl",
-            "bXMYAiADKAsyFi5sZW5vLmNhcnQudjEuQ2FydEl0ZW1SBWl0ZW1zIqcBCg9D",
-            "aGVja291dFByZXZpZXcSJQoOc3VidG90YWxfY2VudHMYASABKANSDXN1YnRv",
-            "dGFsQ2VudHMSJQoOZGlzY291bnRfY2VudHMYAiABKANSDWRpc2NvdW50Q2Vu",
-            "dHMSJQoOc2hpcHBpbmdfY2VudHMYAyABKANSDXNoaXBwaW5nQ2VudHMSHwoL",
-            "dG90YWxfY2VudHMYBCABKANSCnRvdGFsQ2VudHMyyAEKE0NhcnRJbnRlcm5h",
-            "bFNlcnZpY2USUwoPR2V0Q2FydFNuYXBzaG90EiQubGVuby5jYXJ0LnYxLkdl",
-            "dENhcnRTbmFwc2hvdFJlcXVlc3QaGi5sZW5vLmNhcnQudjEuQ2FydFNuYXBz",
-            "aG90ElwKEkdldENoZWNrb3V0UHJldmlldxInLmxlbm8uY2FydC52MS5HZXRD",
-            "aGVja291dFByZXZpZXdSZXF1ZXN0Gh0ubGVuby5jYXJ0LnYxLkNoZWNrb3V0",
-            "UHJldmlld0IkqgIhTGVuby5TaGFyZWRDb250cmFjdHMuR3JwYy5DYXJ0LlYx",
-            "YgZwcm90bzM="));
+            "X2NlbnRzGAMgASgDUgp0b3RhbENlbnRzInwKCENhcnRJdGVtEhoKCHF1YW50",
+            "aXR5GAIgASgFUghxdWFudGl0eRIoChB1bml0X3ByaWNlX2NlbnRzGAMgASgD",
+            "Ug51bml0UHJpY2VDZW50cxIcCgpza3VfaWRfc3RyGAQgASgJUghza3VJZFN0",
+            "ckoECAEQAlIGc2t1X2lkImIKGUdldENoZWNrb3V0UHJldmlld1JlcXVlc3QS",
+            "FwoHdXNlcl9pZBgBIAEoCVIGdXNlcklkEiwKBWl0ZW1zGAIgAygLMhYubGVu",
+            "by5jYXJ0LnYxLkNhcnRJdGVtUgVpdGVtcyKnAQoPQ2hlY2tvdXRQcmV2aWV3",
+            "EiUKDnN1YnRvdGFsX2NlbnRzGAEgASgDUg1zdWJ0b3RhbENlbnRzEiUKDmRp",
+            "c2NvdW50X2NlbnRzGAIgASgDUg1kaXNjb3VudENlbnRzEiUKDnNoaXBwaW5n",
+            "X2NlbnRzGAMgASgDUg1zaGlwcGluZ0NlbnRzEh8KC3RvdGFsX2NlbnRzGAQg",
+            "ASgDUgp0b3RhbENlbnRzMsgBChNDYXJ0SW50ZXJuYWxTZXJ2aWNlElMKD0dl",
+            "dENhcnRTbmFwc2hvdBIkLmxlbm8uY2FydC52MS5HZXRDYXJ0U25hcHNob3RS",
+            "ZXF1ZXN0GhoubGVuby5jYXJ0LnYxLkNhcnRTbmFwc2hvdBJcChJHZXRDaGVj",
+            "a291dFByZXZpZXcSJy5sZW5vLmNhcnQudjEuR2V0Q2hlY2tvdXRQcmV2aWV3",
+            "UmVxdWVzdBodLmxlbm8uY2FydC52MS5DaGVja291dFByZXZpZXdCJKoCIUxl",
+            "bm8uU2hhcmVkQ29udHJhY3RzLkdycGMuQ2FydC5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Cart.V1.GetCartSnapshotRequest), global::Leno.SharedContracts.Grpc.Cart.V1.GetCartSnapshotRequest.Parser, new[]{ "UserId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Cart.V1.CartSnapshot), global::Leno.SharedContracts.Grpc.Cart.V1.CartSnapshot.Parser, new[]{ "CartId", "Items", "TotalCents" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Cart.V1.CartItem), global::Leno.SharedContracts.Grpc.Cart.V1.CartItem.Parser, new[]{ "SkuId", "Quantity", "UnitPriceCents", "SkuIdStr" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Cart.V1.CartItem), global::Leno.SharedContracts.Grpc.Cart.V1.CartItem.Parser, new[]{ "Quantity", "UnitPriceCents", "SkuIdStr" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Cart.V1.GetCheckoutPreviewRequest), global::Leno.SharedContracts.Grpc.Cart.V1.GetCheckoutPreviewRequest.Parser, new[]{ "UserId", "Items" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Cart.V1.CheckoutPreview), global::Leno.SharedContracts.Grpc.Cart.V1.CheckoutPreview.Parser, new[]{ "SubtotalCents", "DiscountCents", "ShippingCents", "TotalCents" }, null, null, null, null)
           }));
@@ -552,7 +551,6 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public CartItem(CartItem other) : this() {
-      skuId_ = other.skuId_;
       quantity_ = other.quantity_;
       unitPriceCents_ = other.unitPriceCents_;
       skuIdStr_ = other.skuIdStr_;
@@ -563,19 +561,6 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public CartItem Clone() {
       return new CartItem(this);
-    }
-
-    /// <summary>Field number for the "sku_id" field.</summary>
-    public const int SkuIdFieldNumber = 1;
-    private long skuId_;
-    [global::System.ObsoleteAttribute]
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public long SkuId {
-      get { return skuId_; }
-      set {
-        skuId_ = value;
-      }
     }
 
     /// <summary>Field number for the "quantity" field.</summary>
@@ -606,7 +591,7 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     public const int SkuIdStrFieldNumber = 4;
     private string skuIdStr_ = "";
     /// <summary>
-    /// Guid→string 迁移新增 string ID 字段
+    /// Guid→string 迁移权威字段（int64 双字段已删除，C3 2026-09-24）
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -632,7 +617,6 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (SkuId != other.SkuId) return false;
       if (Quantity != other.Quantity) return false;
       if (UnitPriceCents != other.UnitPriceCents) return false;
       if (SkuIdStr != other.SkuIdStr) return false;
@@ -643,7 +627,6 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (SkuId != 0L) hash ^= SkuId.GetHashCode();
       if (Quantity != 0) hash ^= Quantity.GetHashCode();
       if (UnitPriceCents != 0L) hash ^= UnitPriceCents.GetHashCode();
       if (SkuIdStr.Length != 0) hash ^= SkuIdStr.GetHashCode();
@@ -665,10 +648,6 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (SkuId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(SkuId);
-      }
       if (Quantity != 0) {
         output.WriteRawTag(16);
         output.WriteInt32(Quantity);
@@ -691,10 +670,6 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (SkuId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(SkuId);
-      }
       if (Quantity != 0) {
         output.WriteRawTag(16);
         output.WriteInt32(Quantity);
@@ -717,9 +692,6 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (SkuId != 0L) {
-        size += 1 + pb::CodedOutputStream.ComputeInt64Size(SkuId);
-      }
       if (Quantity != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(Quantity);
       }
@@ -740,9 +712,6 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
     public void MergeFrom(CartItem other) {
       if (other == null) {
         return;
-      }
-      if (other.SkuId != 0L) {
-        SkuId = other.SkuId;
       }
       if (other.Quantity != 0) {
         Quantity = other.Quantity;
@@ -772,10 +741,6 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 8: {
-            SkuId = input.ReadInt64();
-            break;
-          }
           case 16: {
             Quantity = input.ReadInt32();
             break;
@@ -807,10 +772,6 @@ namespace Leno.SharedContracts.Grpc.Cart.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 8: {
-            SkuId = input.ReadInt64();
-            break;
-          }
           case 16: {
             Quantity = input.ReadInt32();
             break;

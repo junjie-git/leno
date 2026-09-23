@@ -46,19 +46,10 @@ public sealed class SellerGrpcService : SellerInternalService.SellerInternalServ
     public override async Task<ShopInfo> GetShopInfo(
         GetShopInfoRequest request, ServerCallContext context)
     {
-        // 优先读 string 字段（Guid.ToString()），回退到 int64（向后兼容旧客户端）
-        Guid shopId;
-        if (!string.IsNullOrEmpty(request.ShopIdStr))
+        // C3（2026-09-24）：int64 兼容字段已从契约删除，shop_id_str 为唯一标识形态
+        if (!Guid.TryParse(request.ShopIdStr, out var shopId))
         {
-            if (!Guid.TryParse(request.ShopIdStr, out shopId))
-            {
-                throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid shop_id_str: {request.ShopIdStr}"));
-            }
-        }
-        else
-        {
-            // 旧客户端回退：将 int64 嵌入 Guid 前 4 字节，其余补零
-            shopId = new Guid((int)request.ShopId, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Invalid or missing shop_id_str: {request.ShopIdStr}"));
         }
 
         var dto = await _queryService.GetShopInfoAsync(shopId, context.CancellationToken)
@@ -66,7 +57,7 @@ public sealed class SellerGrpcService : SellerInternalService.SellerInternalServ
 
         if (dto is null)
         {
-            throw new RpcException(new Status(StatusCode.NotFound, $"Shop {request.ShopId} not found"));
+            throw new RpcException(new Status(StatusCode.NotFound, $"Shop {request.ShopIdStr} not found"));
         }
 
         return MapToProto(dto);
@@ -95,20 +86,15 @@ public sealed class SellerGrpcService : SellerInternalService.SellerInternalServ
         SellerId = dto.SellerId.ToString(),
         Name = dto.Name,
         Status = dto.Status,
-        // deprecated：int64 字段保留固定值 0，不再使用 Guid.GetHashCode() 不可逆映射（存在哈希冲突且不可逆）
-        ShopId = 0L,
-        // 新增 string 字段（Guid→string 迁移，新客户端优先读 shop_id_str）
+        // Guid→string 迁移权威字段（C3 后 int64 字段已从契约删除）
         ShopIdStr = dto.ShopId.ToString()
     };
 
     private static ShopInfo MapToProto(ShopInfoDto dto) => new()
     {
-        // deprecated：int64 字段保留固定值 0，不再使用 GetHashCode
-        ShopId = 0L,
         Name = dto.Name,
         Status = dto.Status,
         SellerId = dto.SellerId.ToString(),
-        // string 字段（Guid→string 迁移，新客户端优先读）
         ShopIdStr = dto.ShopId.ToString()
     };
 }

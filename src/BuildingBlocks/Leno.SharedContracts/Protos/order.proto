@@ -35,13 +35,14 @@ message OrderDetail {
   repeated OrderItem items = 5;
 }
 message OrderItem {
-  int64 sku_id = 1 [deprecated = true];
+  reserved 1;
+  reserved "sku_id";
   int32 quantity = 2;
   int64 unit_price_cents = 3;
   // M4 双轨方案新增字段
   optional string sku_name = 4;
   optional int64 sub_total_cents = 5;
-  // Guid→string 迁移新增 string ID 字段
+  // Guid→string 迁移权威字段（int64 双字段已删除，C3 2026-09-24）
   string sku_id_str = 6;
   // 合并审计 3.5：补全 order_line_id 与 spu_id 字段，避免静默 Guid.Empty
   optional string order_line_id = 7;
@@ -63,12 +64,14 @@ message OrderSummary {
   string created_at = 4;
 }
 message GetOrderSellerIdRequest {
-  int64 order_id = 1 [deprecated = true];
+  reserved 1;
+  reserved "order_id";
   string order_id_str = 2;
 }
 
 message GetOrderSellerIdResponse {
-  int64 seller_id = 1 [deprecated = true];
+  reserved 1;
+  reserved "seller_id";
   string seller_id_str = 2;
 }
 

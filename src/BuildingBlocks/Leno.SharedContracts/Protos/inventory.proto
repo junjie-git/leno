@@ -14,7 +14,9 @@ service InventoryInternalService {
 message ReserveStockItem {
   string sku_id = 1;
   int32 quantity = 2;
-  int64 seller_id = 3;
+  // C3（2026-09-24）：seller_id 无消费方（台账不依赖卖家），已删除并 reserved 编号
+  reserved 3;
+  reserved "seller_id";
 }
 
 message ReserveStockRequest {

@@ -1111,11 +1111,11 @@ message CartSnapshot {
   int64 total_cents = 3;
 }
 message CartItem {
-  int64 sku_id = 1 [deprecated = true];
+  reserved 1;              // C3（2026-09-24）：int64 sku_id 已删除，编号与名 reserved 防复用
+  reserved "sku_id";
   int32 quantity = 2;
   int64 unit_price_cents = 3;
-  // Guid→string 迁移新增 string ID 字段
-  string sku_id_str = 4;
+  string sku_id_str = 4;   // 唯一标识形态（Guid.ToString()）
 }
 message GetCheckoutPreviewRequest {
   string user_id = 1;
@@ -1136,8 +1136,8 @@ message CheckoutPreview {
 - **`option csharp_namespace`**：生成 C# 代码的命名空间 `Leno.SharedContracts.Grpc.{BC}.V1`；
 - **service 命名**：`{BC}InternalService`（如 `CartInternalService`），自动生成的 C# base 类是 `CartInternalService.CartInternalServiceBase`；
 - **字段命名**：`snake_case`，C# 自动生成 `PascalCase` 属性；
-- **字段扩展**：只能新增 `optional` 字段或新字段号，禁止修改或删除（保证 wire 兼容，buf breaking 校验）；
-- **Guid 迁移**：POC 阶段用 `int64` 简化（通过 `GetHashCode()` 映射），生产化阶段需迁移为 `string`，迁移时通过新增 `string` 字段保持向后兼容（如 `sku_id` int64 [deprecated] + `sku_id_str` string 双写）。
+- **字段扩展**：优先新增字段（新字段号）。**允许删除废弃字段，但必须同时 `reserved <编号>;` 与 `reserved "<字段名>";`**——`buf breaking` 以 `FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED` / `FIELD_NO_DELETE_UNLESS_NAME_RESERVED` 强制这一点（详见 ADR-0005 修订）；
+- **标识字段**：统一 `string`（承载 `Guid.ToString()`），字段名形如 `sku_id_str` / `spu_id_str` / `shop_id_str`。int64 双形态已在 C3（2026-09-24）收口删除，**不再有 int64 ID 字段与回退分支**（详见 ADR-0007 收口记录）。
 
 ### 为何需要 gRPC
 
@@ -2729,7 +2729,7 @@ sequenceDiagram
 - **熔断器三状态机**：`Closed`（正常）→ 3 次失败 → `Open`（30 秒拒绝）→ `HalfOpen`（放 1 次探测）→ 2 次成功 → `Closed`。`KeyedSingleton` 按 service name 隔离，避免跨服务影响。`IsGrpcUnavailable` 仅对 4 个基础设施状态码触发降级，业务错误不降级。
 - **Internal API 12 条端点**：7 个 BC 暴露 12 条 `/internal/v1/*` 路由，`X-Internal-Key` 头鉴权（目标 BC 的 key，不是调用方的）。`InternalApiKeyMiddleware` 用 `FixedTimeEquals` 防时序攻击，生产环境 fail-closed。gRPC 路径由 `GrpcInternalKeyInterceptor` 拦截器统一鉴权。
 - **gRPC 服务端模板**：继承 `.proto` 生成的 `XxxInternalServiceBase`，`[Authorize]` 特性 + 构造函数注入 `IXxxInternalQueryService` 复用业务逻辑。`Program.cs` 在 `UseGrpc=true` 时 `MapGrpcService<T>()`，Kestrel 端口复用 HTTP/1.1+HTTP/2。单元测试用 `TestServerCallContext` + Moq，覆盖成功/NotFound/InvalidArgument 三类场景。
-- **Guid→string 迁移**：`.proto` 旧 `int64` 字段标 `[deprecated = true]`，新增 `xxx_str` string 字段双写。服务端同时填充两个字段，新客户端读 string 字段，旧客户端继续读 int64，保证向后兼容。
+- **Guid→string 迁移（已完成，C3 2026-09-24）**：`.proto` 标识字段统一为 `string`；int64 双字段与"双写 + 回退读 int64"代码均已删除，淘汰编号/名以 `reserved` 占位。
 
 ## 常见问题
 
@@ -2751,8 +2751,8 @@ A：Leno M5.2 落地 11 BC 独立 InternalApiKey，每个 BC 在 Consul KV 维�
 **Q6：`OutboxPublisher` 的 `BatchSize=50` 和 `MaxDegreeOfParallelism=4` 怎么调优？**
 A：`BatchSize` 是单次轮询拉取的消息数，`DOP` 是并行发布数。默认 50×4 适合中等流量 BC（如 Order/Payment）。高流量 BC（如 Product 上下架）可调到 100×8，但要注意 RabbitMQ 与数据库的连接池上限（默认连接池 100）。低流量 BC（如 SellerShop）保持默认即可。`PendingAlertThreshold=100` 是积压告警阈值，超过则触发 `outbox_pending_count` 指标告警，运维据此扩容 worker 或排查下游消费阻塞。
 
-**Q7：`.proto` 文件为什么用 `int64` + `string` 双写字段，不直接改成 `string`？**
-A：Protobuf 字段编号一旦发布就不能改（wire compatibility）。旧客户端按字段编号 1 读 `int64 sku_id`，如果直接改成 `string`，旧客户端反序列化会失败（类型不匹配）。新增字段编号 13（`string sku_id_str`）后，旧客户端读字段 1 忽略字段 13，新客户端优先读字段 13。旧字段标 `[deprecated = true]` 只是编译器警告，wire 上仍保留。这是 Protobuf 向后兼容的标准做法，配合 `buf breaking` 校验确保不破坏旧契约。
+**Q7：`.proto` 的标识字段为什么是 `sku_id_str` 这种带 `_str` 后缀的名字？**
+A：这是 Guid→string 迁移留下的命名。迁移期采用"原 `int64 sku_id` + 新增 `string sku_id_str`"双字段方案，`_str` 用来区分两者。C3（2026-09-24）收口后 `int64` 字段已删除并把编号与名 `reserved`，`_str` 就是当前的唯一权威名——**不重命名为 `sku_id`**，因为改名本身是一次新的 breaking（`FIELD_SAME_NAME`），且会造成 8 个服务与全部测试的属性名 churn，收益仅为命名美观。曾用 `[deprecated = true]` 的字段现已物理删除，任何再触碰都会编译失败（CS0612 归零）。
 
 ## 下一章衔接
 

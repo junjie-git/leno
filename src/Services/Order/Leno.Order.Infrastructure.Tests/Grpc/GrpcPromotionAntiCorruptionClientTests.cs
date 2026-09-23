@@ -97,12 +97,11 @@ public class GrpcPromotionAntiCorruptionClientTests
     }
 
     [Fact]
-    public async Task CalculateDiscount_Request_ShouldUseStableInt64_NotGetHashCode()
+    public async Task CalculateDiscount_Request_ShouldCarryStringSkuIdStrOnly()
     {
-        // 验证请求 OrderItem.sku_id 字段使用稳定算法（BitConverter.ToInt64），而非 GetHashCode（32 位碰撞率高）
+        // C3（2026-09-24）：int64 兼容字段已从契约删除，请求仅携带 sku_id_str（GuidProtoConverter，D 格式）
         var clientMock = new Mock<PromotionInternalService.PromotionInternalServiceClient>();
         var skuId = Guid.Parse("abcdef01-2345-6789-abcd-ef0123456789");
-        var expectedInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
 
         var response = new CalculateDiscountResponse { DiscountCents = 500 };
 
@@ -127,10 +126,6 @@ public class GrpcPromotionAntiCorruptionClientTests
 
         capturedRequest.Should().NotBeNull();
         capturedRequest!.Items.Should().ContainSingle();
-        capturedRequest.Items[0].SkuId.Should().Be(expectedInt64);
-        // 确保不再使用 GetHashCode（32 位碰撞率高）
-        capturedRequest.Items[0].SkuId.Should().NotBe((long)skuId.GetHashCode());
-        // 验证 string 字段使用 GuidProtoConverter.ToString（D 格式）
         capturedRequest.Items[0].SkuIdStr.Should().Be(GuidProtoConverter.ToString(skuId));
     }
 }

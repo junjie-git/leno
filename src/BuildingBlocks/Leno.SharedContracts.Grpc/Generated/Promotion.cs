@@ -27,39 +27,39 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
             "ChZQcm90b3MvcHJvbW90aW9uLnByb3RvEhFsZW5vLnByb21vdGlvbi52MSJn",
             "ChhDYWxjdWxhdGVEaXNjb3VudFJlcXVlc3QSFwoHdXNlcl9pZBgBIAEoCVIG",
             "dXNlcklkEjIKBWl0ZW1zGAIgAygLMhwubGVuby5wcm9tb3Rpb24udjEuT3Jk",
-            "ZXJJdGVtUgVpdGVtcyJrCglPcmRlckl0ZW0SGQoGc2t1X2lkGAEgASgDQgIY",
-            "AVIFc2t1SWQSJQoOc3VidG90YWxfY2VudHMYAiABKANSDXN1YnRvdGFsQ2Vu",
-            "dHMSHAoKc2t1X2lkX3N0chgDIAEoCVIIc2t1SWRTdHIifgoZQ2FsY3VsYXRl",
-            "RGlzY291bnRSZXNwb25zZRIlCg5kaXNjb3VudF9jZW50cxgBIAEoA1INZGlz",
-            "Y291bnRDZW50cxI6Cgdjb3Vwb25zGAIgAygLMiAubGVuby5wcm9tb3Rpb24u",
-            "djEuQXBwbGllZENvdXBvblIHY291cG9ucyJTCg1BcHBsaWVkQ291cG9uEhsK",
-            "CWNvdXBvbl9pZBgBIAEoCVIIY291cG9uSWQSJQoOZGlzY291bnRfY2VudHMY",
-            "AiABKANSDWRpc2NvdW50Q2VudHMiZAoRTG9ja0NvdXBvblJlcXVlc3QSFwoH",
-            "dXNlcl9pZBgBIAEoCVIGdXNlcklkEhsKCWNvdXBvbl9pZBgCIAEoCVIIY291",
-            "cG9uSWQSGQoIb3JkZXJfaWQYAyABKAlSB29yZGVySWQiLgoSTG9ja0NvdXBv",
-            "blJlc3BvbnNlEhgKB3N1Y2Nlc3MYASABKAhSB3N1Y2Nlc3MiMgoVUmVsZWFz",
-            "ZUNvdXBvbnNSZXF1ZXN0EhkKCG9yZGVyX2lkGAEgASgJUgdvcmRlcklkIjIK",
-            "FlJlbGVhc2VDb3Vwb25zUmVzcG9uc2USGAoHc3VjY2VzcxgBIAEoCFIHc3Vj",
-            "Y2VzcyIzChRHZXRDb3Vwb25JbmZvUmVxdWVzdBIbCgljb3Vwb25faWQYASAB",
-            "KAlSCGNvdXBvbklkIn4KCkNvdXBvbkluZm8SGwoJY291cG9uX2lkGAEgASgJ",
-            "Ughjb3Vwb25JZBIUCgV0aXRsZRgCIAEoCVIFdGl0bGUSJQoOZGlzY291bnRf",
-            "Y2VudHMYAyABKANSDWRpc2NvdW50Q2VudHMSFgoGc3RhdHVzGAQgASgJUgZz",
-            "dGF0dXMypQMKGFByb21vdGlvbkludGVybmFsU2VydmljZRJuChFDYWxjdWxh",
-            "dGVEaXNjb3VudBIrLmxlbm8ucHJvbW90aW9uLnYxLkNhbGN1bGF0ZURpc2Nv",
-            "dW50UmVxdWVzdBosLmxlbm8ucHJvbW90aW9uLnYxLkNhbGN1bGF0ZURpc2Nv",
-            "dW50UmVzcG9uc2USWQoKTG9ja0NvdXBvbhIkLmxlbm8ucHJvbW90aW9uLnYx",
-            "LkxvY2tDb3Vwb25SZXF1ZXN0GiUubGVuby5wcm9tb3Rpb24udjEuTG9ja0Nv",
-            "dXBvblJlc3BvbnNlEmUKDlJlbGVhc2VDb3Vwb25zEigubGVuby5wcm9tb3Rp",
-            "b24udjEuUmVsZWFzZUNvdXBvbnNSZXF1ZXN0GikubGVuby5wcm9tb3Rpb24u",
-            "djEuUmVsZWFzZUNvdXBvbnNSZXNwb25zZRJXCg1HZXRDb3Vwb25JbmZvEicu",
-            "bGVuby5wcm9tb3Rpb24udjEuR2V0Q291cG9uSW5mb1JlcXVlc3QaHS5sZW5v",
-            "LnByb21vdGlvbi52MS5Db3Vwb25JbmZvQimqAiZMZW5vLlNoYXJlZENvbnRy",
-            "YWN0cy5HcnBjLlByb21vdGlvbi5WMWIGcHJvdG8z"));
+            "ZXJJdGVtUgVpdGVtcyJeCglPcmRlckl0ZW0SJQoOc3VidG90YWxfY2VudHMY",
+            "AiABKANSDXN1YnRvdGFsQ2VudHMSHAoKc2t1X2lkX3N0chgDIAEoCVIIc2t1",
+            "SWRTdHJKBAgBEAJSBnNrdV9pZCJ+ChlDYWxjdWxhdGVEaXNjb3VudFJlc3Bv",
+            "bnNlEiUKDmRpc2NvdW50X2NlbnRzGAEgASgDUg1kaXNjb3VudENlbnRzEjoK",
+            "B2NvdXBvbnMYAiADKAsyIC5sZW5vLnByb21vdGlvbi52MS5BcHBsaWVkQ291",
+            "cG9uUgdjb3Vwb25zIlMKDUFwcGxpZWRDb3Vwb24SGwoJY291cG9uX2lkGAEg",
+            "ASgJUghjb3Vwb25JZBIlCg5kaXNjb3VudF9jZW50cxgCIAEoA1INZGlzY291",
+            "bnRDZW50cyJkChFMb2NrQ291cG9uUmVxdWVzdBIXCgd1c2VyX2lkGAEgASgJ",
+            "UgZ1c2VySWQSGwoJY291cG9uX2lkGAIgASgJUghjb3Vwb25JZBIZCghvcmRl",
+            "cl9pZBgDIAEoCVIHb3JkZXJJZCIuChJMb2NrQ291cG9uUmVzcG9uc2USGAoH",
+            "c3VjY2VzcxgBIAEoCFIHc3VjY2VzcyIyChVSZWxlYXNlQ291cG9uc1JlcXVl",
+            "c3QSGQoIb3JkZXJfaWQYASABKAlSB29yZGVySWQiMgoWUmVsZWFzZUNvdXBv",
+            "bnNSZXNwb25zZRIYCgdzdWNjZXNzGAEgASgIUgdzdWNjZXNzIjMKFEdldENv",
+            "dXBvbkluZm9SZXF1ZXN0EhsKCWNvdXBvbl9pZBgBIAEoCVIIY291cG9uSWQi",
+            "fgoKQ291cG9uSW5mbxIbCgljb3Vwb25faWQYASABKAlSCGNvdXBvbklkEhQK",
+            "BXRpdGxlGAIgASgJUgV0aXRsZRIlCg5kaXNjb3VudF9jZW50cxgDIAEoA1IN",
+            "ZGlzY291bnRDZW50cxIWCgZzdGF0dXMYBCABKAlSBnN0YXR1czKlAwoYUHJv",
+            "bW90aW9uSW50ZXJuYWxTZXJ2aWNlEm4KEUNhbGN1bGF0ZURpc2NvdW50Eisu",
+            "bGVuby5wcm9tb3Rpb24udjEuQ2FsY3VsYXRlRGlzY291bnRSZXF1ZXN0Giwu",
+            "bGVuby5wcm9tb3Rpb24udjEuQ2FsY3VsYXRlRGlzY291bnRSZXNwb25zZRJZ",
+            "CgpMb2NrQ291cG9uEiQubGVuby5wcm9tb3Rpb24udjEuTG9ja0NvdXBvblJl",
+            "cXVlc3QaJS5sZW5vLnByb21vdGlvbi52MS5Mb2NrQ291cG9uUmVzcG9uc2US",
+            "ZQoOUmVsZWFzZUNvdXBvbnMSKC5sZW5vLnByb21vdGlvbi52MS5SZWxlYXNl",
+            "Q291cG9uc1JlcXVlc3QaKS5sZW5vLnByb21vdGlvbi52MS5SZWxlYXNlQ291",
+            "cG9uc1Jlc3BvbnNlElcKDUdldENvdXBvbkluZm8SJy5sZW5vLnByb21vdGlv",
+            "bi52MS5HZXRDb3Vwb25JbmZvUmVxdWVzdBodLmxlbm8ucHJvbW90aW9uLnYx",
+            "LkNvdXBvbkluZm9CKaoCJkxlbm8uU2hhcmVkQ29udHJhY3RzLkdycGMuUHJv",
+            "bW90aW9uLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Promotion.V1.CalculateDiscountRequest), global::Leno.SharedContracts.Grpc.Promotion.V1.CalculateDiscountRequest.Parser, new[]{ "UserId", "Items" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Promotion.V1.OrderItem), global::Leno.SharedContracts.Grpc.Promotion.V1.OrderItem.Parser, new[]{ "SkuId", "SubtotalCents", "SkuIdStr" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Promotion.V1.OrderItem), global::Leno.SharedContracts.Grpc.Promotion.V1.OrderItem.Parser, new[]{ "SubtotalCents", "SkuIdStr" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Promotion.V1.CalculateDiscountResponse), global::Leno.SharedContracts.Grpc.Promotion.V1.CalculateDiscountResponse.Parser, new[]{ "DiscountCents", "Coupons" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Promotion.V1.AppliedCoupon), global::Leno.SharedContracts.Grpc.Promotion.V1.AppliedCoupon.Parser, new[]{ "CouponId", "DiscountCents" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Promotion.V1.LockCouponRequest), global::Leno.SharedContracts.Grpc.Promotion.V1.LockCouponRequest.Parser, new[]{ "UserId", "CouponId", "OrderId" }, null, null, null, null),
@@ -333,7 +333,6 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public OrderItem(OrderItem other) : this() {
-      skuId_ = other.skuId_;
       subtotalCents_ = other.subtotalCents_;
       skuIdStr_ = other.skuIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
@@ -343,19 +342,6 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public OrderItem Clone() {
       return new OrderItem(this);
-    }
-
-    /// <summary>Field number for the "sku_id" field.</summary>
-    public const int SkuIdFieldNumber = 1;
-    private long skuId_;
-    [global::System.ObsoleteAttribute]
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public long SkuId {
-      get { return skuId_; }
-      set {
-        skuId_ = value;
-      }
     }
 
     /// <summary>Field number for the "subtotal_cents" field.</summary>
@@ -374,7 +360,7 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     public const int SkuIdStrFieldNumber = 3;
     private string skuIdStr_ = "";
     /// <summary>
-    /// Guid→string 迁移新增 string ID 字段
+    /// Guid→string 迁移权威字段（int64 双字段已删除，C3 2026-09-24）
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -400,7 +386,6 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (SkuId != other.SkuId) return false;
       if (SubtotalCents != other.SubtotalCents) return false;
       if (SkuIdStr != other.SkuIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
@@ -410,7 +395,6 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (SkuId != 0L) hash ^= SkuId.GetHashCode();
       if (SubtotalCents != 0L) hash ^= SubtotalCents.GetHashCode();
       if (SkuIdStr.Length != 0) hash ^= SkuIdStr.GetHashCode();
       if (_unknownFields != null) {
@@ -431,10 +415,6 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (SkuId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(SkuId);
-      }
       if (SubtotalCents != 0L) {
         output.WriteRawTag(16);
         output.WriteInt64(SubtotalCents);
@@ -453,10 +433,6 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (SkuId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(SkuId);
-      }
       if (SubtotalCents != 0L) {
         output.WriteRawTag(16);
         output.WriteInt64(SubtotalCents);
@@ -475,9 +451,6 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (SkuId != 0L) {
-        size += 1 + pb::CodedOutputStream.ComputeInt64Size(SkuId);
-      }
       if (SubtotalCents != 0L) {
         size += 1 + pb::CodedOutputStream.ComputeInt64Size(SubtotalCents);
       }
@@ -495,9 +468,6 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
     public void MergeFrom(OrderItem other) {
       if (other == null) {
         return;
-      }
-      if (other.SkuId != 0L) {
-        SkuId = other.SkuId;
       }
       if (other.SubtotalCents != 0L) {
         SubtotalCents = other.SubtotalCents;
@@ -524,10 +494,6 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 8: {
-            SkuId = input.ReadInt64();
-            break;
-          }
           case 16: {
             SubtotalCents = input.ReadInt64();
             break;
@@ -555,10 +521,6 @@ namespace Leno.SharedContracts.Grpc.Promotion.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 8: {
-            SkuId = input.ReadInt64();
-            break;
-          }
           case 16: {
             SubtotalCents = input.ReadInt64();
             break;

@@ -9,26 +9,29 @@ service ReviewInternalService {
 }
 
 message GetProductRatingRequest {
-  int64 spu_id = 1 [deprecated = true];
+  reserved 1;
+  reserved "spu_id";
   string spu_id_str = 2;
 }
 message ProductRating {
-  int64 spu_id = 1 [deprecated = true];
+  reserved 1;
+  reserved "spu_id";
   double average_rating = 2;
   int32 total_count = 3;
   int32 positive_count = 4;
-  // Guid→string 迁移新增 string ID 字段
+  // Guid→string 迁移权威字段（int64 双字段已删除，C3 2026-09-24）
   string spu_id_str = 5;
 }
 message GetOrderReviewsRequest { string order_id = 1; }
 message OrderReviews { repeated ReviewSummary reviews = 1; }
 message ReviewSummary {
   string review_id = 1;
-  int64 spu_id = 2 [deprecated = true];
+  reserved 2;
+  reserved "spu_id";
   int32 rating = 3;
   string content = 4;
   string created_at = 5;
-  // Guid→string 迁移新增 string ID 字段
+  // Guid→string 迁移权威字段
   string spu_id_str = 6;
 }
 message GetShopReviewStatisticsRequest {

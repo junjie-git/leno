@@ -40,48 +40,47 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
             "ZXJJZCKqAQoLT3JkZXJEZXRhaWwSGQoIb3JkZXJfaWQYASABKAlSB29yZGVy",
             "SWQSFwoHdXNlcl9pZBgCIAEoCVIGdXNlcklkEh8KC3RvdGFsX2NlbnRzGAMg",
             "ASgDUgp0b3RhbENlbnRzEhYKBnN0YXR1cxgEIAEoCVIGc3RhdHVzEi4KBWl0",
-            "ZW1zGAUgAygLMhgubGVuby5vcmRlci52MS5PcmRlckl0ZW1SBWl0ZW1zItoC",
-            "CglPcmRlckl0ZW0SGQoGc2t1X2lkGAEgASgDQgIYAVIFc2t1SWQSGgoIcXVh",
-            "bnRpdHkYAiABKAVSCHF1YW50aXR5EigKEHVuaXRfcHJpY2VfY2VudHMYAyAB",
-            "KANSDnVuaXRQcmljZUNlbnRzEh4KCHNrdV9uYW1lGAQgASgJSABSB3NrdU5h",
-            "bWWIAQESKwoPc3ViX3RvdGFsX2NlbnRzGAUgASgDSAFSDXN1YlRvdGFsQ2Vu",
-            "dHOIAQESHAoKc2t1X2lkX3N0chgGIAEoCVIIc2t1SWRTdHISJwoNb3JkZXJf",
-            "bGluZV9pZBgHIAEoCUgCUgtvcmRlckxpbmVJZIgBARIaCgZzcHVfaWQYCCAB",
-            "KAlIA1IFc3B1SWSIAQFCCwoJX3NrdV9uYW1lQhIKEF9zdWJfdG90YWxfY2Vu",
-            "dHNCEAoOX29yZGVyX2xpbmVfaWRCCQoHX3NwdV9pZCJmChZHZXRTZWxsZXJP",
-            "cmRlcnNSZXF1ZXN0EhsKCXNlbGxlcl9pZBgBIAEoCVIIc2VsbGVySWQSEgoE",
-            "cGFnZRgCIAEoBVIEcGFnZRIbCglwYWdlX3NpemUYAyABKAVSCHBhZ2VTaXpl",
-            "IlkKDFNlbGxlck9yZGVycxIzCgZvcmRlcnMYASADKAsyGy5sZW5vLm9yZGVy",
-            "LnYxLk9yZGVyU3VtbWFyeVIGb3JkZXJzEhQKBXRvdGFsGAIgASgFUgV0b3Rh",
-            "bCKBAQoMT3JkZXJTdW1tYXJ5EhkKCG9yZGVyX2lkGAEgASgJUgdvcmRlcklk",
-            "EhYKBnN0YXR1cxgCIAEoCVIGc3RhdHVzEh8KC3RvdGFsX2NlbnRzGAMgASgD",
-            "Ugp0b3RhbENlbnRzEh0KCmNyZWF0ZWRfYXQYBCABKAlSCWNyZWF0ZWRBdCJa",
-            "ChdHZXRPcmRlclNlbGxlcklkUmVxdWVzdBIdCghvcmRlcl9pZBgBIAEoA0IC",
-            "GAFSB29yZGVySWQSIAoMb3JkZXJfaWRfc3RyGAIgASgJUgpvcmRlcklkU3Ry",
-            "Il8KGEdldE9yZGVyU2VsbGVySWRSZXNwb25zZRIfCglzZWxsZXJfaWQYASAB",
-            "KANCAhgBUghzZWxsZXJJZBIiCg1zZWxsZXJfaWRfc3RyGAIgASgJUgtzZWxs",
-            "ZXJJZFN0ciJtChFFeHBvcnREYXRhUmVxdWVzdBIeCgtzaG9wX2lkX3N0chgB",
-            "IAEoCVIJc2hvcElkU3RyEh0KCnN0YXJ0X2RhdGUYAiABKAlSCXN0YXJ0RGF0",
-            "ZRIZCghlbmRfZGF0ZRgDIAEoCVIHZW5kRGF0ZSKMAQoNRXhwb3J0RGF0YVJv",
-            "dxJACgZ2YWx1ZXMYASADKAsyKC5sZW5vLm9yZGVyLnYxLkV4cG9ydERhdGFS",
-            "b3cuVmFsdWVzRW50cnlSBnZhbHVlcxo5CgtWYWx1ZXNFbnRyeRIQCgNrZXkY",
-            "ASABKAlSA2tleRIUCgV2YWx1ZRgCIAEoCVIFdmFsdWU6AjgBImAKEkV4cG9y",
-            "dERhdGFSZXNwb25zZRIYCgdoZWFkZXJzGAEgAygJUgdoZWFkZXJzEjAKBHJv",
-            "d3MYAiADKAsyHC5sZW5vLm9yZGVyLnYxLkV4cG9ydERhdGFSb3dSBHJvd3My",
-            "uwQKFE9yZGVySW50ZXJuYWxTZXJ2aWNlElIKDkdldE9yZGVyU3RhdHVzEiQu",
-            "bGVuby5vcmRlci52MS5HZXRPcmRlclN0YXR1c1JlcXVlc3QaGi5sZW5vLm9y",
-            "ZGVyLnYxLk9yZGVyU3RhdHVzElIKDkdldE9yZGVyRGV0YWlsEiQubGVuby5v",
-            "cmRlci52MS5HZXRPcmRlckRldGFpbFJlcXVlc3QaGi5sZW5vLm9yZGVyLnYx",
-            "Lk9yZGVyRGV0YWlsElUKD0dldFNlbGxlck9yZGVycxIlLmxlbm8ub3JkZXIu",
-            "djEuR2V0U2VsbGVyT3JkZXJzUmVxdWVzdBobLmxlbm8ub3JkZXIudjEuU2Vs",
-            "bGVyT3JkZXJzEmMKEEdldE9yZGVyU2VsbGVySWQSJi5sZW5vLm9yZGVyLnYx",
-            "LkdldE9yZGVyU2VsbGVySWRSZXF1ZXN0GicubGVuby5vcmRlci52MS5HZXRP",
-            "cmRlclNlbGxlcklkUmVzcG9uc2USXwoYR2V0U2FsZXNTdW1tYXJ5Rm9yRXhw",
-            "b3J0EiAubGVuby5vcmRlci52MS5FeHBvcnREYXRhUmVxdWVzdBohLmxlbm8u",
-            "b3JkZXIudjEuRXhwb3J0RGF0YVJlc3BvbnNlEl4KF0dldE9yZGVyRGV0YWls",
-            "Rm9yRXhwb3J0EiAubGVuby5vcmRlci52MS5FeHBvcnREYXRhUmVxdWVzdBoh",
-            "Lmxlbm8ub3JkZXIudjEuRXhwb3J0RGF0YVJlc3BvbnNlQiWqAiJMZW5vLlNo",
-            "YXJlZENvbnRyYWN0cy5HcnBjLk9yZGVyLlYxYgZwcm90bzM="));
+            "ZW1zGAUgAygLMhgubGVuby5vcmRlci52MS5PcmRlckl0ZW1SBWl0ZW1zIs0C",
+            "CglPcmRlckl0ZW0SGgoIcXVhbnRpdHkYAiABKAVSCHF1YW50aXR5EigKEHVu",
+            "aXRfcHJpY2VfY2VudHMYAyABKANSDnVuaXRQcmljZUNlbnRzEh4KCHNrdV9u",
+            "YW1lGAQgASgJSABSB3NrdU5hbWWIAQESKwoPc3ViX3RvdGFsX2NlbnRzGAUg",
+            "ASgDSAFSDXN1YlRvdGFsQ2VudHOIAQESHAoKc2t1X2lkX3N0chgGIAEoCVII",
+            "c2t1SWRTdHISJwoNb3JkZXJfbGluZV9pZBgHIAEoCUgCUgtvcmRlckxpbmVJ",
+            "ZIgBARIaCgZzcHVfaWQYCCABKAlIA1IFc3B1SWSIAQFCCwoJX3NrdV9uYW1l",
+            "QhIKEF9zdWJfdG90YWxfY2VudHNCEAoOX29yZGVyX2xpbmVfaWRCCQoHX3Nw",
+            "dV9pZEoECAEQAlIGc2t1X2lkImYKFkdldFNlbGxlck9yZGVyc1JlcXVlc3QS",
+            "GwoJc2VsbGVyX2lkGAEgASgJUghzZWxsZXJJZBISCgRwYWdlGAIgASgFUgRw",
+            "YWdlEhsKCXBhZ2Vfc2l6ZRgDIAEoBVIIcGFnZVNpemUiWQoMU2VsbGVyT3Jk",
+            "ZXJzEjMKBm9yZGVycxgBIAMoCzIbLmxlbm8ub3JkZXIudjEuT3JkZXJTdW1t",
+            "YXJ5UgZvcmRlcnMSFAoFdG90YWwYAiABKAVSBXRvdGFsIoEBCgxPcmRlclN1",
+            "bW1hcnkSGQoIb3JkZXJfaWQYASABKAlSB29yZGVySWQSFgoGc3RhdHVzGAIg",
+            "ASgJUgZzdGF0dXMSHwoLdG90YWxfY2VudHMYAyABKANSCnRvdGFsQ2VudHMS",
+            "HQoKY3JlYXRlZF9hdBgEIAEoCVIJY3JlYXRlZEF0IksKF0dldE9yZGVyU2Vs",
+            "bGVySWRSZXF1ZXN0EiAKDG9yZGVyX2lkX3N0chgCIAEoCVIKb3JkZXJJZFN0",
+            "ckoECAEQAlIIb3JkZXJfaWQiTwoYR2V0T3JkZXJTZWxsZXJJZFJlc3BvbnNl",
+            "EiIKDXNlbGxlcl9pZF9zdHIYAiABKAlSC3NlbGxlcklkU3RySgQIARACUglz",
+            "ZWxsZXJfaWQibQoRRXhwb3J0RGF0YVJlcXVlc3QSHgoLc2hvcF9pZF9zdHIY",
+            "ASABKAlSCXNob3BJZFN0chIdCgpzdGFydF9kYXRlGAIgASgJUglzdGFydERh",
+            "dGUSGQoIZW5kX2RhdGUYAyABKAlSB2VuZERhdGUijAEKDUV4cG9ydERhdGFS",
+            "b3cSQAoGdmFsdWVzGAEgAygLMigubGVuby5vcmRlci52MS5FeHBvcnREYXRh",
+            "Um93LlZhbHVlc0VudHJ5UgZ2YWx1ZXMaOQoLVmFsdWVzRW50cnkSEAoDa2V5",
+            "GAEgASgJUgNrZXkSFAoFdmFsdWUYAiABKAlSBXZhbHVlOgI4ASJgChJFeHBv",
+            "cnREYXRhUmVzcG9uc2USGAoHaGVhZGVycxgBIAMoCVIHaGVhZGVycxIwCgRy",
+            "b3dzGAIgAygLMhwubGVuby5vcmRlci52MS5FeHBvcnREYXRhUm93UgRyb3dz",
+            "MrsEChRPcmRlckludGVybmFsU2VydmljZRJSCg5HZXRPcmRlclN0YXR1cxIk",
+            "Lmxlbm8ub3JkZXIudjEuR2V0T3JkZXJTdGF0dXNSZXF1ZXN0GhoubGVuby5v",
+            "cmRlci52MS5PcmRlclN0YXR1cxJSCg5HZXRPcmRlckRldGFpbBIkLmxlbm8u",
+            "b3JkZXIudjEuR2V0T3JkZXJEZXRhaWxSZXF1ZXN0GhoubGVuby5vcmRlci52",
+            "MS5PcmRlckRldGFpbBJVCg9HZXRTZWxsZXJPcmRlcnMSJS5sZW5vLm9yZGVy",
+            "LnYxLkdldFNlbGxlck9yZGVyc1JlcXVlc3QaGy5sZW5vLm9yZGVyLnYxLlNl",
+            "bGxlck9yZGVycxJjChBHZXRPcmRlclNlbGxlcklkEiYubGVuby5vcmRlci52",
+            "MS5HZXRPcmRlclNlbGxlcklkUmVxdWVzdBonLmxlbm8ub3JkZXIudjEuR2V0",
+            "T3JkZXJTZWxsZXJJZFJlc3BvbnNlEl8KGEdldFNhbGVzU3VtbWFyeUZvckV4",
+            "cG9ydBIgLmxlbm8ub3JkZXIudjEuRXhwb3J0RGF0YVJlcXVlc3QaIS5sZW5v",
+            "Lm9yZGVyLnYxLkV4cG9ydERhdGFSZXNwb25zZRJeChdHZXRPcmRlckRldGFp",
+            "bEZvckV4cG9ydBIgLmxlbm8ub3JkZXIudjEuRXhwb3J0RGF0YVJlcXVlc3Qa",
+            "IS5sZW5vLm9yZGVyLnYxLkV4cG9ydERhdGFSZXNwb25zZUIlqgIiTGVuby5T",
+            "aGFyZWRDb250cmFjdHMuR3JwYy5PcmRlci5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -89,12 +88,12 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.OrderStatus), global::Leno.SharedContracts.Grpc.Order.V1.OrderStatus.Parser, new[]{ "OrderId", "Status", "PaymentStatus", "ShippingStatus", "UserId", "CompletedAt", "CreatedAt", "CancelledAt", "SellerId", "Items" }, new[]{ "UserId", "CompletedAt", "CreatedAt", "CancelledAt", "SellerId" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.GetOrderDetailRequest), global::Leno.SharedContracts.Grpc.Order.V1.GetOrderDetailRequest.Parser, new[]{ "OrderId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.OrderDetail), global::Leno.SharedContracts.Grpc.Order.V1.OrderDetail.Parser, new[]{ "OrderId", "UserId", "TotalCents", "Status", "Items" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.OrderItem), global::Leno.SharedContracts.Grpc.Order.V1.OrderItem.Parser, new[]{ "SkuId", "Quantity", "UnitPriceCents", "SkuName", "SubTotalCents", "SkuIdStr", "OrderLineId", "SpuId" }, new[]{ "SkuName", "SubTotalCents", "OrderLineId", "SpuId" }, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.OrderItem), global::Leno.SharedContracts.Grpc.Order.V1.OrderItem.Parser, new[]{ "Quantity", "UnitPriceCents", "SkuName", "SubTotalCents", "SkuIdStr", "OrderLineId", "SpuId" }, new[]{ "SkuName", "SubTotalCents", "OrderLineId", "SpuId" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.GetSellerOrdersRequest), global::Leno.SharedContracts.Grpc.Order.V1.GetSellerOrdersRequest.Parser, new[]{ "SellerId", "Page", "PageSize" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.SellerOrders), global::Leno.SharedContracts.Grpc.Order.V1.SellerOrders.Parser, new[]{ "Orders", "Total" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.OrderSummary), global::Leno.SharedContracts.Grpc.Order.V1.OrderSummary.Parser, new[]{ "OrderId", "Status", "TotalCents", "CreatedAt" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest), global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest.Parser, new[]{ "OrderId", "OrderIdStr" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse), global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse.Parser, new[]{ "SellerId", "SellerIdStr" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest), global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdRequest.Parser, new[]{ "OrderIdStr" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse), global::Leno.SharedContracts.Grpc.Order.V1.GetOrderSellerIdResponse.Parser, new[]{ "SellerIdStr" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest), global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRequest.Parser, new[]{ "ShopIdStr", "StartDate", "EndDate" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRow), global::Leno.SharedContracts.Grpc.Order.V1.ExportDataRow.Parser, new[]{ "Values" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, }),
             new pbr::GeneratedClrTypeInfo(typeof(global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse), global::Leno.SharedContracts.Grpc.Order.V1.ExportDataResponse.Parser, new[]{ "Headers", "Rows" }, null, null, null, null)
@@ -1470,7 +1469,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public OrderItem(OrderItem other) : this() {
       _hasBits0 = other._hasBits0;
-      skuId_ = other.skuId_;
       quantity_ = other.quantity_;
       unitPriceCents_ = other.unitPriceCents_;
       skuName_ = other.skuName_;
@@ -1485,19 +1483,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public OrderItem Clone() {
       return new OrderItem(this);
-    }
-
-    /// <summary>Field number for the "sku_id" field.</summary>
-    public const int SkuIdFieldNumber = 1;
-    private long skuId_;
-    [global::System.ObsoleteAttribute]
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public long SkuId {
-      get { return skuId_; }
-      set {
-        skuId_ = value;
-      }
     }
 
     /// <summary>Field number for the "quantity" field.</summary>
@@ -1584,7 +1569,7 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     public const int SkuIdStrFieldNumber = 6;
     private string skuIdStr_ = "";
     /// <summary>
-    /// Guid→string 迁移新增 string ID 字段
+    /// Guid→string 迁移权威字段（int64 双字段已删除，C3 2026-09-24）
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -1665,7 +1650,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (SkuId != other.SkuId) return false;
       if (Quantity != other.Quantity) return false;
       if (UnitPriceCents != other.UnitPriceCents) return false;
       if (SkuName != other.SkuName) return false;
@@ -1680,7 +1664,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (SkuId != 0L) hash ^= SkuId.GetHashCode();
       if (Quantity != 0) hash ^= Quantity.GetHashCode();
       if (UnitPriceCents != 0L) hash ^= UnitPriceCents.GetHashCode();
       if (HasSkuName) hash ^= SkuName.GetHashCode();
@@ -1706,10 +1689,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (SkuId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(SkuId);
-      }
       if (Quantity != 0) {
         output.WriteRawTag(16);
         output.WriteInt32(Quantity);
@@ -1748,10 +1727,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (SkuId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(SkuId);
-      }
       if (Quantity != 0) {
         output.WriteRawTag(16);
         output.WriteInt32(Quantity);
@@ -1790,9 +1765,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (SkuId != 0L) {
-        size += 1 + pb::CodedOutputStream.ComputeInt64Size(SkuId);
-      }
       if (Quantity != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(Quantity);
       }
@@ -1825,9 +1797,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     public void MergeFrom(OrderItem other) {
       if (other == null) {
         return;
-      }
-      if (other.SkuId != 0L) {
-        SkuId = other.SkuId;
       }
       if (other.Quantity != 0) {
         Quantity = other.Quantity;
@@ -1869,10 +1838,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 8: {
-            SkuId = input.ReadInt64();
-            break;
-          }
           case 16: {
             Quantity = input.ReadInt32();
             break;
@@ -1920,10 +1885,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 8: {
-            SkuId = input.ReadInt64();
-            break;
-          }
           case 16: {
             Quantity = input.ReadInt32();
             break;
@@ -2799,7 +2760,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetOrderSellerIdRequest(GetOrderSellerIdRequest other) : this() {
-      orderId_ = other.orderId_;
       orderIdStr_ = other.orderIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
@@ -2808,19 +2768,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetOrderSellerIdRequest Clone() {
       return new GetOrderSellerIdRequest(this);
-    }
-
-    /// <summary>Field number for the "order_id" field.</summary>
-    public const int OrderIdFieldNumber = 1;
-    private long orderId_;
-    [global::System.ObsoleteAttribute]
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public long OrderId {
-      get { return orderId_; }
-      set {
-        orderId_ = value;
-      }
     }
 
     /// <summary>Field number for the "order_id_str" field.</summary>
@@ -2850,7 +2797,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (OrderId != other.OrderId) return false;
       if (OrderIdStr != other.OrderIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -2859,7 +2805,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (OrderId != 0L) hash ^= OrderId.GetHashCode();
       if (OrderIdStr.Length != 0) hash ^= OrderIdStr.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -2879,10 +2824,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (OrderId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(OrderId);
-      }
       if (OrderIdStr.Length != 0) {
         output.WriteRawTag(18);
         output.WriteString(OrderIdStr);
@@ -2897,10 +2838,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (OrderId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(OrderId);
-      }
       if (OrderIdStr.Length != 0) {
         output.WriteRawTag(18);
         output.WriteString(OrderIdStr);
@@ -2915,9 +2852,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (OrderId != 0L) {
-        size += 1 + pb::CodedOutputStream.ComputeInt64Size(OrderId);
-      }
       if (OrderIdStr.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(OrderIdStr);
       }
@@ -2932,9 +2866,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     public void MergeFrom(GetOrderSellerIdRequest other) {
       if (other == null) {
         return;
-      }
-      if (other.OrderId != 0L) {
-        OrderId = other.OrderId;
       }
       if (other.OrderIdStr.Length != 0) {
         OrderIdStr = other.OrderIdStr;
@@ -2958,10 +2889,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 8: {
-            OrderId = input.ReadInt64();
-            break;
-          }
           case 18: {
             OrderIdStr = input.ReadString();
             break;
@@ -2985,10 +2912,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 8: {
-            OrderId = input.ReadInt64();
-            break;
-          }
           case 18: {
             OrderIdStr = input.ReadString();
             break;
@@ -3035,7 +2958,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetOrderSellerIdResponse(GetOrderSellerIdResponse other) : this() {
-      sellerId_ = other.sellerId_;
       sellerIdStr_ = other.sellerIdStr_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
@@ -3044,19 +2966,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public GetOrderSellerIdResponse Clone() {
       return new GetOrderSellerIdResponse(this);
-    }
-
-    /// <summary>Field number for the "seller_id" field.</summary>
-    public const int SellerIdFieldNumber = 1;
-    private long sellerId_;
-    [global::System.ObsoleteAttribute]
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public long SellerId {
-      get { return sellerId_; }
-      set {
-        sellerId_ = value;
-      }
     }
 
     /// <summary>Field number for the "seller_id_str" field.</summary>
@@ -3086,7 +2995,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (SellerId != other.SellerId) return false;
       if (SellerIdStr != other.SellerIdStr) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
@@ -3095,7 +3003,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (SellerId != 0L) hash ^= SellerId.GetHashCode();
       if (SellerIdStr.Length != 0) hash ^= SellerIdStr.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
@@ -3115,10 +3022,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (SellerId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(SellerId);
-      }
       if (SellerIdStr.Length != 0) {
         output.WriteRawTag(18);
         output.WriteString(SellerIdStr);
@@ -3133,10 +3036,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (SellerId != 0L) {
-        output.WriteRawTag(8);
-        output.WriteInt64(SellerId);
-      }
       if (SellerIdStr.Length != 0) {
         output.WriteRawTag(18);
         output.WriteString(SellerIdStr);
@@ -3151,9 +3050,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (SellerId != 0L) {
-        size += 1 + pb::CodedOutputStream.ComputeInt64Size(SellerId);
-      }
       if (SellerIdStr.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(SellerIdStr);
       }
@@ -3168,9 +3064,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
     public void MergeFrom(GetOrderSellerIdResponse other) {
       if (other == null) {
         return;
-      }
-      if (other.SellerId != 0L) {
-        SellerId = other.SellerId;
       }
       if (other.SellerIdStr.Length != 0) {
         SellerIdStr = other.SellerIdStr;
@@ -3194,10 +3087,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
-          case 8: {
-            SellerId = input.ReadInt64();
-            break;
-          }
           case 18: {
             SellerIdStr = input.ReadString();
             break;
@@ -3221,10 +3110,6 @@ namespace Leno.SharedContracts.Grpc.Order.V1 {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
-          case 8: {
-            SellerId = input.ReadInt64();
-            break;
-          }
           case 18: {
             SellerIdStr = input.ReadString();
             break;

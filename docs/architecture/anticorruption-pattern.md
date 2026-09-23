@@ -368,7 +368,8 @@ AntiCorruptionDispatcher.ExecuteAsync 读取 _optionsMonitor.CurrentValue.UseGrp
 
 - gRPC `int64` 字段比 `string` 节省 wire 字节，性能更优。
 - POC 阶段不需要还原原始 Guid，仅用于跨 BC 标识关联。
-- 生产化阶段需新增 `string` 字段（如 `sku_id_str = 11`）保持 wire 兼容，逐步迁移。
+- 生产化阶段新增 `string` 字段保持 wire 兼容并逐步迁移；**该迁移已于 C3（2026-09-24）收口**：
+  int64 ID 字段与其编号/名一并删除并 `reserved`，标识字段统一为 `string`（见 ADR-0007 收口记录）。
 
 ### 9.4 为什么不使用 Polly 熔断？
 

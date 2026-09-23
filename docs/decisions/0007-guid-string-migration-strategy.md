@@ -2,6 +2,7 @@
 
 ## 状态
 已接受（2026-07-19，工作流 D 决策；2026-07-22 P1-T27 补充 int64 字段映射策略）
+**已完成（2026-09-24，C3 收口：int64 字段与其编号/名一并删除并 reserved）**
 
 ## 上下文
 ADR-0006 记录的 POC 阶段 `Guid → int64` 简化（`GetHashCode`）存在数据完整性问题，
@@ -47,3 +48,28 @@ ADR-0006 记录的 POC 阶段 `Guid → int64` 简化（`GetHashCode`）存在�
 - CI 校验 deprecated 字段使用情况，监控迁移进度
 - GrpcClient 回退逻辑文档化，避免新人误用 int64 字段
 - 待迁移 .proto 清单（6 个文件）记录在 plan §11.2，按文件逐步推进
+
+---
+
+## 收口记录（2026-09-24，C3）
+
+**触发条件已满足**：仓内所有 gRPC 客户端均只读 `string` 字段（`xxx_id_str`），服务随版本同发、
+维护窗口可停机 —— 满足上文"所有客户端都读 string 后可删除 int64 字段"。
+
+**执行结果**：
+
+- 22 个 int64 ID 字段跨 7 个 proto 删除，并 `reserved` 编号与字段名（编号不得复用，
+  见 ADR-0005 修订）：product 10、order 3、seller 3、review 3、promotion 1、cart 1、inventory 1。
+- 删除的不只是"字段声明"，还有配套的**伪兼容代码**——这些 int64 通道本身不承载可逆信息
+  （固定 0、`GetHashCode`/`BitConverter.ToInt64` 取 Guid 前 8 字节、`new Guid((int)shopId, 0, …)`），
+  旧客户端拿到的是错误 Guid，兼容路径从未真正可用：
+  - 服务端双写：Product / Order / SellerShop / Cart（4 个 gRPC 服务端）；
+  - 客户端 int64 回退解码与"优先 string 失败则回退 int64"分支：Product / Cart / Order 防腐客户端；
+  - Review 的"收到非 0 int64 即抛 InvalidArgument"分支、SellerShop 的 `new Guid((int)shopId, …)` 兜底。
+- 编译期守护取代文档级提醒：删除字段后 CS0612（deprecated 字段被使用）从 67 条降为 **0 条**，
+  仍有代码触碰废弃 ID 字段会直接编译失败。
+- 字段名保留 `xxx_id_str` 形态（不再重命名为 `xxx_id`）：改名属于新的 breaking，且会造成 8 个
+  服务与全部测试的属性名 churn；`_str` 即当前唯一权威名。
+
+**结论**：标识契约从 `int64 + string` 双形态收敛为 **`string` 单形态**；本策略完成，不再有"回退
+int64"的路径。

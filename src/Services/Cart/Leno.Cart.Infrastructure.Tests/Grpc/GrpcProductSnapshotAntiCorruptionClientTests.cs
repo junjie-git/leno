@@ -28,11 +28,9 @@ public class GrpcProductSnapshotAntiCorruptionClientTests
     {
         var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
         var skuId = Guid.NewGuid();
-        // 稳定算法：BitConverter.ToInt64(guid.ToByteArray(), 0)，替代 GetHashCode()（32 位碰撞率高）
-        var stableSkuInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
         var skuInfo = new SkuInfo
         {
-            SkuId = stableSkuInt64,
+            SkuIdStr = GuidProtoConverter.ToString(skuId),
             Title = "Test SKU",
             MainImage = "http://img",
             PriceCents = 12999,
@@ -67,16 +65,14 @@ public class GrpcProductSnapshotAntiCorruptionClientTests
     }
 
     [Fact]
-    public async Task GetSkuSnapshot_Request_ShouldUseStableInt64_NotGetHashCode()
+    public async Task GetSkuSnapshot_Request_ShouldCarryStringSkuIdStrOnly()
     {
-        // 验证请求 int64 字段使用稳定算法（BitConverter.ToInt64），而非 GetHashCode（32 位碰撞率高）
+        // C3（2026-09-24）：int64 兼容字段已从契约删除，请求仅携带 sku_id_str（GuidProtoConverter，D 格式）
         var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
         var skuId = Guid.Parse("abcdef01-2345-6789-abcd-ef0123456789");
-        var expectedInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
 
         var skuInfo = new SkuInfo
         {
-            SkuId = expectedInt64,
             SkuIdStr = GuidProtoConverter.ToString(skuId),
             Title = "Stable",
             PriceCents = 100,
@@ -104,11 +100,7 @@ public class GrpcProductSnapshotAntiCorruptionClientTests
         await client.GetSkuSnapshotAsync(skuId);
 
         capturedRequest.Should().NotBeNull();
-        capturedRequest!.SkuId.Should().Be(expectedInt64);
-        // 确保不再使用 GetHashCode（32 位碰撞率高）
-        capturedRequest.SkuId.Should().NotBe((long)skuId.GetHashCode());
-        // 验证 string 字段使用 GuidProtoConverter.ToString（D 格式）
-        capturedRequest.SkuIdStr.Should().Be(GuidProtoConverter.ToString(skuId));
+        capturedRequest!.SkuIdStr.Should().Be(GuidProtoConverter.ToString(skuId));
     }
 
     [Fact]

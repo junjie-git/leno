@@ -8,16 +8,16 @@ using Moq;
 namespace Leno.Product.Api.Tests;
 
 /// <summary>
-/// ProductGrpcService 单元测试，验证 int64 字段使用稳定算法（Guid 前 8 字节）而非 GetHashCode（审计 #5）。
+/// ProductGrpcService 单元测试：C3 后标识字段仅 string 形态（int64 兼容字段已从契约删除）。
 /// </summary>
 public class ProductGrpcServiceTests
 {
     [Fact]
-    public async Task GetSkuInfo_Int64_Field_Should_Use_Stable_Mapping_Not_GetHashCode()
+    public async Task GetSkuInfo_Should_Return_String_SkuId_Only()
     {
+        // C3（2026-09-24）：int64 兼容字段已从契约删除，响应仅含 string 形态
         // Arrange
         var skuId = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef");
-        var expectedInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
 
         var dto = new SkuInfoResultDto
         {
@@ -47,52 +47,8 @@ public class ProductGrpcServiceTests
         // Act
         var result = await service.GetSkuInfo(request, context);
 
-        // Assert：int64 字段应使用稳定算法（前 8 字节），而非 GetHashCode
-        result.SkuId.Should().Be(expectedInt64);
-        result.SkuId.Should().NotBe((long)skuId.GetHashCode());
+        // Assert
         result.SkuIdStr.Should().Be(skuId.ToString());
-    }
-
-    [Fact]
-    public async Task GetSkuInfo_Int64_Field_Should_Be_Deterministic_For_Same_Guid()
-    {
-        // Arrange
-        var skuId = Guid.Parse("abcdef01-2345-6789-abcd-ef0123456789");
-        var expectedInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
-
-        var dto1 = new SkuInfoResultDto
-        {
-            SkuId = skuId,
-            SpuId = Guid.NewGuid(),
-            Price = 10m,
-            Currency = "CNY",
-            Stock = 50,
-            Status = "active",
-            Title = "SKU1",
-            MainImageUrl = "https://cdn.example.com/1.png",
-            SellerId = Guid.NewGuid(),
-            ShopId = Guid.NewGuid()
-        };
-
-        var mockQueryService = new Mock<IProductInternalQueryService>();
-        mockQueryService
-            .Setup(s => s.GetSkuInfoAsync(skuId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(dto1);
-
-        var logger = new Mock<ILogger<ProductGrpcService>>();
-        var service = new ProductGrpcService(mockQueryService.Object, logger.Object);
-
-        // Act：两次调用相同 Guid
-        var request1 = new GetSkuInfoRequest { SkuIdStr = skuId.ToString() };
-        var context = CreateServerCallContext();
-        var result1 = await service.GetSkuInfo(request1, context);
-
-        var request2 = new GetSkuInfoRequest { SkuIdStr = skuId.ToString() };
-        var result2 = await service.GetSkuInfo(request2, context);
-
-        // Assert：相同 Guid 产生相同 int64（确定性）
-        result1.SkuId.Should().Be(result2.SkuId);
-        result1.SkuId.Should().Be(expectedInt64);
     }
 
     [Fact]

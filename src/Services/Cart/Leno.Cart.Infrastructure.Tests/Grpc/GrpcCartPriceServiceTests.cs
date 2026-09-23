@@ -30,12 +30,9 @@ public class GrpcCartPriceServiceTests
         var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
         var skuId = Guid.NewGuid();
         var sellerId = Guid.NewGuid();
-        // 稳定算法：BitConverter.ToInt64(guid.ToByteArray(), 0)，替代 GetHashCode()（32 位碰撞率高）
-        var stableSkuInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
         var batchResponse = new BatchGetSkuInfoResponse();
         batchResponse.Skus.Add(new SkuInfo
         {
-            SkuId = stableSkuInt64,
             Title = "Test SKU",
             PriceCents = 9999,
             Currency = "CNY",
@@ -84,7 +81,6 @@ public class GrpcCartPriceServiceTests
         var batchResponse = new BatchGetSkuInfoResponse();
         batchResponse.Skus.Add(new SkuInfo
         {
-            SkuId = 0,  // 新服务端不填充 int64
             Title = "New Server SKU",
             PriceCents = 5000,
             Currency = "CNY",
@@ -121,17 +117,15 @@ public class GrpcCartPriceServiceTests
     }
 
     [Fact]
-    public async Task GetSkuPrices_Request_ShouldUseStableInt64_NotGetHashCode()
+    public async Task GetSkuPrices_Request_ShouldCarryStringSkuIdsStrOnly()
     {
-        // 验证请求 int64 字段使用稳定算法（BitConverter.ToInt64），而非 GetHashCode（32 位碰撞率高）
+        // C3（2026-09-24）：int64 兼容字段已从契约删除，请求仅填充 sku_ids_str（GuidProtoConverter，D 格式）
         var clientMock = new Mock<ProductInternalService.ProductInternalServiceClient>();
         var skuId = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef");
-        var expectedInt64 = BitConverter.ToInt64(skuId.ToByteArray(), 0);
 
         var batchResponse = new BatchGetSkuInfoResponse();
         batchResponse.Skus.Add(new SkuInfo
         {
-            SkuId = expectedInt64,
             SkuIdStr = GuidProtoConverter.ToString(skuId),
             Title = "Stable",
             PriceCents = 100,
@@ -159,12 +153,7 @@ public class GrpcCartPriceServiceTests
         await client.GetSkuPricesAsync(new[] { skuId });
 
         capturedRequest.Should().NotBeNull();
-        capturedRequest!.SkuIds.Should().ContainSingle();
-        capturedRequest.SkuIds[0].Should().Be(expectedInt64);
-        // 确保不再使用 GetHashCode（32 位碰撞率高）
-        capturedRequest.SkuIds[0].Should().NotBe((long)skuId.GetHashCode());
-        // 验证 string 字段使用 GuidProtoConverter.ToString（D 格式）
-        capturedRequest.SkuIdsStr.Should().ContainSingle();
+        capturedRequest!.SkuIdsStr.Should().ContainSingle();
         capturedRequest.SkuIdsStr[0].Should().Be(GuidProtoConverter.ToString(skuId));
     }
 
