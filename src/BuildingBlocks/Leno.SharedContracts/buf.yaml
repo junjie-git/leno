@@ -7,7 +7,7 @@ lint:
   except:
     # 包名不含 .v1 后缀（如 leno.cart.v1 之外的遗留包）——历史契约，重命名会 breaking
     - PACKAGE_VERSION_SUFFIX
-    # proto 文件平铺在 Protos/ 目录（12 个包共存）而未按包名分层——历史结构，迁移成本高
+    # proto 文件平铺在 Protos/ 目录（13 个包共存）而未按包名分层——历史结构，迁移成本高
     - DIRECTORY_SAME_PACKAGE
     - PACKAGE_DIRECTORY_MATCH
     # RPC 请求/响应消息名未遵循 XxxRequest/XxxResponse 后缀——历史契约，重命名会 breaking

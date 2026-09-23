@@ -12,8 +12,6 @@ using Leno.Notification.Infrastructure.Jobs;
 using Leno.Notification.Infrastructure.Options;
 using Leno.Notification.Infrastructure.Repositories;
 using Leno.Notification.Infrastructure.Services;
-using Leno.Notification.Infrastructure.Services.Grpc;
-using Leno.SharedContracts.Grpc.User.V1;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -60,8 +58,12 @@ public static class ServiceCollectionExtensions
         // （internal/v1/users/{userId}/contacts 与 /contacts/full 路由一致）；
         // gRPC 双轨一并删除（低频内部查询，保留单一 HTTP 机制）。
         var identityApiUrl = configuration["ServiceUrls:IdentityApi"] ?? "http://localhost:5162";
-        // HttpClient 防腐层实现（保留作为降级备份，不绑定接口）
-        services.AddHttpClient<UserContactAntiCorruptionService>(c => c.BaseAddress = new Uri(identityApiUrl))
+        // HttpClient 防腐层实现直接绑定 IUserContactService（NotificationDispatcher / NotificationDispatchJob /
+        // NotificationRetryJob / DeadLetterAppService 均依赖该接口）。以「接口, 实现」形式注册类型化客户端，
+        // 否则 HttpClient 工厂只登记具体类型，容器解析 IUserContactService 会抛
+        // "Unable to resolve service for type 'IUserContactService'"。
+        services.AddHttpClient<IUserContactService, UserContactAntiCorruptionService>(
+                c => c.BaseAddress = new Uri(identityApiUrl))
             .AddAntiCorruptionPolicies();
 
         // 通知渠道配置

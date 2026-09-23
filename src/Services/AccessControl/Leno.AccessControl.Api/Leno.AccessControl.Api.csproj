@@ -22,8 +22,4 @@
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts.Grpc\Leno.SharedContracts.Grpc.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Protobuf Include="..\..\..\SharedContracts\Grpc\access_control.proto" Link="Protos\access_control.proto" GrpcServices="Server" />
-  </ItemGroup>
-
 </Project>

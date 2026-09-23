@@ -78,9 +78,8 @@ public static class ServiceCollectionExtensions
             {
                 options.Address = new Uri(productGrpcEndpoint);
             });
-#pragma warning disable CS0618 // 阶段三 3.11：GrpcCartPriceService 已标记 [Obsolete]，保留作为降级备份
+
             services.AddScoped<GrpcCartPriceService>();
-#pragma warning restore CS0618
 
             services.AddKeyedSingleton<CircuitBreakerState>("product", (sp, _) =>
             {
@@ -94,9 +93,7 @@ public static class ServiceCollectionExtensions
             services.AddScoped<AntiCorruptionDispatcher<ICartPriceService>>(sp =>
             {
                 var httpImpl = sp.GetRequiredService<CartPriceService>();
-#pragma warning disable CS0618 // 阶段三 3.11：GrpcCartPriceService 已标记 [Obsolete]，保留作为降级备份
                 var grpcImpl = sp.GetService<GrpcCartPriceService>();
-#pragma warning restore CS0618
                 var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
                 var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<ICartPriceService>>>();
                 var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("product");

@@ -41,8 +41,13 @@ if (!app.Configuration.ValidateSensitiveConfig())
 // 一站式中间件管线：OpenAPI + 全局异常 + 内部 API Key + 鉴权 + 健康检查端点 + Controllers
 app.UseLenoPipeline();
 
-// 启用 gRPC 服务端（AccessControlService：CheckPermission / GetUserRoles）
-app.MapGrpcService<AccessControlGrpcService>();
+// M4 双轨方案：启用 gRPC 服务端（AccessControlService：CheckPermission / GetUserRoles）
+// 仅当 AntiCorruption:UseGrpc=true 时映射，与 AddLenoApi 内 AddGrpc 的注册条件保持一致，
+// 否则 Host 无 AddGrpc 服务、映射即抛 "Unable to find the required services" 启动失败。
+if (builder.Configuration.GetValue<bool>("AntiCorruption:UseGrpc"))
+{
+    app.MapGrpcService<AccessControlGrpcService>();
+}
 
 // 启动时执行 EF Core 迁移（带 Redis 分布式锁，避免多实例并发冲突）
 await app.Services.MigrateWithLockAsync<AccessControlDbContext>();

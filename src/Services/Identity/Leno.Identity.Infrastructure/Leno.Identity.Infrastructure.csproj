@@ -13,15 +13,15 @@
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Google.Protobuf" Version="3.27.0" />
     <PackageReference Include="Grpc.Net.Client" Version="2.65.0" />
-    <PackageReference Include="Grpc.Tools" Version="2.65.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
     <PackageReference Include="Otp.NET" Version="1.4.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
   </ItemGroup>
 
   <!--
-    access_control.proto 的 gRPC Client 编译由 Leno.Identity.Application.csproj 负责（JwtTokenService 直接消费 AccessControlService.AccessControlServiceClient）。
-    本项目通过传递引用（Infrastructure → Application）访问 AccessControlService 类型，避免重复编译造成类型歧义。
+    AccessControlService 的 gRPC 类型（Client/Server 均由同一个生成文件产出）统一来自
+    Leno.SharedContracts.Grpc/Generated/AccessControlGrpc.cs（buf 模块 src/BuildingBlocks/Leno.SharedContracts）。
+    本项目经传递引用（Infrastructure → Application → Leno.SharedContracts.Grpc）访问该类型。
     Grpc.Net.Client 保留以提供 AddGrpcClient<T> 扩展方法注册入口。
   -->
 

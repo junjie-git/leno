@@ -17,11 +17,16 @@ namespace Leno.Cart.Infrastructure.Services.Grpc;
 /// 调用 Product BC <c>ProductInternalService.BatchGetSkuInfo</c> RPC 批量查询 SKU 价格与可售状态。
 /// </summary>
 /// <remarks>
-/// 阶段三 3.11：已被 <see cref="SnapshotCartPriceService"/> 装饰器取代为读取路径的首选实现。
-/// 本类保留作为快照模式（<c>Cart:UseSkuSnapshot=true</c>）下快照缺失时的实时调用降级备份，
-/// 以及 feature flag 关闭（<c>UseSkuSnapshot=false</c>）时的旧路径兼容。新代码不应直接依赖本类。
+/// 本类是 gRPC 轨道上的实时调用实现，不是待淘汰的备份：
+/// <list type="bullet">
+///   <item><c>AntiCorruption:UseGrpc=true</c> 时，<see cref="CartPriceDispatcherAdapter"/> 经
+///         <see cref="AntiCorruptionDispatcher{ICartPriceService}"/> 在运行时选中本类作为实时查询路径。</item>
+///   <item>该实时路径再被 <see cref="SnapshotCartPriceService"/> 装饰为容器中对外暴露的
+///         <see cref="ICartPriceService"/>：快照缺失或过期时回退到本类的实时查询。</item>
+/// </list>
+/// 双轨下线 D4（2026-09-23）：原 <c>Cart:UseSkuSnapshot</c> 开关已删除，快照优先无条件生效，
+/// 本类不再承担"旧路径兼容"职责。
 /// </remarks>
-[Obsolete("阶段三 3.11：已被 SnapshotCartPriceService 装饰器取代，仅作为快照缺失时的降级备份与旧路径兼容保留。新代码请通过 ICartPriceService 接口依赖 SnapshotCartPriceService。")]
 public sealed class GrpcCartPriceService
     : GrpcAntiCorruptionClientBase, ICartPriceService
 {
