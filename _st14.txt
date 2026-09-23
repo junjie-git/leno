@@ -1,8 +1,0 @@
-compose config rc=0
-recreate rc=0 :: thy 
- Container leno-rabbitmq Healthy 
- Container leno-consul Healthy 
- Container leno-inventory-api Starting 
- Container leno-inventory-api Started 
-
-status: Up 10 seconds (health: starting)

@@ -1,3 +1,0 @@
-cp rc=0
-apply rc=0 :: 
-inventory-api: Up 4 minutes (unhealthy)

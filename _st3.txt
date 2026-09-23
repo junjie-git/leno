@@ -1,9 +1,0 @@
-=== docker ps
-
-=== build 尾部
-#15 unpacking to docker.io/library/leno-inventory-api:latest 0.5s done
-#15 DONE 4.3s
-
-#16 resolving provenance for metadata file
-#16 DONE 0.0s
- Image leno-inventory-api Built 

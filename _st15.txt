@@ -1,9 +1,0 @@
-Consul__Url=http://consul:8500
-ASPNETCORE_URLS=
-Kestrel__Endpoints__Http__Protocols=Http1
-ASPNETCORE_ENVIRONMENT=Docker
-Kestrel__Endpoints__Grpc__Url=http://*:5265
-Kestrel__Endpoints__Http__Url=http://*:8080
-Kestrel__Endpoints__Grpc__Protocols=Http2
-ASPNETCORE_HTTP_PORTS=8080
-容器内监听端口: [33927]

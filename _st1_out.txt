@@ -1,4 +1,0 @@
-OK   staging-inventory.ps1（含 BOM）
-NOCH compose inventory-api（锚点未命中，人工检查）
-OK   .env 补 INTERNAL_AUTH_API_KEY
-compose config: OK

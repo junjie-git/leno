@@ -1,2 +1,0 @@
-﻿err 文件存在: True
-out 文件存在: False

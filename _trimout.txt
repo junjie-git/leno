@@ -1,7 +1,0 @@
-﻿REMOVED:
-  QueryAsync -> 删除第 242-259 行
-  GetLogisticsTraceAsync -> 删除第 535-665 行
-LINES 680 -> 529
-LEFTOVER _sut.GetByIdAsync = 0
-LEFTOVER _sut.QueryAsync = 0
-LEFTOVER _sut.GetLogisticsTraceAsync = 0

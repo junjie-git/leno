@@ -1,3 +1,0 @@
-create db rc=127 :: OCI runtime exec failed: exec failed: unable to start container process: exec: "/opt/mssql-tools/bin/sqlcmd": stat /opt/mssql-tools/bin/sqlcmd: no such file or directory
-
-inventory-api: Up 11 seconds (health: starting)

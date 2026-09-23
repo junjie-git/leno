@@ -1,6 +1,0 @@
-inventory-api: Up 2 seconds (health: starting)
-=== 日志尾部
-tamp":"2026-09-23T09:41:05.5383213+00:00","Level":"Information","MessageTemplate":"Quartz Scheduler created","Properties":{"SourceContext":"Quartz.Core.QuartzScheduler","Application":"leno-inventory-api","Environment":"Docker"}}
-{"Timestamp":"2026-09-23T09:41:05.5386170+00:00","Level":"Information","MessageTemplate":"JobFactory set to: Quartz.Simpl.MicrosoftDependencyInjectionJobFactory","Properties":{"SourceContext":"Quartz.Core.QuartzScheduler","Application":"leno-inventory-api","Environment":"Docker"}}
-{"Timestamp":"2026-09-23T09:41:05.5417033+00:00","Level":"Information","MessageTemplate":"Detected usage of SqlServerDelegate - defaulting 'selectWithLockSQL' to 'SELECT * FROM {0}LOCKS WITH (UPDLOCK,ROWLOCK) WHERE SCHED_NAME = @schedulerName AND LOCK_NAME = @lockName'.","Properties":{"0":"QRTZ_","SourceContext":"Quartz.Impl.AdoJobStore.JobStoreTX","Application":"leno-inventory-api","Environment":"Docker"}}
-{"Timestamp":"2026-09-23T09:41:05.5417958+00:00","Level":"Information","MessageTemplate":"Using db table-based data access locking (synchronization).","Properties":{"SourceContext":"Quartz.Impl.AdoJobStore.JobStoreTX","Application":"leno-inventory-api","Environment":"Docker"}}

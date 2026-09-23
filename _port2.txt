@@ -1,2 +1,0 @@
-port 5265: OPEN
-port 5165: OPEN

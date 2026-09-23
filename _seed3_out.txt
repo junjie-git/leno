@@ -1,5 +1,0 @@
-重灌（: 形式）OK=47
-probe Payment:Alipay:AppId = local-placeholder
-probe Jwt:DiscoveryUrl = http://leno-identity-api:8080/.well-known/openid-configurati
-probe ConnectionStrings:InventoryDb = <missing:LENO_DB_INVENTORY>
-probe InternalAuth:ApiKey = local-dev-internal-api-key-32bytes!!

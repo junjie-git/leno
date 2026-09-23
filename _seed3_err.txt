@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "D:\work\learn\Leno\_runseed.py", line 5, in <module>
-    exec(compile(code, "_seed3.py", "exec"))
-    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "_seed3.py", line 40, in <module>
-    for m in re.finditer(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}", raw):
-             ^^
-NameError: name 're' is not defined. Did you mean: 'r'? Or did you forget to import 're'?
