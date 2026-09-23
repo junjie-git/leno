@@ -216,11 +216,6 @@ public static class HealthChecksUIExtensions
             },
             new HealthCheckServiceEndpoint
             {
-                Name = "UserAuth Service",
-                Uri = "http://localhost:5300/health"
-            },
-            new HealthCheckServiceEndpoint
-            {
                 Name = "Cart Service",
                 Uri = "http://localhost:5400/health"
             },

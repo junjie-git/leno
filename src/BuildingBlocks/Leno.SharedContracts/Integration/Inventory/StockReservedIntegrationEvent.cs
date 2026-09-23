@@ -34,4 +34,4 @@ public sealed class StockReservedIntegrationEvent : IntegrationEventBase
 /// <summary>
 /// 预占 SKU 明细项。
 /// </summary>
-public sealed record ReservedSkuItem(Guid SkuId, int Quantity, long SellerId);
+public sealed record ReservedSkuItem(Guid SkuId, int Quantity);

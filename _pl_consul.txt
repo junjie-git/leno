@@ -1,0 +1,11 @@
+﻿docker : Error response from daemon: failed to resolve reference "docker.io/hashicorp/consul:1.18": failed to do reques
+t: Head "https://registry-1.docker.io/v2/hashicorp/consul/manifests/1.18": dialing registry-1.docker.io:443 container v
+ia direct connection because Docker Desktop has no HTTPS proxy: connecting to registry-1.docker.io:443: dial tcp [2a03:
+2880:f107:83:face:b00c:0:25de]:443: connectex: A connection attempt failed because the connected party did not properly
+ respond after a period of time, or established connection failed because connected host has failed to respond.
+所在位置 行:445 字符: 188
++ ... s.txt" -Encoding utf8; docker pull hashicorp/consul:1.18 2>&1 | Out-F ...
++                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error response ...led to respond.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

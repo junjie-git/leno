@@ -16,7 +16,7 @@ namespace Leno.Order.Infrastructure.Services.Grpc;
 public sealed class GrpcPointsAntiCorruptionClient
     : GrpcAntiCorruptionClientBase, IPointsAntiCorruptionService
 {
-    private const string TargetBc = "PointsMembership";
+    private const string TargetBc = "Points";
     private const string InternalKeyHeader = "x-internal-key";
 
     private readonly PointsInternalService.PointsInternalServiceClient _client;

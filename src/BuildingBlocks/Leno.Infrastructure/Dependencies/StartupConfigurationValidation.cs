@@ -1,4 +1,4 @@
-using Leno.Infrastructure.Configuration;
+﻿using Leno.Infrastructure.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -43,15 +43,11 @@ public static class LenoStartupConfigurationValidator
             ["order"] = "OrderDb",
             ["payment"] = "PaymentDb",
             ["points"] = "PointsDb",
-            ["pointsmembership"] = "PointsMembershipDb",
             ["product"] = "ProductDb",
             ["promotion"] = "PromotionDb",
             ["review"] = "ReviewDb",
-            // 注意：reviewaftersales 的连接串键是 ReviewAfterSalesDb（非 ReviewaftersalesDb）
-            ["reviewaftersales"] = "ReviewAfterSalesDb",
             ["sellershop"] = "SellerShopDb",
             ["systemadmin"] = "SystemAdminDb",
-            ["userauth"] = "UserAuthDb",
             ["usercenter"] = "UserCenterDb"
         };
 
@@ -185,6 +181,17 @@ public sealed class StartupConfigurationValidationService : IHostedService
             _logger.LogDebug(
                 "{Env} 环境跳过启动配置校验 ServiceName={ServiceName}", _environment.EnvironmentName, _serviceName);
             return Task.CompletedTask;
+        }
+
+        // 生产环境门禁（P2 改进，双轨下线 A6）：JWKS 拉取必须走 HTTPS，防明文劫持。
+        // 仅 Production 生效（Staging / 本机 compose 等非生产环境放行 http://）。
+        var requireHttpsMetadata = _configuration.GetValue("Jwt:RequireHttpsMetadata", true);
+        if (string.Equals(_environment.EnvironmentName, "Production", StringComparison.OrdinalIgnoreCase)
+            && !requireHttpsMetadata)
+        {
+            throw new InvalidOperationException(
+                $"[{_serviceName}（{_environment.EnvironmentName}）] 生产环境必须启用 HTTPS 元数据校验：" +
+                "设置 Jwt:RequireHttpsMetadata=true（Identity JWKS 经 TLS 提供）。当前为 false，拒绝启动。");
         }
 
         var problems = LenoStartupConfigurationValidator.GetInvalidConfigurationKeys(_configuration, _serviceName);

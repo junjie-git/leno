@@ -21,6 +21,8 @@ public class AddHealthChecksRabbitMqRegistrationTests
             {
                 ["Redis:Configuration"] = "localhost:6379",
                 ["Elasticsearch:Uri"] = "http://localhost:9200",
+                // Quartz 调度库（双轨下线 DEC-2(b) fail-fast）：AddLenoInfrastructure 注册期即校验，缺失即抛
+                ["ConnectionStrings:SchedulerDb"] = "Server=localhost,1433;Database=LenoScheduler;User Id=sa;Password=test;TrustServerCertificate=True",
                 ["RabbitMQ:Host"] = "localhost",
                 ["RabbitMQ:Port"] = "5672",
                 ["RabbitMQ:Username"] = "guest",
@@ -48,7 +50,9 @@ public class AddHealthChecksRabbitMqRegistrationTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Redis:Configuration"] = "localhost:6379",
-                ["Elasticsearch:Uri"] = "http://localhost:9200"
+                ["Elasticsearch:Uri"] = "http://localhost:9200",
+                // Quartz 调度库（双轨下线 DEC-2(b) fail-fast）：AddLenoInfrastructure 注册期即校验，缺失即抛
+                ["ConnectionStrings:SchedulerDb"] = "Server=localhost,1433;Database=LenoScheduler;User Id=sa;Password=test;TrustServerCertificate=True"
             })
             .Build();
 
@@ -70,7 +74,9 @@ public class AddHealthChecksRabbitMqRegistrationTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Redis:Configuration"] = "localhost:6379",
-                ["Elasticsearch:Uri"] = "http://localhost:9200"
+                ["Elasticsearch:Uri"] = "http://localhost:9200",
+                // Quartz 调度库（双轨下线 DEC-2(b) fail-fast）：AddLenoInfrastructure 注册期即校验，缺失即抛
+                ["ConnectionStrings:SchedulerDb"] = "Server=localhost,1433;Database=LenoScheduler;User Id=sa;Password=test;TrustServerCertificate=True"
             })
             .Build();
 
@@ -96,6 +102,8 @@ public class AddHealthChecksRabbitMqRegistrationTests
             {
                 ["Redis:Configuration"] = "localhost:6379",
                 ["Elasticsearch:Uri"] = "http://localhost:9200",
+                // Quartz 调度库（双轨下线 DEC-2(b) fail-fast）：AddLenoInfrastructure 注册期即校验，缺失即抛
+                ["ConnectionStrings:SchedulerDb"] = "Server=localhost,1433;Database=LenoScheduler;User Id=sa;Password=test;TrustServerCertificate=True",
                 ["RabbitMQ:Host"] = "rabbitmq-host",
                 ["RabbitMQ:Port"] = "5672"
             })

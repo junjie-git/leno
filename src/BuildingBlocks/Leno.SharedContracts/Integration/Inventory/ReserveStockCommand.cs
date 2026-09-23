@@ -20,4 +20,4 @@ public sealed record ReserveStockCommand(
 /// <summary>
 /// 库存预占命令明细项。
 /// </summary>
-public sealed record ReserveStockItem(Guid SkuId, int Quantity, long SellerId);
+public sealed record ReserveStockItem(Guid SkuId, int Quantity);

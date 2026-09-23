@@ -54,7 +54,7 @@ public sealed class LogisticsTraceQueryHandler : IQueryHandler<LogisticsTraceQue
             };
         }
 
-        // 物流公司编码缺失：返回物流单号但空轨迹
+        // 物流公司编码缺失：返回物流单号但空轨迹，并带警告标识
         if (string.IsNullOrWhiteSpace(order.LogisticsCompanyCode))
         {
             return new LogisticsTraceResult
@@ -62,7 +62,8 @@ public sealed class LogisticsTraceQueryHandler : IQueryHandler<LogisticsTraceQue
                 OrderId = order.Id,
                 TrackingNo = order.LogisticsNo,
                 LogisticsCompany = null,
-                Nodes = Array.Empty<LogisticsTraceNode>()
+                Nodes = Array.Empty<LogisticsTraceNode>(),
+                HasWarning = true
             };
         }
 
@@ -79,7 +80,8 @@ public sealed class LogisticsTraceQueryHandler : IQueryHandler<LogisticsTraceQue
                 OrderId = order.Id,
                 TrackingNo = order.LogisticsNo,
                 LogisticsCompany = order.LogisticsCompanyCode,
-                Nodes = Array.Empty<LogisticsTraceNode>()
+                Nodes = Array.Empty<LogisticsTraceNode>(),
+                HasWarning = true
             };
         }
 
@@ -92,6 +94,7 @@ public sealed class LogisticsTraceQueryHandler : IQueryHandler<LogisticsTraceQue
             OrderId = order.Id,
             TrackingNo = traceResult.LogisticsNo,
             LogisticsCompany = traceResult.CompanyCode,
+            IsFromCache = traceResult.IsFromCache,
             Nodes = traceResult.Nodes.Select(n => new LogisticsTraceNode
             {
                 Time = n.OccurredAt,

@@ -128,7 +128,7 @@ public sealed class DeadLetterAppService : IDeadLetterAppService
             }
         }
 
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
 
         // 审计日志
         _logger.LogWarning("AUDIT: 操作员 {OperatorId} 批量重发死信 {Count} 条，成功 {Success} 失败 {Failure}",
@@ -185,7 +185,7 @@ public sealed class DeadLetterAppService : IDeadLetterAppService
             }
         }
 
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
 
         // 审计日志
         _logger.LogWarning("AUDIT: 操作员 {OperatorId} 批量丢弃死信 {Count} 条，原因：{Reason}，成功 {Success} 失败 {Failure}",

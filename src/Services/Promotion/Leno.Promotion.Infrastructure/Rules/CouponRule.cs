@@ -57,10 +57,10 @@ public sealed class CouponRule : IPromotionRule
             return false;
         }
 
-        if (context.UserId <= 0)
-        {
-            return false;
-        }
+        // 双轨下线 D3（2026-09-23）：删除 `context.UserId <= 0 → false` 的旧门槛 ——
+        // 该检查与 AppService 的映射冲突（DTO 的用户标识是 Guid，映射时 UserId 恒为 0、
+        // 经 Attributes["UserGuid"] 桥接），导致 flag 开启时优惠券规则永不适用（静默丢券）。
+        // 用户的权威判定在下方 TryGetUserGuid 检查（失败即不适用），此处不再以 UserId 设闸。
 
         // 应用卖家限定过滤
         var definition = _jsonRuleLoader.GetDefinition(TypeKey);

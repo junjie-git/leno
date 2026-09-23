@@ -37,7 +37,8 @@ public class NotificationApiTests : IClassFixture<WebApplicationFactory<Program>
 
             builder.ConfigureServices(services =>
             {
-                services.AddSingleton(_recordAppServiceMock.Object);
+                TestWebHostHelper.RemoveQuartzSchedulerServices(services);
+services.AddSingleton(_recordAppServiceMock.Object);
                 services.AddSingleton(_configAppServiceMock.Object);
                 services.AddSingleton(_currentUserMock.Object);
 

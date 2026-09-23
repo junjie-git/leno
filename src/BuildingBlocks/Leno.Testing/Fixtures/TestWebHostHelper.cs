@@ -33,6 +33,8 @@ public static class TestWebHostHelper
             ["OAuth2:WeChat:AppSecret"] = "test-wechat-oauth-app-secret",
             ["OAuth2:Apple:ClientId"] = "test-apple-client-id",
             ["OAuth2:Apple:ClientSecret"] = "test-apple-client-secret",
+            // 双轨下线 A6：RS256 时代的唯一密钥类配置 = JWKS 发现文档地址
+            ["Jwt:DiscoveryUrl"] = "http://localhost:5162/.well-known/openid-configuration",
         };
 
     /// <summary>
@@ -96,5 +98,41 @@ public static class TestWebHostHelper
         }
 
         services.AddSingleton(new Mock<IConnectionMultiplexer>().Object);
+    }
+
+    /// <summary>
+    /// 移除 Quartz.NET 调度器相关服务（双轨下线 DEC-2 决策 (b)，2026-09-21）。
+    /// <para>
+    /// <c>AddEventBus</c> 会注册 Quartz 宿主服务与调度器工厂；宿主服务启动时会校验并连接
+    /// 调度库（独立 LenoScheduler），而测试环境没有 SQL Server，会导致宿主启动失败。
+    /// 与 <see cref="ReplaceDistributedLockWithNullProvider"/> / <see cref="ReplaceRedisWithMock"/>
+    /// 属同一类"测试环境剔除需外部资源的基础设施"的处理。
+    /// </para>
+    /// <para>
+    /// 在 <c>ConfigureServices</c> 回调中调用。
+    /// </para>
+    /// </summary>
+    public static void RemoveQuartzSchedulerServices(IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        // 1) 移除 Quartz 宿主服务（启动时做 schema 校验并连接调度库）
+        var hosted = services
+            .Where(s => s.ImplementationType?.FullName?.EndsWith(
+                "QuartzHostedService", StringComparison.Ordinal) == true)
+            .ToList();
+        foreach (var d in hosted)
+        {
+            services.Remove(d);
+        }
+
+        // 2) 移除调度器工厂，避免请求链路解析 IMessageScheduler 时触发真实数据库连接
+        var factories = services
+            .Where(s => s.ServiceType.FullName == "Quartz.ISchedulerFactory")
+            .ToList();
+        foreach (var d in factories)
+        {
+            services.Remove(d);
+        }
     }
 }

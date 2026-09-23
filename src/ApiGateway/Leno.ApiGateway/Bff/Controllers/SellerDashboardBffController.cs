@@ -6,7 +6,7 @@ namespace Leno.ApiGateway.Bff.Controllers;
 /// <summary>
 /// 商家工作台 BFF 聚合端点。
 /// <para>
-/// 并行调用 SellerShop BC（店铺看板）、Order BC（最近订单）、ReviewAfterSales BC（评论统计），
+/// 并行调用 SellerShop BC（店铺看板）、Order BC（最近订单）、Review BC（评论统计），
 /// 聚合返回 <see cref="SellerDashboardBffResponse"/>。
 /// </para>
 /// </summary>
@@ -20,7 +20,7 @@ public sealed class SellerDashboardBffController : ControllerBase
 
     private const string SellerShopServiceBase = "http://sellershop-api:8080";
     private const string OrderServiceBase = "http://order-api:8080";
-    private const string ReviewServiceBase = "http://reviewaftersales-api:8080";
+    private const string ReviewServiceBase = "http://review-api:8080";
 
     private readonly IBffForwarderService _forwarder;
     private readonly ILogger<SellerDashboardBffController> _logger;

@@ -1,0 +1,4 @@
+##### src/BuildingBlocks/Leno.SharedContracts/Leno.SharedContracts.csproj
+  <None Include="Protos\**\*.proto" Pack="true" PackagePath="protos\" />
+##### src/Services/Order/Leno.Order.Infrastructure/Leno.Order.Infrastructure.csproj
+  <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts.Grpc\Leno.SharedContracts.Grpc.csproj"

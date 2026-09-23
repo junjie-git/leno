@@ -11,7 +11,7 @@ namespace Leno.Cart.Infrastructure.Services;
 /// 基于 SKU 快照的购物车价格服务装饰器（阶段三 3.11）。
 /// <para>
 /// 装饰原始的 <see cref="ICartPriceService"/>（HttpClient 或 gRPC 实时调用），
-/// 在 <c>Cart:UseSkuSnapshot=true</c> 时优先读取本地 <see cref="SkuSnapshot"/>：
+/// 始终优先读取本地 <see cref="SkuSnapshot"/>：
 /// <list type="bullet">
 ///   <item>快照存在且未过期：直接返回快照价格，零跨进程调用。</item>
 ///   <item>快照过期但存在：返回过期快照价格（容忍最终一致），同时异步入队后台刷新。</item>
@@ -19,7 +19,7 @@ namespace Leno.Cart.Infrastructure.Services;
 /// </list>
 /// </para>
 /// <para>
-/// feature flag 关闭（<c>UseSkuSnapshot=false</c>）时，所有请求透传给原始服务，保持向后兼容。
+/// 双轨下线 D4（2026-09-23）：原 <c>UseSkuSnapshot</c> 开关与透传分支已删除，快照优先无条件生效。
 /// 后台刷新由 <see cref="IBackgroundSnapshotRefresher"/> 非阻塞入队，不影响读取路径延迟。
 /// </para>
 /// <para>
@@ -67,11 +67,8 @@ public sealed class SnapshotCartPriceService : ICartPriceService
             return Array.Empty<SkuPriceSnapshot>();
         }
 
-        // feature flag 关闭时透传给原始服务
-        if (!_options.CurrentValue.UseSkuSnapshot)
-        {
-            return await _inner.GetSkuPricesAsync(ids, ct);
-        }
+        // 双轨下线 D4（2026-09-23）：fast flag 已删除 —— 快照优先为唯一路径，
+        // 缺失/过期时回退实时调用并入队后台刷新（见下）。
 
         var maxAge = _options.CurrentValue.SnapshotMaxAge;
         var results = new Dictionary<Guid, SkuPriceSnapshot>(ids.Count);

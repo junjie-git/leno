@@ -85,7 +85,7 @@ public class NotificationTemplateAppServiceTests
                 It.IsAny<CancellationToken>()),
             Times.Never);
         // GetByIdAsync 为只读查询，不应触发 SaveChanges
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

@@ -20,6 +20,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 
+using Leno.Testing.Fixtures;
+
 namespace Leno.UserCenter.Api.Tests;
 
 /// <summary>
@@ -63,6 +65,7 @@ public class UserCenterApiTests : IClassFixture<WebApplicationFactory<Program>>
 
             builder.ConfigureServices(services =>
             {
+            TestWebHostHelper.RemoveQuartzSchedulerServices(services);
                 // 用 mock 替换 4 个 AppService 与当前用户上下文，避免触发真实仓储 / 远程调用
                 services.AddSingleton(_addressAppServiceMock.Object);
                 services.AddSingleton(_favoritesAppServiceMock.Object);

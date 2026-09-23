@@ -1,8 +1,8 @@
 using Leno.Infrastructure.Abstractions;
+using Leno.Order.Application.Abstractions;
 using Leno.Order.Application.Messages;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
-using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
@@ -20,7 +20,7 @@ public sealed class OrderTimeoutDelayMessageConsumer : IConsumer<OrderTimeoutMes
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IStockReservationDomainService _stockService;
+    private readonly IInventoryGateway _inventoryGateway;
     private readonly IPointsAntiCorruptionService _pointsAntiCorruption;
     private readonly IPromotionAntiCorruptionService _promotionAntiCorruption;
     private readonly IIdempotencyStore _idempotencyStore;
@@ -29,7 +29,7 @@ public sealed class OrderTimeoutDelayMessageConsumer : IConsumer<OrderTimeoutMes
     public OrderTimeoutDelayMessageConsumer(
         IOrderRepository orderRepository,
         IUnitOfWork unitOfWork,
-        IStockReservationDomainService stockService,
+        IInventoryGateway inventoryGateway,
         IPointsAntiCorruptionService pointsAntiCorruption,
         IPromotionAntiCorruptionService promotionAntiCorruption,
         IIdempotencyStore idempotencyStore,
@@ -37,14 +37,14 @@ public sealed class OrderTimeoutDelayMessageConsumer : IConsumer<OrderTimeoutMes
     {
         ArgumentNullException.ThrowIfNull(orderRepository);
         ArgumentNullException.ThrowIfNull(unitOfWork);
-        ArgumentNullException.ThrowIfNull(stockService);
+        ArgumentNullException.ThrowIfNull(inventoryGateway);
         ArgumentNullException.ThrowIfNull(pointsAntiCorruption);
         ArgumentNullException.ThrowIfNull(promotionAntiCorruption);
         ArgumentNullException.ThrowIfNull(idempotencyStore);
         ArgumentNullException.ThrowIfNull(logger);
         _orderRepository = orderRepository;
         _unitOfWork = unitOfWork;
-        _stockService = stockService;
+        _inventoryGateway = inventoryGateway;
         _pointsAntiCorruption = pointsAntiCorruption;
         _promotionAntiCorruption = promotionAntiCorruption;
         _idempotencyStore = idempotencyStore;
@@ -128,10 +128,8 @@ public sealed class OrderTimeoutDelayMessageConsumer : IConsumer<OrderTimeoutMes
         await _unitOfWork.SaveEntitiesAsync(ct);
 
         // 持久化成功后再释放预占库存、冻结积分与优惠券（可独立重试）
-        var skuQuantities = order.Items
-            .GroupBy(i => i.SkuId)
-            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
-        await _stockService.ReleaseBatchAsync(order.Id, skuQuantities, ct);
+        // 库存释放已异步化（ReleaseStockCommand，Inventory 按订单幂等解析台账）
+        await _inventoryGateway.ReleaseBatchAsync(order.Id, ct);
         await _pointsAntiCorruption.ReleaseAsync(order.Id, ct);
         await _promotionAntiCorruption.ReleaseCouponsAsync(order.Id, ct);
 

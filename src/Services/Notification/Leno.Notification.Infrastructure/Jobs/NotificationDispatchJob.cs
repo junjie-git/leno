@@ -103,7 +103,7 @@ public sealed class NotificationDispatchJob
             }
         }
 
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
         _logger.LogInformation("通知调度完成 处理 {Count} 条", pending.Count);
     }
 

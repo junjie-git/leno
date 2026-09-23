@@ -11,8 +11,10 @@
   <ItemGroup>
     <PackageReference Include="MassTransit" Version="8.3.6" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
-    <PackageReference Include="Quartz" Version="3.13.0" />
-    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.13.0" />
+    <!-- 2026-09-21 由 3.13.0 提升至 3.13.1：与共享内核（Leno.Infrastructure → MassTransit.Quartz 8.3.6）
+         所需的 Quartz 3.13.1 对齐，避免 NU1605 包降级错误 -->
+    <PackageReference Include="Quartz" Version="3.13.1" />
+    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.13.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
     <PackageReference Include="StackExchange.Redis" Version="$(StackExchangeRedisVersion)" />
     <PackageReference Include="UAParser" Version="$(UAParserVersion)" />

@@ -3,7 +3,12 @@ namespace Leno.Product.Application.Queries;
 /// <summary>
 /// 买家端商品搜索查询参数（CQRS 读侧 Query）。
 /// 由 <see cref="ProductSearchQueryHandler"/> 处理，委托给 <c>IProductSearchService</c> 走 ES 读模型。
-/// 双发期内与 <c>ProductSearchQueryDto</c> 并存，2 周后 Controller 切换到本 Query。
+/// <para>
+/// 定位（双轨下线 DEC-9 改判，2026-09-21）：本查询是<b>买家端 ES 搜索路径</b>，
+/// 不含 <c>ShopId</c>/<c>Status</c> 过滤；卖家/运营管理端列表走
+/// <c>SPUAppService.QueryProductsAsync</c>（SQL）。二者是用途不同的并行读路径，
+/// 而非新旧实现 —— ES/SQL 终局归属由 E3 单独决策。
+/// </para>
 /// </summary>
 public sealed class ProductSearchQuery
 {

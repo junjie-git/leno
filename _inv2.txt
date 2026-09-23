@@ -1,0 +1,20 @@
+##### src/Services/Inventory/Leno.Inventory.Domain/Aggregates/StockBaseline.cs
+26: public sealed class StockBaseline : AggregateRoot
+38: public int ReservedQty { get; private set; }
+82: ReservedQty = 0,
+115: /// 本方法直接覆盖 <see cref="AvailableQty"/>；已预占数量（Reserved）不受影响 ——
+
+##### src/Services/Inventory/Leno.Inventory.Domain/Aggregates/StockReservation.cs
+8: /// 预占（Reserved）为初始态；确认（Confirmed）/释放（Released）/归还（Returned）为终态，
+14: Reserved = 0,
+39: public sealed class StockReservation : AggregateRoot
+69: public static StockReservation CreateReserved(
+92: Status = StockReservationStatus.Reserved,
+125: /// 状态单向迁移：Reserved → Confirmed/Released；Confirmed → Returned。
+139: StockReservationStatus.Reserved => target is StockReservationStatus.Confirmed
+
+##### src/Services/Inventory/Leno.Inventory.Domain/Repositories/IStockBaselineRepository.cs
+25: Task<int> TryReserveAsync(Guid skuId, int quantity, CancellationToken ct = default);
+
+src/Services/Inventory/Leno.Inventory.Infrastructure/Configurations/StockBaselineConfiguration.cs:15 :: builder.ToTable("stock_baselines");
+src/Services/Inventory/Leno.Inventory.Infrastructure/Configurations/StockReservationConfiguration.cs:19 :: builder.ToTable("stock_reservations");

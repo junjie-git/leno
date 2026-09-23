@@ -1,3 +1,4 @@
+using Leno.Order.Application.Abstractions;
 using FluentAssertions;
 using Leno.Infrastructure.Abstractions;
 using Leno.Infrastructure.Outbox;
@@ -40,7 +41,7 @@ public class ForceCancelRefundIntegrationTests : CrossBcIntegrationTestBase<Orde
         services.AddScoped<IOrderRepository, EfCoreOrderRepository>();
 
         // 防腐层 Mock：ForceCancel 调用 ReleaseBatch/ReleaseCoupons/Release 等无返回值方法，Mock.Of 返回 Task.CompletedTask
-        services.AddScoped(_ => Mock.Of<IStockReservationDomainService>());
+        services.AddScoped(_ => Mock.Of<IInventoryGateway>());
         services.AddScoped(_ => Mock.Of<IPromotionAntiCorruptionService>());
         services.AddScoped(_ => Mock.Of<IPointsAntiCorruptionService>());
         services.AddScoped(_ => Mock.Of<IEventBus>());

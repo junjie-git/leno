@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.Promotion.Application;
@@ -71,7 +71,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRuleEngine, RuleEngine>();
 
         // 功能开关：绑定 Promotion 配置节（A/B 灰度切换新旧试算路径）
-        services.Configure<PromotionOptions>(configuration.GetSection(PromotionOptions.SectionName));
 
         // 应用服务
         services.AddScoped<IPromotionAppService, PromotionAppService>();

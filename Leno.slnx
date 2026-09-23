@@ -119,14 +119,6 @@
     <Project Path="src/Services/Promotion/Leno.Promotion.Infrastructure.Tests/Leno.Promotion.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/Promotion/Leno.Promotion.Infrastructure/Leno.Promotion.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/src/Services/PointsMembership/">
-    <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Api/Leno.PointsMembership.Api.csproj" />
-    <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Application/Leno.PointsMembership.Application.csproj" />
-    <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Domain.Tests/Leno.PointsMembership.Domain.Tests.csproj" />
-    <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Domain/Leno.PointsMembership.Domain.csproj" />
-    <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Infrastructure.Tests/Leno.PointsMembership.Infrastructure.Tests.csproj" />
-    <Project Path="src/Services/PointsMembership/Leno.PointsMembership.Infrastructure/Leno.PointsMembership.Infrastructure.csproj" />
-  </Folder>
   <Folder Name="/src/Services/Points/">
     <Project Path="src/Services/Points/Leno.Points.Api.Tests/Leno.Points.Api.Tests.csproj" />
     <Project Path="src/Services/Points/Leno.Points.Api/Leno.Points.Api.csproj" />
@@ -158,16 +150,6 @@
     <Project Path="src/Services/Review/Leno.Review.Domain/Leno.Review.Domain.csproj" />
     <Project Path="src/Services/Review/Leno.Review.Infrastructure/Leno.Review.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/src/Services/ReviewAfterSales/">
-    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api.Tests/Leno.ReviewAfterSales.Api.Tests.csproj" />
-    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Leno.ReviewAfterSales.Api.csproj" />
-    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Application.Tests/Leno.ReviewAfterSales.Application.Tests.csproj" />
-    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Application/Leno.ReviewAfterSales.Application.csproj" />
-    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Domain.Tests/Leno.ReviewAfterSales.Domain.Tests.csproj" />
-    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Domain/Leno.ReviewAfterSales.Domain.csproj" />
-    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure.Tests/Leno.ReviewAfterSales.Infrastructure.Tests.csproj" />
-    <Project Path="src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure/Leno.ReviewAfterSales.Infrastructure.csproj" />
-  </Folder>
   <Folder Name="/src/Services/Identity/">
     <Project Path="src/Services/Identity/Leno.Identity.Api.Tests/Leno.Identity.Api.Tests.csproj" />
     <Project Path="src/Services/Identity/Leno.Identity.Api/Leno.Identity.Api.csproj" />
@@ -193,16 +175,6 @@
     <Project Path="src/Services/Notification/Leno.Notification.Domain/Leno.Notification.Domain.csproj" />
     <Project Path="src/Services/Notification/Leno.Notification.Infrastructure.Tests/Leno.Notification.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/Notification/Leno.Notification.Infrastructure/Leno.Notification.Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/src/Services/UserAuth/">
-    <Project Path="src/Services/UserAuth/Leno.UserAuth.Api.Tests/Leno.UserAuth.Api.Tests.csproj" />
-    <Project Path="src/Services/UserAuth/Leno.UserAuth.Api/Leno.UserAuth.Api.csproj" />
-    <Project Path="src/Services/UserAuth/Leno.UserAuth.Application.Tests/Leno.UserAuth.Application.Tests.csproj" />
-    <Project Path="src/Services/UserAuth/Leno.UserAuth.Application/Leno.UserAuth.Application.csproj" />
-    <Project Path="src/Services/UserAuth/Leno.UserAuth.Domain.Tests/Leno.UserAuth.Domain.Tests.csproj" />
-    <Project Path="src/Services/UserAuth/Leno.UserAuth.Domain/Leno.UserAuth.Domain.csproj" />
-    <Project Path="src/Services/UserAuth/Leno.UserAuth.Infrastructure.Tests/Leno.UserAuth.Infrastructure.Tests.csproj" />
-    <Project Path="src/Services/UserAuth/Leno.UserAuth.Infrastructure/Leno.UserAuth.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/UserCenter/">
     <Project Path="src/Services/UserCenter/Leno.UserCenter.Api.Tests/Leno.UserCenter.Api.Tests.csproj" />

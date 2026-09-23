@@ -1,7 +1,6 @@
 using Leno.Infrastructure.Abstractions;
-using Leno.Order.Application.ProcessManagers;
+using Leno.Order.Application.Abstractions;
 using Leno.Order.Domain.Repositories;
-using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Leno.SharedKernel.Abstractions;
@@ -25,33 +24,25 @@ namespace Leno.Order.Infrastructure.Consumers;
 public sealed class StockConfirmConsumer : IConsumer<PaymentSucceededEvent>
 {
     private readonly IOrderRepository _orderRepository;
-    private readonly IStockReservationDomainService _stockService;
+    private readonly IInventoryGateway _inventoryGateway;
     private readonly IIdempotencyStore _idempotencyStore;
     private readonly ILogger<StockConfirmConsumer> _logger;
-    private readonly IOrderPaymentProcessManager _processManager;
-    private readonly IOptionsMonitor<OrderPaymentProcessOptions> _options;
 
     public StockConfirmConsumer(
         IOrderRepository orderRepository,
-        IStockReservationDomainService stockService,
+        IInventoryGateway inventoryGateway,
         IIdempotencyStore idempotencyStore,
-        ILogger<StockConfirmConsumer> logger,
-        IOrderPaymentProcessManager processManager,
-        IOptionsMonitor<OrderPaymentProcessOptions> options)
+        ILogger<StockConfirmConsumer> logger)
     {
         ArgumentNullException.ThrowIfNull(orderRepository);
-        ArgumentNullException.ThrowIfNull(stockService);
+        ArgumentNullException.ThrowIfNull(inventoryGateway);
         ArgumentNullException.ThrowIfNull(idempotencyStore);
         ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(processManager);
-        ArgumentNullException.ThrowIfNull(options);
 
         _orderRepository = orderRepository;
-        _stockService = stockService;
+        _inventoryGateway = inventoryGateway;
         _idempotencyStore = idempotencyStore;
         _logger = logger;
-        _processManager = processManager;
-        _options = options;
     }
 
     /// <inheritdoc />
@@ -80,10 +71,6 @@ public sealed class StockConfirmConsumer : IConsumer<PaymentSucceededEvent>
                 evt.PaymentId);
             return;
         }
-
-        var useProcessManager = OrderPaymentProcessRolloutEvaluator.ShouldUseProcessManager(
-            _options.CurrentValue, evt.OrderId);
-
         try
         {
             await ConfirmStockAsync(evt, ct);
@@ -100,14 +87,7 @@ public sealed class StockConfirmConsumer : IConsumer<PaymentSucceededEvent>
 
         await _idempotencyStore.MarkAsProcessedAsync(idempotencyId, ct);
         _logger.LogInformation("库存确认完成 PaymentId={PaymentId} OrderId={OrderId}",
-            evt.PaymentId, evt.OrderId);
-
-        // 3.3 双轨期 shadow 模式：转发库存确认完成回调给 Process Manager
-        if (useProcessManager)
-        {
-            await TryHandleStockConfirmedAsync(evt.OrderId, ct);
-        }
-    }
+            evt.PaymentId, evt.OrderId);    }
 
     /// <summary>
     /// 加载订单并按明细构建 SKU 数量映射，调用库存领域服务确认扣减。
@@ -133,24 +113,11 @@ public sealed class StockConfirmConsumer : IConsumer<PaymentSucceededEvent>
             .GroupBy(i => i.SkuId)
             .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
 
-        await _stockService.ConfirmBatchAsync(order.Id, skuQuantities, ct);
-    }
+        // 确认扣减已异步化（ConfirmStockCommand）：命令按订单寻址，
+        // Inventory 按台账幂等处理，本地的 SKU 数量映射仅供日志核对
+        _logger.LogInformation("库存确认：Order={OrderId} Items={Count}（转为异步命令）",
+            order.Id, skuQuantities.Count);
 
-    /// <summary>
-    /// 转发库存确认完成回调给 Process Manager。
-    /// 异常隔离：回调失败不应影响旧路径的实际工作（shadow 模式），仅记录错误日志。
-    /// </summary>
-    private async Task TryHandleStockConfirmedAsync(Guid orderId, CancellationToken ct)
-    {
-        try
-        {
-            await _processManager.HandleStockConfirmedAsync(orderId, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex,
-                "Process Manager HandleStockConfirmedAsync 回调失败，不影响旧路径实际工作 OrderId={OrderId}",
-                orderId);
-        }
+        await _inventoryGateway.ConfirmBatchAsync(order.Id, ct);
     }
 }

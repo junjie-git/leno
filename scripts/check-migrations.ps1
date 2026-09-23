@@ -17,14 +17,11 @@
 $ErrorActionPreference = "Stop"
 
 $bcProjects = @(
-    @{ Name = "UserAuth"; Infrastructure = "src/Services/UserAuth/Leno.UserAuth.Infrastructure"; Api = "src/Services/UserAuth/Leno.UserAuth.Api" },
     @{ Name = "Product"; Infrastructure = "src/Services/Product/Leno.Product.Infrastructure"; Api = "src/Services/Product/Leno.Product.Api" },
     @{ Name = "Cart"; Infrastructure = "src/Services/Cart/Leno.Cart.Infrastructure"; Api = "src/Services/Cart/Leno.Cart.Api" },
     @{ Name = "Order"; Infrastructure = "src/Services/Order/Leno.Order.Infrastructure"; Api = "src/Services/Order/Leno.Order.Api" },
     @{ Name = "Promotion"; Infrastructure = "src/Services/Promotion/Leno.Promotion.Infrastructure"; Api = "src/Services/Promotion/Leno.Promotion.Api" },
     @{ Name = "Payment"; Infrastructure = "src/Services/Payment/Leno.Payment.Infrastructure"; Api = "src/Services/Payment/Leno.Payment.Api" },
-    @{ Name = "PointsMembership"; Infrastructure = "src/Services/PointsMembership/Leno.PointsMembership.Infrastructure"; Api = "src/Services/PointsMembership/Leno.PointsMembership.Api" },
-    @{ Name = "ReviewAfterSales"; Infrastructure = "src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Infrastructure"; Api = "src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api" },
     @{ Name = "SellerShop"; Infrastructure = "src/Services/SellerShop/Leno.SellerShop.Infrastructure"; Api = "src/Services/SellerShop/Leno.SellerShop.Api" },
     @{ Name = "Notification"; Infrastructure = "src/Services/Notification/Leno.Notification.Infrastructure"; Api = "src/Services/Notification/Leno.Notification.Api" },
     @{ Name = "SystemAdmin"; Infrastructure = "src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure"; Api = "src/Services/SystemAdmin/Leno.SystemAdmin.Api" }

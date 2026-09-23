@@ -13,6 +13,7 @@ using Medallion.Threading.Redis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Quartz;
 using StackExchange.Redis;
 using System.Globalization;
 
@@ -31,10 +32,17 @@ public static class ServiceCollectionExtensions
     /// 注册 Leno 基础设施全部服务。
     /// </summary>
     /// <param name="configureConsumers">MassTransit 消费者注册回调，业务上下文在此注册集成事件消费者。</param>
+    /// <param name="configureScheduler">
+    /// Quartz 调度器作业注册回调（双轨下线 DEC-2 决策 (b)，2026-09-21）。
+    /// Quartz 调度器由共享内核统一注册（持久化 + 聚类），**各 BC 不得再自行调用 AddQuartz**
+    /// （重复注册会导致后者的配置覆盖前者，且出现两套调度器）。需要 cron/延迟作业的 BC
+    /// 通过此回调向共享调度器注册作业与触发器，如 SystemAdmin 的 DLQ 清理作业。
+    /// </param>
     public static IServiceCollection AddLenoInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration,
-        Action<IBusRegistrationConfigurator>? configureConsumers = null)
+        Action<IBusRegistrationConfigurator>? configureConsumers = null,
+        Action<IServiceCollectionQuartzConfigurator>? configureScheduler = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -47,7 +55,7 @@ public static class ServiceCollectionExtensions
         // 默认注册空翻译器，各 BC 在 AddXxxInfrastructure 中覆盖为具体实现
         services.AddSingleton<IIntegrationEventMapper, NullIntegrationEventMapper>();
         AddElasticsearch(services, configuration);
-        AddEventBus(services, configuration, configureConsumers);
+        AddEventBus(services, configuration, configureConsumers, configureScheduler);
         AddHealthChecks(services, configuration);
 
         return services;
@@ -133,13 +141,81 @@ public static class ServiceCollectionExtensions
     private static void AddEventBus(
         IServiceCollection services,
         IConfiguration configuration,
-        Action<IBusRegistrationConfigurator>? configureConsumers)
+        Action<IBusRegistrationConfigurator>? configureConsumers,
+        Action<IServiceCollectionQuartzConfigurator>? configureScheduler)
     {
         services.AddScoped<IEventBus, RabbitMqEventBus>();
+
+        // ====================================================================
+        // Quartz.NET 消息调度器（双轨下线 DEC-2 决策 (b)，2026-09-21）
+        // --------------------------------------------------------------------
+        // 修复缺陷：OrderAppService.ConfirmReceiptAsync（7 天售后窗口）与
+        // OrderSagaOrchestrator（30 分钟订单超时）此前调用 CreateMessageScheduler()，
+        // 但全仓从未注册调度器、broker 也未启用延迟插件 → 延迟消息投递必然失败，
+        // 且两处调用无 try/catch，会留下"已确认收货但售后窗口永不关闭"的半成品态。
+        //
+        // 选型理由：系统后续还会有其他定时任务，Quartz 提供 cron 周期消息
+        //（IRecurringMessageScheduler）、二级重试（UseScheduledRedelivery）、
+        // 多实例聚类与持久化，是自建轻量方案拿不到的能力。
+        //
+        // 存储：独立 LenoScheduler 库（调度器属跨 BC 基础设施，与 Redis/ES 同级）。
+        // 注意 QRTZ_* 表由 Quartz 自有 DDL 管理，不纳入 EF 迁移
+        //（见 docs/双轨下线-实施方案.md §5.5）。
+        // ====================================================================
+        var schedulerConnectionString = configuration.GetConnectionString("SchedulerDb");
+        if (string.IsNullOrWhiteSpace(schedulerConnectionString))
+        {
+            // fail-fast：与 AddLenoStartupConfigurationValidation 的哲学一致。
+            // 若降级为"缺失则跳过注册"，延迟消息会静默失效 —— 正是本次要修的缺陷形态。
+            throw new InvalidOperationException(
+                "缺少 ConnectionStrings:SchedulerDb。Quartz 消息调度器需要独立的调度库连接串，" +
+                "请同时补充：本地 appsettings.json / appsettings.Docker.json、Consul KV（ConnectionStrings__SchedulerDb）、" +
+                "Helm 的 leno-db-connectionstrings Secret，并确保已执行 Quartz 建表脚本 " +
+                "deploy/helm/leno/files/migrations/scheduler-quartz.sql。");
+        }
+
+        services.AddQuartz(q =>
+        {
+            q.SchedulerName = "MassTransit-Scheduler";
+            q.SchedulerId = "AUTO";
+            q.UseDefaultThreadPool(tp => tp.MaxConcurrency = 10);
+            q.UsePersistentStore(s =>
+            {
+                s.UseProperties = true;
+                s.RetryInterval = TimeSpan.FromSeconds(15);
+                s.UseSqlServer(schedulerConnectionString);
+                // 持久化存储必须显式声明序列化器（RAMJobStore 之外都需要），
+                // 否则 QuartzHostedService.StartAsync 抛 SchedulerException、宿主启动失败。
+                // 选 binary 而非 json：json 需额外引入 Quartz.Serialization.Json 包（与核心 3.13.1 版本需严格对齐）；
+                // Quartz 调度条目仅含 MassTransit 消息信封与少量标量，binary 足够。
+                s.UseBinarySerializer();
+                // 聚类：多副本共享同一调度库，任务负载均衡 + 节点故障自动接管
+                s.UseClustering(c =>
+                {
+                    c.CheckinMisfireThreshold = TimeSpan.FromSeconds(20);
+                    c.CheckinInterval = TimeSpan.FromSeconds(10);
+                });
+            });
+
+            // 各 BC 通过此回调向共享调度器注册自己的作业与触发器
+            //（如 SystemAdmin 的 DLQ 清理 cron 作业）
+            configureScheduler?.Invoke(q);
+        });
+
+        services.AddQuartzHostedService(o =>
+        {
+            o.StartDelay = TimeSpan.FromSeconds(5);
+            o.WaitForJobsToComplete = true;
+        });
 
         services.AddMassTransit(cfg =>
         {
             configureConsumers?.Invoke(cfg);
+
+            // ① 把 message scheduler 注册进容器（CreateMessageScheduler / IMessageScheduler 由此解析）
+            cfg.AddPublishMessageScheduler();
+            // ② Quartz 侧消费者：接收调度请求并交由 Quartz 触发
+            cfg.AddQuartzConsumers();
 
             cfg.UsingRabbitMq((context, rabbitCfg) =>
             {
@@ -192,6 +268,10 @@ public static class ServiceCollectionExtensions
                         r.Intervals(initialInterval);
                     }
                 });
+
+                // 传输层启用 publish 型调度器（与 AddPublishMessageScheduler 配对）
+                // 必须在 ConfigureEndpoints 之前调用
+                rabbitCfg.UsePublishMessageScheduler();
 
                 rabbitCfg.ConfigureEndpoints(context);
             });

@@ -180,7 +180,7 @@ public class NotificationCallbacksControllerSecurityTests
             .Returns(Task.CompletedTask);
 
         var uowMock = new Mock<IUnitOfWork>(MockBehavior.Loose);
-        uowMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         var loggerMock = new Mock<ILogger<NotificationCallbacksController>>();
 
@@ -197,7 +197,7 @@ public class NotificationCallbacksControllerSecurityTests
         // Assert — 窗口内时间戳应正常处理
         Assert.IsType<OkObjectResult>(result);
         recordRepoMock.Verify(r => r.UpdateAsync(record, It.IsAny<CancellationToken>()), Times.Once);
-        uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     /// <summary>

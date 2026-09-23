@@ -1,5 +1,5 @@
+﻿using Leno.Order.Application.Abstractions;
 using Leno.Infrastructure.Abstractions;
-using Leno.Order.Application.ProcessManagers;
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
@@ -38,8 +38,8 @@ public class StockConfirmConsumerTests
         mockOrderRepo.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
 
-        var mockStockService = new Mock<IStockReservationDomainService>();
-        mockStockService.Setup(s => s.ConfirmBatchAsync(OrderId, It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        var mockStockService = new Mock<IInventoryGateway>();
+        mockStockService.Setup(s => s.ConfirmBatchAsync(OrderId))
             .Returns(Task.CompletedTask);
 
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
@@ -68,13 +68,7 @@ public class StockConfirmConsumerTests
         // Assert
         // ConfirmBatchAsync 应以正确的 SKU 数量映射被调用
         mockStockService.Verify(
-            s => s.ConfirmBatchAsync(
-                OrderId,
-                It.Is<Dictionary<Guid, int>>(d =>
-                    d.Count == 2 &&
-                    d[SkuId1] == 3 &&
-                    d[SkuId2] == 5),
-                It.IsAny<CancellationToken>()),
+            s => s.ConfirmBatchAsync(OrderId),
             Times.Once);
 
         // 处理成功后应标记为已处理
@@ -88,7 +82,7 @@ public class StockConfirmConsumerTests
     {
         // Arrange
         var mockOrderRepo = new Mock<IOrderRepository>();
-        var mockStockService = new Mock<IStockReservationDomainService>();
+        var mockStockService = new Mock<IInventoryGateway>();
 
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
         mockIdempotencyStore.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
@@ -116,7 +110,7 @@ public class StockConfirmConsumerTests
         // Assert
         // 已处理则不应调用库存确认，也不应加载订单
         mockStockService.Verify(
-            s => s.ConfirmBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            s => s.ConfirmBatchAsync(It.IsAny<Guid>()),
             Times.Never);
         mockOrderRepo.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -130,7 +124,7 @@ public class StockConfirmConsumerTests
         mockOrderRepo.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
 
-        var mockStockService = new Mock<IStockReservationDomainService>();
+        var mockStockService = new Mock<IInventoryGateway>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
         mockIdempotencyStore.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -157,7 +151,7 @@ public class StockConfirmConsumerTests
         // Assert
         // 会员订阅订单无实物库存，跳过库存确认
         mockStockService.Verify(
-            s => s.ConfirmBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            s => s.ConfirmBatchAsync(It.IsAny<Guid>()),
             Times.Never);
 
         // 但仍应标记为已处理（避免重试）
@@ -174,7 +168,7 @@ public class StockConfirmConsumerTests
         mockOrderRepo.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((OrderAggregate?)null);
 
-        var mockStockService = new Mock<IStockReservationDomainService>();
+        var mockStockService = new Mock<IInventoryGateway>();
         var mockIdempotencyStore = new Mock<IIdempotencyStore>();
         mockIdempotencyStore.Setup(s => s.IsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -200,31 +194,24 @@ public class StockConfirmConsumerTests
 
         // Assert
         mockStockService.Verify(
-            s => s.ConfirmBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            s => s.ConfirmBatchAsync(It.IsAny<Guid>()),
             Times.Never);
     }
 
     /// <summary>
-    /// 创建被测消费者实例，注入默认关闭 Process Manager 的 Options（双轨期：旧路径行为不变）。
+    /// 创建被测消费者实例（双轨下线 D1/D2：Process Manager 原型已删除，无 Options 注入）。
     /// </summary>
     private static StockConfirmConsumer CreateConsumer(
         IOrderRepository orderRepo,
-        IStockReservationDomainService stockService,
+        IInventoryGateway inventoryGateway,
         IIdempotencyStore idempotencyStore,
         ILogger<StockConfirmConsumer> logger)
     {
-        var processManagerMock = new Mock<IOrderPaymentProcessManager>();
-        var optionsMock = new Mock<IOptionsMonitor<OrderPaymentProcessOptions>>();
-        optionsMock.Setup(o => o.CurrentValue)
-            .Returns(new OrderPaymentProcessOptions { UsePaymentProcessManager = false });
-
         return new StockConfirmConsumer(
             orderRepo,
-            stockService,
+            inventoryGateway,
             idempotencyStore,
-            logger,
-            processManagerMock.Object,
-            optionsMock.Object);
+            logger);
     }
 
     private static Mock<ConsumeContext<PaymentSucceededEvent>> CreateConsumeContext(PaymentSucceededEvent message, CancellationToken ct = default)

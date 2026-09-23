@@ -13,6 +13,6 @@ public sealed class SellerDashboardBffResponse
     /// <summary>最近订单列表（来自 Order BC <c>/api/orders?sellerId={sellerId}&amp;pageIndex=0&amp;pageSize=5</c>）。</summary>
     public JsonElement? RecentOrders { get; init; }
 
-    /// <summary>评论统计（来自 ReviewAfterSales BC <c>/api/reviews?sellerId={sellerId}</c>）。</summary>
+    /// <summary>评论统计（来自 Review BC <c>/api/reviews?sellerId={sellerId}</c>）。</summary>
     public JsonElement? ReviewStats { get; init; }
 }

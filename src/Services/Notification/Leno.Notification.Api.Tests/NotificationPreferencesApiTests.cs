@@ -17,6 +17,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 
+using Leno.Testing.Fixtures;
+
 namespace Leno.Notification.Api.Tests;
 
 /// <summary>
@@ -47,6 +49,7 @@ public class NotificationPreferencesApiTests : IClassFixture<WebApplicationFacto
 
             builder.ConfigureServices(services =>
             {
+            TestWebHostHelper.RemoveQuartzSchedulerServices(services);
                 // Mock 待测应用服务 + 当前用户上下文（内部端点不依赖 JWT/CurrentUser，但其他控制器解析时需要）
                 services.AddSingleton(_preferenceAppServiceMock.Object);
                 services.AddSingleton(_currentUserMock.Object);

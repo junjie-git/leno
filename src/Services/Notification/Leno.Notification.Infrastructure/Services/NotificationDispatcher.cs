@@ -107,7 +107,7 @@ public sealed class NotificationDispatcher : INotificationDispatcher
         // 所有记录在同一事务内提交，要么全部成功要么全部回滚，保持事务一致性。
         if (records.Count > 0)
         {
-            await _unitOfWork.SaveChangesAsync(ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
         }
 
         // 阶段 3：逐个发送（不涉及 SaveChanges，仅投递到渠道网关）。
@@ -154,7 +154,7 @@ public sealed class NotificationDispatcher : INotificationDispatcher
         // 所有状态更新在同一事务内提交，保持事务一致性。
         if (records.Count > 0)
         {
-            await _unitOfWork.SaveChangesAsync(ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
         }
 
         _logger.LogInformation("通知调度完成 UserId={UserId} TemplateCode={TemplateCode} Channels={Channels}", userId, templateCode, string.Join(",", channels));

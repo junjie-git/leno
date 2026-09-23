@@ -1,0 +1,4 @@
+recreate rc=0
+status: Up 45 seconds (health: starting)
+=== E2E rc=2
+FATAL: gRPC 连接失败（http://localhost:5265）：Status(StatusCode="Internal", Detail="Error starting gRPC call. HttpRequestException: Requesting HTTP version 2.0 with version policy RequestVersionOrHigher while unable to establish HTTP/2 connection.", DebugException="System.Net.Http.HttpRequestException: Requesting HTTP version 2.0 with version policy RequestVersionOrHigher while unable to establish HTTP/2 connection.")

@@ -102,29 +102,6 @@ public class RedisAnonymousCartRepositoryTests
     }
 
     [Fact]
-    public async Task GetAsync_LegacyStringFormat_ShouldLoadCartWithVersionZero()
-    {
-        // P1-1 兼容：迁移前 String 格式无 version 字段，按 0 处理，首次 CAS 保存会迁移到 Hash 格式
-        var cart = CartAggregate.CreateAnonymous(Guid.NewGuid());
-        cart.AddItem(Guid.NewGuid(), 1, Guid.NewGuid());
-        var payloadJson = System.Text.Json.JsonSerializer.Serialize(cart, TestJsonOptions);
-
-        _dbMock
-            .Setup(d => d.KeyTypeAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync(RedisType.String);
-        _dbMock
-            .Setup(d => d.StringGetAsync(It.IsAny<RedisKey>(), It.IsAny<CommandFlags>()))
-            .ReturnsAsync((RedisValue)payloadJson);
-
-        var sut = new RedisAnonymousCartRepository(_redisMock.Object, NullLogger<RedisAnonymousCartRepository>.Instance);
-
-        var result = await sut.GetAsync("session-1");
-
-        result.Should().NotBeNull();
-        result!.Revision.Should().Be(0, "旧 String 格式无 version，默认 0");
-    }
-
-    [Fact]
     public async Task GetAsync_UnexpectedKeyType_ShouldReturnNullAndLogWarning()
     {
         _dbMock
@@ -375,26 +352,6 @@ public class RedisAnonymousCartRepositoryTests
         var act = () => sut.RefreshTtlAsync("session-1");
 
         await act.Should().ThrowAsync<CartInfrastructureException>();
-    }
-
-    // ============== SaveAsyncLegacy 标记 Obsolete 测试 ==============
-
-    [Fact]
-    public async Task SaveAsyncLegacy_RedisConnectionException_ShouldThrowCartInfrastructureException()
-    {
-        // 保留旧非原子实现作为 fallback，异常传播行为应与原 SaveAsync 一致
-        #pragma warning disable CS0618 // SaveAsyncLegacy 已标记 Obsolete，测试中显式调用
-        _dbMock
-            .Setup(d => d.StringSetAsync(It.IsAny<RedisKey>(), It.IsAny<RedisValue>(), It.IsAny<TimeSpan?>(), It.IsAny<bool>(), It.IsAny<When>(), It.IsAny<CommandFlags>()))
-            .ThrowsAsync(new RedisConnectionException(ConnectionFailureType.SocketFailure, "redis down"));
-        var sut = new RedisAnonymousCartRepository(_redisMock.Object, NullLogger<RedisAnonymousCartRepository>.Instance);
-        var cart = CartAggregate.CreateAnonymous(Guid.NewGuid());
-
-        var act = () => sut.SaveAsyncLegacy("session-1", cart);
-
-        await act.Should().ThrowAsync<CartInfrastructureException>()
-            .WithMessage("*匿名购物车暂不可用*");
-        #pragma warning restore CS0618
     }
 
     // ============== 辅助方法 ==============

@@ -11,13 +11,13 @@ namespace Leno.Order.Infrastructure.Services;
 /// <summary>
 /// 积分域防腐层服务，通过 HTTP 调用积分域内部 API 试算/冻结/释放/确认积分扣减。
 /// 继承 <see cref="AntiCorruptionBase"/>，所有远程失败（网络异常、非 2xx、超时）统一抛 <see cref="AntiCorruptionException"/>，不再静默返回 0；用户取消透传 <see cref="OperationCanceledException"/>。
-/// M5.2：通过 <see cref="AntiCorruptionOptions.TargetInternalApiKeys"/> 读取目标 BC（PointsMembership）的 InternalApiKey，
+/// M5.2：通过 <see cref="AntiCorruptionOptions.TargetInternalApiKeys"/> 读取目标 BC（Points）的 InternalApiKey，
 /// 注入 <c>X-Internal-Key</c> 请求头，替代旧的共用 InternalAuth:ApiKey。
 /// </summary>
 public sealed class PointsAntiCorruptionService : AntiCorruptionBase, IPointsAntiCorruptionService
 {
     private const string InternalKeyName = "X-Internal-Key";
-    private const string TargetBc = "PointsMembership";
+    private const string TargetBc = "Points";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

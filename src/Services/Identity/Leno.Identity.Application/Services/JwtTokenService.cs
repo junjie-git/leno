@@ -33,7 +33,6 @@ namespace Leno.Identity.Application.Services;
 public sealed class JwtTokenService
 {
     /// <summary>HS256 要求 SymmetricSecurityKey 至少 256 位（32 字节）。</summary>
-    private const int MinSigningKeyBytes = 32;
 
     /// <summary>不透明刷新令牌的字节长度（256 位熵）。</summary>
     private const int RefreshTokenByteLength = 32;
@@ -69,7 +68,6 @@ public sealed class JwtTokenService
         _accessControlClient = accessControlClient;
         _logger = logger;
 
-        // 3.10：SigningKey 仅在 HS256 回退模式（BuildValidationParameters）下需要，
         // RS256/Dual 模式的签名密钥由 IJwtSigningService + KMS 管理。
         // 此处不再强制要求 SigningKey 非空，由 RsaJwtSigningService 在 HS256 模式下校验。
 
@@ -186,43 +184,4 @@ public sealed class JwtTokenService
         return RefreshToken.Create(Guid.NewGuid(), tokenString, userId, expiresAt);
     }
 
-    /// <summary>
-    /// 构造 HS256 校验参数（向后兼容，供共享内核 JwtBearer 管线使用）。
-    /// <para>
-    /// 3.10 升级后，RS256/Dual 模式的验签通过 <see cref="IJwtSigningService.VerifyAsync"/> 完成。
-    /// 此方法仅在 SigningKey 已配置时返回 HS256 参数；否则抛出异常提示切换至 RS256 验签。
-    /// </para>
-    /// </summary>
-    public TokenValidationParameters BuildValidationParameters()
-    {
-        if (string.IsNullOrWhiteSpace(_options.SigningKey))
-        {
-            throw new InvalidOperationException(
-                "Identity:Jwt:SigningKey 未配置，HS256 校验参数不可用。" +
-                "RS256/Dual 模式请通过 IJwtSigningService.VerifyAsync 验签。");
-        }
-
-        var keyBytes = Encoding.UTF8.GetBytes(_options.SigningKey);
-        if (keyBytes.Length < MinSigningKeyBytes)
-        {
-            throw new InvalidOperationException(
-                $"Identity:Jwt:SigningKey 长度不足：HS256 要求至少 {MinSigningKeyBytes} 字节（256 位），" +
-                $"当前 UTF-8 编码仅 {keyBytes.Length} 字节。");
-        }
-
-        var key = new SymmetricSecurityKey(keyBytes);
-        return new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = _options.Issuer,
-            ValidateAudience = true,
-            ValidAudience = _options.Audience,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = key,
-            ClockSkew = ClockSkew,
-            RoleClaimType = ClaimTypes.Role,
-            NameClaimType = ClaimTypes.NameIdentifier
-        };
-    }
 }

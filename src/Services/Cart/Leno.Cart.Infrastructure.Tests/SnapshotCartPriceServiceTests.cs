@@ -16,8 +16,7 @@ namespace Leno.Cart.Infrastructure.Tests;
 /// <summary>
 /// <see cref="SnapshotCartPriceService"/> 装饰器单元测试（阶段三 3.11）。
 /// 覆盖：
-/// - feature flag 关闭时透传给 inner
-/// - 快照存在且未过期时返回本地快照，不调用 inner
+/// /// - 快照存在且未过期时返回本地快照，不调用 inner
 /// - 快照过期时返回过期快照并触发后台刷新（不回退 inner）
 /// - 快照缺失时回退 inner 并入队后台刷新
 /// - 多 SKU 混合场景：本地命中 + 缺失回退
@@ -35,38 +34,12 @@ public class SnapshotCartPriceServiceTests
     private static readonly Guid SellerId2 = Guid.NewGuid();
 
     [Fact]
-    public async Task GetSkuPricesAsync_FeatureFlagOff_ShouldDelegateToInner()
-    {
-        // Arrange：feature flag 关闭，所有请求透传 inner
-        await using var context = CreateInMemoryContext();
-        var mockInner = new Mock<ICartPriceService>();
-        mockInner
-            .Setup(s => s.GetSkuPricesAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<SkuPriceSnapshot>
-            {
-                new() { SkuId = SkuId1, Price = 12m, Currency = "CNY", Available = true, Title = "T1", SellerId = SellerId1 }
-            });
-        var mockRefresher = new Mock<IBackgroundSnapshotRefresher>();
-        var sut = CreateSut(context, mockInner.Object, mockRefresher.Object, useSkuSnapshot: false);
-
-        // Act
-        var result = await sut.GetSkuPricesAsync(new[] { SkuId1 }, CancellationToken.None);
-
-        // Assert
-        result.Should().HaveCount(1);
-        result[0].Price.Should().Be(12m);
-        mockInner.Verify(s => s.GetSkuPricesAsync(It.Is<IEnumerable<Guid>>(ids => ids.Contains(SkuId1)), It.IsAny<CancellationToken>()), Times.Once);
-        // feature flag 关闭时不查询快照，不入队后台刷新
-        mockRefresher.Verify(r => r.EnqueueRefreshBatch(It.IsAny<IEnumerable<Guid>>()), Times.Never);
-    }
-
-    [Fact]
     public async Task GetSkuPricesAsync_EmptyInput_ShouldReturnEmptyWithoutCallingInner()
     {
         // Arrange
         await using var context = CreateInMemoryContext();
         var mockInner = new Mock<ICartPriceService>();
-        var sut = CreateSut(context, mockInner.Object, useSkuSnapshot: true);
+        var sut = CreateSut(context, mockInner.Object);
 
         // Act
         var result = await sut.GetSkuPricesAsync(Array.Empty<Guid>(), CancellationToken.None);
@@ -86,7 +59,7 @@ public class SnapshotCartPriceServiceTests
 
         var mockInner = new Mock<ICartPriceService>();
         var mockRefresher = new Mock<IBackgroundSnapshotRefresher>();
-        var sut = CreateSut(context, mockInner.Object, mockRefresher.Object, useSkuSnapshot: true, snapshotMaxAge: TimeSpan.FromMinutes(5));
+        var sut = CreateSut(context, mockInner.Object, mockRefresher.Object, snapshotMaxAge: TimeSpan.FromMinutes(5));
 
         // Act
         var result = await sut.GetSkuPricesAsync(new[] { SkuId1 }, CancellationToken.None);
@@ -120,7 +93,7 @@ public class SnapshotCartPriceServiceTests
         mockRefresher
             .Setup(r => r.EnqueueRefreshBatch(It.IsAny<IEnumerable<Guid>>()))
             .Callback<IEnumerable<Guid>>(ids => capturedRefreshRequests.Add(ids));
-        var sut = CreateSut(context, mockInner.Object, mockRefresher.Object, useSkuSnapshot: true, snapshotMaxAge: TimeSpan.FromMinutes(5));
+        var sut = CreateSut(context, mockInner.Object, mockRefresher.Object, snapshotMaxAge: TimeSpan.FromMinutes(5));
 
         // Act
         var result = await sut.GetSkuPricesAsync(new[] { SkuId1 }, CancellationToken.None);
@@ -156,7 +129,7 @@ public class SnapshotCartPriceServiceTests
         mockRefresher
             .Setup(r => r.EnqueueRefreshBatch(It.IsAny<IEnumerable<Guid>>()))
             .Callback<IEnumerable<Guid>>(ids => capturedRefreshRequests.Add(ids));
-        var sut = CreateSut(context, mockInner.Object, mockRefresher.Object, useSkuSnapshot: true, snapshotMaxAge: TimeSpan.FromMinutes(5));
+        var sut = CreateSut(context, mockInner.Object, mockRefresher.Object, snapshotMaxAge: TimeSpan.FromMinutes(5));
 
         // Act
         var result = await sut.GetSkuPricesAsync(new[] { SkuId1 }, CancellationToken.None);
@@ -194,7 +167,7 @@ public class SnapshotCartPriceServiceTests
         mockRefresher
             .Setup(r => r.EnqueueRefreshBatch(It.IsAny<IEnumerable<Guid>>()))
             .Callback<IEnumerable<Guid>>(ids => capturedRefreshRequests.Add(ids));
-        var sut = CreateSut(context, mockInner.Object, mockRefresher.Object, useSkuSnapshot: true);
+        var sut = CreateSut(context, mockInner.Object, mockRefresher.Object);
 
         // Act
         var result = await sut.GetSkuPricesAsync(new[] { SkuId1, SkuId2, SkuId3 }, CancellationToken.None);
@@ -239,7 +212,7 @@ public class SnapshotCartPriceServiceTests
             .Setup(s => s.GetSkuPricesAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("商品域不可用"));
         var mockRefresher = new Mock<IBackgroundSnapshotRefresher>();
-        var sut = CreateSut(context, mockInner.Object, mockRefresher.Object, useSkuSnapshot: true);
+        var sut = CreateSut(context, mockInner.Object, mockRefresher.Object);
 
         // Act
         var result = await sut.GetSkuPricesAsync(new[] { SkuId1, SkuId2 }, CancellationToken.None);
@@ -267,7 +240,7 @@ public class SnapshotCartPriceServiceTests
         await SeedCartItemWithSnapshotAsync(context, SkuId1, SellerId2, newerSnapshot);
 
         var mockInner = new Mock<ICartPriceService>();
-        var sut = CreateSut(context, mockInner.Object, useSkuSnapshot: true);
+        var sut = CreateSut(context, mockInner.Object);
 
         // Act
         var result = await sut.GetSkuPricesAsync(new[] { SkuId1 }, CancellationToken.None);
@@ -287,7 +260,7 @@ public class SnapshotCartPriceServiceTests
         // Arrange
         using var context = CreateInMemoryContext();
 
-        var act = () => CreateSut(context, inner: null!, useSkuSnapshot: true);
+        var act = () => CreateSut(context, inner: null!);
 
         act.Should().Throw<ArgumentNullException>().WithParameterName("inner");
     }
@@ -323,7 +296,7 @@ public class SnapshotCartPriceServiceTests
     {
         await using var context = CreateInMemoryContext();
         var mockInner = new Mock<ICartPriceService>();
-        var sut = CreateSut(context, mockInner.Object, useSkuSnapshot: true);
+        var sut = CreateSut(context, mockInner.Object);
 
         var act = () => sut.GetSkuPricesAsync(null!, CancellationToken.None);
         await act.Should().ThrowAsync<ArgumentNullException>().WithParameterName("skuIds");
@@ -386,32 +359,30 @@ public class SnapshotCartPriceServiceTests
         CartDbContext context,
         ICartPriceService inner,
         IBackgroundSnapshotRefresher backgroundRefresher,
-        bool useSkuSnapshot,
         TimeSpan? snapshotMaxAge = null)
     {
-        var optionsMonitor = CreateOptionsMonitor(useSkuSnapshot, snapshotMaxAge);
+        var optionsMonitor = CreateOptionsMonitor(snapshotMaxAge);
         var logger = new Mock<ILogger<SnapshotCartPriceService>>();
         return new SnapshotCartPriceService(inner, context, backgroundRefresher, optionsMonitor, logger.Object);
     }
 
     /// <summary>
-    /// 构造 SUT，使用 Mock 的 IBackgroundSnapshotRefresher 与可配置的 feature flag。
+    /// 构造 SUT，使用 Mock 的 IBackgroundSnapshotRefresher。
+    /// 双轨下线 D4（2026-09-23）：原 useSkuSnapshot 参数随开关删除。
     /// </summary>
     private static SnapshotCartPriceService CreateSut(
         CartDbContext context,
         ICartPriceService inner,
-        bool useSkuSnapshot,
         TimeSpan? snapshotMaxAge = null)
     {
         var mockRefresher = new Mock<IBackgroundSnapshotRefresher>();
-        return CreateSut(context, inner, mockRefresher.Object, useSkuSnapshot, snapshotMaxAge);
+        return CreateSut(context, inner, mockRefresher.Object, snapshotMaxAge);
     }
 
-    private static IOptionsMonitor<CartSnapshotOptions> CreateOptionsMonitor(bool useSkuSnapshot, TimeSpan? snapshotMaxAge)
+    private static IOptionsMonitor<CartSnapshotOptions> CreateOptionsMonitor(TimeSpan? snapshotMaxAge)
     {
         var optionsValue = new CartSnapshotOptions
         {
-            UseSkuSnapshot = useSkuSnapshot,
             SnapshotMaxAge = snapshotMaxAge ?? TimeSpan.FromMinutes(5)
         };
         var monitorMock = new Mock<IOptionsMonitor<CartSnapshotOptions>>();

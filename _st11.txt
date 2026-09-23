@@ -1,0 +1,3 @@
+ENV: ["ASPNETCORE_ENVIRONMENT=Docker","Consul__Url=http://consul:8500","InternalAuth__ApiKey=local-dev-internal-api-key-32bytes!!","PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin","APP_UID=1654","ASPNETCORE_HTTP_PORTS=8080","DOTNET_RUNNING_IN_CONTAINER=true","DOTNET_VERSION=10.0.12","ASPNET_VERSION=10.0.12","ASPNETCORE_URLS=http://+:8080;http://+:5265"]
+
+容器内探测 Consul: 

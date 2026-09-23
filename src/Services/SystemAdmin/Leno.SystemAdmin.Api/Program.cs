@@ -14,11 +14,13 @@ builder.AddLenoOpenTelemetry();
 builder.AddConsulServiceRegistration("leno-system-admin-api");
 
 // 一站式注册：共享内核基础设施 + 鉴权 + 健康检查 + Controllers + OpenAPI + 系统管理域消费者 + 系统管理域基础设施
+// 第 5 参：向共享 Quartz 调度器注册本 BC 的 DLQ 清理作业（DEC-2 决策 (b)，调度器由共享内核统一持有）
 builder.Services.AddLenoApi<SystemAdminDbContext>(
     builder.Configuration,
     "leno-system-admin-api",
     cfg => cfg.AddSystemAdminConsumers(),
-    s => s.AddSystemAdminInfrastructure(builder.Configuration));
+    s => s.AddSystemAdminInfrastructure(builder.Configuration),
+    q => q.RegisterSystemAdminSchedulerJobs(builder.Configuration));
 
 // 启用 Consul KV 配置中心
 builder.AddLenoConsulConfig();

@@ -66,7 +66,7 @@ public sealed class NotificationPreferenceAppService : INotificationPreferenceAp
             await _preferenceRepository.UpdateAsync(preference, ct);
         }
 
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
     private static NotificationPreferenceDto ToDto(NotificationPreferenceAggregate preference)

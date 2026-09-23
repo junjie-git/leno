@@ -7,7 +7,7 @@ namespace Leno.ApiGateway.Bff.Controllers;
 /// <summary>
 /// 购物车结算预览 BFF 聚合端点。
 /// <para>
-/// 并行调用 Cart BC（购物车预览）、Promotion BC（优惠计算）、PointsMembership BC（积分试算抵扣），
+/// 并行调用 Cart BC（购物车预览）、Promotion BC（优惠计算）、Points BC（积分试算抵扣），
 /// 聚合返回 <see cref="CartCheckoutPreviewBffResponse"/>。
 /// </para>
 /// </summary>
@@ -21,7 +21,7 @@ public sealed class CartCheckoutPreviewBffController : ControllerBase
 
     private const string CartServiceBase = "http://cart-api:8080";
     private const string PromotionServiceBase = "http://promotion-api:8080";
-    private const string PointsServiceBase = "http://pointsmembership-api:8080";
+    private const string PointsServiceBase = "http://points-api:8080";
 
     private readonly IBffForwarderService _forwarder;
     private readonly ILogger<CartCheckoutPreviewBffController> _logger;

@@ -11,8 +11,9 @@ namespace Leno.Infrastructure.Outbox;
 /// <summary>
 /// Outbox 分片发布器 DI 注册扩展（4.4 Outbox 分片发布器）。
 /// <para>
-/// 各 BC 在 <c>AddXxxInfrastructure</c> 中调用 <see cref="AddShardedOutboxPublisher{TDbContext}"/>
-/// 注册 <see cref="ShardedOutboxPublisher{TDbContext}"/>，替代原有的 <see cref="OutboxPublisher{TDbContext}"/>。
+/// 注册 <see cref="ShardedOutboxPublisher{TDbContext}"/>（发件箱的唯一发布器实现）。
+/// 实际调用点在组合根 <c>AddLenoApi&lt;TDbContext&gt;</c> 中，一处覆盖全部 19 个 BC ——
+/// 这样保证每个 BC 的 <c>outbox_messages</c> 都有宿主进程搬运，避免"事件已同事务落库却永不投递"。
 /// </para>
 /// <para>
 /// 配置从 <c>Outbox:Sharding</c> 节绑定到 <see cref="OutboxShardingOptions"/>，

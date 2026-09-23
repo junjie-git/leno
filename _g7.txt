@@ -1,0 +1,56 @@
+85:     $sb = New-Object System.Text.StringBuilder
+86:     $pos = 0
+87:     foreach ($m in [regex]::Matches($Text, '\$\{(?<name>[A-Za-z_][A-Za-z0-9_]*)\}')) {
+88:         [void]$sb.Append($Text.Substring($pos, $m.Index - $pos))
+89:         $varName = $m.Groups["name"].Value
+90:         $envValue = [Environment]::GetEnvironmentVariable($varName)
+91:         if ([string]::IsNullOrEmpty($envValue)) {
+92:             # 环境变量缺失：非敏感项允许 default 兜底；敏感项一律报错
+93:             if ($null -ne $ItemDefault -and "$ItemDefault" -ne "") {
+94:                 [void]$sb.Append([string]$ItemDefault)
+95:             }
+96:             else {
+97:                 throw "键 $KeyName 引用的环境变量 $varName 未设置（敏感值禁止在清单中写死，请先注入环境变量）"
+98:             }
+99:         }
+100:         else {
+101:             [void]$sb.Append($envValue)
+102:         }
+103:         $pos = $m.Index + $m.Length
+104:     }
+105:     [void]$sb.Append($Text.Substring($pos))
+106:     return $sb.ToString()
+107: }
+108: 
+109: # ---------------------------------------------------------------------------
+110: # 4. 写入函数（HTTP API：PUT /v1/kv/{key}）
+111: # ---------------------------------------------------------------------------
+112: function Set-ConsulKv {
+113:     param([string]$Key, [string]$Value)
+114: 
+115:     $uri = "$ConsulAddress/v1/kv/$Key"
+116:     if ($DryRun) {
+117:         Write-Host "[DRY-RUN] PUT $uri"
+118:         Write-Host "          value: $Value"
+119:         return
+120:     }
+121: 
+122:     try {
+123:         $response = Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body $Value -ContentType "text/plain; charset=utf-8"
+124:         if ($response -ne $true) {
+125:             throw "Consul 写入 $Key 未返回 true"
+126:         }
+127:         Write-Host "[OK] $Key"
+128:     }
+129:     catch {
+130:         Write-Error "写入 Consul KV 失败：$Key（$uri）：$($_.Exception.Message)"
+131:         throw
+132:     }
+133: }
+134: 
+135: # ---------------------------------------------------------------------------
+136: # 5. 读取清单并执行
+137: # ---------------------------------------------------------------------------
+138: $manifest = Get-Content $ManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+139: $prefix = $manifest.prefix
+140: if (-not $prefix) { $prefix = "leno/config/" }

@@ -1,0 +1,4 @@
+pull docker.m.daocloud.io/hashicorp/consul:1.18 rc=0 :: tatus: Downloaded newer image for docker.m.daocloud.io/hashicorp/consul:1.18
+docker.m.daocloud.io/hashicorp/consul:1.18
+
+tag → hashicorp/consul:1.18 rc=0

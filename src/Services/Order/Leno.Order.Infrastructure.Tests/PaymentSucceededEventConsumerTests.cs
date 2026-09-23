@@ -1,6 +1,5 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Leno.Infrastructure.EventBus;
-using Leno.Order.Application.ProcessManagers;
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.ValueObjects;
@@ -204,7 +203,7 @@ public class PaymentSucceededEventConsumerTests
     }
 
     /// <summary>
-    /// 创建被测消费者实例，注入默认关闭 Process Manager 的 Options（双轨期：旧路径行为不变）。
+    /// 创建被测消费者实例（双轨下线 D1/D2：Process Manager 原型已删除，无 Options 注入）。
     /// </summary>
     private static PaymentSucceededEventConsumer CreateConsumer(
         IOrderRepository orderRepo,
@@ -212,18 +211,11 @@ public class PaymentSucceededEventConsumerTests
         ILogger<PaymentSucceededEventConsumer> logger,
         IIdempotencyStore idempotencyStore)
     {
-        var processManagerMock = new Mock<IOrderPaymentProcessManager>();
-        var optionsMock = new Mock<IOptionsMonitor<OrderPaymentProcessOptions>>();
-        optionsMock.Setup(o => o.CurrentValue)
-            .Returns(new OrderPaymentProcessOptions { UsePaymentProcessManager = false });
-
         return new PaymentSucceededEventConsumer(
             orderRepo,
             unitOfWork,
             logger,
-            idempotencyStore,
-            processManagerMock.Object,
-            optionsMock.Object);
+            idempotencyStore);
     }
 
     private static OrderAggregate CreateMembershipOrder()

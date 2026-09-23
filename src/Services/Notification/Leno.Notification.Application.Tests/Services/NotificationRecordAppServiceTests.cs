@@ -60,8 +60,8 @@ public class NotificationRecordAppServiceTests
             .Setup(r => r.UpdateAsync(record, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _uowMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         // Act
         await _sut.ResendRecordAsync(recordId, Guid.NewGuid(), CancellationToken.None);
@@ -75,7 +75,7 @@ public class NotificationRecordAppServiceTests
         record.FailedAt.Should().BeNull();
         record.NextRetryAt.Should().BeNull();
         _recordRepoMock.Verify(r => r.UpdateAsync(record, It.IsAny<CancellationToken>()), Times.Once);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public class NotificationRecordAppServiceTests
 
         record.Status.Should().Be(NotificationStatus.Pending);
         _recordRepoMock.Verify(r => r.UpdateAsync(It.IsAny<NotificationRecord>(), It.IsAny<CancellationToken>()), Times.Never);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public class NotificationRecordAppServiceTests
         exception.Which.ParamName.Should().Be("recordId");
 
         _recordRepoMock.Verify(r => r.UpdateAsync(It.IsAny<NotificationRecord>(), It.IsAny<CancellationToken>()), Times.Never);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -140,6 +140,6 @@ public class NotificationRecordAppServiceTests
         exception.Which.ParamName.Should().Be("recordId");
 
         _recordRepoMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

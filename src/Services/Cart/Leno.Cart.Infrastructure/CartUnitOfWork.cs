@@ -32,16 +32,6 @@ public sealed class CartUnitOfWork : IUnitOfWork
     }
 
     /// <inheritdoc />
-    /// <summary>
-    /// 已废弃：使用 <see cref="SaveEntitiesAsync"/> 替代，确保领域事件经 Outbox 持久化。
-    /// 此方法保留仅为向后兼容，内部委托给 <see cref="OutboxDbContextExtensions.SaveChangesWithOutboxAsync"/>，
-    /// 不再直接调 <c>DbContext.SaveChangesAsync</c> 旁路 Outbox（避免 Cart 领域事件丢失或双发）。
-    /// </summary>
-    [Obsolete("Use SaveEntitiesAsync to ensure domain events are persisted to outbox. 此方法旁路 Outbox 会导致事件丢失或双发。")]
-    public Task<int> SaveChangesAsync(CancellationToken ct = default)
-        => _context.SaveChangesWithOutboxAsync(_mapper, ct);
-
-    /// <inheritdoc />
     public async Task<bool> SaveEntitiesAsync(CancellationToken ct = default)
     {
         // 步骤 1：在事务开启前，从 ChangeTracker 收集 Cart 聚合的领域事件并分发到反向索引。

@@ -14,6 +14,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 
+using Leno.Testing.Fixtures;
+
 namespace Leno.Cart.Api.Tests;
 
 public class CartApiTests : IClassFixture<WebApplicationFactory<Program>>
@@ -34,6 +36,7 @@ public class CartApiTests : IClassFixture<WebApplicationFactory<Program>>
 
             builder.ConfigureServices(services =>
             {
+            TestWebHostHelper.RemoveQuartzSchedulerServices(services);
                 services.AddSingleton(_cartAppServiceMock.Object);
                 services.AddSingleton(_currentUserMock.Object);
 

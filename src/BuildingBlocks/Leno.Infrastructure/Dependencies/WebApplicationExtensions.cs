@@ -7,6 +7,7 @@ using Leno.Infrastructure.Logging;
 using Leno.Infrastructure.Middleware;
 using Leno.Infrastructure.Outbox;
 using MassTransit;
+using Quartz;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -30,7 +31,7 @@ public static class WebApplicationExtensions
     /// <summary>
     /// 一站式注册 Leno BC 的全部服务：共享内核基础设施 + 内部 API Key 鉴权 +
     /// BC 专属基础设施回调 + Outbox 分片发布器 + 健康检查（含 DbContext 探活）+ MVC Controllers + OpenAPI +
-    /// JwtBearer/GatewayHeader 双模式鉴权 + 授权。
+    /// JwtBearer 鉴权（RS256/JWKS；GatewayHeader 透传模式已随 A6 删除）+ 授权。
     /// </summary>
     /// <typeparam name="TDbContext">BC 的 EF Core DbContext 类型，用于健康检查探活。</typeparam>
     /// <param name="services">服务集合。</param>
@@ -53,7 +54,8 @@ public static class WebApplicationExtensions
         IConfiguration configuration,
         string serviceName,
         Action<IBusRegistrationConfigurator>? configureConsumers = null,
-        Action<IServiceCollection>? configureInfrastructure = null)
+        Action<IServiceCollection>? configureInfrastructure = null,
+        Action<IServiceCollectionQuartzConfigurator>? configureScheduler = null)
         where TDbContext : Microsoft.EntityFrameworkCore.DbContext
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -66,7 +68,7 @@ public static class WebApplicationExtensions
         services.AddLenoStartupConfigurationValidation(configuration, serviceName);
 
         // 1. 共享内核基础设施：JWT 生成器、当前用户上下文、事件总线、Redis、ES、健康检查
-        services.AddLenoInfrastructure(configuration, configureConsumers);
+        services.AddLenoInfrastructure(configuration, configureConsumers, configureScheduler);
 
         // 1.1 防腐层 HttpClient Polly 策略（重试/熔断/超时，由各 BC AddHttpClient 链式追加）
         services.AddLenoAntiCorruptionPolly(configuration);
@@ -127,25 +129,26 @@ public static class WebApplicationExtensions
         // 6. OpenAPI
         services.AddOpenApi();
 
-        // 7. 鉴权配置：支持 JwtBearer 与 GatewayHeader 两种模式，按 Auth:Mode 灰度切换
-        var authMode = configuration["Auth:Mode"] ?? "JwtBearer";
-        services.AddAuthentication(authMode == "GatewayHeader"
-            ? "GatewayHeader"
-            : JwtBearerDefaults.AuthenticationScheme)
+        // 7. 鉴权配置（RS256-only，零信任；双轨下线 A6，2026-09-23，D-4/D-6）：
+        //    - 删除 Auth:Mode 与 GatewayHeader 透传模式：每个服务自行验签 JWT，不信任上游注入的身份头
+        //    - 删除 HS256 共享密钥验签（Jwt:SecretKey）：统一从 Identity 的 OIDC 发现文档拉取 JWKS 公钥
+        var jwtOpts = configuration.GetSection("Jwt").Get<JwtOptions>()
+            ?? throw new InvalidOperationException("Jwt 配置节缺失");
+        if (string.IsNullOrWhiteSpace(jwtOpts.DiscoveryUrl))
+        {
+            throw new InvalidOperationException(
+                "Jwt:DiscoveryUrl 配置缺失。RS256 验签需指向 Identity 的 OIDC 发现文档" +
+                "（如 http://leno-identity-api:8080/.well-known/openid-configuration）。");
+        }
+
+        // 生产环境门禁（P2 改进）：由 LenoStartupConfigurationValidator 宿主服务统一执行
+        // （其注入 IHostEnvironment 并天然跳过 Development/Testing，环境判定比配置键更可靠）。
+
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
             {
-                var jwtOpts = configuration.GetSection("Jwt").Get<JwtOptions>()
-                    ?? throw new InvalidOperationException("Jwt 配置节缺失");
-
-                // T22：校验 SymmetricSecurityKey 长度 >= 32 字节（HS256 要求 256 位密钥）
-                var secretKeyBytes = Encoding.UTF8.GetBytes(jwtOpts.SecretKey ?? string.Empty);
-                if (secretKeyBytes.Length < 32)
-                {
-                    throw new InvalidOperationException(
-                        $"Jwt 配置节 SecretKey 长度不足：HS256 要求至少 32 字节（256 位），" +
-                        $"当前 UTF-8 编码仅 {secretKeyBytes.Length} 字节。请使用更长的随机密钥。");
-                }
-
+                options.MetadataAddress = jwtOpts.DiscoveryUrl;
+                options.RequireHttpsMetadata = jwtOpts.RequireHttpsMetadata;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -154,12 +157,29 @@ public static class WebApplicationExtensions
                     ValidAudience = jwtOpts.Audience,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(secretKeyBytes),
-                    // T23：ClockSkew 从 1 分钟缩短为 30 秒
+                    // 签名公钥由 MetadataAddress 指向的发现文档 → jwks_uri 自动拉取并缓存（RS256）
                     ClockSkew = TimeSpan.FromSeconds(30)
                 };
-            })
-            .AddScheme<GatewayAuthOptions, GatewayAuthHandler>("GatewayHeader", _ => { });
+
+                // JWKS 缓存与刷新调优（P1 改进，配合密钥轮换 runbook）：
+                // - 自动刷新 1h（默认 12h）：密钥轮换后公钥滞后窗口的上限
+                // - 拉取失败 30s 重试（默认 5min）
+                options.AutomaticRefreshInterval = TimeSpan.FromHours(1);
+                options.RefreshInterval = TimeSpan.FromSeconds(30);
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnAuthenticationFailed = context =>
+                    {
+                        // kid 未命中（轮换后本地缓存仍是旧公钥）：请求即时刷新，下一次请求用新公钥
+                        if (context.Exception is SecurityTokenSignatureKeyNotFoundException)
+                        {
+                            context.Options.ConfigurationManager?.RequestRefresh();
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
+            });
 
         // 8. 授权
         services.AddAuthorization();
@@ -221,6 +241,9 @@ public static class WebApplicationExtensions
 
         // 2. 全局异常处理（领域异常 → HTTP 状态码映射）
         app.UseMiddleware<GlobalExceptionMiddleware>();
+
+        // 2.1 内部路由旧前缀探测器已于 2026-09-23 移除（双轨下线 C2 收口）：
+        //     10 处旧路由已按"立即删除"口径清理，无观察期残留。
 
         // 3. 内部 API Key 鉴权中间件（校验 internal/ 前缀路由）
         app.UseMiddleware<InternalApiKeyMiddleware>();

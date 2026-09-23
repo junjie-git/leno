@@ -17,7 +17,7 @@ public enum OutboxMessageStatus
 
 /// <summary>
 /// 发件箱消息实体，聚合保存与事件记录在同一事务写入，保证原子性。
-/// 后台进程 <see cref="OutboxPublisher{TDbContext}"/> 轮询发布。
+/// 后台进程 <see cref="ShardedOutboxPublisher{TDbContext}"/> 轮询发布。
 /// </summary>
 public class OutboxMessage
 {

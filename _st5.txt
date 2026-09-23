@@ -1,0 +1,25 @@
+up rc=0
+ated 
+ Container leno-redis Creating 
+ Container leno-rabbitmq Creating 
+ Container leno-consul Creating 
+ Container leno-consul Created 
+ Container leno-rabbitmq Created 
+ Container leno-redis Created 
+ Container leno-redis Starting 
+ Container leno-rabbitmq Starting 
+ Container leno-consul Starting 
+ Container leno-consul Started 
+ Container leno-rabbitmq Started 
+ Container leno-redis Started 
+
+=== ps
+leno-redis | Up Less than a second (health: starting)
+leno-rabbitmq | Up Less than a second (health: starting)
+leno-consul | Up Less than a second (health: starting)
+
+=== mssql 拉取尾部
+e012aedd45a6: Pulling fs layer
+381839209a74: Already exists
+e012aedd45a6: Download complete
+e012aedd45a6: Pull complete

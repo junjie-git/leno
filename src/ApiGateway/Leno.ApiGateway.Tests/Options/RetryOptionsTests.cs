@@ -64,9 +64,10 @@ public class RetryOptionsTests
     }
 
     [Fact]
-    public void RetryEnabledClusters_ContainsAllElevenServices()
+    public void RetryEnabledClusters_ContainsAllTwelveServices()
     {
-        RetryRouteTypes.RetryEnabledClusters.Should().HaveCount(11);
+        // 双轨下线 A1/A2（2026-09-23）：review-aftersales 组合集群退役，拆分为 review + after-sales → 11 → 12
+        RetryRouteTypes.RetryEnabledClusters.Should().HaveCount(12);
         RetryRouteTypes.RetryEnabledClusters.Should().Contain("user-auth");
         RetryRouteTypes.RetryEnabledClusters.Should().Contain("product");
         RetryRouteTypes.RetryEnabledClusters.Should().Contain("cart");
@@ -74,7 +75,7 @@ public class RetryOptionsTests
         RetryRouteTypes.RetryEnabledClusters.Should().Contain("promotion");
         RetryRouteTypes.RetryEnabledClusters.Should().Contain("payment");
         RetryRouteTypes.RetryEnabledClusters.Should().Contain("points");
-        RetryRouteTypes.RetryEnabledClusters.Should().Contain("review-aftersales");
+        RetryRouteTypes.RetryEnabledClusters.Should().Contain("review").And.Contain("after-sales");
         RetryRouteTypes.RetryEnabledClusters.Should().Contain("seller-shop");
         RetryRouteTypes.RetryEnabledClusters.Should().Contain("notification");
         RetryRouteTypes.RetryEnabledClusters.Should().Contain("system-admin");

@@ -99,8 +99,8 @@ public class NotificationServiceTests
             .Setup(r => r.AddAsync(It.IsAny<NotificationRecord>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _unitOfWorkMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
     }
 
     private void SetupChannel(NotificationChannel channelType = NotificationChannel.InApp)
@@ -152,8 +152,8 @@ public class NotificationServiceTests
 
         // Second SaveChangesAsync call (after status update)
         _unitOfWorkMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var request = CreateValidRequest();
 
@@ -188,8 +188,8 @@ public class NotificationServiceTests
 
         SetupRecordUpdate();
         _unitOfWorkMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var request = CreateValidRequest();
 
@@ -220,8 +220,8 @@ public class NotificationServiceTests
         SetupChannelSendSuccess();
         SetupRecordUpdate();
         _unitOfWorkMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var request = CreateValidRequest(idempotencyKey: "");
 
@@ -299,8 +299,8 @@ public class NotificationServiceTests
         SetupChannelSendSuccess();
         SetupRecordUpdate();
         _unitOfWorkMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var request = CreateValidRequest(idempotencyKey: "");
 
@@ -360,8 +360,8 @@ public class NotificationServiceTests
             .Callback<NotificationRecord, CancellationToken>((r, _) => capturedRecord = r)
             .Returns(Task.CompletedTask);
         _unitOfWorkMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var request = CreateValidRequest();
 
@@ -389,7 +389,7 @@ public class NotificationServiceTests
 
         // Assert - 持久化方法被调用
         _recordRepoMock.Verify(r => r.AddAsync(It.IsAny<NotificationRecord>(), It.IsAny<CancellationToken>()), Times.Once);
-        _unitOfWorkMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion
@@ -414,8 +414,8 @@ public class NotificationServiceTests
             .ReturnsAsync(new ChannelSendResult(false, "Network error", "NET_ERR", null));
 
         _unitOfWorkMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var request = CreateValidRequest();
 
@@ -447,8 +447,8 @@ public class NotificationServiceTests
             .ThrowsAsync(new InvalidOperationException("SMTP connection failed"));
 
         _unitOfWorkMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var request = CreateValidRequest();
 
@@ -502,8 +502,8 @@ public class NotificationServiceTests
             });
 
         _unitOfWorkMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var request = CreateValidRequest();
 
@@ -574,8 +574,8 @@ public class NotificationServiceTests
             .ReturnsAsync(new ChannelSendResult(false, null, null, null));
 
         _unitOfWorkMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var request = CreateValidRequest();
 
@@ -605,8 +605,8 @@ public class NotificationServiceTests
         SetupChannelSendSuccess();
         SetupRecordUpdate();
         _unitOfWorkMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var request = CreateValidRequest(variables: []);
 

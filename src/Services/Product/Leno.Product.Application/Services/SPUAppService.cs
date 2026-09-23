@@ -183,7 +183,10 @@ public sealed class SPUAppService : ISPUAppService
     }
 
     /// <inheritdoc />
-    [Obsolete("请使用 IQueryHandler<ProductDetailQuery, ProductDetailResult?>，将在 2026-08-01 移除")]
+    /// <summary>
+    /// 管理端/通用 SQL 读路径（双轨下线 DEC-9 改判，2026-09-21）：
+    /// 与买家端 ES 读模型查询是两条用途不同的读路径，非新旧实现（详见 ISPUAppService 注释）。
+    /// </summary>
     public async Task<ProductDto> GetByIdAsync(Guid spuId, CancellationToken ct = default)
     {
         var spu = await RequireSpuAsync(spuId, ct);
@@ -191,7 +194,7 @@ public sealed class SPUAppService : ISPUAppService
     }
 
     /// <inheritdoc />
-    [Obsolete("请使用 IQueryHandler<ProductSearchQuery, ProductSearchResult>，将在 2026-08-01 移除")]
+    /// <summary>管理端 SQL 读路径（DEC-9 改判）：ES 读模型无 ShopId/Status 过滤，无法承载管理端列表。</summary>
     public async Task<PageResult<ProductDto>> QueryProductsAsync(ProductQueryDto query, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);

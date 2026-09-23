@@ -17,6 +17,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 
+using Leno.Testing.Fixtures;
+
 namespace Leno.AfterSales.Api.Tests;
 
 /// <summary>
@@ -59,6 +61,7 @@ public class AfterSalesApiTests : IClassFixture<WebApplicationFactory<Program>>
 
             builder.ConfigureServices(services =>
             {
+            TestWebHostHelper.RemoveQuartzSchedulerServices(services);
                 // 用 mock 替换业务依赖，避免触发真实仓储 / 远程调用
                 services.AddSingleton(_afterSalesAppServiceMock.Object);
                 services.AddSingleton(_currentUserMock.Object);

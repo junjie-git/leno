@@ -1,4 +1,6 @@
+﻿using Leno.Order.Application.Abstractions;
 using Leno.Order.Application.DTOs;
+using Leno.Order.Application.Messages;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Exceptions;
@@ -24,11 +26,11 @@ public class OrderSagaOrchestratorTests
     {
         // Arrange
         var sut = CreateSut(out var orderRepoMock, out var uowMock, out var orderNoGenMock,
-            out var stockServiceMock, out var pricingMock, out var freightMock,
-            out var promotionMock, out var pointsMock, out var busMock, out var loggerMock);
+            out var inventoryGatewayMock, out var pricingMock, out var freightMock,
+            out var promotionMock, out var pointsMock, out var busMock, out var schedulerMock, out var loggerMock);
 
         // 第一组成功预占库存并冻结积分；第二组预占失败触发补偿
-        stockServiceMock.SetupSequence(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        inventoryGatewayMock.SetupSequence(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true)   // 第一组成功
             .ReturnsAsync(false); // 第二组失败
         pointsMock.Setup(p => p.FreezeAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
@@ -54,7 +56,7 @@ public class OrderSagaOrchestratorTests
             .ReturnsAsync(true);
 
         // 补偿时释放库存失败（模拟 redis 宕机）
-        stockServiceMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        inventoryGatewayMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>()))
             .ThrowsAsync(new InvalidOperationException("redis down"));
 
         var context = CreateSagaContextWithTwoGroups();
@@ -71,10 +73,10 @@ public class OrderSagaOrchestratorTests
     {
         // Arrange
         var sut = CreateSut(out var orderRepoMock, out var uowMock, out var orderNoGenMock,
-            out var stockServiceMock, out var pricingMock, out var freightMock,
-            out var promotionMock, out var pointsMock, out var busMock, out var loggerMock);
+            out var inventoryGatewayMock, out var pricingMock, out var freightMock,
+            out var promotionMock, out var pointsMock, out var busMock, out var schedulerMock, out var loggerMock);
 
-        stockServiceMock.SetupSequence(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        inventoryGatewayMock.SetupSequence(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true)   // 第一组成功
             .ReturnsAsync(false); // 第二组失败
         pointsMock.Setup(p => p.FreezeAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
@@ -96,7 +98,7 @@ public class OrderSagaOrchestratorTests
             .Returns(Task.CompletedTask);
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-        stockServiceMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        inventoryGatewayMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>()))
             .Returns(Task.CompletedTask);
 
         var context = CreateSagaContextWithTwoGroups();
@@ -111,13 +113,13 @@ public class OrderSagaOrchestratorTests
     {
         // Arrange：积分抵现 + 优惠，验证 TotalAmount 不为负
         var sut = CreateSut(out var orderRepoMock, out var uowMock, out var orderNoGenMock,
-            out var stockServiceMock, out var pricingMock, out var freightMock,
-            out var promotionMock, out var pointsMock, out var busMock, out var loggerMock);
+            out var inventoryGatewayMock, out var pricingMock, out var freightMock,
+            out var promotionMock, out var pointsMock, out var busMock, out var schedulerMock, out var loggerMock);
 
         var skuInfo = CreateSkuInfo(unitPrice: 100m);
         var checkoutItem = new CheckoutItemDto { SkuId = skuInfo.SkuId, Quantity = 1 };
 
-        stockServiceMock.Setup(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        inventoryGatewayMock.Setup(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         pointsMock.Setup(p => p.FreezeAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -172,10 +174,10 @@ public class OrderSagaOrchestratorTests
     {
         // Arrange
         var sut = CreateSut(out var orderRepoMock, out var uowMock, out var orderNoGenMock,
-            out var stockServiceMock, out var pricingMock, out var freightMock,
-            out var promotionMock, out var pointsMock, out var busMock, out var loggerMock);
+            out var inventoryGatewayMock, out var pricingMock, out var freightMock,
+            out var promotionMock, out var pointsMock, out var busMock, out var schedulerMock, out var loggerMock);
 
-        stockServiceMock.Setup(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        inventoryGatewayMock.Setup(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         promotionMock.Setup(p => p.CalculateDiscountAsync(It.IsAny<Guid>(), It.IsAny<List<(Guid, decimal)>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(0m);
@@ -192,8 +194,8 @@ public class OrderSagaOrchestratorTests
         var callOrder = new List<string>();
         uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
             .Returns(() => { callOrder.Add("SaveEntitiesAsync"); return Task.FromResult(true); });
-        busMock.Setup(b => b.Publish(It.IsAny<ScheduleMessage>(), It.IsAny<IPipe<PublishContext<ScheduleMessage>>>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask)
+        schedulerMock.Setup(b => b.ScheduleSend(It.IsAny<Uri>(), It.IsAny<DateTime>(), It.IsAny<OrderTimeoutMessage>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult<ScheduledMessage<OrderTimeoutMessage>>(null!))
             .Callback(() => callOrder.Add("ScheduleSend"));
 
         var context = CreateSagaContextWithSingleGroup();
@@ -210,10 +212,10 @@ public class OrderSagaOrchestratorTests
     {
         // Arrange
         var sut = CreateSut(out var orderRepoMock, out var uowMock, out var orderNoGenMock,
-            out var stockServiceMock, out var pricingMock, out var freightMock,
-            out var promotionMock, out var pointsMock, out var busMock, out var loggerMock);
+            out var inventoryGatewayMock, out var pricingMock, out var freightMock,
+            out var promotionMock, out var pointsMock, out var busMock, out var schedulerMock, out var loggerMock);
 
-        stockServiceMock.SetupSequence(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        inventoryGatewayMock.SetupSequence(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true)   // 第一组成功
             .ReturnsAsync(false); // 第二组失败
         pointsMock.Setup(p => p.FreezeAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
@@ -223,7 +225,7 @@ public class OrderSagaOrchestratorTests
             .Returns(Task.CompletedTask);
         promotionMock.Setup(p => p.ReleaseCouponsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        stockServiceMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        inventoryGatewayMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>()))
             .Returns(Task.CompletedTask);
         orderNoGenMock.Setup(g => g.GenerateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync("ORD-001");
@@ -245,8 +247,8 @@ public class OrderSagaOrchestratorTests
 
         // Assert：Saga 失败时不应调度任何超时消息（ScheduleSend 在 SaveEntitiesAsync 之后，Saga 失败未到达 SaveEntitiesAsync）
         await act.Should().ThrowAsync<OrderDomainException>();
-        busMock.Verify(
-            b => b.Publish(It.IsAny<ScheduleMessage>(), It.IsAny<IPipe<PublishContext<ScheduleMessage>>>(), It.IsAny<CancellationToken>()),
+        schedulerMock.Verify(
+            b => b.ScheduleSend(It.IsAny<Uri>(), It.IsAny<DateTime>(), It.IsAny<OrderTimeoutMessage>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -257,37 +259,39 @@ public class OrderSagaOrchestratorTests
         out Mock<IOrderRepository> orderRepoMock,
         out Mock<IUnitOfWork> uowMock,
         out Mock<IOrderNumberGenerator> orderNoGenMock,
-        out Mock<IStockReservationDomainService> stockServiceMock,
+        out Mock<IInventoryGateway> inventoryGatewayMock,
         out Mock<IOrderPricingDomainService> pricingMock,
         out Mock<IFreightCalculator> freightMock,
         out Mock<IPromotionAntiCorruptionService> promotionMock,
         out Mock<IPointsAntiCorruptionService> pointsMock,
         out Mock<IBus> busMock,
+        out Mock<IMessageScheduler> schedulerMock,
         out Mock<ILogger<OrderSagaOrchestrator>> loggerMock)
     {
         orderRepoMock = new Mock<IOrderRepository>();
         uowMock = new Mock<IUnitOfWork>();
         orderNoGenMock = new Mock<IOrderNumberGenerator>();
-        stockServiceMock = new Mock<IStockReservationDomainService>();
+        inventoryGatewayMock = new Mock<IInventoryGateway>();
         pricingMock = new Mock<IOrderPricingDomainService>();
         freightMock = new Mock<IFreightCalculator>();
         promotionMock = new Mock<IPromotionAntiCorruptionService>();
         pointsMock = new Mock<IPointsAntiCorruptionService>();
         busMock = new Mock<IBus>();
+        schedulerMock = new Mock<IMessageScheduler>();
         loggerMock = new Mock<ILogger<OrderSagaOrchestrator>>();
 
         return new OrderSagaOrchestrator(
             orderRepoMock.Object,
             uowMock.Object,
             orderNoGenMock.Object,
-            stockServiceMock.Object,
+            inventoryGatewayMock.Object,
             pricingMock.Object,
             freightMock.Object,
             promotionMock.Object,
             pointsMock.Object,
-            busMock.Object,
+            schedulerMock.Object,
             loggerMock.Object,
-            Microsoft.Extensions.Options.Options.Create(new Leno.Order.Application.Sagas.OrderSagaOptions()));
+            maxDegreeOfParallelism: 1);
     }
 
     /// <summary>

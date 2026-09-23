@@ -40,7 +40,8 @@ public class PromotionApiTests : IClassFixture<WebApplicationFactory<Program>>
 
             builder.ConfigureServices(services =>
             {
-                // 测试环境无 Redis：替换分布式锁使 MigrateWithLockAsync 跳过迁移
+                TestWebHostHelper.RemoveQuartzSchedulerServices(services);
+// 测试环境无 Redis：替换分布式锁使 MigrateWithLockAsync 跳过迁移
                 TestWebHostHelper.ReplaceDistributedLockWithNullProvider(services);
 
                 services.AddSingleton(_promotionAppServiceMock.Object);

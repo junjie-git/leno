@@ -1,0 +1,17 @@
+g[] args) in /src/src/Services/Inventory/Leno.Inventory.Api/Program.cs:line 43
+   at Program.<Main>(String[] args)
+Unhandled exception. System.InvalidOperationException: 敏感配置缺失：Payment:Alipay:AppId, Payment:Alipay:PrivateKey, Payment:Alipay:PublicKey, Payment:WeChatPay:AppId, Payment:WeChatPay:MchId, Payment:WeChatPay:ApiKey, SMS:ApiKey, SMS:ApiSecret, OAuth2:WeChat:AppId, OAuth2:WeChat:AppSecret, OAuth2:Apple:ClientId, OAuth2:Apple:ClientSecret
+   at Program.<Main>$(String[] args) in /src/src/Services/Inventory/Leno.Inventory.Api/Program.cs:line 43
+   at Program.<Main>(String[] args)
+Unhandled exception. System.InvalidOperationException: 敏感配置缺失：Payment:Alipay:AppId, Payment:Alipay:PrivateKey, Payment:Alipay:PublicKey, Payment:WeChatPay:AppId, Payment:WeChatPay:MchId, Payment:WeChatPay:ApiKey, SMS:ApiKey, SMS:ApiSecret, OAuth2:WeChat:AppId, OAuth2:WeChat:AppSecret, OAuth2:Apple:ClientId, OAuth2:Apple:ClientSecret
+   at Program.<Main>$(String[] args) in /src/src/Services/Inventory/Leno.Inventory.Api/Program.cs:line 43
+   at Program.<Main>(String[] args)
+Unhandled exception. System.InvalidOperationException: 敏感配置缺失：Payment:Alipay:AppId, Payment:Alipay:PrivateKey, Payment:Alipay:PublicKey, Payment:WeChatPay:AppId, Payment:WeChatPay:MchId, Payment:WeChatPay:ApiKey, SMS:ApiKey, SMS:ApiSecret, OAuth2:WeChat:AppId, OAuth2:WeChat:AppSecret, OAuth2:Apple:ClientId, OAuth2:Apple:ClientSecret
+   at Program.<Main>$(String[] args) in /src/src/Services/Inventory/Leno.Inventory.Api/Program.cs:line 43
+   at Program.<Main>(String[] args)
+Unhandled exception. System.InvalidOperationException: 敏感配置缺失：Payment:Alipay:AppId, Payment:Alipay:PrivateKey, Payment:Alipay:PublicKey, Payment:WeChatPay:AppId, Payment:WeChatPay:MchId, Payment:WeChatPay:ApiKey, SMS:ApiKey, SMS:ApiSecret, OAuth2:WeChat:AppId, OAuth2:WeChat:AppSecret, OAuth2:Apple:ClientId, OAuth2:Apple:ClientSecret
+   at Program.<Main>$(String[] args) in /src/src/Services/Inventory/Leno.Inventory.Api/Program.cs:line 43
+   at Program.<Main>(String[] args)
+Unhandled exception. System.InvalidOperationException: 敏感配置缺失：Payment:Alipay:AppId, Payment:Alipay:PrivateKey, Payment:Alipay:PublicKey, Payment:WeChatPay:AppId, Payment:WeChatPay:MchId, Payment:WeChatPay:ApiKey, SMS:ApiKey, SMS:ApiSecret, OAuth2:WeChat:AppId, OAuth2:WeChat:AppSecret, OAuth2:Apple:ClientId, OAuth2:Apple:ClientSecret
+   at Program.<Main>$(String[] args) in /src/src/Services/Inventory/Leno.Inventory.Api/Program.cs:line 43
+   at Program.<Main>(String[] args)

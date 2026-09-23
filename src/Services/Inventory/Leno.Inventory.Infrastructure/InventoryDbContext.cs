@@ -6,9 +6,9 @@ namespace Leno.Inventory.Infrastructure;
 
 /// <summary>
 /// Inventory BC DbContext，继承 <see cref="BaseDbContext"/> 复用审计字段填充与软删除查询过滤器。
-/// 暴露库存预占、库存预占回滚补偿、库存基线聚合与 OutboxMessage 发件箱表的 DbSet。
-/// 库存真源迁入 Inventory BC 后，本上下文持有 <see cref="StockReservation"/> 与 <see cref="StockBaseline"/>
-/// 的权威数据，Order BC 与 Product BC 通过集成事件保持最终一致。
+/// 暴露库存台账（订单 × SKU 占用记录）与库存基线（SKU 计数器）两个集合。
+/// 库存真源迁入 Inventory BC 后（双轨下线 DEC-4，2026-09-22），本上下文是库存数量的唯一权威存储；
+/// 权威存储为 SQL Server 单库 —— 台账与基线在同一事务内更新，不再依赖 Redis 权威 + 对账兜底。
 /// </summary>
 public sealed class InventoryDbContext : BaseDbContext
 {
@@ -16,12 +16,9 @@ public sealed class InventoryDbContext : BaseDbContext
     {
     }
 
-    /// <summary>库存预占聚合根，从 Order BC 迁入。</summary>
+    /// <summary>库存台账（订单 × SKU 维度占用记录，幂等与审计的唯一事实来源）。</summary>
     public DbSet<StockReservation> StockReservations => Set<StockReservation>();
 
-    /// <summary>库存预占回滚补偿记录聚合根（T18），从 Order BC 迁入。</summary>
-    public DbSet<StockReservationCompensation> StockReservationCompensations => Set<StockReservationCompensation>();
-
-    /// <summary>库存基线聚合根，从 Product BC 迁入（中期阶段统一真源）。</summary>
+    /// <summary>库存基线（SKU 维度计数器：可用 / 预占 / 已扣减），从 Product BC 迁入。</summary>
     public DbSet<StockBaseline> StockBaselines => Set<StockBaseline>();
 }

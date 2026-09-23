@@ -17,10 +17,6 @@
     }
   ],
   "temporaryExemptions": {
-    "PointsMembership.Application": {
-      "until": "F4.1-completed",
-      "reason": "F4.1 补齐前豁免，F4 合并后转为阻止"
-    },
     "ReviewAfterSales.Infrastructure": {
       "until": "F4.3-completed",
       "reason": "Infrastructure.Tests 骨架刚补建，集成测试未完整"

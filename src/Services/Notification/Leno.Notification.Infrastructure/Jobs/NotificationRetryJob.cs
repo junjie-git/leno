@@ -113,7 +113,7 @@ public sealed class NotificationRetryJob
             }
         }
 
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
         _logger.LogInformation("失败记录分类完成 处理 {Count} 条", failedRecords.Count);
     }
 
@@ -223,7 +223,7 @@ public sealed class NotificationRetryJob
             }
         }
 
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
         _logger.LogInformation("计划重试执行完成 处理 {Count} 条", scheduledRecords.Count);
     }
 

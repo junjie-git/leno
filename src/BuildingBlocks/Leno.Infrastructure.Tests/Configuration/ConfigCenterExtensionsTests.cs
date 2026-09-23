@@ -183,7 +183,7 @@ public class ConfigCenterExtensionsTests
         var configValues = new Dictionary<string, string?>
         {
             ["Payment:Alipay:AppId"] = "test",
-            ["Jwt:SecretKey"] = "test"
+            ["Jwt:DiscoveryUrl"] = "test"
         };
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(configValues)
@@ -193,7 +193,7 @@ public class ConfigCenterExtensionsTests
 
         missing.Should().NotBeEmpty();
         missing.Should().NotContain("Payment:Alipay:AppId");
-        missing.Should().NotContain("Jwt:SecretKey");
+        missing.Should().NotContain("Jwt:DiscoveryUrl");
     }
 
     [Fact]
@@ -205,13 +205,13 @@ public class ConfigCenterExtensionsTests
         keys.Should().Contain("Payment:WeChatPay:ApiKey");
         keys.Should().Contain("SMS:ApiKey");
         keys.Should().Contain("OAuth2:WeChat:AppSecret");
-        keys.Should().Contain("Jwt:SecretKey");
+        keys.Should().Contain("Jwt:DiscoveryUrl");
     }
 
     [Fact]
     public void ValidateSensitiveConfig_MissingJwtSecretKey_ShouldReturnFalse()
     {
-        // Arrange: 缺失 Jwt:SecretKey
+        // Arrange: 缺失 Jwt:DiscoveryUrl
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -235,7 +235,7 @@ public class ConfigCenterExtensionsTests
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                { "Jwt:SecretKey", "test-secret-key-32-bytes-long!!" },
+                { "Jwt:DiscoveryUrl", "test-secret-key-32-bytes-long!!" },
                 { "Payment:Alipay:AppId", "test" },
                 { "Payment:Alipay:PrivateKey", "test" },
                 { "Payment:Alipay:PublicKey", "test" },
@@ -265,7 +265,7 @@ public class ConfigCenterExtensionsTests
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                { "Jwt:SecretKey", "test" }
+                { "Jwt:DiscoveryUrl", "test" }
             })
             .Build();
 

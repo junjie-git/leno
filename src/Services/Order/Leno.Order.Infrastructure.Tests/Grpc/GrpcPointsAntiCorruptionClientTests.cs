@@ -19,7 +19,7 @@ public class GrpcPointsAntiCorruptionClientTests
         mock.SetupGet(o => o.CurrentValue).Returns(new AntiCorruptionOptions
         {
             UseGrpc = true,
-            TargetInternalApiKeys = new Dictionary<string, string> { ["PointsMembership"] = "test-key" }
+            TargetInternalApiKeys = new Dictionary<string, string> { ["Points"] = "test-key" }
         });
         return mock.Object;
     }

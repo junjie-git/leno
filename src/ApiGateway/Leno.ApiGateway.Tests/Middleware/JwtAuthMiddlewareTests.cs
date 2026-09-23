@@ -1,25 +1,35 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Claims;
-using System.Text;
+using System.Text.Encodings.Web;
 using Leno.ApiGateway.Services;
 using Leno.Infrastructure.Auth;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Moq;
 
 namespace Leno.ApiGateway.Tests.Middleware;
 
 /// <summary>
-/// JWT 验签中间件测试：验证网关对未认证请求返回 401、白名单路由放行、有效 token 通过验签。
+/// JWT 验签中间件测试：验证网关对未认证请求返回 401、白名单路由放行、已认证请求放行并注入用户上下文头。
 /// 通过 WebApplicationFactory 启动完整网关管道，mock Consul 与 HealthChecksUI 避免外部依赖。
+/// <para>
+/// 双轨下线 A6（2026-09-23）：网关验签已切 RS256/JWKS（原 HS256 共享密钥用例随之删除）。
+/// 测试用 <see cref="GatewayTestAuthHandler"/> 替换 JwtBearer 方案 —— 携带 Authorization 头即视为已认证，
+/// 无头则匿名（走 401/白名单路径），与签名算法无关。
+/// </para>
 /// </summary>
 public class JwtAuthMiddlewareTests
 {
+    private static readonly Guid UserId = Guid.NewGuid();
+
     [Fact]
     public async Task UnauthenticatedRequest_ToProtectedEndpoint_ShouldReturn401()
     {
@@ -53,17 +63,16 @@ public class JwtAuthMiddlewareTests
     }
 
     [Fact]
-    public async Task ValidToken_ShouldPassAndInjectUserContextHeaders()
+    public async Task AuthenticatedRequest_ShouldPassAndInjectUserContextHeaders()
     {
         // Arrange
-        var secretKey = "TestSecretKeyAtLeast32BytesLong!!";
-        var token = GenerateTestToken(secretKey, userId: Guid.NewGuid(), role: "Buyer");
-
         using var factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(b => ConfigureTestHost(b, secretKey));
+            .WithWebHostBuilder(b => ConfigureTestHost(b));
 
         var client = factory.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "test-token");
+        client.DefaultRequestHeaders.Add("X-Test-User", UserId.ToString());
+        client.DefaultRequestHeaders.Add("X-Test-Role", "Buyer");
 
         // Act: 请求受保护端点（下游不可达，但网关验签应放行不返回 401）
         var response = await client.GetAsync("/api/orders");
@@ -74,9 +83,9 @@ public class JwtAuthMiddlewareTests
 
     /// <summary>
     /// 配置测试主机：mock Consul 服务发现、移除 HealthChecksUI 后台服务、禁用缓存、
-    /// 注入测试用 JwtOptions（SecretKey 至少 32 字节以满足 HS256 要求）。
+    /// 以 <see cref="GatewayTestAuthHandler"/>（算法无关）替换默认 JwtBearer 方案。
     /// </summary>
-    private static void ConfigureTestHost(IWebHostBuilder builder, string? secretKey = null)
+    private static void ConfigureTestHost(IWebHostBuilder builder)
     {
         var consulMock = new Mock<IConsulServiceDiscovery>();
         // YARP 启动时 InitialLoadAsync 会解析所有集群，默认返回空实例列表避免 NRE。
@@ -91,7 +100,8 @@ public class JwtAuthMiddlewareTests
                 ["Consul:Token"] = "",
                 ["Consul:PassingOnly"] = "true",
                 // Phase 6 集成后 CacheMiddleware 会访问 Redis，测试环境禁用缓存避免 500
-                ["Gateway:Cache:Enabled"] = "false"
+                ["Gateway:Cache:Enabled"] = "false",
+                ["Jwt:DiscoveryUrl"] = "http://localhost:5162/.well-known/openid-configuration"
             });
         });
 
@@ -114,34 +124,53 @@ public class JwtAuthMiddlewareTests
                 }
             }
 
-            // 注入测试用 JwtOptions（覆盖 appsettings.json 中的 ${JWT_SECRET_KEY} 占位符）
-            services.Configure<JwtOptions>(o =>
-            {
-                o.Issuer = "Leno.UserAuth";
-                o.Audience = "Leno.Clients";
-                o.SecretKey = secretKey ?? "TestSecretKeyAtLeast32BytesLong!!";
-                o.AccessTokenExpiryMinutes = 120;
-                o.RefreshTokenExpiryDays = 7;
-            });
+            // 以 Test 方案替换 JwtBearer（算法无关）：带 Authorization 头即认证成功并注入测试 claims
+            services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = GatewayTestAuthHandler.SchemeName;
+                    options.DefaultChallengeScheme = GatewayTestAuthHandler.SchemeName;
+                })
+                .AddScheme<AuthenticationSchemeOptions, GatewayTestAuthHandler>(
+                    GatewayTestAuthHandler.SchemeName, _ => { });
         });
     }
 
-    private static string GenerateTestToken(string secretKey, Guid userId, string role)
+    /// <summary>
+    /// 算法无关的测试鉴权处理器：携带 Authorization: Bearer 头即认证成功，
+    /// 用户/角色取自 X-Test-User / X-Test-Role 头（默认新 Guid 与 Buyer）。
+    /// </summary>
+    private sealed class GatewayTestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var claims = new[]
+        public const string SchemeName = "Test";
+
+        public GatewayTestAuthHandler(
+            IOptionsMonitor<AuthenticationSchemeOptions> options,
+            ILoggerFactory logger,
+            UrlEncoder encoder)
+            : base(options, logger, encoder)
         {
-            new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
-            new Claim(ClaimTypes.Role, role),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
-        var token = new JwtSecurityToken(
-            issuer: "Leno.UserAuth",
-            audience: "Leno.Clients",
-            claims: claims,
-            expires: DateTime.UtcNow.AddHours(1),
-            signingCredentials: creds);
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+        {
+            if (!Request.Headers.TryGetValue("Authorization", out var auth) ||
+                !auth.ToString().StartsWith("Bearer ", StringComparison.Ordinal))
+            {
+                return Task.FromResult(AuthenticateResult.NoResult());
+            }
+
+            Request.Headers.TryGetValue("X-Test-User", out var user);
+            Request.Headers.TryGetValue("X-Test-Role", out var role);
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.ToString()),
+                new Claim(ClaimTypes.Role, role.ToString())
+            };
+            var identity = new ClaimsIdentity(claims, Scheme.Name);
+            var principal = new ClaimsPrincipal(identity);
+            var ticket = new AuthenticationTicket(principal, Scheme.Name);
+            return Task.FromResult(AuthenticateResult.Success(ticket));
+        }
     }
 }

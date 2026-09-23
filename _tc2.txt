@@ -1,0 +1,4 @@
+﻿Test run for D:\work\learn\Leno\src\Services\Order\Leno.Order.Infrastructure.Tests\bin\Debug\net10.0\Leno.Order.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+No test matches the given testcase filter `FullyQualifiedName~Inventory` in D:\work\learn\Leno\src\Services\Order\Leno.Order.Infrastructure.Tests\bin\Debug\net10.0\Leno.Order.Infrastructure.Tests.dll
+

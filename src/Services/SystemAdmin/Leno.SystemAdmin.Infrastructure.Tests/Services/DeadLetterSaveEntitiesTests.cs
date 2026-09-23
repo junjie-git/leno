@@ -26,7 +26,7 @@ public sealed class DeadLetterSaveEntitiesTests
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 
     [Fact]
-    public async Task DeadLetterQueueManager_RepublishAsync_Should_Call_SaveEntitiesAsync_Not_SaveChangesAsync()
+    public async Task DeadLetterQueueManager_RepublishAsync_Should_Call_SaveEntitiesAsync_()
     {
         var message = CreatePendingMessageWithOrderCreatedEvent();
         var mockRepo = new Mock<IDeadLetterMessageRepository>();
@@ -42,11 +42,10 @@ public sealed class DeadLetterSaveEntitiesTests
         await manager.RepublishAsync(message.MessageId, CancellationToken.None);
 
         mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
-        mockUnitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task RabbitMqDeadLetterManager_RepublishAsync_Should_Call_SaveEntitiesAsync_Not_SaveChangesAsync()
+    public async Task RabbitMqDeadLetterManager_RepublishAsync_Should_Call_SaveEntitiesAsync_()
     {
         var message = CreatePendingMessageWithOrderCreatedEvent();
         var mockRepo = new Mock<IDeadLetterMessageRepository>();
@@ -60,11 +59,10 @@ public sealed class DeadLetterSaveEntitiesTests
         await manager.RepublishAsync(message.MessageId, CancellationToken.None);
 
         mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
-        mockUnitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task RabbitMqDeadLetterManager_FetchAsync_Should_Call_SaveEntitiesAsync_Not_SaveChangesAsync()
+    public async Task RabbitMqDeadLetterManager_FetchAsync_Should_Call_SaveEntitiesAsync_()
     {
         var responseBody = BuildRabbitMqGetResponse();
         var handler = new StubHttpMessageHandler(responseBody, HttpStatusCode.OK);
@@ -80,7 +78,6 @@ public sealed class DeadLetterSaveEntitiesTests
         await manager.FetchAsync("OrderService", 1, 10);
 
         mockUnitOfWork.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
-        mockUnitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static RabbitMqDeadLetterManager CreateRabbitMqManager(

@@ -1,0 +1,5 @@
+docker CLI: True
+docker server: failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine
+running containers: failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; check if the path is correct and if th
+compose 服务数: 34
+服务: sqlserver, redis, consul, rabbitmq, elasticsearch, jaeger, prometheus, alertmanager, grafana, product-api, cart-api, order-api, promotion-api, payment-api, seller-shop-api, notification-api, system-admin-api, api-gateway, identity-api, access-control-api, user-center-api, inventory-api, points-api, membership-api, review-api, aftersales-api, sqldata, redisdata, rabbitmqdata, esdata, prometheusdata, grafanadata, alertmanager-data, leno-net

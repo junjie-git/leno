@@ -10,13 +10,13 @@ namespace Leno.Notification.Infrastructure.Services;
 /// <summary>
 /// 用户联系方式防腐层，通过 HTTP 调用用户域内部端点获取手机号与邮箱。
 /// 继承 <see cref="AntiCorruptionBase"/>，远程失败统一抛 <see cref="AntiCorruptionException"/>，不再返回 null。
-/// M5.2：通过 <see cref="AntiCorruptionOptions.TargetInternalApiKeys"/> 读取目标 BC（UserAuth）的 InternalApiKey，
+/// M5.2：通过 <see cref="AntiCorruptionOptions.TargetInternalApiKeys"/> 读取目标 BC（Identity）的 InternalApiKey，
 /// 注入 <c>X-Internal-Key</c> 请求头，替代旧的共用 InternalAuth:ApiKey。
 /// </summary>
 public sealed class UserContactAntiCorruptionService : AntiCorruptionBase, IUserContactService
 {
     private const string InternalKeyName = "X-Internal-Key";
-    private const string TargetBc = "UserAuth";
+    private const string TargetBc = "Identity";
 
     private readonly HttpClient _httpClient;
     private readonly ILogger<UserContactAntiCorruptionService> _logger;

@@ -15,6 +15,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 
+using Leno.Testing.Fixtures;
+
 namespace Leno.Points.Api.Tests;
 
 /// <summary>
@@ -49,6 +51,7 @@ public class PointsApiTests : IClassFixture<WebApplicationFactory<Program>>
 
             builder.ConfigureServices(services =>
             {
+            TestWebHostHelper.RemoveQuartzSchedulerServices(services);
                 // 先移除真实服务注册（Scoped），再添加 Mock 单例，避免 Remove 方法误删 Mock 注册
                 RemoveMassTransitServices(services);
                 RemoveElasticsearchServices(services);

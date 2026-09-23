@@ -376,7 +376,6 @@ public class SkuSnapshotRefreshQueueTests
     {
         var optionsValue = new CartSnapshotOptions
         {
-            UseSkuSnapshot = true,
             SnapshotMaxAge = TimeSpan.FromMinutes(5),
             RefreshConcurrency = 1,
             RefreshQueueCapacity = 100,

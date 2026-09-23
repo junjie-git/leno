@@ -94,6 +94,18 @@ public sealed class ConsulServiceRegistrationHostedService : IHostedService, IAs
                 "Deregistered service {ServiceName} (ID: {ServiceId}) from Consul",
                 _options.ServiceName, _options.ServiceId);
         }
+        catch (OperationCanceledException)
+        {
+            // 宿主关停期间（或 HttpClient 自身超时）取消注销属常态（测试环境无 Consul 时必然发生）：
+            // 注销失败不会造成资源泄漏 —— 服务条目会因 DeregisterCriticalServiceAfter（1 分钟）自动过期。
+            // 必须吞掉一切取消异常（不加 IsCancellationRequested 过滤 —— 取消可能来自 HttpClient
+            // 而非关停令牌）：否则它会穿透到 Host.StopAsync，使 WebApplicationFactory.Dispose
+            // 抛出 "[Test Class Cleanup Failure]"，导致测试环境里整个测试类被误判为失败。
+            _logger.LogWarning(
+                "Deregistering service {ServiceId} from Consul was canceled. " +
+                "Skipping deregistration; the entry will expire via DeregisterCriticalServiceAfter.",
+                _options.ServiceId);
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex,

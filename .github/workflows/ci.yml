@@ -1,4 +1,4 @@
-name: Leno Platform CI
+﻿name: Leno Platform CI
 
 on:
   push:
@@ -93,8 +93,6 @@ jobs:
       fail-fast: false
       matrix:
         project:
-          - name: 'UserAuth'
-            path: 'src/Services/UserAuth/Leno.UserAuth.Api/Leno.UserAuth.Api.csproj'
           - name: 'Product'
             path: 'src/Services/Product/Leno.Product.Api/Leno.Product.Api.csproj'
           - name: 'Cart'
@@ -105,16 +103,19 @@ jobs:
             path: 'src/Services/Promotion/Leno.Promotion.Api/Leno.Promotion.Api.csproj'
           - name: 'Payment'
             path: 'src/Services/Payment/Leno.Payment.Api/Leno.Payment.Api.csproj'
-          - name: 'PointsMembership'
-            path: 'src/Services/PointsMembership/Leno.PointsMembership.Api/Leno.PointsMembership.Api.csproj'
-          - name: 'ReviewAfterSales'
-            path: 'src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Leno.ReviewAfterSales.Api.csproj'
           - name: 'SellerShop'
             path: 'src/Services/SellerShop/Leno.SellerShop.Api/Leno.SellerShop.Api.csproj'
           - name: 'Notification'
             path: 'src/Services/Notification/Leno.Notification.Api/Leno.Notification.Api.csproj'
           - name: 'SystemAdmin'
             path: 'src/Services/SystemAdmin/Leno.SystemAdmin.Api/Leno.SystemAdmin.Api.csproj'
+          # 2026-09-21 补入（A-1 拆分 / G4）：UserAuth 单体的拆分目标
+          - name: 'Identity'
+            path: 'src/Services/Identity/Leno.Identity.Api/Leno.Identity.Api.csproj'
+          - name: 'AccessControl'
+            path: 'src/Services/AccessControl/Leno.AccessControl.Api/Leno.AccessControl.Api.csproj'
+          - name: 'UserCenter'
+            path: 'src/Services/UserCenter/Leno.UserCenter.Api/Leno.UserCenter.Api.csproj'
           - name: 'ApiGateway'
             path: 'src/ApiGateway/Leno.ApiGateway/Leno.ApiGateway.csproj'
     steps:
@@ -139,8 +140,6 @@ jobs:
       fail-fast: false
       matrix:
         service:
-          - name: 'UserAuth'
-            dockerfile: 'src/Services/UserAuth/Leno.UserAuth.Api/Dockerfile'
           - name: 'Product'
             dockerfile: 'src/Services/Product/Leno.Product.Api/Dockerfile'
           - name: 'Cart'
@@ -151,16 +150,32 @@ jobs:
             dockerfile: 'src/Services/Promotion/Leno.Promotion.Api/Dockerfile'
           - name: 'Payment'
             dockerfile: 'src/Services/Payment/Leno.Payment.Api/Dockerfile'
-          - name: 'PointsMembership'
-            dockerfile: 'src/Services/PointsMembership/Leno.PointsMembership.Api/Dockerfile'
-          - name: 'ReviewAfterSales'
-            dockerfile: 'src/Services/ReviewAfterSales/Leno.ReviewAfterSales.Api/Dockerfile'
           - name: 'SellerShop'
             dockerfile: 'src/Services/SellerShop/Leno.SellerShop.Api/Dockerfile'
           - name: 'Notification'
             dockerfile: 'src/Services/Notification/Leno.Notification.Api/Dockerfile'
           - name: 'SystemAdmin'
             dockerfile: 'src/Services/SystemAdmin/Leno.SystemAdmin.Api/Dockerfile'
+          # 2026-09-21 补入（A-1 拆分 / G4）：镜像名经 docker/metadata-action 自动转小写 →
+          # ghcr.io/<owner>/leno-identity / leno-accesscontrol / leno-usercenter
+          - name: 'Identity'
+            dockerfile: 'src/Services/Identity/Leno.Identity.Api/Dockerfile'
+          - name: 'AccessControl'
+            dockerfile: 'src/Services/AccessControl/Leno.AccessControl.Api/Dockerfile'
+          - name: 'UserCenter'
+            dockerfile: 'src/Services/UserCenter/Leno.UserCenter.Api/Dockerfile'
+          # 2026-09-21 补入（A3：剩余 5 个 BC 全部部署，DEC-4 决策）：
+          # ghcr.io/<owner>/leno-inventory / leno-points / leno-membership / leno-review / leno-aftersales
+          - name: 'Inventory'
+            dockerfile: 'src/Services/Inventory/Leno.Inventory.Api/Dockerfile'
+          - name: 'Points'
+            dockerfile: 'src/Services/Points/Leno.Points.Api/Dockerfile'
+          - name: 'Membership'
+            dockerfile: 'src/Services/Membership/Leno.Membership.Api/Dockerfile'
+          - name: 'Review'
+            dockerfile: 'src/Services/Review/Leno.Review.Api/Dockerfile'
+          - name: 'AfterSales'
+            dockerfile: 'src/Services/AfterSales/Leno.AfterSales.Api/Dockerfile'
           - name: 'ApiGateway'
             dockerfile: 'src/ApiGateway/Leno.ApiGateway/Dockerfile'
     steps:
@@ -209,6 +224,23 @@ jobs:
         # ubuntu-latest runner 已移除 docker-compose v1 独立命令（exit 127），
         # 统一使用 Docker Compose v2 插件语法 `docker compose`
         run: docker compose config > /dev/null
+
+  # ===========================================================================
+  # 服务端口三方一致性校验（双轨下线 A5，2026-09-23）
+  #
+  # 以 deploy/services.manifest.json 为单一来源，校验 compose 宿主端口、
+  # Helm values 的 httpPort/service.port/grpcPort、serviceUrls 已登记端口三者一致。
+  # 历史漂移：payment↔reviewaftersales、notification↔sellershop 曾发生端口互换。
+  # 本 job 使该类"清单漂移"问题在 CI 阶段即失败。
+  # ===========================================================================
+  validate-service-ports:
+    name: 服务端口三方一致性 (manifest / compose / Helm)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 校验端口清单
+        shell: pwsh
+        run: ./scripts/validate-service-ports.ps1
 
   # ===========================================================================
   # 阶段 3：迁移 SQL 同步检查（P0 遗留技术债）
@@ -444,7 +476,7 @@ jobs:
       - name: Apply EF migrations
         run: |
           # 逐 BC 执行 dotnet ef database update
-          for bc in UserAuth Product Cart Order Promotion ReviewAfterSales PointsMembership Payment Notification SellerShop SystemAdmin; do
+          for bc in Product Cart Order Promotion Payment Notification SellerShop SystemAdmin Points Membership Review AfterSales Inventory Identity AccessControl UserCenter; do
             dotnet ef database update \
               --project src/Services/$bc/Leno.$bc.Infrastructure \
               --startup-project src/Services/$bc/Leno.$bc.Api

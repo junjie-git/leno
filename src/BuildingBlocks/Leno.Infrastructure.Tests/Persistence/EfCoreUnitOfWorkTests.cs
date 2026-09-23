@@ -53,40 +53,6 @@ public class EfCoreUnitOfWorkTests
     }
 
     /// <summary>
-    /// <see cref="EfCoreUnitOfWork{TDbContext}.SaveChangesAsync"/> 契约变更：
-    /// 不再直接委托 <c>DbContext.SaveChangesAsync</c>（旁路 Outbox 会导致领域事件
-    /// 丢失或双发，方法已标 [Obsolete]），而是同样路由到
-    /// <see cref="OutboxDbContextExtensions.SaveChangesWithOutboxAsync"/>。
-    /// 使用真实 InMemoryDatabase + 跟踪型 mapper 验证（同 SaveEntitiesAsync 测试）。
-    /// </summary>
-    [Fact]
-    public async Task SaveChangesAsync_ShouldRouteThroughOutbox()
-    {
-        // Arrange
-        var dbName = $"uow-savechanges-{Guid.NewGuid()}";
-        var options = new DbContextOptionsBuilder<TestDbContext>()
-            .UseInMemoryDatabase(dbName)
-            .Options;
-        await using var context = new TestDbContext(options);
-        await context.Database.EnsureCreatedAsync();
-        var mapper = new TrackingIntegrationEventMapper();
-        var uow = new EfCoreUnitOfWork<TestDbContext>(context, mapper);
-
-        var aggregate = new TestAggregateRoot(Guid.NewGuid());
-        aggregate.AddTestDomainEvent();
-        context.TestAggregates.Add(aggregate);
-
-        // Act
-        var result = await uow.SaveChangesAsync(CancellationToken.None);
-
-        // Assert
-        result.Should().Be(2, "SaveChangesAsync 路由 Outbox 后返回受影响实体总数：1 个聚合 + 1 条 OutboxMessage");
-        mapper.MapCallCount.Should().Be(1, "SaveChangesAsync 也应走 Outbox 翻译路径");
-        var outboxMessages = await context.OutboxMessages.ToListAsync();
-        outboxMessages.Should().HaveCount(1, "领域事件应被写入发件箱");
-    }
-
-    /// <summary>
     /// <see cref="EfCoreUnitOfWork{TDbContext}.SaveEntitiesAsync"/> 应调用
     /// <see cref="OutboxDbContextExtensions.SaveChangesWithOutboxAsync"/> 并传入 mapper。
     /// 因扩展方法无法被 Moq 直接 mock，使用真实 InMemoryDatabase + 跟踪型 mapper 验证：

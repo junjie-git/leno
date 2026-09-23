@@ -1,7 +1,7 @@
 using Leno.Infrastructure.EventBus;
+using Leno.Order.Application.Abstractions;
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Repositories;
-using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
 using Leno.SharedContracts.Events;
 using Microsoft.Extensions.Logging;
@@ -16,19 +16,19 @@ namespace Leno.Order.Infrastructure.Consumers;
 public sealed class RefundCompletedEventConsumer : IntegrationEventConsumerBase<RefundCompletedEvent>
 {
     private readonly IOrderRepository _orderRepository;
-    private readonly IStockReservationDomainService _stockReservationDomainService;
+    private readonly IInventoryGateway _inventoryGateway;
 
     public RefundCompletedEventConsumer(
         IOrderRepository orderRepository,
-        IStockReservationDomainService stockReservationDomainService,
+        IInventoryGateway inventoryGateway,
         ILogger<RefundCompletedEventConsumer> logger,
         IIdempotencyStore idempotencyStore)
         : base(logger, idempotencyStore)
     {
         ArgumentNullException.ThrowIfNull(orderRepository);
-        ArgumentNullException.ThrowIfNull(stockReservationDomainService);
+        ArgumentNullException.ThrowIfNull(inventoryGateway);
         _orderRepository = orderRepository;
-        _stockReservationDomainService = stockReservationDomainService;
+        _inventoryGateway = inventoryGateway;
     }
 
     /// <inheritdoc />
@@ -44,22 +44,20 @@ public sealed class RefundCompletedEventConsumer : IntegrationEventConsumerBase<
         }
 
         // 按订单当前状态选择归还已扣减或释放预占
-        // Paid/Shipped 状态：库存已被确认扣减（ConfirmBatchAsync），需归还已扣减库存
-        // PendingPayment 状态：库存仍为预占，释放预占即可
+        // Paid/Shipped 状态：库存已被确认扣减，需归还已扣减库存（ReleaseStockCommand.ReturnDeducted）
+        // PendingPayment 状态：库存仍为预占，释放预占即可（ReleaseStockCommand.Release）
+        // 命令按订单寻址，Inventory 按台账幂等处理，无需本地 SKU 明细
         var needsReturnDeducted = order.Status == OrderStatus.Paid || order.Status == OrderStatus.Shipped;
-        var skuQuantities = order.Items
-            .GroupBy(i => i.SkuId)
-            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
 
         if (needsReturnDeducted)
         {
-            await _stockReservationDomainService.ReturnDeductedBatchAsync(order.Id, skuQuantities, ct);
+            await _inventoryGateway.ReturnDeductedBatchAsync(order.Id, ct);
             Logger.LogInformation("退款完成：订单 {OrderId} 已归还已扣减库存 {ItemCount} 项 RefundId={RefundId}",
                 integrationEvent.OrderId, order.Items.Count, integrationEvent.RefundId);
         }
         else
         {
-            await _stockReservationDomainService.ReleaseBatchAsync(order.Id, skuQuantities, ct);
+            await _inventoryGateway.ReleaseBatchAsync(order.Id, ct);
             Logger.LogInformation("退款完成：订单 {OrderId} 已释放预占库存 {ItemCount} 项 RefundId={RefundId}",
                 integrationEvent.OrderId, order.Items.Count, integrationEvent.RefundId);
         }

@@ -56,7 +56,8 @@ env:
   HELM_CHART_DIR: deploy/helm/leno
   HELM_TIMEOUT: 10m
   # 12 个服务（11 BC + API 网关），与 helm values services key 一一对应
-  SERVICES: 'api-gateway userauth product cart order promotion reviewaftersales pointsmembership payment notification sellershop systemadmin'
+  # 2026-09-23 双轨下线（A1/A2/A6）：移除 userauth / reviewaftersales / pointsmembership
+  SERVICES: 'api-gateway product cart order promotion payment notification sellershop systemadmin identity accesscontrol usercenter'
 
 jobs:
   # ---------------------------------------------------------------------------

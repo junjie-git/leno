@@ -154,25 +154,6 @@ return 1
                         return cart;
                     }
 
-                case RedisType.String:
-                    {
-                        // 向后兼容：迁移前 String 格式无 version 字段，按 0 处理
-                        var value = await db.StringGetAsync(key);
-                        if (!value.HasValue)
-                        {
-                            return null;
-                        }
-
-                        var cart = JsonSerializer.Deserialize<CartAggregate>((string)value!, JsonOptions);
-                        if (cart is null)
-                        {
-                            return null;
-                        }
-
-                        cart.MarkLoaded(0);
-                        return cart;
-                    }
-
                 default:
                     _logger.LogWarning(
                         "匿名购物车 key 类型异常 SessionId={SessionId} KeyType={KeyType}",
@@ -339,36 +320,6 @@ return 1
         catch (Exception ex) when (ex is not CartInfrastructureException)
         {
             _logger.LogError(ex, "刷新匿名购物车 TTL 失败 SessionId={SessionId}", sessionId);
-            throw new CartInfrastructureException("匿名购物车暂不可用", ex, "CART_REDIS_UNAVAILABLE");
-        }
-    }
-
-    /// <summary>
-    /// 旧的非原子保存实现（P1-1 修复前的 <c>SaveAsync</c>），作为 fallback 保留 1 个版本周期。
-    /// <para>
-    /// 直接 <c>StringSetAsync</c> 覆盖写，无版本检查，不防并发覆盖。
-    /// 新代码应使用 <see cref="SaveAsync(string, CartAggregate, int, CancellationToken)"/> CAS 重载。
-    /// </para>
-    /// </summary>
-    /// <param name="sessionId">会话标识。</param>
-    /// <param name="cart">待保存的匿名购物车聚合。</param>
-    /// <param name="ct">取消令牌。</param>
-    [Obsolete("Use SaveAsync with CAS Lua script instead. 1 个版本周期后删除。")]
-    public async Task SaveAsyncLegacy(string sessionId, CartAggregate cart, CancellationToken ct = default)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
-        ArgumentNullException.ThrowIfNull(cart);
-        try
-        {
-            cart.ClearDomainEvents();
-            var db = _redis.GetDatabase();
-            var key = BuildKey(sessionId);
-            var value = JsonSerializer.Serialize(cart, JsonOptions);
-            await db.StringSetAsync(key, value, Ttl);
-        }
-        catch (Exception ex) when (ex is not CartInfrastructureException)
-        {
-            _logger.LogError(ex, "[Legacy] 写入匿名购物车缓存失败 SessionId={SessionId}", sessionId);
             throw new CartInfrastructureException("匿名购物车暂不可用", ex, "CART_REDIS_UNAVAILABLE");
         }
     }

@@ -14,12 +14,6 @@ public sealed class JwtOptions
     /// <summary>JWT 受众标识。</summary>
     public string Audience { get; set; } = "leno-clients";
 
-    /// <summary>
-    /// HS256 对称签名密钥（UTF-8 编码至少 32 字节 / 256 位）。
-    /// 阶段四升级 RS256 时替换为 RSA 私钥 PEM 字符串。
-    /// </summary>
-    public string SigningKey { get; set; } = string.Empty;
-
     /// <summary>访问令牌有效期（分钟）。</summary>
     public int AccessTokenExpirationMinutes { get; set; } = 30;
 

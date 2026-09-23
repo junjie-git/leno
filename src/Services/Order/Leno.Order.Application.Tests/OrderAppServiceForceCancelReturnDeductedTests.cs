@@ -1,3 +1,4 @@
+using Leno.Order.Application.Abstractions;
 using Leno.Order.Application.DTOs;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Aggregates;
@@ -22,7 +23,7 @@ public class OrderAppServiceForceCancelReturnDeductedTests
     private readonly Mock<IOrderRepository> _orderRepoMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly Mock<IOrderNumberGenerator> _orderNoGenMock = new();
-    private readonly Mock<IStockReservationDomainService> _stockSvcMock = new();
+    private readonly Mock<IInventoryGateway> _stockSvcMock = new();
     private readonly Mock<IOrderPricingDomainService> _pricingSvcMock = new();
     private readonly Mock<IFreightCalculator> _freightMock = new();
     private readonly Mock<IProductAntiCorruptionService> _productAcMock = new();
@@ -31,7 +32,7 @@ public class OrderAppServiceForceCancelReturnDeductedTests
     private readonly Mock<ILogisticsTrackingService> _logisticsMock = new();
     private readonly Mock<ILogisticsCompanyRepository> _logisticsRepoMock = new();
     private readonly Mock<IEventBus> _eventBusMock = new();
-    private readonly Mock<IBus> _busMock = new();
+    private readonly Mock<IMessageScheduler> _messageSchedulerMock = new();
     private readonly Mock<IOrderSagaOrchestrator> _sagaMock = new();
     private readonly OrderAppService _sut;
 
@@ -49,7 +50,7 @@ public class OrderAppServiceForceCancelReturnDeductedTests
             _stockSvcMock.Object, _pricingSvcMock.Object, _freightMock.Object,
             _productAcMock.Object, _promoAcMock.Object, _pointsAcMock.Object,
             _logisticsMock.Object, _logisticsRepoMock.Object,
-            _eventBusMock.Object, _busMock.Object, _sagaMock.Object);
+            _eventBusMock.Object, _messageSchedulerMock.Object, _sagaMock.Object);
     }
 
     [Fact]
@@ -59,9 +60,9 @@ public class OrderAppServiceForceCancelReturnDeductedTests
         var order = CreatePaidAndShippedOrder();
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
-        _stockSvcMock.Setup(s => s.ReturnDeductedBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _stockSvcMock.Setup(s => s.ReturnDeductedBatchAsync(It.IsAny<Guid>()))
             .Returns(Task.CompletedTask);
-        _stockSvcMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _stockSvcMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>()))
             .Returns(Task.CompletedTask);
 
         var dto = new ForceCancelOrderDto { Reason = "test", OperatorId = OperatorId };
@@ -71,10 +72,10 @@ public class OrderAppServiceForceCancelReturnDeductedTests
 
         // Assert：Shipped 状态应调用 ReturnDeductedBatchAsync，不调用 ReleaseBatchAsync
         _stockSvcMock.Verify(
-            s => s.ReturnDeductedBatchAsync(OrderId, It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            s => s.ReturnDeductedBatchAsync(OrderId),
             Times.Once);
         _stockSvcMock.Verify(
-            s => s.ReleaseBatchAsync(OrderId, It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            s => s.ReleaseBatchAsync(OrderId),
             Times.Never);
         order.Status.Should().Be(OrderStatus.Cancelled);
     }
@@ -86,9 +87,9 @@ public class OrderAppServiceForceCancelReturnDeductedTests
         var order = CreatePaidOrder();
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
-        _stockSvcMock.Setup(s => s.ReturnDeductedBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _stockSvcMock.Setup(s => s.ReturnDeductedBatchAsync(It.IsAny<Guid>()))
             .Returns(Task.CompletedTask);
-        _stockSvcMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _stockSvcMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>()))
             .Returns(Task.CompletedTask);
 
         var dto = new ForceCancelOrderDto { Reason = "test", OperatorId = OperatorId };
@@ -98,10 +99,10 @@ public class OrderAppServiceForceCancelReturnDeductedTests
 
         // Assert：Paid 状态（已确认扣减）应调用 ReturnDeductedBatchAsync
         _stockSvcMock.Verify(
-            s => s.ReturnDeductedBatchAsync(OrderId, It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            s => s.ReturnDeductedBatchAsync(OrderId),
             Times.Once);
         _stockSvcMock.Verify(
-            s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            s => s.ReleaseBatchAsync(It.IsAny<Guid>()),
             Times.Never);
     }
 
@@ -112,9 +113,9 @@ public class OrderAppServiceForceCancelReturnDeductedTests
         var order = CreatePendingPaymentOrder();
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
-        _stockSvcMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _stockSvcMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>()))
             .Returns(Task.CompletedTask);
-        _stockSvcMock.Setup(s => s.ReturnDeductedBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _stockSvcMock.Setup(s => s.ReturnDeductedBatchAsync(It.IsAny<Guid>()))
             .Returns(Task.CompletedTask);
 
         var dto = new ForceCancelOrderDto { Reason = "test", OperatorId = OperatorId };
@@ -124,10 +125,10 @@ public class OrderAppServiceForceCancelReturnDeductedTests
 
         // Assert：PendingPayment 状态（仅预占未扣减）应调用 ReleaseBatchAsync
         _stockSvcMock.Verify(
-            s => s.ReleaseBatchAsync(OrderId, It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            s => s.ReleaseBatchAsync(OrderId),
             Times.Once);
         _stockSvcMock.Verify(
-            s => s.ReturnDeductedBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+            s => s.ReturnDeductedBatchAsync(It.IsAny<Guid>()),
             Times.Never);
     }
 

@@ -42,7 +42,7 @@ public sealed class ExportAppService : IExportAppService
             dto.Format);
 
         await _taskRepository.AddAsync(task, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
 
         return ToDto(task);
     }

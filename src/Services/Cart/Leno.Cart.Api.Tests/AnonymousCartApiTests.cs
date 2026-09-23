@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
+using Leno.Testing.Fixtures;
+
 namespace Leno.Cart.Api.Tests;
 
 /// <summary>
@@ -30,6 +32,7 @@ public class AnonymousCartHeaderTests : IClassFixture<WebApplicationFactory<Prog
 
             builder.ConfigureServices(services =>
             {
+            TestWebHostHelper.RemoveQuartzSchedulerServices(services);
                 services.AddSingleton(_anonymousCartAppServiceMock.Object);
 
                 RemoveMassTransitServices(services);

@@ -6,7 +6,11 @@ namespace Leno.Product.Application.Queries;
 /// 买家端商品详情查询处理器。
 /// 经 <see cref="IProductReadModelAccessor"/>（端口由 Infrastructure 层 <c>ProductReadModelAccessor</c> 实现）
 /// 查询 ES 读模型并返回 <see cref="ProductDetailResult"/>。
-/// 双发期 2 周内与 <c>SPUAppService.GetByIdAsync</c> 并存，2 周后 Controller 切换到本 QueryHandler。
+/// <para>
+/// 定位（双轨下线 DEC-9 改判，2026-09-21）：本查询是<b>买家端 ES 读模型路径</b>；
+/// 管理端/通用详情走 <c>SPUAppService.GetByIdAsync</c>（SQL，含完整 SKU）。
+/// 二者是用途不同的并行读路径，而非新旧实现 —— ES/SQL 终局归属由 E3 单独决策。
+/// </para>
 /// </summary>
 public sealed class ProductDetailQueryHandler : IQueryHandler<ProductDetailQuery, ProductDetailResult?>
 {

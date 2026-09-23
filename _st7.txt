@@ -1,0 +1,14 @@
+=== 容器
+leno-sqlserver | Up About a minute (healthy)
+leno-redis | Up 14 minutes (healthy)
+leno-rabbitmq | Up 14 minutes (healthy)
+leno-consul | Up 14 minutes (healthy)
+=== 镜像
+leno-inventory-api:latest
+redis:7-alpine
+docker.m.daocloud.io/library/redis:7-alpine
+mcr.microsoft.com/mssql/server:2019-latest
+docker.m.daocloud.io/library/rabbitmq:3.12-management
+rabbitmq:3.12-management
+hashicorp/consul:1.18
+docker.m.daocloud.io/hashicorp/consul:1.18

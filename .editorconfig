@@ -119,3 +119,9 @@ csharp_style_prefer_top_level_statements = true:silent
 csharp_style_prefer_primary_constructors = true:suggestion
 csharp_prefer_system_threading_lock = true:suggestion
 csharp_style_prefer_simple_property_accessors = true:suggestion
+
+# EF Core 生成的迁移代码（Migrations/**）属生成物，非手写代码 —— 标记为 generated 让其免于分析器告警。
+# 典型误报 CA1861：迁移里 CreateTable/CreateIndex 的内联数组只在迁移执行时用一次，不属于热路径。
+[**/Migrations/**/*.cs]
+generated_code = true
+dotnet_diagnostic.CA1861.severity = none

@@ -1,3 +1,4 @@
+using Leno.Order.Application.Abstractions;
 using Leno.Infrastructure.Abstractions;
 using Leno.Order.Application.Messages;
 using Leno.Order.Application.Services;
@@ -18,7 +19,7 @@ public class OrderTimeoutDelayMessageConsumerTests
 {
     private readonly Mock<IOrderRepository> _orderRepoMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
-    private readonly Mock<IStockReservationDomainService> _stockServiceMock = new();
+    private readonly Mock<IInventoryGateway> _inventoryGatewayMock = new();
     private readonly Mock<IPointsAntiCorruptionService> _pointsAcMock = new();
     private readonly Mock<IPromotionAntiCorruptionService> _promotionAcMock = new();
     private readonly Mock<IIdempotencyStore> _idempotencyStoreMock = new();
@@ -39,7 +40,7 @@ public class OrderTimeoutDelayMessageConsumerTests
         _sut = new OrderTimeoutDelayMessageConsumer(
             _orderRepoMock.Object,
             _uowMock.Object,
-            _stockServiceMock.Object,
+            _inventoryGatewayMock.Object,
             _pointsAcMock.Object,
             _promotionAcMock.Object,
             _idempotencyStoreMock.Object,
@@ -91,7 +92,7 @@ public class OrderTimeoutDelayMessageConsumerTests
         var order = CreateOrder(OrderStatus.PendingPayment, DateTime.UtcNow.AddHours(-1));
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
-        _stockServiceMock.Setup(s => s.ReleaseBatchAsync(OrderId, It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _inventoryGatewayMock.Setup(s => s.ReleaseBatchAsync(OrderId))
             .Returns(Task.CompletedTask);
 
         var msg = new OrderTimeoutMessage(OrderId);
@@ -101,11 +102,8 @@ public class OrderTimeoutDelayMessageConsumerTests
         await _sut.Consume(context.Object);
 
         // Assert
-        _stockServiceMock.Verify(
-            s => s.ReleaseBatchAsync(
-                OrderId,
-                It.Is<Dictionary<Guid, int>>(d => d.ContainsKey(SkuId) && d[SkuId] == 2),
-                It.IsAny<CancellationToken>()),
+        _inventoryGatewayMock.Verify(
+            s => s.ReleaseBatchAsync(OrderId),
             Times.Once);
     }
 
@@ -120,7 +118,7 @@ public class OrderTimeoutDelayMessageConsumerTests
         var order = CreateOrder(OrderStatus.PendingPayment, DateTime.UtcNow.AddHours(-1));
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
-        _stockServiceMock.Setup(s => s.ReleaseBatchAsync(OrderId, It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _inventoryGatewayMock.Setup(s => s.ReleaseBatchAsync(OrderId))
             .Returns(Task.CompletedTask);
 
         var msg = new OrderTimeoutMessage(OrderId);
@@ -146,7 +144,7 @@ public class OrderTimeoutDelayMessageConsumerTests
         var order = CreateOrder(OrderStatus.PendingPayment, DateTime.UtcNow.AddHours(-1));
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
-        _stockServiceMock.Setup(s => s.ReleaseBatchAsync(OrderId, It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _inventoryGatewayMock.Setup(s => s.ReleaseBatchAsync(OrderId))
             .Returns(Task.CompletedTask);
 
         var msg = new OrderTimeoutMessage(OrderId);
@@ -180,8 +178,8 @@ public class OrderTimeoutDelayMessageConsumerTests
         await _sut.Consume(context.Object);
 
         // Assert
-        _stockServiceMock.Verify(
-            s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+        _inventoryGatewayMock.Verify(
+            s => s.ReleaseBatchAsync(It.IsAny<Guid>()),
             Times.Never);
         _pointsAcMock.Verify(
             p => p.ReleaseAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
@@ -213,8 +211,8 @@ public class OrderTimeoutDelayMessageConsumerTests
         await _sut.Consume(context.Object);
 
         // Assert
-        _stockServiceMock.Verify(
-            s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+        _inventoryGatewayMock.Verify(
+            s => s.ReleaseBatchAsync(It.IsAny<Guid>()),
             Times.Never);
         _pointsAcMock.Verify(
             p => p.ReleaseAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
@@ -245,8 +243,8 @@ public class OrderTimeoutDelayMessageConsumerTests
         await _sut.Consume(context.Object);
 
         // Assert
-        _stockServiceMock.Verify(
-            s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+        _inventoryGatewayMock.Verify(
+            s => s.ReleaseBatchAsync(It.IsAny<Guid>()),
             Times.Never);
         _pointsAcMock.Verify(
             p => p.ReleaseAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
@@ -275,8 +273,8 @@ public class OrderTimeoutDelayMessageConsumerTests
 
         // Assert —— 不应加载订单、不应释放库存/积分/优惠券、不应保存
         _orderRepoMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
-        _stockServiceMock.Verify(
-            s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+        _inventoryGatewayMock.Verify(
+            s => s.ReleaseBatchAsync(It.IsAny<Guid>()),
             Times.Never);
         _pointsAcMock.Verify(
             p => p.ReleaseAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),

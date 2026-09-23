@@ -140,7 +140,7 @@ public sealed class NotificationService : INotificationService
                 idempotencyKey: string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey);
 
             await _recordRepository.AddAsync(failedRecord, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
 
             return new NotificationSendResult
             {
@@ -165,7 +165,7 @@ public sealed class NotificationService : INotificationService
             idempotencyKey: string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey);
 
         await _recordRepository.AddAsync(record, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
 
         // 5. Get the right channel
         var channel = _channels.FirstOrDefault(c => c.Channel == template.Channel);
@@ -196,7 +196,7 @@ public sealed class NotificationService : INotificationService
 
                 record.MarkFailed(rateLimitResult.ErrorMessage ?? "发送频率超限", rateLimitResult.ErrorCode ?? "RATE_LIMITED");
                 await _recordRepository.UpdateAsync(record, ct);
-                await _unitOfWork.SaveChangesAsync(ct);
+                await _unitOfWork.SaveEntitiesAsync(ct);
 
                 return new NotificationSendResult
                 {
@@ -233,7 +233,7 @@ public sealed class NotificationService : INotificationService
 
             record.MarkFailed("发送超时", "ACCEPTED_TIMEOUT");
             await _recordRepository.UpdateAsync(record, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
 
             return new NotificationSendResult
             {
@@ -251,7 +251,7 @@ public sealed class NotificationService : INotificationService
 
         // 8. Save changes
         await _recordRepository.UpdateAsync(record, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
 
         return new NotificationSendResult
         {

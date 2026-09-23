@@ -6,7 +6,7 @@ namespace Leno.SellerShop.Application.Queries;
 /// 卖家工作台概览查询处理器。
 /// 经 <see cref="IShopDashboardReadModelAccessor"/>（端口由 Infrastructure 层 <c>ShopDashboardReadModelAccessor</c> 实现）
 /// 查询 ES 读模型并返回 <see cref="ShopDashboardResult"/>。店铺不存在（ES 中无对应文档）时返回 null。
-/// 双发期 2 周内与 <c>SellerDashboardAppService.GetDashboardAsync</c> 并存，2 周后 Controller 切换到本 QueryHandler。
+/// 双轨下线 E2（2026-09-23）：本 QueryHandler 为工作台概览的唯一读路径（SQL 双轨已删除）。
 /// </summary>
 public sealed class ShopDashboardQueryHandler : IQueryHandler<ShopDashboardQuery, ShopDashboardResult?>
 {

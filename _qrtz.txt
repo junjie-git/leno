@@ -1,0 +1,1 @@
+deploy/helm/leno/files/migrations/scheduler-quartz.sql (CREATE TABLE×12)

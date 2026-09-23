@@ -4,7 +4,9 @@ using Medallion.Threading;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Xunit;namespace Leno.Infrastructure.Tests.Persistence;/// <summary>
 /// MigrateWithLockAsync 单元测试。
 /// 设计约束：不得依赖真实 Redis（CI 环境无 Redis，run #9 曾因
@@ -61,6 +63,116 @@ public class DatabaseMigrationExtensionsTests
         // Assert：MigrateAsync 未执行 → 迁移历史表不应被创建
         var historyTableExists = await HistoryTableExistsAsync(connection);
         historyTableExists.Should().BeFalse("锁已被占用时应跳过 MigrateAsync（历史表不应被创建）");
+    }
+
+    // ===== N4：启动迁移的环境门控（2026-09-21） =====
+    // 策略：显式配置 > 环境判定（Development 执行，其余跳过）> 无 IHostEnvironment 时保持既有行为
+
+    /// <summary>Development 环境应执行启动迁移（本地开发无需先跑 Helm Job）。</summary>
+    [Fact]
+    public async Task MigrateWithLockAsync_DevelopmentEnvironment_ShouldRunMigrate()
+    {
+        await using var connection = new SqliteConnection("DataSource=:memory:");
+        connection.Open();
+        var provider = BuildProvider(connection, new SemaphoreSlimLockProvider(), Environments.Development, null);
+
+        await provider.MigrateWithLockAsync<MigrateTestDbContext>();
+
+        (await HistoryTableExistsAsync(connection)).Should().BeTrue("Development 环境应在启动时执行迁移");
+    }
+
+    /// <summary>非 Development 环境应跳过启动迁移，交由部署期 migration-job 负责。</summary>
+    [Theory]
+    [InlineData("Docker")]
+    [InlineData("Staging")]
+    [InlineData("Production")]
+    public async Task MigrateWithLockAsync_NonDevelopmentEnvironment_ShouldSkipMigrate(string environmentName)
+    {
+        await using var connection = new SqliteConnection("DataSource=:memory:");
+        connection.Open();
+        var provider = BuildProvider(connection, new SemaphoreSlimLockProvider(), environmentName, null);
+
+        await provider.MigrateWithLockAsync<MigrateTestDbContext>();
+
+        (await HistoryTableExistsAsync(connection)).Should().BeFalse(
+            $"{environmentName} 环境不应在启动时迁移（由部署期 migration-job 负责）");
+    }
+
+    /// <summary>配置显式开启（逃生舱）时，非 Development 环境也应执行迁移。</summary>
+    [Fact]
+    public async Task MigrateWithLockAsync_ConfigOverrideTrue_InNonDevelopment_ShouldRunMigrate()
+    {
+        await using var connection = new SqliteConnection("DataSource=:memory:");
+        connection.Open();
+        var provider = BuildProvider(connection, new SemaphoreSlimLockProvider(), Environments.Production, true);
+
+        await provider.MigrateWithLockAsync<MigrateTestDbContext>();
+
+        (await HistoryTableExistsAsync(connection)).Should().BeTrue(
+            "显式配置 Database:MigrateOnStartup=true 应覆盖环境判定");
+    }
+
+    /// <summary>配置显式关闭时，Development 环境也应跳过迁移。</summary>
+    [Fact]
+    public async Task MigrateWithLockAsync_ConfigOverrideFalse_InDevelopment_ShouldSkipMigrate()
+    {
+        await using var connection = new SqliteConnection("DataSource=:memory:");
+        connection.Open();
+        var provider = BuildProvider(connection, new SemaphoreSlimLockProvider(), Environments.Development, false);
+
+        await provider.MigrateWithLockAsync<MigrateTestDbContext>();
+
+        (await HistoryTableExistsAsync(connection)).Should().BeFalse(
+            "显式配置 Database:MigrateOnStartup=false 应覆盖环境判定");
+    }
+
+    /// <summary>
+    /// 构建带环境名与可选迁移开关的测试 ServiceProvider。
+    /// </summary>
+    /// <param name="connection">共享的 SQLite 内存连接（探针与 DbContext 必须复用同一连接）。</param>
+    /// <param name="lockProvider">进程内假分布式锁提供者。</param>
+    /// <param name="environmentName">环境名；null 表示不注册 IHostEnvironment。</param>
+    /// <param name="migrateOnStartup">Database:MigrateOnStartup 值；null 表示不注册该配置键。</param>
+    private static ServiceProvider BuildProvider(
+        SqliteConnection connection,
+        IDistributedLockProvider lockProvider,
+        string? environmentName,
+        bool? migrateOnStartup)
+    {
+        var services = new ServiceCollection();
+        services.AddDbContext<MigrateTestDbContext>(o => o.UseSqlite(connection));
+        services.AddSingleton(lockProvider);
+
+        if (environmentName is not null)
+        {
+            services.AddSingleton<IHostEnvironment>(new StubHostEnvironment(environmentName));
+        }
+
+        if (migrateOnStartup.HasValue)
+        {
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    [DatabaseMigrationExtensions.MigrateOnStartupConfigKey] = migrateOnStartup.Value ? "true" : "false"
+                })
+                .Build();
+            services.AddSingleton<IConfiguration>(configuration);
+        }
+
+        return services.BuildServiceProvider();
+    }
+
+    /// <summary>最小 IHostEnvironment 替身（仅环境名参与门控判定）。</summary>
+    private sealed class StubHostEnvironment(string environmentName) : IHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = environmentName;
+
+        public string ApplicationName { get; set; } = "Leno.Infrastructure.Tests";
+
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+
+        public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } =
+            new Microsoft.Extensions.FileProviders.NullFileProvider();
     }
 
     private static async Task<bool> HistoryTableExistsAsync(SqliteConnection connection)

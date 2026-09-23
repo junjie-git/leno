@@ -1,7 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -9,19 +8,15 @@ using Microsoft.IdentityModel.Tokens;
 namespace Leno.Infrastructure.Security;
 
 /// <summary>
-/// RS256 JWT 签名服务实现（3.10 安全技术栈升级 / HS256 → RS256 过渡）。
+/// RS256 JWT 签名服务实现（3.10 安全技术栈升级）。
 /// <para>
-/// 签名模式由 <see cref="JwtSigningOptions.SigningMode"/> 控制：
-/// <list type="bullet">
-/// <item><b>Hs256</b>：使用 <see cref="JwtSigningOptions.Hs256SigningKey"/> 对称签名。</item>
-/// <item><b>Rs256</b>：通过 <see cref="IKeyManagementService"/> 获取 RSA 私钥非对称签名。</item>
-/// <item><b>Dual</b>：新令牌使用 RS256 签名，验签同时接受 RS256 与 HS256（过渡兼容）。</item>
-/// </list>
+/// 双轨下线 A6（2026-09-23，D-6 单算法）：HS256 与 Dual 过渡模式已删除 ——
+/// 本服务<b>只做 RS256</b>：经 <see cref="IKeyManagementService"/> 获取 KMS 托管的 RSA 私钥签名，
+/// 公钥验签；验签参数与 ASP.NET Core JwtBearer（JWKS 路径）保持一致。
 /// </para>
 /// </summary>
 public sealed class RsaJwtSigningService : IJwtSigningService
 {
-    private const int MinHs256KeyBytes = 32;
     private static readonly TimeSpan ClockSkew = TimeSpan.FromSeconds(30);
 
     private readonly IKeyManagementService _kms;
@@ -29,7 +24,6 @@ public sealed class RsaJwtSigningService : IJwtSigningService
     private readonly ILogger<RsaJwtSigningService> _logger;
     private readonly JwtSecurityTokenHandler _tokenHandler = new();
 
-    private SigningCredentials? _cachedHs256Credentials;
     private SigningCredentials? _cachedRs256Credentials;
     private RsaSecurityKey? _cachedRsaPublicKey;
     private readonly object _credentialsLock = new();
@@ -53,14 +47,7 @@ public sealed class RsaJwtSigningService : IJwtSigningService
     {
         ArgumentNullException.ThrowIfNull(payload);
 
-        var mode = NormalizeMode(_options.SigningMode);
-        var credentials = mode switch
-        {
-            SigningModeValue.Hs256 => GetOrCreateHs256Credentials(),
-            SigningModeValue.Rs256 => await GetOrCreateRs256CredentialsAsync(ct).ConfigureAwait(false),
-            SigningModeValue.Dual => await GetOrCreateRs256CredentialsAsync(ct).ConfigureAwait(false),
-            _ => throw new InvalidOperationException($"不支持的签名模式：{_options.SigningMode}")
-        };
+        var credentials = await GetOrCreateRs256CredentialsAsync(ct).ConfigureAwait(false);
 
         var header = new JwtHeader(credentials);
         var token = new JwtSecurityToken(header, payload);
@@ -75,52 +62,7 @@ public sealed class RsaJwtSigningService : IJwtSigningService
             return false;
         }
 
-        var mode = NormalizeMode(_options.SigningMode);
-
-        // RS256 验签（RS256 和 Dual 模式优先尝试 RS256 验签）
-        if (mode is SigningModeValue.Rs256 or SigningModeValue.Dual)
-        {
-            if (await TryVerifyWithRsaAsync(token, ct).ConfigureAwait(false))
-            {
-                return true;
-            }
-        }
-
-        // HS256 验签（Hs256 模式 + Dual 模式 RS256 失败时回退）
-        if (mode is SigningModeValue.Hs256 or SigningModeValue.Dual)
-        {
-            return TryVerifyWithHs256(token);
-        }
-
-        return false;
-    }
-
-    private SigningCredentials GetOrCreateHs256Credentials()
-    {
-        lock (_credentialsLock)
-        {
-            if (_cachedHs256Credentials is not null)
-            {
-                return _cachedHs256Credentials;
-            }
-
-            if (string.IsNullOrWhiteSpace(_options.Hs256SigningKey))
-            {
-                throw new InvalidOperationException(
-                    "JwtSigning:Hs256SigningKey 配置缺失，HS256 模式需要至少 32 字节的对称密钥。");
-            }
-
-            var keyBytes = Encoding.UTF8.GetBytes(_options.Hs256SigningKey);
-            if (keyBytes.Length < MinHs256KeyBytes)
-            {
-                throw new InvalidOperationException(
-                    $"JwtSigning:Hs256SigningKey 长度不足：HS256 要求至少 {MinHs256KeyBytes} 字节，当前 {keyBytes.Length} 字节。");
-            }
-
-            var key = new SymmetricSecurityKey(keyBytes) { KeyId = "hs256" };
-            _cachedHs256Credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            return _cachedHs256Credentials;
-        }
+        return await TryVerifyWithRsaAsync(token, ct).ConfigureAwait(false);
     }
 
     private async Task<SigningCredentials> GetOrCreateRs256CredentialsAsync(CancellationToken ct)
@@ -181,33 +123,6 @@ public sealed class RsaJwtSigningService : IJwtSigningService
         }
     }
 
-    private bool TryVerifyWithHs256(string token)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(_options.Hs256SigningKey))
-            {
-                return false;
-            }
-
-            var keyBytes = Encoding.UTF8.GetBytes(_options.Hs256SigningKey);
-            if (keyBytes.Length < MinHs256KeyBytes)
-            {
-                return false;
-            }
-
-            var key = new SymmetricSecurityKey(keyBytes);
-            var parameters = BuildValidationParameters(key);
-            var result = _tokenHandler.ValidateTokenAsync(token, parameters).GetAwaiter().GetResult();
-            return result.IsValid;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "HS256 验签失败（Dual 回退）");
-            return false;
-        }
-    }
-
     private TokenValidationParameters BuildValidationParameters(SecurityKey signingKey)
     {
         return new TokenValidationParameters
@@ -223,23 +138,5 @@ public sealed class RsaJwtSigningService : IJwtSigningService
             RoleClaimType = ClaimTypes.Role,
             NameClaimType = ClaimTypes.NameIdentifier
         };
-    }
-
-    private static SigningModeValue NormalizeMode(string? mode)
-    {
-        return mode?.ToLowerInvariant() switch
-        {
-            "hs256" => SigningModeValue.Hs256,
-            "rs256" => SigningModeValue.Rs256,
-            "dual" => SigningModeValue.Dual,
-            _ => SigningModeValue.Hs256
-        };
-    }
-
-    private enum SigningModeValue
-    {
-        Hs256,
-        Rs256,
-        Dual
     }
 }

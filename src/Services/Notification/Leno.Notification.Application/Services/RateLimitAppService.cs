@@ -87,7 +87,7 @@ public sealed class RateLimitAppService : IRateLimitAppService
                 defaultConfig.DailyLimit,
                 defaultConfig.Enabled);
             await _repository.AddAsync(newAggregate, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
+            await _unitOfWork.SaveEntitiesAsync(ct);
             var newDto = ToDto(newAggregate);
             Cache[channel] = newDto;
             return CloneDto(newDto);
@@ -119,7 +119,7 @@ public sealed class RateLimitAppService : IRateLimitAppService
         }
 
         aggregate.Update(dto.HourlyLimit, dto.DailyLimit, dto.Enabled);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
 
         // 更新缓存
         var updatedDto = ToDto(aggregate);

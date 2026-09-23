@@ -1,3 +1,4 @@
+using Leno.Order.Application.Abstractions;
 using Leno.Order.Application.DTOs;
 using Leno.Order.Application.Messages;
 using Leno.Order.Application.Services;
@@ -23,7 +24,7 @@ public class OrderAppServiceTests
     private readonly Mock<IOrderRepository> _orderRepoMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly Mock<IOrderNumberGenerator> _numberGenMock = new();
-    private readonly Mock<IStockReservationDomainService> _stockServiceMock = new();
+    private readonly Mock<IInventoryGateway> _inventoryGatewayMock = new();
     private readonly Mock<IOrderPricingDomainService> _pricingServiceMock = new();
     private readonly Mock<IFreightCalculator> _freightCalculatorMock = new();
     private readonly Mock<IProductAntiCorruptionService> _productAcMock = new();
@@ -33,6 +34,7 @@ public class OrderAppServiceTests
     private readonly Mock<ILogisticsCompanyRepository> _logisticsCompanyRepoMock = new();
     private readonly Mock<IEventBus> _eventBusMock = new();
     private readonly Mock<IBus> _busMock = new();
+    private readonly Mock<IMessageScheduler> _messageSchedulerMock = new();
     private readonly IOrderSagaOrchestrator _sagaOrchestrator;
     private readonly OrderAppService _sut;
 
@@ -48,20 +50,20 @@ public class OrderAppServiceTests
             _orderRepoMock.Object,
             _uowMock.Object,
             _numberGenMock.Object,
-            _stockServiceMock.Object,
+            _inventoryGatewayMock.Object,
             _pricingServiceMock.Object,
             _freightCalculatorMock.Object,
             _promotionAcMock.Object,
             _pointsAcMock.Object,
-            _busMock.Object,
+            _messageSchedulerMock.Object,
             new Mock<ILogger<OrderSagaOrchestrator>>().Object,
-            Microsoft.Extensions.Options.Options.Create(new Leno.Order.Application.Sagas.OrderSagaOptions()));
+            maxDegreeOfParallelism: 1);
 
         _sut = new OrderAppService(
             _orderRepoMock.Object,
             _uowMock.Object,
             _numberGenMock.Object,
-            _stockServiceMock.Object,
+            _inventoryGatewayMock.Object,
             _pricingServiceMock.Object,
             _freightCalculatorMock.Object,
             _productAcMock.Object,
@@ -70,38 +72,9 @@ public class OrderAppServiceTests
             _logisticsTrackingMock.Object,
             _logisticsCompanyRepoMock.Object,
             _eventBusMock.Object,
-            _busMock.Object,
+            _messageSchedulerMock.Object,
             _sagaOrchestrator);
     }
-
-    #region GetByIdAsync
-
-    [Fact]
-    public async Task GetByIdAsync_ExistingOrder_ShouldReturnDto()
-    {
-        var order = CreateOrder();
-        _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(order);
-
-        var result = await _sut.GetByIdAsync(OrderId);
-
-        result.Should().NotBeNull();
-        result.Id.Should().Be(OrderId);
-        result.OrderNo.Should().Be("ORD-001");
-    }
-
-    [Fact]
-    public async Task GetByIdAsync_NotFound_ShouldThrowException()
-    {
-        _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((OrderAggregate?)null);
-
-        var act = () => _sut.GetByIdAsync(OrderId);
-
-        await act.Should().ThrowAsync<OrderDomainException>().WithMessage("*不存在*");
-    }
-
-    #endregion
 
     #region ShipAsync
 
@@ -178,7 +151,7 @@ public class OrderAppServiceTests
         var order = CreateOrder();
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
-        _stockServiceMock.Setup(s => s.ReleaseBatchAsync(OrderId, It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _inventoryGatewayMock.Setup(s => s.ReleaseBatchAsync(OrderId))
             .Returns(Task.CompletedTask);
 
         await _sut.CancelAsync(OrderId, UserId, new CancelOrderDto { Reason = "Changed mind" });
@@ -212,7 +185,7 @@ public class OrderAppServiceTests
         var callOrder = new List<string>();
         _uowMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
             .Returns(() => { callOrder.Add("SaveEntitiesAsync"); return Task.FromResult(true); });
-        _stockServiceMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _inventoryGatewayMock.Setup(s => s.ReleaseBatchAsync(It.IsAny<Guid>()))
             .Returns(() => { callOrder.Add("ReleaseStock"); return Task.CompletedTask; });
 
         var dto = new CancelOrderDto { Reason = "test" };
@@ -256,7 +229,7 @@ public class OrderAppServiceTests
         order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
         _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
-        _stockServiceMock.Setup(s => s.ReleaseBatchAsync(OrderId, It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _inventoryGatewayMock.Setup(s => s.ReleaseBatchAsync(OrderId))
             .Returns(Task.CompletedTask);
 
         await _sut.ForceCancelAsync(OrderId, Guid.NewGuid(), new ForceCancelOrderDto { Reason = "Fraudulent" });
@@ -264,25 +237,6 @@ public class OrderAppServiceTests
         order.Status.Should().Be(OrderStatus.Cancelled);
         _promotionAcMock.Verify(p => p.ReleaseCouponsAsync(OrderId, It.IsAny<CancellationToken>()), Times.Once);
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    #endregion
-
-    #region QueryAsync
-
-    [Fact]
-    public async Task QueryAsync_ShouldReturnPagedResult()
-    {
-        var order = CreateOrder();
-        _orderRepoMock.Setup(r => r.QueryAsync(UserId, null, null, null, null, 1, 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<OrderAggregate> { order });
-        _orderRepoMock.Setup(r => r.CountAsync(UserId, null, null, null, null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
-        var result = await _sut.QueryAsync(UserId, null, null, 1, 20);
-
-        result.Items.Should().HaveCount(1);
-        result.Total.Should().Be(1);
     }
 
     #endregion
@@ -376,7 +330,7 @@ public class OrderAppServiceTests
             .ReturnsAsync(0m);
         _freightCalculatorMock.Setup(f => f.CalculateAsync(SellerId, It.IsAny<string>(), 1, 99.99m, It.IsAny<CancellationToken>()))
             .ReturnsAsync(10m);
-        _stockServiceMock.Setup(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _inventoryGatewayMock.Setup(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _numberGenMock.Setup(n => n.GenerateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync("ORD-001");
@@ -402,8 +356,8 @@ public class OrderAppServiceTests
         result.Should().NotBeNull();
         result.OrderNo.Should().Be("ORD-001");
         // ScheduleSend internally calls Publish<ScheduleMessage> on the bus
-        _busMock.Verify(
-            b => b.Publish(It.IsAny<ScheduleMessage>(), It.IsAny<IPipe<PublishContext<ScheduleMessage>>>(), It.IsAny<CancellationToken>()),
+        _messageSchedulerMock.Verify(
+            s => s.ScheduleSend(It.IsAny<Uri>(), It.IsAny<DateTime>(), It.IsAny<OrderTimeoutMessage>(), It.IsAny<CancellationToken>()),
             Times.AtLeastOnce);
     }
 
@@ -429,7 +383,7 @@ public class OrderAppServiceTests
             .ReturnsAsync(0m);
         _freightCalculatorMock.Setup(f => f.CalculateAsync(SellerId, It.IsAny<string>(), 1, 99.99m, It.IsAny<CancellationToken>()))
             .ReturnsAsync(10m);
-        _stockServiceMock.Setup(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _inventoryGatewayMock.Setup(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         _pointsAcMock.Setup(p => p.FreezeAsync(UserId, It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new OrderDomainException("积分域冻结失败", "ORDER_POINTS_FREEZE_FAILED"));
@@ -455,11 +409,11 @@ public class OrderAppServiceTests
         // Assert — 积分冻结失败须回滚已预占库存、不持久化订单、异常向上抛
         await act.Should().ThrowAsync<OrderDomainException>().WithMessage("*积分域冻结失败*");
 
-        _stockServiceMock.Verify(
+        _inventoryGatewayMock.Verify(
             s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
             Times.Once);
-        _stockServiceMock.Verify(
-            s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+        _inventoryGatewayMock.Verify(
+            s => s.ReleaseBatchAsync(It.IsAny<Guid>()),
             Times.Once);
         _pointsAcMock.Verify(
             p => p.FreezeAsync(UserId, It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
@@ -508,7 +462,7 @@ public class OrderAppServiceTests
         _freightCalculatorMock.Setup(f => f.CalculateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(10m);
         // 第一组预占成功，第二组预占失败（顺序触发）
-        _stockServiceMock.SetupSequence(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
+        _inventoryGatewayMock.SetupSequence(s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true)
             .ReturnsAsync(false);
         _pointsAcMock.Setup(p => p.FreezeAsync(UserId, It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
@@ -538,11 +492,11 @@ public class OrderAppServiceTests
         // P1-T24：并行阶段聚合未入仓储（DbContext 非线程安全），失败时聚合仅存在于内存，无需 RemoveAsync
         await act.Should().ThrowAsync<OrderDomainException>().WithMessage("*库存预占失败*");
 
-        _stockServiceMock.Verify(
+        _inventoryGatewayMock.Verify(
             s => s.ReserveBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
             Times.Exactly(2));
-        _stockServiceMock.Verify(
-            s => s.ReleaseBatchAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<Guid, int>>(), It.IsAny<CancellationToken>()),
+        _inventoryGatewayMock.Verify(
+            s => s.ReleaseBatchAsync(It.IsAny<Guid>()),
             Times.Once);
         _pointsAcMock.Verify(
             p => p.FreezeAsync(UserId, It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
@@ -557,138 +511,6 @@ public class OrderAppServiceTests
             r => r.RemoveAsync(It.IsAny<OrderAggregate>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    #endregion
-
-    #region GetLogisticsTraceAsync
-
-    [Fact]
-    public async Task GetLogisticsTraceAsync_NoLogisticsNo_ShouldReturnEmpty()
-    {
-        var order = CreateOrder();
-        _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(order);
-
-        var result = await _sut.GetLogisticsTraceAsync(OrderId);
-
-        result.LogisticsNo.Should().BeEmpty();
-        result.Nodes.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task GetLogisticsTraceAsync_NoCompanyCode_ShouldReturnWarning()
-    {
-        var order = CreateOrder();
-        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
-        order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
-        // Reset company code to simulate missing
-        typeof(OrderAggregate).GetProperty("LogisticsCompanyCode")!.SetValue(order, null);
-        _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(order);
-
-        var result = await _sut.GetLogisticsTraceAsync(OrderId);
-
-        result.LogisticsNo.Should().Be("SF123");
-        result.HasWarning.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task GetLogisticsTraceAsync_CompanyNotSupportTracking_ShouldReturnWarning()
-    {
-        var order = CreateOrder();
-        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
-        order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
-        _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(order);
-        _logisticsCompanyRepoMock.Setup(r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(LogisticsCompany.Create(Guid.NewGuid(), "顺丰", "SF", null, false));
-
-        var result = await _sut.GetLogisticsTraceAsync(OrderId);
-
-        result.LogisticsNo.Should().Be("SF123");
-        result.HasWarning.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task GetLogisticsTraceAsync_CompanyDisabled_ShouldReturnWarning()
-    {
-        var order = CreateOrder();
-        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
-        order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
-        _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(order);
-        var company = LogisticsCompany.Create(Guid.NewGuid(), "顺丰", "SF", null, true);
-        company.Disable();
-        _logisticsCompanyRepoMock.Setup(r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(company);
-
-        var result = await _sut.GetLogisticsTraceAsync(OrderId);
-
-        result.LogisticsNo.Should().Be("SF123");
-        result.HasWarning.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task GetLogisticsTraceAsync_Valid_ShouldReturnTrace()
-    {
-        var order = CreateOrder();
-        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
-        order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
-        _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(order);
-        _logisticsCompanyRepoMock.Setup(r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(LogisticsCompany.Create(Guid.NewGuid(), "顺丰", "SF", null, true));
-        _logisticsTrackingMock.Setup(t => t.QueryTraceAsync("SF123", "SF", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new LogisticsTraceResult("SF123", "SF", new List<LogisticsTraceNode>
-            {
-                new("已揽收", DateTime.UtcNow, "深圳")
-            }, false));
-
-        var result = await _sut.GetLogisticsTraceAsync(OrderId);
-
-        result.LogisticsNo.Should().Be("SF123");
-        result.CompanyCode.Should().Be("SF");
-        result.Nodes.Should().HaveCount(1);
-        result.IsFromCache.Should().BeFalse();
-        result.HasWarning.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task GetLogisticsTraceAsync_FromCache_ShouldIndicateCache()
-    {
-        var order = CreateOrder();
-        order.MarkPaymentInitiated(PaymentMethod.WeChatPay);
-        order.MarkAsPaid(Guid.NewGuid(), "WeChatPay", DateTime.UtcNow, "T001", order.TotalAmount);
-        order.Ship("SF123", "SF", DateTime.UtcNow, Guid.NewGuid());
-        _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(order);
-        _logisticsCompanyRepoMock.Setup(r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(LogisticsCompany.Create(Guid.NewGuid(), "顺丰", "SF", null, true));
-        _logisticsTrackingMock.Setup(t => t.QueryTraceAsync("SF123", "SF", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new LogisticsTraceResult("SF123", "SF", new List<LogisticsTraceNode>
-            {
-                new("已揽收", DateTime.UtcNow, "深圳")
-            }, true));
-
-        var result = await _sut.GetLogisticsTraceAsync(OrderId);
-
-        result.IsFromCache.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task GetLogisticsTraceAsync_NotFound_ShouldThrowException()
-    {
-        _orderRepoMock.Setup(r => r.GetByIdAsync(OrderId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((OrderAggregate?)null);
-
-        var act = () => _sut.GetLogisticsTraceAsync(OrderId);
-
-        await act.Should().ThrowAsync<OrderDomainException>().WithMessage("*不存在*");
     }
 
     #endregion

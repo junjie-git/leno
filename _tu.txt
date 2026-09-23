@@ -1,0 +1,7 @@
+﻿USING ADDED src/Services/Order/Leno.Order.Application.Tests/OrderAppServiceForceCancelReturnDeductedTests.cs
+USING ADDED src/Services/Order/Leno.Order.Application.Tests/OrderAppServiceForceCancelTests.cs
+USING ADDED src/Services/Order/Leno.Order.Application.Tests/OrderAppServiceOwnershipTests.cs
+USING ADDED src/Services/Order/Leno.Order.Application.Tests/OrderAppServiceTests.cs
+USING ADDED src/Services/Order/Leno.Order.Application.Tests/OrderSagaOrchestratorTests.cs
+USING ADDED src/Services/Order/Leno.Order.Infrastructure.Tests/OrderTimeoutDelayMessageConsumerTests.cs
+USING ADDED src/Services/Order/Leno.Order.Infrastructure.Tests/StockConfirmConsumerTests.cs

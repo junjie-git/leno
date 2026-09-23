@@ -287,7 +287,7 @@ public class AntiCorruptionServicesTests
         var http = new HttpClient(new FakeHandler(handler)) { BaseAddress = new Uri("http://test/") };
         var options = Options.Create(new AntiCorruptionOptions
         {
-            TargetInternalApiKeys = new() { ["PointsMembership"] = "test-internal-key" }
+            TargetInternalApiKeys = new() { ["Points"] = "test-internal-key" }
         });
         var logger = new Mock<ILogger<PointsAntiCorruptionService>>().Object;
         return new PointsAntiCorruptionService(http, options, logger);

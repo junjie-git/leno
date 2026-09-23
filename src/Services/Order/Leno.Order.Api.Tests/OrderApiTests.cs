@@ -39,7 +39,8 @@ public class OrderApiTests : IClassFixture<WebApplicationFactory<Program>>
 
             builder.ConfigureServices(services =>
             {
-                services.AddSingleton(_orderAppServiceMock.Object);
+                TestWebHostHelper.RemoveQuartzSchedulerServices(services);
+services.AddSingleton(_orderAppServiceMock.Object);
                 services.AddSingleton(_currentUserMock.Object);
                 services.AddSingleton(_orderDetailQueryHandlerMock.Object);
                 services.AddSingleton(_orderListQueryHandlerMock.Object);

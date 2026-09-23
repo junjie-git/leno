@@ -13,13 +13,17 @@ namespace Leno.Infrastructure.Outbox;
 /// <summary>
 /// 分片发件箱发布器（4.4 Outbox 分片发布器）。
 /// <para>
-/// 在 <see cref="OutboxPublisher{TDbContext}"/> 单实例发布器基础上引入分片机制：
+/// 本类是发件箱的**唯一**发布器实现：单实例部署时 <see cref="OutboxShardingOptions.ShardCount"/> 为 1、
+/// <see cref="OutboxShardingOptions.ShardId"/> 为 0，全部消息落分片 0；多实例部署时按分片号各自认领。
+/// </para>
+/// <para>
+/// 核心机制：
 /// <list type="bullet">
 /// <item>每个实例通过 <see cref="OutboxShardingOptions.ShardId"/> 声明自己负责的分片号；</item>
 /// <item>拉取本分片 pending 消息时使用 <c>SELECT ... WITH (UPDLOCK, ROWLOCK, READPAST)</c>
 ///   行级锁，跳过已被其他查询锁定的行，避免多实例重复发布；</item>
-/// <item>两阶段标记（Pending → Publishing → Processed）与 <see cref="OutboxPublisher{TDbContext}"/>
-///   保持一致，发布失败回退 Pending 重试，超时由 <see cref="RecoverStalePublishingAsync"/> 兜底。</item>
+/// <item>两阶段标记（Pending → Publishing → Processed），发布失败回退 Pending 重试，
+///   超时由 <see cref="RecoverStalePublishingAsync"/> 兜底。</item>
 /// </list>
 /// </para>
 /// <para>
@@ -27,8 +31,8 @@ namespace Leno.Infrastructure.Outbox;
 /// 不同分片互不锁竞争。<see cref="IShardingStrategy"/> 保证同一聚合根的事件始终由同一实例顺序发布。
 /// </para>
 /// <para>
-/// 双轨期：与 <see cref="OutboxPublisher{TDbContext}"/> 通过 feature flag 按 BC 切流，
-/// 单实例发布器保留 4 周过渡。
+/// 历史：早期的单实例发布器 <c>OutboxPublisher&lt;TDbContext&gt;</c> 已于 2026-09-21 删除
+///（它从未被任何 BC 注册，属死代码，且构造函数存在 captive dependency 缺陷）。
 /// </para>
 /// </summary>
 /// <typeparam name="TDbContext">承载发件箱表的 DbContext 类型。</typeparam>

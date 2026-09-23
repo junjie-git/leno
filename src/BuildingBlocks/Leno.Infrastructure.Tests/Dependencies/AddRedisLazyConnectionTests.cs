@@ -20,7 +20,9 @@ public class AddRedisLazyConnectionTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Redis:Configuration"] = "nonexistent-host:6379,abortConnect=false",
-                ["Elasticsearch:Uri"] = "http://localhost:9200"
+                ["Elasticsearch:Uri"] = "http://localhost:9200",
+                // Quartz 调度库（双轨下线 DEC-2(b) fail-fast）：AddLenoInfrastructure 注册期即校验，缺失即抛
+                ["ConnectionStrings:SchedulerDb"] = "Server=localhost,1433;Database=LenoScheduler;User Id=sa;Password=test;TrustServerCertificate=True"
             })
             .Build();
 
@@ -40,7 +42,9 @@ public class AddRedisLazyConnectionTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Redis:Configuration"] = "localhost:6379,abortConnect=false",
-                ["Elasticsearch:Uri"] = "http://localhost:9200"
+                ["Elasticsearch:Uri"] = "http://localhost:9200",
+                // Quartz 调度库（双轨下线 DEC-2(b) fail-fast）：AddLenoInfrastructure 注册期即校验，缺失即抛
+                ["ConnectionStrings:SchedulerDb"] = "Server=localhost,1433;Database=LenoScheduler;User Id=sa;Password=test;TrustServerCertificate=True"
             })
             .Build();
 
@@ -62,7 +66,9 @@ public class AddRedisLazyConnectionTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Redis:Configuration"] = "localhost:6379,abortConnect=false",
-                ["Elasticsearch:Uri"] = "http://localhost:9200"
+                ["Elasticsearch:Uri"] = "http://localhost:9200",
+                // Quartz 调度库（双轨下线 DEC-2(b) fail-fast）：AddLenoInfrastructure 注册期即校验，缺失即抛
+                ["ConnectionStrings:SchedulerDb"] = "Server=localhost,1433;Database=LenoScheduler;User Id=sa;Password=test;TrustServerCertificate=True"
             })
             .Build();
 
@@ -84,7 +90,9 @@ public class AddRedisLazyConnectionTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Redis:Configuration"] = "localhost:6379,abortConnect=false",
-                ["Elasticsearch:Uri"] = "http://localhost:9200"
+                ["Elasticsearch:Uri"] = "http://localhost:9200",
+                // Quartz 调度库（双轨下线 DEC-2(b) fail-fast）：AddLenoInfrastructure 注册期即校验，缺失即抛
+                ["ConnectionStrings:SchedulerDb"] = "Server=localhost,1433;Database=LenoScheduler;User Id=sa;Password=test;TrustServerCertificate=True"
             })
             .Build();
 

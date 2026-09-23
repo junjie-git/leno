@@ -1,0 +1,18 @@
+up rc=0 ::  Container leno-sqlserver Healthy 
+ Container leno-consul Healthy 
+ Container leno-redis Healthy 
+ Container leno-rabbitmq Healthy 
+ Container leno-elasticsearch Healthy 
+ Container leno-inventory-api Starting 
+ Container leno-inventory-api Started 
+
+inventory-api status: Restarting (139) 23 seconds ago
+=== 日志尾部
+xt":"Program","Application":"leno-inventory-api","Environment":"Docker"}}
+[WARN] BC Inventory 仍在使用 Shared InternalApiKey，请尽快迁移到独立 key（M5.2）
+{"Timestamp":"2026-09-23T09:11:39.8279338+00:00","Level":"Warning","MessageTemplate":"敏感配置缺失：{MissingKeys}","Properties":{"MissingKeys":"Payment:Alipay:AppId, Payment:Alipay:PrivateKey, Payment:Alipay:PublicKey, Payment:WeChatPay:AppId, Payment:WeChatPay:MchId, Payment:WeChatPay:ApiKey, SMS:ApiKey, SMS:ApiSecret, OAuth2:WeChat:AppId, OAuth2:WeChat:AppSecret, OAuth2:Apple:ClientId, OAuth2:Apple:ClientSecret","SourceContext":"Program","Application":"leno-inventory-api","Environment":"Docker"}}
+[WARN] BC Inventory 仍在使用 Shared InternalApiKey，请尽快迁移到独立 key（M5.2）
+{"Timestamp":"2026-09-23T09:12:06.8298452+00:00","Level":"Warning","MessageTemplate":"敏感配置缺失：{MissingKeys}","Properties":{"MissingKeys":"Payment:Alipay:AppId, Payment:Alipay:PrivateKey, Payment:Alipay:PublicKey, Payment:WeChatPay:AppId, Payment:WeChatPay:MchId, Payment:WeChatPay:ApiKey, SMS:ApiKey, SMS:ApiSecret, OAuth2:WeChat:AppId, OAuth2:WeChat:AppSecret, OAuth2:Apple:ClientId, OAuth2:Apple:ClientSecret","SourceContext":"Program","Application":"leno-inventory-api","Environment":"Docker"}}
+AppId, Payment:Alipay:PrivateKey, Payment:Alipay:PublicKey, Payment:WeChatPay:AppId, Payment:WeChatPay:MchId, Payment:WeChatPay:ApiKey, SMS:ApiKey, SMS:ApiSecret, OAuth2:WeChat:AppId, OAuth2:WeChat:AppSecret, OAuth2:Apple:ClientId, OAuth2:Apple:ClientSecret
+   at Program.<Main>$(String[] args) in /src/src/Services/Inventory/Leno.Inventory.Api/Program.cs:line 43
+   at Program.<Main>(String[] args)

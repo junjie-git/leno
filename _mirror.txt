@@ -1,0 +1,9 @@
+OK    redis:7-alpine ← docker.m.daocloud.io/library/redis:7-alpine（tag rc=0）
+FAIL  docker.m.daocloud.io/library/hashicorp/consul:1.18 :: /DaoCloud/public-image-mirror/issues/2328 🔗 这镜像不在白名单. this image is not in the allowlist.
+
+FAIL  docker.1ms.run/library/hashicorp/consul:1.18 :: n/library/hashicorp/consul:1.18": docker.1ms.run/library/hashicorp/consul:1.18: not found
+
+FAIL  hub.rat.dev/library/hashicorp/consul:1.18 :: PS proxy: connecting to docker.1ms.run:443: dial tcp: lookup docker.1ms.run: no such host
+
+MISS  hashicorp/consul:1.18（全部镜像源失败）
+OK    rabbitmq:3.12-management ← docker.m.daocloud.io/library/rabbitmq:3.12-management（tag rc=0）

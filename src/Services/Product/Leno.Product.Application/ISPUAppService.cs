@@ -27,12 +27,24 @@ public interface ISPUAppService
     /// <summary>卖家重新上架商品（进入待审核）。</summary>
     Task RepublishAsync(Guid sellerId, Guid spuId, CancellationToken ct = default);
 
-    /// <summary>查询商品详情（含 SKU）。</summary>
-    [Obsolete("请使用 IQueryHandler<ProductDetailQuery, ProductDetailResult?>，将在 2026-08-01 移除")]
+    /// <summary>
+    /// 查询商品详情（含 SKU）。
+    /// <para>
+    /// <b>管理端/通用 SQL 读路径</b>（双轨下线 DEC-9 改判，2026-09-21）：与买家端 ES 读模型
+    /// <c>IQueryHandler&lt;ProductDetailQuery, ProductDetailResult?&gt;</c> 是<b>两条用途不同的读路径</b>
+    /// 而非新旧实现 —— 管理端需要 SQL 侧完整 SKU 数据与店铺/状态语义，ES 读模型暂无此能力。
+    /// 两者终局归属由 E3（读模型 ES + SQL 双写以谁为准）单独决策。
+    /// </para>
+    /// </summary>
     Task<ProductDto> GetByIdAsync(Guid spuId, CancellationToken ct = default);
 
-    /// <summary>分页查询商品列表。</summary>
-    [Obsolete("请使用 IQueryHandler<ProductSearchQuery, ProductSearchResult>，将在 2026-08-01 移除")]
+    /// <summary>
+    /// 分页查询商品列表（卖家按店铺过滤，运营/管理员全量）。
+    /// <para>
+    /// <b>管理端 SQL 读路径</b>（DEC-9 改判）：ES 读模型 <c>ProductSearchQuery</c> 没有
+    /// <c>ShopId</c>/<c>Status</c> 过滤能力，无法承载管理端列表查询。
+    /// </para>
+    /// </summary>
     Task<PageResult<ProductDto>> QueryProductsAsync(ProductQueryDto query, CancellationToken ct = default);
 
     /// <summary>运营审核通过上架。</summary>

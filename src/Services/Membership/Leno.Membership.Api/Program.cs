@@ -16,7 +16,7 @@ builder.AddLenoOpenTelemetry();
 builder.AddConsulServiceRegistration("leno-membership-api");
 
 // 一站式注册：共享内核基础设施 + 鉴权 + 健康检查 + Controllers + OpenAPI + Membership BC 消费者 + Membership BC 基础设施
-// 双轨期：与旧 PointsMembership BC 并行运行，由 feature flag PointsMembershipSplit:Enabled 控制切流比例
+// 双轨下线 A1（2026-09-23）：旧 PointsMembership BC 已退役，本 BC 为积分/会员域拆分后的唯一服务
 builder.Services.AddLenoApi<MembershipDbContext>(
     builder.Configuration,
     "leno-membership-api",

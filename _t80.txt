@@ -1,0 +1,4 @@
+﻿review tests build: Build succeeded.
+Order -> Failed!  - Failed:     6, Passed:    75, Skipped:     0, Total:    81, Duration: 763 ms - Leno.Order.Infrastructure.Tests.dll (net10.0)
+Leno.ApiGateway.Tests -> Failed!  - Failed:     1, Passed:   275, Skipped:     0, Total:   276, Duration: 1 m 7 s - Leno.ApiGateway.Tests.dll (net10.0)
+Review -> Failed!  - Failed:     2, Passed:    17, Skipped:     0, Total:    19, Duration: 3 m 16 s - Leno.Review.Api.Tests.dll (net10.0)

@@ -65,8 +65,8 @@ public class NotificationCallbacksControllerTests
             .Setup(r => r.UpdateAsync(record, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _uowMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var dto = BuildSmsReceiptDto(channelMessageId, succeeded: true, timestamp);
@@ -77,7 +77,7 @@ public class NotificationCallbacksControllerTests
         // Assert — 修复后：必须调用 SaveChangesAsync 持久化回执状态变更
         Assert.IsType<OkObjectResult>(result);
         _recordRepoMock.Verify(r => r.UpdateAsync(record, It.IsAny<CancellationToken>()), Times.Once);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -98,8 +98,8 @@ public class NotificationCallbacksControllerTests
             .Setup(r => r.UpdateAsync(record, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _uowMock
-            .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var dto = BuildEmailReceiptDto(channelMessageId, succeeded: true, timestamp);
@@ -110,7 +110,7 @@ public class NotificationCallbacksControllerTests
         // Assert — 修复后：邮件回执也必须调用 SaveChangesAsync
         Assert.IsType<OkObjectResult>(result);
         _recordRepoMock.Verify(r => r.UpdateAsync(record, It.IsAny<CancellationToken>()), Times.Once);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class NotificationCallbacksControllerTests
         // Assert — 幂等跳过路径不应调用 UpdateAsync 和 SaveChangesAsync
         Assert.IsType<OkObjectResult>(result);
         _recordRepoMock.Verify(r => r.UpdateAsync(It.IsAny<NotificationRecord>(), It.IsAny<CancellationToken>()), Times.Never);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public class NotificationCallbacksControllerTests
         // Assert
         Assert.IsType<NotFoundObjectResult>(result);
         _recordRepoMock.Verify(r => r.UpdateAsync(It.IsAny<NotificationRecord>(), It.IsAny<CancellationToken>()), Times.Never);
-        _uowMock.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uowMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private SmsReceiptDto BuildSmsReceiptDto(string channelMessageId, bool succeeded, long timestamp)

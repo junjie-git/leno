@@ -1,0 +1,8 @@
+### Directory.Build.props
+<PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
+
+### Leno.SharedContracts.Grpc.csproj
+<PackageReference Include="Google.Protobuf" Version="3.27.0" />
+<PackageReference Include="Grpc.Core" Version="2.46.*" />
+<PackageReference Include="Grpc.Net.Client" Version="2.63.0" />
+<PackageReference Include="Grpc.Tools" Version="2.65.0" PrivateAssets="all" />

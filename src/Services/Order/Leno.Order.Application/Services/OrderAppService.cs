@@ -1,3 +1,4 @@
+using Leno.Order.Application.Abstractions;
 using Leno.Order.Application.DTOs;
 using Leno.Order.Application.Messages;
 using Leno.Order.Domain.Aggregates;
@@ -22,7 +23,7 @@ public sealed class OrderAppService : IOrderAppService
     private readonly IOrderRepository _orderRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderNumberGenerator _orderNumberGenerator;
-    private readonly IStockReservationDomainService _stockService;
+    private readonly IInventoryGateway _inventoryGateway;
     private readonly IOrderPricingDomainService _pricingService;
     private readonly IOrderPricingPreviewService _pricingPreviewService;
     private readonly IPointsAllocationService _pointsAllocationService;
@@ -33,14 +34,14 @@ public sealed class OrderAppService : IOrderAppService
     private readonly ILogisticsTrackingService _logisticsTrackingService;
     private readonly ILogisticsCompanyRepository _logisticsCompanyRepository;
     private readonly IEventBus _eventBus;
-    private readonly IBus _bus;
+    private readonly IMessageScheduler _messageScheduler;
     private readonly IOrderSagaOrchestrator _sagaOrchestrator;
 
     public OrderAppService(
         IOrderRepository orderRepository,
         IUnitOfWork unitOfWork,
         IOrderNumberGenerator orderNumberGenerator,
-        IStockReservationDomainService stockService,
+        IInventoryGateway inventoryGateway,
         IOrderPricingDomainService pricingService,
         IOrderPricingPreviewService pricingPreviewService,
         IPointsAllocationService pointsAllocationService,
@@ -51,13 +52,13 @@ public sealed class OrderAppService : IOrderAppService
         ILogisticsTrackingService logisticsTrackingService,
         ILogisticsCompanyRepository logisticsCompanyRepository,
         IEventBus eventBus,
-        IBus bus,
+        IMessageScheduler messageScheduler,
         IOrderSagaOrchestrator sagaOrchestrator)
     {
         _orderRepository = orderRepository;
         _unitOfWork = unitOfWork;
         _orderNumberGenerator = orderNumberGenerator;
-        _stockService = stockService;
+        _inventoryGateway = inventoryGateway;
         _pricingService = pricingService;
         _pricingPreviewService = pricingPreviewService ?? throw new ArgumentNullException(nameof(pricingPreviewService));
         _pointsAllocationService = pointsAllocationService ?? throw new ArgumentNullException(nameof(pointsAllocationService));
@@ -68,7 +69,7 @@ public sealed class OrderAppService : IOrderAppService
         _logisticsTrackingService = logisticsTrackingService;
         _logisticsCompanyRepository = logisticsCompanyRepository;
         _eventBus = eventBus;
-        _bus = bus;
+        _messageScheduler = messageScheduler;
         _sagaOrchestrator = sagaOrchestrator;
     }
 
@@ -82,7 +83,7 @@ public sealed class OrderAppService : IOrderAppService
         IOrderRepository orderRepository,
         IUnitOfWork unitOfWork,
         IOrderNumberGenerator orderNumberGenerator,
-        IStockReservationDomainService stockService,
+        IInventoryGateway inventoryGateway,
         IOrderPricingDomainService pricingService,
         IFreightCalculator freightCalculator,
         IProductAntiCorruptionService productAntiCorruption,
@@ -91,12 +92,12 @@ public sealed class OrderAppService : IOrderAppService
         ILogisticsTrackingService logisticsTrackingService,
         ILogisticsCompanyRepository logisticsCompanyRepository,
         IEventBus eventBus,
-        IBus bus,
+        IMessageScheduler messageScheduler,
         IOrderSagaOrchestrator sagaOrchestrator)
-        : this(orderRepository, unitOfWork, orderNumberGenerator, stockService, pricingService,
+        : this(orderRepository, unitOfWork, orderNumberGenerator, inventoryGateway, pricingService,
                new InlineOrderPricingPreviewService(pricingService), new InlinePointsAllocationService(),
                freightCalculator, productAntiCorruption, promotionAntiCorruption, pointsAntiCorruption,
-               logisticsTrackingService, logisticsCompanyRepository, eventBus, bus, sagaOrchestrator)
+               logisticsTrackingService, logisticsCompanyRepository, eventBus, messageScheduler, sagaOrchestrator)
     {
     }
 
@@ -315,8 +316,10 @@ public sealed class OrderAppService : IOrderAppService
         await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
 
         // 调度售后窗口结束延迟消息（7 天后）
-        var scheduler = _bus.CreateMessageScheduler();
-        await scheduler.ScheduleSend(
+        // 双轨下线 B3（2026-09-23）：改走 Quartz 持久化调度器（IMessageScheduler），
+        // 废弃 _bus.CreateMessageScheduler() 的"至多一次"直发路径 —— 调度与消息同库持久化，
+        // 进程重启不丢调度
+        await _messageScheduler.ScheduleSend(
             new Uri("queue:order-after-sales-window"),
             order.AfterSalesWindowEndsAt!.Value,
             new AfterSalesWindowMessage(orderId),
@@ -339,8 +342,8 @@ public sealed class OrderAppService : IOrderAppService
         await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
 
         // 持久化成功后再释放预占库存、冻结积分与优惠券（可独立重试）
-        var skuQuantities = BuildSkuQuantities(order);
-        await _stockService.ReleaseBatchAsync(orderId, skuQuantities, ct).ConfigureAwait(false);
+        // 库存释放已异步化（ReleaseStockCommand，Inventory 按订单幂等），无需本地 SKU 明细
+        await _inventoryGateway.ReleaseBatchAsync(orderId, ct).ConfigureAwait(false);
         await _pointsAntiCorruption.ReleaseAsync(orderId, ct).ConfigureAwait(false);
         await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct).ConfigureAwait(false);
     }
@@ -359,8 +362,7 @@ public sealed class OrderAppService : IOrderAppService
             await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
 
             // 持久化成功后再释放预占库存、冻结积分与优惠券
-            var skuQuantities = BuildSkuQuantities(order);
-            await _stockService.ReleaseBatchAsync(orderId, skuQuantities, ct).ConfigureAwait(false);
+            await _inventoryGateway.ReleaseBatchAsync(orderId, ct).ConfigureAwait(false);
             await _pointsAntiCorruption.ReleaseAsync(orderId, ct).ConfigureAwait(false);
             await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct).ConfigureAwait(false);
 
@@ -375,8 +377,8 @@ public sealed class OrderAppService : IOrderAppService
         order.ForceCancel(dto.Reason, operatorId.ToString());
 
         // 已支付/已发货订单库存已被确认扣减，需归还已扣减库存（而非释放预占）
-        var quantities = BuildSkuQuantities(order);
-        await _stockService.ReturnDeductedBatchAsync(orderId, quantities, ct).ConfigureAwait(false);
+        // 归还已异步化（ReleaseStockCommand.ReturnDeducted，Inventory 按订单幂等）
+        await _inventoryGateway.ReturnDeductedBatchAsync(orderId, ct).ConfigureAwait(false);
         await _pointsAntiCorruption.ReleaseAsync(orderId, ct).ConfigureAwait(false);
         await _promotionAntiCorruption.ReleaseCouponsAsync(orderId, ct).ConfigureAwait(false);
 
@@ -413,87 +415,6 @@ public sealed class OrderAppService : IOrderAppService
         await _eventBus.PublishAsync(logEvent, ct).ConfigureAwait(false);
     }
 
-    /// <inheritdoc />
-    [Obsolete("请使用 IQueryHandler<OrderDetailQuery, OrderDetailResult>，将在 2026-08-01 移除")]
-    public async Task<OrderDto> GetByIdAsync(Guid orderId, CancellationToken ct = default)
-    {
-        var order = await RequireOrderAsync(orderId, ct).ConfigureAwait(false);
-        return ToDto(order);
-    }
-
-    /// <inheritdoc />
-    [Obsolete("请使用 IQueryHandler<OrderListQuery, OrderListResult>，将在 2026-08-01 移除")]
-    public async Task<OrderListResultDto> QueryAsync(Guid? userId, Guid? sellerId, OrderStatus? status, int page, int pageSize, CancellationToken ct = default)
-    {
-        var orders = await _orderRepository.QueryAsync(userId, sellerId, status, null, null, page, pageSize, ct).ConfigureAwait(false);
-        var total = await _orderRepository.CountAsync(userId, sellerId, status, null, null, ct).ConfigureAwait(false);
-        var items = orders.Select(ToDto).ToList();
-        return new OrderListResultDto
-        {
-            Items = items,
-            Total = total,
-            Page = page,
-            PageSize = pageSize
-        };
-    }
-
-    /// <inheritdoc />
-    [Obsolete("请使用 IQueryHandler<LogisticsTraceQuery, LogisticsTraceResult>，将在 2026-08-01 移除")]
-    public async Task<LogisticsTrackingDto> GetLogisticsTraceAsync(Guid orderId, CancellationToken ct = default)
-    {
-        var order = await RequireOrderAsync(orderId, ct).ConfigureAwait(false);
-
-        if (string.IsNullOrWhiteSpace(order.LogisticsNo))
-        {
-            return new LogisticsTrackingDto { LogisticsNo = string.Empty, Nodes = new List<LogisticsTrackingNode>() };
-        }
-
-        if (string.IsNullOrWhiteSpace(order.LogisticsCompanyCode))
-        {
-            return new LogisticsTrackingDto
-            {
-                LogisticsNo = order.LogisticsNo,
-                CompanyCode = string.Empty,
-                Nodes = new List<LogisticsTrackingNode>(),
-                HasWarning = true
-            };
-        }
-
-        // 校验物流公司是否支持轨迹查询（按 Code 精确查询，利用唯一索引）
-        var company = await _logisticsCompanyRepository.GetByCodeAsync(order.LogisticsCompanyCode, ct).ConfigureAwait(false);
-        var companyEnabled = company is not null &&
-            company.Status == LogisticsCompanyStatus.Enabled &&
-            company.SupportTracking;
-
-        if (!companyEnabled)
-        {
-            return new LogisticsTrackingDto
-            {
-                LogisticsNo = order.LogisticsNo,
-                CompanyCode = order.LogisticsCompanyCode,
-                Nodes = new List<LogisticsTrackingNode>(),
-                HasWarning = true
-            };
-        }
-
-        // 调用领域服务查询物流轨迹
-        var traceResult = await _logisticsTrackingService.QueryTraceAsync(
-            order.LogisticsNo, order.LogisticsCompanyCode, ct).ConfigureAwait(false);
-
-        return new LogisticsTrackingDto
-        {
-            LogisticsNo = traceResult.LogisticsNo,
-            CompanyCode = traceResult.CompanyCode,
-            Nodes = traceResult.Nodes.Select(n => new LogisticsTrackingNode
-            {
-                Description = n.Description,
-                OccurredAt = n.OccurredAt,
-                Location = n.Location
-            }).ToList(),
-            IsFromCache = traceResult.IsFromCache,
-            HasWarning = false
-        };
-    }
 
     /// <summary>
     /// 按标识加载订单，不存在抛领域异常。

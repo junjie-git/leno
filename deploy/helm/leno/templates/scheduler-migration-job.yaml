@@ -1,0 +1,93 @@
+{{/*
+Quartz.NET 调度库建表 Job（双轨下线 DEC-2 决策 (b)，2026-09-21）。
+
+为什么需要独立 Job：
+  现有 migration-job.yaml 按 `{service}-*.sql` 匹配 `.Values.services` 中的服务名执行 SQL，
+  而 Quartz 调度库对应的是**跨 BC 基础设施**而非业务服务（在 values.services 里没有条目），
+  因此 scheduler-quartz.sql 不会被 migration-job 拾取。本模板以相同的 hook 机制单独执行它。
+
+为何不走 EF 迁移：
+  QRTZ_* 表由 Quartz 自有 DDL 定义并随 Quartz 版本演进，不应由 EF 迁移建模 ——
+  这是 N1「schema 事实来源统一为 EF 迁移」的**显式例外**，
+  已登记在 docs/双轨下线-实施方案.md §5.5 与 scheduler-quartz.sql 头部。
+
+执行方式与 migration-job 完全一致：sqlcmd + ConfigMap 挂载 + 连接串按单值来源解析。
+*/}}
+{{- if and .Values.migrations.enabled .Values.migrations.scheduler.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "leno.fullname" . }}-scheduler-migration
+  labels:
+    {{- include "leno.labels" (dict "name" "scheduler-migration" "context" .) | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "leno.selectorLabels" (dict "name" "scheduler-migration" "context" .) | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: scheduler-migration
+          image: {{ .Values.migrations.sqlcmdImage | quote }}
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+              SQLCMD="/opt/mssql-tools18/bin/sqlcmd"
+              if [ ! -x "$SQLCMD" ]; then SQLCMD="$(command -v sqlcmd)"; fi
+              if [ -z "$SQLCMD" ]; then echo "sqlcmd 不存在" >&2; exit 1; fi
+
+              get_cs() { printf '%s' "$CONNECTION_STRING" | tr ';' '\n' | grep -i "^$1=" | head -n1 | cut -d= -f2-; }
+              SERVER="$(get_cs Server)"
+              USER_ID="$(get_cs "User Id")"; [ -n "$USER_ID" ] || USER_ID="$(get_cs User)"
+              PASSWORD="$(get_cs Password)"
+              DATABASE="$(get_cs Database)"
+              if [ -z "$SERVER" ] || [ -z "$DATABASE" ]; then
+                echo "连接串缺少 Server/Database，无法执行调度库迁移" >&2
+                exit 1
+              fi
+
+              echo "开始执行 Quartz 调度库幂等建表 SQL（Database=$DATABASE）..."
+              shopt -s nullglob
+              found=0
+              for f in /migrations/scheduler-*.sql; do
+                found=1
+                echo ">>> 执行 $f"
+                "$SQLCMD" -S "$SERVER" -U "$USER_ID" -P "$PASSWORD" -d "$DATABASE" \
+                  -C -b -f 65001 -i "$f"
+              done
+              if [ "$found" -eq 0 ]; then
+                echo "未找到 scheduler-*.sql（应包含 scheduler-quartz.sql），请检查 ConfigMap 挂载" >&2
+                exit 1
+              fi
+              echo "Quartz 调度库建表完成。"
+          volumeMounts:
+            - name: migration-scripts
+              mountPath: /migrations
+              readOnly: true
+          env:
+            - name: CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDependencies.sqlserver.connectionstringSecret }}
+                  key: {{ required "migrations.scheduler.connectionStringKey 未设置（调度库 Job 需要知道连接串 Secret key）" .Values.migrations.scheduler.connectionStringKey }}
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+      volumes:
+        - name: migration-scripts
+          configMap:
+            name: {{ include "leno.fullname" . }}-migration-scripts
+{{- end }}

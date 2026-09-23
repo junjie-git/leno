@@ -7,31 +7,23 @@ namespace Leno.Inventory.Infrastructure.EventBus;
 
 /// <summary>
 /// Inventory BC 领域事件到集成事件的翻译器。
-/// 翻译规则：
-/// - <see cref="StockAdjustedDomainEvent"/> → <see cref="StockAdjustedEvent"/>（通知 Product BC 同步只读投影、对账/审计域对账）
-/// - <see cref="CompensationMaxRetriesExceededDomainEvent"/> → <see cref="CompensationMaxRetriesExceededIntegrationEvent"/>（通知告警/运维域人工介入）
-/// - <see cref="StockReservedEvent"/> / <see cref="StockConfirmedEvent"/> / <see cref="StockReleasedEvent"/>：不翻译，
-///   由 <c>InventoryAppService</c> 直接通过 <c>IPublishEndpoint</c> 发布多 SKU 维度的
-///   <see cref="StockReservedIntegrationEvent"/> / <see cref="StockConfirmedIntegrationEvent"/> / <see cref="StockReleasedIntegrationEvent"/>。
+/// <para>
+/// 双轨下线 DEC-4（2026-09-22）后仅保留一条翻译规则：
+/// <see cref="StockAdjustedDomainEvent"/> → <see cref="StockAdjustedEvent"/>（卖家补货/盘点调整，
+/// 通知 Product BC 同步只读投影）。
+/// </para>
+/// <para>
+/// 已删除：CompensationMaxRetriesExceeded 翻译（补偿机器随双轨下线，可靠性由消息重试 + DLQ 承担）。
+/// 预占/确认/释放回执事件由 <c>InventoryAppService</c> 提交事务后经 <c>IPublishEndpoint</c> 直接发布
+/// （订单 × SKU 多条目维度），不经过领域事件翻译。
+/// </para>
 /// </summary>
 public class InventoryIntegrationEventMapper : IntegrationEventMapperBase
 {
     public InventoryIntegrationEventMapper()
     {
-        // StockAdjustedDomainEvent → StockAdjustedEvent（Product BC 同步只读投影、对账/审计域对账）
+        // StockAdjustedDomainEvent → StockAdjustedEvent（Product BC 同步只读投影）
         RegisterHandler<StockAdjustedDomainEvent, StockAdjustedEvent>(e =>
             new StockAdjustedEvent(e.SkuId, e.ProductId, e.AvailableQty, e.Delta, e.AdjustedAtUtc));
-
-        // CompensationMaxRetriesExceededDomainEvent → CompensationMaxRetriesExceededIntegrationEvent（告警/运维域人工介入）
-        RegisterHandler<CompensationMaxRetriesExceededDomainEvent, CompensationMaxRetriesExceededIntegrationEvent>(e =>
-            new CompensationMaxRetriesExceededIntegrationEvent(
-                e.CompensationId,
-                e.OrderId,
-                e.SkuId,
-                e.Quantity,
-                e.RetryCount,
-                e.MaxRetries,
-                e.LastErrorMessage,
-                e.OccurredAtUtc));
     }
 }

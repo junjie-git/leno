@@ -1,0 +1,17 @@
+﻿### ConsulConfigWatcher 文件位置与大小
+src\BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConsulConfigWatcher.cs
+### 其他 Consul 配置加载（非服务发现）
+BuildingBlocks\Leno.Infrastructure\Dependencies\StartupConfigurationValidation.cs:191 :: $"请通过 Consul KV（leno/config/**，生产主通道）或环境变量兜底注入：{string.Join("；", problems)}");
+BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConfigCenterExtensions.cs:105 :: /// <param name="consulKeyPrefix">Consul KV 键前缀，默认为 "leno/config"。</param>
+BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConfigCenterExtensions.cs:109 :: string consulKeyPrefix = "leno/config",
+BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConfigCenterExtensions.cs:110 :: Action<IConsulConfigurationSource>? configureConsul = null)
+BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConfigCenterExtensions.cs:124 :: options.ConsulConfigurationOptions = cco =>
+BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConsulConfigPublisher.cs:13 :: /// <item><c>leno/config/{env}/{service}</c>：当前配置</item>
+BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConsulConfigPublisher.cs:14 :: /// <item><c>leno/config/{env}/{service}/schema-version</c>：当前 Schema 版本元数据</item>
+BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConsulConfigPublisher.cs:15 :: /// <item><c>leno/config/{env}/{service}/history/{version}</c>：历史版本快照</item>
+BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConsulConfigPublisher.cs:16 :: /// <item><c>leno/config/{env}/{service}/gray-percent</c>：灰度比例</item>
+BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConsulConfigPublisher.cs:21 :: private const string ConfigKeyPrefix = "leno/config/";
+BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConsulConfigWatcher.cs:25 :: private const string ConfigKeyPrefix = "leno/config/";
+BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConsulConfigWatcher.cs:142 :: // Schema 校验适用于 leno/config/{env}/{service} 路径下的 JSON 配置
+BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConsulConfigWatcher.cs:174 :: /// 灰度比例 key：leno/config/{env}/{service}/gray-percent
+BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConsulGrayReleaseService.cs:8 :: /// 通过 Consul KV <c>leno/config/{env}/{service}/gray-percent</c> 控制切流比例。

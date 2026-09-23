@@ -20,8 +20,11 @@ namespace Leno.Inventory.Infrastructure.Dependencies;
 
 /// <summary>
 /// Inventory BC 基础设施层 DI 注册入口。
-/// 注册 DbContext、工作单元、仓储（EF Core + Redis 双写）、领域服务、应用服务、
-/// FluentValidation 校验器、MassTransit 消费者与库存对账/补偿后台服务。
+/// <para>
+/// 双轨下线 DEC-4（2026-09-22）后的形态：库存以 SQL 单库事务为唯一权威
+/// （台账 + 基线原子 UPDATE 同事务），Redis 仅保留秒杀配额通道；
+/// 旧的 Redis 直写仓储、库存域服务、补偿后台服务、对账后台服务已随双轨一并下线。
+/// </para>
 /// 调用方在表现层 Program.cs 调用 <c>services.AddInventoryInfrastructure(configuration)</c>。
 /// </summary>
 public static class ServiceCollectionExtensions
@@ -46,22 +49,16 @@ public static class ServiceCollectionExtensions
         // 领域事件 → 集成事件翻译器（Outbox 同事务发布时由 UnitOfWork 调用）
         services.AddSingleton<IIntegrationEventMapper, InventoryIntegrationEventMapper>();
 
-        // 仓储：EF Core 聚合审计源 + Redis 原子层双写
+        // 仓储：台账（订单 × SKU 占用记录，幂等与审计的唯一事实来源）+ 基线（SKU 计数器，原子条件 UPDATE）
         services.AddScoped<IStockReservationRepository, EfCoreStockReservationRepository>();
         services.AddScoped<IStockBaselineRepository, EfCoreStockBaselineRepository>();
-        services.AddScoped<IStockReservationCompensationRepository, EfCoreStockReservationCompensationRepository>();
-        services.AddScoped<IInventoryRepository, RedisInventoryRepository>();
 
-        // 领域服务
-        services.AddScoped<IStockReservationDomainService, StockReservationDomainService>();
-
-        // 应用服务
+        // 应用服务（预占/确认/释放/归还四用例，同事务更新台账与基线）
         services.AddScoped<IInventoryAppService, InventoryAppService>();
-        services.AddScoped<IOrderReservationQueryService, RedisOrderReservationQueryService>();
         // 秒杀库存应用服务（Promotion BC 秒杀库存迁移为遗留项，待 Promotion 规则引擎任务完成后单独迁移调用方）
         services.AddScoped<ISeckillStockAppService, SeckillStockAppService>();
 
-        // 秒杀库存 Redis 原子层（从 Promotion BC 迁入的新实现，旧实现保留不动）
+        // 秒杀库存 Redis 原子层（Redis 在本 BC 仅存的职责：秒杀配额，SQL 为结算点）
         services.AddScoped<ISeckillStockService, RedisSeckillStockService>();
 
         // FluentValidation 校验器
@@ -69,14 +66,6 @@ public static class ServiceCollectionExtensions
 
         // CQRS 读侧：扫描 Application 程序集注册所有 IQueryHandler<TQuery, TResult>
         services.AddQueryHandlers(typeof(IInventoryAppService).Assembly);
-
-        // 库存对账后台服务（扫描 Redis 库存键，校验可用库存与预占之和是否匹配基线）
-        services.AddHostedService<StockReconciliationService>();
-
-        // T18: 库存预占回滚补偿后台服务，定期重试 Pending 补偿记录释放库存
-        services.Configure<StockReservationCompensationOptions>(
-            configuration.GetSection("StockReservationCompensation"));
-        services.AddHostedService<StockReservationCompensationBackgroundService>();
 
         return services;
     }
@@ -95,7 +84,7 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<ConfirmStockCommandConsumer>();
         configurator.AddConsumer<ReleaseStockCommandConsumer>();
 
-        // 集成事件消费者（Product BC → Inventory BC，同步库存基线）
+        // 集成事件消费者（Product BC → Inventory BC，基线的唯一写入方）
         configurator.AddConsumer<StockAdjustedEventConsumer>();
 
         return configurator;

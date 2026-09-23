@@ -4,17 +4,15 @@ using Leno.Infrastructure.Cqrs;
 using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.Order.Application;
-using Leno.Order.Application.ProcessManagers;
-using Leno.Order.Application.Sagas;
-using Leno.Order.Application.Sagas.States;
+using Leno.Order.Application.Abstractions;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
+using Leno.Order.Infrastructure.AntiCorruption;
 using Leno.Order.Infrastructure.Consumers;
 using Leno.Order.Infrastructure.EventBus;
 using Leno.Order.Infrastructure.ReadModels;
 using Leno.Order.Infrastructure.Repositories;
-using Leno.Order.Infrastructure.Sagas;
 using Leno.Order.Infrastructure.Services;
 using Leno.Order.Infrastructure.Services.Grpc;
 using Leno.SharedContracts.Grpc.Points.V1;
@@ -60,18 +58,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOrderRepository, EfCoreOrderRepository>();
         services.AddScoped<ILogisticsCompanyRepository, EfCoreLogisticsCompanyRepository>();
         services.AddScoped<IFreightTemplateRepository, EfCoreFreightTemplateRepository>();
-        services.AddScoped<IInventoryRepository, RedisInventoryRepository>();
-        services.AddScoped<IStockReservationRepository, EfCoreStockReservationRepository>();
-        services.AddScoped<IStockReservationCompensationRepository, EfCoreStockReservationCompensationRepository>();
 
-        // 3.3 Process Manager：支付后编排器（Saga 之上的业务编排层）
-        // 双轨期 feature flag Order:UsePaymentProcessManager 控制新旧路径切换，默认 false
-        services.Configure<OrderPaymentProcessOptions>(configuration.GetSection("Order"));
-        services.AddScoped<IOrderPaymentProcessRepository, EfCoreOrderPaymentProcessRepository>();
-        services.AddScoped<IOrderPaymentProcessManager, OrderPaymentProcessManager>();
+        // 双轨下线 D1/D2（2026-09-23）：Process Manager 与 Saga 状态机两个未完成原型已删除
 
         // 领域服务
-        services.AddScoped<IStockReservationDomainService, StockReservationDomainService>();
+        // 双轨下线 DEC-4：IStockReservationDomainService 及其 Redis 实现已删除，
+        // 库存操作经 IInventoryGateway 调用 Inventory BC
         services.AddScoped<IOrderPricingDomainService, OrderPricingDomainService>();
         services.AddScoped<IOrderPricingPreviewService, OrderPricingPreviewService>();
         services.AddScoped<IPointsAllocationService, PointsAllocationService>();
@@ -81,7 +73,7 @@ public static class ServiceCollectionExtensions
         // 防腐层实现：通过 HttpClient 调用商品/促销/积分域内部 API
         var productApiUrl = configuration["ServiceUrls:ProductApi"] ?? "http://localhost:5150";
         var promotionApiUrl = configuration["ServiceUrls:PromotionApi"] ?? "http://localhost:5152";
-        var pointsApiUrl = configuration["ServiceUrls:PointsMembershipApi"] ?? "http://localhost:5153";
+        var pointsApiUrl = configuration["ServiceUrls:PointsApi"] ?? "http://localhost:5166";
 
         // HttpClient 防腐层实现（保留作为降级备份）
         services.AddHttpClient<ProductAntiCorruptionService>(c => c.BaseAddress = new Uri(productApiUrl))
@@ -165,8 +157,8 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<PromotionAntiCorruptionDispatcherAdapter>());
 
             // Points 双轨
-            var pointsGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("PointsMembership")
-                ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:PointsMembership 配置缺失");
+            var pointsGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Points")
+                ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:Points 配置缺失");
 
             services.AddGrpcClient<PointsInternalService.PointsInternalServiceClient>(options =>
             {
@@ -233,29 +225,30 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<IOrderRepository>(),
             sp.GetRequiredService<IUnitOfWork>(),
             sp.GetRequiredService<IOrderNumberGenerator>(),
-            sp.GetRequiredService<IStockReservationDomainService>(),
+            sp.GetRequiredService<IInventoryGateway>(),
             sp.GetRequiredService<IOrderPricingDomainService>(),
             sp.GetRequiredService<IFreightCalculator>(),
             sp.GetRequiredService<IPromotionAntiCorruptionService>(),
             sp.GetRequiredService<IPointsAntiCorruptionService>(),
-            sp.GetRequiredService<IBus>(),
+            sp.GetRequiredService<IMessageScheduler>(),
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<OrderSagaOrchestrator>>(),
-            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Leno.Order.Application.Sagas.OrderSagaOptions>>(),
             maxDegreeOfParallelism: OrderSagaOrchestrator.ProductionMaxDegreeOfParallelism));
 
         // FluentValidation 校验器
         services.AddValidatorsFromAssembly(typeof(IOrderAppService).Assembly);
 
+        // 库存防腐网关（双轨下线 DEC-4）：gRPC 同步预占 + MassTransit 异步命令；
+        // 单例持有 gRPC 通道，地址来自 Inventory:GrpcUrl（缺省抛出，fail-fast）
+        services.AddSingleton<IInventoryGateway>(sp => GrpcInventoryGateway.Create(
+            sp.GetRequiredService<IConfiguration>(),
+            sp.GetRequiredService<IBus>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<GrpcInventoryGateway>>()));
+
         // CQRS 读侧：扫描 Application 程序集注册所有 IQueryHandler<TQuery, TResult>
         services.AddQueryHandlers(typeof(IOrderAppService).Assembly);
 
-        // 库存对账后台服务
-        services.AddHostedService<StockReconciliationService>();
-
-        // T18: 库存预占回滚补偿后台服务，定期重试 Pending 补偿记录释放库存
-        services.Configure<StockReservationCompensationOptions>(
-            configuration.GetSection("StockReservationCompensation"));
-        services.AddHostedService<StockReservationCompensationBackgroundService>();
+        // 双轨下线 DEC-4（2026-09-22）：Order 侧库存对账/补偿后台服务已删除 ——
+        // 台账与基线同事务更新使对账失去对象，命令失败由消息重试 + DLQ 承担
 
         return services;
     }
@@ -278,16 +271,10 @@ public static class ServiceCollectionExtensions
         configurator.AddConsumer<OrderTimeoutDelayMessageConsumer>();
         configurator.AddConsumer<AfterSalesWindowConsumer>();
         configurator.AddConsumer<RefundCompletedEventConsumer>();
-        configurator.AddConsumer<StockAdjustedEventConsumer>();
+        // 双轨下线 DEC-4（2026-09-22）：Order 的 StockAdjustedEventConsumer 已删除 ——
+        // 库存基线由 Inventory BC 唯一消费（双写源头之一移除）
         configurator.AddConsumer<OrderReadModelSyncConsumer>();
         configurator.AddConsumer<SeckillOrderCreatedEventConsumer>();
-
-        // 3.2 MassTransit Saga 状态机注册：OrderSagaStateMachine 编排下单全流程，
-        // 状态持久化到 order_saga_states 表（复用 OrderDbContext），崩溃后从持久化状态恢复。
-        // 双轨期：feature flag Order:UseSagaStateMachine 控制 OrderSagaOrchestrator 是否发布 OrderSagaStarted 事件。
-        configurator.AddSagaStateMachine<OrderSagaStateMachine, OrderSagaState>()
-            .UseOrderSagaRepository();
-
         return configurator;
     }
 }

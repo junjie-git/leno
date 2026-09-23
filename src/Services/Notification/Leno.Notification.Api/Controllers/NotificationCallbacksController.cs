@@ -121,7 +121,7 @@ public sealed class NotificationCallbacksController : ControllerBase
         }
 
         await _recordRepository.UpdateAsync(record, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
         _logger.LogInformation("{Channel}回执已处理 RecordId={RecordId} Succeeded={Succeeded}",
             channelName, record.Id, succeeded);
 

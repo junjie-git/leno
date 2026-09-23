@@ -41,7 +41,8 @@ public class ProductApiTests : IClassFixture<WebApplicationFactory<Program>>
 
             builder.ConfigureServices(services =>
             {
-                // Replace external dependencies with mocks
+                TestWebHostHelper.RemoveQuartzSchedulerServices(services);
+// Replace external dependencies with mocks
                 services.AddSingleton(_spuAppServiceMock.Object);
                 services.AddSingleton(_searchServiceMock.Object);
                 services.AddSingleton(_currentUserMock.Object);

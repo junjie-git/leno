@@ -57,6 +57,12 @@
     <PackageReference Include="Minio" Version="6.0.3" />
     <PackageReference Include="DistributedLock.Redis" Version="1.1.1" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
+    <!--
+      Quartz.NET 调度器（双轨下线 DEC-2 决策 (b)）：为 MassTransit 提供持久化的延迟/周期消息调度，
+      解决延迟消息调度器此前"已使用但未配置"的缺陷（订单超时 / 售后窗口）。
+      注意：QRTZ_* 表由 Quartz 自有 DDL 管理，不纳入 EF 迁移（见 docs/双轨下线-实施方案.md §5.5）。
+    -->
+    <PackageReference Include="MassTransit.Quartz" Version="$(MassTransitVersion)" />
   </ItemGroup>
 
 </Project>

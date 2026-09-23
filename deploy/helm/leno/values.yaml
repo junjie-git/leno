@@ -1,4 +1,4 @@
-# 全局配置
+﻿# 全局配置
 global:
   # 镜像参数化（阶段 3）：
   # - imageRegistry：镜像仓库地址（默认空 = 本地镜像名；K8s 部署时 CD 会 --set 为 ghcr.io）
@@ -21,11 +21,11 @@ global:
   # 值在 deployment.yaml 中渲染为 http://{release}-{service}:{port}（K8s Service DNS）
   serviceUrls:
     ProductApi: { service: "product", port: 5152 }
+    IdentityApi: { service: "identity", port: 5162 }
     PromotionApi: { service: "promotion", port: 5155 }
-    PointsMembershipApi: { service: "pointsmembership", port: 5157 }
+    PointsApi: { service: "points", port: 5166 }
     OrderApi: { service: "order", port: 5154 }
-    PaymentApi: { service: "payment", port: 5158 }
-    UserAuthApi: { service: "userauth", port: 5151 }
+    PaymentApi: { service: "payment", port: 5156 }
   redis:
     host: "redis"
     port: 6379
@@ -39,7 +39,8 @@ global:
   jaeger:
     otlpEndpoint: "http://jaeger:4317"
 
-# 12 个服务（11 个 BC + 1 个 API 网关）
+# 15 个服务（14 个 BC + 1 个 API 网关）
+# 2026-09-21 由 12 个扩至 15 个：补入 identity / accesscontrol / usercenter（A-1 拆分目标）
 services:
   # ===== API 网关 =====
   api-gateway:
@@ -88,25 +89,7 @@ services:
       initialDelaySeconds: 30
       periodSeconds: 30
 
-  # ===== userauth BC =====
-  userauth:
-    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("UserAuthDb") 严格一致）
-    connectionStringKey: UserAuthDb
-    enabled: true
-    image: { repository: leno-userauth, pullPolicy: IfNotPresent }
-    replicaCount: 2
-    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
-    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
-    service: { type: ClusterIP, port: 5151 }
-    httpPort: 5151
-    grpcPort: 5251
-    migration: { enabled: true, runOnInit: true }
-    ingress: { enabled: false }
-    readinessProbe: { httpGet: { path: /health/ready, port: 5151 }, initialDelaySeconds: 15, periodSeconds: 10 }
-    livenessProbe: { httpGet: { path: /health/live, port: 5151 }, initialDelaySeconds: 30, periodSeconds: 30 }
-
-  # ===== product BC =====
-  product:
+    product:
     # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("ProductDb") 严格一致）
     connectionStringKey: ProductDb
     enabled: true
@@ -173,39 +156,7 @@ services:
     readinessProbe: { httpGet: { path: /health/ready, port: 5155 }, initialDelaySeconds: 15, periodSeconds: 10 }
     livenessProbe: { httpGet: { path: /health/live, port: 5155 }, initialDelaySeconds: 30, periodSeconds: 30 }
 
-  # ===== reviewaftersales BC =====
-  reviewaftersales:
-    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("ReviewAfterSalesDb") 严格一致）
-    connectionStringKey: ReviewAfterSalesDb
-    enabled: true
-    image: { repository: leno-reviewaftersales, pullPolicy: IfNotPresent }
-    replicaCount: 2
-    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
-    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
-    service: { type: ClusterIP, port: 5156 }
-    httpPort: 5156
-    grpcPort: 5256
-    migration: { enabled: true, runOnInit: true }
-    ingress: { enabled: false }
-    readinessProbe: { httpGet: { path: /health/ready, port: 5156 }, initialDelaySeconds: 15, periodSeconds: 10 }
-    livenessProbe: { httpGet: { path: /health/live, port: 5156 }, initialDelaySeconds: 30, periodSeconds: 30 }
 
-  # ===== pointsmembership BC =====
-  pointsmembership:
-    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("PointsMembershipDb") 严格一致）
-    connectionStringKey: PointsMembershipDb
-    enabled: true
-    image: { repository: leno-pointsmembership, pullPolicy: IfNotPresent }
-    replicaCount: 2
-    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
-    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
-    service: { type: ClusterIP, port: 5157 }
-    httpPort: 5157
-    grpcPort: 5257
-    migration: { enabled: true, runOnInit: true }
-    ingress: { enabled: false }
-    readinessProbe: { httpGet: { path: /health/ready, port: 5157 }, initialDelaySeconds: 15, periodSeconds: 10 }
-    livenessProbe: { httpGet: { path: /health/live, port: 5157 }, initialDelaySeconds: 30, periodSeconds: 30 }
 
   # ===== payment BC =====
   payment:
@@ -216,9 +167,9 @@ services:
     replicaCount: 2
     resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
     hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
-    service: { type: ClusterIP, port: 5158 }
-    httpPort: 5158
-    grpcPort: 5258
+    service: { type: ClusterIP, port: 5156 }
+    httpPort: 5156
+    grpcPort: 5256
     migration: { enabled: true, runOnInit: true }
     ingress: { enabled: false }
     readinessProbe: { httpGet: { path: /health/ready, port: 5158 }, initialDelaySeconds: 15, periodSeconds: 10 }
@@ -233,9 +184,9 @@ services:
     replicaCount: 2
     resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
     hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
-    service: { type: ClusterIP, port: 5159 }
-    httpPort: 5159
-    grpcPort: 5259
+    service: { type: ClusterIP, port: 5160 }
+    httpPort: 5160
+    grpcPort: 5260
     migration: { enabled: true, runOnInit: true }
     ingress: { enabled: false }
     readinessProbe: { httpGet: { path: /health/ready, port: 5159 }, initialDelaySeconds: 15, periodSeconds: 10 }
@@ -250,9 +201,9 @@ services:
     replicaCount: 2
     resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
     hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
-    service: { type: ClusterIP, port: 5160 }
-    httpPort: 5160
-    grpcPort: 5260
+    service: { type: ClusterIP, port: 5159 }
+    httpPort: 5159
+    grpcPort: 5259
     migration: { enabled: true, runOnInit: true }
     ingress: { enabled: false }
     readinessProbe: { httpGet: { path: /health/ready, port: 5160 }, initialDelaySeconds: 15, periodSeconds: 10 }
@@ -275,12 +226,167 @@ services:
     readinessProbe: { httpGet: { path: /health/ready, port: 5161 }, initialDelaySeconds: 15, periodSeconds: 10 }
     livenessProbe: { httpGet: { path: /health/live, port: 5161 }, initialDelaySeconds: 30, periodSeconds: 30 }
 
+  # ==========================================================================
+  # 2026-09-21 补入（A-1 拆分 / G4）：Identity / AccessControl / UserCenter
+  # 三者为 UserAuth 单体的拆分目标；kv-seed.json 中其 ConnectionStrings__*Db
+  # 与 anticorruption 开关早已就绪，此前仅缺本服务定义。
+  # migration.runOnInit=true → 复用 migration-job 执行
+  # files/migrations/{identity,accesscontrol,usercenter}-initial.sql（2026-09-21 生成）。
+  # 端口沿编号顺延（5151-5161 已占用），grpcPort 同步顺延 5261 → 5262/5263/5264。
+  # ==========================================================================
+
+  # ===== identity BC =====
+  identity:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("IdentityDb") 严格一致）
+    connectionStringKey: IdentityDb
+    enabled: true
+    image: { repository: leno-identity, pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5162 }
+    httpPort: 5162
+    grpcPort: 5262
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5162 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5162 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== accesscontrol BC =====
+  accesscontrol:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("AccessControlDb") 严格一致）
+    connectionStringKey: AccessControlDb
+    enabled: true
+    image: { repository: leno-accesscontrol, pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5163 }
+    httpPort: 5163
+    grpcPort: 5263
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5163 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5163 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== usercenter BC =====
+  usercenter:
+    # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("UserCenterDb") 严格一致）
+    connectionStringKey: UserCenterDb
+    enabled: true
+    image: { repository: leno-usercenter, pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5164 }
+    httpPort: 5164
+    grpcPort: 5264
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5164 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5164 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ==========================================================================
+  # A3 补入（双轨下线 DEC-4 决策：剩余 5 个 BC 全部部署，2026-09-21）
+  # 连接串键与代码 StartupConfigurationValidation.ServiceNameToConnectionStringKey 一致；
+  # 端口延续 A-1 序列（identity 5162 / accesscontrol 5163 / usercenter 5164）。
+  # 迁移 Job 已启用（2026-09-21 补全 A3）：5 个 BC 的 InitialCreate 迁移与 {bc}-initial.sql
+  # 已产出并同步到 files/migrations/（migration-job 按 {bc}-*.sql 匹配执行，幂等可重复）。
+  # ==========================================================================
+
+  # ===== inventory BC =====
+  inventory:
+    connectionStringKey: InventoryDb
+    enabled: true
+    image: { repository: leno-inventory, pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5165 }
+    httpPort: 5165
+    grpcPort: 5265
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5165 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5165 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== points BC =====
+  points:
+    connectionStringKey: PointsDb
+    enabled: true
+    image: { repository: leno-points, pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5166 }
+    httpPort: 5166
+    grpcPort: 5266
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5166 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5166 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== membership BC =====
+  membership:
+    connectionStringKey: MembershipDb
+    enabled: true
+    image: { repository: leno-membership, pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5167 }
+    httpPort: 5167
+    grpcPort: 5267
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5167 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5167 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== review BC =====
+  review:
+    connectionStringKey: ReviewDb
+    enabled: true
+    image: { repository: leno-review, pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5168 }
+    httpPort: 5168
+    grpcPort: 5268
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5168 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5168 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
+  # ===== aftersales BC =====
+  aftersales:
+    connectionStringKey: AfterSalesDb
+    enabled: true
+    image: { repository: leno-aftersales, pullPolicy: IfNotPresent }
+    replicaCount: 2
+    resources: { requests: { cpu: 200m, memory: 256Mi }, limits: { cpu: 1000m, memory: 512Mi } }
+    hpa: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+    service: { type: ClusterIP, port: 5169 }
+    httpPort: 5169
+    grpcPort: 5269
+    migration: { enabled: true, runOnInit: true }
+    ingress: { enabled: false }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5169 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5169 }, initialDelaySeconds: 30, periodSeconds: 30 }
+
 # 数据库迁移（P0-E）：执行 files/migrations/ 下的幂等 SQL（sqlcmd）
 # SQL 由 scripts/generate-migration-scripts.ps1 产出并同步到 chart files 目录（CI 中保持同步）
 migrations:
   enabled: true
   sqlcmdImage: "mcr.microsoft.com/mssql-tools18:latest"
   scriptsDir: "files/migrations"
+  # Quartz.NET 调度库（独立 LenoScheduler，DEC-2 决策 (b) 2026-09-21）
+  # QRTZ_* 表由 Quartz 自有 DDL 管理，不纳入 EF 迁移（见 scheduler-quartz.sql 头部说明与
+  # docs/双轨下线-实施方案.md §5.5）。因"调度器"不是业务服务，migration-job 的
+  # {service}-*.sql 匹配不覆盖它，故由独立的 scheduler-migration-job 执行 scheduler-*.sql。
+  scheduler:
+    enabled: true
+    connectionStringKey: SchedulerDb
 
 # 外部依赖（SQL Server/Redis/RabbitMQ/ES/Consul/Jaeger/Prometheus/Grafana/Alertmanager）
 # 本 chart 不部署基础设施，假设已存在或通过 Bitnami/Prometheus Community chart 部署

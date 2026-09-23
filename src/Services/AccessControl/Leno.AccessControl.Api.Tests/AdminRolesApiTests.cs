@@ -14,6 +14,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 
+using Leno.Testing.Fixtures;
+
 namespace Leno.AccessControl.Api.Tests;
 
 /// <summary>
@@ -39,6 +41,7 @@ public class AdminRolesApiTests : IClassFixture<WebApplicationFactory<Program>>
 
             builder.ConfigureServices(services =>
             {
+            TestWebHostHelper.RemoveQuartzSchedulerServices(services);
                 RemoveMassTransitServices(services);
                 RemoveElasticsearchServices(services);
                 RemoveApplicationServiceRegistrations(services);

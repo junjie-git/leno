@@ -1,7 +1,6 @@
+using Leno.Order.Application.Abstractions;
 using Leno.Order.Application.DTOs;
 using Leno.Order.Application.Messages;
-using Leno.Order.Application.Sagas;
-using Leno.Order.Application.Sagas.Events;
 using Leno.Order.Domain.Aggregates;
 using Leno.Order.Domain.Exceptions;
 using Leno.Order.Domain.Repositories;
@@ -10,7 +9,6 @@ using Leno.Order.Domain.ValueObjects;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using OrderAggregate = Leno.Order.Domain.Aggregates.Order;
 
 namespace Leno.Order.Application.Services;
@@ -21,9 +19,8 @@ namespace Leno.Order.Application.Services;
 /// 全部组成功后顺序入仓储并统一提交工作单元（<see cref="IUnitOfWork.SaveEntitiesAsync"/>），保证"要么全部持久化、要么全部不持久化"。
 /// P1-T24：多卖家拆单由顺序执行改为 <see cref="Task.WhenAll"/> 并行 + <see cref="SemaphoreSlim"/> 限流（默认 5），
 /// 避免 N 个卖家下单延迟 = N × 单组延迟；EF Core DbContext 非线程安全，<see cref="IOrderRepository.AddAsync"/> 串行执行。
-/// 3.2：双轨期 feature flag <see cref="OrderSagaOptions.UseSagaStateMachine"/> 切流。
-/// flag=true 时发布 <see cref="OrderSagaStarted"/> 启动 Saga 状态机（shadow 模式：旧进程内编排仍执行以保证返回值兼容）。
-/// flag=false 时仅走旧进程内编排路径。
+/// 双轨下线 D1（2026-09-23）：Saga 状态机原型已删除（其等待的三个事件全仓无发布方、且不具备独立编排能力），
+/// 本类即订单创建的<b>唯一</b>同步事务编排（预占→冻结积分→落库→超时调度，任一组失败反向补偿）。
 /// 实现 <see cref="IDisposable"/>：持有 <see cref="SemaphoreSlim"/>（CA1001），由 DI 容器在作用域结束时释放。
 /// </summary>
 public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator, IDisposable
@@ -34,15 +31,14 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator, IDisposable
     private readonly IOrderRepository _orderRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderNumberGenerator _orderNumberGenerator;
-    private readonly IStockReservationDomainService _stockService;
+    private readonly IInventoryGateway _inventoryGateway;
     private readonly IOrderPricingDomainService _pricingService;
     private readonly IFreightCalculator _freightCalculator;
     private readonly IPromotionAntiCorruptionService _promotionAntiCorruption;
     private readonly IPointsAntiCorruptionService _pointsAntiCorruption;
-    private readonly IBus _bus;
+    private readonly IMessageScheduler _messageScheduler;
     private readonly ILogger<OrderSagaOrchestrator> _logger;
     private readonly SemaphoreSlim _semaphore;
-    private readonly OrderSagaOptions _sagaOptions;
 
     /// <param name="maxDegreeOfParallelism">多卖家拆单并行度上限，默认 1（顺序执行）。
     /// 旧测试构造器沿用默认 1 以兼容 <c>Moq.SetupSequence</c> 的非线程安全特性；
@@ -51,27 +47,25 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator, IDisposable
         IOrderRepository orderRepository,
         IUnitOfWork unitOfWork,
         IOrderNumberGenerator orderNumberGenerator,
-        IStockReservationDomainService stockService,
+        IInventoryGateway inventoryGateway,
         IOrderPricingDomainService pricingService,
         IFreightCalculator freightCalculator,
         IPromotionAntiCorruptionService promotionAntiCorruption,
         IPointsAntiCorruptionService pointsAntiCorruption,
-        IBus bus,
+        IMessageScheduler messageScheduler,
         ILogger<OrderSagaOrchestrator> logger,
-        IOptions<OrderSagaOptions> sagaOptions,
         int maxDegreeOfParallelism = 1)
     {
         _orderRepository = orderRepository;
         _unitOfWork = unitOfWork;
         _orderNumberGenerator = orderNumberGenerator;
-        _stockService = stockService;
+        _inventoryGateway = inventoryGateway;
         _pricingService = pricingService;
         _freightCalculator = freightCalculator;
         _promotionAntiCorruption = promotionAntiCorruption;
         _pointsAntiCorruption = pointsAntiCorruption;
-        _bus = bus;
+        _messageScheduler = messageScheduler;
         _logger = logger;
-        _sagaOptions = sagaOptions?.Value ?? new OrderSagaOptions();
         var dop = Math.Max(1, maxDegreeOfParallelism);
         _semaphore = new SemaphoreSlim(dop, dop);
     }
@@ -80,11 +74,6 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator, IDisposable
     public async Task<OrderSagaResult> ExecuteAsync(OrderSagaContext context, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(context);
-
-        // 3.2 双轨期：feature flag 切流，flag=true 时发布 OrderSagaStarted 启动 Saga 状态机
-        // shadow 模式：旧进程内编排仍执行以保证 ExecuteAsync 返回值兼容（Saga 异步编排无法同步返回 OrderSagaResult）
-        // 全量切流后（RolloutPercent=100）可移除旧编排逻辑，由 Saga 消费者异步推进并通知客户端
-        var useSaga = ShouldUseSagaStateMachine(context.UserId);
 
         var groups = context.Groups;
         var completedSlots = new CompletedGroup?[groups.Count];
@@ -139,21 +128,15 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator, IDisposable
         await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
 
         // SaveEntitiesAsync 成功后统一调度超时延迟消息（保证订单已持久化，避免 Saga 失败回滚后产生幽灵延迟消息）
+        // 双轨下线 B3（2026-09-23）：统一走 Quartz 持久化调度器（IMessageScheduler），
+        // 废弃 _bus.CreateMessageScheduler() 的"至多一次"直发路径
         foreach (var g in completed)
         {
-            var scheduler = _bus.CreateMessageScheduler();
-            await scheduler.ScheduleSend(
+            await _messageScheduler.ScheduleSend(
                 new Uri("queue:order-timeout"),
                 g.Order.ExpireAt,
                 new OrderTimeoutMessage(g.OrderId),
                 ct).ConfigureAwait(false);
-        }
-
-        // 3.2：shadow 模式下发布 OrderSagaStarted 事件启动 Saga 状态机
-        // Saga 消费者异步编排库存预占/积分冻结/支付推进，与旧进程内编排并行运行（对账用）
-        if (useSaga)
-        {
-            await PublishSagaStartedEventsAsync(context, completed, ct).ConfigureAwait(false);
         }
 
         return new OrderSagaResult
@@ -161,82 +144,6 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator, IDisposable
             FirstResult = OrderCreatedResult.FromOrder(completed[0].Order),
             Results = completed.Select(c => OrderCreatedResult.FromOrder(c.Order)).ToList()
         };
-    }
-
-    /// <summary>
-    /// 判断当前请求是否走 Saga 状态机编排路径。
-    /// 按 <see cref="OrderSagaOptions.UseSagaStateMachine"/> 全局开关 + <see cref="OrderSagaOptions.RolloutPercent"/> 灰度百分比判断。
-    /// 灰度哈希：UserId.GetHashCode() % 100 &lt; RolloutPercent，保证同一用户切流稳定（不会时而走 Saga 时而走旧路径）。
-    /// </summary>
-    /// <param name="userId">买家标识，用于灰度哈希。</param>
-    /// <returns>true 走 Saga 路径（发布 OrderSagaStarted），false 走旧进程内编排路径。</returns>
-    private bool ShouldUseSagaStateMachine(Guid userId)
-    {
-        if (!_sagaOptions.UseSagaStateMachine)
-        {
-            return false;
-        }
-
-        var rollout = _sagaOptions.RolloutPercent;
-        if (rollout >= 100)
-        {
-            return true;
-        }
-        if (rollout <= 0)
-        {
-            return false;
-        }
-
-        // 灰度哈希：UserId 的哈希值取模 100，保证同一用户切流稳定
-        var hash = unchecked((uint)userId.GetHashCode());
-        return hash % 100 < (uint)rollout;
-    }
-
-    /// <summary>
-    /// 发布各分组的 <see cref="OrderSagaStarted"/> 事件，启动 Saga 状态机编排。
-    /// 每个分组（多卖家拆单的每组）对应一个独立 Saga 实例，CorrelationId = OrderId。
-    /// shadow 模式：旧进程内编排已完成订单持久化，Saga 仅用于异步对账与未来全量切流。
-    /// </summary>
-    /// <param name="context">Saga 上下文（含买家标识与收货地址）。</param>
-    /// <param name="completed">已成功创建的分组列表。</param>
-    /// <param name="ct">取消令牌。</param>
-    private async Task PublishSagaStartedEventsAsync(
-        OrderSagaContext context,
-        List<CompletedGroup> completed,
-        CancellationToken ct)
-    {
-        foreach (var g in completed)
-        {
-            var sagaItems = g.Order.Items.Select(i => new OrderSagaItem(
-                i.SkuId,
-                i.Quantity,
-                i.ProductSnapshot.SellerId,
-                i.UnitPrice,
-                i.SourceCartItemId)).ToList();
-
-            var sagaStarted = new OrderSagaStarted(
-                g.OrderId,
-                context.UserId,
-                g.Order.TotalAmount,
-                "CNY",
-                sagaItems,
-                IdempotencyKey: g.OrderId);
-
-            try
-            {
-                await _bus.Publish(sagaStarted, ct).ConfigureAwait(false);
-                _logger.LogInformation(
-                    "Saga 启动事件已发布 OrderId={OrderId} UserId={UserId}（shadow 模式）",
-                    g.OrderId, context.UserId);
-            }
-            catch (Exception ex)
-            {
-                // shadow 模式下 Saga 事件发布失败不影响旧路径下单结果，仅记录告警
-                _logger.LogWarning(ex,
-                    "Saga 启动事件发布失败 OrderId={OrderId}（shadow 模式，不影响下单结果）",
-                    g.OrderId);
-            }
-        }
     }
 
     /// <summary>
@@ -330,7 +237,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator, IDisposable
 
         // 预占库存
         var orderId = Guid.NewGuid();
-        var reserved = await _stockService.ReserveBatchAsync(orderId, skuQuantities, ct).ConfigureAwait(false);
+        var reserved = await _inventoryGateway.ReserveBatchAsync(orderId, skuQuantities, ct).ConfigureAwait(false);
         if (!reserved)
         {
             throw new OrderDomainException("库存预占失败，SKU 库存不足", "ORDER_STOCK_RESERVE_FAILED");
@@ -347,7 +254,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator, IDisposable
             }
             catch (Exception)
             {
-                await _stockService.ReleaseBatchAsync(orderId, skuQuantities, CancellationToken.None).ConfigureAwait(false);
+                await _inventoryGateway.ReleaseBatchAsync(orderId, CancellationToken.None).ConfigureAwait(false);
                 throw;
             }
         }
@@ -427,7 +334,7 @@ public sealed class OrderSagaOrchestrator : IOrderSagaOrchestrator, IDisposable
             // 释放预占库存
             try
             {
-                await _stockService.ReleaseBatchAsync(g.OrderId, g.SkuQuantities, ct).ConfigureAwait(false);
+                await _inventoryGateway.ReleaseBatchAsync(g.OrderId, ct).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

@@ -9,32 +9,24 @@ namespace Leno.Notification.Api.Controllers;
 
 /// <summary>
 /// 通知发送控制器（内部服务间调用）。
-/// 受 InternalApiKeyMiddleware 保护，路由前缀为 internal/。
+/// 受 InternalApiKeyMiddleware 保护，路由前缀为 internal/v1/。
 /// </summary>
 [ApiController]
 public sealed class NotificationSendController : ControllerBase
 {
-    /// <summary>旧路由模板，下线倒计时阶段保留，调用时打弃用告警日志便于监控迁移进度。</summary>
-    private const string LegacyRoute = "internal/notifications/send";
-
-    /// <summary>新路由模板，下线旧路由后唯一保留的入口。</summary>
+    /// <summary>唯一路由模板（双轨下线 C2：旧路由 internal/notifications/send 已删除）。</summary>
     private const string CurrentRoute = "internal/v1/notifications/send";
 
     private readonly INotificationService _notificationService;
-    private readonly ILogger<NotificationSendController> _logger;
 
-    public NotificationSendController(
-        INotificationService notificationService,
-        ILogger<NotificationSendController> logger)
+    public NotificationSendController(INotificationService notificationService)
     {
         ArgumentNullException.ThrowIfNull(notificationService);
-        ArgumentNullException.ThrowIfNull(logger);
         _notificationService = notificationService;
-        _logger = logger;
     }
 
     /// <summary>
-    /// 发送通知（内部服务间调用，当前路由）。
+    /// 发送通知（内部服务间调用，唯一入口）。
     /// </summary>
     [HttpPost(CurrentRoute)]
     [ProducesResponseType(typeof(ApiResponse<SendNotificationResponse>), StatusCodes.Status200OK)]
@@ -42,29 +34,6 @@ public sealed class NotificationSendController : ControllerBase
     public async Task<IActionResult> SendAsync([FromBody] SendNotificationRequest request, CancellationToken ct)
     {
         return await ExecuteSendAsync(request, ct).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// 发送通知（旧路由，双路由期保留，将于 2026-09-15 下线，请使用 <see cref="SendAsync"/>）。
-    /// </summary>
-    [Obsolete("双路由期保留，将于 2026-09-15 下线，请使用 internal/v1/notifications/send 路由", DiagnosticId = "LENO_NOTIF001")]
-    [HttpPost(LegacyRoute)]
-    [ProducesResponseType(typeof(ApiResponse<SendNotificationResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<SendNotificationResponse>), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> SendLegacyAsync([FromBody] SendNotificationRequest request, CancellationToken ct)
-    {
-        // P2-47：旧路由被调用时记录告警日志，便于监控迁移进度、触发告警，下线时间到达后此方法将整体删除。
-        var caller = HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
-        var templateCode = request?.TemplateCode ?? "<null>";
-        _logger.LogWarning(
-            "已弃用路由被调用 Route={Route} Caller={Caller} TemplateCode={TemplateCode} IdempotencyKey={IdempotencyKey}；请迁移至 {CurrentRoute}，旧路由将于 2026-09-15 移除",
-            LegacyRoute,
-            caller,
-            templateCode,
-            request?.IdempotencyKey ?? "<null>",
-            CurrentRoute);
-
-        return await ExecuteSendAsync(request!, ct).ConfigureAwait(false);
     }
 
     private async Task<IActionResult> ExecuteSendAsync(SendNotificationRequest request, CancellationToken ct)

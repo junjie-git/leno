@@ -1,0 +1,23 @@
+=== _up.txt 尾部
+rp/consul/manifests/1.18": dialing registry-1.docker.io:443 container via direc
+t connection because Docker Desktop has no HTTPS proxy: connecting to registry-
+1.docker.io:443: dial tcp [2a03:2880:f117:83:face:b00c:0:25de]:443: connectex: 
+A connection attempt failed because the connected party did not properly respon
+d after a period of time, or established connection failed because connected ho
+st has failed to respond.
+Error response from daemon: No such image: redis:7-alpine
+Error response from daemon: No such image: rabbitmq:3.12-management
+=== _pl_sql.txt 尾部
+﻿2019-latest: Pulling from mssql/server
+381839209a74: Pulling fs layer
+6f4ff526244c: Pulling fs layer
+e012aedd45a6: Pulling fs layer
+381839209a74: Already exists
+e012aedd45a6: Download complete
+e012aedd45a6: Pull complete
+=== up rc=1
+Head "https://registry-1.docker.io/v2/library/redis/manifests/7-alpine": dialing registry-1.docker.io:443 container via direct connection because Docker Desktop has no HTTPS proxy: connecting to registry-1.docker.io:443: dial tcp [2a03:2880:f12c:83:face:b00c:0:25de]:443: connectex: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+Error response from daemon: No such image: hashicorp/consul:1.18
+Error response from daemon: No such image: rabbitmq:3.12-management
+
+=== ps

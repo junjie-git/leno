@@ -1,0 +1,124 @@
+{
+  "$comment": "服务端口与镜像名单一来源（双轨下线 A5，2026-09-23）。compose / Helm values / 本清单三方一致性由 scripts/validate-service-ports.ps1 校验（CI job validate-service-ports）。改端口时先改本清单。",
+  "gateway": {
+    "name": "apigateway",
+    "composeService": "api-gateway",
+    "httpPort": 8080,
+    "grpcPort": null,
+    "image": "leno-apigateway"
+  },
+  "services": [
+    {
+      "name": "product",
+      "composeService": "product-api",
+      "httpPort": 5152,
+      "grpcPort": 5252,
+      "image": "leno-product"
+    },
+    {
+      "name": "cart",
+      "composeService": "cart-api",
+      "httpPort": 5153,
+      "grpcPort": 5253,
+      "image": "leno-cart"
+    },
+    {
+      "name": "order",
+      "composeService": "order-api",
+      "httpPort": 5154,
+      "grpcPort": 5254,
+      "image": "leno-order"
+    },
+    {
+      "name": "promotion",
+      "composeService": "promotion-api",
+      "httpPort": 5155,
+      "grpcPort": 5255,
+      "image": "leno-promotion"
+    },
+    {
+      "name": "payment",
+      "composeService": "payment-api",
+      "httpPort": 5156,
+      "grpcPort": 5256,
+      "image": "leno-payment"
+    },
+    {
+      "name": "sellershop",
+      "composeService": "seller-shop-api",
+      "httpPort": 5159,
+      "grpcPort": 5259,
+      "image": "leno-sellershop"
+    },
+    {
+      "name": "notification",
+      "composeService": "notification-api",
+      "httpPort": 5160,
+      "grpcPort": 5260,
+      "image": "leno-notification"
+    },
+    {
+      "name": "systemadmin",
+      "composeService": "system-admin-api",
+      "httpPort": 5161,
+      "grpcPort": 5261,
+      "image": "leno-systemadmin"
+    },
+    {
+      "name": "identity",
+      "composeService": "identity-api",
+      "httpPort": 5162,
+      "grpcPort": 5262,
+      "image": "leno-identity"
+    },
+    {
+      "name": "accesscontrol",
+      "composeService": "access-control-api",
+      "httpPort": 5163,
+      "grpcPort": 5263,
+      "image": "leno-accesscontrol"
+    },
+    {
+      "name": "usercenter",
+      "composeService": "user-center-api",
+      "httpPort": 5164,
+      "grpcPort": 5264,
+      "image": "leno-usercenter"
+    },
+    {
+      "name": "inventory",
+      "composeService": "inventory-api",
+      "httpPort": 5165,
+      "grpcPort": 5265,
+      "image": "leno-inventory"
+    },
+    {
+      "name": "points",
+      "composeService": "points-api",
+      "httpPort": 5166,
+      "grpcPort": 5266,
+      "image": "leno-points"
+    },
+    {
+      "name": "membership",
+      "composeService": "membership-api",
+      "httpPort": 5167,
+      "grpcPort": 5267,
+      "image": "leno-membership"
+    },
+    {
+      "name": "review",
+      "composeService": "review-api",
+      "httpPort": 5168,
+      "grpcPort": 5268,
+      "image": "leno-review"
+    },
+    {
+      "name": "aftersales",
+      "composeService": "aftersales-api",
+      "httpPort": 5169,
+      "grpcPort": 5269,
+      "image": "leno-aftersales"
+    }
+  ]
+}

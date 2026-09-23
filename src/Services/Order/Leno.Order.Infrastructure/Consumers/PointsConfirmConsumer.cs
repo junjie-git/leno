@@ -1,5 +1,4 @@
 using Leno.Infrastructure.Abstractions;
-using Leno.Order.Application.ProcessManagers;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.ValueObjects;
@@ -28,30 +27,22 @@ public sealed class PointsConfirmConsumer : IConsumer<PaymentSucceededEvent>
     private readonly IPointsAntiCorruptionService _pointsAntiCorruption;
     private readonly IIdempotencyStore _idempotencyStore;
     private readonly ILogger<PointsConfirmConsumer> _logger;
-    private readonly IOrderPaymentProcessManager _processManager;
-    private readonly IOptionsMonitor<OrderPaymentProcessOptions> _options;
 
     public PointsConfirmConsumer(
         IOrderRepository orderRepository,
         IPointsAntiCorruptionService pointsAntiCorruption,
         IIdempotencyStore idempotencyStore,
-        ILogger<PointsConfirmConsumer> logger,
-        IOrderPaymentProcessManager processManager,
-        IOptionsMonitor<OrderPaymentProcessOptions> options)
+        ILogger<PointsConfirmConsumer> logger)
     {
         ArgumentNullException.ThrowIfNull(orderRepository);
         ArgumentNullException.ThrowIfNull(pointsAntiCorruption);
         ArgumentNullException.ThrowIfNull(idempotencyStore);
         ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(processManager);
-        ArgumentNullException.ThrowIfNull(options);
 
         _orderRepository = orderRepository;
         _pointsAntiCorruption = pointsAntiCorruption;
         _idempotencyStore = idempotencyStore;
         _logger = logger;
-        _processManager = processManager;
-        _options = options;
     }
 
     /// <inheritdoc />
@@ -80,10 +71,6 @@ public sealed class PointsConfirmConsumer : IConsumer<PaymentSucceededEvent>
                 evt.PaymentId);
             return;
         }
-
-        var useProcessManager = OrderPaymentProcessRolloutEvaluator.ShouldUseProcessManager(
-            _options.CurrentValue, evt.OrderId);
-
         try
         {
             await ConfirmPointsAsync(evt, ct);
@@ -100,14 +87,7 @@ public sealed class PointsConfirmConsumer : IConsumer<PaymentSucceededEvent>
 
         await _idempotencyStore.MarkAsProcessedAsync(idempotencyId, ct);
         _logger.LogInformation("积分确认完成 PaymentId={PaymentId} OrderId={OrderId}",
-            evt.PaymentId, evt.OrderId);
-
-        // 3.3 双轨期 shadow 模式：转发积分确认完成回调给 Process Manager
-        if (useProcessManager)
-        {
-            await TryHandlePointsConfirmedAsync(evt.OrderId, ct);
-        }
-    }
+            evt.PaymentId, evt.OrderId);    }
 
     /// <summary>
     /// 加载订单并调用积分防腐层确认扣减。会员订阅订单跳过。
@@ -129,23 +109,5 @@ public sealed class PointsConfirmConsumer : IConsumer<PaymentSucceededEvent>
         }
 
         await _pointsAntiCorruption.ConfirmDeductionAsync(order.Id, ct);
-    }
-
-    /// <summary>
-    /// 转发积分确认完成回调给 Process Manager。
-    /// 异常隔离：回调失败不应影响旧路径的实际工作（shadow 模式），仅记录错误日志。
-    /// </summary>
-    private async Task TryHandlePointsConfirmedAsync(Guid orderId, CancellationToken ct)
-    {
-        try
-        {
-            await _processManager.HandlePointsConfirmedAsync(orderId, ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex,
-                "Process Manager HandlePointsConfirmedAsync 回调失败，不影响旧路径实际工作 OrderId={OrderId}",
-                orderId);
-        }
     }
 }

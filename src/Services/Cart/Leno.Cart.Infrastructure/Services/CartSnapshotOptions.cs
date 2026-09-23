@@ -2,20 +2,17 @@ namespace Leno.Cart.Infrastructure.Services;
 
 /// <summary>
 /// 购物车 SKU 快照本地化配置（阶段三 3.11）。
-/// 通过 <c>Cart:UseSkuSnapshot</c> feature flag 控制快照模式开关，
-/// false 时走旧 gRPC/HTTP 实时调用，true 时走本地快照读取 + 后台异步刷新。
+/// 快照模式的运行参数（过期阈值/刷新并发/队列容量/批量大小）；
+/// 双轨下线 D4 后快照优先为唯一路径（开关已删除）。
 /// </summary>
 public sealed class CartSnapshotOptions
 {
     /// <summary>配置节名称。</summary>
     public const string SectionName = "Cart";
 
-    /// <summary>
-    /// 是否启用 SKU 快照本地化模式。
-    /// false（默认）：购物车读取路径走旧 <see cref="ICartPriceService"/> 实时跨进程调用。
-    /// true：购物车读取路径优先读取本地快照，过期时回退实时调用并触发后台刷新。
-    /// </summary>
-    public bool UseSkuSnapshot { get; set; } = false;
+    // 双轨下线 D4（2026-09-23）：UseSkuSnapshot feature flag 已删除。
+    // 快照优先读取无条件生效（SnapshotCartPriceService 始终走快照路径，缺失/过期回退实时调用并触发后台刷新）；
+    // 原 flag 的 true/false 分支收敛为唯一路径。
 
     /// <summary>
     /// 快照过期阈值。超过此阈值的快照视为过期，读取时触发后台刷新并回退实时调用。

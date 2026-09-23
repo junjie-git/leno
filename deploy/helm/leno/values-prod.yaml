@@ -22,12 +22,6 @@ services:
     hpa: { enabled: true, minReplicas: 3, maxReplicas: 15, targetCPUUtilizationPercentage: 65 }
     resources: { requests: { cpu: 500m, memory: 512Mi }, limits: { cpu: 2000m, memory: 1Gi } }
 
-  userauth:
-    replicaCount: 3
-    hpa: { enabled: true, minReplicas: 3, maxReplicas: 10, targetCPUUtilizationPercentage: 65 }
-    resources: { requests: { cpu: 500m, memory: 512Mi }, limits: { cpu: 2000m, memory: 1Gi } }
-    migration: { enabled: true, runOnInit: true }
-
   product:
     replicaCount: 3
     hpa: { enabled: true, minReplicas: 3, maxReplicas: 10, targetCPUUtilizationPercentage: 65 }
@@ -47,18 +41,6 @@ services:
     migration: { enabled: true, runOnInit: true }
 
   promotion:
-    replicaCount: 3
-    hpa: { enabled: true, minReplicas: 3, maxReplicas: 10, targetCPUUtilizationPercentage: 65 }
-    resources: { requests: { cpu: 500m, memory: 512Mi }, limits: { cpu: 2000m, memory: 1Gi } }
-    migration: { enabled: true, runOnInit: true }
-
-  reviewaftersales:
-    replicaCount: 3
-    hpa: { enabled: true, minReplicas: 3, maxReplicas: 10, targetCPUUtilizationPercentage: 65 }
-    resources: { requests: { cpu: 500m, memory: 512Mi }, limits: { cpu: 2000m, memory: 1Gi } }
-    migration: { enabled: true, runOnInit: true }
-
-  pointsmembership:
     replicaCount: 3
     hpa: { enabled: true, minReplicas: 3, maxReplicas: 10, targetCPUUtilizationPercentage: 65 }
     resources: { requests: { cpu: 500m, memory: 512Mi }, limits: { cpu: 2000m, memory: 1Gi } }

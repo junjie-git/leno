@@ -34,7 +34,9 @@ public static class ConfigCenterExtensions
         "OAuth2:WeChat:AppSecret",
         "OAuth2:Apple:ClientId",
         "OAuth2:Apple:ClientSecret",
-        "Jwt:SecretKey"
+        // 双轨下线 A6（2026-09-23）：Jwt:SecretKey（HS256 共享密钥）已删除，
+        // RS256 时代每个服务的唯一密钥类配置是 JWKS 发现文档地址（指向 Identity）
+        "Jwt:DiscoveryUrl"
     };
 
     /// <summary>

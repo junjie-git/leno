@@ -56,55 +56,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITemplateRenderService, TemplateRenderer>();
 
         // 用户联系方式防腐层（通过 HTTP 调用用户域内部端点获取手机号/邮箱）
-        var userAuthApiUrl = configuration["ServiceUrls:UserAuthApi"] ?? "http://localhost:5173";
+        // 双轨下线 A6（2026-09-23）：UserAuth BC 退役，联系方式端点由 Identity BC 承接
+        // （internal/v1/users/{userId}/contacts 与 /contacts/full 路由一致）；
+        // gRPC 双轨一并删除（低频内部查询，保留单一 HTTP 机制）。
+        var identityApiUrl = configuration["ServiceUrls:IdentityApi"] ?? "http://localhost:5162";
         // HttpClient 防腐层实现（保留作为降级备份，不绑定接口）
-        services.AddHttpClient<UserContactAntiCorruptionService>(c => c.BaseAddress = new Uri(userAuthApiUrl))
+        services.AddHttpClient<UserContactAntiCorruptionService>(c => c.BaseAddress = new Uri(identityApiUrl))
             .AddAntiCorruptionPolicies();
-
-        // M4 双轨方案：gRPC 客户端 + 熔断器 + Dispatcher（仅当 UseGrpc=true 时生效）
-        var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
-        if (antiCorruptionOptions.UseGrpc)
-        {
-            var userAuthGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("UserAuth")
-                ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:UserAuth 配置缺失");
-
-            services.AddGrpcClient<UserInternalService.UserInternalServiceClient>(options =>
-            {
-                options.Address = new Uri(userAuthGrpcEndpoint);
-            });
-            services.AddScoped<GrpcUserContactAntiCorruptionClient>();
-
-            services.AddKeyedSingleton<CircuitBreakerState>("user_contact", (sp, _) =>
-            {
-                var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
-                var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
-                return new CircuitBreakerState(
-                    "user_contact",
-                    cbOpts.FailureThreshold,
-                    cbOpts.SuccessThreshold,
-                    TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
-            });
-
-            services.AddScoped<AntiCorruptionDispatcher<IUserContactService>>(sp =>
-            {
-                var httpImpl = sp.GetRequiredService<UserContactAntiCorruptionService>();
-                var grpcImpl = sp.GetService<GrpcUserContactAntiCorruptionClient>();
-                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
-                var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IUserContactService>>>();
-                var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("user_contact");
-                return new AntiCorruptionDispatcher<IUserContactService>(
-                    httpImpl, grpcImpl, options, logger, "user_contact", cb);
-            });
-            services.AddScoped<UserContactDispatcherAdapter>();
-            services.AddScoped<IUserContactService>(sp =>
-                sp.GetRequiredService<UserContactDispatcherAdapter>());
-        }
-        else
-        {
-            // UseGrpc=false：直接注册 HttpClient 实现（兼容期）
-            services.AddScoped<IUserContactService>(sp =>
-                sp.GetRequiredService<UserContactAntiCorruptionService>());
-        }
 
         // 通知渠道配置
         services.Configure<EmailChannelOptions>(configuration.GetSection("Notification:Email"));

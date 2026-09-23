@@ -67,7 +67,7 @@ public sealed class NotificationAppService : INotificationAppService
             await _recordRepository.UpdateAsync(record, ct);
         }
 
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
     }
 
     /// <inheritdoc />

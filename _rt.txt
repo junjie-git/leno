@@ -1,0 +1,69 @@
+﻿identity-auth                cluster=identity           H order=5    path=/api/auth/{**catch-all}
+identity-account             cluster=identity           H order=5    path=/api/account/{**catch-all}
+identity-oauth-clients       cluster=identity           H order=5    path=/api/admin/oauth-clients/{**catch-all}
+identity-admin-users         cluster=identity           H order=5    path=/api/admin/users/{**catch-all}
+identity-users-me            cluster=identity           H order=5    path=/api/users/me
+identity-users-me-password   cluster=identity           H order=5    path=/api/users/me/password
+identity-users-me-2fa        cluster=identity           H order=5    path=/api/users/me/two-factor/{**catch-all}
+identity-internal-users      cluster=identity           H order=5    path=/internal/v1/users/{**catch-all}
+inventory-internal-stock     cluster=inventory          H order=5    path=/internal/v1/inventory/{**catch-all}
+access-control-roles         cluster=access-control     H order=5    path=/api/admin/roles/{**catch-all}
+user-center-addresses        cluster=user-center        H order=5    path=/api/users/me/addresses/{**catch-all}
+user-center-favorites        cluster=user-center        H order=5    path=/api/users/me/favorites/{**catch-all}
+user-center-browse-history   cluster=user-center        H order=5    path=/api/users/me/browse-history/{**catch-all}
+user-center-notif-prefs      cluster=user-center        H order=5    path=/api/users/me/notification-preferences/{**catch-all}
+review-new                   cluster=review             H order=5    path=/api/reviews/{**catch-all}
+review-product               cluster=review             H order=5    path=/api/products/{spuId}/reviews
+review-seller                cluster=review             H order=5    path=/api/seller/reviews
+review-admin-new             cluster=review             H order=5    path=/api/admin/reviews/{**catch-all}
+after-sales-new              cluster=after-sales        H order=5    path=/api/after-sales/{**catch-all}
+after-sales-seller           cluster=after-sales        H order=5    path=/api/seller/after-sales/{**catch-all}
+after-sales-admin-new        cluster=after-sales        H order=5    path=/api/admin/after-sales/{**catch-all}
+membership-packages          cluster=membership         H order=5    path=/api/membership-packages/{**catch-all}
+membership-me                cluster=membership         H order=5    path=/api/members/me
+membership-admin             cluster=membership         H order=5    path=/api/admin/members/{**catch-all}
+user-auth                    cluster=user-auth            order=10   path=/api/auth/{**catch-all}
+user-auth-users              cluster=user-auth            order=10   path=/api/users/{**catch-all}
+user-auth-admin-users        cluster=user-auth            order=10   path=/api/admin/users/{**catch-all}
+product                      cluster=product              order=10   path=/api/products/{**catch-all}
+product-admin                cluster=product              order=10   path=/api/admin/products/{**catch-all}
+product-categories           cluster=product              order=10   path=/api/categories/{**catch-all}
+product-brands               cluster=product              order=10   path=/api/brands/{**catch-all}
+cart                         cluster=cart                 order=10   path=/api/cart/{**catch-all}
+order                        cluster=order                order=10   path=/api/orders/{**catch-all}
+order-seller                 cluster=order                order=1    path=/api/seller/orders/{**catch-all}
+order-admin                  cluster=order                order=10   path=/api/admin/orders/{**catch-all}
+order-freight                cluster=order                order=10   path=/api/freight-templates/{**catch-all}
+order-logistics              cluster=order                order=10   path=/api/logistics-companies/{**catch-all}
+promotion                    cluster=promotion            order=10   path=/api/promotions/{**catch-all}
+promotion-admin              cluster=promotion            order=10   path=/api/admin/promotions/{**catch-all}
+promotion-coupons            cluster=promotion            order=10   path=/api/coupons/{**catch-all}
+promotion-coupons-admin      cluster=promotion            order=10   path=/api/admin/coupons/{**catch-all}
+promotion-seckill            cluster=promotion            order=10   path=/api/seckill/{**catch-all}
+promotion-seckill-admin      cluster=promotion            order=10   path=/api/admin/seckill/{**catch-all}
+payment                      cluster=payment              order=10   path=/api/payments/{**catch-all}
+payment-admin                cluster=payment              order=10   path=/api/admin/payments/{**catch-all}
+payment-notify               cluster=payment              order=10   path=/api/notify/{**catch-all}
+points                       cluster=points               order=10   path=/api/points/{**catch-all}
+points-admin                 cluster=points               order=10   path=/api/admin/points/{**catch-all}
+points-members               cluster=points               order=10   path=/api/members/{**catch-all}
+points-members-admin         cluster=points               order=10   path=/api/admin/members/{**catch-all}
+points-packages              cluster=points               order=10   path=/api/membership-packages/{**catch-all}
+review                       cluster=review               order=10   path=/api/reviews/{**catch-all}
+review-admin                 cluster=review               order=10   path=/api/admin/reviews/{**catch-all}
+after-sales                  cluster=after-sales          order=10   path=/api/after-sales/{**catch-all}
+after-sales-admin            cluster=after-sales          order=10   path=/api/admin/after-sales/{**catch-all}
+shops                        cluster=seller-shop          order=10   path=/api/shops/{**catch-all}
+shops-admin                  cluster=seller-shop          order=10   path=/api/admin/shops/{**catch-all}
+seller                       cluster=seller-shop          order=20   path=/api/seller/{**catch-all}
+notification                 cluster=notification         order=10   path=/api/notifications/{**catch-all}
+notification-templates       cluster=notification         order=10   path=/api/notification-templates/{**catch-all}
+notification-preferences     cluster=notification         order=10   path=/api/notification-preferences/{**catch-all}
+system-operators             cluster=system-admin         order=10   path=/api/operators/{**catch-all}
+system-configs               cluster=system-admin         order=10   path=/api/system-configs/{**catch-all}
+system-feature-flags         cluster=system-admin         order=10   path=/api/feature-flags/{**catch-all}
+system-announcements         cluster=system-admin         order=10   path=/api/announcements/{**catch-all}
+system-dictionaries          cluster=system-admin         order=10   path=/api/data-dictionaries/{**catch-all}
+system-scheduled-tasks       cluster=system-admin         order=10   path=/api/scheduled-tasks/{**catch-all}
+system-audit-logs            cluster=system-admin         order=10   path=/api/audit-logs/{**catch-all}
+inventory-internal           cluster=inventory            order=10   path=/internal/v1/inventory/{**catch-all}

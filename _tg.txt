@@ -1,0 +1,102 @@
+﻿Test run for D:\work\learn\Leno\src\ApiGateway\Leno.ApiGateway.Tests\bin\Debug\net10.0\Leno.ApiGateway.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:   276, Skipped:     0, Total:   276, Duration: 1 m 12 s - Leno.ApiGateway.Tests.dll (net10.0)
+Test run for D:\work\learn\Leno\src\Services\Order\Leno.Order.Application.Tests\bin\Debug\net10.0\Leno.Order.Application.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    50, Skipped:     0, Total:    50, Duration: 344 ms - Leno.Order.Application.Tests.dll (net10.0)
+Test run for D:\work\learn\Leno\src\Services\Order\Leno.Order.Infrastructure.Tests\bin\Debug\net10.0\Leno.Order.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+dotnet : [xUnit.net 00:00:03.11]     Leno.Order.Infrastructure.Tests.Migrations
+.OrderMigrationIntegrationTests.MigrateWithLockAsync_OnEmptyDatabase_CreatesAll
+Tables [FAIL]
+所在位置 行:445 字符: 993
++ ... tructure"; (dotnet test "src/Services/Order/Leno.Order.Infrastructure ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([xUnit.net 00:0...llTables [FAIL] 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[xUnit.net 00:00:03.12]     Leno.Order.Infrastructure.Tests.Migrations.OrderMig
+rationIntegrationTests.MigrateWithLockAsync_Idempotent_RunTwiceNoError [FAIL]
+[xUnit.net 00:00:03.12]     Leno.Order.Infrastructure.Tests.Integration.ForceCa
+ncelRefundIntegrationTests.ForceCancelAsync_ShouldWriteRefundEventToOutbox_NotD
+irectlyPublish [FAIL]
+[xUnit.net 00:00:03.12]     Leno.Order.Infrastructure.Tests.Integration.Seckill
+OrderFlowIntegrationTests.SeckillOrderCreatedEvent_Published_ShouldCreateOrderI
+nOrderDbContext [FAIL]
+[xUnit.net 00:00:03.12]     Leno.Order.Infrastructure.Tests.Integration.SellerO
+wnershipIntegrationTests.ShipAsync_WhenOperatorIsNotOwner_ShouldThrowOrderDomai
+nException [FAIL]
+[xUnit.net 00:00:03.12]     Leno.Order.Infrastructure.Tests.Integration.SellerO
+wnershipIntegrationTests.ShipAsync_WhenOperatorIsOwner_ShouldSucceedAndMarkAsSh
+ipped [FAIL]
+  Failed Leno.Order.Infrastructure.Tests.Migrations.OrderMigrationIntegrationTests.MigrateWithLockAsync_OnEmptyDatabase_CreatesAllTables [1 ms]
+  Error Message:
+   System.ArgumentException : Docker is either not running or misconfigured. Please ensure that Docker is running and that the endpoint is properly configured. You can customize your configuration using either the environment variables or the ~/.testcontainers.properties file. For more information, visit:
+https://dotnet.testcontainers.org/custom_configuration/ (Parameter 'DockerEndpointAuthConfig')
+  Stack Trace:
+     at DotNet.Testcontainers.Guard.ThrowIf[TType](ArgumentInfo`1& argument, Func`2 condition, Func`2 ifClause) in /_/src/Testcontainers/Guard.Null.cs:line 62
+   at DotNet.Testcontainers.Builders.AbstractBuilder`4.Validate() in /_/src/Testcontainers/Builders/AbstractBuilder`4.cs:line 145
+   at DotNet.Testcontainers.Builders.ContainerBuilder`3.Validate() in /_/src/Testcontainers/Builders/ContainerBuilder`3.cs:line 383
+   at Testcontainers.MsSql.MsSqlBuilder.Validate() in /_/src/Testcontainers.MsSql/MsSqlBuilder.cs:line 74
+   at Testcontainers.MsSql.MsSqlBuilder.Build() in /_/src/Testcontainers.MsSql/MsSqlBuilder.cs:line 54
+   at Leno.Testing.Fixtures.ContainerFixture.InitializeAsync() in D:\work\learn\Leno\src\BuildingBlocks\Leno.Testing\Fixtures\ContainerFixture.cs:line 32
+  Failed Leno.Order.Infrastructure.Tests.Migrations.OrderMigrationIntegrationTests.MigrateWithLockAsync_Idempotent_RunTwiceNoError [1 ms]
+  Error Message:
+   System.ArgumentException : Docker is either not running or misconfigured. Please ensure that Docker is running and that the endpoint is properly configured. You can customize your configuration using either the environment variables or the ~/.testcontainers.properties file. For more information, visit:
+https://dotnet.testcontainers.org/custom_configuration/ (Parameter 'DockerEndpointAuthConfig')
+  Stack Trace:
+     at DotNet.Testcontainers.Guard.ThrowIf[TType](ArgumentInfo`1& argument, Func`2 condition, Func`2 ifClause) in /_/src/Testcontainers/Guard.Null.cs:line 62
+   at DotNet.Testcontainers.Builders.AbstractBuilder`4.Validate() in /_/src/Testcontainers/Builders/AbstractBuilder`4.cs:line 145
+   at DotNet.Testcontainers.Builders.ContainerBuilder`3.Validate() in /_/src/Testcontainers/Builders/ContainerBuilder`3.cs:line 383
+   at Testcontainers.MsSql.MsSqlBuilder.Validate() in /_/src/Testcontainers.MsSql/MsSqlBuilder.cs:line 74
+   at Testcontainers.MsSql.MsSqlBuilder.Build() in /_/src/Testcontainers.MsSql/MsSqlBuilder.cs:line 54
+   at Leno.Testing.Fixtures.ContainerFixture.InitializeAsync() in D:\work\learn\Leno\src\BuildingBlocks\Leno.Testing\Fixtures\ContainerFixture.cs:line 32
+  Failed Leno.Order.Infrastructure.Tests.Integration.ForceCancelRefundIntegrationTests.ForceCancelAsync_ShouldWriteRefundEventToOutbox_NotDirectlyPublish [1 ms]
+  Error Message:
+   System.ArgumentException : Docker is either not running or misconfigured. Please ensure that Docker is running and that the endpoint is properly configured. You can customize your configuration using either the environment variables or the ~/.testcontainers.properties file. For more information, visit:
+https://dotnet.testcontainers.org/custom_configuration/ (Parameter 'DockerEndpointAuthConfig')
+  Stack Trace:
+     at DotNet.Testcontainers.Guard.ThrowIf[TType](ArgumentInfo`1& argument, Func`2 condition, Func`2 ifClause) in /_/src/Testcontainers/Guard.Null.cs:line 62
+   at DotNet.Testcontainers.Builders.AbstractBuilder`4.Validate() in /_/src/Testcontainers/Builders/AbstractBuilder`4.cs:line 145
+   at DotNet.Testcontainers.Builders.ContainerBuilder`3.Validate() in /_/src/Testcontainers/Builders/ContainerBuilder`3.cs:line 383
+   at Testcontainers.MsSql.MsSqlBuilder.Validate() in /_/src/Testcontainers.MsSql/MsSqlBuilder.cs:line 74
+   at Testcontainers.MsSql.MsSqlBuilder.Build() in /_/src/Testcontainers.MsSql/MsSqlBuilder.cs:line 54
+   at Leno.Testing.Fixtures.ContainerFixture.InitializeAsync() in D:\work\learn\Leno\src\BuildingBlocks\Leno.Testing\Fixtures\ContainerFixture.cs:line 32
+  Failed Leno.Order.Infrastructure.Tests.Integration.SeckillOrderFlowIntegrationTests.SeckillOrderCreatedEvent_Published_ShouldCreateOrderInOrderDbContext [1 ms]
+  Error Message:
+   System.ArgumentException : Docker is either not running or misconfigured. Please ensure that Docker is running and that the endpoint is properly configured. You can customize your configuration using either the environment variables or the ~/.testcontainers.properties file. For more information, visit:
+https://dotnet.testcontainers.org/custom_configuration/ (Parameter 'DockerEndpointAuthConfig')
+  Stack Trace:
+     at DotNet.Testcontainers.Guard.ThrowIf[TType](ArgumentInfo`1& argument, Func`2 condition, Func`2 ifClause) in /_/src/Testcontainers/Guard.Null.cs:line 62
+   at DotNet.Testcontainers.Builders.AbstractBuilder`4.Validate() in /_/src/Testcontainers/Builders/AbstractBuilder`4.cs:line 145
+   at DotNet.Testcontainers.Builders.ContainerBuilder`3.Validate() in /_/src/Testcontainers/Builders/ContainerBuilder`3.cs:line 383
+   at Testcontainers.MsSql.MsSqlBuilder.Validate() in /_/src/Testcontainers.MsSql/MsSqlBuilder.cs:line 74
+   at Testcontainers.MsSql.MsSqlBuilder.Build() in /_/src/Testcontainers.MsSql/MsSqlBuilder.cs:line 54
+   at Leno.Testing.Fixtures.ContainerFixture.InitializeAsync() in D:\work\learn\Leno\src\BuildingBlocks\Leno.Testing\Fixtures\ContainerFixture.cs:line 32
+  Failed Leno.Order.Infrastructure.Tests.Integration.SellerOwnershipIntegrationTests.ShipAsync_WhenOperatorIsNotOwner_ShouldThrowOrderDomainException [1 ms]
+  Error Message:
+   System.ArgumentException : Docker is either not running or misconfigured. Please ensure that Docker is running and that the endpoint is properly configured. You can customize your configuration using either the environment variables or the ~/.testcontainers.properties file. For more information, visit:
+https://dotnet.testcontainers.org/custom_configuration/ (Parameter 'DockerEndpointAuthConfig')
+  Stack Trace:
+     at DotNet.Testcontainers.Guard.ThrowIf[TType](ArgumentInfo`1& argument, Func`2 condition, Func`2 ifClause) in /_/src/Testcontainers/Guard.Null.cs:line 62
+   at DotNet.Testcontainers.Builders.AbstractBuilder`4.Validate() in /_/src/Testcontainers/Builders/AbstractBuilder`4.cs:line 145
+   at DotNet.Testcontainers.Builders.ContainerBuilder`3.Validate() in /_/src/Testcontainers/Builders/ContainerBuilder`3.cs:line 383
+   at Testcontainers.MsSql.MsSqlBuilder.Validate() in /_/src/Testcontainers.MsSql/MsSqlBuilder.cs:line 74
+   at Testcontainers.MsSql.MsSqlBuilder.Build() in /_/src/Testcontainers.MsSql/MsSqlBuilder.cs:line 54
+   at Leno.Testing.Fixtures.ContainerFixture.InitializeAsync() in D:\work\learn\Leno\src\BuildingBlocks\Leno.Testing\Fixtures\ContainerFixture.cs:line 32
+  Failed Leno.Order.Infrastructure.Tests.Integration.SellerOwnershipIntegrationTests.ShipAsync_WhenOperatorIsOwner_ShouldSucceedAndMarkAsShipped [1 ms]
+  Error Message:
+   System.ArgumentException : Docker is either not running or misconfigured. Please ensure that Docker is running and that the endpoint is properly configured. You can customize your configuration using either the environment variables or the ~/.testcontainers.properties file. For more information, visit:
+https://dotnet.testcontainers.org/custom_configuration/ (Parameter 'DockerEndpointAuthConfig')
+  Stack Trace:
+     at DotNet.Testcontainers.Guard.ThrowIf[TType](ArgumentInfo`1& argument, Func`2 condition, Func`2 ifClause) in /_/src/Testcontainers/Guard.Null.cs:line 62
+   at DotNet.Testcontainers.Builders.AbstractBuilder`4.Validate() in /_/src/Testcontainers/Builders/AbstractBuilder`4.cs:line 145
+   at DotNet.Testcontainers.Builders.ContainerBuilder`3.Validate() in /_/src/Testcontainers/Builders/ContainerBuilder`3.cs:line 383
+   at Testcontainers.MsSql.MsSqlBuilder.Validate() in /_/src/Testcontainers.MsSql/MsSqlBuilder.cs:line 74
+   at Testcontainers.MsSql.MsSqlBuilder.Build() in /_/src/Testcontainers.MsSql/MsSqlBuilder.cs:line 54
+   at Leno.Testing.Fixtures.ContainerFixture.InitializeAsync() in D:\work\learn\Leno\src\BuildingBlocks\Leno.Testing\Fixtures\ContainerFixture.cs:line 32
+
+Failed!  - Failed:     6, Passed:    75, Skipped:     0, Total:    81, Duration: 2 s - Leno.Order.Infrastructure.Tests.dll (net10.0)

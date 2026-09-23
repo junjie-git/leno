@@ -3,6 +3,7 @@ using Leno.Infrastructure.Dependencies;
 using Leno.Infrastructure.Persistence;
 using Leno.Infrastructure.ServiceDiscovery;
 using Leno.Infrastructure.Telemetry;
+using Leno.Inventory.Api.GrpcServices;
 using Leno.Inventory.Infrastructure;
 using Leno.Inventory.Infrastructure.Dependencies;
 
@@ -19,6 +20,11 @@ builder.Services.AddLenoApi<InventoryDbContext>(
     "leno-inventory-api",
     cfg => cfg.AddInventoryConsumers(),
     s => s.AddInventoryInfrastructure(builder.Configuration));
+
+// gRPC 同步库存面（双轨下线 DEC-4：Order BC 下单预占与库存查询经 InventoryInternalService 调用）
+// 内部鉴权拦截器与 HTTP 内部面（InternalApiKeyMiddleware）同一密钥源，非开发环境 fail-closed
+builder.Services.AddGrpc(options =>
+    options.Interceptors.Add<InternalApiKeyServerInterceptor>());
 
 // 启用 Consul KV 配置中心
 builder.AddLenoConsulConfig();
@@ -40,6 +46,9 @@ if (!app.Configuration.ValidateSensitiveConfig())
 
 // 一站式中间件管线：OpenAPI + 全局异常 + 内部 API Key + 鉴权 + 健康检查端点 + Controllers
 app.UseLenoPipeline();
+
+// 库存内部 gRPC 服务（proto 遗留项落地，2026-09-22）
+app.MapGrpcService<InventoryInternalGrpcService>();
 
 // 启动时执行 EF Core 迁移（带 Redis 分布式锁，避免多实例并发冲突）
 await app.Services.MigrateWithLockAsync<InventoryDbContext>();

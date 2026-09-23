@@ -5,6 +5,8 @@ using Leno.ApiGateway.Services;
 using Leno.Infrastructure.Auth;
 using Leno.Infrastructure.HealthChecks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,14 +45,20 @@ builder.Services.AddGatewayCaching(builder.Configuration);
 // Phase 6：统一 CORS（Origin 从 Consul KV 热更新）
 builder.Services.AddGatewayCors(builder.Configuration);
 
-// Phase 7 F2 安全修复：JWT 本地验签（P0-4）
-// 始终注册 JWT 服务（不在 builder 阶段读取 Jwt:Enabled 开关）：
+// 双轨下线 A6（2026-09-23，D-4/D-6）：网关验签改为 RS256 + JWKS（共享对称密钥 HS256 已删除）。
+// 生产环境门禁（P2 改进）：JWKS 拉取必须走 HTTPS，防明文劫持。
+var gatewayJwtGate = builder.Configuration.GetSection("Jwt").Get<JwtOptions>();
+if (builder.Environment.IsProduction() && gatewayJwtGate is { RequireHttpsMetadata: false })
+{
+    throw new InvalidOperationException(
+        "生产环境必须启用 HTTPS 元数据校验：设置 Jwt:RequireHttpsMetadata=true（Identity JWKS 经 TLS 提供）。");
+}
+
+// 始终注册 JWT 服务（不在 builder 阶段读取配置开关）：
 // 测试通过 ConfigureAppConfiguration 覆盖配置，这些覆盖在 builder.Build() 之后才生效，
-// 因此服务注册必须无条件进行，配置开关仅在中间件应用阶段判断。
+// 因此服务注册必须无条件进行。
 // 绑定 Jwt 配置节到 JwtOptions（测试可通过 services.Configure<JwtOptions> 覆盖）
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
-// 注册 JwtTokenGenerator 单例（依赖 IOptions<JwtOptions>，使测试覆盖生效）
-builder.Services.AddSingleton<JwtTokenGenerator>();
 
 // T26：白名单路由配置（从 Gateway:Whitelist 节绑定，未配置时使用 WhitelistOptions 默认值）
 builder.Services.Configure<WhitelistOptions>(builder.Configuration.GetSection(WhitelistOptions.SectionName));
@@ -62,17 +70,46 @@ builder.Services.Configure<GrayscaleOptions>(builder.Configuration.GetSection(Gr
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
 
-// 延迟从 DI 解析 JwtTokenGenerator 构造验签参数：
+// 双轨下线 A6（2026-09-23，D-4/D-6）：验签改为 RS256 + JWKS。
+// 延迟从 DI 解析 JwtOptions 构造验签参数：
 // OptionsBuilder.Configure<TDep> 在 IOptions<JwtBearerOptions>.Value 首次访问时执行，
 // 此时所有 ConfigureTestServices 的 JwtOptions 覆盖已就位
 builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
-    .Configure<JwtTokenGenerator>((options, generator) =>
+    .Configure<IOptions<JwtOptions>>((options, jwtAccessor) =>
     {
-        options.TokenValidationParameters = generator.BuildValidationParameters();
+        var jwt = jwtAccessor.Value;
+        if (!string.IsNullOrWhiteSpace(jwt.DiscoveryUrl))
+        {
+            options.MetadataAddress = jwt.DiscoveryUrl;
+            options.RequireHttpsMetadata = jwt.RequireHttpsMetadata;
+        }
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwt.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwt.Audience,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            // 签名公钥由 MetadataAddress 指向的发现文档 → jwks_uri 自动拉取并缓存（RS256）
+            ClockSkew = TimeSpan.FromSeconds(30)
+        };
+
+        // JWKS 缓存与刷新调优（P1 改进，配合密钥轮换 runbook）：
+        // - 自动刷新 1h（默认 12h）：密钥轮换后公钥滞后窗口的上限
+        // - 拉取失败 30s 重试（默认 5min）
+        options.AutomaticRefreshInterval = TimeSpan.FromHours(1);
+        options.RefreshInterval = TimeSpan.FromSeconds(30);
+
         options.Events = new JwtBearerEvents
         {
             OnAuthenticationFailed = ctx =>
             {
+                // kid 未命中（轮换后本地缓存仍是旧公钥）：请求即时刷新，下一次请求用新公钥
+                if (ctx.Exception is SecurityTokenSignatureKeyNotFoundException)
+                {
+                    ctx.Options.ConfigurationManager?.RequestRefresh();
+                }
                 ctx.Response.StatusCode = 401;
                 return Task.CompletedTask;
             }

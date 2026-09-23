@@ -59,16 +59,8 @@ public class OrderIntegrationEventMapper : IntegrationEventMapperBase
                 e.RefundId, e.OrderId, e.UserId, e.AfterSalesId,
                 e.PaymentId, e.RefundAmount, e.Currency, e.Channel, e.RefundReason));
 
-        // StockReservedEvent → StockReservedIntegrationEvent（对账/审计域库存对账、未来跨上下文消费方）
-        RegisterHandler<StockReservedEvent, StockReservedIntegrationEvent>(e =>
-            new StockReservedIntegrationEvent(e.SkuId, e.OrderId, e.Quantity));
-
-        // StockConfirmedEvent → StockConfirmedIntegrationEvent（对账/审计域库存对账、未来跨上下文消费方）
-        RegisterHandler<StockConfirmedEvent, StockConfirmedIntegrationEvent>(e =>
-            new StockConfirmedIntegrationEvent(e.SkuId, e.OrderId, e.Quantity));
-
-        // StockReleasedEvent → StockReleasedIntegrationEvent（对账/审计域库存对账、未来跨上下文消费方）
-        RegisterHandler<StockReleasedEvent, StockReleasedIntegrationEvent>(e =>
-            new StockReleasedIntegrationEvent(e.SkuId, e.OrderId, e.Quantity));
+        // 双轨下线 DEC-4（2026-09-22）：Order 侧 StockReserved/Confirmed/Released 领域事件
+        // 随本地库存实现一并删除 —— 库存回执事件由 Inventory BC 的应用服务直接发布，
+        // Order 不再拥有库存领域事件，也不再存在"对账/审计域"对 Order 库存事件的依赖。
     }
 }

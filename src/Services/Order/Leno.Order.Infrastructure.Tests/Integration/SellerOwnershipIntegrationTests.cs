@@ -1,3 +1,4 @@
+using Leno.Order.Application.Abstractions;
 using FluentAssertions;
 using Leno.Infrastructure.Abstractions;
 using Leno.Infrastructure.Persistence;
@@ -39,7 +40,7 @@ public class SellerOwnershipIntegrationTests : CrossBcIntegrationTestBase<OrderD
         services.AddScoped<IOrderRepository, EfCoreOrderRepository>();
 
         // 防腐层 Mock：Ship 路径不调用，仅为构造函数注入
-        services.AddScoped(_ => Mock.Of<IStockReservationDomainService>());
+        services.AddScoped(_ => Mock.Of<IInventoryGateway>());
         services.AddScoped(_ => Mock.Of<IPromotionAntiCorruptionService>());
         services.AddScoped(_ => Mock.Of<IPointsAntiCorruptionService>());
         services.AddScoped(_ => Mock.Of<IEventBus>());

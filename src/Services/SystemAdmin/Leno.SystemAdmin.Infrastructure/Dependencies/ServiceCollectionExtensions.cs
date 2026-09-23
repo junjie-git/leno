@@ -86,21 +86,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<FeatureFlagCache>();
         services.AddSingleton<IFeatureFlagCache>(sp => sp.GetRequiredService<FeatureFlagCache>());
 
-        services.AddQuartz(q =>
-        {
-            q.UseSimpleTypeLoader();
-            q.UseDefaultThreadPool(tp => tp.MaxConcurrency = 10);
-
-            // L-04: DLQ 清理作业，默认每小时执行一次，可通过 DlqCleanup:CronExpression 配置
-            var dlqCleanupCron = configuration["DlqCleanup:CronExpression"] ?? "0 0 * * * ?";
-            var dlqCleanupJobKey = new JobKey("dlq-cleanup", "systemadmin");
-            q.AddJob<DlqCleanupJob>(opts => opts.WithIdentity(dlqCleanupJobKey));
-            q.AddTrigger(opts => opts
-                .ForJob(dlqCleanupJobKey)
-                .WithIdentity("dlq-cleanup-trigger", "systemadmin")
-                .WithCronSchedule(dlqCleanupCron));
-        });
-        services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
+        // Quartz 调度器由共享内核（AddEventBus）统一注册：持久化 + 聚类（双轨下线 DEC-2 决策 (b)，2026-09-21）。
+        // 本 BC 的 DLQ 清理作业经 AddLenoApi 的 configureScheduler 回调注册
+        //（见 Program.cs 与 RegisterSystemAdminSchedulerJobs）。
+        // ⚠️ 不得在此重复调用 AddQuartz / AddQuartzHostedService ——
+        //    重复注册会让后者的调度器配置覆盖前者，且容器内出现两套调度器。
 
         services.AddScoped<IFeatureFlagEvaluator, FeatureFlagEvaluatorImpl>();
         services.AddHttpClient<StatisticsMetricsQueryClient>();
@@ -184,6 +174,31 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IServerMonitorAppService, ServerMonitorAppService>();
 
         return services;
+    }
+
+    /// <summary>
+    /// 向共享 Quartz 调度器注册 SystemAdmin 的作业（双轨下线 DEC-2 决策 (b)）。
+    /// <para>
+    /// Quartz 调度器由共享内核（AddEventBus）统一注册并持久化（独立 LenoScheduler 库）；
+    /// 本 BC 通过 <c>AddLenoApi</c> 的 <c>configureScheduler</c> 回调注册 DLQ 清理作业
+    /// （L-04：默认每小时执行一次，可通过 DlqCleanup:CronExpression 配置）。
+    /// </para>
+    /// </summary>
+    public static void RegisterSystemAdminSchedulerJobs(
+        this IServiceCollectionQuartzConfigurator scheduler,
+        IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(scheduler);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        var dlqCleanupCron = configuration["DlqCleanup:CronExpression"] ?? "0 0 * * * ?";
+        var dlqCleanupJobKey = new JobKey("dlq-cleanup", "systemadmin");
+
+        scheduler.AddJob<DlqCleanupJob>(opts => opts.WithIdentity(dlqCleanupJobKey));
+        scheduler.AddTrigger(opts => opts
+            .ForJob(dlqCleanupJobKey)
+            .WithIdentity("dlq-cleanup-trigger", "systemadmin")
+            .WithCronSchedule(dlqCleanupCron));
     }
 
     /// <summary>

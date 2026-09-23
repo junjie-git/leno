@@ -275,7 +275,6 @@ public class AuthenticationAppServiceOAuthTests
     {
         var options = Options.Create(new JwtOptions
         {
-            SigningKey = ValidSigningKey,
             Issuer = "leno-identity-test",
             Audience = "leno-clients-test",
             AccessTokenExpirationMinutes = 30,

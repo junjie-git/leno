@@ -103,9 +103,8 @@ public sealed class SystemAdminApiFactory : WebApplicationFactory<Program>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Jwt:SecretKey"] = "test-secret-key-at-least-32-bytes-long-for-hs256-validation",
-                ["Jwt:Issuer"] = "Leno.UserAuth",
-                ["Jwt:Audience"] = "Leno.Clients",
+                ["Jwt:Issuer"] = "leno-identity",
+                ["Jwt:Audience"] = "leno-clients",
                 ["Security:InternalApiKey:SystemAdmin"] = new string('a', 44),
                 ["Security:InternalApiKey:Shared"] = new string('b', 44),
                 ["InternalAuth:ApiKey"] = "",

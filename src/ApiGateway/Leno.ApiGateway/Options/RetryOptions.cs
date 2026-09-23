@@ -39,7 +39,7 @@ public static class RetryRouteTypes
     public static readonly HashSet<string> RetryEnabledClusters = new()
     {
         "user-auth", "product", "cart", "order", "promotion",
-        "payment", "points", "review-aftersales", "seller-shop",
+        "payment", "points", "review", "after-sales", "seller-shop",
         "notification", "system-admin"
     };
 

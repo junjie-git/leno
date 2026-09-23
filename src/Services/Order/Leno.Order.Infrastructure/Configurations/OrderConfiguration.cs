@@ -47,7 +47,8 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<OrderAggregate
         builder.HasQueryFilter(o => !o.IsDeleted);
 
         // 乐观并发控制：RowVersion 由数据库自动生成与校验，并发写入时抛 DbUpdateConcurrencyException
-        builder.Property(o => o.RowVersion).HasColumnName("row_version").IsRowVersion();
+        // 双轨下线 F5（2026-09-23）：列名统一为 version（与 BaseDbContext 的全局约定一致，原 row_version 已迁移）
+        builder.Property(o => o.RowVersion).HasColumnName("version").IsRowVersion();
 
         builder.Property(o => o.CreatedAt).HasColumnName("created_at");
         builder.Property(o => o.UpdatedAt).HasColumnName("updated_at");

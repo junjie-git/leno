@@ -1,0 +1,45 @@
+﻿BuildingBlocks\Leno.Infrastructure.Persistence\Configuration\ConfigCenterExtensions.cs:168 :: public static bool ValidateSensitiveConfig(this IConfiguration configuration)
+BuildingBlocks\Leno.Testing\Fixtures\TestWebHostHelper.cs:12 :: /// 1. Program.cs 启动期敏感配置校验（ValidateSensitiveConfig）在 Testing 环境缺失即抛异常——提供占位键；
+BuildingBlocks\Leno.Testing\Fixtures\TestWebHostHelper.cs:39 :: /// 为测试宿主注入全部敏感配置占位键，通过 <c>ValidateSensitiveConfig</c> 的启动期校验。
+Services\AccessControl\Leno.AccessControl.Api\Program.cs:29 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\AfterSales\Leno.AfterSales.Api\Program.cs:64 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\Cart\Leno.Cart.Api\Program.cs:48 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\Identity\Leno.Identity.Api\Program.cs:30 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\Inventory\Leno.Inventory.Api\Program.cs:35 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\Membership\Leno.Membership.Api\Program.cs:41 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\Notification\Leno.Notification.Api\Program.cs:29 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\Order\Leno.Order.Api\Program.cs:30 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\Payment\Leno.Payment.Api\Program.cs:30 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\Points\Leno.Points.Api\Program.cs:44 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\Product\Leno.Product.Api\Program.cs:30 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\Promotion\Leno.Promotion.Api\Program.cs:34 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\Review\Leno.Review.Api\Program.cs:30 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\SellerShop\Leno.SellerShop.Api\Program.cs:31 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\SystemAdmin\Leno.SystemAdmin.Api\Program.cs:31 :: if (!app.Configuration.ValidateSensitiveConfig())
+Services\UserCenter\Leno.UserCenter.Api\Program.cs:28 :: if (!app.Configuration.ValidateSensitiveConfig())
+### 校验失败是否阻断启动（看调用上下文）
+        // Development / Testing 保持现状：本地默认 localhost 配置合法，不破坏开发与测试体验。
+        // Testing（单元/集成测试宿主）跳过校验：Api.Tests 使用本地默认配置起真实宿主，
+        // 若不跳过会被 fail-fast 误杀（run #8 中 73 个 Api 测试因此失败）。
+        if (_environment.IsDevelopment() || _environment.IsEnvironment("Testing"))
+        {
+            _logger.LogDebug(
+                "{Env} 环境跳过启动配置校验 ServiceName={ServiceName}", _environment.EnvironmentName, _serviceName);
+            return Task.CompletedTask;
+        }
+
+        var problems = LenoStartupConfigurationValidator.GetInvalidConfigurationKeys(_configuration, _serviceName);
+        if (problems.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"[Leno 启动校验失败] {_serviceName}（{_environment.EnvironmentName}）关键配置缺失或仍为本地默认值，拒绝启动。" +
+                $"请通过 Consul KV（leno/config/**，生产主通道）或环境变量兜底注入：{string.Join("；", problems)}");
+        }
+
+        _logger.LogInformation(
+            "启动配置校验通过 ServiceName={ServiceName} Environment={Environment}", _serviceName, _environment.EnvironmentName);
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

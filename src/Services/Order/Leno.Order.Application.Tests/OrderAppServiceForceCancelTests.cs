@@ -1,3 +1,4 @@
+using Leno.Order.Application.Abstractions;
 using Leno.Order.Application.DTOs;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Aggregates;
@@ -24,7 +25,7 @@ public class OrderAppServiceForceCancelTests
     private readonly Mock<IOrderRepository> _orderRepoMock = new();
     private readonly Mock<IUnitOfWork> _uowMock = new();
     private readonly Mock<IOrderNumberGenerator> _orderNoGenMock = new();
-    private readonly Mock<IStockReservationDomainService> _stockSvcMock = new();
+    private readonly Mock<IInventoryGateway> _stockSvcMock = new();
     private readonly Mock<IOrderPricingDomainService> _pricingSvcMock = new();
     private readonly Mock<IFreightCalculator> _freightMock = new();
     private readonly Mock<IProductAntiCorruptionService> _productAcMock = new();
@@ -33,7 +34,7 @@ public class OrderAppServiceForceCancelTests
     private readonly Mock<ILogisticsTrackingService> _logisticsMock = new();
     private readonly Mock<ILogisticsCompanyRepository> _logisticsRepoMock = new();
     private readonly Mock<IEventBus> _eventBusMock = new();
-    private readonly Mock<IBus> _busMock = new();
+    private readonly Mock<IMessageScheduler> _messageSchedulerMock = new();
     private readonly Mock<IOrderSagaOrchestrator> _sagaMock = new();
     private readonly OrderAppService _sut;
 
@@ -51,7 +52,7 @@ public class OrderAppServiceForceCancelTests
             _stockSvcMock.Object, _pricingSvcMock.Object, _freightMock.Object,
             _productAcMock.Object, _promoAcMock.Object, _pointsAcMock.Object,
             _logisticsMock.Object, _logisticsRepoMock.Object,
-            _eventBusMock.Object, _busMock.Object, _sagaMock.Object);
+            _eventBusMock.Object, _messageSchedulerMock.Object, _sagaMock.Object);
     }
 
     [Fact]

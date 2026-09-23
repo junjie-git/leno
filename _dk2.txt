@@ -1,0 +1,2 @@
+### inventory Dockerfile 是否存在
+True

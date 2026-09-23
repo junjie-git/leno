@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Leno.Inventory.Infrastructure.Repositories;
 
 /// <summary>
-/// 库存预占聚合 EF Core 仓储实现，提供按 SKU 维度的聚合加载与持久化。
-/// 配合 <see cref="RedisInventoryRepository"/> 双写策略，使 DB 成为聚合审计/对账源。
-/// 迁移自 Order BC 的 EfCoreStockReservationRepository，更新命名空间与 DbContext 引用。
+/// 库存台账仓储 EF Core 实现。
+/// 唯一约束 (order_id, sku_id) 由 <see cref="StockReservationConfiguration"/> 声明，
+/// 并发/重复预占在数据库层面被拒绝，由应用服务捕获后按幂等重放处理。
 /// </summary>
 public sealed class EfCoreStockReservationRepository : IStockReservationRepository
 {
@@ -24,29 +24,32 @@ public sealed class EfCoreStockReservationRepository : IStockReservationReposito
         => _context.StockReservations.FirstOrDefaultAsync(s => s.Id == id, ct);
 
     /// <inheritdoc />
-    public Task<StockReservation?> GetBySkuIdAsync(Guid skuId, CancellationToken ct = default)
-        => _context.StockReservations.FirstOrDefaultAsync(s => s.SkuId == skuId, ct);
+    public async Task<IReadOnlyList<StockReservation>> GetByOrderAsync(Guid orderId, CancellationToken ct = default)
+    {
+        var entries = await _context.StockReservations
+            .Where(s => s.OrderId == orderId)
+            .OrderBy(s => s.CreatedAt)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        return entries;
+    }
 
     /// <inheritdoc />
-    public async Task<StockReservation> GetOrCreateAsync(Guid skuId, CancellationToken ct = default)
+    public async Task AddRangeAsync(IReadOnlyList<StockReservation> entries, CancellationToken ct = default)
     {
-        var existing = await _context.StockReservations.FirstOrDefaultAsync(s => s.SkuId == skuId, ct);
-        if (existing is not null)
-        {
-            return existing;
-        }
-
-        // 创建基线为 0 的新聚合，待 SetBaseLineAsync 同步基线后才能正确执行 ReserveStock
-        var reservation = StockReservation.Create(Guid.NewGuid(), skuId, 0);
-        await _context.StockReservations.AddAsync(reservation, ct);
-        return reservation;
+        ArgumentNullException.ThrowIfNull(entries);
+        await _context.StockReservations.AddRangeAsync(entries, ct).ConfigureAwait(false);
     }
+
+    /// <inheritdoc />
+    public Task<bool> ExistsForOrderAsync(Guid orderId, CancellationToken ct = default)
+        => _context.StockReservations.AnyAsync(s => s.OrderId == orderId, ct);
 
     /// <inheritdoc />
     public async Task AddAsync(StockReservation aggregate, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(aggregate);
-        await _context.StockReservations.AddAsync(aggregate, ct);
+        await _context.StockReservations.AddAsync(aggregate, ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc />

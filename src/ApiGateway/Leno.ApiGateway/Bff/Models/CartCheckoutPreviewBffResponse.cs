@@ -13,6 +13,6 @@ public sealed class CartCheckoutPreviewBffResponse
     /// <summary>优惠明细（来自 Promotion BC <c>/internal/v1/promotions/calculate</c>）。</summary>
     public JsonElement? Promotion { get; init; }
 
-    /// <summary>积分抵扣试算（来自 PointsMembership BC <c>/internal/v1/points/trial-offset</c>）。</summary>
+    /// <summary>积分抵扣试算（来自 Points BC <c>/internal/v1/points/trial-offset</c>）。</summary>
     public JsonElement? PointsTrialOffset { get; init; }
 }

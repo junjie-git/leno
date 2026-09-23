@@ -100,7 +100,7 @@ public sealed class ExportBackgroundService : BackgroundService
             var uploadResult = await fileStorage.UploadAsync(stream, fileName, contentType, "export", ct);
 
             task.MarkCompleted(rows.Count, uploadResult.Size, uploadResult.Url);
-            await unitOfWork.SaveChangesAsync(ct);
+            await unitOfWork.SaveEntitiesAsync(ct);
 
             _logger.LogInformation("导出任务完成 TaskId={TaskId} Records={Count}", task.Id, rows.Count);
         }
@@ -108,7 +108,7 @@ public sealed class ExportBackgroundService : BackgroundService
         {
             _logger.LogError(ex, "导出任务失败 TaskId={TaskId}", task.Id);
             task.MarkFailed(ex.Message);
-            await unitOfWork.SaveChangesAsync(ct);
+            await unitOfWork.SaveEntitiesAsync(ct);
         }
     }
 }

@@ -49,15 +49,15 @@ kubectl create namespace leno
 kubectl config set-context --current --namespace=leno
 ```
 
-**LENO_* 环境变量清单**（三方已核对一致：`.env.example` ↔ `create-secrets.ps1` BcList ↔ `kv-seed.json`，均为 19 个 BC 键）：
+**LENO_* 环境变量清单**（三方已核对一致：`.env.example` ↔ `create-secrets.ps1` BcList ↔ `kv-seed.json`，均为 16 个 BC 键）：
 
 | 变量 | 用途 | 必填 |
 |---|---|---|
 | `MSSQL_SA_PASSWORD` | mssql SA 密码（`leno-staging-mssql` Secret） | ✅ |
-| `JWT_SECRET_KEY` | JWT 密钥（`leno-security-jwt` Secret + KV `Jwt__SecretKey`），≥64 字节 | ✅ |
+| `JWT_RSA_PRIVATE_KEY_PEM` / `JWT_RSA_PUBLIC_KEY_PEM` | Identity RS256 签名密钥对（PEM；生产走 AKV，`JwtSigning__*`），消费方经 JWKS 拉公钥无密钥配置 | ✅ |
 | `INTERNAL_AUTH_API_KEY` | 内部鉴权（`leno-security-jwt` Secret + KV `InternalAuth__ApiKey`），≥32 字节 | ✅ |
 | `LENO_INTERNAL_API_KEY_SHARED` | 服务间鉴权 Shared（KV `Security__InternalApiKey__Shared`），≥32 字节 | ✅ |
-| `LENO_DB_{19 个 BC 大写名}` | 连接串（Secret `leno-db-connectionstrings` + KV `ConnectionStrings__*`） | ✅ |
+| `LENO_DB_{16 个 BC 大写名}` | 连接串（Secret `leno-db-connectionstrings` + KV `ConnectionStrings__*`） | ✅ |
 | `LENO_REDIS_CONFIGURATION` | Redis Sentinel 连接串（步骤 2 安装 Redis 后回填） | ✅ |
 | `LENO_RABBITMQ_HOST/PORT/USERNAME/PASSWORD/VIRTUALHOST` | MQ（`leno-mq-rabbitmq` Secret + KV `RabbitMQ__*`） | PASSWORD 必填 |
 | `LENO_ES_URI` | ES 地址（`leno-es-connection` Secret + KV `Elasticsearch__Uri`） | ✅ |
@@ -164,7 +164,6 @@ pwsh deploy/scripts/create-secrets.ps1 -Namespace leno
 ```bash
 # leno-security-jwt：deployment.yaml 无条件引用（externalSecrets.enabled=true 时 chart 不渲染它）
 kubectl -n leno create secret generic leno-security-jwt \
-  --from-literal=secret-key="${JWT_SECRET_KEY}" \
   --from-literal=internal-api-key="${INTERNAL_AUTH_API_KEY}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
@@ -256,7 +255,7 @@ helm install loki grafana/loki-stack -n leno -f deploy/staging/loki-staging-valu
 
 ## 遗留事项（按重要性排序）
 
-1. **`leno-security-jwt` 无过渡态自动化**：`create-secrets.ps1` 不创建它，而 `externalSecrets.enabled=true` 时 chart 也不渲染 → 步骤 4.2 手工建。建议后续给 `create-secrets.ps1` 增加 JWT/InternalAuth 两个键（复用 `JWT_SECRET_KEY`/`INTERNAL_AUTH_API_KEY`）。
+1. **`leno-security-jwt` 无过渡态自动化**：`create-secrets.ps1` 不创建它，而 `externalSecrets.enabled=true` 时 chart 也不渲染 → 步骤 4.2 手工建。建议后续给 `create-secrets.ps1` 增加 InternalAuth 键（复用 `INTERNAL_AUTH_API_KEY`）；JWT 密钥已改 RS256（Identity 持私钥，消费方经 JWKS 拉公钥，无对称密钥可配）。
 2. **`externalSecrets.enabled: true` 名不符实**（D5 过渡态已知）：chart 无 ExternalSecret 模板、`backend: consul` 的 provider 不存在。切换目标态时需改 values（`backend: vault`）并补 ESO SecretStore/ExternalSecret 清单。
 3. **业务服务 Consul ACL token 注入（已处置）**：原差距为代码支持 `Consul:Token` 配置键但 chart 未注入。已修复：`deployment.yaml` 新增 `Consul__Token` env（从 `externalDependencies.consul.tokenSecret` 引用，values-staging/prod 启用 `leno-consul-token` Secret，values-dev 不注入）。后续改进项：prod 换用专用最小权限 token（kv-read + 服务注册），目标态经 ESO+Vault 分发。
 4. **`leno_app` 数据库账号密码**当前直接复用 `MSSQL_SA_PASSWORD`（staging 从简）；prod 独立密码并按最小权限收敛。

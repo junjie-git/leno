@@ -1,0 +1,4 @@
+=== docker images rc=0
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+=== docker ps -a rc=0
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES

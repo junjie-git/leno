@@ -6,7 +6,7 @@ namespace Leno.ApiGateway.Bff.Controllers;
 /// <summary>
 /// 商品详情 BFF 聚合端点。
 /// <para>
-/// 并行调用 Product BC 的商品详情接口与 ReviewAfterSales BC 的评论摘要接口，
+/// 并行调用 Product BC 的商品详情接口与 Review BC 的评论摘要接口，
 /// 聚合返回 <see cref="ProductDetailBffResponse"/>。
 /// </para>
 /// </summary>
@@ -18,7 +18,7 @@ public sealed class ProductDetailBffController : ControllerBase
     private const string ReviewSummarySource = "review-summary";
 
     private const string ProductServiceBase = "http://product-api:8080";
-    private const string ReviewServiceBase = "http://reviewaftersales-api:8080";
+    private const string ReviewServiceBase = "http://review-api:8080";
 
     private readonly IBffForwarderService _forwarder;
     private readonly ILogger<ProductDetailBffController> _logger;

@@ -1,0 +1,82 @@
+﻿### ConfigCenterExtensions 130-190（降级逻辑）
+                        }
+                    };
+
+                    // 启用可选配置：Consul 不可用时仍可启动（回退到 appsettings.json）
+                    options.Optional = true;
+
+                    // 启用热重载：Consul 中的变更实时反映到 IOptionsSnapshot
+                    options.ReloadOnChange = true;
+
+                    // 轮询间隔 30 秒
+                    options.PollWaitTime = TimeSpan.FromSeconds(30);
+
+                    // 转换键名：Consul 中的 "Payment:Alipay:AppId" 映射到 .NET 配置的 "Payment:Alipay:AppId"
+                    options.OnLoadException = loadExceptionContext =>
+                    {
+                        // Consul 加载失败时忽略，回退到本地配置
+                        loadExceptionContext.Ignore = true;
+                    };
+
+                    configureConsul?.Invoke(options);
+                });
+        }
+        catch (Exception ex) when (builder.Environment.IsProduction())
+        {
+            // M5.2：生产环境 Consul 不可达时降级为 warning，使用本地 appsettings 兜底
+            Console.WriteLine($"[WARN] Consul KV 配置中心不可达，使用本地配置兜底：{ex.Message}");
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// 验证所有敏感配置键是否已从 Consul 正确加载。
+    /// 在应用启动后调用，确保关键密钥不缺失。
+    /// M5.2：新增 InternalApiKey 各 BC 独立校验——若 <c>Service:Name</c> 已配置，
+    /// 优先校验 <c>Security:InternalApiKey:{BcName}</c>；缺失时降级为 Shared key（兼容期 warning），
+    /// 二者皆缺则视为校验失败。Service:Name 未配置时跳过 BC 独立校验（兼容期）。
+    /// </summary>
+    public static bool ValidateSensitiveConfig(this IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        var missing = SensitiveConfigKeys
+            .Where(key => string.IsNullOrWhiteSpace(configuration[key]))
+            .ToList();
+
+        // M5.2: InternalApiKey 各 BC 独立校验
+        var bcName = configuration["Service:Name"];
+        if (string.IsNullOrWhiteSpace(bcName))
+        {
+            // Service:Name 未配置时不阻断（兼容期）
+            Console.WriteLine("[WARN] Service:Name 配置缺失，跳过 InternalApiKey 独立校验");
+        }
+        else
+        {
+            var internalKey = configuration[$"Security:InternalApiKey:{bcName}"];
+            if (string.IsNullOrWhiteSpace(internalKey))
+            {
+                // F2.4 兼容期：若 BC 仍用共用 key，降级为 warning
+                var sharedKey = configuration["Security:InternalApiKey:Shared"];
+
+### AddLenoConsulConfig 调用方
+AccessControl\Leno.AccessControl.Api\Program.cs :: builder.AddLenoConsulConfig();
+AfterSales\Leno.AfterSales.Api\Program.cs :: builder.AddLenoConsulConfig();
+Cart\Leno.Cart.Api\Program.cs :: builder.AddLenoConsulConfig();
+Identity\Leno.Identity.Api\Program.cs :: builder.AddLenoConsulConfig();
+Inventory\Leno.Inventory.Api\Program.cs :: builder.AddLenoConsulConfig();
+Membership\Leno.Membership.Api\Program.cs :: builder.AddLenoConsulConfig();
+Notification\Leno.Notification.Api\Program.cs :: builder.AddLenoConsulConfig();
+Order\Leno.Order.Api\Program.cs :: builder.AddLenoConsulConfig();
+Payment\Leno.Payment.Api\Program.cs :: builder.AddLenoConsulConfig();
+Points\Leno.Points.Api\Program.cs :: builder.AddLenoConsulConfig();
+Product\Leno.Product.Api\Program.cs :: builder.AddLenoConsulConfig();
+Promotion\Leno.Promotion.Api\Program.cs :: builder.AddLenoConsulConfig();
+Review\Leno.Review.Api\Program.cs :: builder.AddLenoConsulConfig();
+SellerShop\Leno.SellerShop.Api\Program.cs :: builder.AddLenoConsulConfig();
+SystemAdmin\Leno.SystemAdmin.Api\Program.cs :: builder.AddLenoConsulConfig();
+UserCenter\Leno.UserCenter.Api\Program.cs :: builder.AddLenoConsulConfig();
+
+### kv-seed.json 全部键
+kv-seed.json

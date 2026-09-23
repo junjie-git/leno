@@ -40,7 +40,8 @@ public class SellerShopApiTests : IClassFixture<WebApplicationFactory<Program>>
 
             builder.ConfigureServices(services =>
             {
-                services.AddSingleton(_shopAppServiceMock.Object);
+                TestWebHostHelper.RemoveQuartzSchedulerServices(services);
+services.AddSingleton(_shopAppServiceMock.Object);
                 services.AddSingleton(_dashboardAppServiceMock.Object);
                 services.AddSingleton(_currentUserMock.Object);
                 services.AddSingleton(_dashboardQueryHandlerMock.Object);
@@ -144,25 +145,21 @@ public class SellerShopApiTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task GetSellerDashboard_WithSellerRole_ShouldReturn200()
     {
         SetupSellerAuth();
-        var dashboard = new SellerDashboardDto
-        {
-            ShopId = ShopId,
-            ShopName = "测试店铺",
-            Status = ShopStatus.Active,
-            ProductCount = 10,
-            TotalOrders = 50,
-            PendingOrders = 5,
-            CompletedOrders = 40,
-            TotalRevenue = 9999.99m,
-            TodayOrderCount = 3,
-            TodaySalesAmount = 299.00m,
-            TodaySalesCurrency = "CNY",
-            TodayAvgRating = 4.5m,
-            TodayRatingCount = 2,
-            TodayRefundCount = 0
-        };
-        _dashboardAppServiceMock.Setup(s => s.GetDashboardAsync(UserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(dashboard);
+        _shopAppServiceMock.Setup(s => s.GetMyShopAsync(UserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateShopDto());
+        _dashboardAppServiceMock
+            .Setup(s => s.GetShopMetricsAsync(ShopId, It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ShopMetricsDto>());
+        // 双轨下线 E2：累计指标来自 ES 读模型（QueryHandler Mock；SQL 路径已删除）
+        _dashboardQueryHandlerMock
+            .Setup(h => h.HandleAsync(It.Is<ShopDashboardQuery>(q => q.ShopId == ShopId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ShopDashboardResult
+            {
+                ShopId = ShopId,
+                ShopName = "测试店铺",
+                TotalOrders = 50,
+                TotalSales = 9999.99m
+            });
 
         var response = await _client.GetAsync("/api/seller/dashboard");
 

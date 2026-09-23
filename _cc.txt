@@ -1,0 +1,19 @@
+﻿docker : time="2026-09-23T16:21:39+08:00" level=warning msg="The \"MSSQL_SA_PAS
+SWORD\" variable is not set. Defaulting to a blank string."
+所在位置 行:445 字符: 94
++ ... tion "D:\work\learn\Leno"; docker compose config --quiet 2>&1 | Out-F ...
++                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (time="2026-09-2... blank string." 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+time="2026-09-23T16:21:39+08:00" level=warning msg="The \"MSSQL_SA_PASSWORD\" v
+ariable is not set. Defaulting to a blank string."
+time="2026-09-23T16:21:39+08:00" level=warning msg="The \"RABBITMQ_DEFAULT_USER
+\" variable is not set. Defaulting to a blank string."
+time="2026-09-23T16:21:39+08:00" level=warning msg="The \"RABBITMQ_DEFAULT_PASS
+\" variable is not set. Defaulting to a blank string."
+time="2026-09-23T16:21:39+08:00" level=warning msg="The \"GF_SECURITY_ADMIN_USE
+R\" variable is not set. Defaulting to a blank string."
+time="2026-09-23T16:21:39+08:00" level=warning msg="The \"GF_SECURITY_ADMIN_PAS
+SWORD\" variable is not set. Defaulting to a blank string."

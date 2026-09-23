@@ -17,6 +17,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 
+using Leno.Testing.Fixtures;
+
 namespace Leno.Review.Api.Tests;
 
 /// <summary>
@@ -58,6 +60,7 @@ public class ReviewApiTests : IClassFixture<WebApplicationFactory<Program>>
 
             builder.ConfigureServices(services =>
             {
+            TestWebHostHelper.RemoveQuartzSchedulerServices(services);
                 services.AddSingleton(_reviewAppServiceMock.Object);
                 services.AddSingleton(_currentUserMock.Object);
 

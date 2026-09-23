@@ -5,9 +5,18 @@ using Leno.SharedKernel.Abstractions;
 namespace Leno.Inventory.Domain.Aggregates;
 
 /// <summary>
-/// SKU 库存基线聚合根，权威持有 SKU 的可用、预占与扣减库存（中期阶段统一真源）。
-/// 高频预占由订单域在 Redis 完成，本聚合通过消费订单域库存事件同步基线（最终一致）。
-/// 卖家补货/盘点修正直接操作本聚合并发布 <see cref="StockAdjustedDomainEvent"/>。
+/// SKU 库存基线聚合根 —— SKU 维度的库存计数器（可用 / 预占 / 已扣减），库存数量的唯一权威。
+/// <para>
+/// 与台账（<see cref="StockReservation"/>，订单 × SKU 维度）的分工：
+/// 基线回答"这个 SKU 还剩多少可卖"，台账回答"这笔占用属于哪个订单、处于什么状态"。
+/// 预占/确认/释放/归还四个高频操作由应用服务在**同一数据库事务**内以原子条件 UPDATE
+/// 更新基线、写入/迁移台账（计数器语义不适合走聚合加载-修改-保存，见基线仓储实现）；
+/// 本聚合保留创建（首次基线同步）与卖家调整（补货）两个非争用路径。
+/// </para>
+/// <para>
+/// 高频预占由 Order BC 直写 Redis 的旧模式已废除（双轨下线 DEC-4，2026-09-22）：
+/// 库存以 Inventory BC 为唯一权威，不再存在"订单域 Redis 权威值镜像"。
+/// </para>
 /// </summary>
 /// <remarks>
 /// 本聚合系由 Product BC 迁入 Inventory BC 的统一真源；Product BC 中
@@ -76,83 +85,45 @@ public sealed class StockBaseline : AggregateRoot
     }
 
     /// <summary>
-    /// 补货，可用库存上调并发布 <see cref="StockAdjustedDomainEvent"/> 通知订阅方同步基线。
+    /// 卖家补货/盘点修正：可用库存按增量上调或下调，并发布 <see cref="StockAdjustedDomainEvent"/>
+    /// 通知下游（基线由 Product 侧同步的场景经事件回流）。
     /// </summary>
-    /// <param name="qty">补货数量，须 > 0。</param>
-    public void Replenish(int qty)
+    /// <param name="delta">库存增量，正数为补货、负数为盘点下调，不可为 0；调整后可用不可为负。</param>
+    public void Adjust(int delta)
     {
-        if (qty <= 0)
+        if (delta == 0)
         {
-            throw new InventoryDomainException("补货数量须大于 0", "STOCK_REPLENISH_INVALID");
+            throw new InventoryDomainException("库存调整增量不可为 0", "STOCK_ADJUST_DELTA_ZERO");
         }
 
-        AvailableQty += qty;
+        var newAvailable = AvailableQty + delta;
+        if (newAvailable < 0)
+        {
+            throw new InventoryDomainException(
+                $"调整后可用库存不可为负：{newAvailable}", "STOCK_AVAILABLE_NEGATIVE");
+        }
 
-        AddDomainEvent(new StockAdjustedDomainEvent(Id, SkuId, ProductId, AvailableQty, qty, DateTime.UtcNow));
+        AvailableQty = newAvailable;
+
+        AddDomainEvent(new StockAdjustedDomainEvent(Id, SkuId, ProductId, AvailableQty, delta, DateTime.UtcNow));
     }
 
     /// <summary>
-    /// 同步预占库存（消费订单域预占事件，将订单域 Redis 权威值镜像到基线）。
+    /// 应用商品域基线同步（消费 <c>StockAdjustedEvent</c>）：将可用库存设置为商品域权威值。
+    /// <para>
+    /// 语义说明：商品域发布的 <c>StockAdjustedEvent</c> 携带调整后的**可用库存绝对值**，
+    /// 本方法直接覆盖 <see cref="AvailableQty"/>；已预占数量（Reserved）不受影响 ——
+    /// 预占对应未支付订单，商品侧调价/补货不解除既有占用。
+    /// </para>
     /// </summary>
-    /// <param name="reservedQty">订单域当前预占总量，须 ≥ 0 且 ≤ 可用库存。</param>
-    public void SyncReserved(int reservedQty)
+    /// <param name="availableQty">商品域权威可用库存，须 ≥ 0。</param>
+    public void ApplyBaselineSync(int availableQty)
     {
-        if (reservedQty < 0)
+        if (availableQty < 0)
         {
-            throw new InventoryDomainException("预占库存不可为负", "STOCK_RESERVED_NEGATIVE");
+            throw new InventoryDomainException("可用库存不可为负", "STOCK_AVAILABLE_NEGATIVE");
         }
 
-        if (reservedQty > AvailableQty)
-        {
-            throw new InventoryDomainException("预占库存不可超过可用库存", "STOCK_RESERVED_EXCEED");
-        }
-
-        ReservedQty = reservedQty;
-    }
-
-    /// <summary>
-    /// 同步扣减库存（消费订单域支付事件，将预占转为扣减并移出可用）。
-    /// </summary>
-    /// <param name="deductedQty">订单域当前累计扣减总量，须 ≥ 0。</param>
-    public void SyncDeducted(int deductedQty)
-    {
-        if (deductedQty < 0)
-        {
-            throw new InventoryDomainException("扣减库存不可为负", "STOCK_DEDUCTED_NEGATIVE");
-        }
-
-        var delta = deductedQty - DeductedQty;
-        if (delta > 0)
-        {
-            // 先计算新值并校验，再赋值，避免异常抛出后聚合状态已被修改
-            var newAvailable = AvailableQty - delta;
-            if (newAvailable < 0)
-            {
-                throw new InventoryDomainException("可用库存不可为负", "STOCK_AVAILABLE_NEGATIVE");
-            }
-            AvailableQty = newAvailable;
-            ReservedQty = Math.Max(0, ReservedQty - delta);
-        }
-
-        DeductedQty = deductedQty;
-    }
-
-    /// <summary>
-    /// 同步释放库存（消费订单域取消事件，释放对应预占）。
-    /// </summary>
-    /// <param name="releasedQty">本次释放数量，须 ≥ 0 且 ≤ 当前预占。</param>
-    public void SyncReleased(int releasedQty)
-    {
-        if (releasedQty < 0)
-        {
-            throw new InventoryDomainException("释放数量不可为负", "STOCK_RELEASED_NEGATIVE");
-        }
-
-        if (releasedQty > ReservedQty)
-        {
-            throw new InventoryDomainException("释放数量不可超过预占库存", "STOCK_RELEASED_EXCEED");
-        }
-
-        ReservedQty -= releasedQty;
+        AvailableQty = availableQty;
     }
 }

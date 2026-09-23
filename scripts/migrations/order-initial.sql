@@ -589,3 +589,112 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260922121329_RemoveStockTables'
+)
+BEGIN
+    DROP TABLE [stock_reservation_compensations];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260922121329_RemoveStockTables'
+)
+BEGIN
+    DROP TABLE [stock_reservations];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260922121329_RemoveStockTables'
+)
+BEGIN
+    DECLARE @var1 nvarchar(max);
+    SELECT @var1 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[order_saga_states]') AND [c].[name] = N'stock_reservation_ids_json');
+    IF @var1 IS NOT NULL EXEC(N'ALTER TABLE [order_saga_states] DROP CONSTRAINT ' + @var1 + ';');
+    ALTER TABLE [order_saga_states] DROP COLUMN [stock_reservation_ids_json];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260922121329_RemoveStockTables'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260922121329_RemoveStockTables', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260922165332_RenameRowVersionColumnToVersion'
+)
+BEGIN
+    EXEC sp_rename N'[orders].[row_version]', N'version', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260922165332_RenameRowVersionColumnToVersion'
+)
+BEGIN
+    EXEC sp_rename N'[order_saga_states].[row_version]', N'version', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260922165332_RenameRowVersionColumnToVersion'
+)
+BEGIN
+    EXEC sp_rename N'[order_payment_processes].[row_version]', N'version', 'COLUMN';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260922165332_RenameRowVersionColumnToVersion'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260922165332_RenameRowVersionColumnToVersion', N'10.0.0');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260922183546_RemoveSagaAndProcessManagerTables'
+)
+BEGIN
+    DROP TABLE [order_payment_processes];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260922183546_RemoveSagaAndProcessManagerTables'
+)
+BEGIN
+    DROP TABLE [order_saga_states];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260922183546_RemoveSagaAndProcessManagerTables'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260922183546_RemoveSagaAndProcessManagerTables', N'10.0.0');
+END;
+
+COMMIT;
+GO
+

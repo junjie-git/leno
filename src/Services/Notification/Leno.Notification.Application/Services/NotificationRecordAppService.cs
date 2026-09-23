@@ -113,7 +113,7 @@ public sealed class NotificationRecordAppService : INotificationRecordAppService
         // 原实现调用 MarkResend() 置为 Sending，但没有任何 Job 拾取 Sending 状态记录，导致永久卡死。
         record.RequeueForSend();
         await _recordRepository.UpdateAsync(record, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await _unitOfWork.SaveEntitiesAsync(ct);
 
         _logger.LogInformation(
             "操作员 {OperatorId} 重发死信记录 RecordId={RecordId} 已重新置为 Pending 等待 DispatchJob 拾取",

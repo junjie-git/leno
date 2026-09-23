@@ -103,11 +103,7 @@ spec:
                   name: {{ $.Values.externalDependencies.elasticsearch.connectionstringSecret }}
                   key: uri
             {{/*
-              三、鉴权引导（P0-B）：代码读取键为 Jwt:SecretKey / InternalAuth:ApiKey；
-              旧模板注入的 Security__Jwt__SecretKey 无任何读取点，已修正。
-            */}}
-            - name: Jwt__SecretKey
-              valueFrom:
+              三、鉴权引导（P0-B）：代码读取键为 InternalAuth:ApiKey；JWT 验签（RS256）经 Identity JWKS；
                 secretKeyRef:
                   name: leno-security-jwt
                   key: secret-key

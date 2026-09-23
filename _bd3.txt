@@ -1,0 +1,9 @@
+﻿D:\work\learn\Leno\src\BuildingBlocks\Leno.Infrastructure\Storage\ObjectStorageService.cs(16,21): warning CA1001: Type 'ObjectStorageService' owns disposable field(s) '_bucketEnsureLock' but is not disposable (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1001) [D:\work\learn\Leno\src\BuildingBlocks\Leno.Infrastructure\Leno.Infrastructure.csproj]
+
+Build succeeded.
+
+D:\work\learn\Leno\src\BuildingBlocks\Leno.Infrastructure\Storage\ObjectStorageService.cs(16,21): warning CA1001: Type 'ObjectStorageService' owns disposable field(s) '_bucketEnsureLock' but is not disposable (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1001) [D:\work\learn\Leno\src\BuildingBlocks\Leno.Infrastructure\Leno.Infrastructure.csproj]
+    1 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:13.51

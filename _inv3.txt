@@ -1,0 +1,44 @@
+##### src/Services/Inventory/Leno.Inventory.Infrastructure/Configurations/StockBaselineConfiguration.cs
+1: using Leno.Inventory.Domain.Aggregates;
+2: using Microsoft.EntityFrameworkCore;
+3: using Microsoft.EntityFrameworkCore.Metadata.Builders;
+4: 
+5: namespace Leno.Inventory.Infrastructure.Configurations;
+6: 
+7: /// <summary>
+8: /// StockBaseline 库存基线聚合根的 EF Core 映射配置（snake_case），从 Product BC 迁入（中期阶段统一真源）。
+9: /// SkuId 唯一索引保证一 SKU 一基线；按 ProductId 提供按商品查询库存的非唯一索引。
+10: /// </summary>
+11: public sealed class StockBaselineConfiguration : IEntityTypeConfiguration<StockBaseline>
+12: {
+13:     public void Configure(EntityTypeBuilder<StockBaseline> builder)
+14:     {
+15:         builder.ToTable("stock_baselines");
+16:         builder.HasKey(s => s.Id);
+17: 
+18:         builder.Property(s => s.Id).HasColumnName("id");
+19:         builder.Property(s => s.SkuId).HasColumnName("sku_id");
+20:         builder.Property(s => s.ProductId).HasColumnName("product_id");
+21:         builder.Property(s => s.AvailableQty).HasColumnName("available_qty");
+22:         builder.Property(s => s.ReservedQty).HasColumnName("reserved_qty");
+23:         builder.Property(s => s.DeductedQty).HasColumnName("deducted_qty");
+24: 
+25:         builder.Property(s => s.CreatedAt).HasColumnName("created_at");
+26:         builder.Property(s => s.UpdatedAt).HasColumnName("updated_at");
+27:         builder.Property(s => s.CreatedBy).HasColumnName("created_by").HasMaxLength(64);
+28:         builder.Property(s => s.UpdatedBy).HasColumnName("updated_by").HasMaxLength(64);
+29: 
+30:         builder.HasIndex(s => s.SkuId).HasDatabaseName("ix_stock_baselines_sku_id").IsUnique();
+31:         builder.HasIndex(s => s.ProductId).HasDatabaseName("ix_stock_baselines_product_id");
+32:     }
+33: }
+
+##### src/Services/Inventory/Leno.Inventory.Domain/Aggregates/StockBaseline.cs
+29: public Guid SkuId { get; private set; }
+32: public Guid ProductId { get; private set; }
+35: public int AvailableQty { get; private set; }
+38: public int ReservedQty { get; private set; }
+41: public int DeductedQty { get; private set; }
+55: public static StockBaseline Create(Guid baselineId, Guid skuId, int initialQty, Guid productId)
+92: public void Adjust(int delta)
+120: public void ApplyBaselineSync(int availableQty)

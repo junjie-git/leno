@@ -112,7 +112,7 @@ public static class ServiceCollectionExtensions
         }
 
         // 阶段三 3.11：Cart SKU 快照本地化配置 + 后台刷新队列
-        // CartSnapshotOptions 绑定 Cart 配置节，支持 Consul KV 热更新（UseSkuSnapshot 开关灰度）
+        // CartSnapshotOptions 绑定 Cart 配置节，支持 Consul KV 热更新（快照阈值/刷新参数）
         services.Configure<CartSnapshotOptions>(configuration.GetSection(CartSnapshotOptions.SectionName));
 
         // 后台快照刷新队列：BackgroundService + Channel，Singleton 生命周期（要求 CreateScope 解析 Scoped 依赖）
@@ -124,7 +124,7 @@ public static class ServiceCollectionExtensions
 
         // 阶段三 3.11：SnapshotCartPriceService 装饰器包装内部 ICartPriceService 实现
         // 优先读取本地 SkuSnapshot，过期/缺失时回退内部实现（CartPriceDispatcherAdapter 或 CartPriceService）并触发后台刷新
-        // feature flag UseSkuSnapshot=false 时透传给内部实现，保持向后兼容
+        // 双轨下线 D4（2026-09-23）：UseSkuSnapshot 开关已删除，快照优先无条件生效
         services.AddScoped<ICartPriceService>(sp =>
         {
             // 按具体类型解析内部实现，避免 ICartPriceService 自解析递归
