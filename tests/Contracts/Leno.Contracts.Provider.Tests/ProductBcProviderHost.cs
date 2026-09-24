@@ -8,11 +8,19 @@ using Microsoft.Extensions.Hosting;
 namespace Leno.Contracts.Provider.Tests;
 
 /// <summary>
+/// Provider API 夹具集合：Order/Cart 两个 Provider 验证类共享同一
+/// <see cref="ProviderApiFixture"/> 实例（单一 Kestrel 实例、固定端口 9223），
+/// 避免多测试类并行各自起宿主导致端口冲突。
+/// </summary>
+[CollectionDefinition("ProductBcProviderApi")]
+public sealed class ProductBcProviderApiCollection;
+
+/// <summary>
 /// Product BC Provider 测试 API 主机与夹具（阶段 4.10）。
 ///
 /// 在真实 TCP socket 上托管一个最小化 Product BC 契约端点
-/// （GET /internal/v1/products/skus/{skuId}），供 PactVerifier 验证。
-/// 端点从 <see cref="InMemorySkuStore"/> 取数，数据由
+/// （GET /internal/v1/products/skus/{skuId}、POST /internal/v1/products/skus/batch），
+/// 供 PactVerifier 验证。端点从 <see cref="InMemorySkuStore"/> 取数，数据由
 /// <see cref="ProviderStateMiddleware"/> 在每个交互验证前注入。
 ///
 /// 生产化扩展：可将此夹具替换为真实 Product.Api 的 Kestrel 实例
@@ -67,6 +75,27 @@ public sealed class ProviderApiFixture : IDisposable
                                     Code = StatusCodes.Status200OK,
                                     Message = "success",
                                     Data = item,
+                                });
+                            });
+
+                        // Cart BC 契约（P1#16）：POST internal/v1/products/skus/batch 批量查价，
+                        // 镜像 CartPriceService 的调用（body 为 SKU 标识数组，返回 ApiResponse<List<SkuInfo>>）
+                        endpoints.MapPost(
+                            "internal/v1/products/skus/batch",
+                            async (HttpRequest request, InMemorySkuStore store) =>
+                            {
+                                var skuIds = await request.ReadFromJsonAsync<List<Guid>>();
+                                var items = (skuIds ?? [])
+                                    .Select(store.Get)
+                                    .Where(item => item is not null)
+                                    .Select(item => item!)
+                                    .ToList();
+
+                                return Results.Ok(new ApiResponse<List<SkuInfoResultDto>>
+                                {
+                                    Code = StatusCodes.Status200OK,
+                                    Message = "success",
+                                    Data = items,
                                 });
                             });
                     });

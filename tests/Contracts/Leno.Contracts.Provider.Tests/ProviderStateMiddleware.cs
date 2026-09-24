@@ -80,22 +80,23 @@ public sealed class ProviderStateMiddleware
 
     private Task SetupProviderStateAsync(string state)
     {
-        _store.Clear();
-
         var skuId = TryExtractSkuId(state);
         if (skuId is null)
         {
-            // 未识别的状态描述：保持 store 为空（如 "does not exist" 场景）
+            // 未识别的状态描述（或 "does not exist" 场景）：清空 store，保持为空
+            _store.Clear();
             return Task.CompletedTask;
         }
 
         if (state.Contains("does not exist", StringComparison.Ordinal))
         {
-            // 显式声明不存在的 SKU：无需 seed，store 已清空
+            // 显式声明不存在的 SKU：清空 store，无需 seed
+            _store.Clear();
             return Task.CompletedTask;
         }
 
-        // seed 与 Consumer 契约预期一致的 SKU 测试数据
+        // seed 与 Consumer 契约预期一致的 SKU 测试数据。
+        // 不清空 store：同一交互可声明多个 Given（如 Cart 批量查价需要 2 个 SKU），逐个累积 seed
         _store.Seed(SkuTestFixtures.CreateSku(skuId.Value));
         return Task.CompletedTask;
     }
