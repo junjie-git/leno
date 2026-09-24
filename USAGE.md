@@ -196,7 +196,7 @@ docker compose up -d sqlserver redis rabbitmq elasticsearch consul jaeger promet
 | 资源 | 开发地址 | 凭据 |
 |---|---|---|
 | SQL Server | `localhost,1433` | `sa` / `Leno@2026`（Product 服务本地配置）或 `Leno@SqlServer2019`（compose） |
-| Redis | `localhost:6379` | 无密码 |
+| Redis | `localhost:6379` | 密码取 `REDIS_PASSWORD`（.env；compose 未设置时回退 dev 默认 `leno-redis-dev`） |
 | RabbitMQ | `localhost:5672` | `leno` / `Leno@RabbitMQ2026`，管理 UI `http://localhost:15672` |
 | Elasticsearch | `http://localhost:9200` | 无安全 |
 | Consul | `http://localhost:8500` | 无 token |

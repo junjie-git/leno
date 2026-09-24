@@ -11,7 +11,8 @@ services:
     volumes:
       - sqldata:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${MSSQL_SA_PASSWORD}' -Q 'SELECT 1' -C"]
+      # 密码从容器环境变量运行时读取，避免 docker inspect 直接可见
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -C"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -22,12 +23,19 @@ services:
     image: redis:7-alpine
     container_name: leno-redis
     ports:
-      - "6379:6379"
+      # 仅绑定本机回环，避免局域网暴露；容器间经 leno-net 互通不受影响
+      - "127.0.0.1:6379:6379"
     volumes:
       - redisdata:/data
-    command: redis-server --appendonly yes
+    environment:
+      # 供健康检查在容器内运行时读取（$$ 转义，避免 compose 启动期展开）
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-leno-redis-dev}
+    # P0 安全加固：Redis 启用 requirepass（库存预占/秒杀配额/密码重置 token 均存于此，
+    # 未授权访问即可读写）。未在 .env 设置 REDIS_PASSWORD 时回退到已公开的 dev 默认值，
+    # 保证 compose 可独立启动，但连接串必须与之一致
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 5s
       timeout: 3s
       retries: 5
