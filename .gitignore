@@ -45,3 +45,6 @@ test-results/
 *.tsbuildinfo
 .vite/
 .workbuddy/
+
+# vite 临时产物（测试运行残留）
+vite.config.ts.timestamp-*.mjs
