@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { authApi } from '@/modules/09-account/api/auth.api'
 import { logger } from '@/shared/utils/logger'
+import { AUTH_STORE_ID } from '@leno/shared/auth'
 
 /**
  * 运营后台用户视图（Operator / Admin）
@@ -56,7 +57,7 @@ export interface AuthState {
  * - fetchProfile：GET /api/users/me → 刷新 user 与 permissions
  * - logout：best-effort 调用 /api/auth/logout，无论成败都清空 state
  */
-export const useAuthStore = defineStore('auth', {
+export const useAuthStore = defineStore(AUTH_STORE_ID, {
   state: (): AuthState => ({
     token: null,
     user: null,

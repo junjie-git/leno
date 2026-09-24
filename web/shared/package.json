@@ -1,0 +1,26 @@
+{
+  "name": "@leno/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Leno 四端（buyer-app/operations/seller/system-admin）共享基础设施：HTTP 客户端、错误体系、幂等键、认证存储键、通用工具",
+  "exports": {
+    "./http": "./src/http/index.ts",
+    "./auth": "./src/auth/keys.ts",
+    "./utils/format": "./src/utils/format.ts",
+    "./utils/logger": "./src/utils/logger.ts",
+    "./utils/validators": "./src/utils/validators.ts"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dayjs": "^1.11.13"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8"
+  }
+}

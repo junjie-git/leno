@@ -143,14 +143,14 @@ describe('shared/http/client', () => {
     expect((captured as AxiosRequestConfig).headers?.Authorization).toBe('Bearer tok-xyz')
   })
 
-  it('请求拦截器注入 X-Request-Id', async () => {
+  it('请求拦截器注入 X-Trace-Id', async () => {
     let captured: AxiosRequestConfig | undefined
     client.defaults.adapter = ((config: InternalAxiosRequestConfig) => {
       captured = config
       return Promise.resolve({ data: { code: 200, message: 'ok', data: null }, status: 200, statusText: 'OK', headers: {}, config } as AxiosResponse)
     }) as AxiosInstance['defaults']['adapter']
     await client.get('/admin/users')
-    const requestId = (captured as AxiosRequestConfig).headers?.['X-Request-Id']
+    const requestId = (captured as AxiosRequestConfig).headers?.['X-Trace-Id']
     expect(typeof requestId).toBe('string')
     expect((requestId as string)).toHaveLength(36)
   })

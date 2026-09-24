@@ -1,4 +1,5 @@
 packages:
+  - web/shared
   - web/system-admin
   - web/seller
   - web/operations
