@@ -179,3 +179,12 @@
 - P0#1 关联：**运维侧轮换 SQL Server sa 密码**并评估 git 历史清理（代码侧已完成）。
 - P1#11（前端 token/'auth' 魔法 key）→ 并入第 3 批与 `@leno/shared` 提取一起做。
 - P1#13（约 10 个 IConsumer 幂等基类收敛）、P1#15-#21 及 P2 全部 → 按批次排期。
+
+### 第 3 批进展（2026-09-24 同日）
+
+| Commit | 内容 | 对应问题 |
+|---|---|---|
+| `9d0bd151` + `6d45a192` | **@leno/shared** workspace 包落地：http 模块（client/errors/idempotency）单源化，统一 X-Trace-Id + 写幂等全集（seller/system-admin 补上此保护）；`AUTH_STORE_ID` 常量消除 'auth' 魔法串；后台三端 format/logger/validators 收敛（buyer 的 format/logger 属有意领域差异保留本地）。各端 1-2 行 re-export 门面兼容深路径导入，100+ 消费方零改动。验证：四端 vitest 全绿（249/54/43/7 测试文件）、vue-tsc ×4、eslint seller+buyer | P1#18 + P1#11 |
+| `9a02e808` | **Cart BC → Product BC Pact 契约**（批量查价 POST batch）：Consumer 测试 + Provider 宿主批量端点 + 多 Given 累积 seed + xUnit Collection 共享 fixture 修端口冲突。Consumer 3/3、Provider 2/2 全绿 | P1#16 |
+
+第 3 批遗留（下轮继续）：P1#15 UserCenter 领域测试（覆盖 4%→目标 20%+）、F8 核心链路 E2E、P1#17 buyer-app 千行组件拆分、P1#13 消费者幂等基类收敛。
