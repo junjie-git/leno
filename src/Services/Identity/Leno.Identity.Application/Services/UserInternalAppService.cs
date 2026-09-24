@@ -2,6 +2,7 @@ using Leno.Identity.Application.DTOs;
 using Leno.Identity.Domain.Aggregates;
 using Leno.Identity.Domain.Exceptions;
 using Leno.Identity.Domain.Repositories;
+using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.Identity.Application.Services;
@@ -21,13 +22,16 @@ namespace Leno.Identity.Application.Services;
 public sealed class UserInternalAppService : IUserInternalAppService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<UserInternalAppService> _logger;
 
     public UserInternalAppService(
         IUserRepository userRepository,
+        IUnitOfWork unitOfWork,
         ILogger<UserInternalAppService> logger)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -56,6 +60,19 @@ public sealed class UserInternalAppService : IUserInternalAppService
             PhoneNumber = user.PhoneNumber,
             Email = user.Email
         };
+    }
+
+    /// <inheritdoc />
+    public async Task UpdateDefaultAddressAsync(Guid userId, Guid? addressId, CancellationToken ct = default)
+    {
+        var user = await RequireUserAsync(userId, ct).ConfigureAwait(false);
+
+        user.SetDefaultAddress(addressId);
+        // 经 Identity BC 的 UnitOfWork 提交：事务一致性由本 BC 负责，
+        // User 聚合的领域事件（如有）随 SaveEntitiesAsync 经 Outbox 发布
+        await _unitOfWork.SaveEntitiesAsync(ct).ConfigureAwait(false);
+
+        _logger.LogInformation("内部更新默认收货地址，UserId={UserId} AddressId={AddressId}", userId, addressId);
     }
 
     private async Task<User> RequireUserAsync(Guid userId, CancellationToken ct)

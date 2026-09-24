@@ -3,23 +3,27 @@ using Leno.Identity.Application.Services;
 using Leno.Identity.Domain.Aggregates;
 using Leno.Identity.Domain.Exceptions;
 using Leno.Identity.Domain.Repositories;
+using Leno.SharedKernel.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace Leno.Identity.Application.Tests.Application;
 
 /// <summary>
 /// UserInternalAppService 单元测试（Task A2 补齐）。
-/// 覆盖脱敏联系方式查询、完整 PII 查询、用户不存在异常、空值处理等场景。
+/// 覆盖脱敏联系方式查询、完整 PII 查询、用户不存在异常、空值处理、默认地址更新等场景。
 /// </summary>
 public class UserInternalAppServiceTests
 {
     private readonly Mock<IUserRepository> _userRepoMock = new();
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
     private readonly Mock<ILogger<UserInternalAppService>> _loggerMock = new();
     private readonly UserInternalAppService _sut;
 
     public UserInternalAppServiceTests()
     {
-        _sut = new UserInternalAppService(_userRepoMock.Object, _loggerMock.Object);
+        _unitOfWorkMock.Setup(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _sut = new UserInternalAppService(_userRepoMock.Object, _unitOfWorkMock.Object, _loggerMock.Object);
     }
 
     #region GetContactsAsync (masked)
@@ -201,6 +205,61 @@ public class UserInternalAppServiceTests
         masked.Email.Should().NotBe(full.Email, "脱敏 DTO 的邮箱不应与完整 DTO 相同");
         masked.PhoneNumber.Should().Contain("*");
         masked.Email.Should().Contain("*");
+    }
+
+    #endregion
+
+    #region UpdateDefaultAddressAsync (P0 架构修复：跨 BC 写入口)
+
+    [Fact]
+    public async Task UpdateDefaultAddressAsync_With_Valid_User_Should_Update_And_Save()
+    {
+        var user = CreateUser(email: "addr@example.com", phone: null);
+        _userRepoMock.Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+        var addressId = Guid.NewGuid();
+
+        await _sut.UpdateDefaultAddressAsync(user.Id, addressId);
+
+        user.DefaultAddressId.Should().Be(addressId, "应委托聚合根更新默认地址");
+        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once,
+            "变更必须经 UnitOfWork 提交，保证领域事件经 Outbox 发布");
+    }
+
+    [Fact]
+    public async Task UpdateDefaultAddressAsync_With_Null_Address_Should_Clear_Default()
+    {
+        var user = CreateUser(email: "clear@example.com", phone: null);
+        user.SetDefaultAddress(Guid.NewGuid());
+        _userRepoMock.Setup(r => r.GetByIdAsync(user.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        await _sut.UpdateDefaultAddressAsync(user.Id, null);
+
+        user.DefaultAddressId.Should().BeNull("addressId=null 应清除默认地址");
+        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateDefaultAddressAsync_With_Missing_User_Should_Throw_DomainException()
+    {
+        _userRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+
+        var act = async () => await _sut.UpdateDefaultAddressAsync(Guid.NewGuid(), Guid.NewGuid());
+
+        await act.Should().ThrowAsync<IdentityDomainException>()
+            .WithMessage("*用户不存在*");
+        _unitOfWorkMock.Verify(u => u.SaveEntitiesAsync(It.IsAny<CancellationToken>()), Times.Never,
+            "用户不存在时不应提交任何变更");
+    }
+
+    [Fact]
+    public async Task UpdateDefaultAddressAsync_With_Empty_UserId_Should_Throw_ArgumentException()
+    {
+        var act = async () => await _sut.UpdateDefaultAddressAsync(Guid.Empty, Guid.NewGuid());
+
+        await act.Should().ThrowAsync<ArgumentException>();
     }
 
     #endregion

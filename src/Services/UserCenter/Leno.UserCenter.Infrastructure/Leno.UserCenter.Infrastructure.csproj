@@ -3,8 +3,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Leno.UserCenter.Application\Leno.UserCenter.Application.csproj" />
     <ProjectReference Include="..\Leno.UserCenter.Domain\Leno.UserCenter.Domain.csproj" />
-    <ProjectReference Include="..\..\Identity\Leno.Identity.Domain\Leno.Identity.Domain.csproj" />
-    <ProjectReference Include="..\..\Identity\Leno.Identity.Infrastructure\Leno.Identity.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedKernel\Leno.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts\Leno.SharedContracts.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.Infrastructure\Leno.Infrastructure.csproj" />

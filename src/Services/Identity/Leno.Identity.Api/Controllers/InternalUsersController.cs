@@ -89,4 +89,27 @@ public sealed class InternalUsersController : ControllerBase
         var result = await _userInternalAppService.GetFullContactsAsync(userId, ct).ConfigureAwait(false);
         return Ok(ApiResponse.Success(result));
     }
+
+    /// <summary>
+    /// 更新用户默认收货地址引用（UserCenter 地址服务经 HTTP 防腐层调用，P0 架构修复：
+    /// 此前 UserCenter 直连 IdentityDbContext 写本域聚合，现已收口到本端点）。
+    /// 请求体 <see cref="UpdateDefaultAddressRequest"/>，<c>addressId=null</c> 表示清除默认地址。
+    /// 用户不存在由 Service 层抛 <c>IdentityDomainException</c>，全局异常中间件映射为 404。
+    /// </summary>
+    /// <param name="userId">用户标识。</param>
+    /// <param name="request">更新请求。</param>
+    /// <param name="ct">取消令牌。</param>
+    /// <response code="200">更新成功。</response>
+    /// <response code="404">用户不存在。</response>
+    [HttpPut("internal/v1/users/{userId:guid}/default-address")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateDefaultAddressAsync(
+        [FromRoute] Guid userId,
+        [FromBody] UpdateDefaultAddressRequest request,
+        CancellationToken ct)
+    {
+        await _userInternalAppService.UpdateDefaultAddressAsync(userId, request.AddressId, ct).ConfigureAwait(false);
+        return Ok(ApiResponse.Success());
+    }
 }

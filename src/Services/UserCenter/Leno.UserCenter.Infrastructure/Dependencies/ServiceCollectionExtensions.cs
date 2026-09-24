@@ -1,5 +1,5 @@
 using FluentValidation;
-using Leno.Identity.Infrastructure;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.Persistence;
 using Leno.SharedKernel.Abstractions;
 using Leno.UserCenter.Application;
@@ -39,13 +39,12 @@ public static class ServiceCollectionExtensions
         // 2. 工作单元（UserCenter BC 事务边界）
         services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<UserCenterDbContext>>();
 
-        // 3. Identity BC DbContext（跨 BC 防腐层访问 User 聚合，更新 DefaultAddressId 字段）
-        //    仅注册 DbContext，不调用 AddIdentityInfrastructure 以避免引入 OAuth/JWT 等无关服务。
-        services.AddDbContext<IdentityDbContext>(options =>
-        {
-            var identityConnectionString = configuration.GetConnectionString("IdentityDb");
-            options.UseSqlServer(identityConnectionString);
-        });
+        // 3. 跨 BC 防腐层：用户默认地址经 Identity BC 内部 API 更新（P0 架构修复）。
+        //    不再直连 IdentityDbContext 写他域聚合，改走 PUT internal/v1/users/{id}/default-address
+        //    （X-Internal-Key 鉴权），事务与领域事件由 Identity BC 自行提交
+        var identityApiUrl = configuration["ServiceUrls:IdentityApi"] ?? "http://localhost:5162";
+        services.AddHttpClient<UserDefaultAddressStore>(c => c.BaseAddress = new Uri(identityApiUrl))
+            .AddAntiCorruptionPolicies();
 
         // 4. UserCenter BC 仓储注册
         services.AddScoped<IAddressRepository, EfCoreAddressRepository>();
@@ -53,8 +52,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFavoriteRepository, EfCoreFavoriteRepository>();
         services.AddScoped<INotificationPreferencesRepository, EfCoreNotificationPreferencesRepository>();
 
-        // 5. 跨 BC 防腐层：用户默认地址存储（依赖 IdentityDbContext）
-        services.AddScoped<IUserDefaultAddressStore, UserDefaultAddressStore>();
+        // 5. 跨 BC 防腐层接口注册（实现为上方 AddHttpClient 的 typed client）
+        services.AddScoped<IUserDefaultAddressStore>(sp => sp.GetRequiredService<UserDefaultAddressStore>());
 
         // 6. UserCenter BC 应用服务注册
         services.AddScoped<IAddressAppService, AddressAppService>();

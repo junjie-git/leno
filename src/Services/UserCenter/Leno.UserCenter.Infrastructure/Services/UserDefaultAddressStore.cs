@@ -1,48 +1,77 @@
-using Leno.Identity.Domain.Aggregates;
-using Leno.Identity.Infrastructure;
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.UserCenter.Application;
 using Leno.UserCenter.Domain.Exceptions;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Leno.UserCenter.Infrastructure.Services;
 
 /// <summary>
-/// 用户默认地址存储实现，跨 BC 调用 Identity BC 更新 User.DefaultAddressId。
+/// 用户默认地址存储实现：通过 HTTP 调用 Identity BC 内部 API 更新 User.DefaultAddressId。
 /// <para>
-/// 实现说明：
-/// - 直接使用 <see cref="IdentityDbContext"/> 加载 User 聚合并调用 <see cref="User.SetDefaultAddress"/> 更新默认地址。
-/// - 独立事务边界：通过 <see cref="IdentityDbContext.SaveChangesAsync(CancellationToken)"/> 提交，
-///   与 UserCenter BC 的 <c>IUnitOfWork</c> 事务分离。调用方应在 UserCenter 事务提交前调用本方法，
-///   确保地址变更已落库后再同步 Identity BC 的 User 字段（最终一致语义）。
-/// - 用户不存在时抛出 <see cref="UserCenterDomainException"/>，与原 UserAuth BC 行为一致。
+/// P0 架构修复（2026-09-24）：原先直接引用 Identity.Domain/Infrastructure 并操作
+/// IdentityDbContext 写他域聚合（跨 BC 强耦合、旁路 Identity 的 UnitOfWork/Outbox、
+/// 无并发冲突处理）。现遵循 Order BC 防腐层既有模式（ProductAntiCorruptionService 等）：
+/// 继承 <see cref="AntiCorruptionBase"/>，经 <c>PUT internal/v1/users/{id}/default-address</c>
+/// 端点（X-Internal-Key 鉴权）由 Identity 侧自行提交事务并经 Outbox 发布领域事件。
 /// </para>
-/// Task A6：从 UserAuth BC 迁入 UserCenter BC，防腐层抽象隔离跨域依赖。
 /// </summary>
-public sealed class UserDefaultAddressStore : IUserDefaultAddressStore
+public sealed class UserDefaultAddressStore : AntiCorruptionBase, IUserDefaultAddressStore
 {
-    private readonly IdentityDbContext _identityDbContext;
+    private const string TargetBc = "Identity";
 
-    public UserDefaultAddressStore(IdentityDbContext identityDbContext)
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    private readonly HttpClient _httpClient;
+
+    protected override string ServiceName => "identity";
+
+    public UserDefaultAddressStore(
+        HttpClient httpClient,
+        IOptions<AntiCorruptionOptions> options)
     {
-        ArgumentNullException.ThrowIfNull(identityDbContext);
-        _identityDbContext = identityDbContext;
+        ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(options);
+        _httpClient = httpClient;
+        _httpClient.DefaultRequestHeaders.Add("X-Internal-Key", ResolveTargetInternalKey(options));
     }
 
     /// <inheritdoc />
-    public async Task UpdateDefaultAddressAsync(Guid userId, Guid? addressId, CancellationToken ct = default)
+    public Task UpdateDefaultAddressAsync(Guid userId, Guid? addressId, CancellationToken ct = default)
+        => ExecuteAsync("update_default_address", async token =>
+        {
+            if (userId == Guid.Empty)
+            {
+                throw new UserCenterDomainException("用户标识不可为空", "USER_ID_EMPTY");
+            }
+
+            var request = new { addressId };
+            var json = JsonSerializer.Serialize(request, JsonOptions);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var response = await _httpClient.PutAsync(
+                $"internal/v1/users/{userId}/default-address", content, token).ConfigureAwait(false);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                // 与 AddressAppService 原有语义保持一致：用户不存在映射为 USER_NOT_FOUND
+                throw new UserCenterDomainException("用户不存在", "USER_NOT_FOUND");
+            }
+
+            EnsureSuccessStatusCode(response, "update_default_address");
+        }, ct);
+
+    private static string ResolveTargetInternalKey(IOptions<AntiCorruptionOptions> options)
     {
-        if (userId == Guid.Empty)
+        ArgumentNullException.ThrowIfNull(options);
+        if (!options.Value.TargetInternalApiKeys.TryGetValue(TargetBc, out var key) || string.IsNullOrWhiteSpace(key))
         {
-            throw new UserCenterDomainException("用户标识不可为空", "USER_ID_EMPTY");
+            throw new InvalidOperationException(
+                $"AntiCorruption:TargetInternalApiKeys:{TargetBc} 配置缺失，请通过 Consul KV 配置 leno/security/internal-key/{TargetBc}");
         }
 
-        var user = await _identityDbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
-        if (user is null)
-        {
-            throw new UserCenterDomainException("用户不存在", "USER_NOT_FOUND");
-        }
-
-        user.SetDefaultAddress(addressId);
-        await _identityDbContext.SaveChangesAsync(ct);
+        return key;
     }
 }

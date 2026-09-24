@@ -116,6 +116,10 @@
       "value": "${LENO_INTERNAL_API_KEY_SHARED}"
     },
     {
+      "key": "AntiCorruption__TargetInternalApiKeys__Identity",
+      "value": "${INTERNAL_AUTH_API_KEY}"
+    },
+    {
       "key": "ServiceUrls__ProductApi",
       "value": "${LENO_SERVICEURL_PRODUCTAPI}",
       "default": "http://leno-product-api"

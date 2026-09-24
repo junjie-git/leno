@@ -21,4 +21,13 @@ public interface IUserInternalAppService
     /// <param name="ct">取消令牌。</param>
     /// <returns>完整联系方式 DTO；用户不存在抛异常。</returns>
     Task<UserContactsDto> GetFullContactsAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 更新用户默认收货地址引用（跨 BC 写入口，UserCenter 经 HTTP 防腐层调用）。
+    /// 事务由 Identity BC 的 UnitOfWork 提交，保证领域事件经 Outbox 一致发布。
+    /// </summary>
+    /// <param name="userId">用户标识。</param>
+    /// <param name="addressId">默认地址标识；null 表示清除默认地址。</param>
+    /// <param name="ct">取消令牌。</param>
+    Task UpdateDefaultAddressAsync(Guid userId, Guid? addressId, CancellationToken ct = default);
 }
