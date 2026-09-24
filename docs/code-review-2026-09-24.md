@@ -188,3 +188,19 @@
 | `9a02e808` | **Cart BC → Product BC Pact 契约**（批量查价 POST batch）：Consumer 测试 + Provider 宿主批量端点 + 多 Given 累积 seed + xUnit Collection 共享 fixture 修端口冲突。Consumer 3/3、Provider 2/2 全绿 | P1#16 |
 
 第 3 批遗留（下轮继续）：P1#15 UserCenter 领域测试（覆盖 4%→目标 20%+）、F8 核心链路 E2E、P1#17 buyer-app 千行组件拆分、P1#13 消费者幂等基类收敛。
+
+### 第 3 批续（2026-09-24 下午）
+
+| Commit | 内容 | 对应问题 |
+|---|---|---|
+| `3db3156a` | **UserCenter 领域测试**：新建 Domain.Tests 工程并入 slnx，48 用例覆盖 Address（E.164 边界、状态守卫、软删联动）/ AddressDetail（5-200 边界、非法字符）/ NotificationPreferences（INV-NP-01 InApp 不可关闭、INV-NP-02 免打扰成对时间）/ Favorite / BrowseHistory。48/48 通过 | P1#15 |
+
+### 复核后确认无需改动（第二批）
+
+- **P1#13（消费者幂等收敛）**：逐个核查全部 16 个未继承 `IntegrationEventConsumerBase` 的消费者，**均有刻意的幂等机制**，无需改造——
+  - Order StockConfirm / PointsConfirm：自带原子占锁（`{operation}-{PaymentId}` 幂等键）；
+  - Inventory Reserve/Confirm/Release 命令消费者：AppService 三层幂等（幂等存储 / 台账唯一约束 / 状态机 no-op），注释明示是设计决策；
+  - Notification ×5：EventId 下推为 `NotificationRequest.IdempotencyKey`，由发送记录唯一键去重（NotificationService.cs:60-65，比消费侧去重更持久）；
+  - SystemAdmin LoginLog / AuditLog / AfterSalesEvent：消费前按 EventId 查重 + 并发插入冲突兜底；
+  - ReadModelSyncConsumerBase：本身即基类（ES 按 Id upsert 天然幂等）。
+  - **结论**：原报告"约 10 个消费者幂等性待确认"为误报；基类只是多种幂等模式之一，"未继承"≠"不幂等"。
