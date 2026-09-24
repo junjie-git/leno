@@ -97,7 +97,32 @@ public sealed class SeckillStockAppService : ISeckillStockAppService
             return;
         }
 
-        await _seckillStockService.RestoreAsync(activityId, skuId, quantity, ct);
+        // 原子获取处理权（若 store 支持 SET NX）：消除 IsProcessed → Restore → Mark
+        // 三步 check-then-act 竞态窗口内并发重复消息导致的双重复回退
+        if (_idempotencyStore.SupportsAtomicProcessing
+            && !await _idempotencyStore.TryMarkAsProcessingAsync(idempotencyKey, ct))
+        {
+            _logger.LogInformation(
+                "秒杀库存回退被其他消费者占用或已处理，跳过 ActivityId={ActivityId} SkuId={SkuId} IdempotencyKey={Key}",
+                activityId, skuId, idempotencyKey);
+            return;
+        }
+
+        try
+        {
+            await _seckillStockService.RestoreAsync(activityId, skuId, quantity, ct);
+        }
+        catch
+        {
+            // 处理失败：释放处理锁，允许上游重试（与 StockConfirmConsumer 同一约定）
+            if (_idempotencyStore.SupportsAtomicProcessing)
+            {
+                await _idempotencyStore.ReleaseProcessingLockAsync(idempotencyKey, ct);
+            }
+
+            throw;
+        }
+
         await _idempotencyStore.MarkAsProcessedAsync(idempotencyKey, ct);
 
         _logger.LogInformation(
