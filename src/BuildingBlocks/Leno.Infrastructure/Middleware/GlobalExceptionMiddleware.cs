@@ -95,7 +95,9 @@ public sealed class GlobalExceptionMiddleware
                 return (StatusCodes.Status403Forbidden, forbiddenEx.Message, LogLevel.Warning);
 
             case ArgumentException argEx:
-                return (StatusCodes.Status400BadRequest, argEx.Message, LogLevel.Warning);
+                // P1 安全加固：argEx.Message 可能包含内部字段名/配置路径等敏感信息，
+                // 统一返回通用文案；真实原因已由调用方以 Warning 级别记录（含 TraceId），可据此排查
+                return (StatusCodes.Status400BadRequest, "请求参数无效", LogLevel.Warning);
 
             default:
                 var message = _environment.IsDevelopment()
