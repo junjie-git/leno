@@ -180,6 +180,7 @@
     <Project Path="src/Services/UserCenter/Leno.UserCenter.Api.Tests/Leno.UserCenter.Api.Tests.csproj" />
     <Project Path="src/Services/UserCenter/Leno.UserCenter.Api/Leno.UserCenter.Api.csproj" />
     <Project Path="src/Services/UserCenter/Leno.UserCenter.Application/Leno.UserCenter.Application.csproj" />
+    <Project Path="src/Services/UserCenter/Leno.UserCenter.Domain.Tests/Leno.UserCenter.Domain.Tests.csproj" />
     <Project Path="src/Services/UserCenter/Leno.UserCenter.Domain/Leno.UserCenter.Domain.csproj" />
     <Project Path="src/Services/UserCenter/Leno.UserCenter.Infrastructure/Leno.UserCenter.Infrastructure.csproj" />
   </Folder>
