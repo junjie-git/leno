@@ -29,7 +29,10 @@ public sealed class ContainerFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
+        // 固定 MsSql 大版本为 2019：与 docker-compose.yml、CI 迁移校验 Job（mssql 2019 容器）
+        // 一致，避免测试库与部署环境跨版本漂移；MsSqlBuilder 默认 2022-latest 不保证与生产一致
         SqlServer = new MsSqlBuilder()
+            .WithImage("mcr.microsoft.com/mssql/server:2019-latest")
             .WithPassword(SqlPassword)
             .WithPortBinding(SqlPort, true)
             .WithWaitStrategy(Wait.ForWindowsContainer()
@@ -47,7 +50,13 @@ public sealed class ContainerFixture : IAsyncLifetime
             .WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(RabbitMqPort))
             .Build();
 
+        // 与 docker-compose.yml 对齐：显式禁用 xpack security + 单节点。
+        // ES 8.x 默认对 9200 启用 HTTPS，明文 HTTP 等待探针将永远失败，
+        // 导致 InitializeAsync 无限挂起（2026-09-28 实测：6 个集成测试挂起 24 分钟无结果）
         Elasticsearch = new ElasticsearchBuilder()
+            .WithImage("docker.elastic.co/elasticsearch/elasticsearch:8.13.0")
+            .WithEnvironment("xpack.security.enabled", "false")
+            .WithEnvironment("discovery.type", "single-node")
             .WithPortBinding(ElasticsearchPort, true)
             .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(ElasticsearchPort)))
             .Build();

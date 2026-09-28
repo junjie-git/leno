@@ -1,6 +1,7 @@
 using Leno.Order.Application.Abstractions;
 using FluentAssertions;
 using Leno.Infrastructure.Abstractions;
+using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Persistence;
 using Leno.Order.Application.DTOs;
 using Leno.Order.Application.Services;
@@ -10,6 +11,7 @@ using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
 using Leno.Order.Infrastructure;
+using Leno.Order.Infrastructure.EventBus;
 using Leno.Order.Infrastructure.Repositories;
 using Leno.Order.Infrastructure.Services;
 using Leno.SharedKernel.Abstractions;
@@ -36,6 +38,10 @@ public class SellerOwnershipIntegrationTests : CrossBcIntegrationTestBase<OrderD
     protected override void ConfigureServices(IServiceCollection services, string sqlConnectionString, string rabbitMqConnectionString)
     {
         services.AddDbContext<OrderDbContext>(options => options.UseSqlServer(sqlConnectionString));
+
+        // 注册生产级集成事件映射器：Null mapper 会把领域事件映射为 null，
+        // 导致 Outbox 写入被跳过（2026-09-28 实测 ForceCancel 契约断言失败）
+        services.AddSingleton<IIntegrationEventMapper, OrderIntegrationEventMapper>();
         services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<OrderDbContext>>();
         services.AddScoped<IOrderRepository, EfCoreOrderRepository>();
 
@@ -49,7 +55,16 @@ public class SellerOwnershipIntegrationTests : CrossBcIntegrationTestBase<OrderD
         services.AddScoped(_ => Mock.Of<IFreightCalculator>());
         services.AddScoped(_ => Mock.Of<IProductAntiCorruptionService>());
         services.AddScoped(_ => Mock.Of<ILogisticsTrackingService>());
-        services.AddScoped(_ => Mock.Of<ILogisticsCompanyRepository>());
+
+        // ShipAsync 会校验物流公司编码存在且启用（生产逻辑后于本测试演进补充），
+        // 需返回 Enabled 状态的 "SF" 公司，否则发货用例抛 LOGISTICS_COMPANY_NOT_FOUND
+        var logisticsCompanyMock = new Mock<ILogisticsCompanyRepository>();
+        logisticsCompanyMock
+            .Setup(r => r.GetByCodeAsync("SF", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Order.Domain.Aggregates.LogisticsCompany.Create(
+                Guid.NewGuid(), "顺丰速运", "SF", "95338", supportTracking: true));
+        services.AddScoped(_ => logisticsCompanyMock.Object);
+
         services.AddScoped(_ => Mock.Of<IOrderSagaOrchestrator>());
 
         services.AddScoped<OrderAppService>();
@@ -143,7 +158,7 @@ public class SellerOwnershipIntegrationTests : CrossBcIntegrationTestBase<OrderD
 
         var order = OrderAggregate.Create(
             orderId,
-            $"LN{DateTime.UtcNow:yyyyMMddHHmmss}000001",
+            $"LN{DateTime.UtcNow:yyyyMMddHHmmssfff}{Random.Shared.Next(1000, 9999)}",
             OrderType.Normal,
             userId,
             sellerId,

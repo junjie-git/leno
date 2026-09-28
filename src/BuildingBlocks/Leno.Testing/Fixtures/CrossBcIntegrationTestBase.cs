@@ -46,6 +46,12 @@ public abstract class CrossBcIntegrationTestBase<TDbContext> : IAsyncLifetime
         services.AddSingleton<IDistributedLockProvider>(_ => new RedisDistributedSynchronizationProvider(multiplexer.GetDatabase()));
         services.AddSingleton<IIdempotencyStore, RedisIdempotencyStore>();
 
+        // EfCoreUnitOfWork 构造依赖 IIntegrationEventMapper（生产组合根由各 BC 注册）。
+        // 测试宿主未注册导致 2026-09-28 实测全部集成测试 DI 失败：
+        // "Unable to resolve service for type IIntegrationEventMapper"。
+        // 测试不发布集成事件，注册 Null 实现即可
+        services.AddSingleton<IIntegrationEventMapper, NullIntegrationEventMapper>();
+
         // MassTransit Test Harness（连接到 Testcontainers RabbitMq）
         services.AddMassTransitTestHarness(cfg =>
         {
@@ -71,11 +77,13 @@ public abstract class CrossBcIntegrationTestBase<TDbContext> : IAsyncLifetime
         {
             await TestHarness.Stop();
         }
-        if (ServiceProvider is IDisposable disposable)
+        if (ServiceProvider is IAsyncDisposable asyncDisposable)
         {
-            disposable.Dispose();
+            // 根容器内含 MassTransitHostedService 等 IAsyncDisposable-only 服务，
+            // 同步 Dispose() 会抛 "type only implements IAsyncDisposable"（2026-09-28 实测），
+            // 必须走 DisposeAsync
+            await asyncDisposable.DisposeAsync();
         }
-        await Task.CompletedTask;
     }
 
     protected abstract void ConfigureServices(IServiceCollection services, string sqlConnectionString, string rabbitMqConnectionString);

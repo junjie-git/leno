@@ -1,11 +1,13 @@
 using FluentAssertions;
 using Leno.Infrastructure.Abstractions;
+using Leno.Infrastructure.EventBus;
 using Leno.Order.Application.Abstractions;
 using Leno.Order.Application.Services;
 using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
 using Leno.Order.Infrastructure;
+using Leno.Order.Infrastructure.EventBus;
 using Leno.Order.Infrastructure.Consumers;
 using Leno.Order.Infrastructure.Repositories;
 using Leno.Order.Infrastructure.Services;
@@ -34,6 +36,10 @@ public class SeckillOrderFlowIntegrationTests : CrossBcIntegrationTestBase<Order
     protected override void ConfigureServices(IServiceCollection services, string sqlConnectionString, string rabbitMqConnectionString)
     {
         services.AddDbContext<OrderDbContext>(options => options.UseSqlServer(sqlConnectionString));
+
+        // 注册生产级集成事件映射器：Null mapper 会把领域事件映射为 null，
+        // 导致 Outbox 写入被跳过（2026-09-28 实测 ForceCancel 契约断言失败）
+        services.AddSingleton<IIntegrationEventMapper, OrderIntegrationEventMapper>();
         services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<OrderDbContext>>();
         services.AddScoped<IOrderRepository, EfCoreOrderRepository>();
         services.AddScoped<IOrderNumberGenerator, OrderNumberGenerator>();

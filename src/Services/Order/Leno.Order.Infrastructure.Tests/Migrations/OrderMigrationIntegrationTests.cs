@@ -35,10 +35,11 @@ public class OrderMigrationIntegrationTests : DatabaseMigrationTestBase<OrderDbC
         var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
         pendingMigrations.Should().BeEmpty("迁移后应无 pending migrations");
 
-        // 验证关键表已创建
+        // 验证关键表已创建（表名以迁移产物为准：Order 迁移使用 snake_case 命名，
+        // 见 Migrations/20260717174606_InitialCreate.Designer.cs 的 ToTable("orders") 等）
         var tables = await db.Database.SqlQueryRaw<string>(
             "SELECT TABLE_NAME AS Value FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'").ToListAsync();
-        tables.Should().Contain(new[] { "Orders", "OrderItems", "OutboxMessages", "__EFMigrationsHistory" });
+        tables.Should().Contain(new[] { "orders", "order_items", "outbox_messages", "__EFMigrationsHistory" });
     }
 
     [Fact]

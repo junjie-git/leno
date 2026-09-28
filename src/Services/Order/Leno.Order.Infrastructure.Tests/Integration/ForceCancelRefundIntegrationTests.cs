@@ -1,6 +1,7 @@
 using Leno.Order.Application.Abstractions;
 using FluentAssertions;
 using Leno.Infrastructure.Abstractions;
+using Leno.Infrastructure.EventBus;
 using Leno.Infrastructure.Outbox;
 using Leno.Infrastructure.Persistence;
 using Leno.Order.Application.DTOs;
@@ -10,6 +11,7 @@ using Leno.Order.Domain.Repositories;
 using Leno.Order.Domain.Services;
 using Leno.Order.Domain.ValueObjects;
 using Leno.Order.Infrastructure;
+using Leno.Order.Infrastructure.EventBus;
 using Leno.Order.Infrastructure.Repositories;
 using Leno.Order.Infrastructure.Services;
 using Leno.SharedContracts.Events;
@@ -37,6 +39,10 @@ public class ForceCancelRefundIntegrationTests : CrossBcIntegrationTestBase<Orde
     protected override void ConfigureServices(IServiceCollection services, string sqlConnectionString, string rabbitMqConnectionString)
     {
         services.AddDbContext<OrderDbContext>(options => options.UseSqlServer(sqlConnectionString));
+
+        // 注册生产级集成事件映射器：Null mapper 会把领域事件映射为 null，
+        // 导致 Outbox 写入被跳过（2026-09-28 实测 ForceCancel 契约断言失败）
+        services.AddSingleton<IIntegrationEventMapper, OrderIntegrationEventMapper>();
         services.AddScoped<IUnitOfWork, EfCoreUnitOfWork<OrderDbContext>>();
         services.AddScoped<IOrderRepository, EfCoreOrderRepository>();
 
@@ -119,7 +125,7 @@ public class ForceCancelRefundIntegrationTests : CrossBcIntegrationTestBase<Orde
 
         var order = OrderAggregate.Create(
             orderId,
-            $"LN{DateTime.UtcNow:yyyyMMddHHmmss}000001",
+            $"LN{DateTime.UtcNow:yyyyMMddHHmmssfff}{Random.Shared.Next(1000, 9999)}",
             OrderType.Normal,
             userId,
             sellerId,
