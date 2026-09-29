@@ -39,30 +39,30 @@
   <!-- 组合根（Dependencies/）+ 跨切面关注点（HealthChecks/ServiceDiscovery/Storage/Middleware）所需 NuGet 包。
        其余 NuGet 包（EF Core/Redis/MassTransit/Serilog/OTel/JWT/Argon2/Minio 等）已迁移到对应子包。 -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.0" />
-    <PackageReference Include="AspNetCore.HealthChecks.UI" Version="8.0.0" />
-    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.0" />
-    <PackageReference Include="AspNetCore.HealthChecks.UI.InMemory.Storage" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.InMemory.Storage" />
     <!-- UI.InMemory.Storage 8.0.0 传递引入 EF Core InMemory 8.0.0，与本解决方案 EF Core 10.x 二进制不兼容
          （MissingMethodException: AbstractionsStrings.ArgumentIsEmpty），显式提升至 10.x 统一版本 -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EntityFrameworkCoreVersion)" />
-    <PackageReference Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.2" />
-    <PackageReference Include="AspNetCore.HealthChecks.RabbitMQ" Version="8.0.2" />
-    <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="8.0.1" />
-    <PackageReference Include="AspNetCore.HealthChecks.Elasticsearch" Version="8.0.1" />
-    <PackageReference Include="AspNetCore.HealthChecks.Uris" Version="8.0.1" />
-    <PackageReference Include="Consul" Version="1.7.14.11" />
-    <PackageReference Include="Minio" Version="6.0.3" />
-    <PackageReference Include="DistributedLock.Redis" Version="1.1.1" />
-    <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="AspNetCore.HealthChecks.SqlServer" />
+    <PackageReference Include="AspNetCore.HealthChecks.RabbitMQ" />
+    <PackageReference Include="AspNetCore.HealthChecks.Redis" />
+    <PackageReference Include="AspNetCore.HealthChecks.Elasticsearch" />
+    <PackageReference Include="AspNetCore.HealthChecks.Uris" />
+    <PackageReference Include="Consul" />
+    <PackageReference Include="Minio" />
+    <PackageReference Include="DistributedLock.Redis" />
+    <PackageReference Include="prometheus-net.AspNetCore" />
     <!--
       Quartz.NET 调度器（双轨下线 DEC-2 决策 (b)）：为 MassTransit 提供持久化的延迟/周期消息调度，
       解决延迟消息调度器此前"已使用但未配置"的缺陷（订单超时 / 售后窗口）。
       注意：QRTZ_* 表由 Quartz 自有 DDL 管理，不纳入 EF 迁移（见 docs/双轨下线-实施方案.md §5.5）。
     -->
-    <PackageReference Include="MassTransit.Quartz" Version="$(MassTransitVersion)" />
+    <PackageReference Include="MassTransit.Quartz" />
   </ItemGroup>
 
 </Project>

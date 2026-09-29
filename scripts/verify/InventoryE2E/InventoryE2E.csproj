@@ -11,7 +11,7 @@
   <ItemGroup>
     <!-- 复用共享内核的 proto 生成客户端（含 Grpc.Net.Client 2.63 / Google.Protobuf 3.27 版本钉子） -->
     <ProjectReference Include="..\..\..\src\BuildingBlocks\Leno.SharedContracts.Grpc\Leno.SharedContracts.Grpc.csproj" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="Microsoft.Data.SqlClient" />
   </ItemGroup>
 
 </Project>
