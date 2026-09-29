@@ -638,3 +638,36 @@ jobs:
         with:
           name: buyer-app-dist
           path: web/buyer-app/dist
+
+  frontend-e2e:
+    # 前端 Playwright 端到端冒烟（F8 补强）：仅覆盖已有 spec 的两应用
+    # （operations / system-admin 登录冒烟，webServer 自动拉起 vite dev server；
+    #  buyer-app 有配置无用例、seller 无配置，补齐 spec 后加入 matrix 即可）
+    name: 前端端到端 (web/${{ matrix.app }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [operations, system-admin]
+    defaults:
+      run:
+        working-directory: web/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-${{ matrix.app }}
+          path: web/${{ matrix.app }}/playwright-report
+          retention-days: 7

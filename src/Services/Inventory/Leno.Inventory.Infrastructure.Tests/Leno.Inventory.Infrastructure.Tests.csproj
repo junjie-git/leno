@@ -15,7 +15,6 @@
     </PackageReference>
     <PackageReference Include="Moq" Version="$(MoqVersion)" />
     <PackageReference Include="FluentAssertions" Version="$(FluentAssertionsVersion)" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EntityFrameworkCoreVersion)" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="coverlet.collector" Version="$(CoverletVersion)">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -24,10 +23,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Leno.Notification.Application\Leno.Notification.Application.csproj" />
-    <ProjectReference Include="..\Leno.Notification.Infrastructure\Leno.Notification.Infrastructure.csproj" />
+    <ProjectReference Include="..\Leno.Inventory.Application\Leno.Inventory.Application.csproj" />
+    <ProjectReference Include="..\Leno.Inventory.Infrastructure\Leno.Inventory.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Order\Leno.Order.Application\Leno.Order.Application.csproj" />
+    <ProjectReference Include="..\..\Order\Leno.Order.Infrastructure\Leno.Order.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Leno.Testing\Leno.Testing.csproj" />
-    <ProjectReference Include="..\..\..\BuildingBlocks\Leno.SharedContracts.Grpc\Leno.SharedContracts.Grpc.csproj" />
   </ItemGroup>
 
 </Project>

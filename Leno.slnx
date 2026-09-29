@@ -165,6 +165,7 @@
     <Project Path="src/Services/Inventory/Leno.Inventory.Application/Leno.Inventory.Application.csproj" />
     <Project Path="src/Services/Inventory/Leno.Inventory.Domain.Tests/Leno.Inventory.Domain.Tests.csproj" />
     <Project Path="src/Services/Inventory/Leno.Inventory.Domain/Leno.Inventory.Domain.csproj" />
+    <Project Path="src/Services/Inventory/Leno.Inventory.Infrastructure.Tests/Leno.Inventory.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/Inventory/Leno.Inventory.Infrastructure/Leno.Inventory.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/Notification/">
