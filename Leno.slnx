@@ -1,4 +1,69 @@
 <Solution>
+  <Folder Name="/deploy/">
+    <File Path="deploy/services.manifest.json" />
+  </Folder>
+  <Folder Name="/deploy/consul/">
+    <File Path="deploy/consul/kv-seed.json" />
+  </Folder>
+  <Folder Name="/deploy/docs/">
+    <File Path="deploy/docs/consul-kv-coverage-audit.md" />
+    <File Path="deploy/docs/jwt-key-rotation-runbook.md" />
+    <File Path="deploy/docs/production-infrastructure-plan.md" />
+  </Folder>
+  <Folder Name="/deploy/helm/">
+    <File Path="deploy/helm/consul-staging-values.yaml" />
+  </Folder>
+  <Folder Name="/deploy/helm/leno/">
+    <File Path="deploy/helm/leno/Chart.yaml" />
+    <File Path="deploy/helm/leno/values-dev.yaml" />
+    <File Path="deploy/helm/leno/values-prod.yaml" />
+    <File Path="deploy/helm/leno/values-staging.yaml" />
+    <File Path="deploy/helm/leno/values.yaml" />
+  </Folder>
+  <Folder Name="/deploy/helm/leno/files/" />
+  <Folder Name="/deploy/helm/leno/files/migrations/">
+    <File Path="deploy/helm/leno/files/migrations/accesscontrol-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/aftersales-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/cart-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/cart-sku-snapshot-backfill.sql" />
+    <File Path="deploy/helm/leno/files/migrations/identity-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/inventory-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/membership-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/notification-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/order-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/payment-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/points-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/product-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/promotion-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/promotion-usercoupon-unique-index-backfill.sql" />
+    <File Path="deploy/helm/leno/files/migrations/review-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/scheduler-quartz.sql" />
+    <File Path="deploy/helm/leno/files/migrations/sellershop-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/systemadmin-initial.sql" />
+    <File Path="deploy/helm/leno/files/migrations/usercenter-initial.sql" />
+  </Folder>
+  <Folder Name="/deploy/helm/leno/templates/">
+    <File Path="deploy/helm/leno/templates/configmap.yaml" />
+    <File Path="deploy/helm/leno/templates/deployment.yaml" />
+    <File Path="deploy/helm/leno/templates/hpa.yaml" />
+    <File Path="deploy/helm/leno/templates/ingress.yaml" />
+    <File Path="deploy/helm/leno/templates/migration-job.yaml" />
+    <File Path="deploy/helm/leno/templates/migrations-configmap.yaml" />
+    <File Path="deploy/helm/leno/templates/NOTES.txt" />
+    <File Path="deploy/helm/leno/templates/scheduler-migration-job.yaml" />
+    <File Path="deploy/helm/leno/templates/secret.yaml" />
+    <File Path="deploy/helm/leno/templates/service.yaml" />
+    <File Path="deploy/helm/leno/templates/_helpers.tpl" />
+  </Folder>
+  <Folder Name="/deploy/scripts/">
+    <File Path="deploy/scripts/create-secrets.ps1" />
+    <File Path="deploy/scripts/seed-consul-kv.ps1" />
+  </Folder>
+  <Folder Name="/deploy/staging/">
+    <File Path="deploy/staging/loki-staging-values.yaml" />
+    <File Path="deploy/staging/mssql-staging.yaml" />
+    <File Path="deploy/staging/README.md" />
+  </Folder>
   <Folder Name="/docs/">
     <File Path="docs/prompt.md" />
     <File Path="docs/技术选型方案.md" />
@@ -33,6 +98,21 @@
     <File Path="docs/tasks/shared-kernel.md" />
     <File Path="docs/tasks/system-admin.md" />
     <File Path="docs/tasks/user-auth.md" />
+  </Folder>
+  <Folder Name="/grafana/">
+    <File Path="grafana/leno-business-services-dashboard.json" />
+    <File Path="grafana/leno-gateway-dashboard.json" />
+    <File Path="grafana/prometheus.yml" />
+  </Folder>
+  <Folder Name="/grafana/provisioning/" />
+  <Folder Name="/grafana/provisioning/alerting/">
+    <File Path="grafana/provisioning/alerting/leno-alerts.yml" />
+  </Folder>
+  <Folder Name="/grafana/provisioning/dashboards/">
+    <File Path="grafana/provisioning/dashboards/leno.yml" />
+  </Folder>
+  <Folder Name="/grafana/provisioning/datasources/">
+    <File Path="grafana/provisioning/datasources/prometheus.yml" />
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/BuildingBlocks/">
@@ -195,6 +275,7 @@
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure.Tests/Leno.SystemAdmin.Infrastructure.Tests.csproj" />
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/Leno.SystemAdmin.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/" />
   <Folder Name="/tests/Contracts/">
     <Project Path="tests/Contracts/Leno.Contracts.Consumer.Tests/Leno.Contracts.Consumer.Tests.csproj" />
     <Project Path="tests/Contracts/Leno.Contracts.Provider.Tests/Leno.Contracts.Provider.Tests.csproj" />
