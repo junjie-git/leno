@@ -1,176 +1,151 @@
-# 双轨下线批次 1+2 收口与交易闭环补齐 —— 设计文档
+# 双轨下线收尾核实与残留收口 —— 设计文档（R2 修订版）
 
-> 日期：2026-10-16 · 状态：**已获用户批准，待实施**
-> 前置文档：`docs/双轨下线-最优收尾方案.md`（2026-09-23，无约束版收尾设计）、`docs/双轨下线-实施方案.md` §7（权威状态）、`docs/库存目标架构-无约束最优方案.md` §8（库存收尾，已完成）
-> 本文档回答：批次 1（机械收敛）+ 批次 2（四开关切流）+ 交易闭环 7 项业务任务怎么收。
-
----
-
-## 0. 决策记录（用户已确认）
-
-| # | 决策点 | 结论 |
-|---|--------|------|
-| D-1 | 主方向 | **D：技术债收尾 + 业务功能补齐混合推进** |
-| D-2 | 双轨下线范围 | **A2：批次 1 + 批次 2**；W4 三 BC 退役另开窗口，本次不触碰 |
-| D-3 | 业务任务范围 | **B1：交易闭环组 7 项**（PRD-06/07、CART-05、ORD-09、RAS-06、PAY-05/06） |
-| D-4 | 验证基线 | **V2**：单测 + 契约测试兜底；仅 D1/D2 起 compose 端到端回放 |
-| D-5 | C2 删除时机 | **1a：立即删除**，零命中日志仅作佐证，不设观测期 |
-| D-6 | D3 差分裁决 | **2a：授权按 `docs/spec/05-促销域.md` 裁决**；文档无据的个案暂停向用户报告 |
-| D-7 | 执行编排 | **方案甲：风险递增串行**，四阶段，每阶段闸门 = CI 全绿 + 验收清单 + 用户确认 |
-
-## 0.1 范围外（明确不做）
-
-- W4 三 BC 原子退役（UserAuth / PointsMembership / ReviewAfterSales）与 RS256 阶段 2/3 —— 需维护窗口，单独立项
-- W5 其余澄清项：E2 SellerShop 读模型、E3 读模型权威终局、G1 Auth:Mode 目标形态
-- 库存重构遗留第 3/4 项：台账 SellerId 语义契约变更、gRPC 通道加密
-- 全部 19 个 P2 任务中交易闭环组之外的任务（通知可靠性组、账号安全组、平台基建组）
+> 日期：2026-10-16 · 状态：**R2 已获用户批准，待实施**
+> 修订记录：
+> - **R1**（同日早前）：基于 `docs/双轨下线-实施方案.md` §7 过时状态编制，规划"批次 1 机械收敛 + 批次 2 四开关切流 + 交易闭环 7 项"。
+> - **R2**（本版）：经全代码盘点证实 **R1 规划的实施对象已于 2026-09-23/24 全部执行完毕**。R2 将工作重心改为「文档 SSOT 对齐 + 残留收口 + 抽查补漏」。
+> 前置文档：`docs/双轨下线-最优收尾方案.md`、`docs/双轨下线-实施方案.md` §7（其状态表已证实过时，本文档 W-A 任务负责回写）、`docs/todo/tasks/progress.md`（同上）
 
 ---
 
-## 1. 总体结构
+## 0. 决策记录
+
+| # | 决策点 | 结论 | 状态 |
+|---|--------|------|------|
+| D-1 | 主方向 | 技术债收尾 + 业务功能补齐混合推进 | ✅ 继续有效 |
+| D-2 | 双轨下线范围 = 批次 1+2 | ~~W4 退役另开窗口~~ | ❌ 失效：盘点证实 W4 亦已完成 |
+| D-3 | 业务任务 = 交易闭环 7 项 | ~~待开发~~ | ❌ 失效：盘点证实已实现 |
+| D-4 | 验证基线 V2 | 单测+契约为底，高风险项才起 compose | ✅ 继续有效（适配到新范围） |
+| D-5 | C2 立即删除不设观测期 | — | ✅ 已被历史执行满足 |
+| D-6 | D3 差分按促销域文档裁决 | — | ✅ 已被历史执行满足（`RuleEngineDiscountRegressionTests` 已固化期望值） |
+| D-7 | 执行编排 = 风险递增串行 | 四阶段 | 🔄 演化：R2 重排为 W-A→W-B→W-C 三块 |
+| **D-8** | **盘点结论**（2026-10-16） | 代码侧收尾已基本完成，`progress.md` 与实施方案 §7 全面过时，构成 SSOT 失真 | ✅ 新增 |
+| **D-9** | **R2 新方向**（用户批准） | 文档 SSOT 对齐 + 残留收口 + 抽查补漏；原批次 1/2 与交易闭环开发任务全部取消 | ✅ 新增 |
+| **D-10** | **AntiCorruption:UseGrpc 终局** | 按 D-9 收口：gRPC 定为唯一防腐路径，删开关、删 HTTP 降级路径；防腐端点配置缺失时 fail-fast 启动失败，不做静默降级 | ✅ 新增 |
+
+## 0.1 盘点结论汇总（2026-10-16，代码证据）
+
+### 双轨下线 19 项
+
+| 组 | 项 | 状态 | 关键证据 |
+|----|----|------|---------|
+| 批次 1 | A5 端口清单 | ✅ 有残留缺陷 | `deploy/services.manifest.json` + `scripts/validate-service-ports.ps1` + CI `validate-service-ports` job（ci.yml:236）齐备；**残留**：Helm payment 探针 5158（values.yaml:175-176）、校验脚本不覆盖探针、serviceUrls 仅抽查 5 项 |
+| 批次 1 | C2 旧路由 | ✅ | 探测器与 `/internal/*`（非 v1）端点全仓零命中 |
+| 批次 1 | B3 延迟消息 | ✅ | `OrderAppService.cs:322`、`OrderSagaOrchestrator.cs:135` 走 `IMessageScheduler` |
+| 批次 1 | C3 gRPC 契约 | ✅ | 各 proto "int64 双字段已删除，C3 2026-09-24"；余下 int64 均为合法金额/时间戳 |
+| 批次 1 | F5 乐观锁 | ✅ | EF 全部 `IsRowVersion()`；`Cart.Revision` 为 Redis CAS 计数器（`builder.Ignore`），非别名 |
+| 批次 2 | D1 Saga / D2 PM / D3 规则引擎 / D4 SKU 快照 | ✅ | 开关全删（`CartSnapshotOptions.cs:13`、`PromotionCalculateAppService.cs:9` 注释记载）；差分回归测试已固化 |
+| W4 | A1/A2/A6+G5 三 BC 退役 | ✅ | src/Services 无旧 BC；compose:324 注释"已退役"；网关路由指 identity/accesscontrol/usercenter；Order 积分防腐层指 `ServiceUrls:PointsApi` |
+| W5 | G1 Auth:Mode | ✅ 已删除 | `WebApplicationExtensions.cs:133` 注释记载；全仓无代码级引用 |
+| W5 | E2/E3 读模型终局、其余澄清项 | ⬜ 不在本范围 | 独立澄清项，维持移交 |
+
+**特性开关现状：6 → 1（仅剩 `AntiCorruption:UseGrpc`）**，即 W-B 的收口对象。
+
+### 19 个 P2 业务任务（progress.md 标"未开始"的）
+
+| 任务 | 状态 | 关键证据 |
+|------|------|---------|
+| PRD-06 运营全量商品列表 | ✅ | `AdminProductsController.cs:99-119` + `ProductApiTests.cs:204-237` |
+| PRD-07 SKU 唯一校验 | ✅ | `IProductUniquenessChecker.cs` + `ProductUniquenessChecker.cs:20-35` + `ix_skus_sku_code` 唯一索引 |
+| CART-05 全选/取消全选 | ✅ | `Cart.cs:220-235 ToggleAllSelection` + `CartsController.cs:76-78 PATCH /api/cart/selection` |
+| ORD-09 强制取消 | ✅（完整性待 W-C 复核） | `OrdersController.cs:197-201` + ForceCancel 三套集成测试 |
+| RAS-06 凭证/评价图片 | ✅ | `AfterSalesController.cs:21` 注入 `IFileStorageService` + API 测试 |
+| PAY-05 对账 | ✅ | `ReconciliationService.cs` + `ReconciliationDiff` 全套（聚合/仓储/迁移/Controller/三层测试） |
+| PAY-06 渠道配置 | ✅ | `PaymentChannelConfig` 全套 + `ChannelConfigProvider` + Controller |
+| UA-06 OAuth 客户端配置 | ✅ | `OAuthClientConfiguration` + `ExtendOAuthClientForOidc` 迁移 |
+| UA-07 三方绑定/解绑 | ✅ | `Bind/UnbindExternalLogin` 端点 + `IdentityApiTests.cs:663-711` |
+| NTF-10~13 | ✅ | `ChannelSelector`、`NotificationCallbacksController:54-129`、`NotificationRecordAppService:32-90`、`NotificationTemplateAppService:43-174` |
+| SK-03/04、PM-08 | ✅ | OpenTelemetry/Consul 热更新接入、`TaskAppService`（260 行） |
+| SK-05 布隆过滤器 / SK-06 健康检查 UI | ⬜ 未核实 | W-C 核查项 |
+| **UA-08 审计日志中间件** | 🟡 **架构已转向** | HTTP 中间件形态不存在于 Identity；审计采集由 SystemAdmin `AuditLogConsumer` 事件聚合承担（SYS-05）。是否补 Identity 管道中间件 → W-C 裁决项 |
+| 前端落点 | ✅ 大部分存在 | operations 端 PaymentChannels/Reconciliation/OrderManagement/ProductAudit 页面齐备；buyer-app/system-admin 落点在 W-C 抽查 |
+
+---
+
+## 1. 新范围（三块工作，串行）
 
 ```
-阶段 0  批次 1 机械收敛     A5 清单单一来源 → C2 → B3 → C3 → F5     （CI 绿灯即验收）
-阶段 1  低风险开关收口     D4 SKU 快照迁移 → D3 规则引擎差分裁决    （属性差分测试 + 迁移断言）
-阶段 2  高风险开关切流     D1 Saga → D2 支付后 PM                  （compose 端到端回放）
-阶段 3  业务闭环补齐       PRD-07 → PRD-06 → CART-05 → ORD-09 → RAS-06 → PAY-06 → PAY-05（依赖序）
+W-B  残留收口（代码）   B1 A5 残留修复 → B2 AntiCorruption:UseGrpc 单轨化   ← 先做，核心价值
+W-C  抽查补漏（核查）   C1 SK-05/06 与 UA-08 定性 → C2 前端落点抽查 → C3 缺口补齐（如有）
+W-A  文档 SSOT 对齐     A1 progress.md → A2 实施方案 §7 → A3 收尾方案状态头  ← 最后做，以最终代码状态为准
 ```
 
-设计原则（承收尾方案五原则）：
+执行顺序理由：先收代码（W-B 的 B2 是唯一实质双轨残留）；W-C 的核查结论决定 W-A 回写内容的准确性（UA-08 定性、SK-05/06 状态直接影响 progress.md 怎么写），故 W-C 先于 W-A。全程 TDD、每块闸门确认（D-7）。
 
-1. **开关必须删除，而不是打开** —— 收尾不是 `flag=true`，是删 flag 与输掉的轨。
-2. **输掉的轨道连同代码一起删** —— 不保留回退路径。
-3. **验证用确定性差分，不用生产灰度**。
-4. **一个数据只有一个权威，一个机制只有一种实现**。
-5. **部署清单只维护一份**。
+## 2. W-B 残留收口设计（代码工作）
 
-每阶段闸门：`dotnet build` 全绿 + 全量单测/契约测试绿 + 阶段专项验收清单 + 用户确认后进下一阶段。每阶段一批 commit；`docs/双轨下线-实施方案.md` §7 与 `docs/todo/tasks/progress.md` 随每阶段完成即回写（保持 SSOT）。
+### 2.1 B1：A5 残留修复
 
-## 2. 阶段 0 —— 批次 1 机械收敛（5 项，按依赖顺序）
+1. **Helm payment 探针端口修正**：`deploy/helm/leno/values.yaml:175-176` 的 readinessProbe/livenessProbe `port: 5158` → `5156`。这是真缺陷：Helm 部署的 payment 健康检查打在错误端口，Pod 将永不就绪。
+2. **校验脚本增强（防回潮）**：`scripts/validate-service-ports.ps1` 增加第 4 层校验——同一服务块内 `readinessProbe.port` / `livenessProbe.port` 必须等于 manifest `httpPort`（网关跳过同现有逻辑）。
+3. **serviceUrls 覆盖面扩展**：`urlMap` 从 5 项（PaymentApi/OrderApi/ProductApi/PromotionApi/IdentityApi）扩展为 manifest 全部可映射服务（对照 `deploy/docs/consul-kv-coverage-audit.md` 的映射清单逐项登记；仅校验 values.yaml 中已登记项，缺失项不报警——与现有"仅校验可映射项"口径一致）。
+4. **kv-seed.json 直校验**：脚本对 `deploy/consul/kv-seed.json` 中 `ServiceUrls__*` 键值做同规则校验（此前只校验 values.yaml 的 serviceUrls 段，KV 种子本身是盲区）。
 
-### 2.1 A5 端口清单单一来源（先行）
+验证：人为改错一个端口/探针 → 校验脚本报错退出 1 → 恢复后通过；CI `validate-service-ports` job 绿。
 
-- 新建 `deploy/services.manifest.json`，字段：`name` / `httpPort` / `grpcPort` / `image`，覆盖当前全部 19 个服务（含待退役的 UserAuth / PointsMembership / ReviewAfterSales——W4 退役时随删同步缩减至 16），作为端口唯一权威来源。
-- 修正现存互换：Helm `PaymentApi=5158` 改为 5156，`review-aftersales` 归位 5158（以 compose/KV 语义为准绳，manifest 记录正确值）。
-- 新增 CI job：manifest × docker-compose × Helm chart（`services` 块）× KV `ServiceUrls__*` 四方一致性校验，任何漂移使 CI 变红。
-- 先行的理由：后续所有阶段都会触碰部署物料，先立单一来源避免边改边漂移。
+### 2.2 B2：AntiCorruption:UseGrpc 单轨化（最后一个双轨开关）
 
-### 2.2 C2 旧路由删除
+**门控点全清单**（盘点已确认）与处置：
 
-- 删除 5 个 BC 的旧前缀端点（`/internal/*` 中不含 `/v1/` 的全部端点）。
-- 删除 `LegacyInternalRouteDetectorMiddleware` 及其 `WebApplicationExtensions` 中的注册、其约 40 个单测。
-- 存量调用方一律改走 `internal/v1/*`（若 grep 发现残留调用）。
-- 按 D-5：立即删除；实施后本地冒烟一轮，`LEGACY-INTERNAL-ROUTE` 日志零命中仅作佐证记录进收口报告，不设观测期。
+| # | 位置 | 现状 | 处置 |
+|---|------|------|------|
+| 1 | Product/Points/Order/Review/SellerShop/Payment/Cart/Promotion 八个 Api 的 `Program.cs`（各 ~L45-50） | `if (AntiCorruption:UseGrpc)` 才映射 gRPC 服务端 | 改为无条件 `MapGrpcService` |
+| 2 | AccessControl `Program.cs:45-47` | 同上 | 同上 |
+| 3 | Order `Infrastructure/ServiceCollectionExtensions.cs:159-203` | UseGrpc=true 注册 gRPC 客户端，否则 HTTP 直调 | 删分支，无条件注册 gRPC 客户端；HTTP 实现类删除 |
+| 4 | Review `Infrastructure/ServiceCollectionExtensions.cs:202` + `NullProductInfoQueryService.cs` | 配置缺失时"降级 HttpClient + 警告日志" | 删降级路径；配置缺失改为启动时抛异常（fail-fast，D-10） |
+| 5 | Cart 防腐层（`GrpcCartPriceService.cs`、`CartPriceDispatcherAdapter`） | gRPC/HTTP 双路径 | 删 HTTP 路径，gRPC 唯一 |
+| 6 | `ConsulConfigWatcher.cs:23` 的 `UseGrpcConfigKey` 常量 + `ConsulReloadableConfigurationProvider` 相关注释 | 特化配置键 | 删常量；泛化热更新机制保留 |
+| 7 | `Leno.Infrastructure.Tests` 的 `ConsulReloadableConfigurationProviderTests` / `ConsulConfigWatcherTests` | 以 UseGrpc 为测试配置键 | 改用中性键名（如 `Test:FeatureFlag`），保持测试语义 |
+| 8 | `deploy/consul/kv-seed.json`、`values*.yaml` 中 `AntiCorruption__UseGrpc` 配置项 | 开关种子值 | 删除配置项 |
+| 9 | 各处"双轨方案"历史注释 | 描述已删开关 | 顺手改为陈述现状（"gRPC 唯一路径"） |
 
-### 2.3 B3 延迟消息单轨化
+**fail-fast 设计**（D-10）：防腐层注册扩展方法在启动时校验必需的 `AntiCorruption:GrpcEndpoints:*` 配置，缺失即 `InvalidOperationException` 带明确指引（"在 Consul KV 配置 GrpcEndpoints:Product 等端点后启动"），杜绝静默降级导致的数据不一致。
 
-- `OrderAppService`（约 :319）的 `_bus.CreateMessageScheduler()` 改为构造注入 `IMessageScheduler`（Quartz 持久化调度器已在 `Leno.Infrastructure` DI 注册）。
-- 删除直发路径与相关 try/catch 兜底注释；延迟消息只走 Quartz。
-- 验证：既有超时取消集成测试（下单 → 到期 → Saga 收到超时消息 → 自动取消）保持绿。
+**验证策略（D-4 适配）**：
+- 单测/集成测试全绿（HTTP 路径的既有测试改写为 gRPC 语义或删除）
+- 全仓 grep `AntiCorruption:UseGrpc` 零代码命中（文档历史记载除外）
+- 集成测试起一次 compose（consul + 相关服务），验证 KV 无开关值时服务正常启动、端点配置齐全时防腐调用走 gRPC
+- 特性开关终态达成：**6 → 0**（收尾方案 §1 终态闭合）
 
-### 2.4 C3 gRPC 契约单形态
+## 3. W-C 抽查补漏设计（核查工作）
 
-- 除 `inventory.proto` 外，其余 proto 删除 int64 形态字段，只留 string；同步重新生成契约代码。
-- 删除 Review 侧"只发 int64 则抛错"的防御分支；删除 SellerShop 的兼容分支。
+| # | 核查项 | 方法 | 产出 |
+|---|--------|------|------|
+| C1 | SK-05 布隆过滤器、SK-06 健康检查 UI | grep 实现与接线 | 定性 ✅/⬜/🟡；未实现则评估是否纳入本设计（预期：未实现则记入遗留，不临时扩scope） |
+| C2 | UA-08 审计日志裁决 | 已证实：事件聚合形态存在（SYS-05），HTTP 中间件形态缺失 | **裁决点（向用户提问）**：a) 接受事件聚合为 UA-08 终态，关闭任务；b) 补 Identity 侧审计中间件 |
+| C3 | 前端落点抽查 | buyer-app（CART-05 调用）、system-admin（PAY-05/06 页面）、operations（ProductAudit 是否含全量列表、OrderManagement 是否含 force-cancel 按钮） | 缺失页面列入补齐清单；补齐遵循各端既有 vitest spec 模式 |
+| C4 | ORD-09 完整性复核 | 对照任务验收标准逐条核对（退款事件、释放库存/积分/优惠券、审计、双通知、Admin 授权） | 缺口列入补齐清单 |
 
-### 2.5 F5 乐观锁列名统一
+## 4. W-A 文档 SSOT 对齐设计
 
-- 全部收敛为 `rowversion` / `RowVersion`；删除 `Revision` / `Version` 别名与影子列（确认 Order 的 `DropOrderVersionShadowColumn` 迁移无回潮）；EF 映射统一。
-- CI 增加守护规则：grep 检查 `Revision`/`Version` 别名列映射，禁止回潮。
+按 W-B/W-C 完成后的最终状态回写（保持一次性、准确）：
 
-### 阶段 0 验收清单
+| # | 文档 | 回写内容 |
+|---|------|---------|
+| A1 | `docs/todo/tasks/progress.md` | 19 项任务逐项改 ✅（完成日期 2026-09-23/24，证据列指向盘点表）；UA-08/SK-05/SK-06 按 C1/C2 裁决结果定性；全局统计（总数 87、完成数、完成率）重算 |
+| A2 | `docs/双轨下线-实施方案.md` §7 | §7.1 已完成表并入批次 1/2、W4 全部项；§7.2 未完成表清空并注明"全部收口，除 E2/E3 移交"；§7.3 库存遗留 3/4 项维持 |
+| A3 | `docs/双轨下线-最优收尾方案.md` | 文档头部加"实施完成（2026-09-23/24，核实于 2026-10-16）"状态注记 |
+| A4 | 本设计文档 | R2 状态改"已完成"，附验收证据链接 |
 
-- [ ] `dotnet build` 全解决方案零错误
-- [ ] 全量单测 + 契约测试绿
-- [ ] CI 新增 manifest 四方校验 job 生效（人工破坏一次验证其会红，随后恢复）
-- [ ] 全仓 grep：`CreateMessageScheduler` 零命中、旧路由端点零命中、`Revision`/`Version` 别名映射零命中
-- [ ] §7 状态回写：C2/B3/C3/F5/A5 → ✅
+## 5. 测试与验收策略（全程贯穿）
 
-## 3. 阶段 1 —— 低风险开关收口（D4 → D3）
+- **TDD**（规则 10.5）：B1 校验脚本增强先写"坏 fixture 必须报错"的失败测试再改脚本；B2 每删一条路径先让对应"gRPC 唯一路径"测试失败再删。
+- **CI 守护**（防回潮）：`ci.yml` 新增一个轻量 job——grep 检查 `AntiCorruption:UseGrpc`/`UseSagaStateMachine`/`UsePaymentProcessManager`/`UseRuleEngine`/`UseSkuSnapshot`/`Auth:Mode` 六个开关名在 `src/` 代码零命中（文档目录豁免）。
+- **前端**：任何补齐页面配 vitest spec；四端公共逻辑进 `@leno/shared`。
+- **错误处理**：沿用既有全局异常中间件与一致错误格式（规则 8.3/7.7）。
 
-### 3.1 D4 购物车 SKU 快照单轨化
+## 6. 最终验收总表
 
-- `cart-sku-snapshot-backfill.sql` 转为**幂等 EF 迁移**（`UPDATE ... WHERE SkuSnapshot IS NULL` 形态），随后追加列约束 `NOT NULL`。
-- 删除读路径旧格式回退分支（无快照时解析旧 JSON 的代码）；删除 `Cart:UseSkuSnapshot` 开关及分支。
-- 验证：迁移幂等性集成测试（连跑两次结果一致）；迁移后全表快照非空断言；读路径单测改写为只测快照格式（删除旧格式用例）。
+| 块 | 交付 | 证据 |
+|----|------|------|
+| W-B | 探针缺陷修复 + 校验脚本四层校验；`AntiCorruption:UseGrpc` 删除，gRPC 唯一防腐路径 | CI 绿 + 人为破坏校验通过 + compose 冒烟 + 开关名零命中 |
+| W-C | SK-05/06、UA-08、前端落点、ORD-09 完整性定性结论；缺口补齐（如有） | 定性表 + （如有）补齐项的测试绿 |
+| W-A | progress.md / 实施方案 §7 / 收尾方案 三文档与代码现实一致 | 抽查比对记录 |
+| 终态 | **特性开关 6 → 0**，双轨下线 19 项全部闭合 | 收口记录 |
 
-### 3.2 D3 规则引擎成为唯一折扣实现
+## 7. 遗留移交
 
-**顺序强制：先建验证，后做删除。**
-
-1. **差分 harness**：`Promotion.Tests` 新增属性差分测试。
-   - 语料生成器维度：购物车形态（单品 / 多品 / 含失效项 / 超量）× 规则组合（满减 / 折扣 / 阶梯 / 叠加 / 互斥）× 边界（临界金额 / 0 元 / 取整 / 精度）。
-   - 对同一输入分别执行旧算法与规则引擎，**逐字段断言**：订单总价、各品分摊金额、优惠明细结构。
-2. **裁决（D-6）**：不等价案例按 `docs/spec/05-促销域.md` 裁决；文档无据可依的个案暂停报告用户；每次裁决结果以「期望值固化用例」进语料，防回潮。
-3. **删除**：语料全绿后，删除旧折扣算法类与其单测、`Promotion:UseRuleEngine` 开关及所有分支。
-
-### 阶段 1 验收清单
-
-- [ ] 迁移幂等测试通过、快照全表非空断言通过
-- [ ] 差分语料 ≥ 200 案例，全部等价或裁决固化
-- [ ] 全仓 grep：`UseSkuSnapshot` / `UseRuleEngine` 零命中
-- [ ] 单测 + 契约测试绿；§7 状态回写 D4/D3 → ✅
-
-## 4. 阶段 2 —— 高风险开关切流（D1 → D2，compose 端到端）
-
-> 按 D-4，仅本阶段起 compose 全链路（consul / sqlserver / redis / rabbitmq / elasticsearch + 相关 API），沿用库存重构 2026-09-24 验证的物料与脚本模式。
-
-### 4.1 D1 Saga 成为"下单到支付决策"唯一生命周期拥有者
-
-- **回放先行**：六链路 staging 回放脚本——创建 / 支付 / 超时取消 / 主动取消 / 退款 / 强制取消；断言 `order_saga_states` 终态与订单表状态逐单吻合。
-- **删除**：`OrderSagaOrchestrator` 进程内编排、`Order:UseSagaStateMachine` 开关、shadow 并行转发路径。
-- **保留**：创建路径为同步事务（校验 → gRPC 预占 → 落库 → Outbox `OrderCreated`），返回值由创建事务直接构造——Saga 只接管创建之后的生命周期。
-- **复跑**：删除后同脚本再跑一遍，终态与删除前逐单一致才放行。
-
-### 4.2 D2 支付后 Process Manager 唯一协调
-
-- **回放先行**：支付成功事件 → 断言 `order_payment_processes` 三子任务（库存确认 / 积分确认 / 订单已支付）全部完成；补偿路径以人为注入单子任务失败验证可收敛、可重放（DLQ）。
-- **删除**：`Order:UsePaymentProcessManager` 开关 + shadow 转发（`StockConfirmConsumer` 等处 flag 分支）。
-- **边界守则（D1/D2 零交叉）**：Saga 管"下单到支付决策"（预占、积分冻结、支付窗口、超时取消）；PM 管"支付成功后"（确认扣减、积分入账、订单状态、失败补偿）；两张状态表、职责不交叉。
-
-### 阶段 2 验收清单
-
-- [ ] 六链路回放（删除前）终态记录归档；删除后复跑终态逐单一致
-- [ ] PM 三子任务完成断言 + 补偿收敛断言通过
-- [ ] 全仓 grep：`UseSagaStateMachine` / `UsePaymentProcessManager` 零命中
-- [ ] 单测 + 契约测试绿；§7 状态回写 D1/D2 → ✅
-
-## 5. 阶段 3 —— 交易闭环 7 项（依赖序，在单轨代码上开发）
-
-| 序 | 任务 | 关键设计决策 | 前端落点 |
-|----|------|-------------|---------|
-| 3.1 | **PRD-07** SKU 编码全局唯一校验 | 领域接口 `IProductUniquenessChecker` + 基础设施实现（查库校验）；编辑场景 `excludeProductId`；SKU 码加 DB 唯一索引兜底（应用校验 + 约束双层）；重复错误信息明确（"SKU 编码已被使用" / "商品标题已存在"） | 无（纯后端） |
-| 3.2 | **PRD-06** 运营全量商品管理列表 | `GET /api/admin/products/all`；筛选：状态（草稿/待审核/已上架/已下架/已驳回/店铺暂停）、卖家 ID、分类 ID、关键词；分页返回含审核状态；与卖家端隔离；权限 Admin/Operator | operations |
-| 3.3 | **CART-05** 全选/取消全选 | `Cart` 聚合 `ToggleAllSelection(bool)`，仅操作 `IsValid=true` 项，失效项保持未选中；`PATCH /api/cart/selection`；空购物车幂等无副作用 | buyer-app |
-| 3.4 | **ORD-09** 运营强制取消异常订单 | 复用阶段 2 收口后的单轨 Order 代码完善 `POST /api/admin/orders/{id}/force-cancel`；已支付 → 发 `RefundRequestedIntegrationEvent` 走既有退款链路；待支付 → 直接取消并释放库存/积分/优惠券；操作日志 + 审计日志；经 BC10 通知买卖双方；仅 Admin 角色 | operations（订单管理页加按钮） |
-| 3.5 | **RAS-06** 售后凭证与评价图片上传 | 走既有 `IFileStorageService` 抽象（SK-02 MinIO 适配器，不直接依赖具体实现）；凭证 ≤5 张、评价 ≤9 张、单张 ≤5MB、JPG/PNG/WebP；校验在应用层 | buyer-app |
-| 3.6 | **PAY-06** 支付渠道配置管理 | `PaymentChannelConfig` 实体（Channel/AppId/MchId/PrivateKey/PublicKey/Enabled）；密钥 AES-256 加密存储（密钥来自配置/KV，**严禁硬编码**，符合硬约束 #12）；列表脱敏返回；启/停用端点；变更发布集成事件通知支付域刷新配置；启停不影响已发起支付 | system-admin |
-| 3.7 | **PAY-05** 对账文件下载 | `ReconciliationService`（`BackgroundService` + Quartz 持久化调度，与 B4 机制一致）每日 T+1：微信 `GET /v3/bill/tradebill`、支付宝 `alipay.data.dataservice.bill.downloadurl.query` → 下载 → CSV/TXT 解析 → 按交易号与本系统支付单比对 → 差异入 `ReconciliationDiff` → `GET /api/admin/reconciliation/diffs` 查询；渠道客户端以接口适配器封装，测试用 Mock（规则 10.4：Mock 仅测试用） | system-admin（对账差异页） |
-
-依赖与顺序：PRD-07 无依赖最先；ORD-09 必须在阶段 2 完成后（单轨 Order 代码上开发）；PAY-06 先于 PAY-05（对账依赖渠道配置）；其余并行安全。
-
-### 阶段 3 验收清单
-
-- [ ] 7 项各自验收标准（对应 `docs/todo/tasks/*.md`）全部勾选
-- [ ] 每项 TDD：先失败测试后实现；单测 + 集成测试绿
-- [ ] 前端页面 + vitest spec 绿；四端公共逻辑进 `@leno/shared`
-- [ ] `progress.md` 状态回写：7 项 → ✅，整体完成率 78.2% → 86.2%（75/87；其余 12 项属范围外组，见 §0.1）
-
-## 6. 测试与文档策略（全程贯穿）
-
-- **TDD（规则 10.5）**：每项业务任务先写失败测试再实现；单测 + 集成测试双层。
-- **守护 CI（防回潮）**：阶段 0-2 新增三类守护进入 `ci.yml` 永久生效——manifest 四方校验 job、乐观锁别名 grep 守护、四个开关名零命中检查。
-- **前端**：每个新页面/组件配 vitest spec，与既有 `*.spec.ts` 模式一致。
-- **错误处理**：统一走既有全局异常中间件与一致错误响应格式（规则 8.3 / 7.7），不新造机制。
-- **文档回写**：每阶段完成即回写 `双轨下线-实施方案.md` §7 与 `progress.md`；最终产出一份收口记录（四阶段执行证据 + 验收结果）。
-- **遗留移交**：W4 三 BC 退役、W5 澄清项（E2/E3/G1）、库存遗留第 3/4 项，单列"遗留清单"写入收口记录，移交下次立项。
-
-## 7. 最终验收总表
-
-| 阶段 | 交付 | 证据 |
-|------|------|------|
-| 0 | 6 特性开关中的 0 个删除，5 项机械收敛完成 | CI 绿 + grep 零命中记录 |
-| 1 | `UseSkuSnapshot` / `UseRuleEngine` 删除 | 迁移断言 + 差分语料全绿 |
-| 2 | `UseSagaStateMachine` / `UsePaymentProcessManager` 删除 | compose 六链路回放前后终态一致 |
-| 3 | 7 项业务任务完成 | 各任务验收标准勾选 + 测试绿 |
-| 收尾 | 特性开关 6 → 2（`Auth:Mode` 随 W4 退役删除；`AntiCorruption:UseGrpc` 终局随后续澄清项处置，源文档未绑定 W4） | 收口记录 |
+- E2 SellerShop 读模型、E3 读模型权威终局（W5 澄清项）
+- 库存遗留第 3/4 项：台账 SellerId 语义契约、gRPC 通道加密
+- UA-08 若裁决为"补中间件"（C2-b）但工期外溢，可单列移交
+- W-C 若发现 SK-05/06 未实现且纳入范围会破坏本设计边界，移交后续立项
