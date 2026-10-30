@@ -9,9 +9,9 @@ using Microsoft.Extensions.Options;
 namespace Leno.AfterSales.Infrastructure.Services.Grpc;
 
 /// <summary>
-/// 订单状态查询 gRPC 防腐层客户端（售后 BC 独立维护，M4 双轨方案）。
-/// 实现 <see cref="IOrderStatusProvider"/>，与 <see cref="HttpOrderStatusProvider"/>（HttpClient）双轨。
-/// 由 <see cref="AntiCorruptionDispatcher{TService}"/> 在运行时选择使用本类或 HttpClient 实现。
+/// 订单状态查询 gRPC 防腐层客户端（售后 BC 独立维护，双轨下线单轨版）。
+/// 实现 <see cref="IOrderStatusProvider"/>，为该防腐点唯一实现，
+/// 由 <see cref="AntiCorruptionDispatcher{TService}"/> 熔断保护调用（Open 时 fail-fast，无 HTTP 降级）。
 /// </summary>
 public sealed class GrpcOrderStatusProvider
     : GrpcAntiCorruptionClientBase, IOrderStatusProvider
@@ -112,7 +112,7 @@ public sealed class GrpcOrderStatusProvider
 
             info.Items.Add(new OrderItemStatusInfo
             {
-                // gRPC 契约未生成 order_line_id/spu_id，暂留 Guid.Empty；售后按订单行匹配需走 HttpClient 双轨。
+                // gRPC 契约未生成 order_line_id/spu_id（待契约重新生成后恢复填充），暂留 Guid.Empty。
                 OrderLineId = Guid.Empty,
                 SkuId = skuId,
                 SpuId = Guid.Empty,

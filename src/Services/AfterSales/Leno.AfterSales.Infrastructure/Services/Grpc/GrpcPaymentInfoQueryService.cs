@@ -9,9 +9,9 @@ using Microsoft.Extensions.Options;
 namespace Leno.AfterSales.Infrastructure.Services.Grpc;
 
 /// <summary>
-/// 支付信息查询 gRPC 防腐层客户端（售后 BC 独立维护，M4 双轨方案）。
-/// 实现 <see cref="IPaymentInfoQueryService"/>，与 <see cref="PaymentInfoQueryService"/>（HttpClient）双轨。
-/// 由 <see cref="AntiCorruptionDispatcher{TService}"/> 在运行时选择使用本类或 HttpClient 实现。
+/// 支付信息查询 gRPC 防腐层客户端（售后 BC 独立维护，双轨下线单轨版）。
+/// 实现 <see cref="IPaymentInfoQueryService"/>，为该防腐点唯一实现，
+/// 由 <see cref="AntiCorruptionDispatcher{TService}"/> 熔断保护调用（Open 时 fail-fast，无 HTTP 降级）。
 /// </summary>
 public sealed class GrpcPaymentInfoQueryService
     : GrpcAntiCorruptionClientBase, IPaymentInfoQueryService

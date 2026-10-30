@@ -2,7 +2,7 @@ namespace Leno.AfterSales.Application.Services;
 
 /// <summary>
 /// 支付信息查询防腐层接口，供售后域在审核通过时获取支付单标识与支付渠道。
-/// 实际实现位于基础设施层，通过 HTTP 调用支付域 API 或直接查询支付域数据库（单体部署时）。
+/// 实际实现位于基础设施层，通过 gRPC 调用支付域内部接口，经熔断调度器保护（无 HTTP 降级路径）。
 /// </summary>
 public interface IPaymentInfoQueryService
 {

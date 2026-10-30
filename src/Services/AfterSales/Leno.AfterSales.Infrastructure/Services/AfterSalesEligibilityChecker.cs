@@ -8,8 +8,8 @@ using Microsoft.Extensions.Logging;
 namespace Leno.AfterSales.Infrastructure.Services;
 
 /// <summary>
-/// 售后资格校验器实现（售后 BC 独立维护，M4 双轨方案重构后）。
-/// 远程订单状态查询委托 <see cref="IOrderStatusProvider"/>（HttpClient 或 gRPC 双轨），本类仅保留业务规则校验与仓储查询。
+/// 售后资格校验器实现（售后 BC 独立维护）。
+/// 远程订单状态查询委托 <see cref="IOrderStatusProvider"/>（gRPC 唯一实现，经熔断调度器保护），本类仅保留业务规则校验与仓储查询。
 /// 校验失败抛 <see cref="AfterSalesDomainException"/>。
 /// 订单状态码引用共享枚举 <see cref="OrderStatusEnum"/>（审计 3.9），避免魔法数跨 BC 契约脆弱。
 /// </summary>

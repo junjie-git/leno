@@ -1,9 +1,9 @@
 namespace Leno.AfterSales.Domain.Services;
 
 /// <summary>
-/// 订单状态查询防腐层接口（M4 双轨方案抽取，售后 BC 独立维护）。
+/// 订单状态查询防腐层接口（售后 BC 独立维护）。
 /// 仅负责远程查询订单状态，业务规则校验由 <see cref="IAfterSalesEligibilityChecker"/> 实现。
-/// 实现位于基础设施层，通过 HttpClient 或 gRPC 调用订单域内部接口。
+/// 实现位于基础设施层，通过 gRPC 调用订单域内部接口，经熔断调度器保护（无 HTTP 降级路径）。
 /// </summary>
 public interface IOrderStatusProvider
 {
@@ -14,7 +14,7 @@ public interface IOrderStatusProvider
     Task<OrderStatusInfo?> GetOrderStatusAsync(Guid orderId, CancellationToken ct = default);
 }
 
-/// <summary>订单状态概要信息（M4 双轨方案抽取，售后 BC 独立维护）。</summary>
+/// <summary>订单状态概要信息（售后 BC 独立维护）。</summary>
 public sealed class OrderStatusInfo
 {
     public Guid OrderId { get; init; }
@@ -27,7 +27,7 @@ public sealed class OrderStatusInfo
     public List<OrderItemStatusInfo> Items { get; init; } = [];
 }
 
-/// <summary>订单行状态概要（M4 双轨方案抽取，售后 BC 独立维护）。</summary>
+/// <summary>订单行状态概要（售后 BC 独立维护）。</summary>
 public sealed class OrderItemStatusInfo
 {
     public Guid OrderLineId { get; init; }
