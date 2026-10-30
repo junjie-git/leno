@@ -77,8 +77,8 @@ public static class WebApplicationExtensions
         //       由 GrpcAntiCorruptionClientBase.ExecuteAsync 内嵌使用
         services.AddLenoGrpcAntiCorruptionPolly(configuration);
 
-        // 1.2 防腐层 gRPC 灰度开关（M4.3 + M4 双轨方案）：默认 false 走 HTTP，true 走 gRPC
-        // 各 BC 在 configureInfrastructure 委托中按 UseGrpc 注册具体 gRPC 客户端/服务
+        // 1.2 防腐层配置（GrpcEndpoints / TargetInternalApiKeys / 熔断参数，支持 Consul KV 热更新）
+        // 各 BC 在 configureInfrastructure 委托中注册 gRPC 客户端/防腐层（单轨 gRPC，B2：门控已删除）
         services.Configure<AntiCorruptionOptions>(configuration.GetSection("AntiCorruption"));
         var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
 
@@ -95,16 +95,14 @@ public static class WebApplicationExtensions
         // 初始化 AntiCorruptionMetrics 的 ObservableGauge（幂等，重复调用安全）
         AntiCorruptionMetrics.Initialize();
 
-        if (antiCorruptionOptions.UseGrpc)
+        // gRPC 服务端基础设施：无条件注册（双轨下线 B2：UseGrpc 门控已删除）
+        // + InternalKey 鉴权拦截器；各 BC 的 Program.cs 无条件 MapGrpcService
+        services.AddSingleton<GrpcInternalKeyInterceptor>();
+        services.AddGrpc(opts =>
         {
-            // gRPC 模式：注册公共 gRPC 服务端基础设施 + InternalKey 鉴权拦截器
-            services.AddSingleton<GrpcInternalKeyInterceptor>();
-            services.AddGrpc(opts =>
-            {
-                opts.EnableDetailedErrors = false;
-                opts.Interceptors.Add<GrpcInternalKeyInterceptor>();
-            });
-        }
+            opts.EnableDetailedErrors = false;
+            opts.Interceptors.Add<GrpcInternalKeyInterceptor>();
+        });
 
         // 2. 内部服务间 API Key 鉴权（保护 internal/ 前缀路由）
         services.AddInternalApiKeyAuth(configuration);
