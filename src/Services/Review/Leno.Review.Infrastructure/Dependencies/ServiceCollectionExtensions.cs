@@ -15,6 +15,7 @@ using Leno.Review.Infrastructure.ReadModels;
 using Leno.Review.Infrastructure.Repositories;
 using Leno.Review.Infrastructure.Services.Grpc;
 using Leno.SharedContracts.Grpc.Order.V1;
+using Leno.SharedContracts.Grpc.Product.V1;
 using Leno.SharedKernel.Abstractions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -55,98 +56,63 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IReviewRepository, EfCoreReviewRepository>();
 
-        // 防腐层实现：HttpClient 实现（保留作为降级备份）
-        var orderApiUrl = configuration["ServiceUrls:OrderApi"] ?? "http://localhost:5154";
-
-        services.AddHttpClient<InfraServices.HttpOrderStatusProvider>(c => c.BaseAddress = new Uri(orderApiUrl))
-            .AddAntiCorruptionPolicies();
-
-        // M4 双轨方案：gRPC 客户端 + 熔断器 + Dispatcher（仅当 UseGrpc=true 时生效）
-        // 审计 4.4：gRPC 端点缺失时不抛异常，记录 LogWarning 并降级到 HttpClient 模式（仅注册 HttpClient 实现）。
+        // 防腐层单轨化（双轨下线 B2）：gRPC 唯一实现，无 HTTP/降级路径；
+        // GrpcEndpoints 配置缺失时启动即抛 InvalidOperationException（fail-fast，杜绝静默降级导致的数据不一致）。
         var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
-        if (antiCorruptionOptions.UseGrpc)
+
+        // Order 防腐点（IOrderStatusProvider）：gRPC 客户端 + 熔断器 + Dispatcher
+        var orderGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Order")
+            ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:Order 配置缺失");
+
+        services.AddGrpcClient<OrderInternalService.OrderInternalServiceClient>(options =>
         {
-            // Order 双轨（IOrderStatusProvider）
-            var orderGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Order");
-            if (!string.IsNullOrWhiteSpace(orderGrpcEndpoint))
-            {
-                services.AddGrpcClient<OrderInternalService.OrderInternalServiceClient>(options =>
-                {
-                    options.Address = new Uri(orderGrpcEndpoint);
-                });
-                services.AddScoped<GrpcOrderStatusProvider>();
+            options.Address = new Uri(orderGrpcEndpoint);
+        });
+        services.AddScoped<GrpcOrderStatusProvider>();
 
-                services.AddKeyedSingleton<CircuitBreakerState>("order", (sp, _) =>
-                {
-                    var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
-                    var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
-                    return new CircuitBreakerState(
-                        "order",
-                        cbOpts.FailureThreshold,
-                        cbOpts.SuccessThreshold,
-                        TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
-                });
-
-                services.AddScoped<AntiCorruptionDispatcher<IOrderStatusProvider>>(sp =>
-                {
-                    var grpcImpl = sp.GetRequiredService<GrpcOrderStatusProvider>();
-                    var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IOrderStatusProvider>>>();
-                    var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("order");
-                    return new AntiCorruptionDispatcher<IOrderStatusProvider>(
-                        grpcImpl, logger, "order", cb);
-                });
-                services.AddScoped<OrderStatusDispatcherAdapter>();
-                services.AddScoped<IOrderStatusProvider>(sp =>
-                    sp.GetRequiredService<OrderStatusDispatcherAdapter>());
-            }
-            else
-            {
-                // 降级到 HttpClient 模式：注册启动时告警 HostedService，再注册 HttpClient 实现作为唯一实现。
-                services.AddHostedService(sp => new GrpcDegradationWarningHostedService(
-                    sp.GetRequiredService<ILogger<GrpcDegradationWarningHostedService>>(),
-                    "Order",
-                    "AntiCorruption:GrpcEndpoints:Order"));
-                services.AddScoped<IOrderStatusProvider>(sp =>
-                    sp.GetRequiredService<InfraServices.HttpOrderStatusProvider>());
-            }
-
-            // Product 单轨（IProductInfoQueryService）
-            // 卖家侧评价列表按商品名称过滤场景使用，无 HttpClient 降级实现，
-            // gRPC 端点缺失时降级到 NullProductInfoQueryService（fail-open，返回空字典，按 productName 过滤返回空列表）。
-            var productGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Product");
-            if (!string.IsNullOrWhiteSpace(productGrpcEndpoint))
-            {
-                // 评价域 Task C1 阶段未迁移 GrpcProductInfoQueryService（依赖商品域 ProductInternalService proto），
-                // 此处暂以 NullProductInfoQueryService 占位，后续任务补齐 gRPC 客户端实现。
-                // 配置存在时同样降级到 Null 实现，仅记录 Information 级别日志标识配置已就绪待实现补齐。
-                services.AddScoped<IProductInfoQueryService, InfraServices.NullProductInfoQueryService>();
-            }
-            else
-            {
-                // 降级到 NullProductInfoQueryService：注册启动时告警 HostedService，再注册 Null 实现作为唯一实现。
-                services.AddHostedService(sp => new GrpcDegradationWarningHostedService(
-                    sp.GetRequiredService<ILogger<GrpcDegradationWarningHostedService>>(),
-                    "Product",
-                    "AntiCorruption:GrpcEndpoints:Product"));
-                services.AddScoped<IProductInfoQueryService, InfraServices.NullProductInfoQueryService>();
-            }
-        }
-        else
+        services.AddKeyedSingleton<CircuitBreakerState>("order", (sp, _) =>
         {
-            // UseGrpc=false：直接注册 HttpClient 实现（兼容期）
-            services.AddScoped<IOrderStatusProvider>(sp =>
-                sp.GetRequiredService<InfraServices.HttpOrderStatusProvider>());
-            // Product 无 HttpClient 实现，UseGrpc=false 时降级到 NullProductInfoQueryService（fail-open）
-            services.AddScoped<IProductInfoQueryService, InfraServices.NullProductInfoQueryService>();
-        }
+            var opts = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>().CurrentValue;
+            var cbOpts = opts.CircuitBreaker ?? new CircuitBreakerOptions();
+            return new CircuitBreakerState(
+                "order",
+                cbOpts.FailureThreshold,
+                cbOpts.SuccessThreshold,
+                TimeSpan.FromSeconds(cbOpts.OpenDurationSeconds));
+        });
 
-        // 资格校验器（依赖 IOrderStatusProvider，无论双轨与否都注册）
+        services.AddScoped<AntiCorruptionDispatcher<IOrderStatusProvider>>(sp =>
+        {
+            var grpcImpl = sp.GetRequiredService<GrpcOrderStatusProvider>();
+            var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IOrderStatusProvider>>>();
+            var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("order");
+            return new AntiCorruptionDispatcher<IOrderStatusProvider>(
+                grpcImpl, logger, "order", cb);
+        });
+        services.AddScoped<OrderStatusDispatcherAdapter>();
+        services.AddScoped<IOrderStatusProvider>(sp =>
+            sp.GetRequiredService<OrderStatusDispatcherAdapter>());
+
+        // Product 防腐点（IProductInfoQueryService）：gRPC 唯一实现
+        // （卖家侧评价列表按商品名称过滤场景；单 SPU 查询失败按 ACL 契约从映射中剔除，见 GrpcProductInfoQueryService）。
+        var productGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Product")
+            ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:Product 配置缺失");
+
+        services.AddGrpcClient<ProductInternalService.ProductInternalServiceClient>(options =>
+        {
+            options.Address = new Uri(productGrpcEndpoint);
+        });
+        services.AddScoped<GrpcProductInfoQueryService>();
+        services.AddScoped<IProductInfoQueryService>(sp =>
+            sp.GetRequiredService<GrpcProductInfoQueryService>());
+
+        // 资格校验器（依赖 IOrderStatusProvider）
         services.AddScoped<IReviewEligibilityChecker, InfraServices.ReviewEligibilityChecker>();
 
         // 应用服务
         services.AddScoped<IReviewAppService, AppServices.ReviewAppService>();
 
-        // M4 双轨方案：注册跨 BC 内部查询服务（供 ReviewGrpcService 复用）
+        // 注册跨 BC 内部查询服务（供 ReviewGrpcService 复用）
         services.AddScoped<IReviewInternalQueryService, ReviewInternalQueryService>();
 
         // ES 索引初始化器（评价 BC 独立 reviews_v2 索引）
@@ -165,44 +131,4 @@ public static class ServiceCollectionExtensions
 
         return configurator;
     }
-}
-
-/// <summary>
-/// gRPC 端点缺失降级告警 HostedService（审计 4.4，评价 BC 独立维护）。
-/// 在应用启动时记录 LogWarning，提示运维 AntiCorruption:GrpcEndpoints:{BcName} 配置缺失，
-/// 已自动降级到 HttpClient 模式。仅打日志无其他副作用，运行一次即结束。
-/// </summary>
-internal sealed class GrpcDegradationWarningHostedService : IHostedService
-{
-    private readonly ILogger _logger;
-    private readonly string _bcName;
-    private readonly string _configKey;
-
-    public GrpcDegradationWarningHostedService(ILogger logger, string bcName, string configKey)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        if (string.IsNullOrWhiteSpace(bcName))
-        {
-            throw new ArgumentException("BC 名称不可为空", nameof(bcName));
-        }
-        _bcName = bcName;
-        if (string.IsNullOrWhiteSpace(configKey))
-        {
-            throw new ArgumentException("配置键不可为空", nameof(configKey));
-        }
-        _configKey = configKey;
-    }
-
-    /// <inheritdoc />
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        _logger.LogWarning(
-            "AntiCorruption:UseGrpc=true 但 {ConfigKey} 配置缺失，{BcName} 防腐层已降级到 HttpClient 模式。请尽快补齐 gRPC 端点配置以恢复双轨能力。",
-            _configKey,
-            _bcName);
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc />
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

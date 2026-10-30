@@ -7,8 +7,8 @@ using Microsoft.Extensions.Logging;
 namespace Leno.Review.Infrastructure.Services;
 
 /// <summary>
-/// 评价资格校验器实现（评价 BC 独立维护，M4 双轨方案重构后）。
-/// 远程订单状态查询委托 <see cref="IOrderStatusProvider"/>（HttpClient 或 gRPC 双轨），本类仅保留业务规则校验与仓储查询。
+/// 评价资格校验器实现（评价 BC 独立维护）。
+/// 远程订单状态查询委托 <see cref="IOrderStatusProvider"/>（gRPC 唯一路径，经熔断保护），本类仅保留业务规则校验与仓储查询。
 /// 校验失败抛 <see cref="ReviewDomainException"/>。
 /// 订单状态码引用共享枚举 <see cref="OrderStatusEnum"/>（审计 3.9），避免魔法数跨 BC 契约脆弱。
 /// </summary>

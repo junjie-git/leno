@@ -4,9 +4,9 @@ using Leno.Review.Domain.Services;
 namespace Leno.Review.Infrastructure.Services.Grpc;
 
 /// <summary>
-/// 订单状态查询双轨调度适配器（评价 BC 独立维护，M4 双轨方案）。
+/// 订单状态查询熔断调度适配器（评价 BC 独立维护）。
 /// 实现 <see cref="IOrderStatusProvider"/>，内部委托 <see cref="AntiCorruptionDispatcher{TService}"/>
-/// 在 HttpClient（<see cref="HttpOrderStatusProvider"/>）与 gRPC（<see cref="GrpcOrderStatusProvider"/>）实现间按 <c>UseGrpc</c> 开关与熔断状态选择。
+/// 对唯一 gRPC 实现（<see cref="GrpcOrderStatusProvider"/>）做熔断保护调用（熔断 Open 时 fail-fast，无 HTTP 降级路径）。
 /// 注：<see cref="AntiCorruptionDispatcher{TService}"/> 本身不实现 <c>TService</c>，
 /// 故需本适配器作为 DI 容器中 <see cref="IOrderStatusProvider"/> 的具体实现。
 /// </summary>
