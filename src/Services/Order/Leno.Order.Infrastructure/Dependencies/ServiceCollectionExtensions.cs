@@ -109,13 +109,11 @@ public static class ServiceCollectionExtensions
 
             services.AddScoped<AntiCorruptionDispatcher<IProductAntiCorruptionService>>(sp =>
             {
-                var httpImpl = sp.GetRequiredService<ProductAntiCorruptionService>();
-                var grpcImpl = sp.GetService<GrpcProductAntiCorruptionClient>();
-                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                var grpcImpl = sp.GetRequiredService<GrpcProductAntiCorruptionClient>();
                 var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IProductAntiCorruptionService>>>();
                 var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("product");
                 return new AntiCorruptionDispatcher<IProductAntiCorruptionService>(
-                    httpImpl, grpcImpl, options, logger, "product", cb);
+                    grpcImpl, logger, "product", cb);
             });
             services.AddScoped<ProductAntiCorruptionDispatcherAdapter>();
             services.AddScoped<IProductAntiCorruptionService>(sp =>
@@ -144,13 +142,11 @@ public static class ServiceCollectionExtensions
 
             services.AddScoped<AntiCorruptionDispatcher<IPromotionAntiCorruptionService>>(sp =>
             {
-                var httpImpl = sp.GetRequiredService<PromotionAntiCorruptionService>();
-                var grpcImpl = sp.GetService<GrpcPromotionAntiCorruptionClient>();
-                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                var grpcImpl = sp.GetRequiredService<GrpcPromotionAntiCorruptionClient>();
                 var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IPromotionAntiCorruptionService>>>();
                 var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("promotion");
                 return new AntiCorruptionDispatcher<IPromotionAntiCorruptionService>(
-                    httpImpl, grpcImpl, options, logger, "promotion", cb);
+                    grpcImpl, logger, "promotion", cb);
             });
             services.AddScoped<PromotionAntiCorruptionDispatcherAdapter>();
             services.AddScoped<IPromotionAntiCorruptionService>(sp =>
@@ -179,13 +175,11 @@ public static class ServiceCollectionExtensions
 
             services.AddScoped<AntiCorruptionDispatcher<IPointsAntiCorruptionService>>(sp =>
             {
-                var httpImpl = sp.GetRequiredService<PointsAntiCorruptionService>();
-                var grpcImpl = sp.GetService<GrpcPointsAntiCorruptionClient>();
-                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                var grpcImpl = sp.GetRequiredService<GrpcPointsAntiCorruptionClient>();
                 var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IPointsAntiCorruptionService>>>();
                 var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("points");
                 return new AntiCorruptionDispatcher<IPointsAntiCorruptionService>(
-                    httpImpl, grpcImpl, options, logger, "points", cb);
+                    grpcImpl, logger, "points", cb);
             });
             services.AddScoped<PointsAntiCorruptionDispatcherAdapter>();
             services.AddScoped<IPointsAntiCorruptionService>(sp =>

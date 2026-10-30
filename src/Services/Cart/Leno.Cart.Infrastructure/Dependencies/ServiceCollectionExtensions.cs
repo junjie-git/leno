@@ -92,13 +92,11 @@ public static class ServiceCollectionExtensions
 
             services.AddScoped<AntiCorruptionDispatcher<ICartPriceService>>(sp =>
             {
-                var httpImpl = sp.GetRequiredService<CartPriceService>();
-                var grpcImpl = sp.GetService<GrpcCartPriceService>();
-                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                var grpcImpl = sp.GetRequiredService<GrpcCartPriceService>();
                 var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<ICartPriceService>>>();
                 var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("product");
                 return new AntiCorruptionDispatcher<ICartPriceService>(
-                    httpImpl, grpcImpl, options, logger, "product", cb);
+                    grpcImpl, logger, "product", cb);
             });
             services.AddScoped<CartPriceDispatcherAdapter>();
         }
@@ -154,13 +152,11 @@ public static class ServiceCollectionExtensions
 
             services.AddScoped<AntiCorruptionDispatcher<IProductSnapshotAntiCorruption>>(sp =>
             {
-                var httpImpl = sp.GetRequiredService<ProductSnapshotAntiCorruptionService>();
-                var grpcImpl = sp.GetService<GrpcProductSnapshotAntiCorruptionClient>();
-                var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                var grpcImpl = sp.GetRequiredService<GrpcProductSnapshotAntiCorruptionClient>();
                 var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IProductSnapshotAntiCorruption>>>();
                 var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("product");
                 return new AntiCorruptionDispatcher<IProductSnapshotAntiCorruption>(
-                    httpImpl, grpcImpl, options, logger, "product", cb);
+                    grpcImpl, logger, "product", cb);
             });
             services.AddScoped<ProductSnapshotDispatcherAdapter>();
             services.AddScoped<IProductSnapshotAntiCorruption>(sp =>

@@ -89,13 +89,11 @@ public static class ServiceCollectionExtensions
 
                 services.AddScoped<AntiCorruptionDispatcher<IOrderStatusProvider>>(sp =>
                 {
-                    var httpImpl = sp.GetRequiredService<InfraServices.HttpOrderStatusProvider>();
-                    var grpcImpl = sp.GetService<GrpcOrderStatusProvider>();
-                    var options = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+                    var grpcImpl = sp.GetRequiredService<GrpcOrderStatusProvider>();
                     var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IOrderStatusProvider>>>();
                     var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("order");
                     return new AntiCorruptionDispatcher<IOrderStatusProvider>(
-                        httpImpl, grpcImpl, options, logger, "order", cb);
+                        grpcImpl, logger, "order", cb);
                 });
                 services.AddScoped<OrderStatusDispatcherAdapter>();
                 services.AddScoped<IOrderStatusProvider>(sp =>
