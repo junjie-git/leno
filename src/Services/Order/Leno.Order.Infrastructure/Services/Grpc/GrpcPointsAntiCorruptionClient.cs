@@ -9,9 +9,8 @@ using Microsoft.Extensions.Options;
 namespace Leno.Order.Infrastructure.Services.Grpc;
 
 /// <summary>
-/// 积分域 gRPC 防腐层客户端（M4 双轨方案）。
-/// 实现 <see cref="IPointsAntiCorruptionService"/>，与 HttpClient 实现双轨。
-/// 由 AntiCorruptionDispatcher 在运行时选择使用本类或 HttpClient 实现。
+/// 积分域 gRPC 防腐层客户端（gRPC 单轨）。
+/// 实现 <see cref="IPointsAntiCorruptionService"/>，由 AntiCorruptionDispatcher 统一调度（熔断开启时 fail-fast，无 HTTP 降级）。
 /// </summary>
 public sealed class GrpcPointsAntiCorruptionClient
     : GrpcAntiCorruptionClientBase, IPointsAntiCorruptionService

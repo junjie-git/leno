@@ -11,9 +11,8 @@ using SkuInfoProto = Leno.SharedContracts.Grpc.Product.V1.SkuInfo;
 namespace Leno.Order.Infrastructure.Services.Grpc;
 
 /// <summary>
-/// 商品域 gRPC 防腐层客户端（M4 双轨方案）。
-/// 实现 <see cref="IProductAntiCorruptionService"/>，与 <see cref="ProductAntiCorruptionService"/>（HttpClient）双轨。
-/// 由 AntiCorruptionDispatcher 在运行时选择使用本类或 HttpClient 实现。
+/// 商品域 gRPC 防腐层客户端（gRPC 单轨）。
+/// 实现 <see cref="IProductAntiCorruptionService"/>，由 AntiCorruptionDispatcher 统一调度（熔断开启时 fail-fast，无 HTTP 降级）。
 /// </summary>
 public sealed class GrpcProductAntiCorruptionClient
     : GrpcAntiCorruptionClientBase, IProductAntiCorruptionService

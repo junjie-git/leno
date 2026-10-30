@@ -1,11 +1,12 @@
 using System.Diagnostics.Metrics;
+using Grpc.Core;
 using Leno.Infrastructure.AntiCorruption;
-using Leno.Order.Infrastructure.Services;
-using Microsoft.Extensions.Logging;
+using Leno.Order.Infrastructure.Services.Grpc;
+using Leno.SharedContracts.Grpc.Points.V1;
+using Leno.SharedContracts.Grpc.Promotion.V1;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
-using System.Net;
 
 namespace Leno.Order.Infrastructure.Tests;
 
@@ -15,6 +16,8 @@ namespace Leno.Order.Infrastructure.Tests;
 /// - 远程失败时 Prometheus 指标 <c>anticorruption_failure_total{service,operation}</c> 计数器递增（按 service/operation 维度）。
 /// - 成功调用不递增失败计数器。
 /// 测试使用 <see cref="MeterListener"/> 捕获计数器增量，避免依赖 Prometheus exporter。
+/// 双轨下线（B2 Task 5）：HttpClient 实现已删除，用例改写为 gRPC 单轨语义
+/// （模拟 RpcException 远程故障，埋点位于 <c>GrpcAntiCorruptionClientBase.ExecuteAsync</c>）。
 /// </summary>
 [Collection(AntiCorruptionMetricsCollection.Name)]
 public class AntiCorruptionMetricsTests
@@ -25,15 +28,38 @@ public class AntiCorruptionMetricsTests
     private static readonly Guid OrderId = Guid.NewGuid();
 
     [Theory]
-    [InlineData("Freeze", "points", "freeze")]
+    [InlineData("Freeze", "points", "freeze_points")]
     [InlineData("Confirm", "points", "confirm_deduction")]
-    [InlineData("Release", "points", "release")]
+    [InlineData("Release", "points", "release_points")]
     public async Task Points_RemoteFailure_ShouldIncrementFailureCounter(string operation, string expectedService, string expectedOperation)
     {
         var captured = new List<(string Service, string Operation, int Delta)>();
         using var listener = CreateMeterListener(captured);
 
-        var service = CreatePointsService(_ => throw new HttpRequestException("connection refused"));
+        var clientMock = new Mock<PointsInternalService.PointsInternalServiceClient>();
+        var rpcEx = new RpcException(new Status(StatusCode.Unavailable, "connection refused"));
+        switch (operation)
+        {
+            case "Freeze":
+                clientMock.Setup(c => c.FreezeAsync(
+                        It.IsAny<FreezeRequest>(), It.IsAny<Metadata>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+                    .Throws(rpcEx);
+                break;
+            case "Confirm":
+                clientMock.Setup(c => c.ConfirmAsync(
+                        It.IsAny<ConfirmRequest>(), It.IsAny<Metadata>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+                    .Throws(rpcEx);
+                break;
+            case "Release":
+                clientMock.Setup(c => c.ReleaseAsync(
+                        It.IsAny<ReleaseRequest>(), It.IsAny<Metadata>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+                    .Throws(rpcEx);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(operation));
+        }
+
+        var service = CreatePointsClient(clientMock.Object);
 
         var act = () => operation switch
         {
@@ -43,7 +69,8 @@ public class AntiCorruptionMetricsTests
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 
-        await act.Should().ThrowAsync<AntiCorruptionException>();
+        var ex = await act.Should().ThrowAsync<AntiCorruptionException>();
+        ex.Which.ErrorCode.Should().Be("POINTS_UNAVAILABLE");
 
         captured.Should().ContainSingle()
             .Which.Should().Match<(string Service, string Operation, int Delta)>(
@@ -56,11 +83,17 @@ public class AntiCorruptionMetricsTests
         var captured = new List<(string Service, string Operation, int Delta)>();
         using var listener = CreateMeterListener(captured);
 
-        var service = CreatePromotionService(_ => throw new HttpRequestException("network down"));
+        var clientMock = new Mock<PromotionInternalService.PromotionInternalServiceClient>();
+        clientMock.Setup(c => c.CalculateDiscountAsync(
+                It.IsAny<CalculateDiscountRequest>(), It.IsAny<Metadata>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .Throws(new RpcException(new Status(StatusCode.Unavailable, "network down")));
+
+        var service = CreatePromotionClient(clientMock.Object);
 
         var act = () => service.CalculateDiscountAsync(UserId, new List<(Guid, decimal)> { (Guid.NewGuid(), 10m) }, CancellationToken.None);
 
-        await act.Should().ThrowAsync<AntiCorruptionException>();
+        var ex = await act.Should().ThrowAsync<AntiCorruptionException>();
+        ex.Which.ErrorCode.Should().Be("PROMOTION_UNAVAILABLE");
 
         captured.Should().ContainSingle()
             .Which.Should().Match<(string Service, string Operation, int Delta)>(
@@ -68,16 +101,23 @@ public class AntiCorruptionMetricsTests
     }
 
     [Fact]
-    public async Task Promotion_ReleaseCoupons_NonSuccessStatusCode_ShouldIncrementFailureCounter()
+    public async Task Promotion_ReleaseCoupons_BusinessFailure_ShouldIncrementFailureCounter()
     {
         var captured = new List<(string Service, string Operation, int Delta)>();
         using var listener = CreateMeterListener(captured);
 
-        var service = CreatePromotionService(_ => Response(HttpStatusCode.InternalServerError));
+        // Internal 属非临时性业务错误（对应原 HTTP 500），同样计入失败指标
+        var clientMock = new Mock<PromotionInternalService.PromotionInternalServiceClient>();
+        clientMock.Setup(c => c.ReleaseCouponsAsync(
+                It.IsAny<ReleaseCouponsRequest>(), It.IsAny<Metadata>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .Throws(new RpcException(new Status(StatusCode.Internal, "server error")));
+
+        var service = CreatePromotionClient(clientMock.Object);
 
         var act = () => service.ReleaseCouponsAsync(OrderId, CancellationToken.None);
 
-        await act.Should().ThrowAsync<AntiCorruptionException>();
+        var ex = await act.Should().ThrowAsync<AntiCorruptionException>();
+        ex.Which.ErrorCode.Should().Be("PROMOTION_REMOTE_FAILED");
 
         captured.Should().ContainSingle()
             .Which.Should().Match<(string Service, string Operation, int Delta)>(
@@ -90,11 +130,17 @@ public class AntiCorruptionMetricsTests
         var captured = new List<(string Service, string Operation, int Delta)>();
         using var listener = CreateMeterListener(captured);
 
-        var service = CreatePromotionService(_ => throw new HttpRequestException("network down"));
+        var clientMock = new Mock<PromotionInternalService.PromotionInternalServiceClient>();
+        clientMock.Setup(c => c.LockCouponAsync(
+                It.IsAny<LockCouponRequest>(), It.IsAny<Metadata>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .Throws(new RpcException(new Status(StatusCode.Unavailable, "network down")));
+
+        var service = CreatePromotionClient(clientMock.Object);
 
         var act = () => service.LockCouponAsync(UserId, Guid.NewGuid(), OrderId, CancellationToken.None);
 
-        await act.Should().ThrowAsync<AntiCorruptionException>();
+        var ex = await act.Should().ThrowAsync<AntiCorruptionException>();
+        ex.Which.ErrorCode.Should().Be("PROMOTION_UNAVAILABLE");
 
         captured.Should().ContainSingle()
             .Which.Should().Match<(string Service, string Operation, int Delta)>(
@@ -107,7 +153,17 @@ public class AntiCorruptionMetricsTests
         var captured = new List<(string Service, string Operation, int Delta)>();
         using var listener = CreateMeterListener(captured);
 
-        var service = CreatePointsService(_ => Response(HttpStatusCode.OK));
+        var clientMock = new Mock<PointsInternalService.PointsInternalServiceClient>();
+        clientMock.Setup(c => c.FreezeAsync(
+                It.IsAny<FreezeRequest>(), It.IsAny<Metadata>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .Returns(new AsyncUnaryCall<FreezeResponse>(
+                Task.FromResult(new FreezeResponse()),
+                Task.FromResult(new Metadata()),
+                () => Status.DefaultSuccess,
+                () => new Metadata(),
+                () => { }));
+
+        var service = CreatePointsClient(clientMock.Object);
 
         await service.FreezeAsync(UserId, OrderId, 100, CancellationToken.None);
 
@@ -121,7 +177,17 @@ public class AntiCorruptionMetricsTests
         var captured = new List<(string Service, string Operation, int Delta)>();
         using var listener = CreateMeterListener(captured);
 
-        var service = CreatePromotionService(_ => Json(new { data = new { totalDiscountAmount = 5m, currency = "CNY" } }));
+        var clientMock = new Mock<PromotionInternalService.PromotionInternalServiceClient>();
+        clientMock.Setup(c => c.CalculateDiscountAsync(
+                It.IsAny<CalculateDiscountRequest>(), It.IsAny<Metadata>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .Returns(new AsyncUnaryCall<CalculateDiscountResponse>(
+                Task.FromResult(new CalculateDiscountResponse { DiscountCents = 500 }),
+                Task.FromResult(new Metadata()),
+                () => Status.DefaultSuccess,
+                () => new Metadata(),
+                () => { }));
+
+        var service = CreatePromotionClient(clientMock.Object);
 
         var result = await service.CalculateDiscountAsync(UserId, new List<(Guid, decimal)> { (Guid.NewGuid(), 100m) }, CancellationToken.None);
 
@@ -167,53 +233,27 @@ public class AntiCorruptionMetricsTests
         return listener;
     }
 
-    private static PointsAntiCorruptionService CreatePointsService(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler)
+    private static IOptionsMonitor<AntiCorruptionOptions> CreateOptionsMonitor()
     {
-        var http = new HttpClient(new FakeHandler(handler)) { BaseAddress = new Uri("http://test/") };
-        var options = Options.Create(new AntiCorruptionOptions
+        var mock = new Mock<IOptionsMonitor<AntiCorruptionOptions>>();
+        mock.SetupGet(o => o.CurrentValue).Returns(new AntiCorruptionOptions
         {
-            TargetInternalApiKeys = new() { ["Points"] = "test-internal-key" }
+            TargetInternalApiKeys = new Dictionary<string, string>
+            {
+                ["Points"] = "test-internal-key",
+                ["Promotion"] = "test-internal-key"
+            }
         });
-        var logger = NullLogger<PointsAntiCorruptionService>.Instance;
-        return new PointsAntiCorruptionService(http, options, logger);
+        return mock.Object;
     }
 
-    private static PromotionAntiCorruptionService CreatePromotionService(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler)
-    {
-        var http = new HttpClient(new FakeHandler(handler)) { BaseAddress = new Uri("http://test/") };
-        var options = Options.Create(new AntiCorruptionOptions
-        {
-            TargetInternalApiKeys = new() { ["Promotion"] = "test-internal-key" }
-        });
-        var logger = NullLogger<PromotionAntiCorruptionService>.Instance;
-        return new PromotionAntiCorruptionService(http, options, logger);
-    }
+    /// <summary>
+    /// 构造被测 gRPC 客户端：不注入 IServiceProvider，跳过 Polly retry，
+    /// 保证单次故障恰好记录一次失败指标（Delta == 1）。
+    /// </summary>
+    private static GrpcPointsAntiCorruptionClient CreatePointsClient(PointsInternalService.PointsInternalServiceClient client)
+        => new(client, CreateOptionsMonitor(), NullLogger<GrpcPointsAntiCorruptionClient>.Instance);
 
-    private static Task<HttpResponseMessage> Response(HttpStatusCode code)
-        => Task.FromResult<HttpResponseMessage>(new HttpResponseMessage(code));
-
-    private static Task<HttpResponseMessage> Json(object payload)
-    {
-        var response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(
-                System.Text.Json.JsonSerializer.Serialize(payload),
-                System.Text.Encoding.UTF8,
-                "application/json")
-        };
-        return Task.FromResult(response);
-    }
-
-    private sealed class FakeHandler : HttpMessageHandler
-    {
-        private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _handler;
-
-        public FakeHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler)
-        {
-            _handler = handler;
-        }
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            => _handler(request);
-    }
+    private static GrpcPromotionAntiCorruptionClient CreatePromotionClient(PromotionInternalService.PromotionInternalServiceClient client)
+        => new(client, CreateOptionsMonitor(), NullLogger<GrpcPromotionAntiCorruptionClient>.Instance);
 }
