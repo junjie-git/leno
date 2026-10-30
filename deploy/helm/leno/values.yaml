@@ -89,7 +89,7 @@ services:
       initialDelaySeconds: 30
       periodSeconds: 30
 
-    product:
+  product:
     # 数据库连接串在 leno-db-connectionstrings Secret 中的 key（与代码 GetConnectionString("ProductDb") 严格一致）
     connectionStringKey: ProductDb
     enabled: true
@@ -172,8 +172,8 @@ services:
     grpcPort: 5256
     migration: { enabled: true, runOnInit: true }
     ingress: { enabled: false }
-    readinessProbe: { httpGet: { path: /health/ready, port: 5158 }, initialDelaySeconds: 15, periodSeconds: 10 }
-    livenessProbe: { httpGet: { path: /health/live, port: 5158 }, initialDelaySeconds: 30, periodSeconds: 30 }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5156 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5156 }, initialDelaySeconds: 30, periodSeconds: 30 }
 
   # ===== notification BC =====
   notification:
@@ -189,8 +189,8 @@ services:
     grpcPort: 5260
     migration: { enabled: true, runOnInit: true }
     ingress: { enabled: false }
-    readinessProbe: { httpGet: { path: /health/ready, port: 5159 }, initialDelaySeconds: 15, periodSeconds: 10 }
-    livenessProbe: { httpGet: { path: /health/live, port: 5159 }, initialDelaySeconds: 30, periodSeconds: 30 }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5160 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5160 }, initialDelaySeconds: 30, periodSeconds: 30 }
 
   # ===== sellershop BC =====
   sellershop:
@@ -206,8 +206,8 @@ services:
     grpcPort: 5259
     migration: { enabled: true, runOnInit: true }
     ingress: { enabled: false }
-    readinessProbe: { httpGet: { path: /health/ready, port: 5160 }, initialDelaySeconds: 15, periodSeconds: 10 }
-    livenessProbe: { httpGet: { path: /health/live, port: 5160 }, initialDelaySeconds: 30, periodSeconds: 30 }
+    readinessProbe: { httpGet: { path: /health/ready, port: 5159 }, initialDelaySeconds: 15, periodSeconds: 10 }
+    livenessProbe: { httpGet: { path: /health/live, port: 5159 }, initialDelaySeconds: 30, periodSeconds: 30 }
 
   # ===== systemadmin BC =====
   systemadmin:

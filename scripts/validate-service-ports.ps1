@@ -81,6 +81,16 @@ foreach ($svc in $services) {
         $fail.Add("values.yaml $name grpcPort $($Matches[1]) != manifest $grpcExpected")
       }
     }
+    elseif ($s -match "^readinessProbe: \{ httpGet: \{ path: (?<p>[^,]+), port: (?<port>\d+) \}") {
+      if ([int]$Matches.port -ne $httpPort) {
+        $fail.Add("values.yaml $name readinessProbe port $($Matches.port) != manifest httpPort $httpPort")
+      }
+    }
+    elseif ($s -match "^livenessProbe: \{ httpGet: \{ path: (?<p>[^,]+), port: (?<port>\d+) \}") {
+      if ([int]$Matches.port -ne $httpPort) {
+        $fail.Add("values.yaml $name livenessProbe port $($Matches.port) != manifest httpPort $httpPort")
+      }
+    }
   }
   if (-not $seenHttp) {
     $fail.Add("values.yaml 缺 $name 的 httpPort（或服务块名不匹配）")
