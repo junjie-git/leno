@@ -8,7 +8,8 @@
     2. deploy/helm/leno/values.yaml —— services.<name>.httpPort == manifest.httpPort
                                      services.<name>.service.port == manifest.httpPort
                                      services.<name>.grpcPort == manifest.grpcPort（如有）
-    3. values.yaml serviceUrls.* 中已登记的端口与 manifest 一致（仅校验可映射项）
+    3. values.yaml serviceUrls.* 中已登记的端口与 manifest 一致（自动枚举全部键）
+    4. deploy/consul/kv-seed.json —— ServiceUrls__* 主机名与 manifest composeService 一致
   任一项不一致即退出码 1（CI 失败）。
 
 .NOTES
@@ -97,18 +98,60 @@ foreach ($svc in $services) {
   }
 }
 
-# 3) serviceUrls 已登记端口抽查（映射：Api 后缀 -> manifest name）
-$urlMap = @{
-  "PaymentApi" = "payment"; "OrderApi" = "order"; "ProductApi" = "product"
-  "PromotionApi" = "promotion"; "IdentityApi" = "identity"
+# 3) serviceUrls 已登记端口校验 —— 自动枚举 values.yaml serviceUrls.* 全部键
+$serviceUrlKeys = @()
+for ($i = 0; $i -lt $vLines.Count; $i++) {
+  if ($vLines[$i] -match '^(\s*)serviceUrls:\s*$') {
+    $baseIndent = $Matches[1].Length
+    for ($j = $i + 1; $j -lt $vLines.Count; $j++) {
+      $line = $vLines[$j]
+      if ($line.Trim() -eq '' -or $line.TrimStart().StartsWith('#')) { continue }
+      $indent = $line.Length - $line.TrimStart().Length
+      if ($indent -le $baseIndent) { break }  # 回到 serviceUrls 同级或更浅层级，段结束
+      if ($line -match '^\s+([A-Za-z]+):\s*\{ service: "([a-z0-9-]+)", port: (\d+) \}\s*$') {
+        $serviceUrlKeys += [pscustomobject]@{ Key = $Matches[1]; Service = $Matches[2]; Port = [int]$Matches[3] }
+      }
+    }
+    break
+  }
 }
-foreach ($k in $urlMap.Keys) {
-  $n = $urlMap[$k]
-  $svc = $manifest.services | Where-Object { $_.name -eq $n } | Select-Object -First 1
+$serviceUrlChecked = 0
+foreach ($item in $serviceUrlKeys) {
+  # 以 values.yaml 中登记的 service 名反查 manifest（比键名推断更可靠）
+  $svc = $manifest.services | Where-Object { $_.name -eq $item.Service -or $_.composeService -like "*$($item.Service)*" } | Select-Object -First 1
   if (-not $svc) { continue }
-  $m = [regex]::Match($values, "${k}: \{ service: ""[a-z]+"", port: (\d+) \}")
-  if ($m.Success -and [int]$m.Groups[1].Value -ne [int]$svc.httpPort) {
-    $fail.Add("values.yaml serviceUrls.$k 端口 $($m.Groups[1].Value) != manifest $($svc.httpPort)")
+  $serviceUrlChecked++
+  if ($item.Port -ne [int]$svc.httpPort) {
+    $fail.Add("values.yaml serviceUrls.$($item.Key) port $($item.Port) != manifest $($svc.name) httpPort $($svc.httpPort)")
+  }
+}
+
+# 4) Consul KV 种子 ServiceUrls__* 主机名一致性（主机名形如 leno-<composeService>，如 leno-order-api / leno-access-control-api）
+$kvSeedPath = Join-Path $RepoRoot "deploy/consul/kv-seed.json"
+$kvChecked = 0
+if (Test-Path $kvSeedPath) {
+  $kvSeed = Get-Content $kvSeedPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  foreach ($entry in @($kvSeed.items)) {
+    if ($entry.key -notmatch '^ServiceUrls__([A-Za-z]+)$') { continue }
+    # 映射规则：ServiceUrls__<X>Api -> 去掉 Api 后缀 -> manifest.name（忽略大小写，如 AccessControl -> accesscontrol）
+    $apiName = $Matches[1] -replace 'Api$', ''
+    $svc = $manifest.services | Where-Object { $_.name -ieq $apiName } | Select-Object -First 1
+    if (-not $svc) { continue }
+    $url = [string]$entry.value
+    # value 为 ${ENV_VAR} 占位符时，以非敏感 default 为准校验
+    if ($url -match '^\$\{[^}]*\}$' -and $entry.PSObject.Properties['default']) {
+      $url = [string]$entry.default
+    }
+    $expectedHost = "leno-$($svc.composeService)"
+    $kvChecked++
+    # 精确比对主机名（子串匹配会把 leno-order-api-wrong 误判为合法），端口/路径不参与
+    $hostMatch = [regex]::Match($url, '^[A-Za-z][A-Za-z0-9+.-]*://([^/:?\s]+)')
+    if (-not $hostMatch.Success) {
+      $fail.Add("kv-seed.json $($entry.key) 值 '$url' 无法解析出主机名（预期主机 '$expectedHost'）")
+    }
+    elseif ($hostMatch.Groups[1].Value -ne $expectedHost) {
+      $fail.Add("kv-seed.json $($entry.key) 值 '$url' 未指向 manifest 服务的预期主机 '$expectedHost'（实际主机 '$($hostMatch.Groups[1].Value)'）")
+    }
   }
 }
 
@@ -118,5 +161,5 @@ if ($fail.Count -gt 0) {
   exit 1
 }
 
-Write-Output "服务端口三方一致性校验通过：manifest / compose / Helm values 共 $($services.Count) 个服务全部一致。"
+Write-Output "服务端口三方一致性校验通过：manifest / compose / Helm values / Consul KV 种子 ServiceUrls 全部一致（serviceUrls 枚举 $serviceUrlChecked 项、kv-seed 命中 $kvChecked 项，共 $($services.Count) 个服务）。"
 exit 0
