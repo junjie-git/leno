@@ -6,7 +6,7 @@ namespace Leno.Promotion.Application.Services;
 /// <summary>
 /// 促销折扣试算服务实现 —— **规则引擎唯一路径**（双轨下线 D3，2026-09-23）。
 /// <para>
-/// 旧硬编码路径（满减 + 优惠券各自按原价计算后直接相加）与开关 <c>Promotion:UseRuleEngine</c> 已删除：
+/// 旧硬编码路径（满减 + 优惠券各自按原价计算后直接相加）与其灰度开关已删除（双轨下线 D3）：
 /// 试算经 <see cref="PromotionRuleContext"/> 映射后交由 <see cref="IRuleEngine"/> 编排全部规则
 /// （满减 <c>FullReductionRule</c> / 优惠券 <c>CouponRule</c> / 秒杀 <c>SeckillDiscountRule</c>），
 /// 叠加语义由规则定义的 Stacking 策略决定（默认 <c>Stackable</c>，逐级按剩余金额评估）。

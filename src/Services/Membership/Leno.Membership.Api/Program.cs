@@ -54,7 +54,7 @@ if (!app.Configuration.ValidateSensitiveConfig())
 app.UseLenoPipeline();
 
 // 启动时执行 EF Core 迁移（带 Redis 分布式锁，避免多实例并发冲突）
-// 双轨期迁移独立运行，不影响旧 points_membership_db
+// 迁移独立运行，不影响旧 points_membership_db
 await app.Services.MigrateWithLockAsync<MembershipDbContext>();
 app.Run();
 

@@ -1,8 +1,8 @@
 -- ============================================================
 -- 阶段三 3.11：cart_items SKU 快照回填脚本
 -- 数据库：SQL Server（购物车域 LenoCart）
--- 执行时机：EF 迁移 20260723000001_AddCartItemSkuSnapshot 部署后，
---           启用 Cart:UseSkuSnapshot=true 前或灰度期间执行
+-- 执行时机：EF 迁移 20260723000001_AddCartItemSkuSnapshot 部署后执行
+--           （快照读取现已无条件生效，历史灰度启用前置步骤已取消）
 -- 幂等性：只读统计，可重复执行
 -- ============================================================
 -- 背景：
@@ -14,7 +14,7 @@
 --   本脚本不执行数据 UPDATE，因为部分回填（设置展示字段但价格 NULL）会导致
 --   EF Core 物化 Price=0 的不完整快照，误导用户看到 0 元商品。
 --   正确回填路径为运行时后台刷新：
---     1. 启用 Cart:UseSkuSnapshot=true 后，SnapshotCartPriceService 检测缺失快照
+--     1. SnapshotCartPriceService 检测缺失快照（快照优先无条件生效，历史模式开关已删除）
 --     2. 回退实时调用获取价格，同时入队 SkuSnapshotRefreshQueue 后台刷新
 --     3. 后台队列批量调用商品域 ACL，完整回填快照（含价格/币种/可售状态）
 --     4. ProductSkuUpdatedEventConsumer 消费商品域事件持续更新快照
@@ -54,10 +54,9 @@ WHERE sku_snapshot_sku_id IS NOT NULL
 --   dotnet ef database update --project src/Services/Cart/Leno.Cart.Infrastructure
 --   （或应用启动时 MigrateWithLockAsync 自动执行）
 --
--- 步骤 2：灰度启用快照模式
---   方式 A（appsettings.json）："Cart": { "UseSkuSnapshot": true }
---   方式 B（Consul KV 热更新）：leno/cart/UseSkuSnapshot = true
---   建议先灰度 10% 流量验证，观察后台刷新队列与价格一致性
+-- 步骤 2：快照模式说明（历史灰度启用步骤已取消，D4 2026-09-23 删除模式开关）
+--   快照优先现已无条件生效，无需任何配置启用；
+--   部署迁移后直接观察后台刷新队列与价格一致性即可
 --
 -- 步骤 3：监控回填进度
 --   重复执行本脚本第 1 节查询，items_needing_backfill 趋近 0 即回填完成
@@ -68,6 +67,7 @@ WHERE sku_snapshot_sku_id IS NOT NULL
 --   触发即时批量刷新，无需等待用户访问触发
 --
 -- 步骤 5：回滚预案
---   设 Cart:UseSkuSnapshot=false 即恢复旧路径（实时跨进程调用）
---   cart_items 表 sku_snapshot_* 列保留不影响旧路径（CartPriceService 不读这些列）
+--   历史开关回滚路径已删除（快照优先无条件生效）；如需紧急回退实时调用，
+--   需代码级回退 SnapshotCartPriceService 装饰器注册
+--   cart_items 表 sku_snapshot_* 列保留不影响读取（装饰器之外的路径不读这些列）
 -- ============================================================

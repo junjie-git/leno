@@ -83,7 +83,7 @@ public static class WebApplicationExtensions
         var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
 
         // T19：注册可重载的 Consul 配置提供者，使 IOptionsMonitor<AntiCorruptionOptions> 感知 KV 热更新。
-        // provider 作为单例同时注册到 DI（ConsulConfigWatcher 注入）与配置链（IOptionsMonitor 绑定源）。
+        // provider 作为单例同时注册到 DI 与配置链（IOptionsMonitor 绑定源）；
         // 加在链尾，确保 Consul KV 值覆盖 appsettings.json 等静态源。
         var consulConfigProvider = new ConsulReloadableConfigurationProvider();
         services.AddSingleton(consulConfigProvider);
@@ -95,7 +95,7 @@ public static class WebApplicationExtensions
         // 初始化 AntiCorruptionMetrics 的 ObservableGauge（幂等，重复调用安全）
         AntiCorruptionMetrics.Initialize();
 
-        // gRPC 服务端基础设施：无条件注册（双轨下线 B2：UseGrpc 门控已删除）
+        // gRPC 服务端基础设施：无条件注册（双轨下线 B2 收口：灰度门控已删除）
         // + InternalKey 鉴权拦截器；各 BC 的 Program.cs 无条件 MapGrpcService
         services.AddSingleton<GrpcInternalKeyInterceptor>();
         services.AddGrpc(opts =>
@@ -128,7 +128,8 @@ public static class WebApplicationExtensions
         services.AddOpenApi();
 
         // 7. 鉴权配置（RS256-only，零信任；双轨下线 A6，2026-09-23，D-4/D-6）：
-        //    - 删除 Auth:Mode 与 GatewayHeader 透传模式：每个服务自行验签 JWT，不信任上游注入的身份头
+        //    - 删除历史认证模式配置键（HTTP 头透传/本地验签双轨）与 GatewayHeader 透传模式：
+        //      每个服务自行验签 JWT，不信任上游注入的身份头
         //    - 删除 HS256 共享密钥验签（Jwt:SecretKey）：统一从 Identity 的 OIDC 发现文档拉取 JWKS 公钥
         var jwtOpts = configuration.GetSection("Jwt").Get<JwtOptions>()
             ?? throw new InvalidOperationException("Jwt 配置节缺失");
@@ -182,12 +183,9 @@ public static class WebApplicationExtensions
         // 8. 授权
         services.AddAuthorization();
 
-        // 9. Consul KV 配置热更新后台服务（M4 双轨方案：监听 leno/anticorruption/use-grpc/{bc} KV）
-        // 仅当 AntiCorruption:EnableConsulConfigWatcher=true（默认 true）时注册
-        if (configuration.GetValue<bool>("AntiCorruption:EnableConsulConfigWatcher", true))
-        {
-            services.AddHostedService<ConsulConfigWatcher>();
-        }
+        // 9. Consul KV 配置热更新后台服务已随防腐层灰度开关一并删除（B2 2026-10-30）：
+        //    gRPC 单轨后无配置需热更新监听；ConsulReloadableConfigurationProvider（T19）
+        //    作为泛化可重载 provider 保留，供后续 leno/config/ 前缀 KV 热更新复用。
 
         return services;
     }

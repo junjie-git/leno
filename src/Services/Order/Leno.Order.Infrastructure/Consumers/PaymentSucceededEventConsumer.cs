@@ -15,10 +15,8 @@ namespace Leno.Order.Infrastructure.Consumers;
 /// <see cref="StockConfirmConsumer"/> 与 <see cref="PointsConfirmConsumer"/> 独立消费，
 /// 三者通过独立队列 + 独立幂等键隔离，任一操作失败不影响其他已成功的操作。
 /// 通过 EventId 幂等去重；订单非待支付态时跳过（已处理或状态非法）。
-/// 3.3：双轨期 feature flag <c>Order:UsePaymentProcessManager</c> 切流。
-/// flag=true 时（shadow 模式）：消费者在完成 MarkAsPaid 后调用 <see cref="IOrderPaymentProcessManager.HandleOrderMarkedPaidAsync"/>
-/// 转发完成回调给 Process Manager，跟踪三个子任务完成度并发布编排事件。旧路径仍执行实际工作以保证功能兼容。
-/// flag=false 时：仅走旧路径，不调用 Process Manager。
+/// 支付后流程由三个独立消费者各自完成（B2 2026-10-30：历史灰度切流开关与 shadow 转发分支已删除，
+/// 本消费者始终独立执行订单状态变更，不再向 Process Manager 转发回调）。
 /// </summary>
 public sealed class PaymentSucceededEventConsumer : IntegrationEventConsumerBase<PaymentSucceededEvent>
 {

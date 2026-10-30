@@ -10,7 +10,7 @@ public sealed class CartSnapshotOptions
     /// <summary>配置节名称。</summary>
     public const string SectionName = "Cart";
 
-    // 双轨下线 D4（2026-09-23）：UseSkuSnapshot feature flag 已删除。
+    // 双轨下线 D4（2026-09-23）：快照模式 feature flag 已删除。
     // 快照优先读取无条件生效（SnapshotCartPriceService 始终走快照路径，缺失/过期回退实时调用并触发后台刷新）；
     // 原 flag 的 true/false 分支收敛为唯一路径。
 

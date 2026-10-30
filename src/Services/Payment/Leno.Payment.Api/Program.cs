@@ -42,7 +42,7 @@ if (!app.Configuration.ValidateSensitiveConfig())
 // 一站式中间件管线：OpenAPI + 全局异常 + 内部 API Key + 鉴权 + 健康检查端点 + Controllers
 app.UseLenoPipeline();
 
-// gRPC 服务端无条件映射（双轨下线 B2：AntiCorruption:UseGrpc 开关已删除）
+// gRPC 服务端无条件映射（双轨下线 B2 收口：防腐层灰度开关已删除）
 app.MapGrpcService<PaymentGrpcService>();
 
 // 启动时执行 EF Core 迁移（带 Redis 分布式锁，避免多实例并发冲突）

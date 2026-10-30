@@ -115,12 +115,13 @@ KV 不可达时 Winton 源 `Optional=true` 静默跳过，此时 env 兜底生�
 | `Jwt:SecretKey` | `WebApplicationExtensions.AddLenoApi` L123（`GetSection("Jwt")`） | ✅ | KV 主通道 + env 兜底：Secret `leno-security-jwt`（key=`secret-key`）。**旧模板注入的键名是 `Security__Jwt__SecretKey`，代码不读取（代码读 `Jwt:SecretKey`），属键名错误** |
 | `InternalAuth:ApiKey` | `InternalApiKeyOptions`（SectionName=`InternalAuth`）；Identity ServiceCollectionExtensions L155 | ✅ | KV 主通道 + env 兜底：Secret `leno-security-jwt`（key=`internal-api-key`） |
 | `Security:InternalApiKey:{Bc}` / `Security:InternalApiKey:Shared` | `ConfigCenterExtensions.ValidateSensitiveConfig` L185/L189、Identity L156 | ✅ | KV 主通道（启动校验已有兜底逻辑）；`.env.example` 补 `LENO_INTERNAL_API_KEY_SHARED` 供本地/种子脚本引用 |
-| `AntiCorruption:UseGrpc`、`AntiCorruption:TargetInternalApiKeys:{Bc}` | `WebApplicationExtensions` L74-75；各 BC ACL 注册 | ✅（含热更新 KV `leno/anticorruption/use-grpc/{bc}`） | KV 主通道（灰度开关），env 兜底可选 |
+| ~~防腐层灰度开关~~（已删除，B2 2026-10-30，含热更新 KV `leno/anticorruption/use-grpc/{bc}` 一并下线）、`AntiCorruption:TargetInternalApiKeys:{Bc}` | `WebApplicationExtensions`；各 BC ACL 注册 | ✅（`TargetInternalApiKeys` 走 KV 主通道） | KV 主通道，env 兜底可选 |
 
 ### 3.7 业务 Options（Payment/SMS/OAuth2/Order/RefreshToken/Cart 等）
 
 各 BC `Configure<T>(GetSection(...))` 绑定：`Payment:Alipay:*`、`Payment:WeChatPay:*`、`SMS:*`、`OAuth2:*`
-（含 `OAuth2:PublicBaseUrl`，对应 env `OAUTH2_PUBLIC_BASE_URL`）、`Order:*`、`RefreshToken:Provider`、`Cart:UseSkuSnapshot` 等。
+（含 `OAuth2:PublicBaseUrl`，对应 env `OAUTH2_PUBLIC_BASE_URL`）、`Order:*`、`RefreshToken:Provider` 等
+（购物车快照模式开关已删除，D4 收口 2026-09-23，快照优先无条件生效）。
 全部 ✅ KV 覆盖（`leno/config/...`），敏感子键已在 `ConfigCenterExtensions.SensitiveConfigKeys` 登记，
 `ValidateSensitiveConfig` 启动校验（生产缺失即抛异常）已覆盖。不重复注入 env。
 

@@ -21,7 +21,6 @@ public class SellerShopAntiCorruptionTests
         var mock = new Mock<IOptionsMonitor<AntiCorruptionOptions>>();
         mock.SetupGet(o => o.CurrentValue).Returns(new AntiCorruptionOptions
         {
-            UseGrpc = true,
             TargetInternalApiKeys = new Dictionary<string, string>
             {
                 { "Product", "test-key-product" },

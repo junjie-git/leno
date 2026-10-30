@@ -16,10 +16,7 @@ namespace Leno.Order.Infrastructure.Consumers;
 /// 通过独立队列（order-points-confirm）与独立幂等键（points-confirm-{PaymentId}）实现隔离，
 /// 任一操作失败不影响本消费者的执行结果与重试，反之亦然。
 /// 会员订阅订单跳过积分确认（与原 PaymentSucceededEventConsumer 早期返回行为一致）。
-/// 3.3：双轨期 feature flag <c>Order:UsePaymentProcessManager</c> 切流。
-/// flag=true 时（shadow 模式）：消费者在完成积分确认后调用 <see cref="IOrderPaymentProcessManager.HandlePointsConfirmedAsync"/>
-/// 转发完成回调给 Process Manager。旧路径仍执行实际工作以保证功能兼容。
-/// flag=false 时：仅走旧路径，不调用 Process Manager。
+/// B2 2026-10-30：历史灰度切流开关与 shadow 转发分支已删除，本消费者始终独立执行积分确认。
 /// </summary>
 public sealed class PointsConfirmConsumer : IConsumer<PaymentSucceededEvent>
 {

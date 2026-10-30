@@ -18,7 +18,7 @@ namespace Leno.Order.Infrastructure.Tests;
 /// 支付成功事件消费者测试。
 /// T4 拆分后，本消费者仅负责订单状态变更（MarkAsPaid）与本地事务保存，
 /// 库存确认与积分确认已迁移至独立的 <see cref="StockConfirmConsumer"/> / <see cref="PointsConfirmConsumer"/>。
-/// 3.3：双轨期 feature flag 默认关闭，Process Manager 不参与（旧路径行为不变）。
+/// 3.3 收口后：历史灰度切流开关已删除（B2 2026-10-30），Process Manager 不参与，本消费者行为即唯一路径。
 /// </summary>
 public class PaymentSucceededEventConsumerTests
 {

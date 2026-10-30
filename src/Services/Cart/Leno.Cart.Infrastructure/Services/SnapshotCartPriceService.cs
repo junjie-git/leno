@@ -19,7 +19,7 @@ namespace Leno.Cart.Infrastructure.Services;
 /// </list>
 /// </para>
 /// <para>
-/// 双轨下线 D4（2026-09-23）：原 <c>UseSkuSnapshot</c> 开关与透传分支已删除，快照优先无条件生效。
+/// 双轨下线 D4（2026-09-23）：原快照模式开关与透传分支已删除，快照优先无条件生效。
 /// 后台刷新由 <see cref="IBackgroundSnapshotRefresher"/> 非阻塞入队，不影响读取路径延迟。
 /// </para>
 /// <para>

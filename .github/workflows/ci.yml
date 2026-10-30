@@ -242,6 +242,23 @@ jobs:
         shell: pwsh
         run: ./scripts/validate-service-ports.ps1
 
+  # 双轨下线守护：历史特性开关名在源代码中零命中（docs/ 目录豁免，保留历史记载）
+  guard-legacy-flags:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 检查历史特性开关零命中
+        shell: pwsh
+        run: |
+          $patterns = 'UseSagaStateMachine','UsePaymentProcessManager','UseRuleEngine','UseSkuSnapshot','Auth:Mode','AntiCorruption:UseGrpc','UseStrategyChain'
+          $hits = git grep -n -E ($patterns -join '|') -- 'src' 'web' 'deploy' 'scripts'
+          if ($LASTEXITCODE -eq 0 -and $hits) {
+            Write-Output "::error::历史特性开关残留命中："
+            $hits | ForEach-Object { Write-Output $_ }
+            exit 1
+          }
+          Write-Output "守护通过：7 个历史开关名零命中。"
+
   # ===========================================================================
   # 合规检查（G2-文档，2026-09-24；硬约束 #12 = ADR-0010）
   #   1) 配置键三方一致性：防 A6 类"删键未同步清单/种子"的漂移

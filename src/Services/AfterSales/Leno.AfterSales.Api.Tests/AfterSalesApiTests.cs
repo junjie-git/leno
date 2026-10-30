@@ -192,15 +192,14 @@ public class AfterSalesApiTests : IClassFixture<WebApplicationFactory<Program>>
     /// 过滤器显式排除了它），导致 WebApplicationFactory 清理失败、整个测试类
     /// 被标记失败（run #9 AfterSales 21 个测试失败的根因）。
     /// 注意：除 IConsulClient/注册托管服务外，还必须移除依赖 IConsulClient 的
-    /// ConsulConfigWatcher/ConsulConfigPublisher 托管服务——否则它们作为
-    /// IHostedService 在宿主构建校验阶段无法解析 IConsulClient，Host 直接构建失败。
+    /// ConsulConfigPublisher 托管服务——否则它作为 IHostedService 在宿主构建校验阶段
+    /// 无法解析 IConsulClient，Host 直接构建失败。
     /// </summary>
     private static void RemoveConsulServices(IServiceCollection services)
     {
         var consulDescriptors = services
             .Where(s =>
                 s.ImplementationType?.FullName?.Contains("ConsulServiceRegistration") == true
-                || s.ImplementationType?.FullName?.Contains("ConsulConfigWatcher") == true
                 || s.ImplementationType?.FullName?.Contains("ConsulConfigPublisher") == true
                 || s.ServiceType.FullName?.Contains("Consul") == true
                 || s.ImplementationInstance?.GetType().FullName?.Contains("Consul") == true)

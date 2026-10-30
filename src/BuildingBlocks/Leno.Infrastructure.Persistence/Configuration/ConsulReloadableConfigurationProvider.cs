@@ -25,7 +25,7 @@ public sealed class ConsulReloadableConfigurationProvider : ConfigurationProvide
     /// <summary>
     /// 更新配置值并触发 IOptionsMonitor 重载。
     /// </summary>
-    /// <param name="key">配置键（如 <c>AntiCorruption:UseGrpc</c>）。</param>
+    /// <param name="key">配置键（如 <c>Test:ReloadableKey</c>）。</param>
     /// <param name="value">配置值。null 表示移除该键。</param>
     public void SetValue(string key, string? value)
     {

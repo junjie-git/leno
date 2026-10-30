@@ -46,7 +46,7 @@ public static class CacheServiceCollectionExtensions
             var logger = sp.GetRequiredService<ILogger<RedisBloomFilter>>();
             return new RedisBloomFilter(redis, logger);
         });
-        // CacheService 标记为 [Obsolete]（阶段四步骤 4.5 双轨期 4 周），
+        // CacheService 标记为 [Obsolete]（阶段四步骤 4.5 过渡期已结束），
         // 但作为 ICacheService 的默认实现仍需注册到 DI。新代码应使用 IMultiLevelCache。
 #pragma warning disable CS0618
         services.TryAddSingleton<ICacheService>(sp =>

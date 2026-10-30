@@ -145,7 +145,7 @@ public class PointsApiTests : IClassFixture<WebApplicationFactory<Program>>
 
     /// <summary>
     /// 移除 Consul 相关服务注册（IConsulClient、ConsulServiceRegistrationHostedService、
-    /// ConsulConfigWatcher、ConsulConfigPublisher）。测试环境无 Consul Agent（localhost:8500 不可达），
+    /// ConsulConfigPublisher）。测试环境无 Consul Agent（localhost:8500 不可达），
     /// HostedService 的 StopAsync 连接拒绝会以 Class Cleanup Failure 形式标记整类失败
     /// （run #10 实证 19 个失败全部为 Cleanup），必须从容器移除。
     /// </summary>
@@ -154,7 +154,6 @@ public class PointsApiTests : IClassFixture<WebApplicationFactory<Program>>
         var consulDescriptors = services
             .Where(s =>
                 s.ImplementationType?.FullName?.Contains("ConsulServiceRegistration") == true
-                || s.ImplementationType?.FullName?.Contains("ConsulConfigWatcher") == true
                 || s.ImplementationType?.FullName?.Contains("ConsulConfigPublisher") == true
                 || s.ServiceType.FullName?.Contains("Consul") == true
                 || s.ImplementationInstance?.GetType().FullName?.Contains("Consul") == true)

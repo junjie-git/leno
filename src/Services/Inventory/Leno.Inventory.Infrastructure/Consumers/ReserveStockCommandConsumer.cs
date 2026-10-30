@@ -9,8 +9,7 @@ namespace Leno.Inventory.Infrastructure.Consumers;
 /// <summary>
 /// 库存预占命令消费者（Order BC → Inventory BC）。
 /// 消费 <see cref="ReserveStockCommand"/>，调用 <see cref="IInventoryAppService.ReserveAsync"/>。
-/// 双轨期：当 Inventory:UseExternalBc=true 时，Order BC 经 MassTransit 发布命令由本消费者消费；
-/// flag=false 时，Order BC 通过进程内 IInventoryAppService 直接调用。
+/// Order BC 经 MassTransit 发布命令由本消费者消费（唯一路径；历史双轨开关已删除，B2 2026-10-30）。
 /// 命令本身携带 IdempotencyKey，AppService 内部已做幂等去重，本消费者不再重复幂等检查。
 /// </summary>
 public sealed class ReserveStockCommandConsumer : IConsumer<ReserveStockCommand>

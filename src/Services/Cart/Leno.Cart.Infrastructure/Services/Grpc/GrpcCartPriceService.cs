@@ -23,7 +23,7 @@ namespace Leno.Cart.Infrastructure.Services.Grpc;
 ///   <item>该实时路径再被 <see cref="SnapshotCartPriceService"/> 装饰为容器中对外暴露的
 ///         <see cref="ICartPriceService"/>：快照缺失或过期时回退到本类的实时查询。</item>
 /// </list>
-/// 双轨下线 D4（2026-09-23）：原 <c>Cart:UseSkuSnapshot</c> 开关已删除，快照优先无条件生效；
+/// 双轨下线 D4（2026-09-23）：原快照模式开关已删除，快照优先无条件生效；
 /// HTTP 轨道已随之删除，本类不再承担"旧路径兼容"职责。
 /// </remarks>
 public sealed class GrpcCartPriceService

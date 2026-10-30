@@ -15,7 +15,7 @@ namespace Leno.Promotion.Infrastructure.Tests.Differential;
 /// <para>
 /// 本测试的前身是「旧路径 vs 规则引擎」差分对照测试：旧硬编码路径删除前，
 /// 六组语料已通过差分门禁（金币案例断言两路径完全相等；门槛跨界案例确认差异为有意语义）。
-/// 旧路径与 <c>Promotion:UseRuleEngine</c> 删除后，本测试以显式期望值钉住引擎行为。
+/// 旧路径与其灰度开关删除后，本测试以显式期望值钉住引擎行为。
 /// </para>
 /// <para>语义基准：券门槛按<b>前序规则扣减后的剩余金额</b>判定（Stackable 逐级扣减）。</para>
 /// </summary>
