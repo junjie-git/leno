@@ -6,7 +6,7 @@ namespace Leno.Cart.Domain.ValueObjects;
 /// SKU 快照值对象，购物车本地缓存的商品域 SKU 展示与价格信息。
 /// <para>
 /// 阶段三 3.11：Cart 聚合本地化存储 SKU 快照（名称/价格/主图/规格/可售状态），
-/// 消除 <c>CartPriceService</c> 读取路径上的实时跨进程调用。
+/// 消除价格读取路径上的实时跨进程 gRPC 防腐层调用。
 /// 快照由 <c>ProductSkuUpdatedEvent</c> 消费者异步刷新，或快照过期时由后台刷新队列拉取最新数据。
 /// </para>
 /// <para>

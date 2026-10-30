@@ -10,8 +10,8 @@ using Microsoft.Extensions.Options;
 namespace Leno.Cart.Infrastructure.Services.Grpc;
 
 /// <summary>
-/// 商品域快照 gRPC 防腐层客户端（M4 双轨方案）。
-/// 实现 <see cref="IProductSnapshotAntiCorruption"/>，与 <see cref="ProductSnapshotAntiCorruptionService"/>（HttpClient）双轨。
+/// 商品域快照 gRPC 防腐层客户端（gRPC 单轨唯一实现）。
+/// 实现 <see cref="IProductSnapshotAntiCorruption"/>。
 /// 调用 Product BC <c>ProductInternalService.GetSkuInfo</c> RPC 查询单 SKU 展示快照。
 /// </summary>
 public sealed class GrpcProductSnapshotAntiCorruptionClient

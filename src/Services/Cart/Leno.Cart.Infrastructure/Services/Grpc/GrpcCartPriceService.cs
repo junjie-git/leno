@@ -11,21 +11,20 @@ using SkuInfoProto = Leno.SharedContracts.Grpc.Product.V1.SkuInfo;
 namespace Leno.Cart.Infrastructure.Services.Grpc;
 
 /// <summary>
-/// 购物车价格 gRPC 防腐层客户端（M4 双轨方案）。
-/// 实现 <see cref="ICartPriceService"/>，与 <see cref="CartPriceService"/>（HttpClient）双轨。
-/// 由 <see cref="AntiCorruptionDispatcher{ICartPriceService}"/> 在运行时按 <c>UseGrpc</c> 开关与熔断状态选择使用本类或 HttpClient 实现。
+/// 购物车价格 gRPC 防腐层客户端（gRPC 单轨唯一实时实现）。
+/// 实现 <see cref="ICartPriceService"/>。
 /// 调用 Product BC <c>ProductInternalService.BatchGetSkuInfo</c> RPC 批量查询 SKU 价格与可售状态。
 /// </summary>
 /// <remarks>
-/// 本类是 gRPC 轨道上的实时调用实现，不是待淘汰的备份：
 /// <list type="bullet">
-///   <item><c>AntiCorruption:UseGrpc=true</c> 时，<see cref="CartPriceDispatcherAdapter"/> 经
-///         <see cref="AntiCorruptionDispatcher{ICartPriceService}"/> 在运行时选中本类作为实时查询路径。</item>
+///   <item><see cref="CartPriceDispatcherAdapter"/> 经
+///         <see cref="AntiCorruptionDispatcher{ICartPriceService}"/> 以本类为唯一实现执行实时查询，
+///         熔断 fail-fast 由 Dispatcher 统一处理。</item>
 ///   <item>该实时路径再被 <see cref="SnapshotCartPriceService"/> 装饰为容器中对外暴露的
 ///         <see cref="ICartPriceService"/>：快照缺失或过期时回退到本类的实时查询。</item>
 /// </list>
-/// 双轨下线 D4（2026-09-23）：原 <c>Cart:UseSkuSnapshot</c> 开关已删除，快照优先无条件生效，
-/// 本类不再承担"旧路径兼容"职责。
+/// 双轨下线 D4（2026-09-23）：原 <c>Cart:UseSkuSnapshot</c> 开关已删除，快照优先无条件生效；
+/// HTTP 轨道已随之删除，本类不再承担"旧路径兼容"职责。
 /// </remarks>
 public sealed class GrpcCartPriceService
     : GrpcAntiCorruptionClientBase, ICartPriceService

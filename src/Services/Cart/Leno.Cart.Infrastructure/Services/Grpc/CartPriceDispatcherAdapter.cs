@@ -4,10 +4,9 @@ using Leno.Infrastructure.AntiCorruption;
 namespace Leno.Cart.Infrastructure.Services.Grpc;
 
 /// <summary>
-/// 购物车价格防腐层双轨调度适配器（M4 双轨方案）。
+/// 购物车价格防腐层调度适配器（gRPC 单轨）。
 /// 实现 <see cref="ICartPriceService"/>，内部委托 <see cref="AntiCorruptionDispatcher{ICartPriceService}"/>
-/// 在 HttpClient（<see cref="CartPriceService"/>）与 gRPC（<see cref="GrpcCartPriceService"/>）实现间
-/// 按 <c>UseGrpc</c> 开关与熔断状态选择。
+/// 执行 gRPC 实时调用与熔断 fail-fast。
 /// 注：<see cref="AntiCorruptionDispatcher{TService}"/> 本身不实现 <c>TService</c>，
 /// 故需本适配器作为 DI 容器中 <see cref="ICartPriceService"/> 的具体实现。
 /// </summary>

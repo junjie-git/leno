@@ -59,52 +59,36 @@ public static class ServiceCollectionExtensions
         // P1-1：匿名购物车合并记录仓储，防止跨存储非原子操作导致重复合并
         services.AddScoped<ICartMergeRecordRepository, CartMergeRecordRepository>();
 
-        // 价格防腐层 HttpClient 实现（保留作为降级备份）：BaseAddress 来自 ServiceUrls:ProductApi
-        services.AddHttpClient<CartPriceService>(client =>
-        {
-            var baseAddress = configuration["ServiceUrls:ProductApi"] ?? "http://localhost:5150";
-            client.BaseAddress = new Uri(baseAddress);
-        })
-            .AddAntiCorruptionPolicies();
-
-        // M4 双轨方案：gRPC 客户端 + 熔断器 + Dispatcher（仅当 UseGrpc=true 时生效）
+        // 价格防腐层：gRPC 客户端 + 熔断器 + Dispatcher（单轨：gRPC 为唯一防腐通道）
         var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
-        if (antiCorruptionOptions.UseGrpc)
+        var productGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Product")
+            ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:Product 配置缺失");
+
+        services.AddGrpcClient<ProductInternalService.ProductInternalServiceClient>(options =>
         {
-            var productGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Product")
-                ?? throw new InvalidOperationException("AntiCorruption:GrpcEndpoints:Product 配置缺失");
+            options.Address = new Uri(productGrpcEndpoint);
+        });
 
-            services.AddGrpcClient<ProductInternalService.ProductInternalServiceClient>(options =>
-            {
-                options.Address = new Uri(productGrpcEndpoint);
-            });
+        services.AddScoped<GrpcCartPriceService>();
 
-            services.AddScoped<GrpcCartPriceService>();
-
-            services.AddKeyedSingleton<CircuitBreakerState>("product", (sp, _) =>
-            {
-                // P1-13：注入 IOptionsMonitor 引用而非构造时读取 CurrentValue，
-                // 使 CircuitBreakerState 每次状态判定时从 CurrentValue.CircuitBreaker 读取最新阈值，
-                // 支持 Consul KV 热更新（原实现构造时冻结阈值，热更新不生效）
-                var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
-                return new CircuitBreakerState("product", optionsMonitor);
-            });
-
-            services.AddScoped<AntiCorruptionDispatcher<ICartPriceService>>(sp =>
-            {
-                var grpcImpl = sp.GetRequiredService<GrpcCartPriceService>();
-                var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<ICartPriceService>>>();
-                var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("product");
-                return new AntiCorruptionDispatcher<ICartPriceService>(
-                    grpcImpl, logger, "product", cb);
-            });
-            services.AddScoped<CartPriceDispatcherAdapter>();
-        }
-        else
+        services.AddKeyedSingleton<CircuitBreakerState>("product", (sp, _) =>
         {
-            // UseGrpc=false：HttpClient 实现已通过 AddHttpClient<CartPriceService> 注册，
-            // ICartPriceService 的最终注册由下方 SnapshotCartPriceService 装饰器统一处理
-        }
+            // P1-13：注入 IOptionsMonitor 引用而非构造时读取 CurrentValue，
+            // 使 CircuitBreakerState 每次状态判定时从 CurrentValue.CircuitBreaker 读取最新阈值，
+            // 支持 Consul KV 热更新（原实现构造时冻结阈值，热更新不生效）
+            var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<AntiCorruptionOptions>>();
+            return new CircuitBreakerState("product", optionsMonitor);
+        });
+
+        services.AddScoped<AntiCorruptionDispatcher<ICartPriceService>>(sp =>
+        {
+            var grpcImpl = sp.GetRequiredService<GrpcCartPriceService>();
+            var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<ICartPriceService>>>();
+            var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("product");
+            return new AntiCorruptionDispatcher<ICartPriceService>(
+                grpcImpl, logger, "product", cb);
+        });
+        services.AddScoped<CartPriceDispatcherAdapter>();
 
         // 阶段三 3.11：Cart SKU 快照本地化配置 + 后台刷新队列
         // CartSnapshotOptions 绑定 Cart 配置节，支持 Consul KV 热更新（快照阈值/刷新参数）
@@ -118,14 +102,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IBackgroundSnapshotRefresher>(sp => sp.GetRequiredService<SkuSnapshotRefreshQueue>());
 
         // 阶段三 3.11：SnapshotCartPriceService 装饰器包装内部 ICartPriceService 实现
-        // 优先读取本地 SkuSnapshot，过期/缺失时回退内部实现（CartPriceDispatcherAdapter 或 CartPriceService）并触发后台刷新
+        // 优先读取本地 SkuSnapshot，过期/缺失时回退内部实现（CartPriceDispatcherAdapter）并触发后台刷新
         // 双轨下线 D4（2026-09-23）：UseSkuSnapshot 开关已删除，快照优先无条件生效
         services.AddScoped<ICartPriceService>(sp =>
         {
-            // 按具体类型解析内部实现，避免 ICartPriceService 自解析递归
-            ICartPriceService inner = antiCorruptionOptions.UseGrpc
-                ? sp.GetRequiredService<CartPriceDispatcherAdapter>()
-                : sp.GetRequiredService<CartPriceService>();
+            // 按具体类型解析内部实现，避免 ICartPriceService 自解析递归（gRPC 单轨：唯一实现为 CartPriceDispatcherAdapter）
+            ICartPriceService inner = sp.GetRequiredService<CartPriceDispatcherAdapter>();
 
             var dbContext = sp.GetRequiredService<CartDbContext>();
             var refresher = sp.GetRequiredService<IBackgroundSnapshotRefresher>();
@@ -134,40 +116,23 @@ public static class ServiceCollectionExtensions
             return new SnapshotCartPriceService(inner, dbContext, refresher, options, logger);
         });
 
-        // 商品快照防腐层 HttpClient 实现（保留作为降级备份）
-        services.AddHttpClient<ProductSnapshotAntiCorruptionService>(client =>
-        {
-            var baseAddress = configuration["ServiceUrls:ProductApi"] ?? "http://localhost:5150";
-            client.BaseAddress = new Uri(baseAddress);
-        })
-            .AddAntiCorruptionPolicies();
+        // 商品快照防腐层：gRPC 客户端 + Dispatcher（单轨：gRPC 为唯一防腐通道）
+        // ProductInternalServiceClient 已在价格防腐点注册，此处不重复注册
+        services.AddScoped<GrpcProductSnapshotAntiCorruptionClient>();
 
-        // M4 双轨方案：商品快照防腐层 gRPC 客户端 + Dispatcher（仅当 UseGrpc=true 时生效）
-        if (antiCorruptionOptions.UseGrpc)
-        {
-            // ProductInternalServiceClient 已在 CartPriceService 双轨时注册，此处不重复注册
-            services.AddScoped<GrpcProductSnapshotAntiCorruptionClient>();
+        // CircuitBreakerState("product") 已在价格防腐点注册为 KeyedSingleton，此处复用
 
-            // CircuitBreakerState("product") 已在 CartPriceService 双轨时注册为 KeyedSingleton，此处复用
-
-            services.AddScoped<AntiCorruptionDispatcher<IProductSnapshotAntiCorruption>>(sp =>
-            {
-                var grpcImpl = sp.GetRequiredService<GrpcProductSnapshotAntiCorruptionClient>();
-                var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IProductSnapshotAntiCorruption>>>();
-                var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("product");
-                return new AntiCorruptionDispatcher<IProductSnapshotAntiCorruption>(
-                    grpcImpl, logger, "product", cb);
-            });
-            services.AddScoped<ProductSnapshotDispatcherAdapter>();
-            services.AddScoped<IProductSnapshotAntiCorruption>(sp =>
-                sp.GetRequiredService<ProductSnapshotDispatcherAdapter>());
-        }
-        else
+        services.AddScoped<AntiCorruptionDispatcher<IProductSnapshotAntiCorruption>>(sp =>
         {
-            // UseGrpc=false：直接注册 HttpClient 实现
-            services.AddScoped<IProductSnapshotAntiCorruption>(sp =>
-                sp.GetRequiredService<ProductSnapshotAntiCorruptionService>());
-        }
+            var grpcImpl = sp.GetRequiredService<GrpcProductSnapshotAntiCorruptionClient>();
+            var logger = sp.GetRequiredService<ILogger<AntiCorruptionDispatcher<IProductSnapshotAntiCorruption>>>();
+            var cb = sp.GetRequiredKeyedService<CircuitBreakerState>("product");
+            return new AntiCorruptionDispatcher<IProductSnapshotAntiCorruption>(
+                grpcImpl, logger, "product", cb);
+        });
+        services.AddScoped<ProductSnapshotDispatcherAdapter>();
+        services.AddScoped<IProductSnapshotAntiCorruption>(sp =>
+            sp.GetRequiredService<ProductSnapshotDispatcherAdapter>());
 
         // 购物车-SKU 反向索引：基于 Redis Set，商品事件消费时定位受影响购物车
         services.AddScoped<ICartSkuIndexService, CartSkuIndexService>();
