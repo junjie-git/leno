@@ -1,6 +1,5 @@
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Leno.Infrastructure.AntiCorruption;
 
@@ -189,42 +188,32 @@ public sealed class AntiCorruptionDispatcher
 }
 
 /// <summary>
-/// 双轨调度器（M4 双轨方案）。
-/// 接收同一接口 <typeparamref name="TService"/> 的 HttpClient 实现（必填）与 gRPC 实现（可选），
-/// 每次 <see cref="ExecuteAsync{TResult}"/> 根据 <c>UseGrpc</c> 开关与熔断状态选择实现。
-/// 设计要点：
-/// 1. 通过 <see cref="IOptionsMonitor{AntiCorruptionOptions}"/> 每次请求读取最新配置，支持 ConsulConfigWatcher 热更新
-/// 2. 熔断器为 Keyed Singleton（每个防腐层一个实例），跨请求累积失败计数
-/// 3. 仅 gRPC 不可用异常（Unavailable/DeadlineExceeded/Internal/ResourceExhausted）触发降级，业务异常直接抛
-/// 4. 熔断 Open 期间所有 gRPC 调用直接降级到 HttpClient，不调 gRPC
+/// 防腐层调度器（双轨下线单轨版，2026-10-30 B2）。
+/// 持有唯一 gRPC 实现，调用经熔断器保护：
+/// 1. 熔断 Open 时 fail-fast 抛 <see cref="AntiCorruptionException"/>（不静默降级 HTTP）
+/// 2. 任何 <see cref="AntiCorruptionException"/> 计入熔断失败后原样上抛
+/// 3. 熔断器为 Keyed Singleton（每个防腐层一个实例），跨请求累积失败计数
 /// </summary>
 public sealed class AntiCorruptionDispatcher<TService> : IDisposable
     where TService : class
 {
-    private readonly TService _httpImplementation;
-    private readonly TService? _grpcImplementation;
-    private readonly IOptionsMonitor<AntiCorruptionOptions> _optionsMonitor;
+    private readonly TService _implementation;
     private readonly ILogger<AntiCorruptionDispatcher<TService>> _logger;
     private readonly CircuitBreakerState _circuitBreaker;
     private readonly string _serviceName;
 
     public AntiCorruptionDispatcher(
-        TService httpImplementation,
-        TService? grpcImplementation,
-        IOptionsMonitor<AntiCorruptionOptions> optionsMonitor,
+        TService implementation,
         ILogger<AntiCorruptionDispatcher<TService>> logger,
         string serviceName,
         CircuitBreakerState circuitBreaker)
     {
-        ArgumentNullException.ThrowIfNull(httpImplementation);
-        ArgumentNullException.ThrowIfNull(optionsMonitor);
+        ArgumentNullException.ThrowIfNull(implementation);
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(circuitBreaker);
         ArgumentException.ThrowIfNullOrWhiteSpace(serviceName);
 
-        _httpImplementation = httpImplementation;
-        _grpcImplementation = grpcImplementation;
-        _optionsMonitor = optionsMonitor;
+        _implementation = implementation;
         _logger = logger;
         _serviceName = serviceName;
         _circuitBreaker = circuitBreaker;
@@ -236,47 +225,39 @@ public sealed class AntiCorruptionDispatcher<TService> : IDisposable
     {
         ArgumentNullException.ThrowIfNull(operation);
 
-        // 每次请求读取最新配置（支持 ConsulConfigWatcher 热更新）
-        var currentOptions = _optionsMonitor.CurrentValue;
-
-        if (!currentOptions.UseGrpc || _grpcImplementation is null)
-        {
-            return await operation(_httpImplementation).ConfigureAwait(false);
-        }
-
         var state = _circuitBreaker.GetState();
         if (state == CircuitState.Open)
         {
-            _logger.LogWarning("AntiCorruption {Service} gRPC circuit open, falling back to HTTP", _serviceName);
+            _logger.LogWarning("AntiCorruption {Service} gRPC circuit open, failing fast", _serviceName);
             AntiCorruptionMetrics.RecordFallback(_serviceName, "circuit_open");
-            return await operation(_httpImplementation).ConfigureAwait(false);
+            throw new AntiCorruptionException(
+                $"AntiCorruption {_serviceName} gRPC 熔断 Open，调用被拒绝（fail-fast，无 HTTP 降级路径）");
         }
 
         try
         {
-            var result = await operation(_grpcImplementation).ConfigureAwait(false);
+            var result = await operation(_implementation).ConfigureAwait(false);
             _circuitBreaker.RecordSuccess();
             return result;
         }
-        catch (AntiCorruptionException ex) when (IsGrpcUnavailable(ex))
+        catch (AntiCorruptionException ex) when (IsInfrastructureFailure(ex))
         {
+            // 仅传输类故障（Unavailable/DeadlineExceeded/Internal/ResourceExhausted）计入熔断；
+            // 业务类失败（如 not_found）不是传输故障，直接上抛、不计失败，避免误触发熔断。
             _circuitBreaker.RecordFailure();
-            _logger.LogWarning(ex, "AntiCorruption {Service} gRPC unavailable, falling back to HTTP", _serviceName);
+            _logger.LogWarning(ex, "AntiCorruption {Service} gRPC infrastructure failure", _serviceName);
             AntiCorruptionMetrics.RecordFallback(_serviceName, ExtractReason(ex));
-
-            // 熔断因本次失败触发 → 本次直接抛（下次走 HTTP）
-            if (_circuitBreaker.GetState() == CircuitState.Open)
-            {
-                throw;
-            }
-
-            // 熔断未触发 → 本次降级到 HttpClient
-            return await operation(_httpImplementation).ConfigureAwait(false);
+            throw;
+        }
+        catch (AntiCorruptionException)
+        {
+            // 业务类失败：不计熔断、不记 fallback 指标，原样上抛
+            throw;
         }
     }
 
-    /// <summary>判断 AntiCorruptionException 是否由 gRPC 不可用引起（用于决定是否降级）。</summary>
-    private static bool IsGrpcUnavailable(AntiCorruptionException ex)
+    /// <summary>判断 AntiCorruptionException 是否由 gRPC 传输层故障引起（用于决定是否计入熔断失败）。</summary>
+    private static bool IsInfrastructureFailure(AntiCorruptionException ex)
     {
         if (ex.InnerException is not RpcException rpc) return false;
         return rpc.StatusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded
@@ -284,20 +265,11 @@ public sealed class AntiCorruptionDispatcher<TService> : IDisposable
     }
 
     private static string ExtractReason(AntiCorruptionException ex)
-        => ex.InnerException is RpcException rpc ? $"grpc_{rpc.StatusCode}" : "grpc_unknown";
+        => ex.InnerException is RpcException rpc ? $"grpc_{rpc.StatusCode}" : ex.ErrorCode;
 
-    /// <summary>
-    /// 释放 Dispatcher 资源。
-    /// <para>
-    /// 注意：<see cref="_circuitBreaker"/> 是通过 DI 容器解析的 KeyedSingleton，
-    /// 生命周期由 DI 容器统一管理。本 Dispatcher 注册为 Scoped，不应在 Dispose 时
-    /// 销毁共享的 KeyedSingleton，否则同进程中其他 Scope 的 Dispatcher 熔断器指标状态丢失。
-    /// </para>
-    /// </summary>
     public void Dispose()
     {
-        // 不 Dispose _circuitBreaker — 它是 KeyedSingleton，由 DI 容器管理生命周期。
-        // 仅清理 Dispatcher 自身拥有的非共享资源（当前无）。
+        // 不 Dispose _circuitBreaker —— KeyedSingleton，由 DI 容器管理生命周期。
         GC.SuppressFinalize(this);
     }
 }

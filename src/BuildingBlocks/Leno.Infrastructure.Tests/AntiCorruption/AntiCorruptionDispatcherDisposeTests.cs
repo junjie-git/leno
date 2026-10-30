@@ -1,7 +1,5 @@
 using Leno.Infrastructure.AntiCorruption;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
-using Moq;
 using System.Collections.Concurrent;
 using System.Reflection;
 
@@ -25,13 +23,6 @@ public class AntiCorruptionDispatcherDisposeTests
     private sealed class HttpImpl : ITestService
     {
         public Task<string> GetValueAsync(CancellationToken ct) => Task.FromResult("http-value");
-    }
-
-    private static IOptionsMonitor<AntiCorruptionOptions> CreateOptionsMonitor(bool useGrpc)
-    {
-        var mock = new Mock<IOptionsMonitor<AntiCorruptionOptions>>();
-        mock.SetupGet(o => o.CurrentValue).Returns(new AntiCorruptionOptions { UseGrpc = useGrpc });
-        return mock.Object;
     }
 
     /// <summary>
@@ -79,8 +70,6 @@ public class AntiCorruptionDispatcherDisposeTests
 
         var dispatcher = new AntiCorruptionDispatcher<ITestService>(
             new HttpImpl(),
-            grpcImplementation: null,
-            CreateOptionsMonitor(useGrpc: false),
             NullLogger<AntiCorruptionDispatcher<ITestService>>.Instance,
             serviceName,
             circuitBreaker);
@@ -115,7 +104,7 @@ public class AntiCorruptionDispatcherDisposeTests
 
         // 第一个 Scope 的 Dispatcher
         var dispatcher1 = new AntiCorruptionDispatcher<ITestService>(
-            new HttpImpl(), null, CreateOptionsMonitor(false),
+            new HttpImpl(),
             NullLogger<AntiCorruptionDispatcher<ITestService>>.Instance,
             serviceName, sharedCircuitBreaker);
 
@@ -128,7 +117,7 @@ public class AntiCorruptionDispatcherDisposeTests
 
         // 第二个 Scope 的 Dispatcher 仍能正常使用共享的 CircuitBreakerState
         var dispatcher2 = new AntiCorruptionDispatcher<ITestService>(
-            new HttpImpl(), null, CreateOptionsMonitor(false),
+            new HttpImpl(),
             NullLogger<AntiCorruptionDispatcher<ITestService>>.Instance,
             serviceName, sharedCircuitBreaker);
 
@@ -155,7 +144,7 @@ public class AntiCorruptionDispatcherDisposeTests
             serviceName, failureThreshold: 3, successThreshold: 2, openDuration: TimeSpan.FromMilliseconds(100));
 
         var dispatcher = new AntiCorruptionDispatcher<ITestService>(
-            new HttpImpl(), null, CreateOptionsMonitor(false),
+            new HttpImpl(),
             NullLogger<AntiCorruptionDispatcher<ITestService>>.Instance,
             serviceName, circuitBreaker);
 
