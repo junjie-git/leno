@@ -180,6 +180,35 @@ services:
       - "5152:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      # 配置注入（B2 冒烟补齐，对齐 inventory-api A3 模板——旧段缺全套映射）
+      - Consul__Url=http://consul:8500
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      # 本地冒烟：启动时执行 EF 迁移（生产由 helm migration-job 负责）
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__ProductDb=${LENO_DB_PRODUCT}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      - Payment__Alipay__AppId=${LENO_PAYMENT_ALIPAY_APPID}
+      - Payment__Alipay__PrivateKey=${LENO_PAYMENT_ALIPAY_PRIVATEKEY}
+      - Payment__Alipay__PublicKey=${LENO_PAYMENT_ALIPAY_PUBLICKEY}
+      - Payment__WeChatPay__AppId=${LENO_PAYMENT_WECHATPAY_APPID}
+      - Payment__WeChatPay__MchId=${LENO_PAYMENT_WECHATPAY_MCHID}
+      - Payment__WeChatPay__ApiKey=${LENO_PAYMENT_WECHATPAY_APIKEY}
+      - SMS__ApiKey=${LENO_SMS_APIKEY}
+      - SMS__ApiSecret=${LENO_SMS_APISECRET}
+      - OAuth2__WeChat__AppId=${LENO_OAUTH_WECHAT_APPID}
+      - OAuth2__WeChat__AppSecret=${LENO_OAUTH_WECHAT_APPSECRET}
+      - OAuth2__Apple__ClientId=${LENO_OAUTH_APPLE_CLIENTID}
+      - OAuth2__Apple__ClientSecret=${LENO_OAUTH_APPLE_CLIENTSECRET}
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -240,6 +269,35 @@ services:
       - "5154:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      # 配置注入（B2 冒烟补齐，对齐 inventory-api A3 模板——旧段仅有环境名，
+      # RabbitMQ/DB 连接串缺失导致健康检查 UriFormatException 启动崩溃）
+      - Consul__Url=http://consul:8500
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      # 本地冒烟：启动时执行 EF 迁移（生产由 helm migration-job 负责）
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__OrderDb=${LENO_DB_ORDER}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      - Payment__Alipay__AppId=${LENO_PAYMENT_ALIPAY_APPID}
+      - Payment__Alipay__PrivateKey=${LENO_PAYMENT_ALIPAY_PRIVATEKEY}
+      - Payment__Alipay__PublicKey=${LENO_PAYMENT_ALIPAY_PUBLICKEY}
+      - Payment__WeChatPay__AppId=${LENO_PAYMENT_WECHATPAY_APPID}
+      - Payment__WeChatPay__MchId=${LENO_PAYMENT_WECHATPAY_MCHID}
+      - Payment__WeChatPay__ApiKey=${LENO_PAYMENT_WECHATPAY_APIKEY}
+      - SMS__ApiKey=${LENO_SMS_APIKEY}
+      - SMS__ApiSecret=${LENO_SMS_APISECRET}
+      - OAuth2__WeChat__AppId=${LENO_OAUTH_WECHAT_APPID}
+      - OAuth2__WeChat__AppSecret=${LENO_OAUTH_WECHAT_APPSECRET}
+      - OAuth2__Apple__ClientId=${LENO_OAUTH_APPLE_CLIENTID}
+      - OAuth2__Apple__ClientSecret=${LENO_OAUTH_APPLE_CLIENTSECRET}
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -578,6 +636,10 @@ services:
       # 配置中心与内部鉴权（本机 compose 初始化；KV 由 kv-seed 灌入）
       - Consul__Url=http://consul:8500
       - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      # gRPC 服务端拦截器（GrpcInternalKeyInterceptor）读取的键（B2 冒烟补齐）
+      - AntiCorruption__InternalApiKey=${INTERNAL_AUTH_API_KEY}
+      # 本地冒烟：启动时执行 EF 迁移（生产由 helm migration-job 负责）
+      - Database__MigrateOnStartup=true
       - ConnectionStrings__InventoryDb=${LENO_DB_INVENTORY}
       - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
       - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
@@ -632,6 +694,36 @@ services:
       - "5166:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      # 配置注入（B2 冒烟补齐，对齐 inventory-api A3 模板——旧段缺全套映射，
+      # 敏感配置 fail-fast 校验因 Payment/SMS/OAuth2 缺失而启动崩溃）
+      - Consul__Url=http://consul:8500
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      # 本地冒烟：启动时执行 EF 迁移（生产由 helm migration-job 负责）
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__PointsDb=${LENO_DB_POINTS}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      - Payment__Alipay__AppId=${LENO_PAYMENT_ALIPAY_APPID}
+      - Payment__Alipay__PrivateKey=${LENO_PAYMENT_ALIPAY_PRIVATEKEY}
+      - Payment__Alipay__PublicKey=${LENO_PAYMENT_ALIPAY_PUBLICKEY}
+      - Payment__WeChatPay__AppId=${LENO_PAYMENT_WECHATPAY_APPID}
+      - Payment__WeChatPay__MchId=${LENO_PAYMENT_WECHATPAY_MCHID}
+      - Payment__WeChatPay__ApiKey=${LENO_PAYMENT_WECHATPAY_APIKEY}
+      - SMS__ApiKey=${LENO_SMS_APIKEY}
+      - SMS__ApiSecret=${LENO_SMS_APISECRET}
+      - OAuth2__WeChat__AppId=${LENO_OAUTH_WECHAT_APPID}
+      - OAuth2__WeChat__AppSecret=${LENO_OAUTH_WECHAT_APPSECRET}
+      - OAuth2__Apple__ClientId=${LENO_OAUTH_APPLE_CLIENTID}
+      - OAuth2__Apple__ClientSecret=${LENO_OAUTH_APPLE_CLIENTSECRET}
     depends_on:
       sqlserver:
         condition: service_healthy

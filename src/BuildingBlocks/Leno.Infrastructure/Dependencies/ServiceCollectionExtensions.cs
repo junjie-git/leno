@@ -292,7 +292,10 @@ public static class ServiceCollectionExtensions
         if (!string.IsNullOrWhiteSpace(rabbitHost))
         {
             var rabbitPort = configuration["RabbitMQ:Port"] ?? "5672";
-            var rabbitConnectionString = $"amqp://{configuration["RabbitMQ:Username"] ?? "guest"}:{configuration["RabbitMQ:Password"] ?? "guest"}@{rabbitHost}:{rabbitPort}";
+            // 凭据必须 URI 转义：密码含 @、/、: 等特殊字符时未转义会导致 UriFormatException 启动崩溃（B2 冒烟发现）
+            var rabbitUser = Uri.EscapeDataString(configuration["RabbitMQ:Username"] ?? "guest");
+            var rabbitPass = Uri.EscapeDataString(configuration["RabbitMQ:Password"] ?? "guest");
+            var rabbitConnectionString = $"amqp://{rabbitUser}:{rabbitPass}@{rabbitHost}:{rabbitPort}";
             builder.AddRabbitMQ(rabbitConnectionString, name: "rabbitmq", tags: ReadyTags);
         }
     }
