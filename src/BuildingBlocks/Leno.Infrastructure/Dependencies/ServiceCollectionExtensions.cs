@@ -288,15 +288,12 @@ public static class ServiceCollectionExtensions
         // T20：基础路径也注册 RabbitMQ 健康检查，确保仅调用 AddLenoInfrastructure（不走 AddLenoFullHealthChecks）
         // 的场景下 RabbitMQ 依赖也被纳入就绪探针。
         // 与 HealthChecksUIExtensions.AddLenoHealthChecks 保持一致：仅当 RabbitMQ:Host 配置时注册。
+        // 使用自研 RabbitMqHealthCheck（RabbitMQ.Client v7 直连）替代 AspNetCore.HealthChecks.RabbitMQ 8.x，
+        // 后者引用 v6 的 IModel 类型，与 v7 客户端不兼容会导致就绪探针恒 503。
         var rabbitHost = configuration["RabbitMQ:Host"];
         if (!string.IsNullOrWhiteSpace(rabbitHost))
         {
-            var rabbitPort = configuration["RabbitMQ:Port"] ?? "5672";
-            // 凭据必须 URI 转义：密码含 @、/、: 等特殊字符时未转义会导致 UriFormatException 启动崩溃（B2 冒烟发现）
-            var rabbitUser = Uri.EscapeDataString(configuration["RabbitMQ:Username"] ?? "guest");
-            var rabbitPass = Uri.EscapeDataString(configuration["RabbitMQ:Password"] ?? "guest");
-            var rabbitConnectionString = $"amqp://{rabbitUser}:{rabbitPass}@{rabbitHost}:{rabbitPort}";
-            builder.AddRabbitMQ(rabbitConnectionString, name: "rabbitmq", tags: ReadyTags);
+            builder.AddCheck<RabbitMqHealthCheck>("rabbitmq", tags: ReadyTags);
         }
     }
 

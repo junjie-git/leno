@@ -290,10 +290,19 @@ public static class ServiceCollectionExtensions
 
         var bffOptions = configuration.GetSection("Bff").Get<BffOptions>() ?? new BffOptions();
 
+        // BFF 下游调用需要复用调用方 Bearer token（下游 [Authorize] 端点），
+        // 通过 DelegatingHandler 透传 Authorization，不改变鉴权模型。
+        services.AddHttpContextAccessor();
+        services.AddTransient<BffAuthorizationForwardingHandler>();
+
         services.AddHttpClient(BffForwarderService.HttpClientName, client =>
         {
             client.Timeout = bffOptions.PerRequestTimeout;
-        });
+        })
+        .AddHttpMessageHandler<BffAuthorizationForwardingHandler>();
+
+        // BFF 下游寻址：显式 BaseUrl 优先，其次 Consul 健康实例发现（单例，无请求态）
+        services.AddSingleton<IBffServiceResolver, BffServiceResolver>();
 
         // 4.3 DAG 编排引擎：CascadeTimeoutPolicy 持有单次执行的超时状态，需 Scoped 隔离
         services.AddScoped<CascadeTimeoutPolicy>();

@@ -109,9 +109,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITokenVerifier, TotpTokenVerifier>();
 
         // 6. AccessControl BC gRPC 客户端注册（JwtTokenService 通过此客户端调用 GetUserRoles RPC 填充角色 claims）
-        //    地址从 ServiceUrls:AccessControlApi 读取（与 AntiCorruption:GrpcEndpoints:AccessControl 二选一，前者保留向后兼容）
-        var accessControlUrl = configuration["ServiceUrls:AccessControlApi"]
-            ?? configuration["AntiCorruption:GrpcEndpoints:AccessControl"]
+        //    地址优先取 AntiCorruption:GrpcEndpoints:AccessControl（该键指向 AccessControl 的 HTTP/2 专用端口，
+        //    明文 gRPC 必须落在 Protocols=Http2 的端点上）；未配置时回退 ServiceUrls:AccessControlApi（向后兼容）。
+        var accessControlUrl = configuration["AntiCorruption:GrpcEndpoints:AccessControl"]
+            ?? configuration["ServiceUrls:AccessControlApi"]
             ?? "http://localhost:8082";
 
         // .NET 10 + Grpc.Net.Client 默认在 macOS/Windows 上不再要求额外开关即可使用 HTTP/2 over plaintext；
@@ -123,6 +124,10 @@ public static class ServiceCollectionExtensions
 
         // 7. 应用服务（位于 Application 层，由 Infrastructure 注册以集中管理 DI 装配）
         services.AddScoped<JwtTokenService>();
+        // 具体类型必须先注册：AuthAppService / OAuthService 构造函数注入的是具体类 AuthenticationAppService，
+        // 仅注册 IAuthenticationAppService 会导致控制器激活时抛
+        // "Unable to resolve service for type 'AuthenticationAppService'"。
+        services.AddScoped<AuthenticationAppService>();
         services.AddScoped<IAuthenticationAppService, AuthenticationAppService>();
         services.AddScoped<TwoFactorAppService>();
 
@@ -190,7 +195,7 @@ public static class ServiceCollectionExtensions
         });
 
         //     c) Task A2 新增的 6 个应用服务注册（供 A3 AuthController / UsersController / AccountController 注入）
-        //        - AuthAppService 直接依赖具体类 AuthenticationAppService（已通过 IAuthenticationAppService 注册解析）
+        //        - AuthAppService 直接依赖具体类 AuthenticationAppService（具体类已在 §7 显式注册）
         //        - OAuthService 依赖 IOAuthStateStore / OAuth2Options / AuthenticationAppService（均已注册）
         //        - PasswordService 依赖 IPasswordResetTokenStore（已注册）
         services.AddScoped<IAuthAppService, AuthAppService>();

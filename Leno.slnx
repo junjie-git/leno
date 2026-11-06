@@ -276,6 +276,9 @@
     <Project Path="src/Services/SystemAdmin/Leno.SystemAdmin.Infrastructure/Leno.SystemAdmin.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/" />
+  <Folder Name="/tests/ApiGateway/">
+    <Project Path="tests/ApiGateway/Leno.ApiGateway.Bff.Dag.Tests/Leno.ApiGateway.Bff.Dag.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/Contracts/">
     <Project Path="tests/Contracts/Leno.Contracts.Consumer.Tests/Leno.Contracts.Consumer.Tests.csproj" />
     <Project Path="tests/Contracts/Leno.Contracts.Provider.Tests/Leno.Contracts.Provider.Tests.csproj" />

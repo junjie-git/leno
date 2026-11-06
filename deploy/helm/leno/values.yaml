@@ -26,6 +26,18 @@ global:
     PointsApi: { service: "points", port: 5166 }
     OrderApi: { service: "order", port: 5154 }
     PaymentApi: { service: "payment", port: 5156 }
+  # ACL gRPC 端点兜底（P0-B）：key 与代码读取键 AntiCorruption:GrpcEndpoints:<Key> 严格一致，
+  # port 必须等于 services.<name>.grpcPort（manifest 真源），由 scripts/validate-service-ports.ps1 校验。
+  grpcEndpoints:
+    Product: { service: "product", port: 5252 }
+    Cart: { service: "cart", port: 5253 }
+    Order: { service: "order", port: 5254 }
+    Promotion: { service: "promotion", port: 5255 }
+    Payment: { service: "payment", port: 5256 }
+    SellerShop: { service: "sellershop", port: 5259 }
+    Points: { service: "points", port: 5266 }
+    Review: { service: "review", port: 5268 }
+    AccessControl: { service: "accesscontrol", port: 5263 }
   redis:
     host: "redis"
     port: 6379

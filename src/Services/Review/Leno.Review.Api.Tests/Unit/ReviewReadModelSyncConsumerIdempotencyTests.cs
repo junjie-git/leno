@@ -1,15 +1,16 @@
 using Leno.Infrastructure.Abstractions;
 using Leno.Infrastructure.ReadModel;
-using Leno.ReviewAfterSales.Domain.Aggregates;
-using Leno.ReviewAfterSales.Domain.Repositories;
-using Leno.ReviewAfterSales.Infrastructure.ReadModels;
+using Leno.Review.Domain.Repositories;
+using Leno.Review.Infrastructure.ReadModels;
 using Leno.SharedContracts.Events;
 using MassTransit;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
-namespace Leno.ReviewAfterSales.UnitTests.Infrastructure;
+using ReviewAggregate = Leno.Review.Domain.Aggregates.Review;
+
+namespace Leno.Review.Api.Tests.Unit;
 
 /// <summary>
 /// 审计 3.6：ReviewReadModelSyncConsumer 未实现 EventId 幂等去重。
@@ -18,26 +19,24 @@ namespace Leno.ReviewAfterSales.UnitTests.Infrastructure;
 /// </summary>
 public sealed class ReviewReadModelSyncConsumerIdempotencyTests
 {
-    private static Review CreateApprovedReview()
+    private static ReviewAggregate CreateApprovedReview()
     {
-        var review = Review.Create(
+        var review = ReviewAggregate.Create(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            Guid.NewGuid(), rating: 5, "good", null, sellerId: Guid.NewGuid());
+            Guid.NewGuid(), rating: 5, "good", new List<string>(), sellerId: Guid.NewGuid());
         review.Approve(Guid.NewGuid());
         return review;
     }
 
     private static ReviewReadModelSyncConsumer CreateConsumer(
-        Mock<IReviewRepository> repoMock,
+        Mock<IReviewRepository> repositoryMock,
         Mock<IEsReadModelRepository<ReviewReadModel>> esMock,
         Mock<IIdempotencyStore> idempotencyMock)
-    {
-        return new ReviewReadModelSyncConsumer(
-            repoMock.Object,
+        => new(
+            repositoryMock.Object,
             esMock.Object,
             NullLogger<ReviewReadModelSyncConsumer>.Instance,
             idempotencyMock.Object);
-    }
 
     private static Mock<IIdempotencyStore> CreateIdempotencyMock(bool isProcessed = false)
     {
@@ -63,21 +62,21 @@ public sealed class ReviewReadModelSyncConsumerIdempotencyTests
     public async Task Consume_Submitted_Should_Skip_When_EventId_Already_Processed()
     {
         var review = CreateApprovedReview();
-        var repoMock = new Mock<IReviewRepository>();
-        repoMock.Setup(r => r.GetByIdAsync(review.Id, It.IsAny<CancellationToken>()))
+        var repositoryMock = new Mock<IReviewRepository>();
+        repositoryMock.Setup(r => r.GetByIdAsync(review.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(review);
         var esMock = new Mock<IEsReadModelRepository<ReviewReadModel>>();
         esMock.Setup(e => e.IndexAsync(It.IsAny<ReviewReadModel>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         var idempotencyMock = CreateIdempotencyMock(isProcessed: true);
 
-        var consumer = CreateConsumer(repoMock, esMock, idempotencyMock);
+        var consumer = CreateConsumer(repositoryMock, esMock, idempotencyMock);
         var evt = new ReviewSubmittedEvent(review.Id, review.UserId, review.SpuId, 5);
 
         await consumer.Consume(CreateConsumeContext(evt));
 
         // 已处理的事件应跳过，不调用仓储也不索引
-        repoMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        repositoryMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         esMock.Verify(e => e.IndexAsync(It.IsAny<ReviewReadModel>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -85,20 +84,20 @@ public sealed class ReviewReadModelSyncConsumerIdempotencyTests
     public async Task Consume_Submitted_Should_Index_And_Mark_As_Processed()
     {
         var review = CreateApprovedReview();
-        var repoMock = new Mock<IReviewRepository>();
-        repoMock.Setup(r => r.GetByIdAsync(review.Id, It.IsAny<CancellationToken>()))
+        var repositoryMock = new Mock<IReviewRepository>();
+        repositoryMock.Setup(r => r.GetByIdAsync(review.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(review);
         var esMock = new Mock<IEsReadModelRepository<ReviewReadModel>>();
         esMock.Setup(e => e.IndexAsync(It.IsAny<ReviewReadModel>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         var idempotencyMock = CreateIdempotencyMock(isProcessed: false);
 
-        var consumer = CreateConsumer(repoMock, esMock, idempotencyMock);
+        var consumer = CreateConsumer(repositoryMock, esMock, idempotencyMock);
         var evt = new ReviewSubmittedEvent(review.Id, review.UserId, review.SpuId, 5);
 
         await consumer.Consume(CreateConsumeContext(evt));
 
-        repoMock.Verify(r => r.GetByIdAsync(review.Id, It.IsAny<CancellationToken>()), Times.Once);
+        repositoryMock.Verify(r => r.GetByIdAsync(review.Id, It.IsAny<CancellationToken>()), Times.Once);
         esMock.Verify(e => e.IndexAsync(It.IsAny<ReviewReadModel>(), review.Id.ToString(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
         idempotencyMock.Verify(s => s.MarkAsProcessedAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -107,16 +106,16 @@ public sealed class ReviewReadModelSyncConsumerIdempotencyTests
     public async Task Consume_Approved_Should_Skip_When_EventId_Already_Processed()
     {
         var review = CreateApprovedReview();
-        var repoMock = new Mock<IReviewRepository>();
+        var repositoryMock = new Mock<IReviewRepository>();
         var esMock = new Mock<IEsReadModelRepository<ReviewReadModel>>();
         var idempotencyMock = CreateIdempotencyMock(isProcessed: true);
 
-        var consumer = CreateConsumer(repoMock, esMock, idempotencyMock);
+        var consumer = CreateConsumer(repositoryMock, esMock, idempotencyMock);
         var evt = new ReviewApprovedEvent(review.Id, review.UserId, review.SpuId, 5);
 
         await consumer.Consume(CreateConsumeContext(evt));
 
-        repoMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        repositoryMock.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         esMock.Verify(e => e.IndexAsync(It.IsAny<ReviewReadModel>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -124,13 +123,13 @@ public sealed class ReviewReadModelSyncConsumerIdempotencyTests
     public async Task Consume_Hidden_Should_Call_DeleteByIdAsync_And_Mark_As_Processed()
     {
         var review = CreateApprovedReview();
-        var repoMock = new Mock<IReviewRepository>();
+        var repositoryMock = new Mock<IReviewRepository>();
         var esMock = new Mock<IEsReadModelRepository<ReviewReadModel>>();
         esMock.Setup(e => e.DeleteByIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         var idempotencyMock = CreateIdempotencyMock(isProcessed: false);
 
-        var consumer = CreateConsumer(repoMock, esMock, idempotencyMock);
+        var consumer = CreateConsumer(repositoryMock, esMock, idempotencyMock);
         var evt = new ReviewHiddenEvent(review.Id, review.SpuId, 5);
 
         await consumer.Consume(CreateConsumeContext(evt));
@@ -145,14 +144,12 @@ public sealed class ReviewReadModelSyncConsumerIdempotencyTests
     [Fact]
     public async Task Consume_Submitted_Should_Throw_When_EventId_Empty()
     {
-        var repoMock = new Mock<IReviewRepository>();
+        var repositoryMock = new Mock<IReviewRepository>();
         var esMock = new Mock<IEsReadModelRepository<ReviewReadModel>>();
         var idempotencyMock = CreateIdempotencyMock(isProcessed: false);
 
-        var consumer = CreateConsumer(repoMock, esMock, idempotencyMock);
-        // EventId 为 Guid.Empty（使用反射强制设置或使用 base() 默认值）
+        var consumer = CreateConsumer(repositoryMock, esMock, idempotencyMock);
         var evt = new ReviewSubmittedEvent(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), 5);
-        // 通过反射强制 EventId 为 Guid.Empty
         typeof(IntegrationEventBase).GetProperty(nameof(IntegrationEventBase.EventId))!
             .SetValue(evt, Guid.Empty);
 

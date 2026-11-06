@@ -276,4 +276,42 @@ public class ConfigCenterExtensionsTests
         missing.Should().NotBeEmpty();
         missing.Should().Contain("Payment:Alipay:AppId");
     }
+
+    [Fact]
+    public void GetMissingSensitiveConfigKeys_ProductService_ShouldOnlyRequireJwtDiscoveryUrl()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "Service:Name", "Product" }
+            })
+            .Build();
+
+        var missing = config.GetMissingSensitiveConfigKeys();
+
+        missing.Should().ContainSingle();
+        missing.Should().Contain("Jwt:DiscoveryUrl");
+        missing.Should().NotContain("Payment:Alipay:AppId");
+        missing.Should().NotContain("SMS:ApiKey");
+        missing.Should().NotContain("OAuth2:WeChat:AppId");
+    }
+
+    [Fact]
+    public void GetMissingSensitiveConfigKeys_PaymentService_ShouldRequirePaymentKeysOnly()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "Service:Name", "Payment" },
+                { "Jwt:DiscoveryUrl", "http://identity-api:8080/.well-known/openid-configuration" }
+            })
+            .Build();
+
+        var missing = config.GetMissingSensitiveConfigKeys();
+
+        missing.Should().Contain("Payment:Alipay:AppId");
+        missing.Should().Contain("Payment:WeChatPay:ApiKey");
+        missing.Should().NotContain("SMS:ApiKey");
+        missing.Should().NotContain("OAuth2:WeChat:AppId");
+    }
 }

@@ -1,16 +1,15 @@
 using Grpc.Core;
 using Leno.Order.Application;
 using Leno.SharedContracts.Grpc.Order.V1;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Leno.Order.Api.GrpcServices;
 
 /// <summary>
 /// 订单域 gRPC 服务端（M4 双轨方案）。
 /// 复用 <see cref="IOrderInternalQueryService"/> 业务逻辑，与 InternalOrdersController HTTP 路径双轨。
-/// 鉴权由 GrpcInternalKeyInterceptor 拦截器统一处理（metadata x-internal-key）。
+/// 鉴权由 GrpcInternalKeyInterceptor 拦截器统一处理（metadata x-internal-key）；
+/// 不使用 [Authorize]：内部服务间调用只携带 x-internal-key，不携带用户 JWT。
 /// </summary>
-[Authorize]
 public sealed class OrderGrpcService : OrderInternalService.OrderInternalServiceBase
 {
     private readonly IOrderInternalQueryService _queryService;

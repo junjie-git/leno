@@ -1,3 +1,23 @@
+# 16 个 API 与网关复用的健康检查探针。
+# 依据：mcr.microsoft.com/dotnet/aspnet:10.0（Debian）运行镜像自带 /usr/bin/bash，
+# 不含 curl / wget（已用 `docker run --entrypoint sh ... command -v curl/wget/bash` 实测确认）。
+# 因此用 bash 的内建 /dev/tcp 直接发起 HTTP/1.1 请求并校验状态行 200：
+#   - 不修改 17 个 Dockerfile、不重建镜像、不在运行时安装额外包；
+#   - 非 root 用户（镜像内 APP_UID 1654）可直接使用；
+#   - 校验的是真实 HTTP 状态码，而不是端口连通性，健康判定可信。
+x-api-healthcheck: &api-healthcheck
+  test:
+    - CMD-SHELL
+    - >-
+      bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf "GET /health/ready HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n" >&3 && head -1 <&3 | grep -q " 200 "'
+  interval: 10s
+  timeout: 5s
+  retries: 12
+  # /health/ready 覆盖 EF 迁移、Quartz 建表、Redis / Elasticsearch / RabbitMQ 依赖，
+  # 冷启动（尤其首次建库 + 迁移）耗时明显长于 /health/live，故把启动观察期放宽到 240s；
+  # 进入 steady state 后仍按 interval=10s 探测，依赖故障可在约 2 分钟内反映为 unhealthy。
+  start_period: 240s
+
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2019-latest
@@ -5,7 +25,11 @@ services:
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
-      - MSSQL_PID=Express
+      # 本地 compose 使用 Developer 版：Notification 的迁移包含 CREATE INDEX ... WITH (ONLINE = ON, FILLFACTOR = 90)
+      # （见 20260723131843_AddIxNotificationRecordsUserIsreadChannel），该语法仅 Enterprise/Developer 支持，
+      # Express 版会以错误 1712（Online index operations can only be performed in Enterprise edition）中断迁移，
+      # 导致 notification-api 启动即崩溃。Developer 版对开发/测试免费且功能等同 Enterprise，生产由 Helm 提供 Enterprise。
+      - MSSQL_PID=Developer
     ports:
       - "1433:1433"
     volumes:
@@ -16,6 +40,44 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - leno-net
+
+  # Quartz.NET 调度库一次性初始化：QRTZ_* 表由 Quartz 自有 DDL 管理，不纳入 EF 迁移，
+  # 且 16 个 API 的 QuartzHostedService 在启动时即连接调度库（表缺失会导致宿主启动失败）。
+  # 脚本与 Helm scheduler-migration-job 使用的是同一份幂等 DDL。
+  scheduler-db-init:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: leno-scheduler-db-init
+    environment:
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
+    volumes:
+      - ./deploy/helm/leno/files/migrations/scheduler-quartz.sql:/migrations/scheduler-quartz.sql:ro
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -euo pipefail
+        SQLCMD=/opt/mssql-tools18/bin/sqlcmd
+        ready=0
+        for i in $$(seq 1 60); do
+          if "$$SQLCMD" -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -b -Q "SELECT 1" >/dev/null 2>&1; then
+            ready=1
+            break
+          fi
+          echo "等待 sqlserver 就绪（$$i/60）..."
+          sleep 2
+        done
+        if [ "$$ready" -ne 1 ]; then
+          echo "sqlserver 在 120 秒内未就绪" >&2
+          exit 1
+        fi
+        "$$SQLCMD" -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -b -Q "IF DB_ID(N'LenoScheduler') IS NULL CREATE DATABASE LenoScheduler;"
+        "$$SQLCMD" -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -d LenoScheduler -C -b -f 65001 -i /migrations/scheduler-quartz.sql
+        echo "Quartz 调度库初始化完成。"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: "no"
     networks:
       - leno-net
 
@@ -180,9 +242,17 @@ services:
       - "5152:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
-      # 配置注入（B2 冒烟补齐，对齐 inventory-api A3 模板——旧段缺全套映射）
       - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=product-api
+      - Consul__ServicePort=8080
       - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      # ACL gRPC 独立端口（manifest grpcPort=5252）：REST 走 8080/HTTP1，gRPC 走 5252/HTTP2（h2c 无 ALPN，不能共用端口）
+      - Kestrel__Endpoints__Rest__Url=http://+:8080
+      - Kestrel__Endpoints__Rest__Protocols=Http1
+      - Kestrel__Endpoints__Grpc__Url=http://+:5252
+      - Kestrel__Endpoints__Grpc__Protocols=Http2
+      - AntiCorruption__InternalApiKey=${LENO_INTERNAL_API_KEY_SHARED}
       # 本地冒烟：启动时执行 EF 迁移（生产由 helm migration-job 负责）
       - Database__MigrateOnStartup=true
       - ConnectionStrings__ProductDb=${LENO_DB_PRODUCT}
@@ -197,18 +267,9 @@ services:
       - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
       - Jwt__Issuer=leno-identity
       - Jwt__Audience=leno-clients
-      - Payment__Alipay__AppId=${LENO_PAYMENT_ALIPAY_APPID}
-      - Payment__Alipay__PrivateKey=${LENO_PAYMENT_ALIPAY_PRIVATEKEY}
-      - Payment__Alipay__PublicKey=${LENO_PAYMENT_ALIPAY_PUBLICKEY}
-      - Payment__WeChatPay__AppId=${LENO_PAYMENT_WECHATPAY_APPID}
-      - Payment__WeChatPay__MchId=${LENO_PAYMENT_WECHATPAY_MCHID}
-      - Payment__WeChatPay__ApiKey=${LENO_PAYMENT_WECHATPAY_APIKEY}
-      - SMS__ApiKey=${LENO_SMS_APIKEY}
-      - SMS__ApiSecret=${LENO_SMS_APISECRET}
-      - OAuth2__WeChat__AppId=${LENO_OAUTH_WECHAT_APPID}
-      - OAuth2__WeChat__AppSecret=${LENO_OAUTH_WECHAT_APPSECRET}
-      - OAuth2__Apple__ClientId=${LENO_OAUTH_APPLE_CLIENTID}
-      - OAuth2__Apple__ClientSecret=${LENO_OAUTH_APPLE_CLIENTSECRET}
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -220,12 +281,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -239,6 +297,36 @@ services:
       - "5153:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=cart-api
+      - Consul__ServicePort=8080
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      # ACL gRPC 独立端口（manifest grpcPort=5253）：REST 走 8080/HTTP1，gRPC 走 5253/HTTP2
+      - Kestrel__Endpoints__Rest__Url=http://+:8080
+      - Kestrel__Endpoints__Rest__Protocols=Http1
+      - Kestrel__Endpoints__Grpc__Url=http://+:5253
+      - Kestrel__Endpoints__Grpc__Protocols=Http2
+      - AntiCorruption__InternalApiKey=${LENO_INTERNAL_API_KEY_SHARED}
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__CartDb=${LENO_DB_CART}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
+      - ServiceUrls__ProductApi=http://product-api:8080
+      - AntiCorruption__GrpcEndpoints__Product=http://product-api:5252
+      - AntiCorruption__TargetInternalApiKeys__Product=${LENO_INTERNAL_API_KEY_SHARED}
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -250,12 +338,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -269,11 +354,18 @@ services:
       - "5154:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
-      # 配置注入（B2 冒烟补齐，对齐 inventory-api A3 模板——旧段仅有环境名，
-      # RabbitMQ/DB 连接串缺失导致健康检查 UriFormatException 启动崩溃）
+      # ServiceUrls / Inventory:GrpcUrl / AntiCorruption:GrpcEndpoints 由 appsettings.Docker.json 提供容器网络地址
       - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=order-api
+      - Consul__ServicePort=8080
       - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
-      # 本地冒烟：启动时执行 EF 迁移（生产由 helm migration-job 负责）
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      # ACL gRPC 独立端口（manifest grpcPort=5254）：REST 走 8080/HTTP1，gRPC 走 5254/HTTP2
+      - Kestrel__Endpoints__Rest__Url=http://+:8080
+      - Kestrel__Endpoints__Rest__Protocols=Http1
+      - Kestrel__Endpoints__Grpc__Url=http://+:5254
+      - Kestrel__Endpoints__Grpc__Protocols=Http2
+      - AntiCorruption__InternalApiKey=${LENO_INTERNAL_API_KEY_SHARED}
       - Database__MigrateOnStartup=true
       - ConnectionStrings__OrderDb=${LENO_DB_ORDER}
       - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
@@ -283,21 +375,19 @@ services:
       - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
       - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
       - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
       - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
       - Jwt__Issuer=leno-identity
       - Jwt__Audience=leno-clients
-      - Payment__Alipay__AppId=${LENO_PAYMENT_ALIPAY_APPID}
-      - Payment__Alipay__PrivateKey=${LENO_PAYMENT_ALIPAY_PRIVATEKEY}
-      - Payment__Alipay__PublicKey=${LENO_PAYMENT_ALIPAY_PUBLICKEY}
-      - Payment__WeChatPay__AppId=${LENO_PAYMENT_WECHATPAY_APPID}
-      - Payment__WeChatPay__MchId=${LENO_PAYMENT_WECHATPAY_MCHID}
-      - Payment__WeChatPay__ApiKey=${LENO_PAYMENT_WECHATPAY_APIKEY}
-      - SMS__ApiKey=${LENO_SMS_APIKEY}
-      - SMS__ApiSecret=${LENO_SMS_APISECRET}
-      - OAuth2__WeChat__AppId=${LENO_OAUTH_WECHAT_APPID}
-      - OAuth2__WeChat__AppSecret=${LENO_OAUTH_WECHAT_APPSECRET}
-      - OAuth2__Apple__ClientId=${LENO_OAUTH_APPLE_CLIENTID}
-      - OAuth2__Apple__ClientSecret=${LENO_OAUTH_APPLE_CLIENTSECRET}
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
+      - AntiCorruption__GrpcEndpoints__Product=http://product-api:5252
+      - AntiCorruption__GrpcEndpoints__Promotion=http://promotion-api:5255
+      - AntiCorruption__GrpcEndpoints__Points=http://points-api:5266
+      - AntiCorruption__TargetInternalApiKeys__Product=${LENO_INTERNAL_API_KEY_SHARED}
+      - AntiCorruption__TargetInternalApiKeys__Promotion=${LENO_INTERNAL_API_KEY_SHARED}
+      - AntiCorruption__TargetInternalApiKeys__Points=${LENO_INTERNAL_API_KEY_SHARED}
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -309,12 +399,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -328,6 +415,33 @@ services:
       - "5155:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=promotion-api
+      - Consul__ServicePort=8080
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      # ACL gRPC 独立端口（manifest grpcPort=5255）：REST 走 8080/HTTP1，gRPC 走 5255/HTTP2
+      - Kestrel__Endpoints__Rest__Url=http://+:8080
+      - Kestrel__Endpoints__Rest__Protocols=Http1
+      - Kestrel__Endpoints__Grpc__Url=http://+:5255
+      - Kestrel__Endpoints__Grpc__Protocols=Http2
+      - AntiCorruption__InternalApiKey=${LENO_INTERNAL_API_KEY_SHARED}
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__PromotionDb=${LENO_DB_PROMOTION}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -339,12 +453,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -358,6 +469,42 @@ services:
       - "5156:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=payment-api
+      - Consul__ServicePort=8080
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      # ACL gRPC 独立端口（manifest grpcPort=5256）：REST 走 8080/HTTP1，gRPC 走 5256/HTTP2
+      - Kestrel__Endpoints__Rest__Url=http://+:8080
+      - Kestrel__Endpoints__Rest__Protocols=Http1
+      - Kestrel__Endpoints__Grpc__Url=http://+:5256
+      - Kestrel__Endpoints__Grpc__Protocols=Http2
+      - AntiCorruption__InternalApiKey=${LENO_INTERNAL_API_KEY_SHARED}
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__PaymentDb=${LENO_DB_PAYMENT}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
+      # 支付渠道密钥仅 Payment BC 需要（ConfigCenterExtensions 按 Service:Name 收敛校验）
+      - Payment__Alipay__AppId=${LENO_PAYMENT_ALIPAY_APPID}
+      - Payment__Alipay__PrivateKey=${LENO_PAYMENT_ALIPAY_PRIVATEKEY}
+      - Payment__Alipay__PublicKey=${LENO_PAYMENT_ALIPAY_PUBLICKEY}
+      - Payment__WeChatPay__AppId=${LENO_PAYMENT_WECHATPAY_APPID}
+      - Payment__WeChatPay__MchId=${LENO_PAYMENT_WECHATPAY_MCHID}
+      - Payment__WeChatPay__ApiKey=${LENO_PAYMENT_WECHATPAY_APIKEY}
+      - AntiCorruption__GrpcEndpoints__Order=http://order-api:5254
+      - AntiCorruption__TargetInternalApiKeys__Order=${LENO_INTERNAL_API_KEY_SHARED}
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -369,12 +516,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -391,6 +535,39 @@ services:
       - "5159:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=seller-shop-api
+      - Consul__ServicePort=8080
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      # ACL gRPC 独立端口（manifest grpcPort=5259）：REST 走 8080/HTTP1，gRPC 走 5259/HTTP2
+      - Kestrel__Endpoints__Rest__Url=http://+:8080
+      - Kestrel__Endpoints__Rest__Protocols=Http1
+      - Kestrel__Endpoints__Grpc__Url=http://+:5259
+      - Kestrel__Endpoints__Grpc__Protocols=Http2
+      - AntiCorruption__InternalApiKey=${LENO_INTERNAL_API_KEY_SHARED}
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__SellerShopDb=${LENO_DB_SELLERSHOP}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
+      - AntiCorruption__GrpcEndpoints__Product=http://product-api:5252
+      - AntiCorruption__GrpcEndpoints__Order=http://order-api:5254
+      - AntiCorruption__GrpcEndpoints__Review=http://review-api:5268
+      - AntiCorruption__TargetInternalApiKeys__Product=${LENO_INTERNAL_API_KEY_SHARED}
+      - AntiCorruption__TargetInternalApiKeys__Order=${LENO_INTERNAL_API_KEY_SHARED}
+      - AntiCorruption__TargetInternalApiKeys__Review=${LENO_INTERNAL_API_KEY_SHARED}
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -402,12 +579,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -421,6 +595,34 @@ services:
       - "5160:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      # ServiceUrls:IdentityApi 由 appsettings.Docker.json 提供容器网络地址
+      - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=notification-api
+      - Consul__ServicePort=8080
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__NotificationDb=${LENO_DB_NOTIFICATION}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
+      # 短信密钥仅 Notification BC 需要
+      - SMS__ApiKey=${LENO_SMS_APIKEY}
+      - SMS__ApiSecret=${LENO_SMS_APISECRET}
+      # Identity 的 HTTP 内部面（/internal/*）由 InternalApiKeyMiddleware 校验 InternalAuth:ApiKey，
+      # 因此这里的出站键必须与 INTERNAL_AUTH_API_KEY 同值（历史上误用 LENO_INTERNAL_API_KEY_IDENTITY 导致 401）
+      - AntiCorruption__TargetInternalApiKeys__Identity=${INTERNAL_AUTH_API_KEY}
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -432,12 +634,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -451,6 +650,27 @@ services:
       - "5161:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=system-admin-api
+      - Consul__ServicePort=8080
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__SystemAdminDb=${LENO_DB_SYSTEMADMIN}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -462,12 +682,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -481,7 +698,18 @@ services:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - Consul__Url=http://consul:8500
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
     depends_on:
+      # 探针已统一为 /health/ready（覆盖 EF 迁移、Quartz、Redis/ES/RabbitMQ 依赖），
+      # 16 个 API 在 compose 下实测全部 healthy，故恢复为 service_healthy：
+      # 网关只在业务 API 真正可服务（而非仅进程启动）后启动，避免启动期 503 抖动。
       product-api:
         condition: service_healthy
       cart-api:
@@ -504,12 +732,7 @@ services:
         condition: service_healthy
       prometheus:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -530,6 +753,48 @@ services:
       - "5162:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=identity-api
+      - Consul__ServicePort=8080
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__IdentityDb=${LENO_DB_IDENTITY}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
+      - ServiceUrls__AccessControlApi=http://access-control-api:8080
+      # JWT RS256 签名私钥（PEM）。EnvironmentKms 优先读环境变量 JWT_RSA_PRIVATE_KEY_PEM，
+      # 其值为空时才回退 appsettings 的 JwtSigning:RsaPrivateKeyPem；而 appsettings.json 中该键是
+      # 未被展开的字面量 "${JWT_RSA_PRIVATE_KEY_PEM}"，若不注入真实 PEM，签发令牌会以
+      # "No supported key formats were found" 失败（实测 /api/auth/register 400）。
+      - JWT_RSA_PRIVATE_KEY_PEM=${JWT_RSA_PRIVATE_KEY_PEM}
+      # BC 间 gRPC 走 access-control 的 HTTP/2 专用端口（5263，取自 deploy/services.manifest.json），
+      # REST（UserAdminAppService 的 /api/admin/users/... 调用）仍走 8080。
+      # 明文 HTTP/2（h2c）无法与 HTTP/1.1 共用同一 Kestrel 端点，必须拆端口。
+      - AntiCorruption__GrpcEndpoints__AccessControl=http://access-control-api:5263
+      # AccessControl 的 gRPC 服务端由 GrpcInternalKeyInterceptor 校验 x-internal-key，
+      # 调用方（Identity 的 JwtTokenService）从同名键读取并注入该头，两侧必须一致。
+      - AntiCorruption__TargetInternalApiKeys__AccessControl=${LENO_INTERNAL_API_KEY_SHARED}
+      # 第三方登录密钥仅 Identity BC 需要
+      - OAuth2__WeChat__AppId=${LENO_OAUTH_WECHAT_APPID}
+      - OAuth2__WeChat__AppSecret=${LENO_OAUTH_WECHAT_APPSECRET}
+      - OAuth2__Apple__ClientId=${LENO_OAUTH_APPLE_CLIENTID}
+      - OAuth2__Apple__ClientSecret=${LENO_OAUTH_APPLE_CLIENTSECRET}
+      # OAuth2:AesKey 为 Base64 编码的 32 字节密钥；PasswordHash:Pepper 为口令哈希胡椒
+      - OAuth2__AesKey=${OAUTH2_AES_KEY}
+      - PasswordHash__Pepper=${PASSWORD_PEPPER}
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -541,12 +806,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -560,6 +822,38 @@ services:
       - "5163:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=access-control-api
+      - Consul__ServicePort=8080
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__AccessControlDb=${LENO_DB_ACCESSCONTROL}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
+      # access-control 同时对外提供 REST（HTTP/1.1）与 gRPC（明文 HTTP/2，即 h2c）。
+      # Kestrel 的 h2c 只在端点协议固定为 Http2 时可用；明文无 ALPN，Http1AndHttp2 会回落 HTTP/1.1，
+      # Identity 的 Grpc.Net.Client 因此收到 HTTP_1_1_REQUIRED（实测 /api/auth/register 500）。
+      # 故拆成两个端点：Default(8080, Http1) 供网关/浏览器 REST；Grpc(5263, Http2) 供 BC 间 gRPC。
+      # 端口取自 deploy/services.manifest.json（access-control.grpcPort = 5263）。
+      - Kestrel__Endpoints__Default__Url=http://+:8080
+      - Kestrel__Endpoints__Default__Protocols=Http1
+      - Kestrel__Endpoints__Grpc__Url=http://+:5263
+      - Kestrel__Endpoints__Grpc__Protocols=Http2
+      # gRPC 服务端鉴权：GrpcInternalKeyInterceptor 校验 x-internal-key，缺失时 fail-closed 拒绝所有调用。
+      - AntiCorruption__InternalApiKey=${LENO_INTERNAL_API_KEY_SHARED}
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -571,12 +865,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -590,6 +881,30 @@ services:
       - "5164:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=user-center-api
+      - Consul__ServicePort=8080
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__UserCenterDb=${LENO_DB_USERCENTER}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
+      - ServiceUrls__ProductApi=http://product-api:8080
+      - ServiceUrls__IdentityApi=http://identity-api:8080
+      - AntiCorruption__TargetInternalApiKeys__Identity=${INTERNAL_AUTH_API_KEY}
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -601,12 +916,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -629,16 +941,20 @@ services:
       - "5265:5265"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
-      # gRPC 直连（E2E/Order）：两个端口均强制 HTTP/2 明文（h2c）
-      # 注意：HTTP/1.1 客户端（curl 健康检查、/internal HTTP 调用方）在本地此模式下不可用
-      - ASPNETCORE_URLS=http://+:8080;http://+:5265
-      - Kestrel__EndpointDefaults__Protocols=Http2
-      # 配置中心与内部鉴权（本机 compose 初始化；KV 由 kv-seed 灌入）
+      # 端点协议拆分：REST 8080 强制 HTTP/1.1（健康检查 / /internal HTTP 调用方），
+      # gRPC 5265 强制 HTTP/2 明文（h2c）。显式 Kestrel:Endpoints 配置会覆盖镜像内
+      # ENV ASPNETCORE_URLS，因此无需再设置 ASPNETCORE_URLS / EndpointDefaults:Protocols。
+      - Kestrel__Endpoints__Rest__Url=http://+:8080
+      - Kestrel__Endpoints__Rest__Protocols=Http1
+      - Kestrel__Endpoints__Grpc__Url=http://+:5265
+      - Kestrel__Endpoints__Grpc__Protocols=Http2
       - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=inventory-api
+      - Consul__ServicePort=8080
       - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
-      # gRPC 服务端拦截器（GrpcInternalKeyInterceptor）读取的键（B2 冒烟补齐）
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      # gRPC 服务端拦截器（InternalApiKeyServerInterceptor）读取的键（B2 冒烟补齐）
       - AntiCorruption__InternalApiKey=${INTERNAL_AUTH_API_KEY}
-      # 本地冒烟：启动时执行 EF 迁移（生产由 helm migration-job 负责）
       - Database__MigrateOnStartup=true
       - ConnectionStrings__InventoryDb=${LENO_DB_INVENTORY}
       - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
@@ -652,18 +968,9 @@ services:
       - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
       - Jwt__Issuer=leno-identity
       - Jwt__Audience=leno-clients
-      - Payment__Alipay__AppId=${LENO_PAYMENT_ALIPAY_APPID}
-      - Payment__Alipay__PrivateKey=${LENO_PAYMENT_ALIPAY_PRIVATEKEY}
-      - Payment__Alipay__PublicKey=${LENO_PAYMENT_ALIPAY_PUBLICKEY}
-      - Payment__WeChatPay__AppId=${LENO_PAYMENT_WECHATPAY_APPID}
-      - Payment__WeChatPay__MchId=${LENO_PAYMENT_WECHATPAY_MCHID}
-      - Payment__WeChatPay__ApiKey=${LENO_PAYMENT_WECHATPAY_APIKEY}
-      - SMS__ApiKey=${LENO_SMS_APIKEY}
-      - SMS__ApiSecret=${LENO_SMS_APISECRET}
-      - OAuth2__WeChat__AppId=${LENO_OAUTH_WECHAT_APPID}
-      - OAuth2__WeChat__AppSecret=${LENO_OAUTH_WECHAT_APPSECRET}
-      - OAuth2__Apple__ClientId=${LENO_OAUTH_APPLE_CLIENTID}
-      - OAuth2__Apple__ClientSecret=${LENO_OAUTH_APPLE_CLIENTSECRET}
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -675,12 +982,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -694,11 +998,20 @@ services:
       - "5166:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
-      # 配置注入（B2 冒烟补齐，对齐 inventory-api A3 模板——旧段缺全套映射，
-      # 敏感配置 fail-fast 校验因 Payment/SMS/OAuth2 缺失而启动崩溃）
+      # Points 的 appsettings.json 未声明 Service:Name，此处显式注入，
+      # 使敏感配置校验按 BC 收敛（否则会回退为校验全部 13 个键）
+      - Service__Name=Points
       - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=points-api
+      - Consul__ServicePort=8080
       - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
-      # 本地冒烟：启动时执行 EF 迁移（生产由 helm migration-job 负责）
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      # ACL gRPC 独立端口（manifest grpcPort=5266）：REST 走 8080/HTTP1，gRPC 走 5266/HTTP2
+      - Kestrel__Endpoints__Rest__Url=http://+:8080
+      - Kestrel__Endpoints__Rest__Protocols=Http1
+      - Kestrel__Endpoints__Grpc__Url=http://+:5266
+      - Kestrel__Endpoints__Grpc__Protocols=Http2
+      - AntiCorruption__InternalApiKey=${LENO_INTERNAL_API_KEY_SHARED}
       - Database__MigrateOnStartup=true
       - ConnectionStrings__PointsDb=${LENO_DB_POINTS}
       - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
@@ -712,18 +1025,10 @@ services:
       - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
       - Jwt__Issuer=leno-identity
       - Jwt__Audience=leno-clients
-      - Payment__Alipay__AppId=${LENO_PAYMENT_ALIPAY_APPID}
-      - Payment__Alipay__PrivateKey=${LENO_PAYMENT_ALIPAY_PRIVATEKEY}
-      - Payment__Alipay__PublicKey=${LENO_PAYMENT_ALIPAY_PUBLICKEY}
-      - Payment__WeChatPay__AppId=${LENO_PAYMENT_WECHATPAY_APPID}
-      - Payment__WeChatPay__MchId=${LENO_PAYMENT_WECHATPAY_MCHID}
-      - Payment__WeChatPay__ApiKey=${LENO_PAYMENT_WECHATPAY_APIKEY}
-      - SMS__ApiKey=${LENO_SMS_APIKEY}
-      - SMS__ApiSecret=${LENO_SMS_APISECRET}
-      - OAuth2__WeChat__AppId=${LENO_OAUTH_WECHAT_APPID}
-      - OAuth2__WeChat__AppSecret=${LENO_OAUTH_WECHAT_APPSECRET}
-      - OAuth2__Apple__ClientId=${LENO_OAUTH_APPLE_CLIENTID}
-      - OAuth2__Apple__ClientSecret=${LENO_OAUTH_APPLE_CLIENTSECRET}
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
+      - ServiceUrls__MembershipApi=http://membership-api:8080
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -735,12 +1040,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -754,6 +1056,29 @@ services:
       - "5167:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - Service__Name=Membership
+      - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=membership-api
+      - Consul__ServicePort=8080
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__MembershipDb=${LENO_DB_MEMBERSHIP}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
+      - ServiceUrls__PointsApi=http://points-api:8080
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -765,12 +1090,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -784,6 +1106,38 @@ services:
       - "5168:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - Service__Name=Review
+      - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=review-api
+      - Consul__ServicePort=8080
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      # ACL gRPC 独立端口（manifest grpcPort=5268）：REST 走 8080/HTTP1，gRPC 走 5268/HTTP2
+      - Kestrel__Endpoints__Rest__Url=http://+:8080
+      - Kestrel__Endpoints__Rest__Protocols=Http1
+      - Kestrel__Endpoints__Grpc__Url=http://+:5268
+      - Kestrel__Endpoints__Grpc__Protocols=Http2
+      - AntiCorruption__InternalApiKey=${LENO_INTERNAL_API_KEY_SHARED}
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__ReviewDb=${LENO_DB_REVIEW}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
+      - AntiCorruption__GrpcEndpoints__Order=http://order-api:5254
+      - AntiCorruption__GrpcEndpoints__Product=http://product-api:5252
+      - AntiCorruption__TargetInternalApiKeys__Order=${LENO_INTERNAL_API_KEY_SHARED}
+      - AntiCorruption__TargetInternalApiKeys__Product=${LENO_INTERNAL_API_KEY_SHARED}
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -795,12 +1149,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net
@@ -814,6 +1165,32 @@ services:
       - "5169:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
+      - Service__Name=AfterSales
+      - Consul__Url=http://consul:8500
+      - Consul__ServiceAddress=aftersales-api
+      - Consul__ServicePort=8080
+      - InternalAuth__ApiKey=${INTERNAL_AUTH_API_KEY}
+      - Security__InternalApiKey__Shared=${LENO_INTERNAL_API_KEY_SHARED}
+      - Database__MigrateOnStartup=true
+      - ConnectionStrings__AfterSalesDb=${LENO_DB_AFTERSALES}
+      - ConnectionStrings__SchedulerDb=${LENO_DB_SCHEDULER}
+      - Redis__Configuration=${LENO_REDIS_CONFIGURATION}
+      - RabbitMQ__Host=${LENO_RABBITMQ_HOST}
+      - RabbitMQ__Port=${LENO_RABBITMQ_PORT}
+      - RabbitMQ__Username=${LENO_RABBITMQ_USERNAME}
+      - RabbitMQ__Password=${LENO_RABBITMQ_PASSWORD}
+      - RabbitMQ__VirtualHost=${LENO_RABBITMQ_VIRTUALHOST}
+      - Elasticsearch__Uri=${LENO_ES_URI}
+      - Jwt__DiscoveryUrl=http://identity-api:8080/.well-known/openid-configuration
+      - Jwt__Issuer=leno-identity
+      - Jwt__Audience=leno-clients
+      # 本机 compose 的 Identity 以明文 HTTP 提供 JWKS/发现文档，
+      # 需关闭 HTTPS 元数据强制（Production 仍由启动校验强制为 true）
+      - Jwt__RequireHttpsMetadata=false
+      - AntiCorruption__GrpcEndpoints__Order=http://order-api:5254
+      - AntiCorruption__GrpcEndpoints__Payment=http://payment-api:5256
+      - AntiCorruption__TargetInternalApiKeys__Order=${LENO_INTERNAL_API_KEY_SHARED}
+      - AntiCorruption__TargetInternalApiKeys__Payment=${LENO_INTERNAL_API_KEY_SHARED}
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -825,12 +1202,9 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      scheduler-db-init:
+        condition: service_completed_successfully
+    healthcheck: *api-healthcheck
     restart: unless-stopped
     networks:
       - leno-net

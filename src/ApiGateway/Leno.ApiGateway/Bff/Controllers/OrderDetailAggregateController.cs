@@ -17,6 +17,10 @@ namespace Leno.ApiGateway.Bff.Controllers;
 /// </list>
 /// DAG 引擎自动拓扑排序 + 分波并行：第二波 user 与 items 无相互依赖，并行执行。
 /// </para>
+/// <para>
+/// 下游基址不在此处硬编码：统一由 <see cref="IBffServiceResolver"/> 按
+/// <c>deploy/services.manifest.json</c> 的服务名解析（本地开发取显式 BaseUrl，compose/K8s 走 Consul 发现）。
+/// 任一服务无法寻址时返回与网关一致的 503 降级信封；全部节点失败时同样返回 503，不返回空对象。
 /// </para>
 /// </summary>
 [ApiController]
@@ -28,20 +32,28 @@ public sealed class OrderDetailAggregateController : ControllerBase
     private const string ItemsNode = "items";
     private const string ProductSnapshotNode = "product-snapshot";
 
-    private const string OrderServiceBase = "http://order-api:8080";
-    private const string UserServiceBase = "http://user-api:8080";
-    private const string ProductServiceBase = "http://product-api:8080";
+    /// <summary>清单服务名：order（Consul 注册名 leno-order-api）。</summary>
+    private const string OrderServiceName = "order";
+
+    /// <summary>清单服务名：usercenter（Consul 注册名 leno-user-center-api）。</summary>
+    private const string UserCenterServiceName = "usercenter";
+
+    /// <summary>清单服务名：product（Consul 注册名 leno-product-api）。</summary>
+    private const string ProductServiceName = "product";
 
     private readonly IBffForwarderService _forwarder;
+    private readonly IBffServiceResolver _serviceResolver;
     private readonly BffDagNodeFactory _nodeFactory;
     private readonly ILogger<OrderDetailAggregateController> _logger;
 
     public OrderDetailAggregateController(
         IBffForwarderService forwarder,
+        IBffServiceResolver serviceResolver,
         BffDagNodeFactory nodeFactory,
         ILogger<OrderDetailAggregateController> logger)
     {
         _forwarder = forwarder ?? throw new ArgumentNullException(nameof(forwarder));
+        _serviceResolver = serviceResolver ?? throw new ArgumentNullException(nameof(serviceResolver));
         _nodeFactory = nodeFactory ?? throw new ArgumentNullException(nameof(nodeFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -52,7 +64,8 @@ public sealed class OrderDetailAggregateController : ControllerBase
     /// <param name="orderId">订单 ID（GUID）。</param>
     /// <param name="ct">取消令牌。</param>
     /// <returns>
-    /// 200 OK + <see cref="BffResponse{T}"/>；部分节点失败时 Partial=true，Errors 含失败明细。
+    /// 200 OK + <see cref="BffResponse{T}"/>；部分节点失败时 Partial=true，Errors 含失败明细；
+    /// 寻址失败或全部节点失败时返回 503 降级信封。
     /// </returns>
     [HttpGet]
     public async Task<ActionResult<BffResponse<OrderDetailAggregateResponse>>> Get(
@@ -60,6 +73,27 @@ public sealed class OrderDetailAggregateController : ControllerBase
         CancellationToken ct)
     {
         var requestId = HttpContext.TraceIdentifier;
+
+        string orderBase;
+        string userBase;
+        string productBase;
+        try
+        {
+            orderBase = await _serviceResolver
+                .ResolveBaseAddressAsync(OrderServiceName, ct).ConfigureAwait(false);
+            userBase = await _serviceResolver
+                .ResolveBaseAddressAsync(UserCenterServiceName, ct).ConfigureAwait(false);
+            productBase = await _serviceResolver
+                .ResolveBaseAddressAsync(ProductServiceName, ct).ConfigureAwait(false);
+        }
+        catch (BffServiceUnavailableException ex)
+        {
+            _logger.LogError(
+                ex,
+                "BFF OrderDetailAggregate 下游寻址失败：service={ServiceName}, consul={ConsulServiceName}, requestId={RequestId}",
+                ex.ServiceName, ex.ConsulServiceName, requestId);
+            return BffErrorEnvelope.DownstreamUnavailable();
+        }
 
         // 4.3：声明式 DAG 构建——order → {user, items} → product-snapshot
         var graph = new AggregateBuilder()
@@ -69,13 +103,13 @@ public sealed class OrderDetailAggregateController : ControllerBase
                 new BffDownstreamRequest
                 {
                     Source = OrderNode,
-                    ServiceUrl = $"{OrderServiceBase}/api/orders/{orderId:D}"
+                    ServiceUrl = $"{orderBase}/api/orders/{orderId:D}"
                 },
                 requestId))
             // 第二波：依赖 order，从订单中提取 userId 查询用户信息
             .AddNode(_nodeFactory.CreateNode(
                 UserNode,
-                ctx => BuildUserRequest(ctx),
+                ctx => BuildUserRequest(ctx, userBase),
                 requestId))
             .DependsOn(UserNode, OrderNode)
             // 第二波：依赖 order，查询订单项列表
@@ -84,14 +118,14 @@ public sealed class OrderDetailAggregateController : ControllerBase
                 new BffDownstreamRequest
                 {
                     Source = ItemsNode,
-                    ServiceUrl = $"{OrderServiceBase}/api/orders/{orderId:D}/items"
+                    ServiceUrl = $"{orderBase}/api/orders/{orderId:D}/items"
                 },
                 requestId))
             .DependsOn(ItemsNode, OrderNode)
             // 第三波：依赖 items，从订单项提取 productId 批量查询商品快照
             .AddNode(_nodeFactory.CreateNode(
                 ProductSnapshotNode,
-                ctx => BuildProductSnapshotRequest(ctx, orderId),
+                ctx => BuildProductSnapshotRequest(ctx, productBase, orderId),
                 requestId))
             .DependsOn(ProductSnapshotNode, ItemsNode)
             .Build();
@@ -101,6 +135,15 @@ public sealed class OrderDetailAggregateController : ControllerBase
             graph.Count, orderId, requestId);
 
         var result = await _forwarder.ExecuteDagAsync(graph, ct);
+
+        // 全部节点失败（无任何可用数据）时按网关统一降级信封返回 503，避免 200 + 全 null 的空对象
+        if (!result.Success && !result.Partial)
+        {
+            _logger.LogError(
+                "BFF OrderDetailAggregate 全部下游节点失败：orderId={OrderId}, requestId={RequestId}, errors={Errors}",
+                orderId, requestId, string.Join("; ", result.Errors.Select(e => $"{e.Source}:{e.Message}")));
+            return BffErrorEnvelope.DownstreamUnavailable();
+        }
 
         return Ok(new BffResponse<OrderDetailAggregateResponse>
         {
@@ -121,7 +164,9 @@ public sealed class OrderDetailAggregateController : ControllerBase
     /// 从 order 节点结果中提取 userId，构造 User BC 查询请求。
     /// 若 order 失败或未包含 userId，返回 null 跳过该节点。
     /// </summary>
-    private static BffDownstreamRequest? BuildUserRequest(IReadOnlyDictionary<string, object?> ctx)
+    private static BffDownstreamRequest? BuildUserRequest(
+        IReadOnlyDictionary<string, object?> ctx,
+        string userCenterBase)
     {
         var order = ctx.GetJsonValue(OrderNode);
         if (order is null || !order.Value.TryGetProperty("userId", out var userIdElement))
@@ -132,7 +177,7 @@ public sealed class OrderDetailAggregateController : ControllerBase
         return new BffDownstreamRequest
         {
             Source = UserNode,
-            ServiceUrl = $"{UserServiceBase}/api/users/{userId:D}"
+            ServiceUrl = $"{userCenterBase}/api/users/{userId:D}"
         };
     }
 
@@ -142,6 +187,7 @@ public sealed class OrderDetailAggregateController : ControllerBase
     /// </summary>
     private static BffDownstreamRequest? BuildProductSnapshotRequest(
         IReadOnlyDictionary<string, object?> ctx,
+        string productBase,
         Guid orderId)
     {
         var items = ctx.GetJsonValue(ItemsNode);
@@ -169,7 +215,7 @@ public sealed class OrderDetailAggregateController : ControllerBase
             return new BffDownstreamRequest
             {
                 Source = ProductSnapshotNode,
-                ServiceUrl = $"{ProductServiceBase}/api/products/snapshot?ids={idsQuery}"
+                ServiceUrl = $"{productBase}/api/products/snapshot?ids={idsQuery}"
             };
         }
 
@@ -177,7 +223,7 @@ public sealed class OrderDetailAggregateController : ControllerBase
         return new BffDownstreamRequest
         {
             Source = ProductSnapshotNode,
-            ServiceUrl = $"{ProductServiceBase}/api/products/snapshot?orderId={orderId:D}"
+            ServiceUrl = $"{productBase}/api/products/snapshot?orderId={orderId:D}"
         };
     }
 }

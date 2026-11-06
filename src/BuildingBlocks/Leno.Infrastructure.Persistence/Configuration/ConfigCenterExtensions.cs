@@ -40,6 +40,44 @@ public static class ConfigCenterExtensions
     };
 
     /// <summary>
+    /// 所有服务都必须具备的敏感配置键（JWT 发现文档地址由每个 BC 校验令牌时使用）。
+    /// </summary>
+    private static readonly string[] SharedSensitiveConfigKeys =
+    {
+        "Jwt:DiscoveryUrl"
+    };
+
+    /// <summary>
+    /// 按 BC 归属的敏感配置键。未列出的 BC 只需满足 <see cref="SharedSensitiveConfigKeys"/>，
+    /// 避免把支付/短信/第三方登录密钥扩散到无关服务。
+    /// </summary>
+    private static readonly Dictionary<string, string[]> BcSensitiveConfigKeys =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Payment"] =
+            [
+                "Payment:Alipay:AppId",
+                "Payment:Alipay:PrivateKey",
+                "Payment:Alipay:PublicKey",
+                "Payment:WeChatPay:AppId",
+                "Payment:WeChatPay:MchId",
+                "Payment:WeChatPay:ApiKey"
+            ],
+            ["Notification"] =
+            [
+                "SMS:ApiKey",
+                "SMS:ApiSecret"
+            ],
+            ["Identity"] =
+            [
+                "OAuth2:WeChat:AppId",
+                "OAuth2:WeChat:AppSecret",
+                "OAuth2:Apple:ClientId",
+                "OAuth2:Apple:ClientSecret"
+            ]
+        };
+
+    /// <summary>
     /// 解析字符串中的 <c>${ENV_VAR}</c> 占位符。
     /// 若环境变量存在则替换；不存在则保留原占位符文本，便于排查缺失配置。
     /// </summary>
@@ -171,7 +209,7 @@ public static class ConfigCenterExtensions
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        var missing = SensitiveConfigKeys
+        var missing = GetRequiredSensitiveConfigKeys(configuration)
             .Where(key => string.IsNullOrWhiteSpace(configuration[key]))
             .ToList();
 
@@ -222,8 +260,32 @@ public static class ConfigCenterExtensions
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        return SensitiveConfigKeys
+        return GetRequiredSensitiveConfigKeys(configuration)
             .Where(key => string.IsNullOrWhiteSpace(configuration[key]))
             .ToList();
+    }
+
+    /// <summary>
+    /// 获取当前服务实际需要校验的敏感配置键。
+    /// <para>
+    /// 未配置 <c>Service:Name</c> 时保留历史行为（校验全部键），用于兼容既有测试与过渡期；
+    /// 配置后按 BC 收敛：支付密钥只校验 Payment，短信只校验 Notification，第三方登录只校验 Identity，
+    /// 其余 BC 仅校验 JWT 发现文档地址。
+    /// </para>
+    /// </summary>
+    private static IReadOnlyList<string> GetRequiredSensitiveConfigKeys(IConfiguration configuration)
+    {
+        var bcName = configuration["Service:Name"];
+        if (string.IsNullOrWhiteSpace(bcName))
+        {
+            return SensitiveConfigKeys;
+        }
+
+        if (!BcSensitiveConfigKeys.TryGetValue(bcName, out var bcKeys))
+        {
+            return SharedSensitiveConfigKeys;
+        }
+
+        return SharedSensitiveConfigKeys.Concat(bcKeys).ToList();
     }
 }

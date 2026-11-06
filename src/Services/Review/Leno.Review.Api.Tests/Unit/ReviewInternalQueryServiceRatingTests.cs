@@ -1,11 +1,12 @@
-using Leno.ReviewAfterSales.Application;
-using Leno.ReviewAfterSales.Application.InternalQueryServices;
-using Leno.ReviewAfterSales.Domain.Repositories;
-using Leno.ReviewAfterSales.Domain.ValueObjects;
+using Leno.Review.Application.InternalQueryServices;
+using Leno.Review.Domain.Repositories;
+using Leno.Review.Domain.ValueObjects;
 using Moq;
 using Xunit;
 
-namespace Leno.ReviewAfterSales.UnitTests.Application;
+using ReviewAggregate = Leno.Review.Domain.Aggregates.Review;
+
+namespace Leno.Review.Api.Tests.Unit;
 
 /// <summary>
 /// 审计 3.4：ReviewInternalQueryService.GetProductRatingAsync 加载全部 Approved 评价到内存计算聚合。
@@ -17,8 +18,8 @@ public sealed class ReviewInternalQueryServiceRatingTests
     public async Task GetProductRatingAsync_Should_Use_Sql_Snapshot_Not_Memory_Aggregation()
     {
         var spuId = Guid.NewGuid();
-        var repoMock = new Mock<IReviewRepository>();
-        repoMock.Setup(r => r.GetRatingSnapshotAsync(spuId, It.IsAny<CancellationToken>()))
+        var repositoryMock = new Mock<IReviewRepository>();
+        repositoryMock.Setup(r => r.GetRatingSnapshotAsync(spuId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ProductRatingSnapshot
             {
                 SpuId = spuId,
@@ -27,12 +28,12 @@ public sealed class ReviewInternalQueryServiceRatingTests
                 PositiveCount = 80
             });
         // 验证不再调用 GetBySpuIdAsync 加载全部评价到内存
-        repoMock.Setup(r => r.GetBySpuIdAsync(It.IsAny<Guid>(), It.IsAny<ReviewStatus?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Domain.Aggregates.Review>());
+        repositoryMock.Setup(r => r.GetBySpuIdAsync(It.IsAny<Guid>(), It.IsAny<ReviewStatus?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ReviewAggregate>());
 
-        var svc = new ReviewInternalQueryService(repoMock.Object);
+        var service = new ReviewInternalQueryService(repositoryMock.Object);
 
-        var dto = await svc.GetProductRatingAsync(spuId);
+        var dto = await service.GetProductRatingAsync(spuId);
 
         Assert.NotNull(dto);
         Assert.Equal(spuId, dto!.SpuId);
@@ -41,22 +42,22 @@ public sealed class ReviewInternalQueryServiceRatingTests
         Assert.Equal(80, dto.PositiveCount);
 
         // 必须调用仓储 GetRatingSnapshotAsync
-        repoMock.Verify(r => r.GetRatingSnapshotAsync(spuId, It.IsAny<CancellationToken>()), Times.Once);
+        repositoryMock.Verify(r => r.GetRatingSnapshotAsync(spuId, It.IsAny<CancellationToken>()), Times.Once);
         // 不应调用 GetBySpuIdAsync 加载全部评价到内存
-        repoMock.Verify(r => r.GetBySpuIdAsync(It.IsAny<Guid>(), It.IsAny<ReviewStatus?>(), It.IsAny<CancellationToken>()), Times.Never);
+        repositoryMock.Verify(r => r.GetBySpuIdAsync(It.IsAny<Guid>(), It.IsAny<ReviewStatus?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task GetProductRatingAsync_Should_Return_Null_When_Snapshot_Null()
     {
         var spuId = Guid.NewGuid();
-        var repoMock = new Mock<IReviewRepository>();
-        repoMock.Setup(r => r.GetRatingSnapshotAsync(spuId, It.IsAny<CancellationToken>()))
+        var repositoryMock = new Mock<IReviewRepository>();
+        repositoryMock.Setup(r => r.GetRatingSnapshotAsync(spuId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ProductRatingSnapshot?)null);
 
-        var svc = new ReviewInternalQueryService(repoMock.Object);
+        var service = new ReviewInternalQueryService(repositoryMock.Object);
 
-        var dto = await svc.GetProductRatingAsync(spuId);
+        var dto = await service.GetProductRatingAsync(spuId);
 
         Assert.Null(dto);
     }

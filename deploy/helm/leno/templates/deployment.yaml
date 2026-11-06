@@ -44,6 +44,20 @@ spec:
               value: {{ $.Values.global.environment | default "Production" }}
             - name: Service__Name
               value: {{ $name | quote }}
+            {{- if $service.grpcPort }}
+            {{/*
+              八、ACL gRPC 独立端口（与 docker-compose 对齐）：h2c 无 ALPN，gRPC 必须独占 HTTP/2 端口，
+              REST 独占 HTTP/1 端口；Rest 绑定 httpPort 与 service.yaml/probe 端口保持一致。
+            */}}
+            - name: Kestrel__Endpoints__Rest__Url
+              value: {{ printf "http://+:%v" ($service.httpPort | default $service.service.port) | quote }}
+            - name: Kestrel__Endpoints__Rest__Protocols
+              value: "Http1"
+            - name: Kestrel__Endpoints__Grpc__Url
+              value: {{ printf "http://+:%v" $service.grpcPort | quote }}
+            - name: Kestrel__Endpoints__Grpc__Protocols
+              value: "Http2"
+            {{- end }}
             - name: OpenTelemetry__OtlpEndpoint
               value: {{ $.Values.global.jaeger.otlpEndpoint | quote }}
             - name: Consul__Url
@@ -103,15 +117,30 @@ spec:
                   name: {{ $.Values.externalDependencies.elasticsearch.connectionstringSecret }}
                   key: uri
             {{/*
-              三、鉴权引导（P0-B）：代码读取键为 InternalAuth:ApiKey；JWT 验签（RS256）经 Identity JWKS；
-                secretKeyRef:
-                  name: leno-security-jwt
-                  key: secret-key
+              三、鉴权引导（P0-B）：代码读取键为 InternalAuth:ApiKey（内部 HTTP 鉴权）与
+              AntiCorruption:InternalApiKey（gRPC 服务端拦截器，fail-closed）。
+              两者统一取 leno-security-jwt/internal-api-key；跨 BC gRPC 客户端所需的
+              TargetInternalApiKeys 取同一 Secret 键，保证服务端/客户端密钥一致。
+            */}}
             - name: InternalAuth__ApiKey
               valueFrom:
                 secretKeyRef:
                   name: leno-security-jwt
                   key: internal-api-key
+            - name: AntiCorruption__InternalApiKey
+              valueFrom:
+                secretKeyRef:
+                  name: leno-security-jwt
+                  key: internal-api-key
+            {{- range $bcKey, $grpcTarget := $.Values.global.grpcEndpoints }}
+            - name: AntiCorruption__GrpcEndpoints__{{ $bcKey }}
+              value: {{ printf "http://%s-%s:%v" $.Release.Name $grpcTarget.service $grpcTarget.port | quote }}
+            - name: AntiCorruption__TargetInternalApiKeys__{{ $bcKey }}
+              valueFrom:
+                secretKeyRef:
+                  name: leno-security-jwt
+                  key: internal-api-key
+            {{- end }}
             {{/*
               四、服务间地址兜底（P0-B）：渲染为 K8s Service DNS；生产可用 Consul KV
               leno/config/ServiceUrls__* 覆盖。

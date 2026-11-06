@@ -33,24 +33,71 @@ $vLines = $values -split "`n"
 
 $services = @($manifest.gateway) + @($manifest.services)
 
+# ACL gRPC 客户端键 -> manifest.name（键与代码读取键 AntiCorruption:GrpcEndpoints:<Key> 一致）
+$bcKeyToName = @{
+  Product = 'product'; Cart = 'cart'; Order = 'order'; Promotion = 'promotion'
+  Payment = 'payment'; SellerShop = 'sellershop'; Points = 'points'
+  Review = 'review'; AccessControl = 'accesscontrol'; Inventory = 'inventory'; Identity = 'identity'
+}
+
+# 实际承载 gRPC 服务的 BC（MapGrpcService）；identity / aftersales 仅作为客户端，不校验 Grpc 监听端点
+$grpcServerNames = @('product', 'cart', 'order', 'promotion', 'payment', 'sellershop', 'points', 'review')
+
+# 按缩进定位 compose 服务块：从 "  <service>:" 起，到下一个两空格缩进的同级键为止
+function Get-ComposeServiceBlock {
+  param([string]$Text, [string]$ServiceName)
+  $start = $Text.IndexOf("`n  ${ServiceName}:")
+  if ($start -lt 0) { return $null }
+  $body = $Text.Substring($start + 1)
+  $next = [regex]::Match($body, "`r?`n  [a-z][a-z0-9-]*:\s*`r?`n")
+  if ($next.Success) { return $body.Substring(0, $next.Index) }
+  return $body
+}
+
 foreach ($svc in $services) {
   $name = $svc.name
   $composeName = $svc.composeService
   $httpPort = [int]$svc.httpPort
+  $grpcPort = if ($null -ne $svc.grpcPort) { [int]$svc.grpcPort } else { $null }
 
-  # 1) compose：定位服务块起点，向下找 "ddd:8080"
+  # 1) compose：宿主端口映射 + gRPC 独立端点 + 服务端内部钥
   $idx = $compose.IndexOf("  ${composeName}:")
   if ($idx -lt 0) {
     $fail.Add("compose 缺服务块：$composeName")
+    $block = $null
   }
   else {
-    $seg = $compose.Substring($idx, [Math]::Min(1200, $compose.Length - $idx))
-    $m = [regex]::Match($seg, '"(\d+):8080"')
+    $block = Get-ComposeServiceBlock -Text $compose -ServiceName $composeName
+    $m = [regex]::Match($block, '"(\d+):8080"')
     if (-not $m.Success) {
       $fail.Add("compose $composeName 未找到端口映射")
     }
     elseif ([int]$m.Groups[1].Value -ne $httpPort) {
       $fail.Add("compose $composeName 端口 $($m.Groups[1].Value) != manifest $httpPort")
+    }
+
+    if ($null -ne $grpcPort -and $grpcServerNames -contains $name) {
+      if ($block -notmatch "Kestrel__Endpoints__Grpc__Url=http://\+:$grpcPort(\s|`r?`n)") {
+        $fail.Add("compose $composeName 缺 gRPC 监听端点 Kestrel__Endpoints__Grpc__Url=http://+:$grpcPort")
+      }
+      if ($block -notmatch "Kestrel__Endpoints__Grpc__Protocols=Http2") {
+        $fail.Add("compose $composeName gRPC 端点协议必须为 Http2")
+      }
+      if ($block -notmatch "AntiCorruption__InternalApiKey=") {
+        $fail.Add("compose $composeName 缺 AntiCorruption__InternalApiKey（gRPC 服务端拦截器 fail-closed）")
+      }
+    }
+
+    # 客户端 gRPC 端点端口必须等于目标 BC 的 manifest grpcPort
+    foreach ($em in [regex]::Matches($block, "AntiCorruption__GrpcEndpoints__([A-Za-z]+)=http://[^:\s]+:(\d+)")) {
+      $key = $em.Groups[1].Value
+      $port = [int]$em.Groups[2].Value
+      if (-not $bcKeyToName.ContainsKey($key)) { continue }
+      $target = $manifest.services | Where-Object { $_.name -eq $bcKeyToName[$key] } | Select-Object -First 1
+      if (-not $target) { continue }
+      if ($port -ne [int]$target.grpcPort) {
+        $fail.Add("compose $composeName 端点 $key 端口 $port != manifest $($target.name) grpcPort $($target.grpcPort)")
+      }
     }
   }
 
@@ -155,11 +202,77 @@ if (Test-Path $kvSeedPath) {
   }
 }
 
+# 5) Consul KV 种子 AntiCorruption__GrpcEndpoints__*：主机名 == leno-<composeService>，端口 == manifest.grpcPort
+$kvGrpcChecked = 0
+if (Test-Path $kvSeedPath) {
+  $kvSeed = Get-Content $kvSeedPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  foreach ($entry in @($kvSeed.items)) {
+    if ($entry.key -notmatch '^AntiCorruption__GrpcEndpoints__([A-Za-z]+)$') { continue }
+    $key = $Matches[1]
+    if (-not $bcKeyToName.ContainsKey($key)) { continue }
+    $target = $manifest.services | Where-Object { $_.name -eq $bcKeyToName[$key] } | Select-Object -First 1
+    if (-not $target) { continue }
+    $url = [string]$entry.value
+    if ($url -match '^\$\{[^}]*\}$' -and $entry.PSObject.Properties['default']) {
+      $url = [string]$entry.default
+    }
+    $expectedHost = "leno-$($target.composeService)"
+    $expectedPort = [int]$target.grpcPort
+    $kvGrpcChecked++
+    $parsed = [regex]::Match($url, '^[A-Za-z][A-Za-z0-9+.-]*://([^/:?\s]+):(\d+)$')
+    if (-not $parsed.Success) {
+      $fail.Add("kv-seed.json $($entry.key) 值 '$url' 无法解析为 http://<host>:<port>（预期 ${expectedHost}:${expectedPort}）")
+      continue
+    }
+    if ($parsed.Groups[1].Value -ne $expectedHost) {
+      $fail.Add("kv-seed.json $($entry.key) 主机 $($parsed.Groups[1].Value) != 预期 $expectedHost")
+    }
+    if ([int]$parsed.Groups[2].Value -ne $expectedPort) {
+      $fail.Add("kv-seed.json $($entry.key) 端口 $($parsed.Groups[2].Value) != manifest $($target.name) grpcPort $expectedPort")
+    }
+  }
+}
+
+# 6) values.yaml global.grpcEndpoints.*：service == manifest.name，port == manifest.grpcPort
+$grpcEndpointChecked = 0
+for ($i = 0; $i -lt $vLines.Count; $i++) {
+  if ($vLines[$i] -match '^(\s*)grpcEndpoints:\s*$') {
+    $baseIndent = $Matches[1].Length
+    for ($j = $i + 1; $j -lt $vLines.Count; $j++) {
+      $line = $vLines[$j]
+      if ($line.Trim() -eq '' -or $line.TrimStart().StartsWith('#')) { continue }
+      $indent = $line.Length - $line.TrimStart().Length
+      if ($indent -le $baseIndent) { break }
+      if ($line -notmatch '^\s+([A-Za-z]+):\s*\{ service: "([a-z0-9-]+)", port: (\d+) \}\s*$') { continue }
+      $key = $Matches[1]
+      $serviceName = $Matches[2]
+      $port = [int]$Matches[3]
+      if (-not $bcKeyToName.ContainsKey($key)) {
+        $fail.Add("values.yaml global.grpcEndpoints.$key 未登记到 ACL 客户端键映射")
+        continue
+      }
+      $target = $manifest.services | Where-Object { $_.name -eq $bcKeyToName[$key] } | Select-Object -First 1
+      if (-not $target) {
+        $fail.Add("values.yaml global.grpcEndpoints.$key 在 manifest 中无对应服务")
+        continue
+      }
+      $grpcEndpointChecked++
+      if ($serviceName -ne $target.name) {
+        $fail.Add("values.yaml global.grpcEndpoints.$key service '$serviceName' != manifest $($target.name)")
+      }
+      if ($port -ne [int]$target.grpcPort) {
+        $fail.Add("values.yaml global.grpcEndpoints.$key port $port != manifest $($target.name) grpcPort $($target.grpcPort)")
+      }
+    }
+    break
+  }
+}
+
 if ($fail.Count -gt 0) {
   Write-Output "::error::服务端口三方一致性校验失败（共 $($fail.Count) 项）："
   foreach ($f in $fail) { Write-Output "  - $f" }
   exit 1
 }
 
-Write-Output "服务端口三方一致性校验通过：manifest / compose / Helm values / Consul KV 种子 ServiceUrls 全部一致（serviceUrls 枚举 $serviceUrlChecked 项、kv-seed 命中 $kvChecked 项，共 $($services.Count) 个服务）。"
+Write-Output "服务端口三方一致性校验通过：manifest / compose / Helm values / Consul KV 种子全部一致（serviceUrls 枚举 $serviceUrlChecked 项、grpcEndpoints 枚举 $grpcEndpointChecked 项、kv-seed ServiceUrls 命中 $kvChecked 项、kv-seed gRPC 端点命中 $kvGrpcChecked 项，共 $($services.Count) 个服务）。"
 exit 0

@@ -21,4 +21,14 @@ public sealed class BffOptions
     /// 超时仅影响该请求（标记 504），不影响其他并行请求。
     /// </summary>
     public TimeSpan PerRequestTimeout { get; set; } = TimeSpan.FromSeconds(3);
+
+    /// <summary>
+    /// BFF 下游服务寻址表：键为 <c>deploy/services.manifest.json</c> 中的服务名
+    /// （如 <c>order</c>、<c>usercenter</c>），值为该服务的基址 / Consul 注册名配置。
+    /// <para>
+    /// 显式 <see cref="BffServiceEndpoint.BaseUrl"/> 用于本地开发与 K8s；
+    /// 未配置时通过 <see cref="BffServiceEndpoint.ConsulServiceName"/> 做服务发现（compose 形态）。
+    /// </para>
+    /// </summary>
+    public Dictionary<string, BffServiceEndpoint> Services { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }

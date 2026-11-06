@@ -160,6 +160,51 @@
       "default": "http://leno-inventory-api:5265"
     },
     {
+      "key": "AntiCorruption__GrpcEndpoints__Product",
+      "value": "${LENO_GRPC_PRODUCT}",
+      "default": "http://leno-product-api:5252"
+    },
+    {
+      "key": "AntiCorruption__GrpcEndpoints__Cart",
+      "value": "${LENO_GRPC_CART}",
+      "default": "http://leno-cart-api:5253"
+    },
+    {
+      "key": "AntiCorruption__GrpcEndpoints__Order",
+      "value": "${LENO_GRPC_ORDER}",
+      "default": "http://leno-order-api:5254"
+    },
+    {
+      "key": "AntiCorruption__GrpcEndpoints__Promotion",
+      "value": "${LENO_GRPC_PROMOTION}",
+      "default": "http://leno-promotion-api:5255"
+    },
+    {
+      "key": "AntiCorruption__GrpcEndpoints__Payment",
+      "value": "${LENO_GRPC_PAYMENT}",
+      "default": "http://leno-payment-api:5256"
+    },
+    {
+      "key": "AntiCorruption__GrpcEndpoints__SellerShop",
+      "value": "${LENO_GRPC_SELLERSHOP}",
+      "default": "http://leno-seller-shop-api:5259"
+    },
+    {
+      "key": "AntiCorruption__GrpcEndpoints__Points",
+      "value": "${LENO_GRPC_POINTS}",
+      "default": "http://leno-points-api:5266"
+    },
+    {
+      "key": "AntiCorruption__GrpcEndpoints__Review",
+      "value": "${LENO_GRPC_REVIEW}",
+      "default": "http://leno-review-api:5268"
+    },
+    {
+      "key": "AntiCorruption__GrpcEndpoints__AccessControl",
+      "value": "${LENO_GRPC_ACCESSCONTROL}",
+      "default": "http://leno-access-control-api:5263"
+    },
+    {
       "key": "Payment__Alipay__AppId",
       "value": "${LENO_PAYMENT_ALIPAY_APPID}",
       "default": "local-placeholder"

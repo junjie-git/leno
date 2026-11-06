@@ -2,16 +2,15 @@ using System.Globalization;
 using Grpc.Core;
 using Leno.Payment.Application;
 using Leno.SharedContracts.Grpc.Payment.V1;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Leno.Payment.Api.GrpcServices;
 
 /// <summary>
 /// 支付域 gRPC 服务端（M4 双轨方案）。
 /// 复用 <see cref="IPaymentInternalQueryService"/> 业务逻辑，与 InternalPaymentsController HTTP 路径双轨。
-/// 鉴权由 GrpcInternalKeyInterceptor 拦截器统一处理（metadata x-internal-key）。
+/// 鉴权由 GrpcInternalKeyInterceptor 拦截器统一处理（metadata x-internal-key）；
+/// 不使用 [Authorize]：内部服务间调用只携带 x-internal-key，不携带用户 JWT。
 /// </summary>
-[Authorize]
 public sealed class PaymentGrpcService : PaymentInternalService.PaymentInternalServiceBase
 {
     private readonly IPaymentInternalQueryService _queryService;

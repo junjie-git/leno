@@ -50,6 +50,8 @@
     <PackageVersion Include="MassTransit.EntityFrameworkCore" Version="8.3.6" />
     <PackageVersion Include="MassTransit.Quartz" Version="8.3.6" />
     <PackageVersion Include="MassTransit.RabbitMQ" Version="8.3.6" />
+    <!-- RabbitMQ 客户端：MassTransit 8.3.6 传递引入 7.0.0，自研 RabbitMqHealthCheck 直接使用该 API，显式锁定版本 -->
+    <PackageVersion Include="RabbitMQ.Client" Version="7.0.0" />
     <PackageVersion Include="MassTransit.TestFramework" Version="8.3.6" />
     <PackageVersion Include="Quartz" Version="3.13.1" />
     <PackageVersion Include="Quartz.Extensions.Hosting" Version="3.13.1" />
@@ -87,7 +89,6 @@
 
   <!-- 健康检查 -->
     <PackageVersion Include="AspNetCore.HealthChecks.Elasticsearch" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.RabbitMQ" Version="8.0.2" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.2" />
     <PackageVersion Include="AspNetCore.HealthChecks.UI" Version="8.0.0" />

@@ -109,9 +109,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IChannelStatusQueryService, ChannelStatusQueryService>();
 
         // 订单支付上下文防腐层：注册 gRPC 客户端与 GrpcPaymentOrderAntiCorruptionService 实现。
-        // 默认从 AntiCorruption:GrpcEndpoints:Order 读取订单域 gRPC 端点；缺失时回退到本地开发地址 http://localhost:5154。
+        // 默认从 AntiCorruption:GrpcEndpoints:Order 读取订单域 gRPC 端点；缺失时回退到本地开发地址 http://localhost:5254。
         var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
-        var orderGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Order") ?? "http://localhost:5154";
+        var orderGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Order") ?? "http://localhost:5254";
         services.AddGrpcClient<OrderInternalService.OrderInternalServiceClient>(options =>
         {
             options.Address = new Uri(orderGrpcEndpoint);

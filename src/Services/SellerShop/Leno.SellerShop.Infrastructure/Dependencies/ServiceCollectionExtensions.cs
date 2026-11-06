@@ -77,9 +77,9 @@ public static class ServiceCollectionExtensions
         // M4 双轨方案：注册卖家域跨 BC 防腐层（gRPC 客户端）
         // 卖家归属校验（ValidateSellerOwnership）通过防腐层反查 Product/Order 域的卖家归属
         var antiCorruptionOptions = configuration.GetSection("AntiCorruption").Get<AntiCorruptionOptions>() ?? new AntiCorruptionOptions();
-        var productGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Product") ?? "http://localhost:5150";
-        var orderGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Order") ?? "http://localhost:5154";
-        var reviewGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Review") ?? "http://localhost:5152";
+        var productGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Product") ?? "http://localhost:5252";
+        var orderGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Order") ?? "http://localhost:5254";
+        var reviewGrpcEndpoint = antiCorruptionOptions.GrpcEndpoints.GetValueOrDefault("Review") ?? "http://localhost:5268";
 
         services.AddGrpcClient<ProductInternalService.ProductInternalServiceClient>(options =>
         {

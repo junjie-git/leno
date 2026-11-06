@@ -88,13 +88,13 @@ public sealed class EnvironmentKms : IKeyManagementService
             }
 
             var pem = ResolvePem(PublicKeyEnvVar, _options.RsaPublicKeyPem);
-            if (string.IsNullOrWhiteSpace(pem))
+            if (!IsPem(pem))
             {
-                // 若公钥未单独配置，从私钥推导
+                // 公钥未单独配置（或配置的是未被展开的占位符，如 "${JWT_RSA_PUBLIC_KEY_PEM}"）时，从私钥推导
                 if (_cachedPrivateKey is null)
                 {
                     var privPem = ResolvePem(PrivateKeyEnvVar, _options.RsaPrivateKeyPem);
-                    if (string.IsNullOrWhiteSpace(privPem))
+                    if (!IsPem(privPem))
                     {
                         throw new InvalidOperationException(
                             $"RSA 公钥与私钥均未配置。请设置环境变量 {PublicKeyEnvVar} 或 {PrivateKeyEnvVar}。");
@@ -154,9 +154,26 @@ public sealed class EnvironmentKms : IKeyManagementService
         var envValue = Environment.GetEnvironmentVariable(envVar);
         if (!string.IsNullOrWhiteSpace(envValue))
         {
-            return envValue.Trim();
+            return NormalizePem(envValue);
         }
 
-        return fallback?.Trim() ?? string.Empty;
+        return NormalizePem(fallback ?? string.Empty);
     }
+
+    /// <summary>
+    /// 还原以单行形态承载的 PEM：环境变量/配置中心常把换行写成 <c>\n</c> 转义，
+    /// 而 <see cref="RSA.ImportFromPem(string)"/> 要求真实换行，这里统一转换；
+    /// 已包含真实换行的标准 PEM 不受影响。
+    /// </summary>
+    private static string NormalizePem(string pem)
+        => pem.Replace("\\n", "\n", StringComparison.Ordinal).Trim();
+
+    /// <summary>
+    /// 判断配置值是否为可导入的 PEM 文本。
+    /// 除空值外，未展开的配置占位符（<c>${...}</c>）同样视为"未配置"，
+    /// 否则 <see cref="RSA.ImportFromPem(string)"/> 会抛出与真实原因无关的格式错误。
+    /// </summary>
+    private static bool IsPem(string pem)
+        => !string.IsNullOrWhiteSpace(pem)
+            && pem.Contains("-----BEGIN", StringComparison.Ordinal);
 }

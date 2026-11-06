@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Grpc.Core;
 using Leno.Identity.Domain.Aggregates;
+using Leno.Infrastructure.AntiCorruption;
 using Leno.Infrastructure.Security;
 using Leno.SharedContracts.Grpc.AccessControl.V1;
 using Microsoft.Extensions.Logging;
@@ -37,12 +38,19 @@ public sealed class JwtTokenService
     /// <summary>不透明刷新令牌的字节长度（256 位熵）。</summary>
     private const int RefreshTokenByteLength = 32;
 
+    /// <summary>AccessControl BC 在 <c>AntiCorruption:TargetInternalApiKeys</c> 中的目标键名。</summary>
+    private const string AccessControlBcName = "AccessControl";
+
+    /// <summary>BC 间 gRPC 调用的内部鉴权 metadata 头（与服务端 GrpcInternalKeyInterceptor 一致）。</summary>
+    private const string InternalKeyHeader = "x-internal-key";
+
     /// <summary>JWT 时钟偏移容忍窗口（与共享内核 JwtBearer 管线一致，缩短吊销生效窗口）。</summary>
     private static readonly TimeSpan ClockSkew = TimeSpan.FromSeconds(30);
 
     private readonly JwtOptions _options;
     private readonly IJwtSigningService _signingService;
     private readonly AccessControlService.AccessControlServiceClient _accessControlClient;
+    private readonly AntiCorruptionOptions? _antiCorruptionOptions;
     private readonly ILogger<JwtTokenService> _logger;
 
     /// <summary>
@@ -52,11 +60,16 @@ public sealed class JwtTokenService
     /// <param name="signingService">JWT 签名服务（HS256/RS256/Dual）。</param>
     /// <param name="accessControlClient">AccessControl BC gRPC 客户端。</param>
     /// <param name="logger">日志。</param>
+    /// <param name="antiCorruptionOptions">
+    /// 防腐层配置；提供 <c>AntiCorruption:TargetInternalApiKeys:AccessControl</c> 供调用 AccessControl 的
+    /// gRPC 请求注入 <c>x-internal-key</c> 头。未注册时（如单元测试）不注入，服务端将按未授权拒绝。
+    /// </param>
     public JwtTokenService(
         IOptions<JwtOptions> options,
         IJwtSigningService signingService,
         AccessControlService.AccessControlServiceClient accessControlClient,
-        ILogger<JwtTokenService> logger)
+        ILogger<JwtTokenService> logger,
+        IOptions<AntiCorruptionOptions>? antiCorruptionOptions = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(signingService);
@@ -66,6 +79,7 @@ public sealed class JwtTokenService
         _options = options.Value ?? throw new InvalidOperationException("Identity:Jwt 配置节缺失或绑定失败");
         _signingService = signingService;
         _accessControlClient = accessControlClient;
+        _antiCorruptionOptions = antiCorruptionOptions?.Value;
         _logger = logger;
 
         // RS256/Dual 模式的签名密钥由 IJwtSigningService + KMS 管理。
@@ -109,9 +123,17 @@ public sealed class JwtTokenService
         GetUserRolesResponse rolesResponse;
         try
         {
+            var callOptions = new CallOptions(cancellationToken: ct);
+            if (_antiCorruptionOptions is not null
+                && _antiCorruptionOptions.TargetInternalApiKeys.TryGetValue(AccessControlBcName, out var internalKey)
+                && !string.IsNullOrWhiteSpace(internalKey))
+            {
+                callOptions = callOptions.WithHeaders(new Metadata { { InternalKeyHeader, internalKey } });
+            }
+
             rolesResponse = await _accessControlClient.GetUserRolesAsync(
                 new GetUserRolesRequest { UserId = user.Id.ToString("D") },
-                cancellationToken: ct).ConfigureAwait(false);
+                callOptions).ConfigureAwait(false);
         }
         catch (RpcException ex)
         {

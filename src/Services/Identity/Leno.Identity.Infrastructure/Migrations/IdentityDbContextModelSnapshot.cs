@@ -17,7 +17,7 @@ namespace Leno.Identity.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -375,6 +375,10 @@ namespace Leno.Identity.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
 
+                    b.Property<Guid>("AggregateRootId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("aggregate_root_id");
+
                     b.Property<string>("Error")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("error");
@@ -406,6 +410,12 @@ namespace Leno.Identity.Infrastructure.Migrations
                         .HasDefaultValue(1)
                         .HasColumnName("schema_version");
 
+                    b.Property<int>("ShardKey")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("shard_key");
+
                     b.Property<int>("Status")
                         .HasColumnType("int")
                         .HasColumnName("status");
@@ -420,6 +430,9 @@ namespace Leno.Identity.Infrastructure.Migrations
 
                     b.HasIndex("Status")
                         .HasDatabaseName("ix_outbox_messages_status");
+
+                    b.HasIndex("ShardKey", "Status")
+                        .HasDatabaseName("ix_outbox_shard_status");
 
                     b.ToTable("outbox_messages", (string)null);
                 });

@@ -36,6 +36,10 @@ jobs:
         run: bash scripts/check-placeholders.sh
       - name: Unit tests with coverage
         run: dotnet test Leno.slnx --configuration Release --no-build --filter "Category!=Integration" --collect:"XPlat Code Coverage" --results-directory ./TestResults
+      # BFF DAG 编排测试此前位于 tests/ApiGateway 但未纳入 Leno.slnx，CI 从未执行；
+      # 现已入解决方案，这里显式执行以便失败时定位到具体 job step（不依赖覆盖率汇总）。
+      - name: BFF DAG orchestrator tests
+        run: dotnet test tests/ApiGateway/Leno.ApiGateway.Bff.Dag.Tests --configuration Release --no-build --filter "Category!=Integration"
       - name: Generate coverage report
         run: |
           dotnet tool install -g dotnet-reportgenerator-globaltool --version 5.4.0 || true

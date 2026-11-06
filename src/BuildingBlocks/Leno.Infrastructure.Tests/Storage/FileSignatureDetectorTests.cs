@@ -1,7 +1,7 @@
 using Leno.Infrastructure.Storage;
 using Xunit;
 
-namespace Leno.ReviewAfterSales.UnitTests.Infrastructure;
+namespace Leno.Infrastructure.Tests.Storage;
 
 /// <summary>
 /// 审计 3.11：图片上传仅校验扩展名，未校验文件内容/Magic Number。

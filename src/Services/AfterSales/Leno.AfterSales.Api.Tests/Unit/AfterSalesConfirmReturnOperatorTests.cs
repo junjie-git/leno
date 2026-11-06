@@ -1,23 +1,23 @@
-using Leno.ReviewAfterSales.Domain.Aggregates;
-using Leno.ReviewAfterSales.Domain.Exceptions;
-using Leno.ReviewAfterSales.Domain.ValueObjects;
+using Leno.AfterSales.Domain.Aggregates;
+using Leno.AfterSales.Domain.Exceptions;
+using Leno.AfterSales.Domain.ValueObjects;
 using Xunit;
 
-namespace Leno.ReviewAfterSales.UnitTests.Domain;
+namespace Leno.AfterSales.Api.Tests.Unit;
 
 /// <summary>
-/// 审计 3.2：AfterSales.ConfirmReturn 未记录操作人。
+/// 审计 3.2：售后聚合 ConfirmReturn 未记录操作人。
 /// 验证 ConfirmReturn(operatorId) 后 ReturnConfirmedBy == operatorId；operatorId == Guid.Empty 抛领域异常。
 /// </summary>
 public sealed class AfterSalesConfirmReturnOperatorTests
 {
-    private static AfterSales CreateReturnGoodsState()
+    private static AfterSalesOrder CreateReturnGoodsState()
     {
         var sellerId = Guid.NewGuid();
-        var afterSales = AfterSales.Create(
+        var afterSales = AfterSalesOrder.Create(
             Guid.NewGuid(), Guid.NewGuid(), null,
             userId: Guid.NewGuid(), sellerId: sellerId,
-            AfterSalesType.ReturnRefund, "quality", "broken", null, 10m, "CNY");
+            AfterSalesType.ReturnRefund, "quality", "broken", new List<string>(), 10m, "CNY");
         afterSales.Approve(sellerId, 10m);
         afterSales.ReturnGoods("TRACK001");
         return afterSales;
@@ -40,7 +40,7 @@ public sealed class AfterSalesConfirmReturnOperatorTests
     {
         var afterSales = CreateReturnGoodsState();
 
-        var ex = Assert.Throws<ReviewDomainException>(() => afterSales.ConfirmReturn(Guid.Empty));
-        Assert.Equal("AFTERSALES_OPERATOR_EMPTY", ex.ErrorCode);
+        var exception = Assert.Throws<AfterSalesDomainException>(() => afterSales.ConfirmReturn(Guid.Empty));
+        Assert.Equal("AFTERSALES_OPERATOR_EMPTY", exception.ErrorCode);
     }
 }

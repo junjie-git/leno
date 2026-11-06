@@ -49,7 +49,12 @@
          （MissingMethodException: AbstractionsStrings.ArgumentIsEmpty），显式提升至 10.x 统一版本 -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
     <PackageReference Include="AspNetCore.HealthChecks.SqlServer" />
-    <PackageReference Include="AspNetCore.HealthChecks.RabbitMQ" />
+    <!--
+      RabbitMQ 就绪探针改为自研 RabbitMqHealthCheck（HealthChecks/RabbitMqHealthCheck.cs），直接使用
+      RabbitMQ.Client v7 API。原 AspNetCore.HealthChecks.RabbitMQ 8.0.2 引用 v6 的 IModel 类型，
+      与 MassTransit 8.3.6 传递引入的 RabbitMQ.Client 7.0.0 不兼容，探针执行即抛 TypeLoadException。
+    -->
+    <PackageReference Include="RabbitMQ.Client" />
     <PackageReference Include="AspNetCore.HealthChecks.Redis" />
     <PackageReference Include="AspNetCore.HealthChecks.Elasticsearch" />
     <PackageReference Include="AspNetCore.HealthChecks.Uris" />

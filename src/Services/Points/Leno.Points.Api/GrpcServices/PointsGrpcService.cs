@@ -2,7 +2,6 @@ using Grpc.Core;
 using Leno.Points.Application;
 using Leno.Points.Domain.Repositories;
 using Leno.SharedContracts.Grpc.Points.V1;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Leno.Points.Api.GrpcServices;
 
@@ -10,9 +9,9 @@ namespace Leno.Points.Api.GrpcServices;
 /// 积分域 gRPC 服务端（域拆分后新 Points 域重建）。
 /// 复用 <see cref="IPointsInternalAppService"/> 与 <see cref="IPointsAccountRepository"/> 业务逻辑，
 /// 与 InternalPointsController HTTP 路径双轨（HTTP+gRPC 双轨重建，参见 Spec §2.2.1）。
-/// 鉴权由 GrpcInternalKeyInterceptor 拦截器统一处理（metadata x-internal-key）。
+/// 鉴权由 GrpcInternalKeyInterceptor 拦截器统一处理（metadata x-internal-key）；
+/// 不使用 [Authorize]：内部服务间调用只携带 x-internal-key，不携带用户 JWT。
 /// </summary>
-[Authorize]
 public sealed class PointsGrpcService : PointsInternalService.PointsInternalServiceBase
 {
     /// <summary>积分抵扣换算率：100 积分 = 1 元（与 PointsAccount 聚合保持一致）。</summary>

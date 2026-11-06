@@ -60,7 +60,10 @@ public sealed class JwksController : ControllerBase
         {
             try
             {
-                using var rsa = await _kms.GetPublicKeyAsync(keyId, ct).ConfigureAwait(false);
+                // 注意：KMS（EnvironmentKms / AzureKeyVaultKms）内部缓存并复用 RSA 实例，
+                // 调用方不得释放，否则第二次请求会抛 ObjectDisposedException 导致 JWKS 返回 500，
+                // 进而使网关/下游服务的 JwtBearer 拿不到签名公钥（IDX10500）。
+                var rsa = await _kms.GetPublicKeyAsync(keyId, ct).ConfigureAwait(false);
                 var p = rsa.ExportParameters(includePrivateParameters: false);
                 if (p.Modulus is null || p.Exponent is null)
                 {

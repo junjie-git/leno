@@ -1,7 +1,6 @@
 using Grpc.Core;
 using Leno.Promotion.Application;
 using Leno.SharedContracts.Grpc.Promotion.V1;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Leno.Promotion.Api.GrpcServices;
 
@@ -9,9 +8,9 @@ namespace Leno.Promotion.Api.GrpcServices;
 /// 促销域 gRPC 服务端（M4 双轨方案）。
 /// 复用 <see cref="IPromotionCalculateAppService"/> 与 <see cref="ICouponAppService"/> 应用层逻辑，
 /// 与 InternalPromotionController HTTP 路径双轨。
-/// 鉴权由 GrpcInternalKeyInterceptor 拦截器统一处理（metadata x-internal-key）。
+/// 鉴权由 GrpcInternalKeyInterceptor 拦截器统一处理（metadata x-internal-key）；
+/// 不使用 [Authorize]：内部服务间调用只携带 x-internal-key，不携带用户 JWT。
 /// </summary>
-[Authorize]
 public sealed class PromotionGrpcService : PromotionInternalService.PromotionInternalServiceBase
 {
     private readonly IPromotionCalculateAppService _calculateService;

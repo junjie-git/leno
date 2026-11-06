@@ -1,16 +1,15 @@
 using Grpc.Core;
 using Leno.Review.Application;
 using Leno.SharedContracts.Grpc.Review.V1;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Leno.Review.Api.GrpcServices;
 
 /// <summary>
 /// 评价域 gRPC 服务端（评价 BC 独立维护，M4 双轨方案）。
 /// 复用 <see cref="IReviewInternalQueryService"/> 业务逻辑，与内部 HTTP 路径双轨。
-/// 鉴权由 GrpcInternalKeyInterceptor 拦截器统一处理（metadata x-internal-key）。
+/// 鉴权由 GrpcInternalKeyInterceptor 拦截器统一处理（metadata x-internal-key）；
+/// 不使用 [Authorize]：内部服务间调用只携带 x-internal-key，不携带用户 JWT。
 /// </summary>
-[Authorize]
 public sealed class ReviewGrpcService : ReviewInternalService.ReviewInternalServiceBase
 {
     private readonly IReviewInternalQueryService _queryService;
